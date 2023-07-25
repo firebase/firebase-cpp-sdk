@@ -38,7 +38,7 @@ const char* GetConsentRequestErrorMessage(ConsentRequestError error_code) {
     case kConsentRequestErrorTagForAgeOfConsentNotSet:
       return "You must explicitly call "
              "ConsentRequestParameters.set_tag_for_under_age_of_consent() "
-             "before calling RequestConsentStatus()";
+             "before calling RequestConsentInfoUpdate()";
     case kConsentRequestErrorInternal:
       return "Internal error";
     case kConsentRequestErrorCodeMisconfiguration:
@@ -47,7 +47,7 @@ const char* GetConsentRequestErrorMessage(ConsentRequestError error_code) {
       return "Unknown error";
     case kConsentRequestErrorOperationInProgress:
       return "Operation already in progress. Please wait for it to finish by "
-             "checking RequestConsentStatusLastResult().";
+             "checking RequestConsentInfoUpdateLastResult().";
     default:
       return "Bad error code";
   }

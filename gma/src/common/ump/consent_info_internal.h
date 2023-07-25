@@ -30,7 +30,7 @@ namespace internal {
 
 // Constants representing each ConsentInfo function that returns a Future.
 enum ConsentInfoFn {
-  kConsentInfoFnRequestConsentStatus,
+  kConsentInfoFnRequestConsentInfoUpdate,
   kConsentInfoFnLoadConsentForm,
   kConsentInfoFnShowConsentForm,
   kConsentInfoFnLoadAndShowConsentFormIfRequired,
@@ -49,41 +49,40 @@ class ConsentInfoInternal {
   virtual ConsentStatus GetConsentStatus() const = 0;
   virtual ConsentFormStatus GetConsentFormStatus() const = 0;
 
-  virtual Future<ConsentStatus> RequestConsentStatus(
+  virtual Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) = 0;
-  Future<ConsentStatus> RequestConsentStatusLastResult() {
-    return static_cast<const Future<ConsentStatus>&>(
-        futures()->LastResult(kConsentInfoFnRequestConsentStatus));
+  Future<void> RequestConsentInfoUpdateLastResult() {
+    return static_cast<const Future<void>&>(
+        futures()->LastResult(kConsentInfoFnRequestConsentInfoUpdate));
   }
-  virtual Future<ConsentFormStatus> LoadConsentForm() = 0;
+  virtual Future<void> LoadConsentForm() = 0;
 
-  Future<ConsentFormStatus> LoadConsentFormLastResult() {
-    return static_cast<const Future<ConsentFormStatus>&>(
+  Future<void> LoadConsentFormLastResult() {
+    return static_cast<const Future<void>&>(
         futures()->LastResult(kConsentInfoFnLoadConsentForm));
   }
 
-  virtual Future<ConsentStatus> ShowConsentForm(FormParent parent) = 0;
+  virtual Future<void> ShowConsentForm(FormParent parent) = 0;
 
-  Future<ConsentStatus> ShowConsentFormLastResult() {
-    return static_cast<const Future<ConsentStatus>&>(
+  Future<void> ShowConsentFormLastResult() {
+    return static_cast<const Future<void>&>(
         futures()->LastResult(kConsentInfoFnShowConsentForm));
   }
 
-  virtual Future<ConsentStatus> LoadAndShowConsentFormIfRequired(
-      FormParent parent) = 0;
+  virtual Future<void> LoadAndShowConsentFormIfRequired(FormParent parent) = 0;
 
-  Future<ConsentStatus> LoadAndShowConsentFormIfRequiredLastResult() {
-    return static_cast<const Future<ConsentStatus>&>(
+  Future<void> LoadAndShowConsentFormIfRequiredLastResult() {
+    return static_cast<const Future<void>&>(
         futures()->LastResult(kConsentInfoFnLoadAndShowConsentFormIfRequired));
   }
 
   virtual PrivacyOptionsRequirementStatus
   GetPrivacyOptionsRequirementStatus() = 0;
 
-  virtual Future<ConsentStatus> ShowPrivacyOptionsForm(FormParent parent) = 0;
+  virtual Future<void> ShowPrivacyOptionsForm(FormParent parent) = 0;
 
-  Future<ConsentStatus> ShowPrivacyOptionsFormLastResult() {
-    return static_cast<const Future<ConsentStatus>&>(
+  Future<void> ShowPrivacyOptionsFormLastResult() {
+    return static_cast<const Future<void>&>(
         futures()->LastResult(kConsentInfoFnShowPrivacyOptionsForm));
   }
 
@@ -94,40 +93,23 @@ class ConsentInfoInternal {
  protected:
   ConsentInfoInternal();
 
-  template <typename T>
-  SafeFutureHandle<T> CreateFuture() {
-    return futures()->SafeAlloc<T>();
-  }
-  template <typename T>
-  SafeFutureHandle<T> CreateFuture(ConsentInfoFn fn_idx) {
-    return futures()->SafeAlloc<T>(fn_idx);
+  SafeFutureHandle<void> CreateFuture() { return futures()->SafeAlloc<void>(); }
+  SafeFutureHandle<void> CreateFuture(ConsentInfoFn fn_idx) {
+    return futures()->SafeAlloc<void>(fn_idx);
   }
 
-  // With result and automatically generated error message.
-  template <typename T>
-  void CompleteFuture(SafeFutureHandle<T> handle, ConsentRequestError error,
-                      T& result) {
-    return futures()->CompleteWithResult<T>(
-        handle, error, GetConsentRequestErrorMessage(error), result);
+  // Complete a Future<void> with the given error code.
+  void CompleteFuture(SafeFutureHandle<void> handle, ConsentRequestError error,
+                      const char* message = nullptr) {
+    return futures()->Complete(
+        handle, error,
+        message ? message : GetConsentRequestErrorMessage(error));
   }
-  template <typename T>
-  void CompleteFuture(SafeFutureHandle<T> handle, ConsentFormError error,
-                      T& result) {
-    return futures()->CompleteWithResult<T>(
-        handle, error, GetConsentFormErrorMessage(error), result);
-  }
-
-  // No result data, just an error code.
-  template <typename T>
-  void CompleteFuture(SafeFutureHandle<T> handle, ConsentRequestError error) {
-    return futures()->Complete(handle, error,
-                               GetConsentRequestErrorMessage(error));
-  }
-  // No result data, just an error code.
-  template <typename T>
-  void CompleteFuture(SafeFutureHandle<T> handle, ConsentFormError error) {
-    return futures()->Complete(handle, error,
-                               GetConsentFormErrorMessage(error));
+  // Complete the future with the given error code.
+  void CompleteFuture(SafeFutureHandle<void> handle, ConsentFormError error,
+                      const char* message = nullptr) {
+    return futures()->Complete(
+        handle, error, message ? message : GetConsentFormErrorMessage(error));
   }
 
   ReferenceCountedFutureImpl* futures() { return &futures_; }

@@ -46,7 +46,7 @@ enum ConsentDebugGeography {
   kConsentDebugGeographyNonEEA
 };
 
-/// Debug settings for `ConsentInfo::RequestConsentStatus()`. These let you
+/// Debug settings for `ConsentInfo::RequestConsentInfoUpdate()`. These let you
 /// force a speific geographic location. Be sure to include debug device IDs to
 /// enable this on hardware. Debug features are always enabled for simulators.
 struct ConsentDebugSettings {
@@ -60,9 +60,9 @@ struct ConsentDebugSettings {
   std::vector<std::string> debug_device_ids;
 };
 
-/// Parameters for the `ConsentInfo::RequestConsentStatus()` operation. You must
-/// explicitly set the age of consent tag (to true or false) or the operation
-/// will fail.
+/// Parameters for the `ConsentInfo::RequestConsentInfoUpdate()` operation. You
+/// must explicitly set the age of consent tag (to true or false) or the
+/// operation will fail.
 class ConsentRequestParameters {
  public:
   ConsentRequestParameters()
@@ -140,7 +140,7 @@ enum ConsentStatus {
   kConsentStatusObtained
 };
 
-/// Errors that can occur during a RequestConsentStatus operation.
+/// Errors that can occur during a RequestConsentInfoUpdate operation.
 enum ConsentRequestError {
   /// The operation succeeded.
   kConsentRequestSuccess = 0,
@@ -159,14 +159,15 @@ enum ConsentRequestError {
   /// An unknown error occurred.
   kConsentRequestErrorUnknown,
   /// The operation is already in progress. Use
-  /// `ConsentInfo::RequestConsentStatusLastResult()`
+  /// `ConsentInfo::RequestConsentInfoUpdateLastResult()`
   /// to get the status.
   kConsentRequestErrorOperationInProgress
 };
 
 /// Status of the consent form, whether it is available to show or not.
 enum ConsentFormStatus {
-  /// Status is unknown. Call `ConsentInfo::RequestConsentStatus()` to update
+  /// Status is unknown. Call `ConsentInfo::RequestConsentInfoUpdate()` to
+  /// update
   /// this.
   kConsentFormStatusUnknown = 0,
   /// The consent form is unavailable. Call `ConsentInfo::LoadConsentForm()` to

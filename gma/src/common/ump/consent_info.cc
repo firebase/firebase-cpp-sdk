@@ -42,6 +42,8 @@ ConsentInfo* ConsentInfo::GetInstance(const ::firebase::App& app,
 }
 
 #if FIREBASE_PLATFORM_ANDROID
+ConsentInfo* ConsentInfo::GetInstance() { return s_instance_; }
+
 ConsentInfo* ConsentInfo::GetInstance(JNIEnv* jni_env, jobject activity,
                                       ::firebase::InitResult* init_result_out) {
 #else  // !FIREBASE_PLATFORM_ANDROID
@@ -84,7 +86,7 @@ ConsentInfo::~ConsentInfo() {
 }
 
 InitResult ConsentInfo::Initialize() {
-  FIREBASE_ASSERT(internal_ == nullptr);
+  FIREBASE_ASSERT(!internal_);
   internal_ = internal::ConsentInfoInternal::CreateInstance();
   return kInitResultSuccess;
 }
@@ -103,46 +105,44 @@ ConsentFormStatus ConsentInfo::GetConsentFormStatus() {
   return internal_->GetConsentFormStatus();
 }
 
-Future<ConsentStatus> ConsentInfo::RequestConsentStatus(
+Future<void> ConsentInfo::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
-  if (!internal_) return Future<ConsentStatus>();
-  return internal_->RequestConsentStatus(params);
+  if (!internal_) return Future<void>();
+  return internal_->RequestConsentInfoUpdate(params);
 }
 
-Future<ConsentStatus> ConsentInfo::RequestConsentStatusLastResult() {
-  if (!internal_) return Future<ConsentStatus>();
-  return internal_->RequestConsentStatusLastResult();
+Future<void> ConsentInfo::RequestConsentInfoUpdateLastResult() {
+  if (!internal_) return Future<void>();
+  return internal_->RequestConsentInfoUpdateLastResult();
 }
 
-Future<ConsentFormStatus> ConsentInfo::LoadConsentForm() {
-  if (!internal_) return Future<ConsentFormStatus>();
+Future<void> ConsentInfo::LoadConsentForm() {
+  if (!internal_) return Future<void>();
   return internal_->LoadConsentForm();
 }
 
-Future<ConsentFormStatus> ConsentInfo::LoadConsentFormLastResult() {
-  if (!internal_) return Future<ConsentFormStatus>();
+Future<void> ConsentInfo::LoadConsentFormLastResult() {
+  if (!internal_) return Future<void>();
   return internal_->LoadConsentFormLastResult();
 }
 
-Future<ConsentStatus> ConsentInfo::ShowConsentForm(FormParent parent) {
-  if (!internal_) return Future<ConsentStatus>();
+Future<void> ConsentInfo::ShowConsentForm(FormParent parent) {
+  if (!internal_) return Future<void>();
   return internal_->ShowConsentForm(parent);
 }
 
-Future<ConsentStatus> ConsentInfo::ShowConsentFormLastResult() {
-  if (!internal_) return Future<ConsentStatus>();
+Future<void> ConsentInfo::ShowConsentFormLastResult() {
+  if (!internal_) return Future<void>();
   return internal_->ShowConsentFormLastResult();
 }
 
-Future<ConsentStatus> ConsentInfo::LoadAndShowConsentFormIfRequired(
-    FormParent parent) {
-  if (!internal_) return Future<ConsentStatus>();
+Future<void> ConsentInfo::LoadAndShowConsentFormIfRequired(FormParent parent) {
+  if (!internal_) return Future<void>();
   return internal_->LoadAndShowConsentFormIfRequired(parent);
 }
 
-Future<ConsentStatus>
-ConsentInfo::LoadAndShowConsentFormIfRequiredLastResult() {
-  if (!internal_) return Future<ConsentStatus>();
+Future<void> ConsentInfo::LoadAndShowConsentFormIfRequiredLastResult() {
+  if (!internal_) return Future<void>();
   return internal_->LoadAndShowConsentFormIfRequiredLastResult();
 }
 
@@ -152,9 +152,14 @@ ConsentInfo::GetPrivacyOptionsRequirementStatus() {
   return internal_->GetPrivacyOptionsRequirementStatus();
 }
 
-Future<ConsentStatus> ConsentInfo::ShowPrivacyOptionsForm(FormParent parent) {
-  if (!internal_) return Future<ConsentStatus>();
+Future<void> ConsentInfo::ShowPrivacyOptionsForm(FormParent parent) {
+  if (!internal_) return Future<void>();
   return internal_->ShowPrivacyOptionsForm(parent);
+}
+
+Future<void> ConsentInfo::ShowPrivacyOptionsFormLastResult() {
+  if (!internal_) return Future<void>();
+  return internal_->ShowPrivacyOptionsFormLastResult();
 }
 
 bool ConsentInfo::CanRequestAds() {

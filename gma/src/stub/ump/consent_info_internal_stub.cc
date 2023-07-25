@@ -37,15 +37,14 @@ ConsentInfoInternalStub::ConsentInfoInternalStub()
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
-Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
+Future<void> ConsentInfoInternalStub::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
-  SafeFutureHandle<ConsentStatus> handle =
-      CreateFuture<ConsentStatus>(kConsentInfoFnRequestConsentStatus);
+  SafeFutureHandle<void> handle =
+      CreateFuture(kConsentInfoFnRequestConsentInfoUpdate);
 
   if (!params.has_tag_for_under_age_of_consent()) {
-    CompleteFuture<ConsentStatus>(
-        handle, kConsentRequestErrorTagForAgeOfConsentNotSet, consent_status_);
-    return MakeFuture<ConsentStatus>(futures(), handle);
+    CompleteFuture(handle, kConsentRequestErrorTagForAgeOfConsentNotSet);
+    return MakeFuture<void>(futures(), handle);
   }
 
   ConsentStatus new_consent_status = kConsentStatusObtained;
@@ -70,43 +69,36 @@ Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
         kPrivacyOptionsRequirementStatusNotRequired;
   }
 
-  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
-                                consent_status_);
-  return MakeFuture<ConsentStatus>(futures(), handle);
+  CompleteFuture(handle, kConsentRequestSuccess);
+  return MakeFuture<void>(futures(), handle);
 }
 
-Future<ConsentFormStatus> ConsentInfoInternalStub::LoadConsentForm() {
-  SafeFutureHandle<ConsentFormStatus> handle =
-      CreateFuture<ConsentFormStatus>(kConsentInfoFnLoadConsentForm);
+Future<void> ConsentInfoInternalStub::LoadConsentForm() {
+  SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
 
   consent_form_status_ = kConsentFormStatusAvailable;
-  CompleteFuture<ConsentFormStatus>(handle, kConsentFormSuccess,
-                                    consent_form_status_);
-  return MakeFuture<ConsentFormStatus>(futures(), handle);
+  CompleteFuture(handle, kConsentFormSuccess);
+  return MakeFuture<void>(futures(), handle);
 }
 
-Future<ConsentStatus> ConsentInfoInternalStub::ShowConsentForm(
-    FormParent parent) {
-  SafeFutureHandle<ConsentStatus> handle =
-      CreateFuture<ConsentStatus>(kConsentInfoFnShowConsentForm);
+Future<void> ConsentInfoInternalStub::ShowConsentForm(FormParent parent) {
+  SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
 
   consent_status_ = kConsentStatusObtained;
-  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
-                                consent_status_);
-  return MakeFuture<ConsentStatus>(futures(), handle);
+  CompleteFuture(handle, kConsentRequestSuccess);
+  return MakeFuture<void>(futures(), handle);
 }
 
-Future<ConsentStatus> ConsentInfoInternalStub::LoadAndShowConsentFormIfRequired(
+Future<void> ConsentInfoInternalStub::LoadAndShowConsentFormIfRequired(
     FormParent parent) {
-  SafeFutureHandle<ConsentStatus> handle = CreateFuture<ConsentStatus>(
-      kConsentInfoFnLoadAndShowConsentFormIfRequired);
+  SafeFutureHandle<void> handle =
+      CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
 
   if (consent_status_ == kConsentStatusRequired) {
     consent_status_ = kConsentStatusObtained;
   }
-  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
-                                consent_status_);
-  return MakeFuture<ConsentStatus>(futures(), handle);
+  CompleteFuture(handle, kConsentRequestSuccess);
+  return MakeFuture<void>(futures(), handle);
 }
 
 PrivacyOptionsRequirementStatus
@@ -114,17 +106,16 @@ ConsentInfoInternalStub::GetPrivacyOptionsRequirementStatus() {
   return privacy_options_requirement_status_;
 }
 
-Future<ConsentStatus> ConsentInfoInternalStub::ShowPrivacyOptionsForm(
+Future<void> ConsentInfoInternalStub::ShowPrivacyOptionsForm(
     FormParent parent) {
-  SafeFutureHandle<ConsentStatus> handle =
-      CreateFuture<ConsentStatus>(kConsentInfoFnShowPrivacyOptionsForm);
+  SafeFutureHandle<void> handle =
+      CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
 
   if (consent_status_ == kConsentStatusObtained) {
     consent_status_ = kConsentStatusRequired;
   }
-  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
-                                consent_status_);
-  return MakeFuture<ConsentStatus>(futures(), handle);
+  CompleteFuture(handle, kConsentRequestSuccess);
+  return MakeFuture<void>(futures(), handle);
 }
 
 bool ConsentInfoInternalStub::CanRequestAds() {

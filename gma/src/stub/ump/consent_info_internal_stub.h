@@ -34,20 +34,17 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
     return consent_form_status_;
   }
 
-  Future<ConsentStatus> RequestConsentStatus(
+  Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) override;
-  Future<ConsentFormStatus> LoadConsentForm() override;
-  Future<ConsentStatus> ShowConsentForm(FormParent parent) override;
+  Future<void> LoadConsentForm() override;
+  Future<void> ShowConsentForm(FormParent parent) override;
 
-  virtual Future<ConsentStatus> LoadAndShowConsentFormIfRequired(
-      FormParent parent) override;
+  Future<void> LoadAndShowConsentFormIfRequired(FormParent parent) override;
 
-  virtual PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus()
-      override;
-  virtual Future<ConsentStatus> ShowPrivacyOptionsForm(
-      FormParent parent) override;
+  PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus() override;
+  Future<void> ShowPrivacyOptionsForm(FormParent parent) override;
 
-  virtual bool CanRequestAds() override;
+  bool CanRequestAds() override;
 
   void Reset() override;
 
