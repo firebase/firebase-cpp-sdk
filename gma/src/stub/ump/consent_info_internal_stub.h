@@ -24,6 +24,24 @@ namespace gma {
 namespace ump {
 namespace internal {
 
+// The stub interface implements a few specific workflows, for testing:
+//
+// Before requesting: consent and privacy options will be Unknown.
+//
+// If debug_geography == EEA, consent will be Required and will change to
+// Obtained once the consent form is "shown". Privacy options will be Required,
+// and when the privacy options form is shown, consent will go back to Required.
+//
+// If debug_geography == NotEEA, consent will be NotRequired. No privacy options
+// form is required.
+//
+// If debug_geography == Disabled, consent will be Obtained and privacy options
+// will be NotRequired.
+//
+// If tag_for_under_age_of_consent = true, LoadConsentForm and
+// LoadAndShowConsentFormIfRequired will fail with kConsentFormErrorUnavailable.
+//
+// CanRequestAds returns true if consent is NotRequired or Obtained.
 class ConsentInfoInternalStub : public ConsentInfoInternal {
  public:
   ConsentInfoInternalStub();

@@ -33,7 +33,8 @@ ConsentInfoInternalStub::ConsentInfoInternalStub()
     : consent_status_(kConsentStatusUnknown),
       consent_form_status_(kConsentFormStatusUnknown),
       privacy_options_requirement_status_(
-          kPrivacyOptionsRequirementStatusUnknown) {}
+          kPrivacyOptionsRequirementStatusUnknown),
+      under_age_of_consent_(false) {}
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
@@ -42,7 +43,10 @@ Future<void> ConsentInfoInternalStub::RequestConsentInfoUpdate(
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnRequestConsentInfoUpdate);
 
+  // See the header file for an explanation of these default settings.
   ConsentStatus new_consent_status = kConsentStatusObtained;
+  PrivacyOptionsRequirementStatus new_privacy_req =
+      kPrivacyOptionsRequirementStatusNotRequired;
   // Simulate consent status based on debug geo.
   if (params.debug_settings.debug_geography == kConsentDebugGeographyEEA) {
     new_consent_status = kConsentStatusRequired;
@@ -57,12 +61,11 @@ Future<void> ConsentInfoInternalStub::RequestConsentInfoUpdate(
 
   // Simulate privacy options based on geo.
   if (params.debug_settings.debug_geography == kConsentDebugGeographyEEA) {
-    privacy_options_requirement_status_ =
-        kPrivacyOptionsRequirementStatusRequired;
+    new_privacy_req = kPrivacyOptionsRequirementStatusRequired;
   } else {
-    privacy_options_requirement_status_ =
-        kPrivacyOptionsRequirementStatusNotRequired;
+    new_privacy_req = kPrivacyOptionsRequirementStatusNotRequired;
   }
+  privacy_options_requirement_status_ = new_privacy_req;
 
   CompleteFuture(handle, kConsentRequestSuccess);
   return MakeFuture<void>(futures(), handle);
