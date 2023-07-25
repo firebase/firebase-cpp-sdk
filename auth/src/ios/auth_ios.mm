@@ -41,6 +41,9 @@
 namespace firebase {
 namespace auth {
 
+const char *const kEmulatorLocalHost = "localhost";
+const char *const kEmulatorPort = "9099";
+
 static const struct {
   int ios_error;
   AuthError cpp_error;
@@ -154,6 +157,24 @@ void UpdateCurrentUser(AuthData *auth_data) {
   SetUserImpl(auth_data, user);
 }
 
+void CheckEmulator(AuthData *auth_data) {
+  // Use emulator as long as this env variable is set, regardless its value.
+  if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
+    LogDebug("Using Firestore Prod for testing.");
+    return;
+  }
+
+  // Use AUTH_EMULATOR_PORT if it is set to non empty string,
+  // otherwise use the default port.
+  uint32_t port = std::stoi(kEmulatorPort);
+  if (std::getenv("AUTH_EMULATOR_PORT") != nullptr) {
+    port = std::stoi(std::getenv("AUTH_EMULATOR_PORT"));
+  }
+
+  NSUInteger ns_port = port;
+  [AuthImpl(auth_data_) useEmulatorWithHost:@(kEmulatorLocalHost) port:ns_port];
+}
+
 // Platform-specific method to initialize AuthData.
 void Auth::InitPlatformAuth(AuthData *auth_data) {
   FIRCPPAuthListenerHandle *listener_cpp_handle = [[FIRCPPAuthListenerHandle alloc] init];
@@ -191,6 +212,8 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   // It's possible for the user to be signed-in at creation, if the user signed-in during a
   // previous run, for example.
   UpdateCurrentUser(auth_data);
+
+  CheckEmulator(auth_data);
 }
 
 // Platform-specific method to destroy the wrapped Auth class.
@@ -662,13 +685,6 @@ void Auth::SignOut() {
   [AuthImpl(auth_data_) signOut:&error];
   SetUserImpl(auth_data_, NULL);
 }
-
-void Auth::UseEmulator(const std::string host, uint32_t port) {
-  NSUInteger ns_port = port;
-  [AuthImpl(auth_data_) useEmulatorWithHost:@(host.c_str()) port:ns_port];
-}
-
-std::string Auth::GetEmulatorUrl() { return ""; }
 
 Future<void> Auth::SendPasswordResetEmail(const char *email) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;

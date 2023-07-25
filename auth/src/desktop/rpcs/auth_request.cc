@@ -23,13 +23,10 @@
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "firebase/auth.h"
 #include "firebase/log.h"
 
 namespace firebase {
 namespace auth {
-
-using ::firebase::auth::Auth;
 
 // Key name for header when sending language code data.
 const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
@@ -41,6 +38,8 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
   // dependencies upon other parts of this library.  This complication is due to
   // the way the tests are currently configured where each library has minimal
   // dependencies.
+
+  CheckEmulator();
   static std::string auth_user_agent;           // NOLINT
   static std::string extended_auth_user_agent;  // NOLINT
   static Mutex* user_agent_mutex = new Mutex();
@@ -79,10 +78,6 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
       }
     }
   }
-
-  // Get emulator url
-  Auth* auth = Auth::GetAuth(&app);
-  emulator_url = auth->GetEmulatorUrl();
 }
 
 std::string AuthRequest::GetUrl() {
@@ -97,6 +92,28 @@ std::string AuthRequest::GetUrl() {
     url += kServerURL;
     LogDebug("AuthRequest::GetUrl(Emulator): %s", url.c_str());
     return url;
+  }
+}
+
+void AuthRequest::CheckEmulator() {
+  if (!emulator_url.empty()) {
+    LogDebug("Emulator Url already set: %s", emulator_url.c_str());
+    return;
+  }
+  // Use emulator as long as this env variable is set, regardless its value.
+  if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
+    LogDebug("Using Firestore Prod for testing.");
+    return;
+  }
+
+  emulator_url.append(kEmulatorLocalHost);
+  emulator_url.append(":");
+  // Use AUTH_EMULATOR_PORT if it is set to non empty string,
+  // otherwise use the default port.
+  if (std::getenv("AUTH_EMULATOR_PORT") == nullptr) {
+    emulator_url.append(kEmulatorPort);
+  } else {
+    emulator_url.append(std::getenv("AUTH_EMULATOR_PORT"));
   }
 }
 

@@ -37,6 +37,9 @@ const char* const kHttp = "http://";
 const char* const kServerURL =
     "www.googleapis.com/identitytoolkit/v3/relyingparty/";
 
+const char* const kEmulatorLocalHost = "localhost";
+const char* const kEmulatorPort = "9099";
+
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
@@ -52,6 +55,7 @@ class AuthRequest
   std::string GetUrl();
 
  private:
+  void CheckEmulator();
   std::string emulator_url;
 };
 

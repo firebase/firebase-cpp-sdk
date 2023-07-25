@@ -644,23 +644,6 @@ void Auth::SignOut() {
   AuthenticationResult::SignOut(auth_data_);
 }
 
-void Auth::UseEmulator(const std::string host, uint32_t port) {
-  if (!auth_data_) return;
-  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
-  auth_impl->emulator_host = host;
-  auth_impl->emulator_port = port;
-}
-
-std::string Auth::GetEmulatorUrl() {
-  if (!auth_data_) return "";
-  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
-  if (auth_impl->emulator_host.empty()) {
-    return "";
-  }
-  return auth_impl->emulator_host + ":" +
-         std::to_string(auth_impl->emulator_port) + "/";
-}
-
 // AuthStateListener to wait for current_user_DEPRECATED() until persistent
 // cache load is finished.
 class CurrentUserBlockListener : public firebase::auth::AuthStateListener {

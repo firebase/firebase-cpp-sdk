@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_DESKTOP_H_
 
 #include <memory>
+#include <string>
 
 #include "app/rest/request.h"
 #include "app/src/scheduler.h"
@@ -187,9 +188,6 @@ struct AuthImpl {
   // The current user language code. This can be set to the app’s current
   // language by calling SetLanguageCode.
   std::string language_code;
-
-  std::string emulator_host;
-  int32_t emulator_port;
 };
 
 // Constant, describing how often we automatically fetch a new auth token.

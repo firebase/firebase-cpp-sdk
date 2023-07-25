@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <jni.h>
 
+#include <string>
+
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -186,6 +188,31 @@ void UpdateCurrentUser(AuthData* auth_data) {
   }
 }
 
+const char* const kEmulatorLocalHost = "10.0.2.2";
+const char* const kEmulatorPort = "9099";
+void CheckEmulator(AuthData* auth_data) {
+  JNIEnv* env = Env(auth_data);
+
+  // Use emulator as long as this env variable is set, regardless its value.
+  if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
+    LogDebug("Using Firestore Prod for testing.");
+    return;
+  }
+
+  // Use AUTH_EMULATOR_PORT if it is set to non empty string,
+  // otherwise use the default port.
+  uint32_t port = std::stoi(kEmulatorPort);
+  if (std::getenv("AUTH_EMULATOR_PORT") != nullptr) {
+    port = std::stoi(std::getenv("AUTH_EMULATOR_PORT"));
+  }
+
+  jstring j_host = env->NewStringUTF(kEmulatorLocalHost);
+  env->CallVoidMethod(AuthImpl(auth_data),
+                      auth::GetMethodId(auth::kUseEmulator), j_host, port);
+  env->DeleteLocalRef(j_host);
+  firebase::util::CheckAndClearJniExceptions(env);
+}
+
 // Release cached Java classes.
 static void ReleaseClasses(JNIEnv* env) {
   ReleaseAuthClasses(env);
@@ -270,6 +297,8 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
   // Ensure our User is in-line with underlying API's user.
   // It's possible for a user to already be logged-in on start-up.
   UpdateCurrentUser(auth_data);
+
+  CheckEmulator(auth_data);
 }
 
 void Auth::DestroyPlatformAuth(AuthData* auth_data) {
@@ -774,17 +803,6 @@ void Auth::SignOut() {
   MutexLock lock(auth_data_->future_impl.mutex());
   SetImplFromLocalRef(env, nullptr, &auth_data_->user_impl);
 }
-
-void Auth::UseEmulator(const std::string host, uint32_t port) {
-  JNIEnv* env = Env(auth_data_);
-  jstring j_host = env->NewStringUTF(host.c_str());
-  env->CallVoidMethod(AuthImpl(auth_data_),
-                      auth::GetMethodId(auth::kUseEmulator), j_host, port);
-  env->DeleteLocalRef(j_host);
-  firebase::util::CheckAndClearJniExceptions(env);
-}
-
-std::string Auth::GetEmulatorUrl() { return ""; }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
