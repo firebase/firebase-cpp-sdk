@@ -250,7 +250,7 @@ Firebase Functions         | firebase_functions.xcframework
 |                          | Firebase/Auth Cocoapod (10.12.0)
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (10.12.0)
+|                          | Firebase/CoreOnly Cocoapod (10.12.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (10.8.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
@@ -312,7 +312,7 @@ Firebase Functions         | libfirebase_functions.a
 |                          | Firebase/Auth Cocoapod (10.12.0)
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (10.12.0)
+|                          | Firebase/CoreOnly Cocoapod (10.12.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (10.8.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -627,6 +627,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Firestore: Add support for disjunctions in queries (OR queries)
+      ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
+
 ### 11.3.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.2.0.
