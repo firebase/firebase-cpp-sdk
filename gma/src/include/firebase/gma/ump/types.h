@@ -64,7 +64,10 @@ struct ConsentDebugSettings {
 struct ConsentRequestParameters {
   ConsentRequestParameters() : tag_for_under_age_of_consent(false) {}
 
+  /// Debug settings for the consent request.
   ConsentDebugSettings debug_settings;
+
+  /// Whether the user is under the age of consent.
   bool tag_for_under_age_of_consent;
 };
 
