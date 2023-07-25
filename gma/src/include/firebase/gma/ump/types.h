@@ -113,7 +113,7 @@ enum ConsentRequestError {
   kConsentRequestErrorNetwork,
   /// An internal error occurred.
   kConsentRequestErrorInternal,
-  /// This error is undocumented.
+  /// A misconfiguration exists in the UI.
   kConsentRequestErrorCodeMisconfiguration,
   /// An unknown error occurred.
   kConsentRequestErrorUnknown,

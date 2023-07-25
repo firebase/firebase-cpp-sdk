@@ -38,11 +38,11 @@ const char* GetConsentRequestErrorMessage(ConsentRequestError error_code) {
     case kConsentRequestErrorInternal:
       return "Internal error";
     case kConsentRequestErrorCodeMisconfiguration:
-      return "Code misconfiguration error";
+      return "A misconfiguration exists in the UI";
     case kConsentRequestErrorUnknown:
       return "Unknown error";
     case kConsentRequestErrorInvalidOperation:
-      return "Invalid operation. Please try again..";
+      return "Invalid operation";
     case kConsentRequestErrorOperationInProgress:
       return "Operation already in progress. Please wait for it to finish by "
              "checking RequestConsentInfoUpdateLastResult().";
