@@ -140,7 +140,6 @@ enum ConsentFormStatus {
 
 /// Errors when loading or showing the consent form.
 enum ConsentFormError {
-
   /// The operation succeeded.
   kConsentFormSuccess = 0,
   /// The load request timed out. Try again.
