@@ -40,6 +40,7 @@ using jni::Local;
 using jni::Object;
 using jni::StaticMethod;
 
+jclass filter_class = nullptr;
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Filter";
 StaticMethod<Object> kEqualTo(
@@ -75,11 +76,11 @@ StaticMethod<Object> kArrayContainsAny(
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
     "Lcom/google/firebase/firestore/Filter;");
 StaticMethod<Object> kIn(
-    "in",
+    "inArray",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
     "Lcom/google/firebase/firestore/Filter;");
 StaticMethod<Object> kNotIn(
-    "notIn",
+    "notInArray",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
     "Lcom/google/firebase/firestore/Filter;");
 StaticMethod<Object> kAnd("and",
@@ -91,13 +92,17 @@ StaticMethod<Object> kOr("or",
 }  // namespace
 
 void FilterInternal::Initialize(jni::Loader& loader) {
+  filter_class = loader.LoadClass(kClassName);
   loader.LoadClass(kClassName, kEqualTo, kNotEqualTo, kLessThan,
                    kLessThanOrEqualTo, kGreaterThan, kGreaterThanOrEqualTo,
                    kArrayContains, kArrayContainsAny, kIn, kNotIn, kAnd, kOr);
 }
 
-FilterInternal::FilterInternal(jni::Object&& object, bool is_empty)
-    : object_(object), is_empty_(is_empty) {}
+FilterInternal::FilterInternal(const jni::Object& obj, bool is_empty)
+    : is_empty_(is_empty) {
+  Env env = GetEnv();
+  obj_.reset(env, obj);
+}
 
 Filter FilterInternal::EqualTo(const FieldPath& field,
                                const FieldValue& value) {
@@ -164,9 +169,9 @@ Filter FilterInternal::Where(const FieldPath& field,
                              const FieldValue& value) {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Object filter =
+  Local<Object> filter =
       env.Call(method, java_field, FieldValueInternal::ToJava(value));
-  return Filter(new FilterInternal(std::move(filter), false));
+  return Filter(new FilterInternal(filter, false));
 }
 
 Filter FilterInternal::Where(const FieldPath& field,
@@ -180,25 +185,30 @@ Filter FilterInternal::Where(const FieldPath& field,
   }
 
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Object filter = env.Call(method, java_field, java_values);
-  return Filter(new FilterInternal(std::move(filter), false));
+  Local<Object> filter = env.Call(method, java_field, java_values);
+  return Filter(new FilterInternal(filter, false));
 }
 
 Filter FilterInternal::Where(const StaticMethod<Object>& method,
                              const std::vector<Filter>& filters) {
   Env env = GetEnv();
   size_t size = filters.size();
-  Local<Array<Object>> java_filters = env.NewArray(size, Object::GetClass());
+  auto java_filters = env.NewArray(size, filter_class);
   bool is_empty = true;
   for (int i = 0; i < size; ++i) {
     FilterInternal* internal_filter = filters[i].internal_;
     if (!internal_filter->IsEmpty()) {
       is_empty = false;
     }
-    java_filters.Set(env, i, internal_filter->object_);
+    java_filters.Set(env, i, internal_filter->ToJava());
   }
-  Object filter = env.Call(method, java_filters);
-  return Filter(new FilterInternal(std::move(filter), is_empty));
+  Local<Object> filter = env.Call(method, java_filters);
+  return Filter(new FilterInternal(filter, is_empty));
+}
+
+Local<Object> FilterInternal::ToJava() const {
+  Env env = GetEnv();
+  return obj_.get(env);
 }
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs) {
