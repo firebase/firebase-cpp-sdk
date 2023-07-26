@@ -307,6 +307,10 @@ firebase::Variant FirebaseGmaTest::GetVariantMap() {
   return variant_map;
 }
 
+FirebaseGmaMinimalTest::FirebaseGmaMinimalTest() {}
+
+FirebaseGmaMinimalTest::~FirebaseGmaMinimalTest() {}
+
 FirebaseGmaUITest::FirebaseGmaUITest() {}
 
 FirebaseGmaUITest::~FirebaseGmaUITest() {}
@@ -347,6 +351,8 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 // Test cases below.
 
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
+  // TODO(almostmatt): Disabling mediation initialization to not mess up next test on iOS. 
+  firebase::gma::DisableMediationInitialization();
   LogDebug("Initializing GMA without a Firebase App.");
   firebase::InitResult result;
 #if defined(ANDROID)
