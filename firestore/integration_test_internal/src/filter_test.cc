@@ -23,9 +23,7 @@ namespace {
 
 using FilterTest = FirestoreIntegrationTest;
 
-#if false
-
-TEST_F(FilterTest, CopyConstructorReturnsEqualObject) {
+TEST_F(FilterTest, DISABLED_CopyConstructorReturnsEqualObject) {
   const Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
   const Filter filter2a = Filter::ArrayContainsAny(
       "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
@@ -40,7 +38,7 @@ TEST_F(FilterTest, CopyConstructorReturnsEqualObject) {
   EXPECT_EQ(filter3a, filter3b);
 }
 
-TEST_F(FilterTest, CopyAssignementReturnsEqualObject) {
+TEST_F(FilterTest, DISABLED_CopyAssignementReturnsEqualObject) {
   const Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
   const Filter filter2 = Filter::ArrayContainsAny(
       "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
@@ -71,7 +69,7 @@ TEST_F(FilterTest, CopyAssignementReturnsEqualObject) {
   EXPECT_EQ(filter, filter3);
 }
 
-TEST_F(FilterTest, MoveConstructorReturnsEqualObject) {
+TEST_F(FilterTest, DISABLED_MoveConstructorReturnsEqualObject) {
   Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2a = Filter::ArrayContainsAny(
       "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
@@ -89,7 +87,7 @@ TEST_F(FilterTest, MoveConstructorReturnsEqualObject) {
   EXPECT_EQ(filter3b, Filter::And(filter1b, filter2b));
 }
 
-TEST_F(FilterTest, MoveAssignmentReturnsEqualObject) {
+TEST_F(FilterTest, DISABLED_MoveAssignmentReturnsEqualObject) {
   Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2a = Filter::ArrayContainsAny(
       "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
@@ -107,7 +105,7 @@ TEST_F(FilterTest, MoveAssignmentReturnsEqualObject) {
   EXPECT_EQ(filter3b, Filter::And(filter1b, filter2b));
 }
 
-TEST_F(FilterTest, MoveAssignmentAppliedToSelfReturnsEqualObject) {
+TEST_F(FilterTest, DISABLED_MoveAssignmentAppliedToSelfReturnsEqualObject) {
   Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2 = Filter::ArrayContainsAny(
       "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
@@ -124,7 +122,7 @@ TEST_F(FilterTest, MoveAssignmentAppliedToSelfReturnsEqualObject) {
   EXPECT_EQ(filter3, Filter::And(filter1, filter2));
 }
 
-TEST_F(FilterTest, IdenticalFilterShouldBeEqual) {
+TEST_F(FilterTest, DISABLED_IdenticalFilterShouldBeEqual) {
   FieldPath foo_path{std::vector<std::string>{"foo"}};
 
   Filter filter1a = Filter::ArrayContains("foo", FieldValue::Integer(42));
@@ -289,7 +287,7 @@ TEST_F(FilterTest, IdenticalFilterShouldBeEqual) {
   EXPECT_TRUE(filter11a != filter12a);
 }
 
-TEST_F(FilterTest, DifferentValuesAreNotEqual) {
+TEST_F(FilterTest, DISABLED_DifferentValuesAreNotEqual) {
   Filter filter1a = Filter::ArrayContains("foo", FieldValue::Integer(24));
   Filter filter1b = Filter::ArrayContains("foo", FieldValue::Integer(42));
   Filter filter1c = Filter::ArrayContains("bar", FieldValue::Integer(42));
@@ -352,7 +350,7 @@ TEST_F(FilterTest, DifferentValuesAreNotEqual) {
   EXPECT_TRUE(filter7b != filter7c);
 }
 
-TEST_F(FilterTest, CompositesWithOneFilterAreTheSameAsFilter) {
+TEST_F(FilterTest, DISABLED_CompositesWithOneFilterAreTheSameAsFilter) {
   Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2 = Filter::Or(filter1);
   Filter filter3 = Filter::And(filter1);
@@ -364,7 +362,7 @@ TEST_F(FilterTest, CompositesWithOneFilterAreTheSameAsFilter) {
   EXPECT_FALSE(filter1 != filter3);
 }
 
-TEST_F(FilterTest, EmptyCompositeIsIgnoredByCompositesAndQueries) {
+TEST_F(FilterTest, DISABLED_EmptyCompositeIsIgnoredByCompositesAndQueries) {
   Filter filter1 = Filter::And();
   Filter filter2 = Filter::And(Filter::And(), Filter::And());
   Filter filter3 = Filter::And(Filter::Or(), Filter::Or());
@@ -394,7 +392,7 @@ TEST_F(FilterTest, EmptyCompositeIsIgnoredByCompositesAndQueries) {
   EXPECT_EQ(collection, query6);
 }
 
-TEST_F(FilterTest, CompositeComparison) {
+TEST_F(FilterTest, DISABLED_CompositeComparison) {
   Filter filter1 = Filter::ArrayContains("foo", FieldValue::Integer(42));
   Filter filter2 = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter3 = Filter::NotEqualTo("foo", FieldValue::Integer(42));
@@ -442,7 +440,7 @@ TEST_F(FilterTest, CompositeComparison) {
   EXPECT_NE(or3, or4);
 }
 
-TEST_F(FilterTest, QueryWhereComposite) {
+TEST_F(FilterTest, DISABLED_QueryWhereComposite) {
   MapFieldValue doc_aaa = {{"x", FieldValue::String("a")},
                            {"y", FieldValue::String("a")},
                            {"z", FieldValue::String("a")}};
@@ -527,7 +525,7 @@ TEST_F(FilterTest, QueryWhereComposite) {
             QuerySnapshotToValues(snapshot7));
 }
 
-TEST_F(FilterTest, QueryEmptyWhereComposite) {
+TEST_F(FilterTest, DISABLED_QueryEmptyWhereComposite) {
   MapFieldValue doc = {{"foo", FieldValue::String("bar")}};
   CollectionReference collection = Collection({{"x", doc}});
 
@@ -545,8 +543,6 @@ TEST_F(FilterTest, QueryEmptyWhereComposite) {
       ReadDocuments(collection.Where(Filter::Or(Filter::And(), Filter::And())));
   EXPECT_EQ(std::vector<MapFieldValue>({doc}), QuerySnapshotToValues(s4));
 }
-
-#endif
 
 }  // namespace
 
