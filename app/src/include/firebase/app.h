@@ -26,6 +26,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #ifdef __OBJC__
@@ -569,6 +570,12 @@ class App {
 
   /// Get the App with the given name, or nullptr if none have been created.
   static App* GetInstance(const char* name);
+
+#if !defined(DOXYGEN)
+  // Hidden from the public documentation for now
+  /// Get all the apps, including the default one.
+  static std::vector<App*> GetApps();
+#endif  // !defined(DOXYGEN)
 
 #ifndef SWIG
 // <SWIG>

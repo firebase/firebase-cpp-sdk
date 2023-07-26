@@ -115,9 +115,9 @@ const char kTestNameSpaceShort[] = "firebase_test";
 class UserSecureInternalTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    user_secure_test_helper_ = MakeUnique<USER_SECURE_TEST_HELPER>();
+    user_secure_test_helper_ = std::make_unique<USER_SECURE_TEST_HELPER>();
     user_secure_ =
-        MakeUnique<USER_SECURE_TYPE>(kDomain, USER_SECURE_TEST_NAMESPACE);
+        std::make_unique<USER_SECURE_TYPE>(kDomain, USER_SECURE_TEST_NAMESPACE);
     CleanUpTestData();
   }
 
@@ -129,8 +129,8 @@ class UserSecureInternalTest : public ::testing::Test {
 
   void CleanUpTestData() { user_secure_->DeleteAllData(); }
 
-  UniquePtr<USER_SECURE_TYPE> user_secure_;
-  UniquePtr<USER_SECURE_TEST_HELPER> user_secure_test_helper_;
+  std::unique_ptr<USER_SECURE_TYPE> user_secure_;
+  std::unique_ptr<USER_SECURE_TEST_HELPER> user_secure_test_helper_;
 };
 
 TEST_F(UserSecureInternalTest, NoData) {
@@ -250,8 +250,9 @@ TEST_F(UserSecureInternalTest, SetLargeDataThenDeleteIt) {
 
 TEST_F(UserSecureInternalTest, TestMultipleDomains) {
   // Set up an alternate UserSecureInternal with a different domain.
-  UniquePtr<USER_SECURE_TYPE> alt_user_secure = MakeUnique<USER_SECURE_TYPE>(
-      "alternate_test", USER_SECURE_TEST_NAMESPACE);
+  std::unique_ptr<USER_SECURE_TYPE> alt_user_secure =
+      std::make_unique<USER_SECURE_TYPE>("alternate_test",
+                                         USER_SECURE_TEST_NAMESPACE);
   alt_user_secure->DeleteAllData();
 
   user_secure_->SaveUserData(kAppName1, kUserData1);

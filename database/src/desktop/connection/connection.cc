@@ -50,7 +50,7 @@ const char* const Connection::kServerHelloTimestamp = "ts";
 const char* const Connection::kServerHelloHost = "h";
 const char* const Connection::kServerHelloSessionId = "s";
 
-compat::Atomic<uint32_t> Connection::next_log_id_(0);
+std::atomic<uint32_t> Connection::next_log_id_(0);
 
 Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                        const char* opt_last_session_id,

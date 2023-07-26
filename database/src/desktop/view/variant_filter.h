@@ -15,7 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VARIANT_FILTER_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VARIANT_FILTER_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"

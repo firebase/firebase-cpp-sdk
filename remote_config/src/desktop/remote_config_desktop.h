@@ -225,7 +225,7 @@ class RemoteConfigInternal {
   scheduler::Scheduler scheduler_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the SharedPtr never
+  // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<RemoteConfigInternal> ThisRef;
   typedef firebase::internal::SafeReferenceLock<RemoteConfigInternal>

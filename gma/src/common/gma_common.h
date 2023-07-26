@@ -26,6 +26,7 @@
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "gma/src/include/firebase/gma/internal/native_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
@@ -37,10 +38,14 @@ extern const char* kAdAlreadyInitializedErrorMessage;
 extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
 extern const char* kAdUninitializedErrorMessage;
+extern const char* kImageUrlMalformedErrorMessage;
+extern const char* kUnsupportedVariantTypeErrorMessage;
+extern const char* kRecordImpressionFailureErrorMessage;
 
 namespace internal {
 class AdViewInternal;
-}
+class NativeAdInternal;
+}  // namespace internal
 
 // Determine whether GMA is initialized.
 bool IsInitialized();
@@ -98,13 +103,19 @@ Future<AdResult> CreateAndCompleteFutureWithResult(int fn_idx, int error,
                                                    FutureData* future_data,
                                                    const AdResult& result);
 
+// For calls that aren't asynchronous, create and complete a future with a
+// result at the same time.
+Future<ImageResult> CreateAndCompleteFutureWithImageResult(
+    int fn_idx, int error, const char* error_msg, FutureData* future_data,
+    const ImageResult& result);
+
 template <class T>
 struct FutureCallbackData {
   FutureData* future_data;
   SafeFutureHandle<T> future_handle;
 };
 
-// Constructs a FutureCallbbackData instance to handle operations that return
+// Constructs a FutureCallbackData instance to handle operations that return
 // void Futures.
 FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
                                                        FutureData* future_data);
@@ -112,6 +123,11 @@ FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
 // Constructs a FutureCallbackData instance to handle results from LoadAd.
 // requests.
 FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
+    int fn_idx, FutureData* future_data);
+
+// Constructs a FutureCallbackData instance to handle results from LoadImage.
+// requests.
+FutureCallbackData<ImageResult>* CreateImageResultFutureCallbackData(
     int fn_idx, FutureData* future_data);
 
 // Template function implementations.
@@ -141,6 +157,16 @@ class GmaInternal {
       const std::string& error_message,
       const AdErrorInternal& ad_error_internal);
 
+  // Completes an ImageResult future with a successful result.
+  static void CompleteLoadImageFutureSuccess(
+      FutureCallbackData<ImageResult>* callback_data,
+      const std::vector<unsigned char>& img_data);
+
+  // Completes an ImageResult future as an error.
+  static void CompleteLoadImageFutureFailure(
+      FutureCallbackData<ImageResult>* callback_data, int error_code,
+      const std::string& error_message);
+
   // Constructs and returns an AdError object given an AdErrorInternal object.
   static AdError CreateAdError(const AdErrorInternal& ad_error_internal);
 
@@ -168,6 +194,14 @@ class GmaInternal {
   // This is done through the GmaInternal since it's a friend of AdViewInternal.
   static void UpdateAdViewInternalAdSizeDimensions(
       internal::AdViewInternal* ad_view_internal, int width, int height);
+
+  // Add to the NativeAdInternal's image assets, after the native ad has loaded.
+  // This is done through the GmaInternal since it's a friend of
+  // NativeAdInternal.
+  static void InsertNativeInternalImage(
+      internal::NativeAdInternal* native_ad_internal,
+      const NativeAdImageInternal& native_image_internal, const bool& is_icon,
+      const bool& clear_existing_images);
 };
 
 }  // namespace gma

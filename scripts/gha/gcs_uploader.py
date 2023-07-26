@@ -15,7 +15,7 @@
 """Command line tool for submitting artifacts to Google Cloud Storage.
 
 Example usage:
-  python gcs_uploader.py --testapp_dir <dir> --key_file <path>
+  python3 gcs_uploader.py --testapp_dir <dir> --key_file <path>
 
 This will find desktop integration test artifacts in the testapp directory
 and upload them to a suitable location on GCS.

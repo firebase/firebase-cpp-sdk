@@ -83,7 +83,7 @@ WebSocketClientImpl::WebSocketClientImpl(
   process_queue_async_->start(ProcessCallbackQueue);
 
   // Start the event loop
-  thread_ = MakeUnique<Thread>(EventLoopRoutine, this);
+  thread_ = std::make_unique<Thread>(EventLoopRoutine, this);
 }
 
 void WebSocketClientImpl::EventLoopRoutine(void* data) {

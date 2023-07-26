@@ -18,15 +18,18 @@
 
 #include <string.h>
 
+#include <codecvt>
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/semaphore.h"
@@ -35,17 +38,30 @@
 namespace firebase {
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
-namespace {
-
-// Size is arbitrary, just making sure that there is a sane limit.
-static const int kMaxBuffersize = 1024 * 500;
+namespace internal {
 
 // Attempts to load a config file from the path specified, and use it to
 // populate the AppOptions pointer.  Returns true on success, false otherwise.
-static bool LoadAppOptionsFromJsonConfigFile(const char* path,
-                                             AppOptions* options) {
+bool LoadAppOptionsFromJsonConfigFile(const char* path, AppOptions* options) {
+  // Size is arbitrary, just making sure that there is a sane limit.
+  static const int kMaxBuffersize = 1024 * 500;
+
   bool loaded_options = false;
+#if FIREBASE_PLATFORM_WINDOWS
+  // Convert the path from UTF-8 to UTF-16 before opening on Windows.
+  std::wstring path_utf16;
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>
+      utf16_converter;
+  try {
+    path_utf16 = utf16_converter.from_bytes(path);
+  } catch (std::range_error& ex) {
+    LogError("Can't convert path '%s' to UTF-16: %s", path, ex.what());
+    return false;
+  }
+  std::ifstream infile(path_utf16.c_str(), std::ifstream::binary);
+#else
   std::ifstream infile(path, std::ifstream::binary);
+#endif  // FIREBASE_PLATFORM_WINDOWS
   if (infile) {
     infile.seekg(0, infile.end);
     int file_length = infile.tellg();
@@ -70,7 +86,7 @@ static bool LoadAppOptionsFromJsonConfigFile(const char* path,
   return loaded_options;
 }
 
-}  // namespace
+}  // namespace internal
 
 // Searches internal::g_default_config_path for filenames matching
 // kDefaultGoogleServicesNames attempting to load the app options from each
@@ -91,7 +107,8 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   for (size_t i = 0; i < number_of_config_filenames; i++) {
     std::string full_path =
         internal::g_default_config_path + kDefaultGoogleServicesNames[i];
-    if (LoadAppOptionsFromJsonConfigFile(full_path.c_str(), options)) {
+    if (internal::LoadAppOptionsFromJsonConfigFile(full_path.c_str(),
+                                                   options)) {
       return options;
     }
     config_files += full_path;
@@ -166,6 +183,8 @@ App* App::GetInstance() {  // NOLINT
 App* App::GetInstance(const char* name) {  // NOLINT
   return app_common::FindAppByName(name);
 }
+
+std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
 
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {

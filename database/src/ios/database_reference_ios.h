@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_IOS_DATABASE_REFERENCE_IOS_H_
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/future.h"
@@ -48,7 +49,7 @@ class DatabaseReferenceInternal : public QueryInternal {
  public:
   explicit DatabaseReferenceInternal(
       DatabaseInternal* database,
-      UniquePtr<FIRDatabaseReferencePointer> impl);
+      std::unique_ptr<FIRDatabaseReferencePointer> impl);
 
   virtual ~DatabaseReferenceInternal();
 
@@ -171,7 +172,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   ReferenceCountedFutureImpl* ref_future();
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRDatabaseReferencePointer> impl_;
+  std::unique_ptr<FIRDatabaseReferencePointer> impl_;
 
   DisconnectionHandler* _Nullable cached_disconnection_handler_;
 

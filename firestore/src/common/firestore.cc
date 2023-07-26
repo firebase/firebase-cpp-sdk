@@ -21,7 +21,6 @@
 #include <map>
 #include <utility>
 
-#include "app/meta/move.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
@@ -344,7 +343,7 @@ Settings Firestore::settings() const {
 
 void Firestore::set_settings(Settings settings) {
   if (!internal_) return;
-  internal_->set_settings(firebase::Move(settings));
+  internal_->set_settings(std::move(settings));
 }
 
 WriteBatch Firestore::batch() const {
@@ -366,8 +365,7 @@ Future<void> Firestore::RunTransaction(
   }
 
   if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransaction(firebase::Move(update),
-                                   options.max_attempts());
+  return internal_->RunTransaction(std::move(update), options.max_attempts());
 }
 
 Future<void> Firestore::DisableNetwork() {

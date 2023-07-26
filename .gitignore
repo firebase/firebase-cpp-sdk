@@ -1,5 +1,9 @@
 .DS_Store
 
+# CMake "user presets" files
+# https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
+CMakeUserPresets.json
+
 # Python byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -9,6 +13,9 @@ __pycache__/
 .gradle
 **/build/
 **/.externalNativeBuild/
+
+### IDE generated files
+.vscode/
 
 # Unencrypted secret files
 google-services.json

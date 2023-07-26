@@ -170,13 +170,13 @@ struct AuthImpl {
   // Thread responsible for refreshing the auth token periodically.
   IdTokenRefreshThread token_refresh_thread;
   // Instance responsible for user data persistence.
-  UniquePtr<UserDataPersist> user_data_persist;
+  std::unique_ptr<UserDataPersist> user_data_persist;
 
   // Firebase-internal auth state listeners added via the function registry
   // are tracked here. This is added as the first AuthStateListener to mimic
   // the behavior of the iOS and Android SDKs which guarantee that all internal
   // listeners are called before any user-supplied ones.
-  UniquePtr<FunctionRegistryAuthStateListener> internal_listeners;
+  std::unique_ptr<FunctionRegistryAuthStateListener> internal_listeners;
 
   // Serializes all REST call from this object.
   scheduler::Scheduler scheduler_;

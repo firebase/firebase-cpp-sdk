@@ -30,14 +30,14 @@ using util::IdToVariant;
 using util::VariantToId;
 
 MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
-                                         UniquePtr<FIRMutableDataPointer> impl)
+                                         std::unique_ptr<FIRMutableDataPointer> impl)
     : db_(database), impl_(std::move(impl)) {}
 
 MutableDataInternal::~MutableDataInternal() {}
 
 MutableDataInternal* MutableDataInternal::Child(const char* path) {
   return new MutableDataInternal(
-      db_, MakeUnique<FIRMutableDataPointer>([impl() childDataByAppendingPath:@(path)]));
+      db_, std::make_unique<FIRMutableDataPointer>([impl() childDataByAppendingPath:@(path)]));
 }
 
 std::vector<MutableData> MutableDataInternal::GetChildren() {
@@ -45,7 +45,7 @@ std::vector<MutableData> MutableDataInternal::GetChildren() {
   result.reserve(GetChildrenCount());
   for (FIRMutableData* child in impl().children) {
     result.push_back(
-        MutableData(new MutableDataInternal(db_, MakeUnique<FIRMutableDataPointer>(child))));
+        MutableData(new MutableDataInternal(db_, std::make_unique<FIRMutableDataPointer>(child))));
   }
   return result;
 }

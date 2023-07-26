@@ -17,8 +17,7 @@
 #include "firestore/src/android/transaction_options_android.h"
 #include "firestore/src/android/transaction_options_builder_android.h"
 
-#include "firestore/src/jni/env.h"
-#include "firestore_integration_test.h"
+#include "android/firestore_integration_test_android.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -26,40 +25,36 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using jni::Env;
 using jni::Local;
 
-using TransactionOptionsTestAndroid = FirestoreIntegrationTest;
+using TransactionOptionsTestAndroid = FirestoreAndroidIntegrationTest;
 
 TEST_F(TransactionOptionsTestAndroid, DefaultTransactionOptions) {
-  Env env;
   Local<TransactionOptionsBuilderInternal> builder =
-      TransactionOptionsBuilderInternal::Create(env);
+      TransactionOptionsBuilderInternal::Create(env());
 
-  Local<TransactionOptionsInternal> options = builder.Build(env);
+  Local<TransactionOptionsInternal> options = builder.Build(env());
 
-  EXPECT_EQ(options.GetMaxAttempts(env), 5);
+  EXPECT_EQ(options.GetMaxAttempts(env()), 5);
 }
 
 TEST_F(TransactionOptionsTestAndroid, SetMaxAttemptsReturnsSameInstance) {
-  Env env;
   Local<TransactionOptionsBuilderInternal> builder =
-      TransactionOptionsBuilderInternal::Create(env);
+      TransactionOptionsBuilderInternal::Create(env());
 
   Local<TransactionOptionsBuilderInternal> retval =
-      builder.SetMaxAttempts(env, 42);
+      builder.SetMaxAttempts(env(), 42);
 
-  EXPECT_TRUE(env.IsSameObject(builder, retval));
+  EXPECT_TRUE(env().IsSameObject(builder, retval));
 }
 
 TEST_F(TransactionOptionsTestAndroid, SetMaxAttempts) {
-  Env env;
   Local<TransactionOptionsBuilderInternal> builder =
-      TransactionOptionsBuilderInternal::Create(env);
+      TransactionOptionsBuilderInternal::Create(env());
 
-  builder.SetMaxAttempts(env, 42);
+  builder.SetMaxAttempts(env(), 42);
 
-  EXPECT_EQ(builder.Build(env).GetMaxAttempts(env), 42);
+  EXPECT_EQ(builder.Build(env()).GetMaxAttempts(env()), 42);
 }
 
 }  // namespace

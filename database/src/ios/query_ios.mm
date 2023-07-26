@@ -81,12 +81,12 @@ void LogException(Logger* logger, const char* name, const char* url, NSException
 }
 };
 
-QueryInternal::QueryInternal(DatabaseInternal* database, UniquePtr<FIRDatabaseQueryPointer> query)
+QueryInternal::QueryInternal(DatabaseInternal* database, std::unique_ptr<FIRDatabaseQueryPointer> query)
     : database_(database), impl_(std::move(query)) {
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
 }
 
-QueryInternal::QueryInternal(DatabaseInternal* database, UniquePtr<FIRDatabaseQueryPointer> query,
+QueryInternal::QueryInternal(DatabaseInternal* database, std::unique_ptr<FIRDatabaseQueryPointer> query,
                              const QuerySpec& query_spec)
     : query_spec_(query_spec), database_(database), impl_(std::move(query)) {
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
@@ -108,14 +108,14 @@ QueryInternal& QueryInternal::operator=(const QueryInternal& other) {
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 QueryInternal::QueryInternal(QueryInternal&& other) : database_(other.database_) {
   impl_ = std::move(other.impl_);
-  other.impl_ = MakeUnique<FIRDatabaseQueryPointer>(nil);
+  other.impl_ = std::make_unique<FIRDatabaseQueryPointer>(nil);
   database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
   query_spec_ = other.query_spec_;
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& other) {
   impl_ = std::move(other.impl_);
-  other.impl_ = MakeUnique<FIRDatabaseQueryPointer>(nil);
+  other.impl_ = std::make_unique<FIRDatabaseQueryPointer>(nil);
   database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
   query_spec_ = other.query_spec_;
   return *this;
@@ -129,7 +129,7 @@ SingleValueListener::SingleValueListener(
     const FIRCPPDatabaseQueryCallbackStatePointer& callback_state)
     : future_(future),
       handle_(handle),
-      callback_state_(MakeUnique<FIRCPPDatabaseQueryCallbackStatePointer>(callback_state)) {}
+      callback_state_(std::make_unique<FIRCPPDatabaseQueryCallbackStatePointer>(callback_state)) {}
 
 SingleValueListener::~SingleValueListener() { [callback_state_->get() removeAllObservers]; }
 
@@ -156,7 +156,7 @@ static void NotifyValueListener(FIRCPPDatabaseQueryCallbackState* _Nonnull callb
   if (database && listener) {
     notify(database, listener,
            DataSnapshot(new DataSnapshotInternal(
-               database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl))));
+               database, std::make_unique<FIRDataSnapshotPointer>(snapshot_impl))));
   }
   [callback_state.lock unlock];
 }
@@ -279,7 +279,7 @@ static void NotifyChildListener(FIRCPPDatabaseQueryCallbackState* callback_state
   if (database && listener) {
     notify(listener,
            DataSnapshot(new DataSnapshotInternal(
-               database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl))),
+               database, std::make_unique<FIRDataSnapshotPointer>(snapshot_impl))),
            [previous_key UTF8String]);
   }
   [callback_state.lock unlock];
@@ -362,7 +362,7 @@ void QueryInternal::RemoveAllChildListeners() {
 
 DatabaseReferenceInternal* QueryInternal::GetReference() {
   return new DatabaseReferenceInternal(database_,
-                                       MakeUnique<FIRDatabaseReferencePointer>(impl().ref));
+                                       std::make_unique<FIRDatabaseReferencePointer>(impl().ref));
 }
 
 void QueryInternal::SetKeepSynchronized(bool keep_sync) {
@@ -375,7 +375,7 @@ QueryInternal* QueryInternal::OrderByChild(const char* path) {
     spec.params.order_by = internal::QueryParams::kOrderByChild;
     spec.params.order_by_child = path;
     return new QueryInternal(
-        database_, MakeUnique<FIRDatabaseQueryPointer>([impl() queryOrderedByChild:@(path)]), spec);
+        database_, std::make_unique<FIRDatabaseQueryPointer>([impl() queryOrderedByChild:@(path)]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "OrderByChild", query_spec_.path.c_str(), exception);
     return nullptr;
@@ -387,7 +387,7 @@ QueryInternal* QueryInternal::OrderByKey() {
     internal::QuerySpec spec = query_spec_;
     spec.params.order_by = internal::QueryParams::kOrderByKey;
     return new QueryInternal(database_,
-                             MakeUnique<FIRDatabaseQueryPointer>([impl() queryOrderedByKey]), spec);
+                             std::make_unique<FIRDatabaseQueryPointer>([impl() queryOrderedByKey]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "OrderByKey", query_spec_.path.c_str(), exception);
     return nullptr;
@@ -399,7 +399,7 @@ QueryInternal* QueryInternal::OrderByPriority() {
     internal::QuerySpec spec = query_spec_;
     spec.params.order_by = internal::QueryParams::kOrderByPriority;
     return new QueryInternal(
-        database_, MakeUnique<FIRDatabaseQueryPointer>([impl() queryOrderedByPriority]), spec);
+        database_, std::make_unique<FIRDatabaseQueryPointer>([impl() queryOrderedByPriority]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "OrderByPriority", query_spec_.path.c_str(), exception);
     return nullptr;
@@ -411,7 +411,7 @@ QueryInternal* QueryInternal::OrderByValue() {
     internal::QuerySpec spec = query_spec_;
     spec.params.order_by = internal::QueryParams::kOrderByValue;
     return new QueryInternal(
-        database_, MakeUnique<FIRDatabaseQueryPointer>([impl() queryOrderedByValue]), spec);
+        database_, std::make_unique<FIRDatabaseQueryPointer>([impl() queryOrderedByValue]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "OrderByValue", query_spec_.path.c_str(), exception);
     return nullptr;
@@ -424,7 +424,7 @@ QueryInternal* QueryInternal::StartAt(Variant start_value) {
     spec.params.start_at_value = start_value;
     return new QueryInternal(
         database_,
-        MakeUnique<FIRDatabaseQueryPointer>([impl() queryStartingAtValue:VariantToId(start_value)]),
+        std::make_unique<FIRDatabaseQueryPointer>([impl() queryStartingAtValue:VariantToId(start_value)]),
         spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "StartAt", query_spec_.path.c_str(), exception);
@@ -439,7 +439,7 @@ QueryInternal* QueryInternal::StartAt(Variant start_value, const char* child_key
     spec.params.start_at_child_key = child_key;
     return new QueryInternal(
         database_,
-        MakeUnique<FIRDatabaseQueryPointer>([impl() queryStartingAtValue:VariantToId(start_value)
+        std::make_unique<FIRDatabaseQueryPointer>([impl() queryStartingAtValue:VariantToId(start_value)
                                                                 childKey:@(child_key)]),
         spec);
   } @catch (NSException* exception) {
@@ -454,7 +454,7 @@ QueryInternal* QueryInternal::EndAt(Variant end_value) {
     spec.params.end_at_value = end_value;
     return new QueryInternal(
         database_,
-        MakeUnique<FIRDatabaseQueryPointer>([impl() queryEndingAtValue:VariantToId(end_value)]),
+        std::make_unique<FIRDatabaseQueryPointer>([impl() queryEndingAtValue:VariantToId(end_value)]),
         spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "EndAt", query_spec_.path.c_str(), exception);
@@ -469,7 +469,7 @@ QueryInternal* QueryInternal::EndAt(Variant end_value, const char* child_key) {
     spec.params.end_at_child_key = child_key;
     return new QueryInternal(
         database_,
-        MakeUnique<FIRDatabaseQueryPointer>([impl() queryEndingAtValue:VariantToId(end_value)
+        std::make_unique<FIRDatabaseQueryPointer>([impl() queryEndingAtValue:VariantToId(end_value)
                                                               childKey:@(child_key)]),
         spec);
   } @catch (NSException* exception) {
@@ -484,7 +484,7 @@ QueryInternal* QueryInternal::EqualTo(Variant value) {
     spec.params.equal_to_value = value;
     return new QueryInternal(
         database_,
-        MakeUnique<FIRDatabaseQueryPointer>([impl() queryEqualToValue:VariantToId(value)]), spec);
+        std::make_unique<FIRDatabaseQueryPointer>([impl() queryEqualToValue:VariantToId(value)]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "EqualTo", query_spec_.path.c_str(), exception);
     return nullptr;
@@ -498,7 +498,7 @@ QueryInternal* QueryInternal::EqualTo(Variant value, const char* child_key) {
     spec.params.equal_to_child_key = child_key;
     return new QueryInternal(
         database_,
-        MakeUnique<FIRDatabaseQueryPointer>([impl() queryEqualToValue:VariantToId(value)]), spec);
+        std::make_unique<FIRDatabaseQueryPointer>([impl() queryEqualToValue:VariantToId(value)]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "EqualTo", query_spec_.path.c_str(), exception);
     return nullptr;
@@ -510,7 +510,7 @@ QueryInternal* QueryInternal::LimitToFirst(size_t limit) {
     internal::QuerySpec spec = query_spec_;
     spec.params.limit_first = limit;
     return new QueryInternal(
-        database_, MakeUnique<FIRDatabaseQueryPointer>([impl() queryLimitedToFirst:limit]), spec);
+        database_, std::make_unique<FIRDatabaseQueryPointer>([impl() queryLimitedToFirst:limit]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "LimitToFirst", query_spec_.path.c_str(), exception);
     return nullptr;
@@ -522,7 +522,7 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
     internal::QuerySpec spec = query_spec_;
     spec.params.limit_last = limit;
     return new QueryInternal(
-        database_, MakeUnique<FIRDatabaseQueryPointer>([impl() queryLimitedToLast:limit]), spec);
+        database_, std::make_unique<FIRDatabaseQueryPointer>([impl() queryLimitedToLast:limit]), spec);
   } @catch (NSException* exception) {
     LogException(database_->logger(), "LimitToLast", query_spec_.path.c_str(), exception);
     return nullptr;

@@ -19,7 +19,7 @@
 #include <ostream>
 #include <sstream>
 
-#include "app/meta/move.h"
+#include <utility>
 
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/executor.h"
@@ -47,7 +47,7 @@ std::string ToStr(int64_t v) {
 Settings::Settings() : host_(kDefaultHost) {}
 #endif
 
-void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
+void Settings::set_host(std::string host) { host_ = std::move(host); }
 
 void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
 

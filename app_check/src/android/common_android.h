@@ -61,6 +61,9 @@ class AndroidAppCheckProvider : public AppCheckProvider {
 
  private:
   jobject android_provider_;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

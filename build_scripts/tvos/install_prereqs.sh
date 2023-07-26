@@ -12,16 +12,16 @@ if [[ -z $(which cmake) ]]; then
     exit 1
 fi
 
-if [[ -z $(which python) ]]; then
+if [[ -z $(which python3) ]]; then
     echo "Error, python is not installed or is not in the PATH."
     exit 1
 else
     updated_pip=0
-    if ! $(echo "import absl"$'\n' | python - 2> /dev/null); then
+    if ! $(echo "import absl"$'\n' | python3 - 2> /dev/null); then
 	echo "Installing python packages."
 	set -x
-	sudo python -m pip install --upgrade pip
-	pip install absl-py
+	sudo python3 -m pip install --upgrade pip
+	pip3 install absl-py
 	set +x
     fi
 fi

@@ -14,6 +14,8 @@
 
 #include "app/src/secure/user_secure_manager.h"
 
+#include <utility>
+
 #include "app/src/base64.h"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/internal/platform.h"
@@ -56,12 +58,12 @@ int32_t UserSecureManager::s_scheduler_ref_count_;
 
 UserSecureManager::UserSecureManager(const char* domain, const char* app_id)
     : future_api_(kUserSecureFnCount), safe_this_(this) {
-  user_secure_ = MakeUnique<USER_SECURE_TYPE>(domain, app_id);
+  user_secure_ = std::make_unique<USER_SECURE_TYPE>(domain, app_id);
   CreateScheduler();
 }
 
 UserSecureManager::UserSecureManager(
-    UniquePtr<UserSecureInternal> user_secure_internal)
+    std::unique_ptr<UserSecureInternal> user_secure_internal)
     : user_secure_(std::move(user_secure_internal)),
       future_api_(kUserSecureFnCount),
       safe_this_(this) {
@@ -81,11 +83,11 @@ Future<std::string> UserSecureManager::LoadUserData(
   const auto future_handle =
       future_api_.SafeAlloc<std::string>(kUserSecureFnLoad);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<std::string>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<std::string>>(
       app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<std::string>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<std::string>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
@@ -117,11 +119,11 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
                                              const std::string& user_data) {
   const auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnSave);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<void>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<void>>(
       app_name, user_data, &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
@@ -140,11 +142,11 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
 Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
   const auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnDelete);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<void>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<void>>(
       app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
@@ -163,11 +165,11 @@ Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
 Future<void> UserSecureManager::DeleteAllData() {
   auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnDeleteAll);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<void>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<void>>(
       "", "", &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);

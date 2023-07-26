@@ -16,7 +16,7 @@
 
 #include "firestore/src/include/firebase/firestore/query.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/event_listener.h"
@@ -27,6 +27,7 @@
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/include/firebase/firestore/filter.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #if defined(__ANDROID__)
@@ -110,6 +111,16 @@ Firestore* Query::firestore() {
 AggregateQuery Query::Count() const {
   if (!internal_) return {};
   return internal_->Count();
+}
+
+Query Query::Where(const Filter& filter) const {
+  if (!internal_) return {};
+  if (filter.IsEmpty()) {
+    // Return the existing query if not adding any more filters (e.g. an empty
+    // composite filter).
+    return *this;
+  }
+  return internal_->Where(filter);
 }
 
 Query Query::WhereEqualTo(const std::string& field,
@@ -292,8 +303,7 @@ Future<QuerySnapshot> Query::Get(Source source) const {
 ListenerRegistration Query::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  return AddSnapshotListener(MetadataChanges::kExclude,
-                             firebase::Move(callback));
+  return AddSnapshotListener(MetadataChanges::kExclude, std::move(callback));
 }
 
 ListenerRegistration Query::AddSnapshotListener(
@@ -304,8 +314,7 @@ ListenerRegistration Query::AddSnapshotListener(
                      "Snapshot listener callback cannot be an empty function.");
 
   if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes,
-                                        firebase::Move(callback));
+  return internal_->AddSnapshotListener(metadata_changes, std::move(callback));
 }
 
 size_t Query::Hash() const {

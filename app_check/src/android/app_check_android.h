@@ -15,6 +15,7 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 
+#include <string>
 #include <vector>
 
 #include "app/src/future_manager.h"
@@ -70,6 +71,9 @@ class AppCheckInternal {
   Mutex listeners_mutex_;
 
   FutureManager future_manager_;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

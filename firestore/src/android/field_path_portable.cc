@@ -100,7 +100,7 @@ std::vector<std::string> SplitOnDots(const std::string& input) {
       fail_validation();
     }
 
-    result.push_back(firebase::Move(current_segment));
+    result.push_back(std::move(current_segment));
   }
 
   return result;
@@ -153,7 +153,7 @@ bool FieldPathPortable::IsKeyFieldPath() const {
 FieldPathPortable FieldPathPortable::FromSegments(
     std::vector<std::string> segments) {
   ValidateSegments(segments);
-  return FieldPathPortable(Move(segments));
+  return FieldPathPortable(std::move(segments));
 }
 
 FieldPathPortable FieldPathPortable::FromDotSeparatedString(

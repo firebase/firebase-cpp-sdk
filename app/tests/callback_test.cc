@@ -16,10 +16,10 @@
 
 #include "app/src/callback.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
@@ -27,6 +27,8 @@
 #include "gtest/gtest.h"
 
 using ::testing::Eq;
+using ::testing::Gt;
+using ::testing::Not;
 
 namespace firebase {
 
@@ -90,7 +92,7 @@ class CallbackTest : public ::testing::Test {
   }
 
   // Adds the value passed to CallbackMoveValue1 to callback_value1_sum_.
-  static void SumCallbackMoveValue1(UniquePtr<int>* value) {
+  static void SumCallbackMoveValue1(std::unique_ptr<int>* value) {
     callback_value1_sum_ += **value;
   }
 
@@ -290,19 +292,18 @@ TEST_F(CallbackTest, CallCallbackValue2String1) {
   EXPECT_THAT(value_and_string_.second, Eq("meaning"));
 }
 
-// Call a callback passing the UniquePtr
+// Call a callback passing the std::unique_ptr
 TEST_F(CallbackTest, CallCallbackMoveValue1) {
-  callback::AddCallback(new callback::CallbackMoveValue1<UniquePtr<int>>(
-      MakeUnique<int>(10), SumCallbackMoveValue1));
-  UniquePtr<int> ptr(new int(5));
-  callback::AddCallback(new callback::CallbackMoveValue1<UniquePtr<int>>(
-      Move(ptr), SumCallbackMoveValue1));
+  callback::AddCallback(new callback::CallbackMoveValue1<std::unique_ptr<int>>(
+      std::make_unique<int>(10), SumCallbackMoveValue1));
+  std::unique_ptr<int> ptr(new int(5));
+  callback::AddCallback(new callback::CallbackMoveValue1<std::unique_ptr<int>>(
+      std::move(ptr), SumCallbackMoveValue1));
   callback::PollCallbacks();
   EXPECT_THAT(callback_value1_sum_, Eq(15));
   EXPECT_THAT(callback::IsInitialized(), Eq(false));
 }
 
-#ifdef FIREBASE_USE_STD_FUNCTION
 // Call a callback which wraps std::function
 TEST_F(CallbackTest, CallCallbackStdFunction) {
   int count = 0;
@@ -317,7 +318,48 @@ TEST_F(CallbackTest, CallCallbackStdFunction) {
   EXPECT_THAT(count, Eq(3));
   EXPECT_THAT(callback::IsInitialized(), Eq(false));
 }
-#endif
+
+static int g_sum = 0;
+
+TEST_F(CallbackTest, CallCallbackWithUniquePtrWrappedInSharedPtr) {
+  // This test mimics what we do in database/src/desktop/query_desktop.cc
+  // and verifies that it works as expected.
+  g_sum = 2;
+
+  auto cb_function = [](std::shared_ptr<std::unique_ptr<int>> arg_shared) {
+    int* local_ptr = arg_shared->release();
+    std::unique_ptr<int> local(local_ptr);
+    g_sum += *local;
+  };
+
+  // Ensure the callback is called correctly.
+  {
+    std::unique_ptr<int> arg_ptr = std::make_unique<int>(441);
+    std::shared_ptr<std::unique_ptr<int>> arg_wrapped =
+        std::make_shared<std::unique_ptr<int>>(std::move(arg_ptr));
+    callback::AddCallback(callback::NewCallback(cb_function, arg_wrapped));
+    // Ensure that there's an additional reference created to the shared ptr.
+    EXPECT_THAT(arg_wrapped.use_count(), Gt(1));
+    callback::PollCallbacks();
+    EXPECT_THAT(g_sum, Eq(443));
+    EXPECT_THAT(arg_wrapped.use_count(), Eq(1));
+    EXPECT_THAT(*arg_wrapped, Eq(nullptr));
+  }
+
+  // Ensure the callback can be removed correctly and doesn't leak memory if it
+  // isn't called.
+  {
+    std::unique_ptr<int> arg_ptr = std::make_unique<int>(441);
+    std::shared_ptr<std::unique_ptr<int>> arg_wrapped =
+        std::make_shared<std::unique_ptr<int>>(std::move(arg_ptr));
+    auto cb_ref =
+        callback::AddCallback(callback::NewCallback(cb_function, arg_wrapped));
+    EXPECT_THAT(arg_wrapped.use_count(), Gt(1));
+    callback::RemoveCallback(cb_ref);
+    EXPECT_THAT(arg_wrapped.use_count(), Eq(1));
+    EXPECT_THAT(*arg_wrapped, Not(Eq(nullptr)));
+  }
+}
 
 // Ensure callbacks are executed in the order they're added to the queue with
 // callbacks added to a different thread to the dispatching thread.
