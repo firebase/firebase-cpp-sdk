@@ -264,10 +264,9 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
 /// This test requires to be run on a device or simulator that does not have the
 /// template version number stored on the disk or auto-fetch will be skipped.
 TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
-
   ASSERT_NE(rc_, nullptr);
-  FLAKY_TEST_SECTION_BEGIN();
 
+  FLAKY_TEST_SECTION_BEGIN();
   // Check if the config has default values. If not, we have cached data
   // from a previous test run, and auto-fetch will not happen.
   EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
