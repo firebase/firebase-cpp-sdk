@@ -146,6 +146,7 @@ void CallInitializeGoogleMobileAds(void* data) {
   bool jni_env_exists = (env != nullptr);
   FIREBASE_ASSERT(jni_env_exists);
 
+  LogDebug("almostmatt - calling gma_initialization_helper kInitializeGma");
   jobject activity = call_data->activity_global;
   env->CallStaticVoidMethod(gma_initialization_helper::GetClass(),
                             gma_initialization_helper::GetMethodId(
@@ -250,6 +251,7 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
 // Initializes the Google Mobile Ads SDK using the MobileAds.initialize()
 // method. The GMA app ID is retrieved from the App's android manifest.
 Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
+  LogDebug("almostmatt - calling InitializeGoogleMobileAds");
   Future<AdapterInitializationStatus> future_to_return;
   {
     MutexLock lock(g_future_impl_mutex);
@@ -273,6 +275,7 @@ Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
 Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
                                                InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
+  LogDebug("almostmatt - calling initialize with app");
   g_app = &app;
   return Initialize(g_app->GetJNIEnv(), g_app->activity(), init_result_out);
 }
@@ -280,8 +283,10 @@ Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
 Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
                                                InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
+  LogDebug("almostmatt - calling initialize without app");
 
   if (g_java_vm == nullptr) {
+    LogDebug("almostmatt - getting java vm");
     env->GetJavaVM(&g_java_vm);
   }
 
@@ -289,6 +294,8 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
+    LogDebug("almostmatt - failed util initialize.");
+
     // Need to return an invalid Future, because without GMA initialized,
     // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
     return Future<AdapterInitializationStatus>();
@@ -302,6 +309,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
+    LogDebug("almostmatt - failed to find ClientApi class.");
     // Need to return an invalid Future, because without GMA initialized,
     // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
     return Future<AdapterInitializationStatus>();
@@ -314,6 +322,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
                                    firebase_gma::gma_resources_data,
                                    firebase_gma::gma_resources_size));
 
+  LogDebug("almostmatt - initialize - cache methods and register natives");
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
         ad_request_builder::CacheMethodIds(env, activity) &&
         adapter_response_info::CacheMethodIds(env, activity) &&
@@ -351,6 +360,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         rewarded_ad_helper::CacheMethodIds(env, activity) &&
         load_ad_error::CacheMethodIds(env, activity) &&
         gma::RegisterNatives())) {
+    LogDebug("almostmatt - failed cache methods. releasing classes.");
     ReleaseClasses(env);
     util::Terminate(env);
     if (init_result_out) {
@@ -367,6 +377,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
   g_initialized = true;
   g_activity = env->NewGlobalRef(activity);
 
+  LogDebug("almostmatt - initialize ok. calling InitializeGoogleMobileAds");
   Future<AdapterInitializationStatus> future = InitializeGoogleMobileAds(env);
   RegisterTerminateOnDefaultAppDestroy();
 
@@ -695,6 +706,7 @@ void ReleaseClasses(JNIEnv* env) {
 bool IsInitialized() { return g_initialized; }
 
 void Terminate() {
+  LogDebug("almostmatt - normal Terminate.");
   if (!g_initialized) {
     LogWarning("GMA already shut down");
     return;
@@ -716,6 +728,7 @@ void Terminate() {
   env->DeleteGlobalRef(g_activity);
   g_activity = nullptr;
 
+  LogDebug("almostmatt - normal Terminate. releasing classes.");
   ReleaseClasses(env);
   util::Terminate(env);
 }
@@ -841,6 +854,7 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
 
 static void JNICALL GmaInitializationHelper_initializationCompleteCallback(
     JNIEnv* env, jclass clazz, jobject j_initialization_status) {
+  LogDebug("almostmatt - called initializationCompleteCallback.");
   AdapterInitializationStatus adapter_status =
       PopulateAdapterInitializationStatus(j_initialization_status);
   {
@@ -1282,6 +1296,8 @@ bool RegisterNatives() {
   };
 
   JNIEnv* env = GetJNI();
+
+  LogDebug("almostmatt - registering natives");
   return ad_inspector_helper::RegisterNatives(
              env, kAdInspectorHelperMethods,
              FIREBASE_ARRAYSIZE(kAdInspectorHelperMethods)) &&
