@@ -15,6 +15,7 @@
  */
 
 #include "firebase/firestore.h"
+#include "firebase_test_framework.h"
 #include "firestore_integration_test.h"
 
 namespace firebase {
@@ -39,7 +40,7 @@ TEST_F(FilterTest, CopyConstructorReturnsEqualObject) {
 }
 
 TEST_F(FilterTest, CopyAssignementReturnsEqualObject) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   const Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
   const Filter filter2 = Filter::ArrayContainsAny(
@@ -72,7 +73,7 @@ TEST_F(FilterTest, CopyAssignementReturnsEqualObject) {
 }
 
 TEST_F(FilterTest, MoveConstructorReturnsEqualObject) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2a = Filter::ArrayContainsAny(
@@ -92,7 +93,7 @@ TEST_F(FilterTest, MoveConstructorReturnsEqualObject) {
 }
 
 TEST_F(FilterTest, MoveAssignmentReturnsEqualObject) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2a = Filter::ArrayContainsAny(
@@ -112,7 +113,7 @@ TEST_F(FilterTest, MoveAssignmentReturnsEqualObject) {
 }
 
 TEST_F(FilterTest, MoveAssignmentAppliedToSelfReturnsEqualObject) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2 = Filter::ArrayContainsAny(
@@ -131,7 +132,7 @@ TEST_F(FilterTest, MoveAssignmentAppliedToSelfReturnsEqualObject) {
 }
 
 TEST_F(FilterTest, IdenticalFilterShouldBeEqual) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   FieldPath foo_path{std::vector<std::string>{"foo"}};
 
@@ -298,7 +299,7 @@ TEST_F(FilterTest, IdenticalFilterShouldBeEqual) {
 }
 
 TEST_F(FilterTest, DifferentValuesAreNotEqual) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   Filter filter1a = Filter::ArrayContains("foo", FieldValue::Integer(24));
   Filter filter1b = Filter::ArrayContains("foo", FieldValue::Integer(42));
@@ -363,7 +364,7 @@ TEST_F(FilterTest, DifferentValuesAreNotEqual) {
 }
 
 TEST_F(FilterTest, CompositesWithOneFilterAreTheSameAsFilter) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter2 = Filter::Or(filter1);
@@ -377,7 +378,7 @@ TEST_F(FilterTest, CompositesWithOneFilterAreTheSameAsFilter) {
 }
 
 TEST_F(FilterTest, EmptyCompositeIsIgnoredByCompositesAndQueries) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   Filter filter1 = Filter::And();
   Filter filter2 = Filter::And(Filter::And(), Filter::And());
@@ -409,7 +410,7 @@ TEST_F(FilterTest, EmptyCompositeIsIgnoredByCompositesAndQueries) {
 }
 
 TEST_F(FilterTest, CompositeComparison) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   Filter filter1 = Filter::ArrayContains("foo", FieldValue::Integer(42));
   Filter filter2 = Filter::EqualTo("foo", FieldValue::Integer(42));
@@ -459,7 +460,7 @@ TEST_F(FilterTest, CompositeComparison) {
 }
 
 TEST_F(FilterTest, QueryWhereComposite) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   MapFieldValue doc_aaa = {{"x", FieldValue::String("a")},
                            {"y", FieldValue::String("a")},
@@ -546,7 +547,7 @@ TEST_F(FilterTest, QueryWhereComposite) {
 }
 
 TEST_F(FilterTest, QueryEmptyWhereComposite) {
-  GTEST_SKIP() << "b/293326241: The Android implementation is failing.";
+  SKIP_TEST_ON_ANDROID // b/293326241: The Android implementation is failing.
 
   MapFieldValue doc = {{"foo", FieldValue::String("bar")}};
   CollectionReference collection = Collection({{"x", doc}});
