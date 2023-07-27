@@ -264,7 +264,9 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
 /// This test requires to be run on a device or simulator that does not have the
 /// template version number stored on the disk or auto-fetch will be skipped.
 TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
+
   ASSERT_NE(rc_, nullptr);
+  FLAKY_TEST_SECTION_BEGIN();
 
   // Check if the config has default values. If not, we have cached data
   // from a previous test run, and auto-fetch will not happen.
@@ -302,6 +304,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
          firebase::remote_config::RemoteConfigError) {});
 #else
   auto config_update_promise = std::make_shared<std::promise<void> >();
+  auto config_update_future = config_update_promise->get_future();
 
   firebase::remote_config::ConfigUpdateListenerRegistration registration =
       rc_->AddOnConfigUpdateListener(
@@ -312,9 +315,8 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
             config_update_promise->set_value();
           });
   if (!has_cached_data) {
-    auto config_update_future = config_update_promise->get_future();
     ASSERT_EQ(std::future_status::ready,
-              config_update_future.wait_for(std::chrono::milliseconds(30000)));
+              config_update_future.wait_for(std::chrono::milliseconds(20000)));
 
     // On Android WaitForCompletion must be called from the main thread,
     // so Activate is called here outside of the listener.
@@ -333,6 +335,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
     registration.Remove();
   }
 #endif  // !FIREBASE_PLATFORM_DESKTOP
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
