@@ -40,7 +40,7 @@ namespace ump {
 enum ConsentDebugGeography {
   /// Disable geography debugging.
   kConsentDebugGeographyDisabled = 0,
-  /// Geography appears as in EEA for debug devices.
+  /// Geography appears as in EEA (European Economic Area) for debug devices.
   kConsentDebugGeographyEEA,
   /// Geography appears as not in EEA for debug devices.
   kConsentDebugGeographyNonEEA
