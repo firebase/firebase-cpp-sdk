@@ -266,7 +266,10 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
 TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   ASSERT_NE(rc_, nullptr);
 
+  // This test sometimes times out on Android with the config not updated.
+#if defined(__ANDROID__)
   FLAKY_TEST_SECTION_BEGIN();
+#endif  // defined(__ANDROID__)
   // Check if the config has default values. If not, we have cached data
   // from a previous test run, and auto-fetch will not happen.
   EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
@@ -334,7 +337,10 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
     registration.Remove();
   }
 #endif  // !FIREBASE_PLATFORM_DESKTOP
+  // This test sometimes times out on Android with the config not updated.
+#if defined(__ANDROID__)
   FLAKY_TEST_SECTION_END();
+#endif  // defined(__ANDROID__)
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
