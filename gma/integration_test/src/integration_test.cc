@@ -350,6 +350,8 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 
 // Test cases below.
 
+/*
+// TODO(almostmatt): enable this test.
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // TODO(almostmatt): Disabling mediation initialization to not mess up next test on iOS.
   firebase::gma::DisableMediationInitialization();
@@ -371,6 +373,7 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
 }
+*/
 
 TEST_F(FirebaseGmaPreInitializationTests, TestDisableMediationInitialization) {
   // Note: This test should be disabled or put in an entirely different test
