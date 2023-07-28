@@ -627,6 +627,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+
 ### Upcoming Release
 -   Changes
     - General: Add FirebaseApp.GetApps(), to return the list of firebase app.
