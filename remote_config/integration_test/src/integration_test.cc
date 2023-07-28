@@ -328,9 +328,9 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
     std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
     EXPECT_EQ(key_values.size(), 6);
 
-    for (auto key_valur_pair : kServerValue) {
-      firebase::Variant k_value = key_valur_pair.value;
-      firebase::Variant fetched_value = key_values[key_valur_pair.key];
+    for (auto key_value_pair : kServerValue) {
+      firebase::Variant k_value = key_value_pair.value;
+      firebase::Variant fetched_value = key_values[key_value_pair.key];
       EXPECT_EQ(k_value.type(), fetched_value.type());
       EXPECT_EQ(k_value, fetched_value);
     }
@@ -385,9 +385,9 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
   EXPECT_EQ(key_values.size(), 6);
 
-  for (auto key_valur_pair : kServerValue) {
-    firebase::Variant k_value = key_valur_pair.value;
-    firebase::Variant fetched_value = key_values[key_valur_pair.key];
+  for (auto key_value_pair : kServerValue) {
+    firebase::Variant k_value = key_value_pair.value;
+    firebase::Variant fetched_value = key_values[key_value_pair.key];
     EXPECT_EQ(k_value.type(), fetched_value.type());
     EXPECT_EQ(k_value, fetched_value);
   }
