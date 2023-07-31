@@ -112,6 +112,10 @@ flags.DEFINE_bool(
     "summary_include_crashes", True,
     "Whether to include CRASH/TIMEOUT in the test summary.")
 
+flags.DEFINE_bool(
+    "firestore", False,
+    "Report on Firestore tests rather than on general tests.")
+
 _WORKFLOW_TESTS = 'integration_tests.yml'
 _WORKFLOW_PACKAGING = 'cpp-packaging.yml'
 _TRIGGER_USER = 'firebase-workflow-trigger[bot]'
@@ -380,11 +384,10 @@ def main(argv):
         if run['status'] != 'completed': continue
         if run['day'] < start_date or run['day'] > end_date: continue
         run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
-        if general_test_time in str(run['date']):
+        compare_test_time = firestore_test_time if FLAGS.firestore else general_test_time
+        if compare_test_time in str(run['date']):
           source_tests[day] = run
           all_days.add(day)
-        # elif firestore_test_time in str(run['date']):
-        #   firestore_tests[day] = run
 
       workflow_id = _WORKFLOW_PACKAGING
       all_runs = firebase_github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
@@ -426,9 +429,15 @@ def main(argv):
     with progress.bar.Bar('Downloading triggered workflow logs...', max=len(package_tests_all)) as bar:
       for run in package_tests_all:
         day = str(run['date'].date())
-        if day in package_tests and int(package_tests[day]['id']) < int(run['id']):
-          bar.next()
-          continue
+        if day in package_tests:
+          # Packaging triggers two tests. For Firestore, we want the larger run ID (the second run triggered).
+          if FLAGS.firestore and int(package_tests[day]['id']) > int(run['id']):
+            bar.next()
+            continue
+          # For general tests we want the smaller run ID (the first run triggered).
+          if not FLAGS.firestore and int(package_tests[day]['id']) < int(run['id']):
+            bar.next()
+            continue
 
         packaging_run = 0
 

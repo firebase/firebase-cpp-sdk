@@ -38,7 +38,6 @@
 #include "firestore/src/main/aggregate_query_main.h"
 #include "firestore/src/main/aggregate_query_snapshot_main.h"
 #include "firestore/src/main/collection_reference_main.h"
-#include "firestore/src/main/composite_filter_main.h"
 #include "firestore/src/main/document_change_main.h"
 #include "firestore/src/main/document_reference_main.h"
 #include "firestore/src/main/document_snapshot_main.h"
@@ -47,7 +46,6 @@
 #include "firestore/src/main/query_main.h"
 #include "firestore/src/main/query_snapshot_main.h"
 #include "firestore/src/main/transaction_main.h"
-#include "firestore/src/main/unary_filter_main.h"
 #include "firestore/src/main/write_batch_main.h"
 
 #if defined(__ANDROID__)
@@ -108,14 +106,6 @@ inline DocumentReference MakePublic(api::DocumentReference&& from) {
 
 inline DocumentSnapshot MakePublic(api::DocumentSnapshot&& from) {
   return ConverterImpl::MakePublicFromCore<DocumentSnapshot>(std::move(from));
-}
-
-inline Filter MakePublic(UnaryFilterInternal&& from) {
-  return ConverterImpl::MakePublicFromInternal<Filter>(std::move(from));
-}
-
-inline Filter MakePublic(CompositeFilterInternal&& from) {
-  return ConverterImpl::MakePublicFromInternal<Filter>(std::move(from));
 }
 
 inline FieldValue MakePublic(FieldValueInternal&& from) {
