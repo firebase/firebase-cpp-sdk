@@ -21,14 +21,6 @@
 		12CCF1E928FDBD9F00C24941 /* set_options_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12CCF1DF28FDBD9F00C24941 /* set_options_test.cc */; };
 		12D513142684C8C200A83FAA /* bundle_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513132684C8C200A83FAA /* bundle_test.cc */; };
 		12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513182684C8D100A83FAA /* bundle_builder.cc */; };
-		1BAFACA32A449C2B00834979 /* aggregate_query_snapshot_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA02A449C2B00834979 /* aggregate_query_snapshot_test.cc */; };
-		1BAFACA42A449C2B00834979 /* aggregate_query_snapshot_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA02A449C2B00834979 /* aggregate_query_snapshot_test.cc */; };
-		1BAFACA52A449C2B00834979 /* aggregate_count_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA12A449C2B00834979 /* aggregate_count_test.cc */; };
-		1BAFACA62A449C2B00834979 /* aggregate_count_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA12A449C2B00834979 /* aggregate_count_test.cc */; };
-		1BAFACA72A449C2B00834979 /* aggregate_query_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA22A449C2B00834979 /* aggregate_query_test.cc */; };
-		1BAFACA82A449C2B00834979 /* aggregate_query_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA22A449C2B00834979 /* aggregate_query_test.cc */; };
-		1BAFACAA2A449CBD00834979 /* filter_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA92A449CBD00834979 /* filter_test.cc */; };
-		1BAFACAB2A449CBD00834979 /* filter_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BAFACA92A449CBD00834979 /* filter_test.cc */; };
 		520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
 		5270BB448DF5ECE860FDD68B /* firebase_firestore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EAFAF9474EC412ADCC65F2CC /* firebase_firestore.framework */; };
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
@@ -131,10 +123,6 @@
 		12D513182684C8D100A83FAA /* bundle_builder.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bundle_builder.cc; path = src/util/bundle_builder.cc; sourceTree = "<group>"; };
 		12D513192684C8D100A83FAA /* bundle_builder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bundle_builder.h; path = src/util/bundle_builder.h; sourceTree = "<group>"; };
 		1B3D64B35A22073C76B376D5 /* libPods-integration_test_tvos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test_tvos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1BAFACA02A449C2B00834979 /* aggregate_query_snapshot_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = aggregate_query_snapshot_test.cc; path = src/aggregate_query_snapshot_test.cc; sourceTree = "<group>"; };
-		1BAFACA12A449C2B00834979 /* aggregate_count_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = aggregate_count_test.cc; path = src/aggregate_count_test.cc; sourceTree = "<group>"; };
-		1BAFACA22A449C2B00834979 /* aggregate_query_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = aggregate_query_test.cc; path = src/aggregate_query_test.cc; sourceTree = "<group>"; };
-		1BAFACA92A449CBD00834979 /* filter_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = filter_test.cc; path = src/filter_test.cc; sourceTree = "<group>"; };
 		3DE393E827F88B06CD3C39CD /* Pods-integration_test_tvos.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test_tvos.release.xcconfig"; path = "Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos.release.xcconfig"; sourceTree = "<group>"; };
 		4AAFA3E3DA9641C2E3C46C9D /* Pods_integration_test.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_integration_test.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -293,10 +281,6 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				1BAFACA92A449CBD00834979 /* filter_test.cc */,
-				1BAFACA12A449C2B00834979 /* aggregate_count_test.cc */,
-				1BAFACA02A449C2B00834979 /* aggregate_query_snapshot_test.cc */,
-				1BAFACA22A449C2B00834979 /* aggregate_query_test.cc */,
 				12CCF1DF28FDBD9F00C24941 /* set_options_test.cc */,
 				12CCF1DB28FDBD9E00C24941 /* settings_test.cc */,
 				12CCF1DC28FDBD9F00C24941 /* source_test.cc */,
@@ -592,14 +576,12 @@
 				D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */,
 				D61CFBC126091C3B0035CB2A /* integration_test.cc in Sources */,
 				D6AAAD532606C22D0025C53B /* includes_test.cc in Sources */,
-				1BAFACA52A449C2B00834979 /* aggregate_count_test.cc in Sources */,
 				D6AAAD502606C22D0025C53B /* numeric_transforms_test.cc in Sources */,
 				D6ED33BE2606CD890058CBF9 /* integration_test_util.cc in Sources */,
 				D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */,
 				12CCF1E228FDBD9F00C24941 /* source_test.cc in Sources */,
 				D6AAAD4C2606C22D0025C53B /* server_timestamp_test.cc in Sources */,
 				D6AAAD4E2606C22D0025C53B /* firestore_test.cc in Sources */,
-				1BAFACAA2A449CBD00834979 /* filter_test.cc in Sources */,
 				D6AAAD452606C22D0025C53B /* document_change_test.cc in Sources */,
 				D6AAAD472606C22D0025C53B /* document_snapshot_test.cc in Sources */,
 				D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */,
@@ -609,9 +591,7 @@
 				EDEEC7632800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */,
 				12CCF1E828FDBD9F00C24941 /* set_options_test.cc in Sources */,
 				D6AAAD562606C22D0025C53B /* query_network_test.cc in Sources */,
-				1BAFACA72A449C2B00834979 /* aggregate_query_test.cc in Sources */,
 				D6AAAD552606C22D0025C53B /* listener_registration_test.cc in Sources */,
-				1BAFACA32A449C2B00834979 /* aggregate_query_snapshot_test.cc in Sources */,
 				12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */,
 				D6AAAD4A2606C22D0025C53B /* fields_test.cc in Sources */,
 				D6AAAD462606C22D0025C53B /* query_test.cc in Sources */,
@@ -630,8 +610,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1BAFACAB2A449CBD00834979 /* filter_test.cc in Sources */,
-				1BAFACA62A449C2B00834979 /* aggregate_count_test.cc in Sources */,
 				BC1D6850267B00EB005DC2DA /* app_framework.cc in Sources */,
 				BC1D6853267B00EB005DC2DA /* transaction_extra_test.cc in Sources */,
 				BC1D683E267B00EB005DC2DA /* integration_test_util.cc in Sources */,
@@ -645,7 +623,6 @@
 				BC1D6848267B00EB005DC2DA /* sanity_test.cc in Sources */,
 				12CCF1E728FDBD9F00C24941 /* write_batch_test.cc in Sources */,
 				12CCF1E128FDBD9F00C24941 /* settings_test.cc in Sources */,
-				1BAFACA82A449C2B00834979 /* aggregate_query_test.cc in Sources */,
 				BC1D6856267B00EE005DC2DA /* ios_app_framework.mm in Sources */,
 				BC1D6843267B00EB005DC2DA /* numeric_transforms_test.cc in Sources */,
 				BC1D6844267B00EB005DC2DA /* array_transform_test.cc in Sources */,
@@ -655,7 +632,6 @@
 				BC1D684E267B00EB005DC2DA /* includes_test.cc in Sources */,
 				BC1D684C267B00EB005DC2DA /* document_change_test.cc in Sources */,
 				BC1D6851267B00EB005DC2DA /* firestore_integration_test.cc in Sources */,
-				1BAFACA42A449C2B00834979 /* aggregate_query_snapshot_test.cc in Sources */,
 				BC1D6838267B00EB005DC2DA /* future_test_util.cc in Sources */,
 				12CCF1E528FDBD9F00C24941 /* validation_test.cc in Sources */,
 				BC1D6839267B00EB005DC2DA /* type_test.cc in Sources */,

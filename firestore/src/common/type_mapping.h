@@ -34,8 +34,6 @@ class DocumentReference;
 class DocumentReferenceInternal;
 class DocumentSnapshot;
 class DocumentSnapshotInternal;
-class Filter;
-class FilterInternal;
 class FieldValue;
 class FieldValueInternal;
 class Firestore;
@@ -83,10 +81,6 @@ struct InternalTypeMap<DocumentReference> {
 template <>
 struct InternalTypeMap<DocumentSnapshot> {
   using type = DocumentSnapshotInternal;
-};
-template <>
-struct InternalTypeMap<Filter> {
-  using type = FilterInternal;
 };
 template <>
 struct InternalTypeMap<FieldValue> {
