@@ -31,7 +31,6 @@ set(common_SRCS
     src/common/document_snapshot.cc
     src/common/exception_common.cc
     src/common/exception_common.h
-    src/common/filter.cc
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
@@ -98,8 +97,6 @@ set(android_SRCS
     src/android/field_path_portable.h
     src/android/field_value_android.cc
     src/android/field_value_android.h
-    src/android/filter_android.cc
-    src/android/filter_android.h
     src/android/firestore_android.cc
     src/android/firestore_android.h
     src/android/firestore_exceptions_android.h
@@ -204,8 +201,6 @@ set(main_SRCS
     src/main/aggregate_query_snapshot_main.h
     src/main/collection_reference_main.cc
     src/main/collection_reference_main.h
-    src/main/composite_filter_main.cc
-    src/main/composite_filter_main.h
     src/main/converter_main.h
     src/main/document_change_main.cc
     src/main/document_change_main.h
@@ -213,8 +208,6 @@ set(main_SRCS
     src/main/document_reference_main.h
     src/main/document_snapshot_main.cc
     src/main/document_snapshot_main.h
-    src/main/filter_main.cc
-    src/main/filter_main.h
     src/main/field_value_main.cc
     src/main/field_value_main.h
     src/main/firestore_main.cc
@@ -234,8 +227,6 @@ set(main_SRCS
     src/main/transaction_main.h
     src/main/user_data_converter_main.cc
     src/main/user_data_converter_main.h
-    src/main/unary_filter_main.cc
-    src/main/unary_filter_main.h
     src/main/util_main.h
     src/main/write_batch_main.cc
     src/main/write_batch_main.h)
