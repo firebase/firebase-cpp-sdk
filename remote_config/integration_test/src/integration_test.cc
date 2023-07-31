@@ -266,6 +266,10 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
 TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   ASSERT_NE(rc_, nullptr);
 
+  // This test sometimes times out on Android with the config not updated.
+#if defined(__ANDROID__)
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // defined(__ANDROID__)
   // Check if the config has default values. If not, we have cached data
   // from a previous test run, and auto-fetch will not happen.
   EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
@@ -302,6 +306,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
          firebase::remote_config::RemoteConfigError) {});
 #else
   auto config_update_promise = std::make_shared<std::promise<void> >();
+  auto config_update_future = config_update_promise->get_future();
 
   firebase::remote_config::ConfigUpdateListenerRegistration registration =
       rc_->AddOnConfigUpdateListener(
@@ -312,9 +317,8 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
             config_update_promise->set_value();
           });
   if (!has_cached_data) {
-    auto config_update_future = config_update_promise->get_future();
     ASSERT_EQ(std::future_status::ready,
-              config_update_future.wait_for(std::chrono::milliseconds(30000)));
+              config_update_future.wait_for(std::chrono::milliseconds(20000)));
 
     // On Android WaitForCompletion must be called from the main thread,
     // so Activate is called here outside of the listener.
@@ -324,15 +328,19 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
     std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
     EXPECT_EQ(key_values.size(), 6);
 
-    for (auto key_valur_pair : kServerValue) {
-      firebase::Variant k_value = key_valur_pair.value;
-      firebase::Variant fetched_value = key_values[key_valur_pair.key];
+    for (auto key_value_pair : kServerValue) {
+      firebase::Variant k_value = key_value_pair.value;
+      firebase::Variant fetched_value = key_values[key_value_pair.key];
       EXPECT_EQ(k_value.type(), fetched_value.type());
       EXPECT_EQ(k_value, fetched_value);
     }
     registration.Remove();
   }
 #endif  // !FIREBASE_PLATFORM_DESKTOP
+  // This test sometimes times out on Android with the config not updated.
+#if defined(__ANDROID__)
+  FLAKY_TEST_SECTION_END();
+#endif  // defined(__ANDROID__)
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
@@ -377,9 +385,9 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
   EXPECT_EQ(key_values.size(), 6);
 
-  for (auto key_valur_pair : kServerValue) {
-    firebase::Variant k_value = key_valur_pair.value;
-    firebase::Variant fetched_value = key_values[key_valur_pair.key];
+  for (auto key_value_pair : kServerValue) {
+    firebase::Variant k_value = key_value_pair.value;
+    firebase::Variant fetched_value = key_values[key_value_pair.key];
     EXPECT_EQ(k_value.type(), fetched_value.type());
     EXPECT_EQ(k_value, fetched_value);
   }
