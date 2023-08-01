@@ -629,7 +629,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - GMA (Android): Fixed a crash when Initializing GMA without a Firebase App.
+    - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
 
 ### 11.3.0
 -   Changes
