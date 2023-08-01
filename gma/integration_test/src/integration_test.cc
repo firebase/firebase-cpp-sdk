@@ -208,6 +208,7 @@ void InitializeGma(firebase::App* shared_app) {
                            ::firebase::gma::Initialize(*app, &result);
                            return result;
                          });
+
   FirebaseGmaTest::WaitForCompletion(initializer.InitializeLastResult(),
                                      "Initialize");
 
@@ -234,8 +235,8 @@ void FirebaseGmaTest::SetUpTestSuite() {
 
 void FirebaseGmaTest::TearDownTestSuite() {
   // GMA does some of its initialization in the main thread, so if you terminate
-  // it before initialization has completed, it can cause issues. 
-  // Wait for any pending initialization to be completed.
+  // it before initialization has completed, it can cause issues. So wait for
+  // any pending GMA initialization to be completed before calling terminate.
   auto initialize_future = firebase::gma::InitializeLastResult();
   WaitForCompletion(initialize_future, "gma::Initialize");
   LogDebug("Shutdown GMA.");
@@ -346,6 +347,8 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
   shared_app_ = ::firebase::App::Create();
 #endif  // defined(ANDROID)
 }
+
+// Test cases below.
 
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // Don't initialize mediation in this test so that a later test can still

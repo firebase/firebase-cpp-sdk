@@ -631,6 +631,7 @@ code.
 -   Changes
     - Firestore: Add support for disjunctions in queries (OR queries)
       ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
+    - GMA (Android): Fixed a crash when Initializing GMA without a Firebase App.
 
 ### 11.3.0
 -   Changes
@@ -678,7 +679,6 @@ code.
     - Storage (Desktop): Fixed a crash on Windows when uploading files from a
       path containing non-ANSI characters (Unicode above U+00FF).
     - Firestore: Added MultiDb support. ([#1321](https://github.com/firebase/firebase-cpp-sdk/pull/1321)).
-    - GMA (Android): Fixed a crash when Initializing GMA without a Firebase App.
 
 ### 11.0.1
 -   Changes

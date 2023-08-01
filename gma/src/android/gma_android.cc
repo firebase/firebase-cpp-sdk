@@ -289,7 +289,6 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
-
     // Need to return an invalid Future, because without GMA initialized,
     // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
     return Future<AdapterInitializationStatus>();
@@ -1283,7 +1282,6 @@ bool RegisterNatives() {
   };
 
   JNIEnv* env = GetJNI();
-
   return ad_inspector_helper::RegisterNatives(
              env, kAdInspectorHelperMethods,
              FIREBASE_ARRAYSIZE(kAdInspectorHelperMethods)) &&
