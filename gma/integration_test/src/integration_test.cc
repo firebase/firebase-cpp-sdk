@@ -199,18 +199,23 @@ void PauseForVisualInspectionAndCallbacks() {
 
 void InitializeGma(firebase::App* shared_app) {
   LogDebug("Initializing GMA.");
+  LogDebug("almostmatt - Initializing GMA. using a module initializer");
 
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(shared_app, nullptr,
                          [](::firebase::App* app, void* /* userdata */) {
+                           LogDebug("almostmatt - Try to initialize GMA");
                            LogDebug("Try to initialize GMA");
                            firebase::InitResult result;
                            ::firebase::gma::Initialize(*app, &result);
                            return result;
                          });
 
+
+  LogDebug("almostmatt - waiting for Module initializer.");
   FirebaseGmaTest::WaitForCompletion(initializer.InitializeLastResult(),
                                      "Initialize");
+  LogDebug("almostmatt - finished waiting for Module initializer.");
 
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
@@ -238,7 +243,9 @@ void FirebaseGmaTest::TearDownTestSuite() {
   // thread, so if you terminate it too quickly after initialization
   // it can cause issues.  Add a small delay here in case most of the
   // tests are skipped.
+  LogDebug("almostmatt - processing events 1000 before shutdown");
   ProcessEvents(1000);
+  LogDebug("almostmatt - finished processing events 1000 before shutdown");
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
   LogDebug("Shutdown Firebase App.");
@@ -348,10 +355,6 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 #endif  // defined(ANDROID)
 }
 
-// Test cases below.
-
-/*
-// TODO(almostmatt): enable this test.
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // TODO(almostmatt): Disabling mediation initialization to not mess up next test on iOS.
   firebase::gma::DisableMediationInitialization();
@@ -369,11 +372,22 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // thread, so if you terminate it too quickly after initialization
   // it can cause issues.  Add a small delay here in case most of the
   // tests are skipped.
+
+  LogDebug("almostmatt - waiting for gma initialize future to be finished");
+  auto initialize_future = firebase::gma::InitializeLastResult();
+  WaitForCompletion(initialize_future, "gma::Initialize");
+  LogDebug("almostmatt - finished waiting for gma initialize future to be finished");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("almostmatt - processing events 1000 before shutdown");
   ProcessEvents(1000);
+  LogDebug("almostmatt - finished processing events 1000 before shutdown");
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
+  LogDebug("almostmatt - finished calling gma terminate");
 }
-*/
 
 TEST_F(FirebaseGmaPreInitializationTests, TestDisableMediationInitialization) {
   // Note: This test should be disabled or put in an entirely different test
