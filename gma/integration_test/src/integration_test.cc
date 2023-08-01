@@ -239,13 +239,13 @@ void FirebaseGmaTest::SetUpTestSuite() {
 }
 
 void FirebaseGmaTest::TearDownTestSuite() {
-  // Workaround: GMA does some of its initialization in the main
-  // thread, so if you terminate it too quickly after initialization
-  // it can cause issues.  Add a small delay here in case most of the
-  // tests are skipped.
-  LogDebug("almostmatt - processing events 1000 before shutdown");
-  ProcessEvents(1000);
-  LogDebug("almostmatt - finished processing events 1000 before shutdown");
+  // GMA does some of its initialization in the main thread, so if you terminate
+  // it before initialization has completed, it can cause issues. 
+  // Wait for any pending initialization to be completed.
+  LogDebug("almostmatt - teardown - waiting for any past initialization to be completed");
+  auto initialize_future = firebase::gma::InitializeLastResult();
+  WaitForCompletion(initialize_future, "gma::Initialize");
+  LogDebug("almostmatt - finished waiting for any past initialization before terminate");
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
   LogDebug("Shutdown Firebase App.");
@@ -368,10 +368,6 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
 #endif  // defined(ANDROID)
   EXPECT_EQ(result, ::firebase::kInitResultSuccess);
   LogDebug("Successfully initialized GMA.");
-  // Workaround: GMA does some of its initialization in the main
-  // thread, so if you terminate it too quickly after initialization
-  // it can cause issues.  Add a small delay here in case most of the
-  // tests are skipped.
 
   LogDebug("almostmatt - waiting for gma initialize future to be finished");
   auto initialize_future = firebase::gma::InitializeLastResult();
@@ -380,9 +376,6 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
 
   ASSERT_EQ(initialize_future.error(), 0) << initialize_future.error_message();
 
-  LogDebug("almostmatt - processing events 1000 before shutdown");
-  ProcessEvents(1000);
-  LogDebug("almostmatt - finished processing events 1000 before shutdown");
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
   LogDebug("almostmatt - finished calling gma terminate");
