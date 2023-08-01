@@ -378,8 +378,7 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   WaitForCompletion(initialize_future, "gma::Initialize");
   LogDebug("almostmatt - finished waiting for gma initialize future to be finished");
 
-  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
-      << initializer.InitializeLastResult().error_message();
+  ASSERT_EQ(initialize_future.error(), 0) << initialize_future.error_message();
 
   LogDebug("almostmatt - processing events 1000 before shutdown");
   ProcessEvents(1000);
