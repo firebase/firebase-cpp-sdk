@@ -352,7 +352,7 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // Don't initialize mediation in this test so that a later test can still
-  // verify that Mediation has not been initialized.
+  // verify that mediation has not been initialized.
   firebase::gma::DisableMediationInitialization();
   LogDebug("Initializing GMA without a Firebase App.");
   firebase::InitResult result;
