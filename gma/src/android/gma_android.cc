@@ -299,6 +299,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
   if (!util::FindClass(env, "com/google/android/gms/ads/internal/ClientApi") &&
       google_play_services::CheckAvailability(env, activity) !=
           google_play_services::kAvailabilityAvailable) {
+    util::Terminate(env);
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
