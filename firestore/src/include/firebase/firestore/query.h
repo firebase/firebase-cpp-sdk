@@ -41,7 +41,6 @@ class AggregateQuery;
 class DocumentSnapshot;
 template <typename T>
 class EventListener;
-class Filter;
 class FieldPath;
 class FieldValue;
 class ListenerRegistration;
@@ -84,7 +83,8 @@ class Query {
   /**
    * @brief Copy constructor.
    *
-   * `Query` is immutable and can be efficiently copied.
+   * `Query` is immutable and can be efficiently copied (no deep copy is
+   * performed).
    *
    * @param[in] other `Query` to copy from.
    */
@@ -105,7 +105,8 @@ class Query {
   /**
    * @brief Copy assignment operator.
    *
-   * `Query` is immutable and can be efficiently copied.
+   * `Query` is immutable and can be efficiently copied (no deep copy is
+   * performed).
    *
    * @param[in] other `Query` to copy from.
    *
@@ -159,14 +160,6 @@ class Query {
    * this query.
    */
   virtual AggregateQuery Count() const;
-
-  /**
-   * @brief Creates and returns a new Query with the additional filter.
-   *
-   * @param filter The new filter to apply to the existing query.
-   * @return The created Query.
-   */
-  virtual Query Where(const Filter& filter) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -402,7 +395,7 @@ class Query {
    * A Query can have only one `WhereIn()` filter and it cannot be
    * combined with `WhereArrayContainsAny()`.
    *
-   * @param[in] field The name of the field to compare.
+   * @param[in] field The name of the field containing an array to search.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -418,7 +411,7 @@ class Query {
    * A Query can have only one `WhereIn()` filter and it cannot be
    * combined with `WhereArrayContainsAny()`.
    *
-   * @param[in] field The path of the field to compare.
+   * @param[in] field The path of the field containing an array to search.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -440,7 +433,7 @@ class Query {
    * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
    * `WhereIn()`, or `WhereNotEqualTo()`.
    *
-   * @param[in] field The name of the field to compare.
+   * @param[in] field The name of the field containing an array to search.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -462,7 +455,7 @@ class Query {
    * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
    * `WhereIn()`, or `WhereNotEqualTo()`.
    *
-   * @param[in] field The path of the field to compare.
+   * @param[in] field The path of the field containing an array to search.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
