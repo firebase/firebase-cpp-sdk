@@ -199,23 +199,17 @@ void PauseForVisualInspectionAndCallbacks() {
 
 void InitializeGma(firebase::App* shared_app) {
   LogDebug("Initializing GMA.");
-  LogDebug("almostmatt - Initializing GMA. using a module initializer");
 
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(shared_app, nullptr,
                          [](::firebase::App* app, void* /* userdata */) {
-                           LogDebug("almostmatt - Try to initialize GMA");
                            LogDebug("Try to initialize GMA");
                            firebase::InitResult result;
                            ::firebase::gma::Initialize(*app, &result);
                            return result;
                          });
-
-
-  LogDebug("almostmatt - waiting for Module initializer.");
   FirebaseGmaTest::WaitForCompletion(initializer.InitializeLastResult(),
                                      "Initialize");
-  LogDebug("almostmatt - finished waiting for Module initializer.");
 
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
@@ -242,10 +236,8 @@ void FirebaseGmaTest::TearDownTestSuite() {
   // GMA does some of its initialization in the main thread, so if you terminate
   // it before initialization has completed, it can cause issues. 
   // Wait for any pending initialization to be completed.
-  LogDebug("almostmatt - teardown - waiting for any past initialization to be completed");
   auto initialize_future = firebase::gma::InitializeLastResult();
   WaitForCompletion(initialize_future, "gma::Initialize");
-  LogDebug("almostmatt - finished waiting for any past initialization before terminate");
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
   LogDebug("Shutdown Firebase App.");
@@ -356,7 +348,8 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 }
 
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
-  // TODO(almostmatt): Disabling mediation initialization to not mess up next test on iOS.
+  // Don't initialize mediation in this test so that a later test can still
+  // verify that Mediation has not been initialized.
   firebase::gma::DisableMediationInitialization();
   LogDebug("Initializing GMA without a Firebase App.");
   firebase::InitResult result;
@@ -367,18 +360,13 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   ::firebase::gma::Initialize(&result);
 #endif  // defined(ANDROID)
   EXPECT_EQ(result, ::firebase::kInitResultSuccess);
-  LogDebug("Successfully initialized GMA.");
-
-  LogDebug("almostmatt - waiting for gma initialize future to be finished");
   auto initialize_future = firebase::gma::InitializeLastResult();
   WaitForCompletion(initialize_future, "gma::Initialize");
-  LogDebug("almostmatt - finished waiting for gma initialize future to be finished");
-
   ASSERT_EQ(initialize_future.error(), 0) << initialize_future.error_message();
+  LogDebug("Successfully initialized GMA.");
 
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
-  LogDebug("almostmatt - finished calling gma terminate");
 }
 
 TEST_F(FirebaseGmaPreInitializationTests, TestDisableMediationInitialization) {
