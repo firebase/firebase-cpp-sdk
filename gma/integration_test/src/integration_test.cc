@@ -237,8 +237,8 @@ void FirebaseGmaTest::TearDownTestSuite() {
   // GMA does some of its initialization in the main thread, so if you terminate
   // it before initialization has completed, it can cause issues. So wait for
   // any pending GMA initialization to be completed before calling terminate.
-  auto initialize_future = firebase::gma::InitializeLastResult();
-  WaitForCompletion(initialize_future, "gma::Initialize");
+  WaitForCompletion(firebase::gma::InitializeLastResult(),
+                    "gma::InitializeLastResult");
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
   LogDebug("Shutdown Firebase App.");
