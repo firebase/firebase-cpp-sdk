@@ -18,7 +18,6 @@
 set(common_SRCS
     src/common/ump/consent_info.cc
     src/common/ump/consent_info_internal.cc
-    src/common/ump/ump_common.cc
     src/common/gma_common.cc
     src/common/ad_view.cc
     src/common/ad_view_internal.cc
