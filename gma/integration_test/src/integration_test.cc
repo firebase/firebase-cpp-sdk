@@ -363,9 +363,7 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   ::firebase::gma::Initialize(&result);
 #endif  // defined(ANDROID)
   EXPECT_EQ(result, ::firebase::kInitResultSuccess);
-  auto initialize_future = firebase::gma::InitializeLastResult();
-  WaitForCompletion(initialize_future, "gma::Initialize");
-  EXPECT_EQ(initialize_future.error(), 0) << initialize_future.error_message();
+  WaitForCompletion(firebase::gma::InitializeLastResult(), "gma::Initialize");
   LogDebug("Successfully initialized GMA.");
 
   LogDebug("Shutdown GMA.");
