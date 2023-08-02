@@ -2444,6 +2444,8 @@ class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
   FirebaseGmaUmpTest() : consent_info_(nullptr) {}
 
+  // Whether to call ConsentInfo::Reset() upon initialization, which
+  // resets UMP's consent state to as if the app was first installed.
   enum ResetOption { kReset, kNoReset };
 
   void InitializeUmp(ResetOption reset = kReset);
