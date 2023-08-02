@@ -112,12 +112,17 @@ class ConsentInfo {
   static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
-  /// The user’s consent status. This value is cached between app sessions and
-  /// can be read before calling RequestConsentInfoUpdate().
+  /// The user’s consent status. This value defaults to kConsentStatusUnknown
+  /// until RequestConsentInfoUpdate() is called, and defaults to the previous
+  /// session’s value until RequestConsentInfoUpdate() completes.
   ConsentStatus GetConsentStatus();
 
-  /// Requests consent information update. Must be called before loading a
-  /// consent form. If successful, GetConsentStatus() will be updated.
+  /// Requests consent information update. Must be called in every app session
+  /// before checking the user’s consent status or loading a consent form. After
+  /// calling this method, GetConsentStatus() will be updated immediately to
+  /// hold the consent state from the previous app session, if one
+  /// exists. GetConsentStatus() may be updated again immediately before the
+  /// returned future is completed.
   Future<void> RequestConsentInfoUpdate(const ConsentRequestParameters& params);
 
   /// Get the Future from the most recent call to RequestConsentInfoUpdate().
@@ -127,8 +132,8 @@ class ConsentInfo {
   /// requires a call to RequestConsentInfoUpdate() to update.
   ConsentFormStatus GetConsentFormStatus();
 
-  /// Loads a consent form. If successful, GetConsentFormStatus() will be
-  /// updated.
+  /// Loads a consent form. Returns an error if the consent form is unavailable
+  /// or cannot be loaded.
   Future<void> LoadConsentForm();
 
   /// Get the Future from the most recent call to LoadConsentForm().
@@ -137,14 +142,25 @@ class ConsentInfo {
   /// Presents the full screen consent form using the given FormParent, which is
   /// defined as an Activity on Android and a UIViewController on iOS. The form
   /// will be dismissed and the Future will be completed after the user selects
-  /// an option. GetConsentStatus() is updated when the Future is completed.
+  /// an option.
+  ///
+  /// GetConsentStatus() is updated when the returned Future is completed.
+  ///
+  /// @note You must call LoadConsentForm() and wait for it to complete before
+  /// calling this method.
   Future<void> ShowConsentForm(FormParent parent);
 
   /// Get the Future from the most recent call to ShowConsentForm().
   Future<void> ShowConsentFormLastResult();
 
-  /// If required, load and then show the consent form. You can call this
-  /// instead of LoadConsentForm() and ShowConsentForm().
+  /// Loads a consent form and immediately presents it using the given
+  /// FormParent, if ConsentStatus is kConsentStatusRequired. The FormParent is
+  /// defined as an Activity on Android and a UIViewController on iOS. The
+  /// Future will be completed successfully after the user selects an option
+  /// (and the form is dismissed), or if the form is not required. The Future
+  /// will be completed with an error if the form fails to load or show.
+  ///
+  /// GetConsentStatus() will be updated prior to the Future being completed.
   Future<void> LoadAndShowConsentFormIfRequired(FormParent parent);
 
   /// Get the Future from the most recent call to
@@ -155,15 +171,28 @@ class ConsentInfo {
   /// This is updated by RequestConsentStatus().
   PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus();
 
-  /// If needed, show the privacy options form to the user. This allows them to
-  /// revoke their consent.
+  /// If GetPrivacyOptionsRequirementStatus() is
+  /// kPrivacyOptionsRequirementStatusRequired, presents a privacy options form
+  /// from the provided FormParent, which is defined as an Activity on Android
+  /// and a UIViewController on iOS.
+  ///
+  /// This method should only be called in response to a user input to request a
+  /// privacy options form to be shown.
+  ///
+  /// The future completes when the user selects an option and dismisses the
+  /// form or is completed immediately with an error code if no form is
+  /// presented. The privacy options form is preloaded by the SDK automatically
+  /// when a form becomes available. If no form has been preloaded, the SDK will
+  /// try to load one asynchronously.
   Future<void> ShowPrivacyOptionsForm(FormParent parent);
 
   /// Get the Future from the most recent call to ShowPrivacyOptionsForm().
   Future<void> ShowPrivacyOptionsFormLastResult();
 
-  /// If this returns true, it is now safe to request ads. If not, do not show
-  /// ads to the user. This is updated by RequestConsentStatus().
+  /// Indicates whether the app has completed the necessary steps for gathering
+  /// updated user consent. Returns true if RequestConsentInfoUpdate() has been
+  /// called and GetConsentStatus returns either kConsentStatusNotRequired or
+  /// kConsentStatusObtained.
   bool CanRequestAds();
 
   /// Clears all consent state from persistent storage. This can be used in

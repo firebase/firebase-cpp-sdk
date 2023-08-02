@@ -2608,7 +2608,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
             firebase::gma::ump::kConsentStatusRequired);
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
-            firebase::gma::ump::kConsentFormStatusUnavailable);
+            firebase::gma::ump::kConsentFormStatusAvailable);
 
   // Load the form.
   firebase::Future<void> future = consent_info_->LoadConsentForm();
@@ -2641,7 +2641,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
             firebase::gma::ump::kConsentStatusRequired);
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
-            firebase::gma::ump::kConsentFormStatusUnavailable);
+            firebase::gma::ump::kConsentFormStatusAvailable);
 
   WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm");
 
