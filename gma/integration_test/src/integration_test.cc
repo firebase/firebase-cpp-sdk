@@ -2548,6 +2548,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
             firebase::gma::ump::kConsentStatusUnknown);
   EXPECT_NE(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusUnknown);
+  EXPECT_NE(consent_info_->GetPrivacyOptionsRequirementStatus(),
+            firebase::gma::ump::kPrivacyOptionsRequirementStatusUnknown);
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
