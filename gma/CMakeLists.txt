@@ -54,7 +54,7 @@ set(android_SRCS
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/stub/ump/consent_info_internal_stub.cc
+    src/ios/ump/consent_info_internal_ios.mm
     src/ios/FADAdSize.mm
     src/ios/FADAdView.mm
     src/ios/FADInterstitialDelegate.mm
