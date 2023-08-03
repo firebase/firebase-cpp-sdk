@@ -82,8 +82,15 @@ def _gcs_list_dir(gcs_path):
   try:
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
   except subprocess.CalledProcessError as e:
-    print("Error: %s" % result.stderr)
-    raise e
+    # It's possible to have a CalledProcessError but still have gotten a file list.
+    # Check the stdout to see if we got lines that look GCS file paths, and ignore
+    # the error if so.
+    output = e.output.splitlines()
+    if len(output) > 1 and gcs_path in output[0]:
+      return output
+    else:
+      print("Error: %s" % e.stderr)
+      raise e
   return result.stdout.splitlines()
 
 
@@ -95,7 +102,7 @@ def _gcs_read_file(gcs_path):
   try:
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
   except subprocess.CalledProcessError as e:
-    print("Error: %s" % result.stderr)
+    print("Error: %s" % e.stderr)
     raise e
   return result.stdout
 
