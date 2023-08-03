@@ -20,24 +20,4 @@
 #include "firebase/gma/ump/consent_info.h"
 #include "firebase/gma/ump/types.h"
 
-namespace firebase {
-namespace gma {
-/// @brief API for User Messaging Platform.
-///
-/// The User Messaging Platform (UMP) SDK is Google’s option to handle user
-/// privacy and consent in mobile apps.
-///
-/// See the ConsentInfo class for details.
-namespace ump {
-
-/// Returns a static string describing the given error code.
-const char* GetConsentRequestErrorMessage(ConsentRequestError error_code);
-
-/// Returns a static string describing the given error code.
-const char* GetConsentFormErrorMessage(ConsentFormError error_code);
-
-}  // namespace ump
-}  // namespace gma
-}  // namespace firebase
-
 #endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_H_

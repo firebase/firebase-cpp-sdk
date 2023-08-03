@@ -2444,6 +2444,8 @@ class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
   FirebaseGmaUmpTest() : consent_info_(nullptr) {}
 
+  // Whether to call ConsentInfo::Reset() upon initialization, which
+  // resets UMP's consent state to as if the app was first installed.
   enum ResetOption { kReset, kNoReset };
 
   void InitializeUmp(ResetOption reset = kReset);
@@ -2546,6 +2548,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
             firebase::gma::ump::kConsentStatusUnknown);
   EXPECT_NE(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusUnknown);
+  EXPECT_NE(consent_info_->GetPrivacyOptionsRequirementStatus(),
+            firebase::gma::ump::kPrivacyOptionsRequirementStatusUnknown);
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
@@ -2604,7 +2608,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
             firebase::gma::ump::kConsentStatusRequired);
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
-            firebase::gma::ump::kConsentFormStatusUnavailable);
+            firebase::gma::ump::kConsentFormStatusAvailable);
 
   // Load the form.
   firebase::Future<void> future = consent_info_->LoadConsentForm();
@@ -2637,7 +2641,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
             firebase::gma::ump::kConsentStatusRequired);
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
-            firebase::gma::ump::kConsentFormStatusUnavailable);
+            firebase::gma::ump::kConsentFormStatusAvailable);
 
   WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm");
 

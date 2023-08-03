@@ -93,6 +93,11 @@ class ConsentInfoInternal {
  protected:
   ConsentInfoInternal();
 
+  static const char* GetConsentRequestErrorMessage(
+      ConsentRequestError error_code);
+
+  static const char* GetConsentFormErrorMessage(ConsentFormError error_code);
+
   SafeFutureHandle<void> CreateFuture() { return futures()->SafeAlloc<void>(); }
   SafeFutureHandle<void> CreateFuture(ConsentInfoFn fn_idx) {
     return futures()->SafeAlloc<void>(fn_idx);
