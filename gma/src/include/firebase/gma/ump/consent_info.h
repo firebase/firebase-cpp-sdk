@@ -152,7 +152,7 @@ class ConsentInfo {
   Future<void> LoadAndShowConsentFormIfRequiredLastResult();
 
   /// Check whether the privacy options form needs to be displayed.
-  /// This is updated by RequestConsentStatus().
+  /// This is updated by RequestConsentInfoUpdate().
   PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus();
 
   /// If needed, show the privacy options form to the user. This allows them to
@@ -163,7 +163,7 @@ class ConsentInfo {
   Future<void> ShowPrivacyOptionsFormLastResult();
 
   /// If this returns true, it is now safe to request ads. If not, do not show
-  /// ads to the user. This is updated by RequestConsentStatus().
+  /// ads to the user. This is updated by RequestConsentInfoUpdate().
   bool CanRequestAds();
 
   /// Clears all consent state from persistent storage. This can be used in

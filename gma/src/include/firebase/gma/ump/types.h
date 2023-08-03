@@ -163,7 +163,7 @@ enum ConsentFormError {
 /// Whether the privacy options need to be displayed.
 enum PrivacyOptionsRequirementStatus {
   /// Privacy options requirement status is unknown. Call
-  /// `ConsentInfo::RequestConsentStatus()` to update.
+  /// `ConsentInfo::RequestConsentInfoUpdate()` to update.
   kPrivacyOptionsRequirementStatusUnknown = 0,
   /// Privacy options are not required to be shown.
   kPrivacyOptionsRequirementStatusNotRequired,
