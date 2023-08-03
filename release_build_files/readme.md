@@ -627,6 +627,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
+
 ### 11.3.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.2.0.
