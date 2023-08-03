@@ -24,7 +24,7 @@ namespace gma {
 namespace ump {
 namespace internal {
 
- class ConsentInfoInternalIos : public ConsentInfoInternal {
+class ConsentInfoInternalIos : public ConsentInfoInternal {
  public:
   ConsentInfoInternalIos();
   ~ConsentInfoInternalIos() override;
