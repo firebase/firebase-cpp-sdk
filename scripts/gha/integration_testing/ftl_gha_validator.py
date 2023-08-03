@@ -79,7 +79,11 @@ def _gcs_list_dir(gcs_path):
   """Recursively returns a list of contents for a directory on GCS."""
   args = [GSUTIL, "ls", "-r", gcs_path]
   logging.info("Listing GCS contents: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=True)
+  try:
+    result = subprocess.run(args=args, capture_output=True, text=True, check=True)
+  except subprocess.CalledProcessError as e:
+    print("Error: %s" % result.stderr)
+    raise e
   return result.stdout.splitlines()
 
 
@@ -88,7 +92,11 @@ def _gcs_read_file(gcs_path):
   """Extracts the contents of a file on GCS."""
   args = [GSUTIL, "cat", gcs_path]
   logging.info("Reading GCS file: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=True)
+  try:
+    result = subprocess.run(args=args, capture_output=True, text=True, check=True)
+  except subprocess.CalledProcessError as e:
+    print("Error: %s" % result.stderr)
+    raise e
   return result.stdout
 
 
