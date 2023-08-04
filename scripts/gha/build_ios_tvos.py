@@ -76,7 +76,7 @@ CONFIG = {
       'toolchain_platform': 'TVOS',
     },
     'simulator': {
-      'architectures' : ['x86_64'],
+      'architectures' : ['x86_64', 'arm64'],
       'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
       'toolchain_platform': 'SIMULATOR_TVOS'
     }
