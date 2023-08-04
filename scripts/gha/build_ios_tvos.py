@@ -55,11 +55,11 @@ CONFIG = {
                            'firebase_installations', 'firebase_messaging',
                            'firebase_remote_config', 'firebase_storage'),
     'device': {
-      'architectures' : ('arm64'),
+      'architectures' : ['arm64'],
       'toolchain' : 'cmake/toolchains/ios.cmake',
     },
     'simulator': {
-      'architectures' : ('arm64', 'x86_64'),
+      'architectures' : ['arm64', 'x86_64'],
       'toolchain': 'cmake/toolchains/ios_simulator.cmake',
     }
   },
@@ -71,12 +71,12 @@ CONFIG = {
                            'firebase_messaging', 'firebase_remote_config',
                            'firebase_storage'),
     'device': {
-      'architectures' : ('arm64',),
+      'architectures' : ['arm64'],
       'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
       'toolchain_platform': 'TVOS',
     },
     'simulator': {
-      'architectures' : ('x86_64',),
+      'architectures' : ['x86_64', 'arm64'],
       'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
       'toolchain_platform': 'SIMULATOR_TVOS'
     }
