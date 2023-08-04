@@ -627,8 +627,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 11.4.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 32.2.2.
+    - General (iOS): Update to Firebase Cocoapods version 10.13.0.
+    - General (iOS): 32-bit (i386) iOS simulator builds are no longer supported.
     - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
 
 ### 11.3.0

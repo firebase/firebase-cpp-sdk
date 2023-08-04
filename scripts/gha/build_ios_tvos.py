@@ -59,7 +59,7 @@ CONFIG = {
       'toolchain' : 'cmake/toolchains/ios.cmake',
     },
     'simulator': {
-      'architectures' : ('arm64', 'x86_64', 'i386'),
+      'architectures' : ('arm64', 'x86_64'),
       'toolchain': 'cmake/toolchains/ios_simulator.cmake',
     }
   },
@@ -140,7 +140,7 @@ def build_universal_framework(frameworks_path, targets):
                     - firebase.framework
                     - firebase_analytics.framework
                     ...
-                  - simulator-i386
+                  - simulator-x86_64
                   ...
                 - tvos
                   - device-arm64
@@ -154,7 +154,7 @@ def build_universal_framework(frameworks_path, targets):
                 - ios
                   - device-arm64
                     ...
-                  - simulator-i386
+                  - simulator-x86_64
                     ...
                   ...
                   - universal                     <-------------- Newly created
@@ -291,7 +291,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                     - firebase.framework
                     - firebase_analytics.framework
                     ...
-                  - simulator-i386
+                  - simulator-x86_64
                   ...
                 - tvos
                   - device-arm64
@@ -308,7 +308,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                     - firebase.framework
                       - firebase                <---- <library>
                       - Headers                 <---- <all_include_headers>
-                  - ios-arm64_i386_x86_64-simulator <--- <for_ios_simulator>
+                  - ios-arm64_x86_64-simulator <--- <for_ios_simulator>
                     - firebase.framework
                       - firebase
                       - Headers
@@ -323,7 +323,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                   - ios-arm64_armv7
                     - firebase_auth.framework
                       - firebase_auth
-                  - ios-arm64_i386_x86_64-simulator
+                  - ios-arm64_x86_64-simulator
                     - firebase_auth.framework
                       - firebase_auth
                   - tvos-arm64
@@ -584,7 +584,7 @@ def parse_cmdline_args():
     default=('device', 'simulator'),
     help='List of platforms to build for.')
   parser.add_argument('-a', '--architecture', nargs='+',
-    default=('arm64', 'armv7', 'x86_64', 'i386'),
+    default=('arm64', 'armv7', 'x86_64'),
     help='List of architectures to build for.')
   parser.add_argument('-t', '--target', nargs='+',
     default=( 'firebase_analytics', 'firebase_app_check',
