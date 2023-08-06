@@ -84,13 +84,11 @@ std::string AuthRequest::GetUrl() {
   if (emulator_url.empty()) {
     std::string url(kHttps);
     url += kServerURL;
-    LogDebug("AuthRequest::GetUrl(Prod): %s", url.c_str());
     return url;
   } else {
     std::string url(kHttp);
     url += emulator_url;
     url += kServerURL;
-    LogDebug("AuthRequest::GetUrl(Emulator): %s", url.c_str());
     return url;
   }
 }
@@ -102,7 +100,7 @@ void AuthRequest::CheckEmulator() {
   }
   // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
-    LogDebug("Using Firestore Prod for testing.");
+    LogDebug("Using Auth Prod for testing.");
     return;
   }
 

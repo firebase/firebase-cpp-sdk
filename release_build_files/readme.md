@@ -630,7 +630,7 @@ code.
 
 ### Upcoming Release
 -   Changes
-    - General: Add FirebaseApp.GetApps(), to return the list of firebase app.
+    - General: Add FirebaseApp.GetApps(), to return the list of firebase::App` instances.
     - Firestore: Add support for disjunctions in queries (OR queries)
       ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
 
