@@ -3,7 +3,7 @@
 # Copyright 2020 Google LLC
 #
 # Script to build iOS XCFrameworks
-# If built for all architectures (arm64 armv7 x86_64 i386),
+# If built for all architectures (arm64 x86_64),
 # it will build universal framework as well
 #
 
@@ -24,9 +24,9 @@ usage(){
 set -e
 
 readonly SUPPORTED_PLATFORMS=(device simulator)
-readonly SUPPORTED_ARCHITECTURES=(arm64 armv7 x86_64 i386)
-readonly DEVICE_ARCHITECTURES=(arm64 armv7)
-readonly SIMULATOR_ARCHITECTURES=(arm64 x86_64 i386)
+readonly SUPPORTED_ARCHITECTURES=(arm64 x86_64)
+readonly DEVICE_ARCHITECTURES=(arm64)
+readonly SIMULATOR_ARCHITECTURES=(arm64 x86_64)
 readonly SUPPORTED_TARGETS=(firebase_analytics firebase_auth firebase_app_check firebase_database firebase_dynamic_links firebase_firestore firebase_functions firebase_gma firebase_installations firebase_messaging firebase_remote_config firebase_storage)
 
 # build default value
@@ -198,7 +198,7 @@ if ${cmakeBuild}; then
         done
     done
 
-    # if we built for all architectures (arm64 armv7 x86_64 i386)
+    # if we built for all architectures (arm64 x86_64)
     # build universal framework as well
     if [[ ${#architectures[@]} < ${#SUPPORTED_ARCHITECTURES[@]} ]]; then
         exit 0
@@ -209,8 +209,6 @@ if ${cmakeBuild}; then
         mkdir -p universal/${target}.framework
         libsubpath="${target}.framework/${target}"
         lipo -create "device-arm64/${libsubpath}" \
-                    "device-armv7/${libsubpath}" \
-                    "simulator-i386/${libsubpath}" \
                     "simulator-x86_64/${libsubpath}" \
             -output "universal/${libsubpath}"
     done
@@ -228,17 +226,15 @@ if ${cmakeBuild}; then
         for target in ${targets[@]}; do
             libsubpath="${target}.framework/${target}" 
             if [[ "${platform}" == "device" ]]; then
-                outputdir="${xcframeworkspath}/${target}.xcframework/ios-arm64_armv7/${target}.framework"
+                outputdir="${xcframeworkspath}/${target}.xcframework/ios-arm64/${target}.framework"
                 mkdir -p ${outputdir}
                 lipo -create "${frameworkspath}/device-arm64/${libsubpath}" \
-                            "${frameworkspath}/device-armv7/${libsubpath}" \
                     -output "${outputdir}/${target}"
 
             elif [[ "${platform}" == "simulator" ]]; then
-                outputdir="${xcframeworkspath}/${target}.xcframework/ios-arm64_i386_x86_64-simulator/${target}.framework"
+                outputdir="${xcframeworkspath}/${target}.xcframework/ios-arm64_x86_64-simulator/${target}.framework"
                 mkdir -p ${outputdir}
                 lipo -create "${frameworkspath}/simulator-arm64/${libsubpath}" \
-                            "${frameworkspath}/simulator-i386/${libsubpath}" \
                             "${frameworkspath}/simulator-x86_64/${libsubpath}" \
                     -output "${outputdir}/${target}"
             fi
@@ -252,11 +248,11 @@ if ${cmakeBuild}; then
     done
 
     # create Headers for xcframework
-    if [[ ! -d "${xcframeworkspath}/firebase.xcframework/ios-arm64_armv7/firebase.framework/Headers" ]]; then
+    if [[ ! -d "${xcframeworkspath}/firebase.xcframework/ios-arm64/firebase.framework/Headers" ]]; then
         cp -R ${frameworkspath}/device-arm64/firebase.framework/Headers  \
-            ${xcframeworkspath}/firebase.xcframework/ios-arm64_armv7/firebase.framework/Headers
+            ${xcframeworkspath}/firebase.xcframework/ios-arm64/firebase.framework/Headers
         cp -R ${frameworkspath}/device-arm64/firebase.framework/Headers  \
-            ${xcframeworkspath}/firebase.xcframework/ios-arm64_i386_x86_64-simulator/firebase.framework/Headers
+            ${xcframeworkspath}/firebase.xcframework/ios-arm64_x86_64-simulator/firebase.framework/Headers
     fi
     echo "xcframeworks build end & ready to use"
 fi
