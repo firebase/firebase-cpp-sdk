@@ -17,6 +17,7 @@
 #ifndef FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
 #define FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
 
+#include <string>
 #include <vector>
 
 #include "firebase/app.h"

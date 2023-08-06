@@ -632,7 +632,10 @@ code.
     - General (Android): Update to Firebase Android BoM version 32.2.2.
     - General (iOS): Update to Firebase Cocoapods version 10.13.0.
     - General (iOS): 32-bit iOS builds (i386 and armv7) are no longer supported.
+    - General: Add FirebaseApp.GetApps(), to return the list of `firebase::App` instances.
     - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
+    - Firestore: Add support for disjunctions in queries (OR queries)
+      ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
 
 ### 11.3.0
 -   Changes

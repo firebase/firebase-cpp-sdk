@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
 
+#include <string>
+
 #include "app/rest/request_json.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/request_generated.h"
@@ -27,6 +29,16 @@ namespace auth {
 
 // Key name for header when sending language code data.
 extern const char* kHeaderFirebaseLocale;
+
+const char* const kHttps = "https://";
+
+const char* const kHttp = "http://";
+
+const char* const kServerURL =
+    "www.googleapis.com/identitytoolkit/v3/relyingparty/";
+
+const char* const kEmulatorLocalHost = "localhost";
+const char* const kEmulatorPort = "9099";
 
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
@@ -39,6 +51,12 @@ class AuthRequest
               bool deliver_heartbeat)
       : AuthRequest(app, reinterpret_cast<const char*>(schema),
                     deliver_heartbeat) {}
+
+  std::string GetUrl();
+
+ private:
+  void CheckEmulator();
+  std::string emulator_url;
 };
 
 }  // namespace auth
