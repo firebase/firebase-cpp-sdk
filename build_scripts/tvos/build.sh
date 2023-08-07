@@ -200,7 +200,7 @@ if ${cmakeBuild}; then
         done
     done
 
-    # if we built for all architectures (arm64 armv7 x86_64 i386)
+    # if we built for all architectures (arm64 armv7 x86_64)
     # build universal framework as well
     if [[ ${#architectures[@]} < ${#SUPPORTED_ARCHITECTURES[@]} ]]; then
         exit 0

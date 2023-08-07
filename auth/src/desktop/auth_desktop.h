@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_DESKTOP_H_
 
 #include <memory>
+#include <string>
 
 #include "app/rest/request.h"
 #include "app/src/scheduler.h"

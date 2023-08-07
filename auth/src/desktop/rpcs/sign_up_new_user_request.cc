@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 
+#include <string>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 
@@ -53,11 +55,8 @@ SignUpNewUserRequest::SignUpNewUserRequest(::firebase::App& app,
 void SignUpNewUserRequest::SetUrl(const char* api_key) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] =
-      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
-      "signupNewUser?key=";
-  std::string url;
-  url.reserve(strlen(api_host) + strlen(api_key));
+  const char api_host[] = "signupNewUser?key=";
+  std::string url = GetUrl();
   url.append(api_host);
   url.append(api_key);
   set_url(url.c_str());

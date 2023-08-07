@@ -174,6 +174,12 @@ class FirebaseGmaUITest : public FirebaseGmaTest {
   void SetUp() override;
 };
 
+class FirebaseGmaMinimalTest : public FirebaseTest {
+ public:
+  FirebaseGmaMinimalTest();
+  ~FirebaseGmaMinimalTest() override;
+};
+
 // Runs GMA Tests on methods and functions that should be run
 // before GMA initializes.
 class FirebaseGmaPreInitializationTests : public FirebaseGmaTest {
@@ -229,11 +235,11 @@ void FirebaseGmaTest::SetUpTestSuite() {
 }
 
 void FirebaseGmaTest::TearDownTestSuite() {
-  // Workaround: GMA does some of its initialization in the main
-  // thread, so if you terminate it too quickly after initialization
-  // it can cause issues.  Add a small delay here in case most of the
-  // tests are skipped.
-  ProcessEvents(1000);
+  // GMA does some of its initialization in the main thread, so if you terminate
+  // it before initialization has completed, it can cause issues. So wait for
+  // any pending GMA initialization to be completed before calling terminate.
+  WaitForCompletion(firebase::gma::InitializeLastResult(),
+                    "gma::InitializeLastResult");
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
   LogDebug("Shutdown Firebase App.");
@@ -302,6 +308,10 @@ firebase::Variant FirebaseGmaTest::GetVariantMap() {
   return variant_map;
 }
 
+FirebaseGmaMinimalTest::FirebaseGmaMinimalTest() {}
+
+FirebaseGmaMinimalTest::~FirebaseGmaMinimalTest() {}
+
 FirebaseGmaUITest::FirebaseGmaUITest() {}
 
 FirebaseGmaUITest::~FirebaseGmaUITest() {}
@@ -340,6 +350,26 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 }
 
 // Test cases below.
+
+TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
+  // Don't initialize mediation in this test so that a later test can still
+  // verify that mediation has not been initialized.
+  firebase::gma::DisableMediationInitialization();
+  LogDebug("Initializing GMA without a Firebase App.");
+  firebase::InitResult result;
+#if defined(ANDROID)
+  ::firebase::gma::Initialize(app_framework::GetJniEnv(),
+                              app_framework::GetActivity(), &result);
+#else   // !defined(ANDROID)
+  ::firebase::gma::Initialize(&result);
+#endif  // defined(ANDROID)
+  EXPECT_EQ(result, ::firebase::kInitResultSuccess);
+  WaitForCompletion(firebase::gma::InitializeLastResult(), "gma::Initialize");
+  LogDebug("Successfully initialized GMA.");
+
+  LogDebug("Shutdown GMA.");
+  firebase::gma::Terminate();
+}
 
 TEST_F(FirebaseGmaPreInitializationTests, TestDisableMediationInitialization) {
   // Note: This test should be disabled or put in an entirely different test
