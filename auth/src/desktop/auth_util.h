@@ -44,6 +44,9 @@ using firebase::callback::NewCallback;
 
 const char* GetApiKey(const AuthData& auth_data);
 
+const char* GetTenantId(const AuthData& auth_data);
+
+
 /// @deprecated
 // Completes the given promise by translating the AuthenticationResult. If the
 // AuthenticationResult is successful, promise will be completed successfully

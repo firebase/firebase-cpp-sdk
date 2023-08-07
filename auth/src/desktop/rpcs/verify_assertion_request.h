@@ -33,22 +33,22 @@ class VerifyAssertionRequest : public AuthRequest {
  public:
   static std::unique_ptr<VerifyAssertionRequest> FromIdToken(
       ::firebase::App& app, const char* api_key, const char* provider_id,
-      const char* id_token);
+      const char* id_token, const char* tenant_id);
   static std::unique_ptr<VerifyAssertionRequest> FromIdToken(
       ::firebase::App& app, const char* api_key, const char* provider_id,
-      const char* id_token, const char* nonce);
+      const char* id_token, const char* nonce, const char* tenant_id);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessToken(
       ::firebase::App& app, const char* api_key, const char* provider_id,
-      const char* access_token);
+      const char* access_token, const char* tenant_id);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessToken(
       ::firebase::App& app, const char* api_key, const char* provider_id,
-      const char* access_token, const char* nonce);
+      const char* access_token, const char* nonce, const char* tenant_id);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessTokenAndOAuthSecret(
       ::firebase::App& app, const char* api_key, const char* provider_id,
-      const char* access_token, const char* oauth_secret);
+      const char* access_token, const char* oauth_secret, const char* tenant_id);
   static std::unique_ptr<VerifyAssertionRequest> FromAuthCode(
       ::firebase::App& app, const char* api_key, const char* provider_id,
-      const char* auth_code);
+      const char* auth_code, const char* tenant_id);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {
@@ -61,7 +61,7 @@ class VerifyAssertionRequest : public AuthRequest {
 
  private:
   VerifyAssertionRequest(::firebase::App& app, const char* api_key,
-                         const char* provider_id);
+                         const char* provider_id, const char* tenant_id);
 
   std::string post_body_;
 };

@@ -371,7 +371,8 @@ Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
   // Note: std::make_unique is not supported by Visual Studio 2012, which is
   // among our target compilers.
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
+                   custom_token, GetTenantId(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<VerifyCustomTokenResponse>);
@@ -390,7 +391,7 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(
   // Note: std::make_unique is not supported by Visual Studio 2012, which is
   // among our target compilers.
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token, nullptr));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow_DEPRECATED<VerifyCustomTokenResponse>);
@@ -467,7 +468,8 @@ Future<AuthResult> Auth::SignInAnonymously() {
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
+                   nullptr, nullptr, nullptr, GetTenantId(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
@@ -492,7 +494,8 @@ Future<User*> Auth::SignInAnonymously_DEPRECATED() {
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
+                   GetTenantId(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow_DEPRECATED<SignUpNewUserResponse>);
@@ -508,7 +511,8 @@ Future<AuthResult> Auth::SignInWithEmailAndPassword(
 
   typedef VerifyPasswordRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
+                   email, password, GetTenantId(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<VerifyPasswordResponse>);
@@ -524,7 +528,8 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
 
   typedef VerifyPasswordRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
+                   email, password, nullptr));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow_DEPRECATED<VerifyPasswordResponse>);
@@ -541,7 +546,7 @@ Future<AuthResult> Auth::CreateUserWithEmailAndPassword(
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
       new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password,
-                   ""));
+                   "", GetTenantId(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
@@ -558,7 +563,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
       new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password,
-                   ""));
+                   "", nullptr));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow_DEPRECATED<SignUpNewUserResponse>);
@@ -591,7 +596,8 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 
   typedef CreateAuthUriRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email,
+                   GetTenantId(*auth_data_)));
 
   const auto callback =
       [](AuthDataHandle<FetchProvidersResult, RequestT>* handle) {
@@ -706,6 +712,23 @@ void Auth::set_language_code(const char* language_code) {
     code.assign(language_code);
   }
   auth_impl->language_code = code;
+}
+
+void Auth::set_tenant_id(const char* tenant_id) {
+  if (!auth_data_) return;
+
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  std::string code;
+  if (tenant_id != nullptr) {
+    code.assign(tenant_id);
+  }
+  auth_impl->tenant_id = code;
+}
+
+std::string Auth::tenant_id() const {
+  if (!auth_data_) return nullptr;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  return auth_impl->tenant_id;
 }
 
 void Auth::UseAppLanguage() {

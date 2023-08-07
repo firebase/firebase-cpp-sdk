@@ -23,17 +23,25 @@ namespace firebase {
 namespace auth {
 
 GetAccountInfoRequest::GetAccountInfoRequest(::firebase::App& app,
-                                             const char* const api_key)
+                                             const char* const api_key,
+                                             const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);
+  if (tenant_id != nullptr){
+    application_data_->tenantId = tenant_id;
+  }
   UpdatePostFields();
 }
 
 GetAccountInfoRequest::GetAccountInfoRequest(::firebase::App& app,
                                              const char* const api_key,
-                                             const char* const id_token)
+                                             const char* const id_token,
+                                             const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);
+  if (tenant_id != nullptr){
+    application_data_->tenantId = tenant_id;
+  }
   SetIdToken(id_token);
   UpdatePostFields();
 }

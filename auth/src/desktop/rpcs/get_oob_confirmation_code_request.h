@@ -32,12 +32,14 @@ class GetOobConfirmationCodeRequest : public AuthRequest {
  public:
   static std::unique_ptr<GetOobConfirmationCodeRequest>
   CreateSendEmailVerificationRequest(::firebase::App& app, const char* api_key,
-                                     const char* language_code = nullptr);
+                                     const char* language_code = nullptr,
+                                     const char* tenant_id = nullptr);
 
   static std::unique_ptr<GetOobConfirmationCodeRequest>
   CreateSendPasswordResetEmailRequest(::firebase::App& app, const char* api_key,
                                       const char* email,
-                                      const char* language_code = nullptr);
+                                      const char* language_code = nullptr,
+                                      const char* tenant_id = nullptr);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {
@@ -50,7 +52,8 @@ class GetOobConfirmationCodeRequest : public AuthRequest {
 
  private:
   explicit GetOobConfirmationCodeRequest(::firebase::App& app,
-                                         const char* api_key);
+                                         const char* api_key,
+                                         const char* tenant_id);
 };
 
 }  // namespace auth

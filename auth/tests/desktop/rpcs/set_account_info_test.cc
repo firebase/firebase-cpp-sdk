@@ -32,7 +32,7 @@ typedef SetAccountInfoResponse ResponseT;
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUpdateEmailRequest(*app, "APIKEY", "fakeemail");
+      RequestT::CreateUpdateEmailRequest(*app, "APIKEY", "fakeemail", nullptr);
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -48,10 +48,30 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
       request->options().post_fields);
 }
 
+TEST(SetAccountInfoTest, TestSetAccountInfoRequestTenant_UpdateEmail) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request =
+      RequestT::CreateUpdateEmailRequest(*app, "APIKEY", "fakeemail", "tenant123");
+  request->SetIdToken("token");
+
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "setAccountInfo?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  email: \"fakeemail\",\n"
+      "  returnSecureToken: true,\n"
+      "  idToken: \"token\",\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdatePassword) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUpdatePasswordRequest(*app, "APIKEY", "fakepassword");
+      RequestT::CreateUpdatePasswordRequest(*app, "APIKEY", "fakepassword", nullptr);
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -67,10 +87,31 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdatePassword) {
       request->options().post_fields);
 }
 
+TEST(SetAccountInfoTest, TestSetAccountInfoRequestTenant_UpdatePassword) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request =
+      RequestT::CreateUpdatePasswordRequest(*app, "APIKEY", "fakepassword", nullptr, "tenant123");
+  request->SetIdToken("token");
+
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "setAccountInfo?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  password: \"fakepassword\",\n"
+      "  returnSecureToken: true,\n"
+      "  idToken: \"token\",\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Full) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request = RequestT::CreateUpdateProfileRequest(*app, "APIKEY",
-                                                      "New Name", "new_url");
+                                                      "New Name", "new_url",
+                                                      nullptr);
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -87,10 +128,33 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Full) {
       request->options().post_fields);
 }
 
+
+TEST(SetAccountInfoTest, TestSetAccountInfoRequestTenant_UpdateProfile_Full) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request = RequestT::CreateUpdateProfileRequest(*app, "APIKEY",
+                                                      "New Name", "new_url",
+                                                      "tenant123");
+  request->SetIdToken("token");
+
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "setAccountInfo?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  displayName: \"New Name\",\n"
+      "  returnSecureToken: true,\n"
+      "  idToken: \"token\",\n"
+      "  photoUrl: \"new_url\",\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Partial) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", nullptr, "new_url");
+      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", nullptr, "new_url", nullptr);
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -106,9 +170,29 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Partial) {
       request->options().post_fields);
 }
 
+TEST(SetAccountInfoTest, TestSetAccountInfoRequestTenant_UpdateProfile_Partial) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request =
+      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", nullptr, "new_url", "tenant123");
+  request->SetIdToken("token");
+
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "setAccountInfo?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  returnSecureToken: true,\n"
+      "  idToken: \"token\",\n"
+      "  photoUrl: \"new_url\",\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_DeleteFields) {
   std::unique_ptr<App> app(testing::CreateApp());
-  auto request = RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "");
+  auto request = RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "", nullptr);
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -127,11 +211,33 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_DeleteFields) {
       request->options().post_fields);
 }
 
+TEST(SetAccountInfoTest, TestSetAccountInfoRequestTenant_UpdateProfile_DeleteFields) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request = RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "", "tenant123");
+  request->SetIdToken("token");
+
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "setAccountInfo?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  returnSecureToken: true,\n"
+      "  idToken: \"token\",\n"
+      "  deleteAttribute: [\n"
+      "    \"DISPLAY_NAME\",\n"
+      "    \"PHOTO_URL\"\n"
+      "  ],\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
 TEST(SetAccountInfoTest,
      TestSetAccountInfoRequest_UpdateProfile_DeleteAndUpdate) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "new_url");
+      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "new_url", nullptr);
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -150,10 +256,34 @@ TEST(SetAccountInfoTest,
       request->options().post_fields);
 }
 
+TEST(SetAccountInfoTest,
+     TestSetAccountInfoRequest_UpdateProfileTenant_DeleteAndUpdate) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request =
+      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "new_url", "tenant123");
+  request->SetIdToken("token");
+
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "setAccountInfo?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  returnSecureToken: true,\n"
+      "  idToken: \"token\",\n"
+      "  photoUrl: \"new_url\",\n"
+      "  deleteAttribute: [\n"
+      "    \"DISPLAY_NAME\"\n"
+      "  ],\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_Unlink) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUnlinkProviderRequest(*app, "APIKEY", "fakeprovider");
+      RequestT::CreateUnlinkProviderRequest(*app, "APIKEY", "fakeprovider", nullptr);
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -167,6 +297,28 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_Unlink) {
       "  deleteProvider: [\n"
       "    \"fakeprovider\"\n"
       "  ]\n"
+      "}\n",
+      request->options().post_fields);
+}
+
+TEST(SetAccountInfoTest, TestSetAccountInfoRequestTenant_Unlink) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request =
+      RequestT::CreateUnlinkProviderRequest(*app, "APIKEY", "fakeprovider", "tenant123");
+  request->SetIdToken("token");
+
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "setAccountInfo?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  returnSecureToken: true,\n"
+      "  idToken: \"token\",\n"
+      "  deleteProvider: [\n"
+      "    \"fakeprovider\"\n"
+      "  ],\n"
+      "  tenantId: \"tenant123\"\n"
       "}\n",
       request->options().post_fields);
 }

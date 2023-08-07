@@ -38,21 +38,21 @@ namespace auth {
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromIdToken) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request = VerifyAssertionRequest::FromIdToken(*app, "APIKEY", "provider",
-                                                     "id_token");
+                                                     "id_token", "tenant123");
   CheckUrl(*request);
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessToken) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request = VerifyAssertionRequest::FromAccessToken(
-      *app, "APIKEY", "provider", "access_token");
+      *app, "APIKEY", "provider", "access_token", "tenant123");
   CheckUrl(*request);
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessTokenAndSecret) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request = VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
-      *app, "APIKEY", "provider", "access_token", "oauth_secret");
+      *app, "APIKEY", "provider", "access_token", "oauth_secret", "tenant123");
   CheckUrl(*request);
 }
 

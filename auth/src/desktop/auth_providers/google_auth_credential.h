@@ -34,13 +34,14 @@ class GoogleAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kGoogleAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      ::firebase::App& app, const char* const api_key) const override {
+      ::firebase::App& app, const char* const api_key,
+      const char* tenant_id) const override {
     if (!id_token_.empty()) {
       return VerifyAssertionRequest::FromIdToken(
-          app, api_key, GetProvider().c_str(), id_token_.c_str());
+          app, api_key, GetProvider().c_str(), id_token_.c_str(), tenant_id);
     } else {
       return VerifyAssertionRequest::FromAccessToken(
-          app, api_key, GetProvider().c_str(), access_token_.c_str());
+          app, api_key, GetProvider().c_str(), access_token_.c_str(), tenant_id);
     }
   }
 

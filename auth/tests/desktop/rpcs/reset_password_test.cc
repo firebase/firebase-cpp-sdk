@@ -28,7 +28,7 @@ namespace auth {
 // Test ResetPasswordRequest
 TEST(ResetPasswordTest, TestResetPasswordRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  ResetPasswordRequest request(*app, "APIKEY", "oob", "password");
+  ResetPasswordRequest request(*app, "APIKEY", "oob", "password", nullptr);
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "resetPassword?key=APIKEY",
@@ -37,6 +37,23 @@ TEST(ResetPasswordTest, TestResetPasswordRequest) {
       "{\n"
       "  oobCode: \"oob\",\n"
       "  newPassword: \"password\"\n"
+      "}\n",
+      request.options().post_fields);
+}
+
+// Test ResetPasswordRequestTenant
+TEST(ResetPasswordTest, TestResetPasswordTenantRequest) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  ResetPasswordRequest request(*app, "APIKEY", "oob", "password", "tenant123");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "resetPassword?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  oobCode: \"oob\",\n"
+      "  newPassword: \"password\",\n"
+      "  tenantId: \"tenant123\"\n"
       "}\n",
       request.options().post_fields);
 }

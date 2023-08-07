@@ -23,9 +23,13 @@ namespace firebase {
 namespace auth {
 
 SignUpNewUserRequest::SignUpNewUserRequest(::firebase::App& app,
-                                           const char* api_key)
+                                           const char* api_key,
+                                           const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);
+  if (tenant_id != nullptr) {
+    application_data_->tenantId = tenant_id;
+  }
   application_data_->returnSecureToken = true;
   UpdatePostFields();
 }
@@ -34,7 +38,8 @@ SignUpNewUserRequest::SignUpNewUserRequest(::firebase::App& app,
                                            const char* api_key,
                                            const char* email,
                                            const char* password,
-                                           const char* display_name)
+                                           const char* display_name,
+                                           const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);
   // It's fine for any of the additional parameters to be null, in case it's an
@@ -47,6 +52,9 @@ SignUpNewUserRequest::SignUpNewUserRequest(::firebase::App& app,
   }
   if (display_name) {
     application_data_->displayName = display_name;
+  }
+  if (tenant_id != nullptr) {
+    application_data_->tenantId = tenant_id;
   }
   application_data_->returnSecureToken = true;
   UpdatePostFields();

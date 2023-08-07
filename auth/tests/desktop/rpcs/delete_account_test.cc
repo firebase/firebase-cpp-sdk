@@ -29,7 +29,7 @@ namespace auth {
 // Test DeleteAccountRequest
 TEST(DeleteAccountTest, TestDeleteAccountRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  DeleteAccountRequest request(*app, "APIKEY");
+  DeleteAccountRequest request(*app, "APIKEY", nullptr);
   request.SetIdToken("token");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
@@ -38,6 +38,23 @@ TEST(DeleteAccountTest, TestDeleteAccountRequest) {
   EXPECT_EQ(
       "{\n"
       "  idToken: \"token\"\n"
+      "}\n",
+      request.options().post_fields);
+}
+
+// Test DeleteAccountRequestTenant
+TEST(DeleteAccountTest, TestDeleteAccountTenantRequest) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  DeleteAccountRequest request(*app, "APIKEY", "tenant123");
+  request.SetIdToken("token");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "deleteAccount?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  idToken: \"token\",\n"
+      "  tenantId: \"tenant123\"\n"
       "}\n",
       request.options().post_fields);
 }

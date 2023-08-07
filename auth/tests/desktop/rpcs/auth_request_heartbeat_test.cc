@@ -59,7 +59,7 @@ class AuthRequestHeartbeatTest : public ::testing::Test {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestCreateAuthUriRequestHasHeartbeat) {
-  CreateAuthUriRequest request(*app_, "APIKEY", "email");
+  CreateAuthUriRequest request(*app_, "APIKEY", "email", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
@@ -70,7 +70,7 @@ TEST_F(AuthRequestHeartbeatTest, TestCreateAuthUriRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestDeleteAccountRequestHasHeartbeat) {
-  DeleteAccountRequest request(*app_, "APIKEY");
+  DeleteAccountRequest request(*app_, "APIKEY", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
@@ -81,7 +81,7 @@ TEST_F(AuthRequestHeartbeatTest, TestDeleteAccountRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestGetAccountInfoRequestHasHeartbeat) {
-  GetAccountInfoRequest request(*app_, "APIKEY");
+  GetAccountInfoRequest request(*app_, "APIKEY", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
@@ -118,7 +118,7 @@ TEST_F(AuthRequestHeartbeatTest, TestOobSendPasswordResetRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestResetPasswordRequestHasHeartbeat) {
-  ResetPasswordRequest request(*app_, "APIKEY", "oob", "password");
+  ResetPasswordRequest request(*app_, "APIKEY", "oob", "password", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
@@ -141,7 +141,7 @@ TEST_F(AuthRequestHeartbeatTest, TestSecureTokenRequestDoesNotHaveHeartbeat) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdatePasswordRequestHasHeartbeat) {
   auto request = SetAccountInfoRequest::CreateUpdatePasswordRequest(
-      *app_, "APIKEY", "fakepassword");
+      *app_, "APIKEY", "fakepassword", nullptr);
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);
@@ -153,7 +153,7 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdatePasswordRequestHasHeartbeat) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateEmailRequestHasHeartbeat) {
   auto request =
-      SetAccountInfoRequest::CreateUpdateEmailRequest(*app_, "APIKEY", "email");
+      SetAccountInfoRequest::CreateUpdateEmailRequest(*app_, "APIKEY", "email", nullptr);
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);
@@ -165,7 +165,7 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateEmailRequestHasHeartbeat) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateProfileRequestHasHeartbeat) {
   auto request = SetAccountInfoRequest::CreateUpdateProfileRequest(
-      *app_, "APIKEY", "New Name", "new_url");
+      *app_, "APIKEY", "New Name", "new_url", nullptr);
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);
@@ -177,7 +177,7 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateProfileRequestHasHeartbeat) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUnlinkProviderRequestHasHeartbeat) {
   auto request = SetAccountInfoRequest::CreateUnlinkProviderRequest(
-      *app_, "APIKEY", "provider");
+      *app_, "APIKEY", "provider", nullptr);
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);
@@ -188,7 +188,18 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUnlinkProviderRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSignUpNewUserRequestHasHeartbeat) {
-  SignUpNewUserRequest request(*app_, "APIKEY");
+  SignUpNewUserRequest request(*app_, "APIKEY", nullptr);
+
+  // The request headers should include both hearbeat payload and GMP App ID.
+  EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
+  EXPECT_EQ("com.google.firebase.testing",
+            request.options().header[app_common::kXFirebaseGmpIdHeader]);
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
+
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(AuthRequestHeartbeatTest, TestSignUpNewUserRequestHasHeartbeatTenant) {
+  SignUpNewUserRequest request(*app_, "APIKEY", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
@@ -201,7 +212,8 @@ TEST_F(AuthRequestHeartbeatTest, TestSignUpNewUserRequestHasHeartbeat) {
 TEST_F(AuthRequestHeartbeatTest,
        TestVerifyAssertionFromIdTokenRequestHasHeartbeat) {
   auto request = VerifyAssertionRequest::FromIdToken(*app_, "APIKEY",
-                                                     "provider", "id_token");
+                                                     "provider", "id_token",
+                                                     "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);
@@ -214,7 +226,7 @@ TEST_F(AuthRequestHeartbeatTest,
 TEST_F(AuthRequestHeartbeatTest,
        TestVerifyAssertionFromAccessTokenRequestHasHeartbeat) {
   auto request = VerifyAssertionRequest::FromAccessToken(
-      *app_, "APIKEY", "provider", "access_token");
+      *app_, "APIKEY", "provider", "access_token", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);
@@ -227,7 +239,7 @@ TEST_F(AuthRequestHeartbeatTest,
 TEST_F(AuthRequestHeartbeatTest,
        TestVerifyAssertionFromAccessTokenAndOauthRequestHasHeartbeat) {
   auto request = VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
-      *app_, "APIKEY", "provider", "access_token", "oauth_secret");
+      *app_, "APIKEY", "provider", "access_token", "oauth_secret", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);
@@ -238,7 +250,7 @@ TEST_F(AuthRequestHeartbeatTest,
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestVerifyCustomTokenRequestHasHeartbeat) {
-  VerifyCustomTokenRequest request(*app_, "APIKEY", "email");
+  VerifyCustomTokenRequest request(*app_, "APIKEY", "email", nullptr);
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
@@ -249,7 +261,18 @@ TEST_F(AuthRequestHeartbeatTest, TestVerifyCustomTokenRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestVerifyPasswordRequestHasHeartbeat) {
-  VerifyPasswordRequest request(*app_, "APIKEY", "abc@email", "pwd");
+  VerifyPasswordRequest request(*app_, "APIKEY", "abc@email", "pwd", nullptr);
+
+  // The request headers should include both hearbeat payload and GMP App ID.
+  EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
+  EXPECT_EQ("com.google.firebase.testing",
+            request.options().header[app_common::kXFirebaseGmpIdHeader]);
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
+
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(AuthRequestHeartbeatTest, TestVerifyPasswordRequestHasHeartbeatTenant) {
+  VerifyPasswordRequest request(*app_, "APIKEY", "abc@email", "pwd", "tenant123");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);

@@ -23,7 +23,8 @@ namespace firebase {
 namespace auth {
 
 DeleteAccountRequest::DeleteAccountRequest(::firebase::App& app,
-                                           const char* const api_key)
+                                           const char* const api_key,
+                                           const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -32,6 +33,10 @@ DeleteAccountRequest::DeleteAccountRequest(::firebase::App& app,
   url.append(api_host);
   url.append(api_key);
   set_url(url.c_str());
+
+  if (tenant_id != nullptr){
+    application_data_->tenantId = tenant_id;
+  }
 
   UpdatePostFields();
 }

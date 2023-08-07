@@ -45,6 +45,10 @@ using util::JniStringToString;
     "()Ljava/lang/String;"),                                                   \
   X(SetLanguageCode, "setLanguageCode",                                        \
     "(Ljava/lang/String;)V"),                                                  \
+  X(GetTenantId, "getTenantId",                                                \
+    "()Ljava/lang/String;"),                                                   \
+  X(SetTenantId, "setTenantId",                                                \
+    "(Ljava/lang/String;)V"),                                                  \
   X(UseAppLanguage, "useAppLanguage", "()V"),                                  \
   X(AddAuthStateListener, "addAuthStateListener",                              \
     "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V"),           \
@@ -783,6 +787,34 @@ void Auth::set_language_code(const char* language_code) {
   firebase::util::CheckAndClearJniExceptions(env);
   if (j_language_code != nullptr) {
     env->DeleteLocalRef(j_language_code);
+  }
+}
+
+std::string Auth::tenant_id() const {
+  if (!auth_data_) return nullptr;
+  JNIEnv* env = Env(auth_data_);
+  jobject j_pending_result = env->CallObjectMethod(
+      AuthImpl(auth_data_), auth::GetMethodId(auth::kGetTenantId));
+  if (firebase::util::CheckAndClearJniExceptions(env) ||
+      j_pending_result == nullptr) {
+    return nullptr;
+  }
+  return util::JniStringToString(env, j_pending_result);
+}
+
+void Auth::set_tenant_id(const char* tenant_id) {
+  if (!auth_data_) return;
+  JNIEnv* env = Env(auth_data_);
+  jstring j_tenant_id = nullptr;
+  if (tenant_id != nullptr) {
+    j_tenant_id = env->NewStringUTF(tenant_id);
+  }
+  env->CallVoidMethod(AuthImpl(auth_data_),
+                      auth::GetMethodId(auth::kSetTenantId),
+                      j_tenant_id);
+  firebase::util::CheckAndClearJniExceptions(env);
+  if (j_tenant_id != nullptr) {
+    env->DeleteLocalRef(j_tenant_id);
   }
 }
 

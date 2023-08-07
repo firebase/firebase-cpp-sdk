@@ -26,10 +26,11 @@
 namespace firebase {
 namespace auth {
 
+
 // Test GetAccountInfoRequest
 TEST(GetAccountInfoTest, TestGetAccountInfoRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  GetAccountInfoRequest request(*app, "APIKEY", "token");
+  GetAccountInfoRequest request(*app, "APIKEY", "token", nullptr);
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "getAccountInfo?key=APIKEY",
@@ -37,6 +38,22 @@ TEST(GetAccountInfoTest, TestGetAccountInfoRequest) {
   EXPECT_EQ(
       "{\n"
       "  idToken: \"token\"\n"
+      "}\n",
+      request.options().post_fields);
+}
+
+// Test TestGetAccountInfoTenantRequest
+TEST(GetAccountInfoTest, TestGetAccountInfoTenantRequest) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  GetAccountInfoRequest request(*app, "APIKEY", "token", "tenant123");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "getAccountInfo?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  idToken: \"token\",\n"
+      "  tenantId: \"tenant123\"\n"
       "}\n",
       request.options().post_fields);
 }

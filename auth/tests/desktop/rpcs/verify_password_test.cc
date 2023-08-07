@@ -28,7 +28,7 @@ namespace auth {
 // Test VerifyPasswordRequest
 TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd");
+  VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd", nullptr);
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "verifyPassword?key=APIKEY",
@@ -41,6 +41,25 @@ TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
       "}\n",
       request.options().post_fields);
 }
+
+// Test VerifyPasswordRequest with tenant
+TEST(VerifyPasswordTest, TestVerifyPasswordTenantRequest) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd", "tenant123");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "verifyPassword?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  email: \"abc@email\",\n"
+      "  password: \"pwd\",\n"
+      "  returnSecureToken: true,\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request.options().post_fields);
+}
+
 
 // Test VerifyPasswordResponse
 TEST(VerifyPasswordTest, TestVerifyPasswordResponse) {

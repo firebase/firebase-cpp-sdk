@@ -29,6 +29,15 @@ const char* GetApiKey(const AuthData& auth_data) {
   return static_cast<const AuthImpl*>(auth_data.auth_impl)->api_key.c_str();
 }
 
+const char* GetTenantId(const AuthData& auth_data){
+  FIREBASE_ASSERT_RETURN(nullptr, auth_data.auth_impl);
+  auto auth_impl = static_cast<AuthImpl*>(auth_data.auth_impl);
+  if (auth_impl->tenant_id.empty()){
+    return auth_impl->tenant_id.c_str();
+  }
+  return nullptr;
+}
+
 void CompletePromise(Promise<User*>* const promise,
                      const SignInResult& sign_in_result) {
   FIREBASE_ASSERT_RETURN_VOID(promise);

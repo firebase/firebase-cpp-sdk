@@ -34,9 +34,11 @@ class TwitterAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kTwitterAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      ::firebase::App& app, const char* const api_key) const override {
+      ::firebase::App& app, const char* const api_key,
+      const char* tenant_id) const override {
     return VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
-        app, api_key, GetProvider().c_str(), token_.c_str(), secret_.c_str());
+        app, api_key, GetProvider().c_str(), token_.c_str(), secret_.c_str(),
+        tenant_id);
   }
 
  private:

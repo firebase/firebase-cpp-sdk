@@ -28,7 +28,7 @@ namespace auth {
 class CreateAuthUriRequest : public AuthRequest {
  public:
   CreateAuthUriRequest(::firebase::App& app, const char* api_key,
-                       const char* identifier);
+                       const char* identifier, const char* tenant_id);
 };
 
 }  // namespace auth

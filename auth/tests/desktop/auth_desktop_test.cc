@@ -85,6 +85,16 @@ void VerifyUser(const User& user) {
   EXPECT_FALSE(user.is_email_verified());
   VerifyProviderData(user);
 }
+void VerifyResult(const AuthResult& result) {
+  EXPECT_EQ("localid123", result.user.uid());
+  EXPECT_EQ("testsignin@example.com", result.user.email());
+  EXPECT_EQ("", result.user.display_name());
+  EXPECT_EQ("", result.user.photo_url());
+  EXPECT_EQ("Firebase", result.user.provider_id());
+  EXPECT_EQ("", result.user.phone_number());
+  EXPECT_FALSE(result.user.is_email_verified());
+  VerifyProviderData(result.user);
+}
 
 std::string GetFakeProviderInfo() {
   return "\"providerUserInfo\": ["
@@ -635,7 +645,7 @@ TEST_F(AuthDesktopTest, TestCreateUserWithEmailAndPassword) {
 }
 
 // Test Auth::SignInWithCustomToken.
-TEST_F(AuthDesktopTest, TestSignInWithCustomToken) {
+TEST_F(AuthDesktopTest, TestSignInWithCustomTokenDEPRECATED) {
   FakeSetT fakes;
   fakes[GetUrlForApi(API_KEY, "verifyCustomToken")] =
       FakeSuccessfulResponse("VerifyCustomTokenResponse",
@@ -654,6 +664,66 @@ TEST_F(AuthDesktopTest, TestSignInWithCustomToken) {
       firebase_auth_->SignInWithCustomToken_DEPRECATED("fake_custom_token"));
   EXPECT_FALSE(user->is_anonymous());
   VerifyUser(*user);
+}
+
+TEST_F(AuthDesktopTest, TestSignInWithCustomToken) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "verifyCustomToken")] =
+      FakeSuccessfulResponse("VerifyCustomTokenResponse",
+                             "\"isNewUser\": true,"
+                             "\"localId\": \"localid123\","
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  id_token_listener.ExpectChanges(2);
+  auth_state_listener.ExpectChanges(2);
+  AuthResult result = WaitForFuture(
+      firebase_auth_->SignInWithCustomToken("fake_custom_token"));
+  VerifyResult(result);
+}
+
+TEST_F(AuthDesktopTest, TestSignInWithCustomTokenWithTenant) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "verifyCustomToken")] =
+      FakeSuccessfulResponse("VerifyCustomTokenResponse",
+                             "\"isNewUser\": true,"
+                             "\"localId\": \"localid123\","
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  id_token_listener.ExpectChanges(2);
+  auth_state_listener.ExpectChanges(2);
+  firebase_auth_->set_tenant_id("tenant123");
+  AuthResult result = WaitForFuture(
+      firebase_auth_->SignInWithCustomToken("fake_custom_token"));
+  VerifyResult(result);
+}
+
+TEST_F(AuthDesktopTest, TestSignInWithCustomTokenWithTenantAndDeleteTenant) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "verifyCustomToken")] =
+      FakeSuccessfulResponse("VerifyCustomTokenResponse",
+                             "\"isNewUser\": true,"
+                             "\"localId\": \"localid123\","
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  id_token_listener.ExpectChanges(2);
+  auth_state_listener.ExpectChanges(2);
+  firebase_auth_->set_tenant_id("tenant123");
+  firebase_auth_->set_tenant_id(nullptr);
+  AuthResult result = WaitForFuture(
+      firebase_auth_->SignInWithCustomToken("fake_custom_token"));
+  VerifyResult(result);
 }
 
 // Test Auth::TestSignInWithCredential.
