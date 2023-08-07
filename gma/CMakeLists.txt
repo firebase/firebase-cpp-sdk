@@ -16,8 +16,6 @@
 
 # Common source files used by all platforms
 set(common_SRCS
-    src/common/ump/consent_info.cc
-    src/common/ump/consent_info_internal.cc
     src/common/gma_common.cc
     src/common/ad_view.cc
     src/common/ad_view_internal.cc
@@ -40,7 +38,6 @@ binary_to_array("gma_resources"
 # Source files used by the Android implementation.
 set(android_SRCS
     ${gma_resources_source}
-    src/stub/ump/consent_info_internal_stub.cc
     src/android/ad_request_converter.cc
     src/android/ad_error_android.cc
     src/android/adapter_response_info_android.cc
@@ -54,7 +51,6 @@ set(android_SRCS
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/stub/ump/consent_info_internal_stub.cc
     src/ios/FADAdSize.mm
     src/ios/FADAdView.mm
     src/ios/FADInterstitialDelegate.mm
@@ -73,7 +69,6 @@ set(ios_SRCS
 
 # Source files used by the stub implementation.
 set(stub_SRCS
-    src/stub/ump/consent_info_internal_stub.cc
     src/stub/ad_error_stub.cc
     src/stub/adapter_response_info_stub.cc
     src/stub/gma_stub.cc
