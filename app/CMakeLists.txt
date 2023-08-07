@@ -546,7 +546,10 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/native_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h)
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump/consent_info.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump/types.h)
   set(installations_HDRS
     ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
   set(messaging_HDRS
