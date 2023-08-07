@@ -18,7 +18,7 @@ env:
   defaultMainBranch: "main"
   triggerTestsLabel: "tests-requested: quick"
   branchPrefix: "workflow/auto-merge-feature-branch-"
-  
+
 
 jobs:
   list_feature_branches:
