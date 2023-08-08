@@ -71,6 +71,8 @@ NativeAdImage::NativeAdImage(
   FIREBASE_ASSERT(j_uri);
   internal_->uri = util::JniUriToString(env, j_uri);
 
+  internal_->uri = std::regex_replace(internal_->uri, std::regex("-rw"), "");
+
   // NativeAdImage scale.
   jdouble j_scale =
       env->CallDoubleMethod(internal_->native_ad_image,
