@@ -19,6 +19,7 @@
 #include <jni.h>
 
 #include <memory>
+#include <regex>
 #include <string>
 
 #include "gma/src/android/gma_android.h"
