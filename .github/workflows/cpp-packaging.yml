@@ -5,7 +5,7 @@ on:
       # Run a full packaging step any time a new branch is merged into main.
       - main
   schedule:
-    - cron: "0 9 * * *"  # 9am UTC = 1am PST / 2am PDT
+    - cron: "0 8 * * *"  # 8am UTC = 12am PST / 1am PDT
   workflow_dispatch:
     inputs:
       preserveIntermediateArtifacts:

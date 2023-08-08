@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
 
+#include <string>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 
@@ -26,11 +28,8 @@ VerifyAssertionRequest::VerifyAssertionRequest(::firebase::App& app,
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] =
-      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
-      "verifyAssertion?key=";
-  std::string url;
-  url.reserve(strlen(api_host) + strlen(api_key));
+  const char api_host[] = "verifyAssertion?key=";
+  std::string url = GetUrl();
   url.append(api_host);
   url.append(api_key);
   set_url(url.c_str());

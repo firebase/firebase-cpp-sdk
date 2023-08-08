@@ -4,7 +4,7 @@ platform :ios, '11.0'
 use_frameworks! :linkage => :static
 
 target 'integration_test' do
-  pod 'Firebase/CoreOnly', '10.12.0'
+  pod 'Firebase/CoreOnly', '10.13.0'
   pod 'Google-Mobile-Ads-SDK', '10.9.0'
   pod 'GoogleUserMessagingPlatform', '2.1.0'
 end
