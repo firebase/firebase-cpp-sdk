@@ -195,9 +195,11 @@ void CheckEmulator(AuthData* auth_data) {
 
   // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
-    LogDebug("Using Firestore Prod for testing.");
-    return;
+   LogDebug("Using Auth Prod for testing.");
+   return;
   }
+
+  LogDebug("Using Auth Emulator for testing.");
 
   // Use AUTH_EMULATOR_PORT if it is set to non empty string,
   // otherwise use the default port.

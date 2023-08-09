@@ -24,6 +24,7 @@
 #include "app/src/assert.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/stl_emulation.h"
+#include "app/src/logger.h"
 
 namespace firebase {
 namespace rest {
@@ -41,6 +42,7 @@ class RequestJson : public Request {
   explicit RequestJson(const char* schema) : application_data_(new FbsTypeT()) {
     flatbuffers::IDLOptions fbs_options;
     fbs_options.skip_unexpected_fields_in_json = true;
+    fbs_options.strict_json = true;
     parser_.reset(new flatbuffers::Parser(fbs_options));
 
     bool parse_status = parser_->Parse(schema);
@@ -66,7 +68,9 @@ class RequestJson : public Request {
     bool generate_status =
         GenerateText(*parser_, builder.GetBufferPointer(), &json);
     FIREBASE_ASSERT_RETURN_VOID(generate_status);
-
+    if (options().verbose) {
+      LogInfo("RequestJson body: %s", json.c_str());
+    }
     set_post_fields(json.c_str());
   }
 
