@@ -195,8 +195,8 @@ void CheckEmulator(AuthData* auth_data) {
 
   // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
-   LogDebug("Using Auth Prod for testing.");
-   return;
+    LogDebug("Using Auth Prod for testing.");
+    return;
   }
 
   LogDebug("Using Auth Emulator for testing.");
