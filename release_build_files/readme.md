@@ -632,6 +632,7 @@ code.
     - Auth: Add Firebase Emulator support. Can set environment attribute 
       USE_AUTH_EMULATOR=yes and/or AUTH_EMULATOR_PORT(default 9099) to enable
       conneting to local Firebase Auth Emulator.
+
 ### 11.4.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.2.2.

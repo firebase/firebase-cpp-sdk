@@ -67,6 +67,7 @@ class RequestJson : public Request {
     bool generate_status =
         GenerateText(*parser_, builder.GetBufferPointer(), &json);
     FIREBASE_ASSERT_RETURN_VOID(generate_status);
+    
     set_post_fields(json.c_str());
   }
 
