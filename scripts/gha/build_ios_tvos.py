@@ -55,11 +55,11 @@ CONFIG = {
                            'firebase_installations', 'firebase_messaging',
                            'firebase_remote_config', 'firebase_storage'),
     'device': {
-      'architectures' : ('arm64', 'armv7'),
+      'architectures' : ['arm64'],
       'toolchain' : 'cmake/toolchains/ios.cmake',
     },
     'simulator': {
-      'architectures' : ('arm64', 'x86_64', 'i386'),
+      'architectures' : ['arm64', 'x86_64'],
       'toolchain': 'cmake/toolchains/ios_simulator.cmake',
     }
   },
@@ -71,12 +71,12 @@ CONFIG = {
                            'firebase_messaging', 'firebase_remote_config',
                            'firebase_storage'),
     'device': {
-      'architectures' : ('arm64',),
+      'architectures' : ['arm64'],
       'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
       'toolchain_platform': 'TVOS',
     },
     'simulator': {
-      'architectures' : ('x86_64',),
+      'architectures' : ['x86_64'],
       'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
       'toolchain_platform': 'SIMULATOR_TVOS'
     }
@@ -127,7 +127,7 @@ def arrange_frameworks(archive_output_path):
 def build_universal_framework(frameworks_path, targets):
   """Create universal frameworks if possible.
 
-  If all architectures (eg: arm64, armv7 etc) and platforms (device, simulator)
+  If all architectures (eg: arm64, etc) and platforms (device, simulator)
   were built, combine all of the libraries into a single universal framework.
   Args:
       frameworks_path (str): Root path containing subdirectories for each
@@ -140,7 +140,7 @@ def build_universal_framework(frameworks_path, targets):
                     - firebase.framework
                     - firebase_analytics.framework
                     ...
-                  - simulator-i386
+                  - simulator-x86_64
                   ...
                 - tvos
                   - device-arm64
@@ -154,7 +154,7 @@ def build_universal_framework(frameworks_path, targets):
                 - ios
                   - device-arm64
                     ...
-                  - simulator-i386
+                  - simulator-x86_64
                     ...
                   ...
                   - universal                     <-------------- Newly created
@@ -178,7 +178,7 @@ def build_universal_framework(frameworks_path, targets):
     framework_os_path = os.path.join(frameworks_path, apple_os)
     # Extract list of all built platform-architecture combinations into a map.
     # Map looks like this,
-    # {'device': ['arm64', 'armv7'], 'simulator': ['x86_64']}
+    # {'device': ['arm64''], 'simulator': ['x86_64']}
     platform_variant_architecture_dirs = os.listdir(framework_os_path)
     platform_variant_arch_map = defaultdict(list)
     for variant_architecture in platform_variant_architecture_dirs:
@@ -273,7 +273,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
   """Build xcframeworks combining libraries for different operating systems.
 
   Combine frameworks for different operating systems (ios, tvos), architectures
-  (arm64, armv7, x86_64 etc) per platform variant (device, simulator).
+  (arm64, x86_64 etc) per platform variant (device, simulator).
   This makes it super convenient for developers to use a single deliverable in
   XCode and develop for multiple platforms/operating systems in one project.
 
@@ -291,7 +291,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                     - firebase.framework
                     - firebase_analytics.framework
                     ...
-                  - simulator-i386
+                  - simulator-x86_64
                   ...
                 - tvos
                   - device-arm64
@@ -304,11 +304,11 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
         Output: <build_dir>/xcframeworks        <----------- <xcframeworks_path>
                 - firebase.xcframework
                   - Info.plist                  <----------- <Info.plist file>
-                  - ios-arm64_armv7           <-- <all_libraries_for_ios_device>
+                  - ios-arm64           <-- <all_libraries_for_ios_device>
                     - firebase.framework
                       - firebase                <---- <library>
                       - Headers                 <---- <all_include_headers>
-                  - ios-arm64_i386_x86_64-simulator <--- <for_ios_simulator>
+                  - ios-arm64_x86_64-simulator <--- <for_ios_simulator>
                     - firebase.framework
                       - firebase
                       - Headers
@@ -320,10 +320,10 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                   ...
                 - firebase_auth.xcframework   <-- <firebase_auth target>
                   - Info.plist
-                  - ios-arm64_armv7
+                  - ios-arm64
                     - firebase_auth.framework
                       - firebase_auth
-                  - ios-arm64_i386_x86_64-simulator
+                  - ios-arm64_x86_64-simulator
                     - firebase_auth.framework
                       - firebase_auth
                   - tvos-arm64
@@ -340,7 +340,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
     platform_variant_architecture_dirs = os.listdir(framework_os_path)
     # Extract list of all built platform-architecture combinations into a map.
     # Map looks like this,
-    # {'device': ['arm64', 'armv7'], 'simulator': ['x86_64']}
+    # {'device': ['arm64'], 'simulator': ['x86_64']}
     platform_variant_arch_map = defaultdict(list)
     for variant_architecture in platform_variant_architecture_dirs:
       # Skip directories not of the format platform-arch (eg: universal)
@@ -385,7 +385,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
           # device is treated as default platform variant and we do not add any
           # suffix at the end. For all other variants, add them as suffix.
           xcframework_key_parts.append(platform_variant)
-        # Eg: ios-arm64_armv7, tvos-x86_64-simulator
+        # Eg: ios-arm64, tvos-x86_64-simulator
         xcframework_key = '-'.join(xcframework_key_parts)
 
         # <build_dir>/xcframeworks/<target>.xcframework/<os>-<list_of_archs>/
@@ -584,7 +584,7 @@ def parse_cmdline_args():
     default=('device', 'simulator'),
     help='List of platforms to build for.')
   parser.add_argument('-a', '--architecture', nargs='+',
-    default=('arm64', 'armv7', 'x86_64', 'i386'),
+    default=('arm64', 'x86_64'),
     help='List of architectures to build for.')
   parser.add_argument('-t', '--target', nargs='+',
     default=( 'firebase_analytics', 'firebase_app_check',
