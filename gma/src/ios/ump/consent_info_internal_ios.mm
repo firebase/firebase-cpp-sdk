@@ -17,6 +17,7 @@
 #include "gma/src/ios/ump/consent_info_internal_ios.h"
 
 #include "app/src/thread.h"
+#include "app/src/util_ios.h"
 
 namespace firebase {
 namespace gma {
@@ -30,72 +31,155 @@ ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
 }
 
 ConsentInfoInternalIos::ConsentInfoInternalIos()
-    : consent_status_(kConsentStatusUnknown),
-      consent_form_status_(kConsentFormStatusUnknown),
-      privacy_options_requirement_status_(
-          kPrivacyOptionsRequirementStatusUnknown),
-      under_age_of_consent_(false),
-      debug_geo_(kConsentDebugGeographyDisabled) {}
+  : loaded_form_(nil) {}
 
 ConsentInfoInternalIos::~ConsentInfoInternalIos() {}
 
+static ConsentRequestError CppRequestErrorFromIosRequestError(UMPRequestErrorCode code) {
+  switch(code) {
+  case UMPRequestErrorCodeInternal:
+    return kConsentRequestErrorInternal;
+  case UMPRequestErrorCodeInvalidAppID:
+    return kConsentRequestErrorInvalidAppId;
+  case UMPRequestErrorCodeMisconfiguration:
+    return kConsentRequestErrorMisconfiguration;
+  case UMPRequestErrorCodeNetwork:
+    return kConsentRequestErrorNetwork;
+  default:
+    LogWarning("GMA: Unknown UMPRequestErrorCode returned by UMP iOS SDK: %d",
+	       (int)(ios_status));
+    return kConsentRequestErrorUnknown;
+  }
+}
+
+static ConsentFormError CppFormErrorFromIosFormError(UMPFormErrorCode code) {
+  switch(code) {
+  case UMPFormErrorCodeInternal:
+    return kConsentFormErrorInternal;
+  case UMPFormErrorCodeAlreadyUsed:
+    return kConsentFormErrorAlreadyUsed;
+  case UMPFormErrorCodeUnavailable:
+    return kConsentFormErrorUnavailable;
+  case UMPFormErrorCodeTimeout:
+    return kConsentFormErrorTimeout;
+  case UMPFormErrorCodeInvalidViewController:
+    return kConsentFormErrorInvalidOperation;
+  default:
+    LogWarning("GMA: Unknown UMPFormErrorCode returned by UMP iOS SDK: %d",
+	       (int)(ios_status));
+    return kConsentFormErrorUnknown;
+  }
+}
+ 
 Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnRequestConsentInfoUpdate);
 
-  // See the header file for an explanation of these default settings.
-  ConsentStatus new_consent_status = kConsentStatusObtained;
-  PrivacyOptionsRequirementStatus new_privacy_req =
-      kPrivacyOptionsRequirementStatusNotRequired;
-  // Simulate consent status based on debug geo.
-  if (params.debug_settings.debug_geography == kConsentDebugGeographyEEA) {
-    new_consent_status = kConsentStatusRequired;
-  } else if (params.debug_settings.debug_geography ==
-             kConsentDebugGeographyNonEEA) {
-    new_consent_status = kConsentStatusNotRequired;
+  UMPRequestParameters *ios_parameters = [[UMPRequestParameters alloc] init];
+  ios_parameters.tagForUnderAgeOfConsent = params.tag_for_under_age_of_consent ? YES : NO;
+  UMPDebugSettings *ios_debug_settings = [[UMPDebugSettings alloc] init];
+
+  switch(params.debug_settings.debug_geography) {
+  case kConsentDebugGeographyEEA:
+    ios_debug_settings.geography = UMPDebugGeographyEEA;
+    break;
+  case kConsentDebugGeographyNonEEA:
+    ios_debug_settings.geography = UMPDebugGeographyNonEEA;
+    break;
+  case kConsentDebugGeographyDisabled:
+    ios_debug_settings.geography = UMPDebugGeographyDisabled;
+    break;
   }
+  if (params.debug_settings.debug_device_ids.size() > 0) {
+    ios_debug_settings.testDeviceIdentifiers =
+      firebase::util::StringVectorToNSMutableArray(params.debug_settings.debug_device_ids);
+  }
+  ios_parameters.debugSettings = ios_debug_settings;
 
-  consent_status_ = new_consent_status;
-  under_age_of_consent_ = params.tag_for_under_age_of_consent;
-  consent_form_status_ = under_age_of_consent_ ? kConsentFormStatusUnavailable
-                                               : kConsentFormStatusAvailable;
-  debug_geo_ = params.debug_settings.debug_geography;
-  privacy_options_requirement_status_ =
-      kPrivacyOptionsRequirementStatusNotRequired;
+  [UMPConsentInformation.sharedInstance
+    requestConsentInfoUpdateWithParameters:ios_parameters
+                         completionHandler:^(NSError *_Nullable error){
+      if (!error) {
+	CompleteFuture(handle, kConsentRequestSuccess);
+      } else {
+	CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code),, error.message);
+      }
+    }];
 
-  CompleteFuture(handle, kConsentRequestSuccess);
   return MakeFuture<void>(futures(), handle);
+}
+
+ConsentStatus ConsentInfoInternalIos::GetConsentStatus() {
+  UMPConsentStatus ios_status =
+    UMPConsentInformation.sharedInstance.consentStatus;
+  switch(ios_status) {
+  case UMPConsentStatusNotRequired:
+    return kConsentStatusNotRequired;
+  case UMPConsentStatusRequired:
+    return kConsentStatusRequired;
+  case UMPConsentStatusObtained:
+    return kConsentStatusObtained;
+  case UMPConsentStatusUnknown:
+    return kConsentStatusUnknown;
+  default:
+    LogWarning("GMA: Unknown UMPConsentStatus returned by UMP iOS SDK: %d",
+	       (int)(ios_status));
+    return kConsentStatusUnknown;
+  }
+}
+
+
+ConsentFormStatus ConsentInfoInternalIos::GetConsentFormStatus() {
+  UMPFormStatus ios_status =
+    UMPConsentInformation.sharedInstance.formStatus;
+  switch(ios_status) {
+  case UMPFormStatusAvailable:
+    return kConsentFormStatusAvailable;
+  case UMPFormStatusUnavailable:
+    return kConsentFormStatusUnavailable;
+  case UMPFormStatusUnknown:
+    return kConsentFormStatusUnknown;
+  default:
+    LogWarning("GMA: Unknown UMPFormConsentStatus returned by UMP iOS SDK: %d",
+	       (int)(ios_status));
+    return kConsentFormStatusUnknown;
+  }
 }
 
 Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
 
-  if (consent_form_status_ != kConsentFormStatusAvailable) {
-    CompleteFuture(handle, kConsentFormErrorUnavailable);
-    return MakeFuture<void>(futures(), handle);
-  }
-  CompleteFuture(handle, kConsentFormSuccess);
+  [UMPConsentForm 
+    loadWithCompletionHandler:^(UMPConsentForm *_Nullable form, NSError *_Nullable error){
+      if (form) {
+	loaded_form_ = form;
+	CompleteFuture(handle, kConsentFormSuccess, "Success");
+      } else if (error) {
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.message);
+      } else {
+	CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
+      }
+    }];
   return MakeFuture<void>(futures(), handle);
 }
 
 Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
 
-  consent_status_ = kConsentStatusObtained;
-
-  if (debug_geo_ == kConsentDebugGeographyEEA) {
-    privacy_options_requirement_status_ =
-        kPrivacyOptionsRequirementStatusRequired;
-  } else if (debug_geo_ == kConsentDebugGeographyNonEEA) {
-    privacy_options_requirement_status_ =
-        kPrivacyOptionsRequirementStatusNotRequired;
-  } else {  // no debug option
-    privacy_options_requirement_status_ =
-        kPrivacyOptionsRequirementStatusNotRequired;
+  if (!loaded_form_) {
+    CompleteFuture(handle, kConsentFormErrorInvalidOperation,
+		   "You must call LoadConsentForm() prior to calling ShowConsentForm().");
+  } else {
+    [loaded_form presentFromViewController:parent
+			 completionHandler:^(NSError *_Nullable error){
+	if (!error) {
+	  CompleteFuture(handle, kConsentRequestSuccess);
+	} else {
+	  CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),, error.message);
+	}
+      }];
   }
-
-  CompleteFuture(handle, kConsentRequestSuccess);
   return MakeFuture<void>(futures(), handle);
 }
 
@@ -104,58 +188,59 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
 
-  if (consent_form_status_ != kConsentFormStatusAvailable) {
-    CompleteFuture(handle, kConsentFormErrorUnavailable);
-    return MakeFuture<void>(futures(), handle);
-  }
+Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
+  SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
 
-  if (consent_status_ == kConsentStatusRequired) {
-    consent_status_ = kConsentStatusObtained;
-    if (debug_geo_ == kConsentDebugGeographyEEA) {
-      privacy_options_requirement_status_ =
-          kPrivacyOptionsRequirementStatusRequired;
-    } else if (debug_geo_ == kConsentDebugGeographyNonEEA) {
-      privacy_options_requirement_status_ =
-          kPrivacyOptionsRequirementStatusNotRequired;
-    } else {  // no debug option
-      privacy_options_requirement_status_ =
-          kPrivacyOptionsRequirementStatusNotRequired;
-    }
-  }
-  CompleteFuture(handle, kConsentRequestSuccess);
+  [UMPConsentForm loadAndPresentFromViewControllerIfRequired:parent
+					   completionHandler:^(NSError *_Nullable error){
+      if (!error) {
+	CompleteFuture(handle, kConsentRequestSuccess);
+      } else {
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),, error.message);
+      }
+    }];
   return MakeFuture<void>(futures(), handle);
 }
 
 PrivacyOptionsRequirementStatus
 ConsentInfoInternalIos::GetPrivacyOptionsRequirementStatus() {
-  return privacy_options_requirement_status_;
+  UMPPrivacyOptionsRequirementStatus ios_status =
+    UMPConsentInformation.sharedInstance.privacyOptionsRequirementStatus;
+  switch(ios_status) {
+  case UMPPrivacyOptionsRequirementStatusRequired:
+    return kPrivacyOptionsRequirementStatusRequired;
+  case UMPPrivacyOptionsRequirementStatusNotRequired:
+    return kPrivacyOptionsRequirementStatusNotRequired;
+  case UMPPrivacyOptionsRequirementStatusUnknown:
+    return kPrivacyOptionsRequirementStatusUnknown;
+  default:
+    LogWarning("GMA: Unknown UMPPrivacyOptionsRequirementStatus returned by UMP iOS SDK: %d",
+	       (int)(ios_status));
+    return kPrivacyOptionsRequirementStatusUnknown;
+  }
 }
 
 Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(
     FormParent parent) {
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
-
-  if (consent_status_ == kConsentStatusObtained) {
-    consent_status_ = kConsentStatusRequired;
-    privacy_options_requirement_status_ =
-        kPrivacyOptionsRequirementStatusNotRequired;
-  }
-  CompleteFuture(handle, kConsentRequestSuccess);
+  [UMPConsentInformation presentPrivacyOptionsFromViewController:parent
+					       completionHandler:^(NSError *_Nullable error){
+      if (!error) {
+	CompleteFuture(handle, kConsentRequestSuccess);
+      } else {
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),, error.message);
+      }
+    }];
   return MakeFuture<void>(futures(), handle);
 }
 
 bool ConsentInfoInternalIos::CanRequestAds() {
-  bool consent_status_ok = (consent_status_ == kConsentStatusObtained ||
-                            consent_status_ == kConsentStatusNotRequired);
-  bool privacy_options_ok = (privacy_options_requirement_status_ !=
-                             kPrivacyOptionsRequirementStatusUnknown);
-  return consent_status_ok && privacy_options_ok;
+  return (UMPConsentInformation.sharedInstance.canRequestAds == YES ? true : false);
 }
 
 void ConsentInfoInternalIos::Reset() {
-  consent_status_ = kConsentStatusUnknown;
-  consent_form_status_ = kConsentFormStatusUnknown;
+  [UMPConsentInformation.sharedInstance reset]
 }
 
 }  // namespace internal

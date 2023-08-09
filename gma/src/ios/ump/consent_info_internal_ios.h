@@ -17,6 +17,8 @@
 #ifndef FIREBASE_GMA_SRC_IOS_UMP_CONSENT_INFO_INTERNAL_IOS_H_
 #define FIREBASE_GMA_SRC_IOS_UMP_CONSENT_INFO_INTERNAL_IOS_H_
 
+#include <UserMessagingPlatform/UserMessagingPlatform.h>
+
 #include "gma/src/common/ump/consent_info_internal.h"
 
 namespace firebase {
@@ -29,13 +31,11 @@ class ConsentInfoInternalIos : public ConsentInfoInternal {
   ConsentInfoInternalIos();
   ~ConsentInfoInternalIos() override;
 
-  ConsentStatus GetConsentStatus() const override { return consent_status_; }
-  ConsentFormStatus GetConsentFormStatus() const override {
-    return consent_form_status_;
-  }
-
+  ConsentStatus GetConsentStatus() override;
   Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) override;
+
+  ConsentFormStatus GetConsentFormStatus() override;
   Future<void> LoadConsentForm() override;
   Future<void> ShowConsentForm(FormParent parent) override;
 
@@ -49,11 +49,7 @@ class ConsentInfoInternalIos : public ConsentInfoInternal {
   void Reset() override;
 
  private:
-  ConsentStatus consent_status_;
-  ConsentFormStatus consent_form_status_;
-  PrivacyOptionsRequirementStatus privacy_options_requirement_status_;
-  ConsentDebugGeography debug_geo_;
-  bool under_age_of_consent_;
+  UMPConsentForm *loaded_form_;
 };
 
 }  // namespace internal

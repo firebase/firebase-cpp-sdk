@@ -114,7 +114,7 @@ enum ConsentRequestError {
   /// An internal error occurred.
   kConsentRequestErrorInternal,
   /// A misconfiguration exists in the UI.
-  kConsentRequestErrorCodeMisconfiguration,
+  kConsentRequestErrorMisconfiguration,
   /// An unknown error occurred.
   kConsentRequestErrorUnknown,
   /// An invalid operation occurred. Try again.
@@ -151,7 +151,7 @@ enum ConsentFormError {
   /// The form is unavailable.
   kConsentFormErrorUnavailable,
   /// This form was already used.
-  kConsentFormErrorCodeAlreadyUsed,
+  kConsentFormErrorAlreadyUsed,
   /// An invalid operation occurred. Try again.
   kConsentFormErrorInvalidOperation,
   /// The operation is already in progress. Call
