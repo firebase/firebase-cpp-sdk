@@ -51,8 +51,8 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   ConsentInfoInternalStub();
   ~ConsentInfoInternalStub() override;
 
-  ConsentStatus GetConsentStatus() const override { return consent_status_; }
-  ConsentFormStatus GetConsentFormStatus() const override {
+  ConsentStatus GetConsentStatus() override { return consent_status_; }
+  ConsentFormStatus GetConsentFormStatus() override {
     return consent_form_status_;
   }
 

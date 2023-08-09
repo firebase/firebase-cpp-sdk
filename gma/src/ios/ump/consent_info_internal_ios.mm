@@ -35,7 +35,7 @@ ConsentInfoInternalIos::ConsentInfoInternalIos()
 
 ConsentInfoInternalIos::~ConsentInfoInternalIos() {}
 
-static ConsentRequestError CppRequestErrorFromIosRequestError(UMPRequestErrorCode code) {
+static ConsentRequestError CppRequestErrorFromIosRequestError(NSInteger code) {
   switch(code) {
   case UMPRequestErrorCodeInternal:
     return kConsentRequestErrorInternal;
@@ -47,12 +47,12 @@ static ConsentRequestError CppRequestErrorFromIosRequestError(UMPRequestErrorCod
     return kConsentRequestErrorNetwork;
   default:
     LogWarning("GMA: Unknown UMPRequestErrorCode returned by UMP iOS SDK: %d",
-	       (int)(ios_status));
+	       (int)code);
     return kConsentRequestErrorUnknown;
   }
 }
 
-static ConsentFormError CppFormErrorFromIosFormError(UMPFormErrorCode code) {
+static ConsentFormError CppFormErrorFromIosFormError(NSInteger code) {
   switch(code) {
   case UMPFormErrorCodeInternal:
     return kConsentFormErrorInternal;
@@ -66,7 +66,7 @@ static ConsentFormError CppFormErrorFromIosFormError(UMPFormErrorCode code) {
     return kConsentFormErrorInvalidOperation;
   default:
     LogWarning("GMA: Unknown UMPFormErrorCode returned by UMP iOS SDK: %d",
-	       (int)(ios_status));
+	       (int)code);
     return kConsentFormErrorUnknown;
   }
 }
@@ -85,7 +85,7 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     ios_debug_settings.geography = UMPDebugGeographyEEA;
     break;
   case kConsentDebugGeographyNonEEA:
-    ios_debug_settings.geography = UMPDebugGeographyNonEEA;
+    ios_debug_settings.geography = UMPDebugGeographyNotEEA;
     break;
   case kConsentDebugGeographyDisabled:
     ios_debug_settings.geography = UMPDebugGeographyDisabled;
@@ -103,7 +103,7 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
       if (!error) {
 	CompleteFuture(handle, kConsentRequestSuccess);
       } else {
-	CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code),, error.message);
+	CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription);
       }
     }];
 
@@ -124,7 +124,7 @@ ConsentStatus ConsentInfoInternalIos::GetConsentStatus() {
     return kConsentStatusUnknown;
   default:
     LogWarning("GMA: Unknown UMPConsentStatus returned by UMP iOS SDK: %d",
-	       (int)(ios_status));
+	       (int)ios_status);
     return kConsentStatusUnknown;
   }
 }
@@ -142,7 +142,7 @@ ConsentFormStatus ConsentInfoInternalIos::GetConsentFormStatus() {
     return kConsentFormStatusUnknown;
   default:
     LogWarning("GMA: Unknown UMPFormConsentStatus returned by UMP iOS SDK: %d",
-	       (int)(ios_status));
+	       (int)ios_status);
     return kConsentFormStatusUnknown;
   }
 }
@@ -156,7 +156,7 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 	loaded_form_ = form;
 	CompleteFuture(handle, kConsentFormSuccess, "Success");
       } else if (error) {
-	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.message);
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
       } else {
 	CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
       }
@@ -171,12 +171,12 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
     CompleteFuture(handle, kConsentFormErrorInvalidOperation,
 		   "You must call LoadConsentForm() prior to calling ShowConsentForm().");
   } else {
-    [loaded_form presentFromViewController:parent
+    [loaded_form_ presentFromViewController:parent
 			 completionHandler:^(NSError *_Nullable error){
 	if (!error) {
 	  CompleteFuture(handle, kConsentRequestSuccess);
 	} else {
-	  CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),, error.message);
+	  CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
 	}
       }];
   }
@@ -196,7 +196,7 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
       if (!error) {
 	CompleteFuture(handle, kConsentRequestSuccess);
       } else {
-	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),, error.message);
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
       }
     }];
   return MakeFuture<void>(futures(), handle);
@@ -215,7 +215,7 @@ ConsentInfoInternalIos::GetPrivacyOptionsRequirementStatus() {
     return kPrivacyOptionsRequirementStatusUnknown;
   default:
     LogWarning("GMA: Unknown UMPPrivacyOptionsRequirementStatus returned by UMP iOS SDK: %d",
-	       (int)(ios_status));
+	       (int)ios_status);
     return kPrivacyOptionsRequirementStatusUnknown;
   }
 }
@@ -229,7 +229,7 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(
       if (!error) {
 	CompleteFuture(handle, kConsentRequestSuccess);
       } else {
-	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),, error.message);
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
       }
     }];
   return MakeFuture<void>(futures(), handle);
