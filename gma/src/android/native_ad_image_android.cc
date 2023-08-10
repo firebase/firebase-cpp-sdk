@@ -73,8 +73,10 @@ NativeAdImage::NativeAdImage(
 
   // Images requested with an android user agent may return webp images. Trim
   // webp parameter from image url to get the original JPG/PNG image.
-  std::size_t webp_pos = internal_->uri.find("-rw");
-  if (webp_pos != std::string::npos) {
+  std::size_t eq_pos = internal_->uri.rfind("=");
+  std::size_t webp_pos = internal_->uri.rfind("-rw");
+  if (webp_pos != std::string::npos && eq_pos != std::string::npos &&
+      webp_pos > eq_pos) {
     internal_->uri.replace(webp_pos, 3, "");
   }
 
