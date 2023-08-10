@@ -72,6 +72,8 @@ NativeAdImage::NativeAdImage(
   FIREBASE_ASSERT(j_uri);
   internal_->uri = util::JniUriToString(env, j_uri);
 
+  // Images requested with an android user agent may return webp images. Trim
+  // webp parameter from image url to get the original JPG/PNG image.
   internal_->uri = std::regex_replace(internal_->uri, std::regex("-rw"), "");
 
   // NativeAdImage scale.
