@@ -627,6 +627,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Next Release
+-   Changes
+    - Auth: Add Firebase Auth Emulator support. Set the environment variable
+      USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099) 
+      to connect to the local Firebase Auth Emulator.
+
 ### 11.4.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.2.2.
