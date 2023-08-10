@@ -220,8 +220,7 @@ ConsentInfoInternalIos::GetPrivacyOptionsRequirementStatus() {
   }
 }
 
-Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(
-    FormParent parent) {
+Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
   [UMPConsentInformation presentPrivacyOptionsFromViewController:parent
