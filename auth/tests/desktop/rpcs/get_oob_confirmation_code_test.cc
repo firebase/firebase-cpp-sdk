@@ -40,8 +40,8 @@ TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequest) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  idToken: \"token\",\n"
-      "  requestType: \"VERIFY_EMAIL\"\n"
+      "  \"idToken\": \"token\",\n"
+      "  \"requestType\": \"VERIFY_EMAIL\"\n"
       "}\n",
       request->options().post_fields);
 }
@@ -56,8 +56,8 @@ TEST(GetOobConfirmationCodeTest, SendPasswordResetEmailRequest) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  email: \"email\",\n"
-      "  requestType: \"PASSWORD_RESET\"\n"
+      "  \"email\": \"email\",\n"
+      "  \"requestType\": \"PASSWORD_RESET\"\n"
       "}\n",
       request->options().post_fields);
 }
