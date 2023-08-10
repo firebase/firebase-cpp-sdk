@@ -19,7 +19,6 @@
 #include <jni.h>
 
 #include <memory>
-#include <regex>
 #include <string>
 
 #include "gma/src/android/gma_android.h"
@@ -74,7 +73,10 @@ NativeAdImage::NativeAdImage(
 
   // Images requested with an android user agent may return webp images. Trim
   // webp parameter from image url to get the original JPG/PNG image.
-  internal_->uri = std::regex_replace(internal_->uri, std::regex("-rw"), "");
+  std::size_t webp_pos = internal_->uri.find("-rw");
+  if (webp_pos != std::string::npos) {
+    internal_->uri.replace(webp_pos, 3, "");
+  }
 
   // NativeAdImage scale.
   jdouble j_scale =
