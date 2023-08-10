@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#include "gma/src/ios/ump/consent_info_internal_ios.h"
-
 #include "app/src/thread.h"
+#include "gma/src/ios/ump/consent_info_internal_ios.h"
 
 namespace firebase {
 namespace gma {
@@ -131,8 +130,7 @@ ConsentInfoInternalIos::GetPrivacyOptionsRequirementStatus() {
   return privacy_options_requirement_status_;
 }
 
-Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(
-    FormParent parent) {
+Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
 
