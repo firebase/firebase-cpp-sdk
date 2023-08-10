@@ -103,7 +103,7 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
       if (!error) {
 	CompleteFuture(handle, kConsentRequestSuccess);
       } else {
-	CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription);
+	CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription.UTF8String);
       }
     }];
 
@@ -156,7 +156,7 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 	loaded_form_ = form;
 	CompleteFuture(handle, kConsentFormSuccess, "Success");
       } else if (error) {
-	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
       } else {
 	CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
       }
@@ -172,11 +172,11 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
 		   "You must call LoadConsentForm() prior to calling ShowConsentForm().");
   } else {
     [loaded_form_ presentFromViewController:parent
-			 completionHandler:^(NSError *_Nullable error){
+			  completionHandler:^(NSError *_Nullable error){
 	if (!error) {
 	  CompleteFuture(handle, kConsentRequestSuccess);
 	} else {
-	  CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
+	  CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	}
       }];
   }
@@ -188,15 +188,12 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
 
-Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
-  SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
-
-  [UMPConsentForm loadAndPresentFromViewControllerIfRequired:parent
+  [UMPConsentForm loadAndPresentIfRequiredFromViewController:parent
 					   completionHandler:^(NSError *_Nullable error){
       if (!error) {
 	CompleteFuture(handle, kConsentRequestSuccess);
       } else {
-	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
       }
     }];
   return MakeFuture<void>(futures(), handle);
@@ -223,12 +220,12 @@ ConsentInfoInternalIos::GetPrivacyOptionsRequirementStatus() {
 Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
-  [UMPConsentInformation presentPrivacyOptionsFromViewController:parent
-					       completionHandler:^(NSError *_Nullable error){
+  [UMPConsentForm presentPrivacyOptionsFormFromViewController:parent
+					    completionHandler:^(NSError *_Nullable error){
       if (!error) {
 	CompleteFuture(handle, kConsentRequestSuccess);
       } else {
-	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription);
+	CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
       }
     }];
   return MakeFuture<void>(futures(), handle);
@@ -239,7 +236,7 @@ bool ConsentInfoInternalIos::CanRequestAds() {
 }
 
 void ConsentInfoInternalIos::Reset() {
-  [UMPConsentInformation.sharedInstance reset]
+  [UMPConsentInformation.sharedInstance reset];
 }
 
 }  // namespace internal
