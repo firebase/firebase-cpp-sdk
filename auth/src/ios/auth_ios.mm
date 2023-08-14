@@ -164,6 +164,7 @@ void CheckEmulator(AuthData *auth_data) {
     return;
   }
   LogInfo("Using Auth Emulator.");
+
   // Use AUTH_EMULATOR_PORT if it is set to non empty string,
   // otherwise use the default port.
   uint32_t port = std::stoi(kEmulatorPort);
