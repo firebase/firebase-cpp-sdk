@@ -373,7 +373,7 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
 }
-#if 0 // jsimantov
+
 TEST_F(FirebaseGmaPreInitializationTests, TestDisableMediationInitialization) {
   // Note: This test should be disabled or put in an entirely different test
   // binrary if we ever wish to test mediation in this application.
@@ -2473,7 +2473,6 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
-#endif  // jsimantov
 class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
   FirebaseGmaUmpTest() : consent_info_(nullptr) {}
