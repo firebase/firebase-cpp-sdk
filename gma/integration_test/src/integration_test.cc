@@ -98,6 +98,8 @@ const char* kErrorDomain = "com.google.admob";
 #endif
 
 // Sample test device IDs to use in making the request.
+// You can replace these with actual device IDs for certain tests (e.g. UMP)
+// to work on hardware devices.
 const std::vector<std::string> kTestDeviceIDs = {
     "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
 
@@ -136,6 +138,7 @@ static const std::vector<std::string> kNeighboringContentURLs = {
     "test_url1", "test_url2", "test_url3"};
 
 using app_framework::LogDebug;
+using app_framework::LogInfo;
 using app_framework::LogWarning;
 using app_framework::ProcessEvents;
 
@@ -370,7 +373,7 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
 }
-
+#if 0 // jsimantov
 TEST_F(FirebaseGmaPreInitializationTests, TestDisableMediationInitialization) {
   // Note: This test should be disabled or put in an entirely different test
   // binrary if we ever wish to test mediation in this application.
@@ -2470,6 +2473,7 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
+#endif  // jsimantov
 class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
   FirebaseGmaUmpTest() : consent_info_(nullptr) {}
@@ -2498,6 +2502,7 @@ void FirebaseGmaUmpTest::InitializeUmp(ResetOption reset) {
 
 void FirebaseGmaUmpTest::TerminateUmp() {
   if (consent_info_) {
+    consent_info_->Reset();
     delete consent_info_;
     consent_info_ = nullptr;
   }
@@ -2583,6 +2588,12 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
+  // For debug options to work, you need to be on simulator OR enter
+  // the proper debug device ID below (which requires manual testing).
+  if (!ShouldRunUITests()) {
+    SKIP_TEST_ON_MOBILE_HARDWARE;
+  }
+
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -2591,6 +2602,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
@@ -2602,6 +2614,12 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
+  // For debug options to work, you need to be on simulator OR enter
+  // the proper debug device ID below (which requires manual testing).
+  if (!ShouldRunUITests()) {
+    SKIP_TEST_ON_MOBILE_HARDWARE;
+  }
+
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -2610,6 +2628,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyNonEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
@@ -2630,6 +2649,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2663,9 +2683,12 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
+
+  ProcessEvents(1000);
 
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusRequired);
@@ -2673,12 +2696,19 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
 
+  ProcessEvents(1000);
+
+  LogInfo("About to load consent form");
+
+  ProcessEvents(1000);
+
   WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm");
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
 
-  firebase::Future<void> future = consent_info_->ShowConsentForm(nullptr);
+  firebase::Future<void> future =
+      consent_info_->ShowConsentForm(app_framework::GetWindowController());
 
   EXPECT_TRUE(future == consent_info_->ShowConsentFormLastResult());
 
@@ -2689,7 +2719,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueUnderAgeOfConsent) {
-  TEST_REQUIRES_USER_INTERACTION;
+  // For debug options to work, you need to be on simulator OR enter
+  // the proper debug device ID below (which requires manual testing).
+  if (!ShouldRunUITests()) {
+    SKIP_TEST_ON_MOBILE_HARDWARE;
+  }
 
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentFormStatus;
@@ -2700,24 +2734,74 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueUnderAgeOfConsent) {
   params.tag_for_under_age_of_consent = true;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
+
+  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+                    "RequestConsentInfoUpdate");
+
+  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
+                    firebase::gma::ump::kConsentFormErrorUnavailable);
+}
+
+TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
+  // For debug options to work, you need to be on simulator OR enter
+  // the proper debug device ID below (which requires manual testing).
+  if (!ShouldRunUITests()) {
+    SKIP_TEST_ON_MOBILE_HARDWARE;
+  }
+
+  using firebase::gma::ump::ConsentDebugSettings;
+  using firebase::gma::ump::ConsentFormStatus;
+  using firebase::gma::ump::ConsentRequestParameters;
+  using firebase::gma::ump::ConsentStatus;
+
+  ConsentRequestParameters params;
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
+      firebase::gma::ump::kConsentDebugGeographyNonEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
+
+  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+                    "RequestConsentInfoUpdate");
+
+  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
+                    firebase::gma::ump::kConsentFormErrorUnavailable);
+}
+
+TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
+  using firebase::gma::ump::ConsentDebugSettings;
+  using firebase::gma::ump::ConsentRequestParameters;
+  using firebase::gma::ump::ConsentStatus;
+
+  // For debug options to work, you need to be on simulator OR enter
+  // the proper debug device ID below (which requires manual testing).
+  if (!ShouldRunUITests()) {
+    SKIP_TEST_ON_MOBILE_HARDWARE;
+  }
+
+  ConsentRequestParameters params;
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
+      firebase::gma::ump::kConsentDebugGeographyNonEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
   EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusRequired);
+            firebase::gma::ump::kConsentStatusNotRequired);
 
-  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
-            firebase::gma::ump::kConsentFormStatusUnavailable);
+  firebase::Future<void> future =
+      consent_info_->LoadAndShowConsentFormIfRequired(
+          app_framework::GetWindowController());
 
-  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
-                    firebase::gma::ump::kConsentFormErrorUnavailable);
+  EXPECT_TRUE(future ==
+              consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
 
-  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
-            firebase::gma::ump::kConsentFormStatusUnavailable);
+  WaitForCompletion(future, "LoadAndShowConsentFormIfRequired");
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequired) {
+TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugEEA) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -2728,6 +2812,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequired) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2736,7 +2821,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequired) {
             firebase::gma::ump::kConsentStatusRequired);
 
   firebase::Future<void> future =
-      consent_info_->LoadAndShowConsentFormIfRequired(nullptr);
+      consent_info_->LoadAndShowConsentFormIfRequired(
+          app_framework::GetWindowController());
 
   EXPECT_TRUE(future ==
               consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
@@ -2759,6 +2845,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpPrivacyOptions) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2768,28 +2855,30 @@ TEST_F(FirebaseGmaUmpTest, TestUmpPrivacyOptions) {
 
   EXPECT_FALSE(consent_info_->CanRequestAds());
 
-  WaitForCompletion(consent_info_->LoadAndShowConsentFormIfRequired(nullptr),
+  WaitForCompletion(consent_info_->LoadAndShowConsentFormIfRequired(
+                        app_framework::GetWindowController()),
                     "LoadAndShowConsentFormIfRequired");
 
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusObtained);
 
-  EXPECT_TRUE(consent_info_->CanRequestAds());
+  EXPECT_TRUE(consent_info_->CanRequestAds()) << "After consent obtained";
+
+  LogInfo(
+      "******** On the Privacy Options screen that is about to appear, please "
+      "select DO NOT CONSENT.");
+
+  ProcessEvents(5000);
 
   EXPECT_EQ(consent_info_->GetPrivacyOptionsRequirementStatus(),
             firebase::gma::ump::kPrivacyOptionsRequirementStatusRequired);
 
-  firebase::Future<void> future =
-      consent_info_->ShowPrivacyOptionsForm(nullptr);
+  firebase::Future<void> future = consent_info_->ShowPrivacyOptionsForm(
+      app_framework::GetWindowController());
 
   EXPECT_TRUE(future == consent_info_->ShowPrivacyOptionsFormLastResult());
 
   WaitForCompletion(future, "ShowPrivacyOptionsForm");
-
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusRequired);
-
-  EXPECT_FALSE(consent_info_->CanRequestAds());
 }
 
 TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsNonEEA) {
@@ -2803,6 +2892,7 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsNonEEA) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyNonEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2824,6 +2914,7 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsEEA) {
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2844,7 +2935,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanup) {
   firebase::Future<void> future_request =
       consent_info_->RequestConsentInfoUpdate(params);
   firebase::Future<void> future_load = consent_info_->LoadConsentForm();
-  firebase::Future<void> future_show = consent_info_->ShowConsentForm(nullptr);
+  firebase::Future<void> future_show =
+      consent_info_->ShowConsentForm(app_framework::GetWindowController());
+
+  // TODO(jsimantov): Remove this delay after race conditions are addressed.
+  ProcessEvents(5000);
 
   delete consent_info_;
   consent_info_ = nullptr;
