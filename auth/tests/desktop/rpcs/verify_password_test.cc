@@ -35,9 +35,9 @@ TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
       request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  email: \"abc@email\",\n"
-      "  password: \"pwd\",\n"
-      "  returnSecureToken: true\n"
+      "  \"email\": \"abc@email\",\n"
+      "  \"password\": \"pwd\",\n"
+      "  \"returnSecureToken\": true\n"
       "}\n",
       request.options().post_fields);
 }

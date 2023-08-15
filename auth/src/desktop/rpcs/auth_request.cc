@@ -88,6 +88,7 @@ std::string AuthRequest::GetUrl() {
   } else {
     std::string url(kHttp);
     url += emulator_url;
+    url += "/";
     url += kServerURL;
     return url;
   }
@@ -95,15 +96,15 @@ std::string AuthRequest::GetUrl() {
 
 void AuthRequest::CheckEmulator() {
   if (!emulator_url.empty()) {
-    LogDebug("Emulator Url already set: %s", emulator_url.c_str());
+    LogInfo("Emulator Url already set: %s", emulator_url.c_str());
     return;
   }
   // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
-    LogDebug("Using Auth Prod for testing.");
+    LogInfo("Using Auth Prod for testing.");
     return;
   }
-
+  LogInfo("Using Auth Emulator.");
   emulator_url.append(kEmulatorLocalHost);
   emulator_url.append(":");
   // Use AUTH_EMULATOR_PORT if it is set to non empty string,
