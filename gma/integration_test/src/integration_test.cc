@@ -2871,8 +2871,6 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsNonEEA) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
-  TEST_REQUIRES_USER_INTERACTION;
-
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
@@ -2893,8 +2891,6 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsEEA) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
-
-  TEST_REQUIRES_USER_INTERACTION;
 
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
