@@ -17,8 +17,8 @@
 
 #include <functional>
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include "app_framework.h"  // NOLINT
