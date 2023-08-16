@@ -14,12 +14,19 @@
 
 package com.google.firebase.example;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
+
 import java.lang.Class;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 
 /**
  * A simple class with test helper methods.
@@ -57,5 +64,35 @@ public final class TestHelper {
       Log.e(TAG, e.toString());
     }
     return 0;
+  }
+
+  private static String md5(String string) {
+    // Old devices have a bug where OpenSSL can leave MessageDigest in a bad state, but trying
+    // multiple times seems to clear it.
+    int maxAttempts = 3;
+    for (int i = 0; i < maxAttempts; ++i) {
+      try {
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        md5.update(string.getBytes());
+        return String.format("%032X", new BigInteger(1, md5.digest()));
+      } catch (NoSuchAlgorithmException e) {
+        // Try again.
+      } catch (ArithmeticException ex) {
+        return "";
+      }
+    }
+    return "";
+  }
+
+  public static String getDebugDeviceId(Context context) {
+      if (isRunningOnEmulator()) {
+	  return "emulator";
+      }
+      ContentResolver contentResolver = context.getContentResolver();
+      String androidId =
+          contentResolver == null
+	  ? "null"
+	  : Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
+      return androidId;
   }
 }
