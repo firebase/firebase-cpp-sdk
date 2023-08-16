@@ -267,4 +267,50 @@ int FirebaseTest::GetGooglePlayServicesVersion() {
   return static_cast<int>(result);
 }
 
+std::string FirebaseTest::GetDebugDeviceId() {
+  static char* device_id = nullptr;
+  if (!device_id) {
+    device_id = "";
+
+    JNIEnv* env = app_framework::GetJniEnv();
+    jobject activity = app_framework::GetActivity();
+    jclass test_helper_class = app_framework::FindClass(
+        env, activity, "com/google/firebase/example/TestHelper");
+    if (env->ExceptionCheck()) {
+      env->ExceptionDescribe();
+      env->ExceptionClear();
+      return "";
+    }
+    jmethodID get_id =
+        env->GetMethodID(test_helper_class, "getDebugDeviceId",
+                         "(Landroid/content/Context;)Ljava/lang/String;");
+
+    jobject device_id_obj =
+        env->CallStaticObjectMethod(test_helper_class, get_id, activity);
+    if (env->ExceptionCheck()) {
+      env->ExceptionDescribe();
+      env->ExceptionClear();
+      return "";
+    }
+    jstring device_id_jstring = static_cast<jstring>(device_id_obj);
+    const char* device_id_text =
+        env->GetStringUTFChars(device_id_jstring, nullptr);
+    if (env->ExceptionCheck()) {
+      env->ExceptionDescribe();
+      env->ExceptionClear();
+      return "";
+    }
+    device_id = new char[strlen(device_id_text) + 1];
+    strcpy(device_id, device_id_text);
+
+    env->ReleaseStringUTFChars(device_id_jstring, device_id_text);
+    env->DeleteLocalRef(device_id_jstring);
+    if (env->ExceptionCheck()) {
+      env->ExceptionDescribe();
+      env->ExceptionClear();
+    }
+  }
+  return device_id;
+}
+
 }  // namespace firebase_test_framework
