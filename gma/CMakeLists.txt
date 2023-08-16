@@ -40,7 +40,7 @@ binary_to_array("gma_resources"
 # Source files used by the Android implementation.
 set(android_SRCS
     ${gma_resources_source}
-    src/stub/ump/consent_info_internal_android.cc
+    src/android/ump/consent_info_internal_android.cc
     src/android/ad_request_converter.cc
     src/android/ad_error_android.cc
     src/android/adapter_response_info_android.cc
