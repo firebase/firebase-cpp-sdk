@@ -555,6 +555,8 @@ class FirebaseTest : public testing::Test {
   // false if it failed.
   static bool Base64Decode(const std::string& input, std::string* output);
 
+  static std::string GetDebugDeviceId();
+
   firebase::App* app_;
   static int argc_;
   static char** argv_;

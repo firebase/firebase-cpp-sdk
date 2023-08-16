@@ -267,4 +267,9 @@ int FirebaseTest::GetGooglePlayServicesVersion() {
   return static_cast<int>(result);
 }
 
+std::string FirebaseTest::GetDebugDeviceId() {
+  // TODO(jsimantov): Add this for Android.
+  return "placeholder-device-id";
+}
+
 }  // namespace firebase_test_framework
