@@ -19,6 +19,7 @@
 
 #include <UserMessagingPlatform/UserMessagingPlatform.h>
 
+#include "firebase/internal/mutex.h"
 #include "gma/src/common/ump/consent_info_internal.h"
 
 namespace firebase {
@@ -49,6 +50,13 @@ class ConsentInfoInternalIos : public ConsentInfoInternal {
   void Reset() override;
 
  private:
+  static ConsentInfoInternalIos* s_instance;
+  static firebase::Mutex s_instance_mutex;
+
+  void SetLoadedForm(UMPConsentForm *form) {
+    loaded_form_ = form;
+  }
+
   UMPConsentForm *loaded_form_;
 };
 

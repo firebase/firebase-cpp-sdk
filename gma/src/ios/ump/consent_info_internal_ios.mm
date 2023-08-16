@@ -24,6 +24,10 @@ namespace gma {
 namespace ump {
 namespace internal {
 
+ConsentInfoInternalIos* ConsentInfoInternalIos::s_instance = nullptr;
+firebase::Mutex ConsentInfoInternalIos::s_instance_mutex;
+
+
 // This explicitly implements the constructor for the outer class,
 // ConsentInfoInternal.
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
@@ -31,9 +35,15 @@ ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
 }
 
 ConsentInfoInternalIos::ConsentInfoInternalIos()
-  : loaded_form_(nil) {}
+  : loaded_form_(nil) {
+  MutexLock lock(s_instance_mutex);
+  s_instance = this;
+}
 
-ConsentInfoInternalIos::~ConsentInfoInternalIos() {}
+ConsentInfoInternalIos::~ConsentInfoInternalIos() {
+  MutexLock lock(s_instance_mutex);
+  s_instance = nullptr;
+}
 
 static ConsentRequestError CppRequestErrorFromIosRequestError(NSInteger code) {
   switch(code) {
@@ -70,7 +80,7 @@ static ConsentFormError CppFormErrorFromIosFormError(NSInteger code) {
     return kConsentFormErrorUnknown;
   }
 }
- 
+
 Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
   SafeFutureHandle<void> handle =
@@ -79,7 +89,7 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   UMPRequestParameters *ios_parameters = [[UMPRequestParameters alloc] init];
   ios_parameters.tagForUnderAgeOfConsent = params.tag_for_under_age_of_consent ? YES : NO;
   UMPDebugSettings *ios_debug_settings = [[UMPDebugSettings alloc] init];
-  
+
   switch(params.debug_settings.debug_geography) {
   case kConsentDebugGeographyEEA:
     ios_debug_settings.geography = UMPDebugGeographyEEA;
@@ -154,15 +164,24 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   loaded_form_ = nil;
 
   util::DispatchAsyncSafeMainQueue(^{
-	[UMPConsentForm 
+	[UMPConsentForm
 	  loadWithCompletionHandler:^(UMPConsentForm *_Nullable form, NSError *_Nullable error){
 	    if (form) {
-	      loaded_form_ = form;
-	      CompleteFuture(handle, kConsentFormSuccess, "Success");
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		SetLoadedForm(form);
+		CompleteFuture(handle, kConsentFormSuccess, "Success");
+	      }
 	    } else if (error) {
-	      CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      }
 	    } else {
-	      CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
+	      }
 	    }
 	  }];
       });
@@ -180,9 +199,15 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
 	[loaded_form_ presentFromViewController:parent
 			     completionHandler:^(NSError *_Nullable error){
 	    if (!error) {
-	    CompleteFuture(handle, kConsentRequestSuccess);
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, kConsentRequestSuccess);
+	      }
 	    } else {
-	      CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      }
 	    }
 	  }];
       });
@@ -199,9 +224,15 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
       [UMPConsentForm loadAndPresentIfRequiredFromViewController:parent
 					       completionHandler:^(NSError *_Nullable error){
 	  if (!error) {
-	    CompleteFuture(handle, kConsentRequestSuccess);
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, kConsentRequestSuccess);
+	      }
 	  } else {
-	    CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      }
 	  }
 	}];
     });
@@ -233,15 +264,21 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
       [UMPConsentForm presentPrivacyOptionsFormFromViewController:parent
 						completionHandler:^(NSError *_Nullable error){
 	  if (!error) {
-	    CompleteFuture(handle, kConsentRequestSuccess);
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, kConsentRequestSuccess);
+	      }
 	  } else {
-	    CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      MutexLock lock(s_instance_mutex);
+	      if (s_instance) {
+		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
+	      }
 	  }
 	}];
     });
   return MakeFuture<void>(futures(), handle);
 }
-    
+
 bool ConsentInfoInternalIos::CanRequestAds() {
   return (UMPConsentInformation.sharedInstance.canRequestAds == YES ? true : false);
 }
