@@ -2912,7 +2912,7 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsEEA) {
   EXPECT_FALSE(consent_info_->CanRequestAds());
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpCleanup) {
+TEST_F(FirebaseGmaUmpTest, TestUmpCleanupWithDelay) {
   using firebase::gma::ump::ConsentFormStatus;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -2925,8 +2925,28 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanup) {
   firebase::Future<void> future_show =
       consent_info_->ShowConsentForm(app_framework::GetWindowController());
 
-  // TODO(jsimantov): Remove this delay after race conditions are addressed.
   ProcessEvents(5000);
+
+  delete consent_info_;
+  consent_info_ = nullptr;
+
+  EXPECT_EQ(future_request.status(), firebase::kFutureStatusInvalid);
+  EXPECT_EQ(future_load.status(), firebase::kFutureStatusInvalid);
+  EXPECT_EQ(future_show.status(), firebase::kFutureStatusInvalid);
+}
+
+TEST_F(FirebaseGmaUmpTest, TestUmpCleanupRaceCondition) {
+  using firebase::gma::ump::ConsentFormStatus;
+  using firebase::gma::ump::ConsentRequestParameters;
+  using firebase::gma::ump::ConsentStatus;
+
+  ConsentRequestParameters params;
+  params.tag_for_under_age_of_consent = false;
+  firebase::Future<void> future_request =
+      consent_info_->RequestConsentInfoUpdate(params);
+  firebase::Future<void> future_load = consent_info_->LoadConsentForm();
+  firebase::Future<void> future_show =
+      consent_info_->ShowConsentForm(app_framework::GetWindowController());
 
   delete consent_info_;
   consent_info_ = nullptr;
