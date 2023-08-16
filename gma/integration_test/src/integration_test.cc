@@ -2716,7 +2716,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
             firebase::gma::ump::kConsentStatusObtained);
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueUnderAgeOfConsent) {
+TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueToUnderAgeOfConsent) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentFormStatus;
   using firebase::gma::ump::ConsentRequestParameters;
