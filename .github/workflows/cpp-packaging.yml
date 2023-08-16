@@ -122,34 +122,32 @@ jobs:
           mkdir -p packaging-tools
           cp -af /tmp/binutils-output/bin/* packaging-tools
 
-      - name: Cache LLVM (Mac only)
-        if: matrix.tools_platform == 'darwin'
+      - name: Cache LLVM
         id: cache_llvm
         uses: actions/cache@v3
         with:
           path: llvm-src/llvm/build/bin
-          key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
+          key: llvm-bin-${{matrix.tools_platform}}${{matrix.tools_platform == 'darwin' && format('-{0}', env.xcodeVersion) || ''}}-${{env.llvmVer}}
 
-      - name: Fetch LLVM source (Mac only)
+      - name: Fetch LLVM source
         # Only fetch LLVM if we don't already have binaries from the cache.
-        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
+        if: ${{ !steps.cache_llvm.outputs.cache-hit }}
         uses: actions/checkout@v3
         with:
           repository: llvm/llvm-project
           path: llvm-src
           ref: ${{ env.llvmVer }}
 
-      - name: Build LLVM (Mac only) 
+      - name: Build LLVM
         # Only build LLVM if we don't already have binaries from the cache.
-        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
+        if: ${{ !steps.cache_llvm.outputs.cache-hit }}
         run: |
           mkdir llvm-src/llvm/build
           cd llvm-src/llvm/build
           cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
 
-      - name: Package LLVM output (Mac only)
-        if: matrix.tools_platform == 'darwin'
+      - name: Package LLVM output
         run: |
           mkdir -p packaging-tools
           cp -af llvm-src/llvm/build/bin/* packaging-tools
@@ -555,17 +553,10 @@ jobs:
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
             additional_flags=(${verbose_flag})
-            # Several build targets require explicitly-set binutils format to be passed
-            # to package.sh (and thus, to merge_libraries), or use LLVM binutils.
-            if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
-              # MacOS: use LLVM binutils for both X64 and ARM64
+            # Several build targets require to use LLVM binutils.
+            if [[ "${{ matrix.sdk_platform }}" == "darwin" || ${{ matrix.sdk_platform }}" == "windows" ]]; then
+              # MacOS/Windows: use LLVM binutils for all architectures
               additional_flags+=(-L)
-            elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x64/"* ]]; then
-              # Windows x64: force input and output target format
-              additional_flags+=(-f pe-x86-64,pe-bigobj-x86-64)
-            elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x86/"* ]]; then
-              # Windows x86: force input and output target format
-              additional_flags+=(-f pe-i386,pe-bigobj-i386)
             fi
             sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
           done
