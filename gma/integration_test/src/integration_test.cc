@@ -2589,8 +2589,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
   // For debug options to work, you need to be on simulator OR enter
   // the proper debug device ID below (which requires manual testing).
-  if (!ShouldRunUITests()) {
-    SKIP_TEST_ON_MOBILE_HARDWARE;
+  if (!IsRunningOnEmulator()) {
+    TEST_REQUIRES_USER_INTERACTION;
   }
 
   using firebase::gma::ump::ConsentDebugSettings;
@@ -2615,8 +2615,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
   // For debug options to work, you need to be on simulator OR enter
   // the proper debug device ID below (which requires manual testing).
-  if (!ShouldRunUITests()) {
-    SKIP_TEST_ON_MOBILE_HARDWARE;
+  if (!IsRunningOnEmulator()) {
+    TEST_REQUIRES_USER_INTERACTION;
   }
 
   using firebase::gma::ump::ConsentDebugSettings;
@@ -2720,8 +2720,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueUnderAgeOfConsent) {
   // For debug options to work, you need to be on simulator OR enter
   // the proper debug device ID below (which requires manual testing).
-  if (!ShouldRunUITests()) {
-    SKIP_TEST_ON_MOBILE_HARDWARE;
+  if (!IsRunningOnEmulator()) {
+    TEST_REQUIRES_USER_INTERACTION;
   }
 
   using firebase::gma::ump::ConsentDebugSettings;
@@ -2745,8 +2745,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueUnderAgeOfConsent) {
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
   // For debug options to work, you need to be on simulator OR enter
   // the proper debug device ID below (which requires manual testing).
-  if (!ShouldRunUITests()) {
-    SKIP_TEST_ON_MOBILE_HARDWARE;
+  if (!IsRunningOnEmulator()) {
+    TEST_REQUIRES_USER_INTERACTION;
   }
 
   using firebase::gma::ump::ConsentDebugSettings;
@@ -2774,8 +2774,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
 
   // For debug options to work, you need to be on simulator OR enter
   // the proper debug device ID below (which requires manual testing).
-  if (!ShouldRunUITests()) {
-    SKIP_TEST_ON_MOBILE_HARDWARE;
+  if (!IsRunningOnEmulator()) {
+    TEST_REQUIRES_USER_INTERACTION;
   }
 
   ConsentRequestParameters params;
