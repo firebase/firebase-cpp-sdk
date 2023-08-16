@@ -103,9 +103,6 @@ const char* kErrorDomain = "com.google.admob";
 const std::vector<std::string> kTestDeviceIDs = {
     "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
 
-// TODO(jsimantov): Remove after UMP development.
-#define DEBUG_ONLY_TEST_UMP
-
 // Sample keywords to use in making the request.
 static const std::vector<std::string> kKeywords({"GMA", "C++", "Fun"});
 
