@@ -66,33 +66,30 @@ public final class TestHelper {
     return 0;
   }
 
-  private static String md5(String string) {
-    // Old devices have a bug where OpenSSL can leave MessageDigest in a bad state, but trying
-    // multiple times seems to clear it.
-    int maxAttempts = 3;
-    for (int i = 0; i < maxAttempts; ++i) {
-      try {
-        MessageDigest md5 = MessageDigest.getInstance("MD5");
-        md5.update(string.getBytes());
-        return String.format("%032X", new BigInteger(1, md5.digest()));
-      } catch (NoSuchAlgorithmException e) {
-        // Try again.
-      } catch (ArithmeticException ex) {
+  private static String md5(String message) {
+    String result = null;
+    if (message == null || message.length() == 0)
         return "";
-      }
+    try {
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        md5.update(message.getBytes(), 0, message.length());
+        result = String.format("%032X", new BigInteger(1, md5.digest()));
+    } catch (NoSuchAlgorithmException ex) {
+        result = "";
+    } catch (ArithmeticException ex) {
+        return "";
     }
-    return "";
+    return result;
   }
 
   public static String getDebugDeviceId(Context context) {
-      if (isRunningOnEmulator()) {
-	  return "emulator";
-      }
-      ContentResolver contentResolver = context.getContentResolver();
-      String androidId =
-          contentResolver == null
-	  ? "null"
-	  : Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
-      return androidId;
+    if (isRunningOnEmulator()) {
+      return "emulator";
+    }
+    ContentResolver contentResolver = context.getContentResolver();
+    if (contentResolver == null) {
+        return "error";
+    }
+    return Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
   }
 }
