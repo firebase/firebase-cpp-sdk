@@ -2478,7 +2478,7 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
-#endif //  DEBUG_ONLY_TEST_UMP
+#endif  //  DEBUG_ONLY_TEST_UMP
 
 class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
