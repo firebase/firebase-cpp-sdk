@@ -29,8 +29,8 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   ConsentInfoInternalAndroid();
   ~ConsentInfoInternalAndroid() override;
 
-  ConsentStatus GetConsentStatus() const override;
-  ConsentFormStatus GetConsentFormStatus() const override;
+  ConsentStatus GetConsentStatus() override;
+  ConsentFormStatus GetConsentFormStatus() override;
 
   Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) override;

@@ -76,7 +76,7 @@ PrivacyOptionsRequirementStatus
 ConsentInfoInternalAndroid::GetPrivacyOptionsRequirementStatus() {
   return kPrivacyOptionsRequirementStatusUnknown;
 }
-          
+
 Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
     FormParent parent) {
   SafeFutureHandle<void> handle =
@@ -86,12 +86,9 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
   return MakeFuture<void>(futures(), handle);
 }
 
-bool ConsentInfoInternalAndroid::CanRequestAds() {
-  return false;
-}
+bool ConsentInfoInternalAndroid::CanRequestAds() { return false; }
 
-void ConsentInfoInternalAndroid::Reset() {
-}
+void ConsentInfoInternalAndroid::Reset() {}
 
 }  // namespace internal
 }  // namespace ump
