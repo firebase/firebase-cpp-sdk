@@ -19,7 +19,6 @@ import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
-
 import java.lang.Class;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -69,15 +68,15 @@ public final class TestHelper {
   private static String md5(String message) {
     String result = null;
     if (message == null || message.length() == 0)
-        return "";
+      return "";
     try {
-        MessageDigest md5 = MessageDigest.getInstance("MD5");
-        md5.update(message.getBytes(), 0, message.length());
-        result = String.format("%032X", new BigInteger(1, md5.digest()));
+      MessageDigest md5 = MessageDigest.getInstance("MD5");
+      md5.update(message.getBytes(), 0, message.length());
+      result = String.format("%032X", new BigInteger(1, md5.digest()));
     } catch (NoSuchAlgorithmException ex) {
-        result = "";
+      result = "";
     } catch (ArithmeticException ex) {
-        return "";
+      return "";
     }
     return result;
   }
@@ -88,7 +87,7 @@ public final class TestHelper {
     }
     ContentResolver contentResolver = context.getContentResolver();
     if (contentResolver == null) {
-        return "error";
+      return "error";
     }
     return Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
   }
