@@ -32,13 +32,13 @@ firebase::Mutex ConsentInfoInternalIos::s_instance_mutex;
 // This explicitly implements the constructor for the outer class,
 // ConsentInfoInternal.
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
-  MutexLock lock(s_instance_mutex);
-  return s_instance ? s_instance : new ConsentInfoInternalIos();
+  return new ConsentInfoInternalIos();
 }
 
 ConsentInfoInternalIos::ConsentInfoInternalIos()
   : loaded_form_(nil) {
   MutexLock lock(s_instance_mutex);
+  FIREBASE_ASSERT(s_instance == nullptr);
   s_instance = this;
 }
 
