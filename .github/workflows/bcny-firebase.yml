@@ -13,7 +13,7 @@ jobs:
           fetch-depth: 1
           path: ${{ github.workspace }}/SourceCache/firebase-cpp-sdk
           ref: refs/heads/compnerd/swift
-          repository: firebase/firebase-cpp-sdk
+          repository: thebrowsercompany/firebase-cpp-sdk
 
       - uses: compnerd/gha-setup-vsdevenv@main
         with:
