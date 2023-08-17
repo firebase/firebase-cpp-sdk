@@ -487,14 +487,16 @@ void LogEvent(const char* name, const Parameter* parameters,
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address);
 
-
-/// Initiates on-device conversion measurement given a phone number in E.164 format on iOS 
-/// (no-op on Android). On iOS, requires dependency GoogleAppMeasurementOnDeviceConversion to be 
-/// linked in, otherwise it is a no-op.
-/// @param phoneNumber User phone number. Must be in E.164 format, which means it must be
-///   limited to a maximum of 15 digits and must include a plus sign (+) prefix and country code 
-///   with no dashes, parentheses, or spaces.
-void InitiateOnDeviceConversionMeasurementWithPhoneNumber(const char* phone_number);
+/// Initiates on-device conversion measurement given a phone number in E.164
+/// format on iOS (no-op on Android). On iOS, requires dependency
+/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+/// @param phoneNumber User phone number. Must be in E.164 format, which means
+/// it must be
+///   limited to a maximum of 15 digits and must include a plus sign (+) prefix
+///   and country code with no dashes, parentheses, or spaces.
+void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
+    const char* phone_number);
 
 /// @brief Set a user property to the given value.
 ///
