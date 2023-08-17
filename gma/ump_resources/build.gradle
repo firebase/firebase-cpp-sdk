@@ -38,16 +38,14 @@ android {
     main {
       manifest.srcFile 'AndroidManifest.xml'
       java {
-        srcDirs = ['../src_java/com/google/firebase/gma/internal/cpp']
+        srcDirs = ['../src_java/com/google/firebase/ump/internal/cpp']
       }
     }
   }
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:32.2.2')
-  implementation 'com.google.firebase:firebase-analytics'
-  implementation 'com.google.android.gms:play-services-ads:22.2.0'
+  implementation 'com.google.android.ump:user-messaging-platform:2.1.0'
 }
 
 afterEvaluate {
@@ -55,4 +53,4 @@ afterEvaluate {
 }
 
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
-extractAndDexAarFile('gma_resources')
+extractAndDexAarFile('ump_resources')

@@ -20,6 +20,7 @@
 
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
+#include "gma/ump_resources.h"
 
 namespace firebase {
 namespace gma {
@@ -62,9 +63,9 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* jni_env,
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
       util::CacheEmbeddedFiles(env, activity,
                                firebase::internal::EmbeddedFile::ToVector(
-                                   firebase_gma::gma_resources_filename,
-                                   firebase_gma::gma_resources_data,
-                                   firebase_gma::gma_resources_size));
+                                   firebase_ump::ump_resources_filename,
+                                   firebase_ump::ump_resources_data,
+                                   firebase_ump::ump_resources_size));
   if (!consent_info_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
       consent_info_helper::CacheMethodIds(env, activity)) {
