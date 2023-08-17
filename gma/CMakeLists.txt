@@ -43,7 +43,7 @@ firebase_cpp_gradle(":gma:ump_resources:generateDexJarRelease"
 binary_to_array("ump_resources"
     "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar"
     "firebase_ump"
-    "${FIREBASE_GEN_FILE_DIR}/ump")
+    "${FIREBASE_GEN_FILE_DIR}/gma")
 
 # Source files used by the Android implementation.
 set(android_SRCS

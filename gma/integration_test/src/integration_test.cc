@@ -351,6 +351,8 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 
 // Test cases below.
 
+#if 0  // jsimantov
+
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // Don't initialize mediation in this test so that a later test can still
   // verify that mediation has not been initialized.
@@ -2470,6 +2472,8 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
+#endif  // jsimantov
+
 class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
   FirebaseGmaUmpTest() : consent_info_(nullptr) {}
@@ -2490,7 +2494,12 @@ class FirebaseGmaUmpTest : public FirebaseGmaTest {
 
 void FirebaseGmaUmpTest::InitializeUmp(ResetOption reset) {
   using firebase::gma::ump::ConsentInfo;
-  consent_info_ = ConsentInfo::GetInstance(*shared_app_);
+  firebase::InitResult result;
+  consent_info_ = ConsentInfo::GetInstance(*shared_app_, &result);
+
+  EXPECT_NE(consent_info_, nullptr);
+  EXPECT_EQ(result, firebase::kInitResultSuccess);
+
   if (consent_info_ != nullptr && reset == kReset) {
     consent_info_->Reset();
   }

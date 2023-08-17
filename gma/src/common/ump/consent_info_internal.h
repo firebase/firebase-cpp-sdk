@@ -55,8 +55,8 @@ class ConsentInfoInternal {
   static ConsentInfoInternal* CreateInstance();
 #endif
 
-  virtual ConsentStatus GetConsentStatus() const = 0;
-  virtual ConsentFormStatus GetConsentFormStatus() const = 0;
+  virtual ConsentStatus GetConsentStatus() = 0;
+  virtual ConsentFormStatus GetConsentFormStatus() = 0;
 
   virtual Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) = 0;

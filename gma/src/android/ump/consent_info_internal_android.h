@@ -27,7 +27,7 @@ namespace internal {
 
 class ConsentInfoInternalAndroid : public ConsentInfoInternal {
  public:
-  ConsentInfoInternalAndroid();
+  ConsentInfoInternalAndroid(JNIEnv* env, jobject activity);
   ~ConsentInfoInternalAndroid() override;
 
   ConsentStatus GetConsentStatus() override;
@@ -49,7 +49,12 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
 
   bool valid() { return (helper_ != nullptr); }
 
+  JNIEnv* GetJNIEnv();
+  jobject activity();
+
  private:
+  JavaVM* java_vm_;
+  jobject activity_;
   jobject helper_;
 };
 
