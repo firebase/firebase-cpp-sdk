@@ -16,6 +16,8 @@
 
 #include "gma/src/android/ump/consent_info_internal_android.h"
 
+#include <vector>
+
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
 
@@ -29,7 +31,7 @@ namespace internal {
   X(Constructor, "<init>", "(JLandroid/app/Activity;)V"),         \
   X(GetConsentStatus, "getConsentStatus", "()I"),                 \
   X(GetConsentStatus, "requestConsentStatusUpdate",               \
-    "(ZILjava/util/ArrayList;)V"),		                  \
+    "(ZILjava/util/ArrayList;)V"),                                \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
 
