@@ -299,7 +299,7 @@ std::string FirebaseTest::GetDebugDeviceId() {
       return "";
     }
     device_id = new char[strlen(device_id_text) + 1];
-    strcpy(device_id, device_id_text);
+    strcpy(device_id, device_id_text);  // NOLINT
 
     env->ReleaseStringUTFChars(device_id_jstring, device_id_text);
     env->DeleteLocalRef(device_id_jstring);
