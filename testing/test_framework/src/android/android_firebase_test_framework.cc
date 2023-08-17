@@ -270,8 +270,6 @@ int FirebaseTest::GetGooglePlayServicesVersion() {
 std::string FirebaseTest::GetDebugDeviceId() {
   static char* device_id = nullptr;
   if (!device_id) {
-    device_id = "";
-
     JNIEnv* env = app_framework::GetJniEnv();
     jobject activity = app_framework::GetActivity();
     jclass test_helper_class = app_framework::FindClass(
