@@ -17,21 +17,76 @@
 #include "gma/src/android/ump/consent_info_internal_android.h"
 
 #include "app/src/thread.h"
+#include "app/src/util_android.h"
 
 namespace firebase {
 namespace gma {
 namespace ump {
 namespace internal {
 
+// clang-format off
+#define CONSENTINFOHELPER_METHODS(X)                              \
+  X(Constructor, "<init>", "(JLandroid/app/Activity;)V"),         \
+  X(GetConsentStatus, "getConsentStatus", "()I"),                 \
+  X(GetConsentStatus, "requestConsentStatusUpdate",               \
+    "(ZILjava/util/ArrayList;)V"),		                  \
+  X(Disconnect, "disconnect", "()V")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(consent_info_helper, CONSENTINFOHELPER_METHODS);
+METHOD_LOOKUP_DEFINITION(
+    consent_info_helper,
+    "com/google/firebase/gma/internal/cpp/ConsentInfoHelper",
+    CONSENTINFOHELPER_METHODS);
+
 // This explicitly implements the constructor for the outer class,
 // ConsentInfoInternal.
-ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
-  return new ConsentInfoInternalAndroid();
+ConsentInfoInternal* ConsentInfoInternal::CreateInstance(JNIEnv* jni_env,
+                                                         jobject activity) {
+  ConsentInfoInternalAndroid ptr =
+      new ConsentInfoInternalAndroid(jni_env, activity);
+  if (!ptr.valid()) {
+    delete ptr;
+    return nullptr;
+  }
+  return ptr;
 }
 
-ConsentInfoInternalAndroid::ConsentInfoInternalAndroid() {}
+ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* jni_env,
+                                                       jobject activity)
+    : helper_(nullptr) {
+  util::Initialize(jni_env, activity);
 
-ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {}
+  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+      util::CacheEmbeddedFiles(env, activity,
+                               firebase::internal::EmbeddedFile::ToVector(
+                                   firebase_gma::gma_resources_filename,
+                                   firebase_gma::gma_resources_data,
+                                   firebase_gma::gma_resources_size));
+  if (!consent_info_helper::CacheClassFromFiles(env, activity,
+                                                &embedded_files) != nullptr &&
+      consent_info_helper::CacheMethodIds(env, activity)) {
+    util::Terminate();
+    return;
+  }
+  jobject helper_ref = env->NewObject(
+      consent_info_helper::GetClass(),
+      consent_info_helper::GetMethodId(rewarded_ad_helper::kConstructor),
+      reinterpret_cast<jlong>(this));
+  util::CheckAndClearJniExceptions(env);
+
+  FIREBASE_ASSERT(helper_ref);
+  helper_ = env->NewGlobalRef(helper_ref);
+  FIREBASE_ASSERT(helper_);
+  env->DeleteLocalRef(helper_ref);
+}
+
+ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
+  env->DeleteGlobalRef(helper_);
+  helper_ = nullptr;
+  consent_info_helper::Terminate();
+  util::Terminate();
+}
 
 Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {

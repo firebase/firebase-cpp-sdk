@@ -22,6 +22,11 @@
 #include "firebase/future.h"
 #include "firebase/gma/ump.h"
 #include "firebase/gma/ump/types.h"
+#include "firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_ANDROID
+#include <jni.h>
+#endif
 
 namespace firebase {
 namespace gma {
@@ -44,7 +49,11 @@ class ConsentInfoInternal {
 
   // Implemented in platform-specific code to instantiate a
   // platform-specific subclass.
+#if FIREBASE_PLATFORM_ANDROID
+  static ConsentInfoInternal* CreateInstance(JNIEnv* jni_env, jobject activity);
+#else
   static ConsentInfoInternal* CreateInstance();
+#endif
 
   virtual ConsentStatus GetConsentStatus() const = 0;
   virtual ConsentFormStatus GetConsentFormStatus() const = 0;

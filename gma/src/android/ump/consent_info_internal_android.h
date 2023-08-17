@@ -17,6 +17,7 @@
 #ifndef FIREBASE_GMA_SRC_ANDROID_UMP_CONSENT_INFO_INTERNAL_ANDROID_H_
 #define FIREBASE_GMA_SRC_ANDROID_UMP_CONSENT_INFO_INTERNAL_ANDROID_H_
 
+#include "app/src/util_android.h"
 #include "gma/src/common/ump/consent_info_internal.h"
 
 namespace firebase {
@@ -46,7 +47,10 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
 
   void Reset() override;
 
+  bool valid() { return (helper_ != nullptr); }
+
  private:
+  jobject helper_;
 };
 
 }  // namespace internal
