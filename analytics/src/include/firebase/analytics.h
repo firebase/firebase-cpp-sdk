@@ -491,7 +491,7 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
 /// format on iOS (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
-/// @param phoneNumber User phone number. Must be in E.164 format, which means
+/// @param phone_number User phone number. Must be in E.164 format, which means
 /// it must be
 ///   limited to a maximum of 15 digits and must include a plus sign (+) prefix
 ///   and country code with no dashes, parentheses, or spaces.
