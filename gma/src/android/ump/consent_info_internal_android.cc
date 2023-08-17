@@ -124,6 +124,29 @@ ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
   java_vm_ = nullptr;
 }
 
+// clang-format off
+#define ENUM_VALUE(class_namespace, field_name)           \
+   env->GetStaticIntField(class_namespace::GetClass(),    \
+                          class_namespace::GetFieldId(class_namespace::k##field_name))
+// clang-format on
+
+static struct {
+  jint consentstatus_unknown;
+  jint consentstatus_required;
+  jint consentstatus_not_required;
+  jint consentstatus_obtained;
+
+  jint formerror_success;
+  jint formerror_internal;
+  jint formerror_network;
+  jint formerror_invalid_operation;
+  jint formerror_timeout;
+
+  jint debuggeo_disabled;
+  jint debuggeo_eea;
+  jint debuggeo_not_eea;
+} g_enum_cache;
+
 ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
                                                        jobject activity)
     : java_vm_(nullptr), activity_(nullptr), helper_(nullptr) {
@@ -164,28 +187,40 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   activity_ = env->NewGlobalRef(activity);
 
   util::CheckAndClearJniExceptions(env);
-}
 
-// clang-format off
-#define ENUM_VALUE(class_namespace, field_name)           \
-   env->GetStaticIntField(class_namespace::GetClass(),    \
-                          class_namespace::GetFieldId(class_namespace::k##field_name))
-// clang-format on
+  // Cache enum values when the class loads.
+  g_enum_cache.consentstatus_unknown =
+      ENUM_VALUE(consentinformation_consentstatus, Unknown);
+  g_enum_cache.consentstatus_required =
+      ENUM_VALUE(consentinformation_consentstatus, Required);
+  g_enum_cache.consentstatus_not_required =
+      ENUM_VALUE(consentinformation_consentstatus, NotRequired);
+  g_enum_cache.consentstatus_obtained =
+      ENUM_VALUE(consentinformation_consentstatus, Obtained);
+
+  g_enum_cache.debuggeo_disabled =
+    ENUM_VALUE(consentdebugsettings_debuggeography, Disabled);
+  g_enum_cache.debuggeo_eea =
+    ENUM_VALUE(consentdebugsettings_debuggeography, EEA);
+  g_enum_cache.debuggeo_not_eea =
+    ENUM_VALUE(consentdebugsettings_debuggeography, NotEEA);
+
+  g_enum_cache.formerror_success = 0;
+  g_enum_cache.formerror_internal = ENUM_VALUE(formerror_errorcode, InternalError);
+  g_enum_cache.formerror_network = ENUM_VALUE(formerror_errorcode, InternetError);
+  g_enum_cache.formerror_invalid_operation =
+    ENUM_VALUE(formerror_errorcode, InvalidOperation);
+  g_enum_cache.formerror_timeout = ENUM_VALUE(formerror_errorcode, TimeOut);
+  
+  util::CheckAndClearJniExceptions(env);
+}
 
 static ConsentStatus CppConsentStatusFromAndroidConsentStatus(JNIEnv* env,
                                                               jint status) {
-  static jint status_unknown =
-      ENUM_VALUE(consentinformation_consentstatus, Unknown);
-  static jint status_required =
-      ENUM_VALUE(consentinformation_consentstatus, Required);
-  static jint status_not_required =
-      ENUM_VALUE(consentinformation_consentstatus, NotRequired);
-  static jint status_obtained =
-      ENUM_VALUE(consentinformation_consentstatus, Obtained);
-  if (status == status_unknown) return kConsentStatusUnknown;
-  if (status == status_required) return kConsentStatusRequired;
-  if (status == status_not_required) return kConsentStatusNotRequired;
-  if (status == status_obtained) return kConsentStatusObtained;
+  if (status == g_enum_cache.consentstatus_unknown) return kConsentStatusUnknown;
+  if (status == g_enum_cache.consentstatus_required) return kConsentStatusRequired;
+  if (status == g_enum_cache.consentstatus_not_required) return kConsentStatusNotRequired;
+  if (status == g_enum_cache.consentstatus_obtained) return kConsentStatusObtained;
   return kConsentStatusUnknown;
 }
 
@@ -197,50 +232,36 @@ static bool MessageContains(JNIEnv* env, jstring message, const char* text) {
 
 static jint AndroidDebugGeographyFromCppDebugGeography(
     JNIEnv* env, ConsentDebugGeography geo) {
-  static jint geo_disabled =
-      ENUM_VALUE(consentdebugsettings_debuggeography, Disabled);
-  static jint geo_eea = ENUM_VALUE(consentdebugsettings_debuggeography, EEA);
-  static jint geo_not_eea =
-      ENUM_VALUE(consentdebugsettings_debuggeography, NotEEA);
+  // Cache values the first time this function runs.
   switch (geo) {
     case kConsentDebugGeographyDisabled:
-      return geo_disabled;
+      return g_enum_cache.debuggeo_disabled;
     case kConsentDebugGeographyEEA:
-      return geo_eea;
+      return g_enum_cache.debuggeo_eea;
     case kConsentDebugGeographyNonEEA:
-      return geo_not_eea;
+      return g_enum_cache.debuggeo_not_eea;
     default:
-      return geo_disabled;
+      return g_enum_cache.debuggeo_disabled;
   }
 }
 
 static ConsentRequestError CppConsentRequestErrorFromAndroidFormError(
     JNIEnv* env, jint error, jstring message = nullptr) {
-  static jint error_success = 0;
-  static jint error_internal = ENUM_VALUE(formerror_errorcode, InternalError);
-  static jint error_network = ENUM_VALUE(formerror_errorcode, InternetError);
-  static jint error_invalid_operation =
-      ENUM_VALUE(formerror_errorcode, InvalidOperation);
-
-  if (error == error_success) return kConsentRequestSuccess;
-  if (error == error_internal) return kConsentRequestErrorInternal;
-  if (error == error_network) return kConsentRequestErrorNetwork;
-  if (error == error_invalid_operation)
+  // Cache values the first time this function runs.
+  if (error == g_enum_cache.formerror_success) return kConsentRequestSuccess;
+  if (error == g_enum_cache.formerror_internal) return kConsentRequestErrorInternal;
+  if (error == g_enum_cache.formerror_network) return kConsentRequestErrorNetwork;
+  if (error == g_enum_cache.formerror_invalid_operation)
     return kConsentRequestErrorInvalidOperation;
   return kConsentRequestErrorUnknown;
 }
 
 static ConsentFormError CppConsentFormErrorFromAndroidFormError(
     JNIEnv* env, jint error, jstring message = nullptr) {
-  static jint error_success = 0;
-  static jint error_internal = ENUM_VALUE(formerror_errorcode, InternalError);
-  static jint error_invalid_operation =
-      ENUM_VALUE(formerror_errorcode, InvalidOperation);
-  static jint error_timeout = ENUM_VALUE(formerror_errorcode, TimeOut);
-  if (error == error_success) return kConsentFormSuccess;
-  if (error == error_internal) return kConsentFormErrorInternal;
-  if (error == error_timeout) return kConsentFormErrorTimeout;
-  if (error == error_invalid_operation) {
+  if (error == g_enum_cache.formerror_success) return kConsentFormSuccess;
+  if (error == g_enum_cache.formerror_internal) return kConsentFormErrorInternal;
+  if (error == g_enum_cache.formerror_timeout) return kConsentFormErrorTimeout;
+  if (error == g_enum_cache.formerror_invalid_operation) {
     if (MessageContains(env, message, "unavailable"))
       return kConsentFormErrorUnavailable;
     else
