@@ -352,8 +352,6 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 #endif  // defined(ANDROID)
 }
 
-#ifndef DEBUG_ONLY_TEST_UMP
-
 // Test cases below.
 
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
@@ -2475,8 +2473,6 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
-#endif  //  DEBUG_ONLY_TEST_UMP
-
 class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
   FirebaseGmaUmpTest() : consent_info_(nullptr) {}
@@ -2683,19 +2679,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  ProcessEvents(1000);
-
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusRequired);
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
-
-  ProcessEvents(1000);
-
-  LogInfo("About to load consent form");
-
-  ProcessEvents(1000);
 
   WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm");
 

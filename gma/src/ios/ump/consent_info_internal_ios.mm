@@ -16,6 +16,7 @@
 
 #include "gma/src/ios/ump/consent_info_internal_ios.h"
 
+#include "app/src/assert.h"
 #include "app/src/thread.h"
 #include "app/src/util_ios.h"
 
@@ -31,7 +32,8 @@ firebase::Mutex ConsentInfoInternalIos::s_instance_mutex;
 // This explicitly implements the constructor for the outer class,
 // ConsentInfoInternal.
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
-  return new ConsentInfoInternalIos();
+  MutexLock lock(s_instance_mutex);
+  return s_instance ? s_instance : new ConsentInfoInternalIos();
 }
 
 ConsentInfoInternalIos::ConsentInfoInternalIos()
