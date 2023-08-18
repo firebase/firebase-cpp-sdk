@@ -60,8 +60,8 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
 #else
   InitResult result = consent_info->Initialize();
 #endif
+  if (init_result_out) *init_result_out = result;
   if (result != kInitResultSuccess) {
-    if (init_result_out) *init_result_out = result;
     delete consent_info;
     return nullptr;
   }
