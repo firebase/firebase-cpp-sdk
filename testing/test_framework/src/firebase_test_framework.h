@@ -193,6 +193,23 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_ANDROID ((void)0)
 #endif  // defined(ANDROID)
 
+// Skip on physical mobile device.
+#if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+// Allow desktop.
+#define SKIP_TEST_ON_MOBILE_HARDWARE ((void)0)
+#else
+// Android needs to determine emulator at runtime, so we can't just use #ifdef.
+#define SKIP_TEST_ON_MOBILE_HARDWARE                            \
+  {                                                             \
+    if (!IsRunningOnEmulator()) {                               \
+      app_framework::LogInfo("Skipping %s on mobile hardware.", \
+                             test_info_->name());               \
+      GTEST_SKIP();                                             \
+      return;                                                   \
+    }                                                           \
+  }
+#endif  // !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+
 // Android needs to determine emulator at runtime, so we can't just use #ifdef.
 #define SKIP_TEST_ON_SIMULATOR                                     \
   {                                                                \

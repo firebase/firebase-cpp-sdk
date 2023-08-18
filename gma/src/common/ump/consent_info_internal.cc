@@ -45,7 +45,7 @@ const char* ConsentInfoInternal::GetConsentRequestErrorMessage(
       return "Network error";
     case kConsentRequestErrorInternal:
       return "Internal error";
-    case kConsentRequestErrorCodeMisconfiguration:
+    case kConsentRequestErrorMisconfiguration:
       return "A misconfiguration exists in the UI";
     case kConsentRequestErrorUnknown:
       return "Unknown error";
@@ -72,8 +72,8 @@ const char* ConsentInfoInternal::GetConsentFormErrorMessage(
       return "Internal error";
     case kConsentFormErrorUnknown:
       return "Unknown error";
-    case kConsentFormErrorCodeAlreadyUsed:
-      return "Code already used";
+    case kConsentFormErrorAlreadyUsed:
+      return "The form was already used";
     case kConsentFormErrorInvalidOperation:
       return "Invalid operation";
     case kConsentFormErrorOperationInProgress:
