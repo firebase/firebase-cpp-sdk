@@ -181,7 +181,7 @@ public class ConsentInfoHelper {
   public boolean showConsentForm(final long futureHandle, final Activity activity) {
     synchronized (mLock) {
       if (mInternalPtr == 0)
-        return;
+        return false;
     }
     final int functionId = FUNCTION_SHOW_CONSENT_FORM;
     ConsentForm consentForm;
