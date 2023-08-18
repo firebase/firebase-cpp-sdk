@@ -54,7 +54,7 @@ set(android_SRCS
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/stub/ump/consent_info_internal_stub.cc
+    src/ios/ump/consent_info_internal_ios.mm
     src/ios/FADAdSize.mm
     src/ios/FADAdView.mm
     src/ios/FADInterstitialDelegate.mm
@@ -133,11 +133,13 @@ elseif(IOS)
     firebase_gma
     POD_NAMES
       Google-Mobile-Ads-SDK
+      GoogleUserMessagingPlatform
   )
 
   # GMA expects the header files to be in a subfolder, so set up a symlink to
   # accomplish that.
   symlink_pod_headers(firebase_gma Google-Mobile-Ads-SDK GoogleMobileAds)
+  symlink_pod_headers(firebase_gma GoogleUserMessagingPlatform UserMessagingPlatform)
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_gma PROPERTIES

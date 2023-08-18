@@ -17,6 +17,7 @@
 		D640F3172819C85800AC956E /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D640F3162819C85800AC956E /* empty.swift */; };
 		D66B16871CE46E8900E5638A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */; };
 		D67D355822BABD2200292C1D /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D67D355622BABD2100292C1D /* gtest-all.cc */; };
+		D686A3292A8B16F20034845A /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D686A3282A8B16F20034845A /* AppTrackingTransparency.framework */; };
 		D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E722CB322900C2651A /* ios_app_framework.mm */; };
 		D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
@@ -39,6 +40,7 @@
 		D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D67D355622BABD2100292C1D /* gtest-all.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "gtest-all.cc"; path = "external/googletest/src/googletest/src/gtest-all.cc"; sourceTree = "<group>"; };
 		D67D355722BABD2100292C1D /* gtest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gtest.h; path = external/googletest/src/googletest/include/gtest/gtest.h; sourceTree = "<group>"; };
+		D686A3282A8B16F20034845A /* AppTrackingTransparency.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppTrackingTransparency.framework; path = System/Library/Frameworks/AppTrackingTransparency.framework; sourceTree = SDKROOT; };
 		D6C179E722CB322900C2651A /* ios_app_framework.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ios_app_framework.mm; path = src/ios/ios_app_framework.mm; sourceTree = "<group>"; };
 		D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ios_firebase_test_framework.mm; path = src/ios/ios_firebase_test_framework.mm; sourceTree = "<group>"; };
 		D6C179EB22CB323300C2651A /* firebase_test_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = firebase_test_framework.h; path = src/firebase_test_framework.h; sourceTree = "<group>"; };
@@ -53,6 +55,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
+				D686A3292A8B16F20034845A /* AppTrackingTransparency.framework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
 			);
@@ -85,6 +88,7 @@
 		529226D41C85F68000C89379 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D686A3282A8B16F20034845A /* AppTrackingTransparency.framework */,
 				529226D51C85F68000C89379 /* Foundation.framework */,
 				529226D71C85F68000C89379 /* CoreGraphics.framework */,
 				529226D91C85F68000C89379 /* UIKit.framework */,
