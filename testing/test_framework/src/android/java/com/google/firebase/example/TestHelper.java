@@ -82,13 +82,10 @@ public final class TestHelper {
   }
 
   public static String getDebugDeviceId(Context context) {
-    if (isRunningOnEmulator()) {
-      return "emulator";
-    }
     ContentResolver contentResolver = context.getContentResolver();
     if (contentResolver == null) {
       return "error";
     }
-    return Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
+    return md5(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID));
   }
 }

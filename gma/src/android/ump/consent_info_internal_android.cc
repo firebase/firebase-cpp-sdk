@@ -18,6 +18,7 @@
 
 #include <jni.h>
 
+#include <string>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -48,18 +49,18 @@ firebase::Mutex ConsentInfoInternalAndroid::s_instance_mutex;
     "()I"),                                                                     \
   X(ShowPrivacyOptionsForm, "showPrivacyOptionsForm",                           \
     "(JLandroid/app/Activity;)V"),                                              \
-  X(Reset, "reset", "()V"),							\
+  X(Reset, "reset", "()V"),                                                     \
   X(CanRequestAds, "canRequestAds", "()Z"),                                     \
-  X(IsConsentFormAvailable, "isConsentFormAvailable", "()Z"),		        \
+  X(IsConsentFormAvailable, "isConsentFormAvailable", "()Z"),                   \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
 
 // clang-format off
 #define CONSENTINFOHELPER_FIELDS(X)                                             \
   X(PrivacyOptionsRequirementUnknown,                                           \
-    "PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN", "I", util::kFieldTypeStatic),	\
+    "PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN", "I", util::kFieldTypeStatic),        \
   X(PrivacyOptionsRequirementRequired,                                          \
-    "PRIVACY_OPTIONS_REQUIREMENT_REQUIRED", "I", util::kFieldTypeStatic),	\
+    "PRIVACY_OPTIONS_REQUIREMENT_REQUIRED", "I", util::kFieldTypeStatic),       \
   X(PrivacyOptionsRequirementNotRequired,                                       \
     "PRIVACY_OPTIONS_REQUIREMENT_NOT_REQUIRED", "I", util::kFieldTypeStatic)
 // clang-format on
