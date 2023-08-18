@@ -257,8 +257,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   jobject helper_ref = env->NewObject(
       consent_info_helper::GetClass(),
       consent_info_helper::GetMethodId(consent_info_helper::kConstructor),
-      reinterpret_cast<jlong>(this),
-      activity);
+      reinterpret_cast<jlong>(this), activity);
   util::CheckAndClearJniExceptions(env);
   if (!helper_ref) {
     ReleaseClasses(env);
@@ -369,7 +368,7 @@ static ConsentFormError CppConsentFormErrorFromAndroidFormError(
     return kConsentFormErrorInternal;
   if (error == g_enum_cache.formerror_timeout) return kConsentFormErrorTimeout;
   if (error == g_enum_cache.formerror_invalid_operation) {
-    if (message && strcasestr(message, "unavailable") != nullptr)
+    if (message && strcasestr(message, "No available form") != nullptr)
       return kConsentFormErrorUnavailable;
     else
       return kConsentFormErrorInvalidOperation;

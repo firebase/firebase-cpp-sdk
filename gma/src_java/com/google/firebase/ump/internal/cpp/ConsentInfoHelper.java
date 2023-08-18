@@ -67,10 +67,12 @@ public class ConsentInfoHelper {
   public static final int FUNCTION_SHOW_PRIVACY_OPTIONS_FORM = 4;
 
   public ConsentInfoHelper(long consentInfoInternalPtr, Activity activity) {
-    mInternalPtr = consentInfoInternalPtr;
-    mActivity = activity;
-    // Test the callbacks and fail quickly if something's wrong.
-    completeFuture(-1, CPP_NULLPTR, CPP_NULLPTR, 0, null);
+    synchronized (mLock) {
+      mInternalPtr = consentInfoInternalPtr;
+      mActivity = activity;
+      // Test the callbacks and fail quickly if something's wrong.
+      completeFuture(-1, CPP_NULLPTR, CPP_NULLPTR, 0, null);
+    }
   }
 
   public int getConsentStatus() {
@@ -80,8 +82,10 @@ public class ConsentInfoHelper {
 
   public void requestConsentInfoUpdate(final long futureHandle, boolean tagForUnderAgeOfConsent,
       int debugGeography, ArrayList<String> debugIdList) {
-    if (mInternalPtr == 0)
-      return;
+    synchronized (mLock) {
+      if (mInternalPtr == 0)
+        return;
+    }
     final int functionId = FUNCTION_REQUEST_CONSENT_INFO_UPDATE;
 
     ConsentDebugSettings.Builder debugSettingsBuilder = null;
@@ -116,6 +120,8 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentInfoUpdateSuccess() {
                 synchronized (mLock) {
+                  if (mInternalPtr == 0)
+                    return;
                   completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
                 }
               }
@@ -124,6 +130,8 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentInfoUpdateFailure(FormError formError) {
                 synchronized (mLock) {
+                  if (mInternalPtr == 0)
+                    return;
                   completeFuture(functionId, mInternalPtr, futureHandle, formError.getErrorCode(),
                       formError.getMessage());
                 }
@@ -134,8 +142,10 @@ public class ConsentInfoHelper {
   }
 
   public void loadConsentForm(final long futureHandle) {
-    if (mInternalPtr == 0)
-      return;
+    synchronized (mLock) {
+      if (mInternalPtr == 0)
+        return;
+    }
     final int functionId = FUNCTION_LOAD_CONSENT_FORM;
     mActivity.runOnUiThread(new Runnable() {
       @Override
@@ -145,6 +155,8 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentFormLoadSuccess(ConsentForm form) {
                 synchronized (mLock) {
+                  if (mInternalPtr == 0)
+                    return;
                   mConsentForm = form;
                   completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
                 }
@@ -154,6 +166,8 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentFormLoadFailure(FormError formError) {
                 synchronized (mLock) {
+                  if (mInternalPtr == 0)
+                    return;
                   mConsentForm = null;
                   completeFuture(functionId, mInternalPtr, futureHandle, formError.getErrorCode(),
                       formError.getMessage());
@@ -165,8 +179,10 @@ public class ConsentInfoHelper {
   }
 
   public boolean showConsentForm(final long futureHandle, final Activity activity) {
-    if (mInternalPtr == 0)
-      return false;
+    synchronized (mLock) {
+      if (mInternalPtr == 0)
+        return;
+    }
     final int functionId = FUNCTION_SHOW_CONSENT_FORM;
     ConsentForm consentForm;
     synchronized (mLock) {
@@ -185,6 +201,8 @@ public class ConsentInfoHelper {
           @Override
           public void onConsentFormDismissed(FormError formError) {
             synchronized (mLock) {
+              if (mInternalPtr == 0)
+                return;
               if (formError == null) {
                 completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
               } else {
@@ -201,8 +219,10 @@ public class ConsentInfoHelper {
   }
 
   public void loadAndShowConsentFormIfRequired(final long futureHandle, final Activity activity) {
-    if (mInternalPtr == 0)
-      return;
+    synchronized (mLock) {
+      if (mInternalPtr == 0)
+        return;
+    }
     final int functionId = FUNCTION_LOAD_AND_SHOW_CONSENT_FORM_IF_REQUIRED;
     mActivity.runOnUiThread(new Runnable() {
       @Override
@@ -212,6 +232,8 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentFormDismissed(FormError formError) {
                 synchronized (mLock) {
+                  if (mInternalPtr == 0)
+                    return;
                   if (formError == null) {
                     completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
                   } else {
@@ -231,8 +253,10 @@ public class ConsentInfoHelper {
   }
 
   public void showPrivacyOptionsForm(final long futureHandle, final Activity activity) {
-    if (mInternalPtr == 0)
-      return;
+    synchronized (mLock) {
+      if (mInternalPtr == 0)
+        return;
+    }
     final int functionId = FUNCTION_SHOW_PRIVACY_OPTIONS_FORM;
     mActivity.runOnUiThread(new Runnable() {
       @Override
@@ -242,6 +266,8 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentFormDismissed(FormError formError) {
                 synchronized (mLock) {
+                  if (mInternalPtr == 0)
+                    return;
                   if (formError == null) {
                     completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
                   } else {

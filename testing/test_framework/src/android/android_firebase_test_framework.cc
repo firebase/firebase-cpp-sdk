@@ -17,8 +17,8 @@
 namespace firebase_test_framework {
 
 using app_framework::LogDebug;
-using app_framework::LogInfo;
 using app_framework::LogError;
+using app_framework::LogInfo;
 
 // Blocking HTTP request helper function.
 static bool SendHttpRequest(const char* url,
@@ -283,7 +283,7 @@ std::string FirebaseTest::GetDebugDeviceId() {
     }
     jmethodID get_id =
         env->GetStaticMethodID(test_helper_class, "getDebugDeviceId",
-			       "(Landroid/content/Context;)Ljava/lang/String;");
+                               "(Landroid/content/Context;)Ljava/lang/String;");
 
     if (env->ExceptionCheck()) {
       LogError("Couldn't look up getDebugDeviceId method");
