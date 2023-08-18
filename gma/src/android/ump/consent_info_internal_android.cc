@@ -395,7 +395,7 @@ Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
                       future_handle, tag_for_under_age_of_consent,
                       debug_geography, debug_device_ids_list);
 
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentRequestErrorInternal,
                    exception_message.c_str());
@@ -415,7 +415,7 @@ ConsentStatus ConsentInfoInternalAndroid::GetConsentStatus() {
   jint result = env->CallIntMethod(
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kGetConsentStatus));
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     util::CheckAndClearJniExceptions(env);
     return kConsentStatusUnknown;
   }
@@ -430,7 +430,7 @@ ConsentFormStatus ConsentInfoInternalAndroid::GetConsentFormStatus() {
   jboolean is_available = env->CallBooleanMethod(
       helper_, consent_info_helper::GetMethodId(
                    consent_info_helper::kIsConsentFormAvailable));
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     util::CheckAndClearJniExceptions(env);
     return kConsentFormStatusUnknown;
   }
@@ -447,7 +447,7 @@ Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kLoadConsentForm),
       future_handle);
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
@@ -464,7 +464,7 @@ Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kShowConsentForm),
       future_handle, parent);
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
@@ -490,7 +490,7 @@ Future<void> ConsentInfoInternalAndroid::LoadAndShowConsentFormIfRequired(
       consent_info_helper::GetMethodId(
           consent_info_helper::kLoadAndShowConsentFormIfRequired),
       future_handle, parent);
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
@@ -523,7 +523,7 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
                       consent_info_helper::GetMethodId(
                           consent_info_helper::kShowPrivacyOptionsForm),
                       future_handle, parent);
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
@@ -537,7 +537,7 @@ bool ConsentInfoInternalAndroid::CanRequestAds() {
   jboolean can_request = env->CallBooleanMethod(
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kCanRequestAds));
-  if (util::HasExceptionOccurred(env)) {
+  if (env->ExceptionCheck()) {
     util::CheckAndClearJniExceptions(env);
     return false;
   }
