@@ -18,7 +18,6 @@ namespace firebase_test_framework {
 
 using app_framework::LogDebug;
 using app_framework::LogError;
-using app_framework::LogInfo;
 
 // Blocking HTTP request helper function.
 static bool SendHttpRequest(const char* url,
@@ -310,7 +309,6 @@ std::string FirebaseTest::GetDebugDeviceId() {
     }
     device_id = new char[strlen(device_id_text) + 1];
     strcpy(device_id, device_id_text);  // NOLINT
-    LogInfo("Got debug device ID: %s", device_id);
 
     env->ReleaseStringUTFChars(device_id_jstring, device_id_text);
     env->DeleteLocalRef(device_id_jstring);
