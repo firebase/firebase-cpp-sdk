@@ -239,7 +239,7 @@ TEST_F(AnalyticsTest,
       "+[FIRAnalytics initiateOnDeviceConversionMeasurementWithPhoneNumber:]",
       {"+15551234567"});
 
-  InitiateOnDeviceConversionMeasurementWithEmailAddress("+15551234567");
+  InitiateOnDeviceConversionMeasurementWithPhoneNumber("+15551234567");
 }
 
 TEST_F(AnalyticsTest, TestSetUserProperty) {
