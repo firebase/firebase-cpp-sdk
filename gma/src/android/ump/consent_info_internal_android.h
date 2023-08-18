@@ -55,19 +55,15 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   JNIEnv* GetJNIEnv();
   jobject activity();
 
-
  private:
-  static void JNI_ConsentInfoHelper_completeFuture(JNIEnv* env,
-						   jclass clazz,
-						   jint future_fn,
-						   jlong consent_info_internal_ptr,
-						   jlong future_handle,
-						   jint error_code,
-						   jobject error_message_obj);
+  static void JNI_ConsentInfoHelper_completeFuture(
+      JNIEnv* env, jclass clazz, jint future_fn,
+      jlong consent_info_internal_ptr, jlong future_handle, jint error_code,
+      jobject error_message_obj);
 
-  void CompleteFutureFromJniCallback(JNIEnv* env,
-				     ConsentInfoFn future_fn, FutureHandleId handle_id,
-				     int error_code, const char* error_message);
+  void CompleteFutureFromJniCallback(JNIEnv* env, ConsentInfoFn future_fn,
+                                     FutureHandleId handle_id, int error_code,
+                                     const char* error_message);
 
   static ConsentInfoInternalAndroid* s_instance;
   static firebase::Mutex s_instance_mutex;

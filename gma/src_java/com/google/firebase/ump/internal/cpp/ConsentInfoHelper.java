@@ -81,8 +81,9 @@ public class ConsentInfoHelper {
 
   public void requestConsentInfoUpdate(final long futureHandle, boolean tagForUnderAgeOfConsent,
       int debugGeography, ArrayList<String> debugIdList) {
-    if (mInternalPtr == null) return;
-      
+    if (mInternalPtr == null)
+      return;
+
     ConsentDebugSettings.Builder debugSettingsBuilder = null;
 
     if (debugGeography != ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_DISABLED) {
@@ -193,69 +194,78 @@ public class ConsentInfoHelper {
     return true;
   }
 
-    public void loadAndShowConsentFormIfRequired(final long futureHandle, final Activity activity) {
-        mActivity.runOnUiThread(new Runnable() {
-                @Override
-                public void run(){
-		    UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity){
-                        new OnConsentFormDismissedListener(){
-                            @Override
-                            public void onConsentFormDismissed(FormError formError) {
-                                synchronized (mLock){
-                                    if (formError == null){completeFuture(mInternalPtr, futureHandle, 0, "");
-                                    } else {
-                                        completeFuture(mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
-                                    }
-                                }
-                            }
-                        });
+  public void loadAndShowConsentFormIfRequired(final long futureHandle, final Activity activity) {
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) {
+          new OnConsentFormDismissedListener() {
+            @Override
+            public void onConsentFormDismissed(FormError formError) {
+              synchronized (mLock) {
+                if (formError == null) {
+                  completeFuture(mInternalPtr, futureHandle, 0, "");
+                } else {
+                  completeFuture(
+                      mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
                 }
-            });
-    }
-
-    public int getPrivacyOptionsRequirementStatus {
-        ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
-        return consentInfo.getPrivacyOptionsRequirementStatus().ordinal();
-    }
-
-    public void showPrivacyOptionsForm(final long futureHandle, final Activity activity) {
-        mActivity.runOnUiThread(new Runnable() {
-                @Override
-                public void run(){
-                    UserMessagingPlatform.showPrivacyOptionsForm(activity){new OnConsentFormDismissedListener(){
-                            @Override public void onConsentFormDismissed(FormError formError){synchronized (mLock){
-                                    if (formError == null){completeFuture(mInternalPtr, futureHandle, 0, "");
-                                    } else {
-                                        completeFuture(mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
-                                    }
-                                }
-                            }
-                        });
-                }
-            });
-    }
-
-    public boolean canRequestAds() {
-        ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
-	return consentInfo.canRequestAds();
-    }
-
-    public boolean isConsentFormAvailable() {
-        ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
-	return consentInfo.isConsentFormAvailable();
-    }
-
-    public void reset() {
-        ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
-	consentInfo.reset();
-    }
-
-    /** Disconnect the helper from the native object. */
-    public void disconnect() {
-        synchronized (mLock) {
-            mInternalPtr = CPP_NULLPTR;
+              }
+            }
+          }
         }
-    }
+      }
+    });
+  }
 
-    public static native void completeFuture(int futureFn, long nativeInternalPtr, long futureHandle, int errorCode, String errorMessage);
+  public int getPrivacyOptionsRequirementStatus {
+    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
+    return consentInfo.getPrivacyOptionsRequirementStatus().ordinal();
+  }
+
+  public void showPrivacyOptionsForm(final long futureHandle, final Activity activity) {
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        UserMessagingPlatform.showPrivacyOptionsForm(activity) {
+          new OnConsentFormDismissedListener() {
+            @Override
+            public void onConsentFormDismissed(FormError formError) {
+              synchronized (mLock) {
+                if (formError == null) {
+                  completeFuture(mInternalPtr, futureHandle, 0, "");
+                } else {
+                  completeFuture(
+                      mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  public boolean canRequestAds() {
+    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
+    return consentInfo.canRequestAds();
+  }
+
+  public boolean isConsentFormAvailable() {
+    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
+    return consentInfo.isConsentFormAvailable();
+  }
+
+  public void reset() {
+    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
+    consentInfo.reset();
+  }
+
+  /** Disconnect the helper from the native object. */
+  public void disconnect() {
+    synchronized (mLock) {
+      mInternalPtr = CPP_NULLPTR;
+    }
+  }
+  public static native void completeFuture(
+      int futureFn, long nativeInternalPtr, long futureHandle, int errorCode, String errorMessage);
 }

@@ -1097,7 +1097,8 @@ bool CheckAndClearJniExceptions(JNIEnv* env);
 std::string GetAndClearExceptionMessage(JNIEnv* env);
 
 // Returns true if an JNI exception occurred, false otherwise.
-// Does not clear the exception, so you can then call GetAndClearExceptionMessage().
+// Does not clear the exception, so you can then call
+// GetAndClearExceptionMessage().
 bool HasExceptionOccurred(JNIEnv* env);
 
 // Returns the message from an exception.

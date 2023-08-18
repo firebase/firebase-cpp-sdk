@@ -183,38 +183,44 @@ static struct {
   jint privacy_options_requirement_not_required;
 } g_enum_cache;
 
-void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(JNIEnv* env,
-								      jclass clazz,
-								      jint future_fn,
-								      jlong consent_info_internal_ptr,
-								      jlong future_handle,
-								      jint error_code,
-								      jobject error_message_obj) {
-  if (consent_info_internal_ptr == 0 || future_fn < 0 || future_fn >= kConsentInfoFnCount) {
-    // Calling this with a null pointer or invalid fn is a no-op, so just return.
+void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(
+    JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_internal_ptr,
+    jlong future_handle, jint error_code, jobject error_message_obj) {
+  if (consent_info_internal_ptr == 0 || future_fn < 0 ||
+      future_fn >= kConsentInfoFnCount) {
+    // Calling this with a null pointer or invalid fn is a no-op, so just
+    // return.
     return;
   }
   {
     MutexLock lock(s_instance_mutex);
-    std::string error_message = error_message_obj ? util::JniStringToString(env, error_message_obj) : "";
-    ConsentInfoInternalAndroid* instance = reinterpret_cast<ConsentInfoInternalAndroid*>(consent_info_internal_ptr);
+    std::string error_message =
+        error_message_obj ? util::JniStringToString(env, error_message_obj)
+                          : "";
+    ConsentInfoInternalAndroid* instance =
+        reinterpret_cast<ConsentInfoInternalAndroid*>(
+            consent_info_internal_ptr);
     if (s_instance != instance) {
-      // If the instance we were called with does not match the current instance, a bad race condition
-      // has occurred (whereby while waiting for the operation to complete, ConsentInfo was deleted and then recreated).
+      // If the instance we were called with does not match the current
+      // instance, a bad race condition has occurred (whereby while waiting for
+      // the operation to complete, ConsentInfo was deleted and then recreated).
       // In that case, fully ignore this callback.
       return;
     }
-    instance->CompleteFutureFromJniCallback(env,
-					    static_cast<ConsentInfoFn>(future_fn),
-					    static_cast<FutureHandleId>(future_handle),
-					    static_cast<int>(error_code),
-					    error_message.length() > 0 ? error_message.c_str() : nullptr);
+    instance->CompleteFutureFromJniCallback(
+        env, static_cast<ConsentInfoFn>(future_fn),
+        static_cast<FutureHandleId>(future_handle),
+        static_cast<int>(error_code),
+        error_message.length() > 0 ? error_message.c_str() : nullptr);
   }
 }
 
 ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
                                                        jobject activity)
-  : java_vm_(nullptr), activity_(nullptr), helper_(nullptr), has_requested_consent_info_update_(false) {
+    : java_vm_(nullptr),
+      activity_(nullptr),
+      helper_(nullptr),
+      has_requested_consent_info_update_(false) {
   MutexLock lock(s_instance_mutex);
   FIREBASE_ASSERT(s_instance == nullptr);
 
@@ -240,10 +246,10 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   }
   static const JNINativeMethod kConsentInfoHelperNativeMethods[] = {
       {"completeFuture", "(IJJILjava/lang/String;)V",
-       reinterpret_cast<void*>(&JNI_ConsentInfoHelper_completeFuture)}
-  };
-  if (!consent_info_helper::RegisterNatives(env, kConsentInfoHelperNativeMethods,
-					    FIREBASE_ARRAYSIZE(kConsentInfoHelperNativeMethods))) {
+       reinterpret_cast<void*>(&JNI_ConsentInfoHelper_completeFuture)}};
+  if (!consent_info_helper::RegisterNatives(
+          env, kConsentInfoHelperNativeMethods,
+          FIREBASE_ARRAYSIZE(kConsentInfoHelperNativeMethods))) {
     util::CheckAndClearJniExceptions(env);
     ReleaseClasses(env);
     util::Terminate(env);
@@ -329,7 +335,8 @@ CppPrivacyOptionsRequirementStatusFromAndroid(jint status) {
   return kPrivacyOptionsRequirementStatusUnknown;
 }
 
-static jint AndroidDebugGeographyFromCppDebugGeography(ConsentDebugGeography geo) {
+static jint AndroidDebugGeographyFromCppDebugGeography(
+    ConsentDebugGeography geo) {
   // Cache values the first time this function runs.
   switch (geo) {
     case kConsentDebugGeographyDisabled:
@@ -343,7 +350,8 @@ static jint AndroidDebugGeographyFromCppDebugGeography(ConsentDebugGeography geo
   }
 }
 
-static ConsentRequestError CppConsentRequestErrorFromAndroidFormError(jint error, const char* message = nullptr) {
+static ConsentRequestError CppConsentRequestErrorFromAndroidFormError(
+    jint error, const char* message = nullptr) {
   // Cache values the first time this function runs.
   if (error == g_enum_cache.formerror_success) return kConsentRequestSuccess;
   if (error == g_enum_cache.formerror_internal)
@@ -355,7 +363,8 @@ static ConsentRequestError CppConsentRequestErrorFromAndroidFormError(jint error
   return kConsentRequestErrorUnknown;
 }
 
-static ConsentFormError CppConsentFormErrorFromAndroidFormError(jint error, const char* message = nullptr) {
+static ConsentFormError CppConsentFormErrorFromAndroidFormError(
+    jint error, const char* message = nullptr) {
   if (error == g_enum_cache.formerror_success) return kConsentFormSuccess;
   if (error == g_enum_cache.formerror_internal)
     return kConsentFormErrorInternal;
@@ -378,17 +387,20 @@ Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
   jlong future_handle = static_cast<jlong>(handle.get().id());
   jboolean tag_for_under_age_of_consent =
       static_cast<jboolean>(params.tag_for_under_age_of_consent);
-  jint debug_geography = AndroidDebugGeographyFromCppDebugGeography(params.debug_settings.debug_geography);
+  jint debug_geography = AndroidDebugGeographyFromCppDebugGeography(
+      params.debug_settings.debug_geography);
   jobject debug_device_ids_list =
-    util::StdVectorToJavaList(env, params.debug_settings.debug_device_ids);
+      util::StdVectorToJavaList(env, params.debug_settings.debug_device_ids);
   env->CallVoidMethod(helper_,
-		      consent_info_helper::GetMethodId(consent_info_helper::kRequestConsentInfoUpdate),
-		      future_handle, tag_for_under_age_of_consent, debug_geography,
-		      debug_device_ids_list);
-  
+                      consent_info_helper::GetMethodId(
+                          consent_info_helper::kRequestConsentInfoUpdate),
+                      future_handle, tag_for_under_age_of_consent,
+                      debug_geography, debug_device_ids_list);
+
   if (util::HasExceptionOccurred(env)) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
-    CompleteFuture(handle, kConsentRequestErrorInternal, exception_message.c_str());
+    CompleteFuture(handle, kConsentRequestErrorInternal,
+                   exception_message.c_str());
   } else {
     has_requested_consent_info_update_ = true;
   }
@@ -418,13 +430,14 @@ ConsentFormStatus ConsentInfoInternalAndroid::GetConsentFormStatus() {
   }
   JNIEnv* env = GetJNIEnv();
   jboolean is_available = env->CallBooleanMethod(
-					   helper_,
-					   consent_info_helper::GetMethodId(consent_info_helper::kIsConsentFormAvailable));
+      helper_, consent_info_helper::GetMethodId(
+                   consent_info_helper::kIsConsentFormAvailable));
   if (util::HasExceptionOccurred(env)) {
     util::CheckAndClearJniExceptions(env);
     return kConsentFormStatusUnknown;
   }
-  return is_available ? kConsentFormStatusAvailable : kConsentFormStatusUnavailable;
+  return is_available ? kConsentFormStatusAvailable
+                      : kConsentFormStatusUnavailable;
 }
 
 Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
@@ -432,12 +445,14 @@ Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
   JNIEnv* env = GetJNIEnv();
   jlong future_handle = static_cast<jlong>(handle.get().id());
 
-  env->CallVoidMethod(helper_,
-		      consent_info_helper::GetMethodId(consent_info_helper::kLoadConsentForm),
-		      future_handle);
+  env->CallVoidMethod(
+      helper_,
+      consent_info_helper::GetMethodId(consent_info_helper::kLoadConsentForm),
+      future_handle);
   if (util::HasExceptionOccurred(env)) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
-    CompleteFuture(handle, kConsentFormErrorInternal, exception_message.c_str());
+    CompleteFuture(handle, kConsentFormErrorInternal,
+                   exception_message.c_str());
   }
   return MakeFuture<void>(futures(), handle);
 }
@@ -447,15 +462,19 @@ Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
   JNIEnv* env = GetJNIEnv();
 
   jlong future_handle = static_cast<jlong>(handle.get().id());
-  jboolean success = env->CallBooleanMethod(helper_,
-					    consent_info_helper::GetMethodId(consent_info_helper::kShowConsentForm),
-					    future_handle, parent);
+  jboolean success = env->CallBooleanMethod(
+      helper_,
+      consent_info_helper::GetMethodId(consent_info_helper::kShowConsentForm),
+      future_handle, parent);
   if (util::HasExceptionOccurred(env)) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
-    CompleteFuture(handle, kConsentFormErrorInternal, exception_message.c_str());
+    CompleteFuture(handle, kConsentFormErrorInternal,
+                   exception_message.c_str());
   } else if (!success) {
-    CompleteFuture(handle, kConsentFormErrorUnavailable,
-		   "The consent form is unavailable. Please call LoadConsentForm and ensure it completes successfully before calling ShowConsentForm.");
+    CompleteFuture(
+        handle, kConsentFormErrorUnavailable,
+        "The consent form is unavailable. Please call LoadConsentForm and "
+        "ensure it completes successfully before calling ShowConsentForm.");
   }
   return MakeFuture<void>(futures(), handle);
 }
@@ -468,12 +487,15 @@ Future<void> ConsentInfoInternalAndroid::LoadAndShowConsentFormIfRequired(
   JNIEnv* env = GetJNIEnv();
   jlong future_handle = static_cast<jlong>(handle.get().id());
 
-  env->CallVoidMethod(helper_,
-		      consent_info_helper::GetMethodId(consent_info_helper::kLoadAndShowConsentFormIfRequired),
-		      future_handle, parent);
+  env->CallVoidMethod(
+      helper_,
+      consent_info_helper::GetMethodId(
+          consent_info_helper::kLoadAndShowConsentFormIfRequired),
+      future_handle, parent);
   if (util::HasExceptionOccurred(env)) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
-    CompleteFuture(handle, kConsentFormErrorInternal, exception_message.c_str());
+    CompleteFuture(handle, kConsentFormErrorInternal,
+                   exception_message.c_str());
   }
 
   return MakeFuture<void>(futures(), handle);
@@ -500,11 +522,13 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
   jlong future_handle = static_cast<jlong>(handle.get().id());
 
   env->CallVoidMethod(helper_,
-		      consent_info_helper::GetMethodId(consent_info_helper::kShowPrivacyOptionsForm),
-		      future_handle, parent);
+                      consent_info_helper::GetMethodId(
+                          consent_info_helper::kShowPrivacyOptionsForm),
+                      future_handle, parent);
   if (util::HasExceptionOccurred(env)) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
-    CompleteFuture(handle, kConsentFormErrorInternal, exception_message.c_str());
+    CompleteFuture(handle, kConsentFormErrorInternal,
+                   exception_message.c_str());
   }
 
   return MakeFuture<void>(futures(), handle);
@@ -512,7 +536,9 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
 
 bool ConsentInfoInternalAndroid::CanRequestAds() {
   JNIEnv* env = GetJNIEnv();
-  jboolean can_request = env->CallBooleanMethod(helper_, consent_info_helper::GetMethodId(consent_info_helper::kCanRequestAds));
+  jboolean can_request = env->CallBooleanMethod(
+      helper_,
+      consent_info_helper::GetMethodId(consent_info_helper::kCanRequestAds));
   if (util::HasExceptionOccurred(env)) {
     util::CheckAndClearJniExceptions(env);
     return false;
@@ -522,7 +548,8 @@ bool ConsentInfoInternalAndroid::CanRequestAds() {
 
 void ConsentInfoInternalAndroid::Reset() {
   JNIEnv* env = GetJNIEnv();
-  env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(consent_info_helper::kReset));
+  env->CallVoidMethod(
+      helper_, consent_info_helper::GetMethodId(consent_info_helper::kReset));
   util::CheckAndClearJniExceptions(env);
 }
 
@@ -531,9 +558,9 @@ JNIEnv* ConsentInfoInternalAndroid::GetJNIEnv() {
 }
 jobject ConsentInfoInternalAndroid::activity() { return activity_; }
 
-  void ConsentInfoInternalAndroid::CompleteFutureFromJniCallback(JNIEnv* env,
-								 ConsentInfoFn future_fn, FutureHandleId handle_id,
-							       int java_error_code, const char* error_message) {
+void ConsentInfoInternalAndroid::CompleteFutureFromJniCallback(
+    JNIEnv* env, ConsentInfoFn future_fn, FutureHandleId handle_id,
+    int java_error_code, const char* error_message) {
   if (!futures()->ValidFuture(handle_id)) {
     // This future is no longer valid, so no need to complete it.
     return;
@@ -542,8 +569,8 @@ jobject ConsentInfoInternalAndroid::activity() { return activity_; }
   SafeFutureHandle<void> handle(raw_handle);
   if (future_fn == kConsentInfoFnRequestConsentInfoUpdate) {
     // RequestConsentInfoUpdate uses the ConsentRequestError enum.
-    ConsentRequestError error_code =
-      CppConsentRequestErrorFromAndroidFormError(java_error_code, error_message);
+    ConsentRequestError error_code = CppConsentRequestErrorFromAndroidFormError(
+        java_error_code, error_message);
     if (error_message == nullptr) {
       error_message = GetConsentRequestErrorMessage(error_code);
     }
@@ -551,7 +578,7 @@ jobject ConsentInfoInternalAndroid::activity() { return activity_; }
   } else {
     // All other methods use the ConsentFormError enum.
     ConsentFormError error_code =
-      CppConsentFormErrorFromAndroidFormError(java_error_code, error_message);
+        CppConsentFormErrorFromAndroidFormError(java_error_code, error_message);
     if (error_message == nullptr) {
       error_message = GetConsentFormErrorMessage(error_code);
     }
