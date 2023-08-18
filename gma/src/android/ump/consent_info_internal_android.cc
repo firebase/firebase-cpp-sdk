@@ -141,6 +141,7 @@ static void ReleaseClasses(JNIEnv* env) {
 
 ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
   MutexLock lock(s_instance_mutex);
+  s_instance = nullptr;
 
   JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
@@ -218,6 +219,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
       has_requested_consent_info_update_(false) {
   MutexLock lock(s_instance_mutex);
   FIREBASE_ASSERT(s_instance == nullptr);
+  s_instance = this;
 
   util::Initialize(env, activity);
   env->GetJavaVM(&java_vm_);
@@ -254,7 +256,8 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   jobject helper_ref = env->NewObject(
       consent_info_helper::GetClass(),
       consent_info_helper::GetMethodId(consent_info_helper::kConstructor),
-      reinterpret_cast<jlong>(this));
+      reinterpret_cast<jlong>(this),
+      activity);
   util::CheckAndClearJniExceptions(env);
   if (!helper_ref) {
     ReleaseClasses(env);
