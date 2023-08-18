@@ -186,33 +186,28 @@ static struct {
 void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(
     JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_internal_ptr,
     jlong future_handle, jint error_code, jobject error_message_obj) {
-  if (consent_info_internal_ptr == 0 || future_fn < 0 ||
+  MutexLock lock(s_instance_mutex);
+  if (consent_info_internal_ptr == 0 || s_instance == 0 || future_fn < 0 ||
       future_fn >= kConsentInfoFnCount) {
-    // Calling this with a null pointer or invalid fn is a no-op, so just
-    // return.
+    // Calling this with a null pointer or invalid fn, or if there is no active
+    // instance, is a no-op, so just return.
     return;
   }
-  {
-    MutexLock lock(s_instance_mutex);
-    std::string error_message =
-        error_message_obj ? util::JniStringToString(env, error_message_obj)
-                          : "";
-    ConsentInfoInternalAndroid* instance =
-        reinterpret_cast<ConsentInfoInternalAndroid*>(
-            consent_info_internal_ptr);
-    if (s_instance != instance) {
-      // If the instance we were called with does not match the current
-      // instance, a bad race condition has occurred (whereby while waiting for
-      // the operation to complete, ConsentInfo was deleted and then recreated).
-      // In that case, fully ignore this callback.
-      return;
-    }
-    instance->CompleteFutureFromJniCallback(
-        env, static_cast<ConsentInfoFn>(future_fn),
-        static_cast<FutureHandleId>(future_handle),
-        static_cast<int>(error_code),
-        error_message.length() > 0 ? error_message.c_str() : nullptr);
+  ConsentInfoInternalAndroid* instance =
+      reinterpret_cast<ConsentInfoInternalAndroid*>(consent_info_internal_ptr);
+  if (s_instance != instance) {
+    // If the instance we were called with does not match the current
+    // instance, a bad race condition has occurred (whereby while waiting for
+    // the operation to complete, ConsentInfo was deleted and then recreated).
+    // In that case, fully ignore this callback.
+    return;
   }
+  std::string error_message =
+      error_message_obj ? util::JniStringToString(env, error_message_obj) : "";
+  instance->CompleteFutureFromJniCallback(
+      env, static_cast<ConsentInfoFn>(future_fn),
+      static_cast<FutureHandleId>(future_handle), static_cast<int>(error_code),
+      error_message.length() > 0 ? error_message.c_str() : nullptr);
 }
 
 ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
@@ -386,7 +381,7 @@ Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
 
   jlong future_handle = static_cast<jlong>(handle.get().id());
   jboolean tag_for_under_age_of_consent =
-      static_cast<jboolean>(params.tag_for_under_age_of_consent);
+      params.tag_for_under_age_of_consent ? JNI_TRUE : JNI_FALSE;
   jint debug_geography = AndroidDebugGeographyFromCppDebugGeography(
       params.debug_settings.debug_geography);
   jobject debug_device_ids_list =
@@ -436,8 +431,8 @@ ConsentFormStatus ConsentInfoInternalAndroid::GetConsentFormStatus() {
     util::CheckAndClearJniExceptions(env);
     return kConsentFormStatusUnknown;
   }
-  return is_available ? kConsentFormStatusAvailable
-                      : kConsentFormStatusUnavailable;
+  return (is_available == JNI_FALSE) ? kConsentFormStatusUnavailable
+                                     : kConsentFormStatusAvailable;
 }
 
 Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
@@ -470,7 +465,7 @@ Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
     std::string exception_message = util::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
-  } else if (!success) {
+  } else if (success == JNI_FALSE) {
     CompleteFuture(
         handle, kConsentFormErrorUnavailable,
         "The consent form is unavailable. Please call LoadConsentForm and "
@@ -543,7 +538,7 @@ bool ConsentInfoInternalAndroid::CanRequestAds() {
     util::CheckAndClearJniExceptions(env);
     return false;
   }
-  return can_request ? true : false;
+  return (can_request == JNI_FALSE) ? false : true;
 }
 
 void ConsentInfoInternalAndroid::Reset() {

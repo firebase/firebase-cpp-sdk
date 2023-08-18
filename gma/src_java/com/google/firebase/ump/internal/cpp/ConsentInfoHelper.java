@@ -23,14 +23,14 @@ import com.google.android.ump.ConsentDebugSettings;
 import com.google.android.ump.ConsentForm;
 import com.google.android.ump.ConsentForm.OnConsentFormDismissedListener;
 import com.google.android.ump.ConsentInformation;
-import com.google.android.ump.ConsentInformation.OnConsentFormLoadFailureListener();
-import com.google.android.ump.ConsentInformation.OnConsentFormLoadSuccessListener();
 import com.google.android.ump.ConsentInformation.OnConsentInfoUpdateFailureListener;
 import com.google.android.ump.ConsentInformation.OnConsentInfoUpdateSuccessListener;
 import com.google.android.ump.ConsentInformation.PrivacyOptionsRequirementStatus;
 import com.google.android.ump.ConsentRequestParameters;
 import com.google.android.ump.FormError;
 import com.google.android.ump.UserMessagingPlatform;
+import com.google.android.ump.UserMessagingPlatform.OnConsentFormLoadFailureListener;
+import com.google.android.ump.UserMessagingPlatform.OnConsentFormLoadSuccessListener;
 import java.util.ArrayList;
 
 /**
@@ -41,7 +41,7 @@ public class ConsentInfoHelper {
   private static final long CPP_NULLPTR = 0;
 
   // Synchronization object for thread safe access to:
-  private final Object mLock = null;
+  private final Object mLock = new Object();
   // Pointer to the internal ConsentInfoInternalAndroid C++ object.
   // This can be reset back to 0 by calling disconnect().
   private long mInternalPtr = 0;
@@ -53,11 +53,11 @@ public class ConsentInfoHelper {
   // Create our own local passthrough version of these Enum object values
   // as integers, to make it easier for the C++ SDK to access them.
   public static final int PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN =
-      PrivacyOptionsRequirementStatus.Unknown.ordinal();
+      PrivacyOptionsRequirementStatus.UNKNOWN.ordinal();
   public static final int PRIVACY_OPTIONS_REQUIREMENT_REQUIRED =
-      PrivacyOptionsRequirementStatus.Required.ordinal();
+      PrivacyOptionsRequirementStatus.REQUIRED.ordinal();
   public static final int PRIVACY_OPTIONS_REQUIREMENT_NOT_REQUIRED =
-      PrivacyOptionsRequirementStatus.NotRequired.ordinal();
+      PrivacyOptionsRequirementStatus.NOT_REQUIRED.ordinal();
 
   // Enum values for tracking which function we are calling back.
   public static final int FUNCTION_REQUEST_CONSENT_INFO_UPDATE = 0;
@@ -68,10 +68,9 @@ public class ConsentInfoHelper {
 
   public ConsentInfoHelper(long consentInfoInternalPtr, Activity activity) {
     mInternalPtr = consentInfoInternalPtr;
-    mLock = new Object();
     mActivity = activity;
     // Test the callbacks and fail quickly if something's wrong.
-    completeFuture(CPP_NULLPTR, CPP_NULLPTR, -1, 0, "");
+    completeFuture(-1, CPP_NULLPTR, CPP_NULLPTR, 0, null);
   }
 
   public int getConsentStatus() {
@@ -81,8 +80,9 @@ public class ConsentInfoHelper {
 
   public void requestConsentInfoUpdate(final long futureHandle, boolean tagForUnderAgeOfConsent,
       int debugGeography, ArrayList<String> debugIdList) {
-    if (mInternalPtr == null)
+    if (mInternalPtr == 0)
       return;
+    final int functionId = FUNCTION_REQUEST_CONSENT_INFO_UPDATE;
 
     ConsentDebugSettings.Builder debugSettingsBuilder = null;
 
@@ -116,7 +116,7 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentInfoUpdateSuccess() {
                 synchronized (mLock) {
-                  completeFuture(mInternalPtr, futureHandle, 0, "");
+                  completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
                 }
               }
             },
@@ -124,8 +124,8 @@ public class ConsentInfoHelper {
               @Override
               public void onConsentInfoUpdateFailure(FormError formError) {
                 synchronized (mLock) {
-                  completeFuture(
-                      mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
+                  completeFuture(functionId, mInternalPtr, futureHandle, formError.getErrorCode(),
+                      formError.getMessage());
                 }
               }
             });
@@ -134,6 +134,9 @@ public class ConsentInfoHelper {
   }
 
   public void loadConsentForm(final long futureHandle) {
+    if (mInternalPtr == 0)
+      return;
+    final int functionId = FUNCTION_LOAD_CONSENT_FORM;
     mActivity.runOnUiThread(new Runnable() {
       @Override
       public void run() {
@@ -143,7 +146,7 @@ public class ConsentInfoHelper {
               public void onConsentFormLoadSuccess(ConsentForm form) {
                 synchronized (mLock) {
                   mConsentForm = form;
-                  completeFuture(mInternalPtr, futureHandle, 0, "");
+                  completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
                 }
               }
             },
@@ -152,8 +155,8 @@ public class ConsentInfoHelper {
               public void onConsentFormLoadFailure(FormError formError) {
                 synchronized (mLock) {
                   mConsentForm = null;
-                  completeFuture(
-                      mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
+                  completeFuture(functionId, mInternalPtr, futureHandle, formError.getErrorCode(),
+                      formError.getMessage());
                 }
               }
             });
@@ -162,6 +165,9 @@ public class ConsentInfoHelper {
   }
 
   public boolean showConsentForm(final long futureHandle, final Activity activity) {
+    if (mInternalPtr == 0)
+      return false;
+    final int functionId = FUNCTION_SHOW_CONSENT_FORM;
     ConsentForm consentForm;
     synchronized (mLock) {
       if (mConsentForm == null) {
@@ -180,10 +186,10 @@ public class ConsentInfoHelper {
           public void onConsentFormDismissed(FormError formError) {
             synchronized (mLock) {
               if (formError == null) {
-                completeFuture(mInternalPtr, futureHandle, 0, "");
+                completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
               } else {
-                completeFuture(
-                    mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
+                completeFuture(functionId, mInternalPtr, futureHandle, formError.getErrorCode(),
+                    formError.getMessage());
               }
             }
           }
@@ -195,52 +201,56 @@ public class ConsentInfoHelper {
   }
 
   public void loadAndShowConsentFormIfRequired(final long futureHandle, final Activity activity) {
+    if (mInternalPtr == 0)
+      return;
+    final int functionId = FUNCTION_LOAD_AND_SHOW_CONSENT_FORM_IF_REQUIRED;
     mActivity.runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) {
-          new OnConsentFormDismissedListener() {
-            @Override
-            public void onConsentFormDismissed(FormError formError) {
-              synchronized (mLock) {
-                if (formError == null) {
-                  completeFuture(mInternalPtr, futureHandle, 0, "");
-                } else {
-                  completeFuture(
-                      mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
+        UserMessagingPlatform.loadAndShowConsentFormIfRequired(
+            activity, new OnConsentFormDismissedListener() {
+              @Override
+              public void onConsentFormDismissed(FormError formError) {
+                synchronized (mLock) {
+                  if (formError == null) {
+                    completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
+                  } else {
+                    completeFuture(functionId, mInternalPtr, futureHandle, formError.getErrorCode(),
+                        formError.getMessage());
+                  }
                 }
               }
-            }
-          }
-        }
+            });
       }
     });
   }
 
-  public int getPrivacyOptionsRequirementStatus {
+  public int getPrivacyOptionsRequirementStatus() {
     ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(mActivity);
     return consentInfo.getPrivacyOptionsRequirementStatus().ordinal();
   }
 
   public void showPrivacyOptionsForm(final long futureHandle, final Activity activity) {
+    if (mInternalPtr == 0)
+      return;
+    final int functionId = FUNCTION_SHOW_PRIVACY_OPTIONS_FORM;
     mActivity.runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        UserMessagingPlatform.showPrivacyOptionsForm(activity) {
-          new OnConsentFormDismissedListener() {
-            @Override
-            public void onConsentFormDismissed(FormError formError) {
-              synchronized (mLock) {
-                if (formError == null) {
-                  completeFuture(mInternalPtr, futureHandle, 0, "");
-                } else {
-                  completeFuture(
-                      mInternalPtr, futureHandle, formError.getErrorCode(), formError.getMessage());
+        UserMessagingPlatform.showPrivacyOptionsForm(
+            activity, new OnConsentFormDismissedListener() {
+              @Override
+              public void onConsentFormDismissed(FormError formError) {
+                synchronized (mLock) {
+                  if (formError == null) {
+                    completeFuture(functionId, mInternalPtr, futureHandle, 0, null);
+                  } else {
+                    completeFuture(functionId, mInternalPtr, futureHandle, formError.getErrorCode(),
+                        formError.getMessage());
+                  }
                 }
               }
-            }
-          }
-        }
+            });
       }
     });
   }
