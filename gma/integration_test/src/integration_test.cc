@@ -354,8 +354,6 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 
 // Test cases below.
 
-#if 0  // jsimantov
-
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // Don't initialize mediation in this test so that a later test can still
   // verify that mediation has not been initialized.
@@ -2474,8 +2472,6 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 }
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
-
-#endif  // jsimantov
 
 class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
