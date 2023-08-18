@@ -275,14 +275,21 @@ std::string FirebaseTest::GetDebugDeviceId() {
     jclass test_helper_class = app_framework::FindClass(
         env, activity, "com/google/firebase/example/TestHelper");
     if (env->ExceptionCheck()) {
+      LogError("Couldn't find TestHelper class");
       env->ExceptionDescribe();
       env->ExceptionClear();
       return "";
     }
     jmethodID get_id =
-        env->GetMethodID(test_helper_class, "getDebugDeviceId",
-                         "(Landroid/content/Context;)Ljava/lang/String;");
+        env->GetStaticMethodID(test_helper_class, "getDebugDeviceId",
+			       "(Landroid/content/Context;)Ljava/lang/String;");
 
+    if (env->ExceptionCheck()) {
+      LogError("Couldn't look up getDebugDeviceId method");
+      env->ExceptionDescribe();
+      env->ExceptionClear();
+      return "";
+    }
     jobject device_id_obj =
         env->CallStaticObjectMethod(test_helper_class, get_id, activity);
     if (env->ExceptionCheck()) {
@@ -293,6 +300,7 @@ std::string FirebaseTest::GetDebugDeviceId() {
     jstring device_id_jstring = static_cast<jstring>(device_id_obj);
     const char* device_id_text =
         env->GetStringUTFChars(device_id_jstring, nullptr);
+    LogError("Couldn't get debug device ID");
     if (env->ExceptionCheck()) {
       env->ExceptionDescribe();
       env->ExceptionClear();
