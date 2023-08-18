@@ -39,15 +39,15 @@ firebase::Mutex ConsentInfoInternalAndroid::s_instance_mutex;
   X(Constructor, "<init>", "(JLandroid/app/Activity;)V"),                       \
   X(GetConsentStatus, "getConsentStatus", "()I"),                               \
   X(RequestConsentInfoUpdate, "requestConsentInfoUpdate",                       \
-    "(ZILjava/util/ArrayList;)V"),                                              \
-  X(LoadConsentForm, "loadConsentForm", "(Z)V"),                                 \
-  X(ShowConsentForm, "showConsentForm", "(ZLandroid/app/Activity;)Z"),           \
+    "(JZILjava/util/ArrayList;)V"),                                             \
+  X(LoadConsentForm, "loadConsentForm", "(J)V"),                                \
+  X(ShowConsentForm, "showConsentForm", "(JLandroid/app/Activity;)Z"),          \
   X(LoadAndShowConsentFormIfRequired, "loadAndShowConsentFormIfRequired",       \
-    "(ZLandroid/app/Activity;)V"),                                               \
+    "(JLandroid/app/Activity;)V"),                                              \
   X(GetPrivacyOptionsRequirementStatus, "getPrivacyOptionsRequirementStatus",   \
     "()I"),                                                                     \
   X(ShowPrivacyOptionsForm, "showPrivacyOptionsForm",                           \
-    "(ZLandroid/app/Activity;)V"),                                               \
+    "(JLandroid/app/Activity;)V"),                                              \
   X(Reset, "reset", "()V"),							\
   X(CanRequestAds, "canRequestAds", "()Z"),                                     \
   X(IsConsentFormAvailable, "isConsentFormAvailable", "()Z"),		        \
