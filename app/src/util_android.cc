@@ -1804,6 +1804,15 @@ std::string GetAndClearExceptionMessage(JNIEnv* env) {
   return std::string();
 }
 
+bool HasExceptionOccurred(JNIEnv* env) {
+  jobject exception = env->ExceptionOccurred();
+  if (exception) {
+    env->DeleteLocalRef(exception);
+    return true;
+  }
+  return false;
+}
+
 std::string GetMessageFromException(JNIEnv* env, jobject exception) {
   if (exception != nullptr) {
     jstring message = static_cast<jstring>(env->CallObjectMethod(

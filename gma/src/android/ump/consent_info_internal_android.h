@@ -17,7 +17,10 @@
 #ifndef FIREBASE_GMA_SRC_ANDROID_UMP_CONSENT_INFO_INTERNAL_ANDROID_H_
 #define FIREBASE_GMA_SRC_ANDROID_UMP_CONSENT_INFO_INTERNAL_ANDROID_H_
 
+#include <jni.h>
+
 #include "app/src/util_android.h"
+#include "firebase/internal/mutex.h"
 #include "gma/src/common/ump/consent_info_internal.h"
 
 namespace firebase {
@@ -52,10 +55,29 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   JNIEnv* GetJNIEnv();
   jobject activity();
 
+
  private:
+  static void JNI_ConsentInfoHelper_completeFuture(JNIEnv* env,
+						   jclass clazz,
+						   jint future_fn,
+						   jlong consent_info_internal_ptr,
+						   jlong future_handle,
+						   jint error_code,
+						   jobject error_message_obj);
+
+  void CompleteFutureFromJniCallback(JNIEnv* env,
+				     ConsentInfoFn future_fn, FutureHandleId handle_id,
+				     int error_code, const char* error_message);
+
+  static ConsentInfoInternalAndroid* s_instance;
+  static firebase::Mutex s_instance_mutex;
+
   JavaVM* java_vm_;
   jobject activity_;
   jobject helper_;
+
+  // Needed for GetConsentFormStatus to return Unknown.
+  bool has_requested_consent_info_update_;
 };
 
 }  // namespace internal

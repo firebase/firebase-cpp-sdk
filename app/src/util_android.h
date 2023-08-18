@@ -614,6 +614,8 @@ METHOD_LOOKUP_DECLARATION(double_class, DOUBLE_METHODS);
 #define ENUM_METHODS(X)             \
   X(Equals, "equals",               \
     "(Ljava/lang/Object;)Z"),       \
+  X(Ordinal, "ordinal",             \
+    "()I"),			    \
   X(Name, "name",                   \
     "()Ljava/lang/String;")  // clang-format on
 METHOD_LOOKUP_DECLARATION(enum_class, ENUM_METHODS);
@@ -1093,6 +1095,10 @@ bool CheckAndClearJniExceptions(JNIEnv* env);
 // and clear the exception.
 // Otherwise, it will return an empty string.
 std::string GetAndClearExceptionMessage(JNIEnv* env);
+
+// Returns true if an JNI exception occurred, false otherwise.
+// Does not clear the exception, so you can then call GetAndClearExceptionMessage().
+bool HasExceptionOccurred(JNIEnv* env);
 
 // Returns the message from an exception.
 // This does not clear the JNI exception state.
