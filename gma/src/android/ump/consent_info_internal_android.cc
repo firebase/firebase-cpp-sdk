@@ -26,6 +26,7 @@
 #include "app/src/util_android.h"
 #include "firebase/internal/common.h"
 #include "gma/gma_resources.h"
+#include "gma/src/android/gma_android.h"
 
 namespace firebase {
 namespace gma {
@@ -261,12 +262,24 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   util::Initialize(env, activity);
   env->GetJavaVM(&java_vm_);
 
-  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-      util::CacheEmbeddedFiles(env, activity,
-                               firebase::internal::EmbeddedFile::ToVector(
-                                   firebase_gma::gma_resources_filename,
-                                   firebase_gma::gma_resources_data,
-                                   firebase_gma::gma_resources_size));
+  // Between this and GMA, we only want to load these files once.
+  {
+    MutexLock lock(
+        ::firebase::gma::internal::g_cached_gma_embedded_files_mutex);
+    if (::firebase::gma::internal::g_cached_gma_embedded_files == nullptr) {
+      ::firebase::gma::internal::g_cached_gma_embedded_files =
+          new std::vector<firebase::internal::EmbeddedFile>();
+      *::firebase::gma::internal::g_cached_gma_embedded_files =
+          util::CacheEmbeddedFiles(env, activity,
+                                   firebase::internal::EmbeddedFile::ToVector(
+                                       firebase_gma::gma_resources_filename,
+                                       firebase_gma::gma_resources_data,
+                                       firebase_gma::gma_resources_size));
+    }
+  }
+  const std::vector<firebase::internal::EmbeddedFile>& embedded_files =
+      *::firebase::gma::internal::g_cached_gma_embedded_files;
+
   if (!(consent_info_helper::CacheClassFromFiles(env, activity,
                                                  &embedded_files) != nullptr &&
         consent_info_helper::CacheMethodIds(env, activity) &&
