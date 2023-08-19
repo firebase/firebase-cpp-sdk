@@ -25,7 +25,7 @@
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
 #include "firebase/internal/common.h"
-#include "gma/ump_resources.h"
+#include "gma/gma_resources.h"
 
 namespace firebase {
 namespace gma {
@@ -82,7 +82,7 @@ METHOD_LOOKUP_DECLARATION(consent_info_helper, CONSENTINFOHELPER_METHODS,
 
 METHOD_LOOKUP_DEFINITION(
     consent_info_helper,
-    "com/google/firebase/ump/internal/cpp/ConsentInfoHelper",
+    "com/google/firebase/gma/internal/cpp/ConsentInfoHelper",
     CONSENTINFOHELPER_METHODS, CONSENTINFOHELPER_FIELDS);
 
 // clang-format off
@@ -264,9 +264,9 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
       util::CacheEmbeddedFiles(env, activity,
                                firebase::internal::EmbeddedFile::ToVector(
-                                   firebase_ump::ump_resources_filename,
-                                   firebase_ump::ump_resources_data,
-                                   firebase_ump::ump_resources_size));
+                                   firebase_gma::gma_resources_filename,
+                                   firebase_gma::gma_resources_data,
+                                   firebase_gma::gma_resources_size));
   if (!(consent_info_helper::CacheClassFromFiles(env, activity,
                                                  &embedded_files) != nullptr &&
         consent_info_helper::CacheMethodIds(env, activity) &&

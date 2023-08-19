@@ -82,14 +82,14 @@ afterEvaluate {
              flatbuffersDir
       }
       // TODO(jsimantov): Investigate why this causes a build hang on Windows.
-      // exec {
-      //   executable 'git'
-      //   args 'apply',
-      //        '../../scripts/git/patches/flatbuffers/0001-remove-unused-var.patch',
-      //        '--verbose',
-      //        '--directory',
-      //        'messaging/messaging_java/build/flatbuffers'
-      //   }
+      exec {
+        executable 'git'
+        args 'apply',
+             '../../scripts/git/patches/flatbuffers/0001-remove-unused-var.patch',
+             '--verbose',
+             '--directory',
+             'messaging/messaging_java/build/flatbuffers'
+        }
     }
 
     // Locate or build flatc.

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.firebase.ump.internal.cpp;
+package com.google.firebase.gma.internal.cpp;
 
 import android.app.Activity;
 import android.content.Context;

@@ -85,5 +85,4 @@ apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('gma')
   setupDexDependencies(':gma:gma_resources')
-  setupDexDependencies(':gma:ump_resources')
 }
