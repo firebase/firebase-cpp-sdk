@@ -81,7 +81,6 @@ afterEvaluate {
              'https://github.com/google/flatbuffers.git',
              flatbuffersDir
       }
-      // TODO(jsimantov): Investigate why this causes a build hang on Windows.
       exec {
         executable 'git'
         args 'apply',
