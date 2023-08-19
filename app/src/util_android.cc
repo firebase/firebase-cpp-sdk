@@ -1587,14 +1587,15 @@ const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
         file::GetClass(), file::GetMethodId(file::kConstructorFilePath),
         cache_dir, filename);
     env->DeleteLocalRef(filename);
-    // Below, we would have set the file read only on a previous run. Here, set it
-    // to writable and then delete it before creating it again.
-    // 
+    // Below, we would have set the file read only on a previous run. Here, set
+    // it to writable and then delete it before creating it again.
+    //
     // if output_file.exists() {
     if (env->CallBooleanMethod(output_file, file::GetMethodId(file::kExists))) {
       CheckAndClearJniExceptions(env);
       // output_file.setWritable(true);
-      env->CallBooleanMethod(output_file, file::GetMethodId(file::kSetWritable), JNI_TRUE);
+      env->CallBooleanMethod(output_file, file::GetMethodId(file::kSetWritable),
+                             JNI_TRUE);
       CheckAndClearJniExceptions(env);
       // output_file.delete();
       env->CallBooleanMethod(output_file, file::GetMethodId(file::kDelete));
@@ -1608,10 +1609,10 @@ const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
     if (!failed) {
       // Android 14 requires that we set the open dex file to readonly BEFORE
       // writing code to it.
-      jboolean did_set_readonly = env->CallBooleanMethod(output_file, file::GetMethodId(file::kSetReadOnly));
+      jboolean did_set_readonly = env->CallBooleanMethod(
+          output_file, file::GetMethodId(file::kSetReadOnly));
       // If it failed, move on and try again later after closing the file.
-      if (CheckAndClearJniExceptions(env))
-	did_set_readonly = JNI_FALSE;
+      if (CheckAndClearJniExceptions(env)) did_set_readonly = JNI_FALSE;
       jobject output_array = env->NewByteArray(it->size);
       env->SetByteArrayRegion(static_cast<jbyteArray>(output_array), 0,
                               it->size,
@@ -1625,8 +1626,9 @@ const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
                                              file_output_stream::kClose));
       failed |= CheckAndClearJniExceptions(env);
       if (!did_set_readonly) {
-	env->CallBooleanMethod(output_file, file::GetMethodId(file::kSetReadOnly));
-	util::CheckAndClearJniExceptions(env);
+        env->CallBooleanMethod(output_file,
+                               file::GetMethodId(file::kSetReadOnly));
+        util::CheckAndClearJniExceptions(env);
       }
       env->DeleteLocalRef(output_array);
       env->DeleteLocalRef(output_stream);
