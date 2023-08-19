@@ -50,7 +50,7 @@ namespace firebase {
 namespace gma {
 
 namespace internal {
-::firebase::Mutex g_cached_gma_classes_mutex;
+::firebase::Mutex g_cached_gma_embedded_files_mutex;
 std::vector<::firebase::internal::EmbeddedFile>* g_cached_gma_embedded_files =
     nullptr;
 }  // namespace internal
