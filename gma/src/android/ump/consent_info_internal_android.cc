@@ -25,8 +25,7 @@
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
 #include "firebase/internal/common.h"
-// TODO(jsimantov): Temporarily remove to diagnose Windows build issue.
-// #include "gma/ump_resources.h"
+#include "gma/ump_resources.h"
 
 namespace firebase {
 namespace gma {
@@ -262,17 +261,14 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   util::Initialize(env, activity);
   env->GetJavaVM(&java_vm_);
 
-  // TODO(jsimantov): Temporarily remove to diagnose Windows build issue.
-  // const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-  //     util::CacheEmbeddedFiles(env, activity,
-  //                              firebase::internal::EmbeddedFile::ToVector(
-  //                                  firebase_ump::ump_resources_filename,
-  //                                  firebase_ump::ump_resources_data,
-  //                                  firebase_ump::ump_resources_size));
-  if (!(
-      // TODO(jsimantov): Temporarily remove to diagnose Windows build issue.
-      // !(consent_info_helper::CacheClassFromFiles(env, activity,
-      //                                            &embedded_files) != nullptr &&
+const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+    util::CacheEmbeddedFiles(env, activity,
+                             firebase::internal::EmbeddedFile::ToVector(
+                                 firebase_ump::ump_resources_filename,
+                                 firebase_ump::ump_resources_data,
+                                 firebase_ump::ump_resources_size));
+  if (!(consent_info_helper::CacheClassFromFiles(env, activity,
+						 &embedded_files) != nullptr &&
         consent_info_helper::CacheMethodIds(env, activity) &&
         consent_info_helper::CacheFieldIds(env, activity) &&
         consentinformation_consentstatus::CacheFieldIds(env, activity) &&
