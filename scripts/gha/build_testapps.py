@@ -525,6 +525,9 @@ def _build_android(project_dir, sdk_dir):
     f.write("http.keepAlive=false\n")
     f.write("maven.wagon.http.pool=false\n")
     f.write("maven.wagon.httpconnectionManager.ttlSeconds=120")
+    f.write("org.gradle.daemon=true")
+    f.write("org.gradle.parallel=true")
+
   # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   _run([gradlew, "assembleDebug", "--stacktrace"])

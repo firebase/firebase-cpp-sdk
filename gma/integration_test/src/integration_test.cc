@@ -268,6 +268,7 @@ void FirebaseGmaTest::SetUp() {
   // debugging. They appear as a long string of hex characters.
   firebase::gma::RequestConfiguration request_configuration;
   request_configuration.test_device_ids = kTestDeviceIDs;
+  request_configuration.test_device_ids.push_back(GetDebugDeviceId());
   firebase::gma::SetRequestConfiguration(request_configuration);
 }
 
@@ -332,6 +333,7 @@ void FirebaseGmaUITest::SetUp() {
   // debugging. They appear as a long string of hex characters.
   firebase::gma::RequestConfiguration request_configuration;
   request_configuration.test_device_ids = kTestDeviceIDs;
+  request_configuration.test_device_ids.push_back(GetDebugDeviceId());
   firebase::gma::SetRequestConfiguration(request_configuration);
 }
 
