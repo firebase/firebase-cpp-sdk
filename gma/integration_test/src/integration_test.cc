@@ -2942,4 +2942,89 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanupRaceCondition) {
   EXPECT_EQ(future_show.status(), firebase::kFutureStatusInvalid);
 }
 
+TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
+  SKIP_TEST_ON_DESKTOP;
+
+  using firebase::gma::ump::ConsentFormStatus;
+  using firebase::gma::ump::ConsentRequestParameters;
+  using firebase::gma::ump::ConsentStatus;
+
+  // Check that all of the UMP operations properly return an OperationInProgress
+  // error if called more than once at the same time. Each step of this test is
+  // inherently flaky, so add flaky test blocks all over.
+
+  ConsentRequestParameters params;
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
+      firebase::gma::ump::kConsentDebugGeographyEEA;
+  params.debug_settings.debug_device_ids = kTestDeviceIDs;
+  params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
+
+  FLAKY_TEST_SECTION_BEGIN();
+  firebase::Future<void> future_request_1 =
+      consent_info_->RequestConsentInfoUpdate(params);
+  firebase::Future<void> future_request_2 =
+      consent_info_->RequestConsentInfoUpdate(params);
+  WaitForCompletion(
+      future_request_2, "RequestConsentInfoUpdate second",
+      firebase::gma::ump::kConsentRequestErrorOperationInProgress);
+  WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
+  FLAKY_TEST_SECTION_END();
+
+  FLAKY_TEST_SECTION_BEGIN();
+  firebase::Future<void> future_load_1 = consent_info_->LoadConsentForm();
+  firebase::Future<void> future_load_2 = consent_info_->LoadConsentForm();
+  WaitForCompletion(future_load_2, "LoadConsentForm second",
+                    firebase::gma::ump::kConsentFormErrorOperationInProgress);
+  WaitForCompletion(future_load_1, "LoadConsentForm first");
+  FLAKY_TEST_SECTION_END();
+
+  if (ShouldRunUITests()) {
+    // The below should only be checked if UI tests are enabled, as they
+    // require some interaction.
+    FLAKY_TEST_SECTION_BEGIN();
+    firebase::Future<void> future_show_1 =
+        consent_info_->ShowConsentForm(app_framework::GetWindowController());
+    firebase::Future<void> future_show_2 =
+        consent_info_->ShowConsentForm(app_framework::GetWindowController());
+    WaitForCompletion(future_show_2, "ShowConsentForm second",
+                      firebase::gma::ump::kConsentFormErrorOperationInProgress);
+    WaitForCompletion(future_show_1, "ShowConsentForm first");
+    FLAKY_TEST_SECTION_END();
+
+    FLAKY_TEST_SECTION_BEGIN();
+    firebase::Future<void> future_privacy_1 =
+        consent_info_->ShowPrivacyOptionsForm(
+            app_framework::GetWindowController());
+    firebase::Future<void> future_privacy_2 =
+        consent_info_->ShowPrivacyOptionsForm(
+            app_framework::GetWindowController());
+    WaitForCompletion(future_privacy_2, "ShowPrivacyOptionsForm second",
+                      firebase::gma::ump::kConsentFormErrorOperationInProgress);
+    WaitForCompletion(future_privacy_1, "ShowPrivacyOptionsForm first");
+    FLAKY_TEST_SECTION_END();
+
+    consent_info_->Reset();
+    // Request again so we can test LoadAndShowConsentFormIfRequired.
+    WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+                      "RequestConsentInfoUpdate");
+
+    FLAKY_TEST_SECTION_BEGIN();
+    firebase::Future<void> future_load_and_show_1 =
+        consent_info_->LoadAndShowConsentFormIfRequired(
+            app_framework::GetWindowController());
+    firebase::Future<void> future_load_and_show_2 =
+        consent_info_->LoadAndShowConsentFormIfRequired(
+            app_framework::GetWindowController());
+    WaitForCompletion(future_load_and_show_2,
+                      "LoadAndShowConsentFormIfRequired second",
+                      firebase::gma::ump::kConsentFormErrorOperationInProgress);
+    WaitForCompletion(future_load_and_show_1,
+                      "LoadAndShowConsentFormIfRequired first");
+    FLAKY_TEST_SECTION_END();
+  } else {
+    LogInfo("Skipping methods that require user interaction.");
+  }
+}
+
 }  // namespace firebase_testapp_automated

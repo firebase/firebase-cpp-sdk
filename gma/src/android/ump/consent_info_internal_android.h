@@ -56,17 +56,65 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   jobject activity();
 
  private:
+  struct EnumCache {
+    jint consentstatus_unknown;
+    jint consentstatus_required;
+    jint consentstatus_not_required;
+    jint consentstatus_obtained;
+
+    jint formerror_success;
+    jint formerror_internal;
+    jint formerror_network;
+    jint formerror_invalid_operation;
+    jint formerror_timeout;
+
+    jint debug_geography_disabled;
+    jint debug_geography_eea;
+    jint debug_geography_not_eea;
+
+    jint privacy_options_requirement_unknown;
+    jint privacy_options_requirement_required;
+    jint privacy_options_requirement_not_required;
+
+    jint function_request_consent_info_update;
+    jint function_load_consent_form;
+    jint function_show_consent_form;
+    jint function_load_and_show_consent_form_if_required;
+    jint function_show_privacy_options_form;
+    jint function_count;
+  };
+
+  // JNI native method callback for ConsentInfoHelper.completeFuture.
+  // Calls CompleteFutureFromJniCallback() below.
   static void JNI_ConsentInfoHelper_completeFuture(
       JNIEnv* env, jclass clazz, jint future_fn,
       jlong consent_info_internal_ptr, jlong future_handle, jint error_code,
       jobject error_message_obj);
 
-  void CompleteFutureFromJniCallback(JNIEnv* env, ConsentInfoFn future_fn,
+  // Complete the given Future when called from JNI.
+  void CompleteFutureFromJniCallback(JNIEnv* env, jint future_fn,
                                      FutureHandleId handle_id, int error_code,
                                      const char* error_message);
 
+  // Cache Java enum field values in the struct below.
+  void CacheEnumValues(JNIEnv* env);
+
+  // Enum conversion methods.
+  ConsentStatus CppConsentStatusFromAndroid(jint status);
+  PrivacyOptionsRequirementStatus CppPrivacyOptionsRequirementStatusFromAndroid(
+      jint status);
+  jint AndroidDebugGeographyFromCppDebugGeography(ConsentDebugGeography geo);
+  ConsentRequestError CppConsentRequestErrorFromAndroidFormError(
+      jint error, const char* message = nullptr);
+  ConsentFormError CppConsentFormErrorFromAndroidFormError(
+      jint error, const char* message = nullptr);
+
+  const EnumCache& enums() { return enums_; }
+
   static ConsentInfoInternalAndroid* s_instance;
   static firebase::Mutex s_instance_mutex;
+
+  EnumCache enums_;
 
   JavaVM* java_vm_;
   jobject activity_;

@@ -85,6 +85,14 @@ static ConsentFormError CppFormErrorFromIosFormError(NSInteger code) {
 
 Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
+  if (RequestConsentInfoUpdateLastResult().status() == kFutureStatusPending) {
+    // This operation is already in progress.
+    // Return a future with an error - this will not override the Fn entry.
+    SafeFutureHandle<void> error_handle = CreateFuture();
+    CompleteFuture(error_handle, kConsentRequestErrorOperationInProgress);
+    return MakeFuture<void>(futures(), error_handle);
+  }
+
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnRequestConsentInfoUpdate);
 
@@ -162,6 +170,14 @@ ConsentFormStatus ConsentInfoInternalIos::GetConsentFormStatus() {
 }
 
 Future<void> ConsentInfoInternalIos::LoadConsentForm() {
+  if (LoadConsentFormLastResult().status() == kFutureStatusPending) {
+    // This operation is already in progress.
+    // Return a future with an error - this will not override the Fn entry.
+    SafeFutureHandle<void> error_handle = CreateFuture();
+    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
+    return MakeFuture<void>(futures(), error_handle);
+  }
+
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
   loaded_form_ = nil;
 
@@ -191,6 +207,14 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 }
 
 Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
+  if (ShowConsentFormLastResult().status() == kFutureStatusPending) {
+    // This operation is already in progress.
+    // Return a future with an error - this will not override the Fn entry.
+    SafeFutureHandle<void> error_handle = CreateFuture();
+    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
+    return MakeFuture<void>(futures(), error_handle);
+  }
+
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
 
   if (!loaded_form_) {
@@ -219,6 +243,15 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
 
 Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
     FormParent parent) {
+  if (LoadAndShowConsentFormIfRequiredLastResult().status() ==
+      kFutureStatusPending) {
+    // This operation is already in progress.
+    // Return a future with an error - this will not override the Fn entry.
+    SafeFutureHandle<void> error_handle = CreateFuture();
+    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
+    return MakeFuture<void>(futures(), error_handle);
+  }
+
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
 
@@ -260,6 +293,14 @@ ConsentInfoInternalIos::GetPrivacyOptionsRequirementStatus() {
 }
 
 Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
+  if (ShowPrivacyOptionsFormLastResult().status() == kFutureStatusPending) {
+    // This operation is already in progress.
+    // Return a future with an error - this will not override the Fn entry.
+    SafeFutureHandle<void> error_handle = CreateFuture();
+    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
+    return MakeFuture<void>(futures(), error_handle);
+  }
+
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
   util::DispatchAsyncSafeMainQueue(^{

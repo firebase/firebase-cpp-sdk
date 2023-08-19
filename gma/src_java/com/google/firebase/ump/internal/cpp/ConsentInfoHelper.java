@@ -50,7 +50,7 @@ public class ConsentInfoHelper {
   // The loaded consent form, if any.
   private ConsentForm mConsentForm = null;
 
-  // Create our own local passthrough version of these Enum object values
+  // Create our own local passthrough version of these enum object values
   // as integers, to make it easier for the C++ SDK to access them.
   public static final int PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN =
       PrivacyOptionsRequirementStatus.UNKNOWN.ordinal();
@@ -60,11 +60,15 @@ public class ConsentInfoHelper {
       PrivacyOptionsRequirementStatus.NOT_REQUIRED.ordinal();
 
   // Enum values for tracking which function we are calling back.
+  // Ensure these are incremental starting at 0.
+  // These don't have to match ConsentInfoFn, as the C++ code will
+  // use these Java enums directly.
   public static final int FUNCTION_REQUEST_CONSENT_INFO_UPDATE = 0;
   public static final int FUNCTION_LOAD_CONSENT_FORM = 1;
   public static final int FUNCTION_SHOW_CONSENT_FORM = 2;
   public static final int FUNCTION_LOAD_AND_SHOW_CONSENT_FORM_IF_REQUIRED = 3;
   public static final int FUNCTION_SHOW_PRIVACY_OPTIONS_FORM = 4;
+  public static final int FUNCTION_COUNT = 5;
 
   public ConsentInfoHelper(long consentInfoInternalPtr, Activity activity) {
     synchronized (mLock) {
@@ -90,6 +94,7 @@ public class ConsentInfoHelper {
 
     ConsentDebugSettings.Builder debugSettingsBuilder = null;
 
+    // Only create and use debugSettingsBuilder if a debug option is set.
     if (debugGeography != ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_DISABLED) {
       debugSettingsBuilder =
           new ConsentDebugSettings.Builder(mActivity).setDebugGeography(debugGeography);
