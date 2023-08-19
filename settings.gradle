@@ -1,4 +1,6 @@
 rootProject.name = 'firebase_cpp_sdk'
+// TODO(jsimantov): Temporarily remove to diagnose Windows build issue.
+//        ':gma:ump_resources',
 include ':app',
         ':app:app_resources',
         ':app:google_api_resources',
@@ -16,7 +18,6 @@ include ':app',
         ':functions',
         ':gma',
         ':gma:gma_resources',
-        ':gma:ump_resources',
         ':installations',
         ':messaging',
         ':messaging:messaging_java',

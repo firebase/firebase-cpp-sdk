@@ -38,17 +38,19 @@ binary_to_array("gma_resources"
     "${FIREBASE_GEN_FILE_DIR}/gma")
 
 # Define the resource build needed for Android
-firebase_cpp_gradle(":gma:ump_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar")
-binary_to_array("ump_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar"
-    "firebase_ump"
-    "${FIREBASE_GEN_FILE_DIR}/gma")
+# TODO(jsimantov): Temporarily remove to diagnose Windows build issue.
+#firebase_cpp_gradle(":gma:ump_resources:generateDexJarRelease"
+#    "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar")
+#binary_to_array("ump_resources"
+#    "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar"
+#    "firebase_ump"
+#    "${FIREBASE_GEN_FILE_DIR}/gma")
 
 # Source files used by the Android implementation.
+# TODO(jsimantov): Temporarily remove to diagnose Windows build issue.
+#    ${ump_resources_source}
 set(android_SRCS
     ${gma_resources_source}
-    ${ump_resources_source}
     src/android/ump/consent_info_internal_android.cc
     src/android/ad_request_converter.cc
     src/android/ad_error_android.cc
