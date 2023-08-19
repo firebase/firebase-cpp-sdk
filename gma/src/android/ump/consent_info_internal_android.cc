@@ -269,7 +269,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   //                                  firebase_ump::ump_resources_filename,
   //                                  firebase_ump::ump_resources_data,
   //                                  firebase_ump::ump_resources_size));
-  if (
+  if (!(
       // TODO(jsimantov): Temporarily remove to diagnose Windows build issue.
       // !(consent_info_helper::CacheClassFromFiles(env, activity,
       //                                            &embedded_files) != nullptr &&
