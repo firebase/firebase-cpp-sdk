@@ -32,6 +32,10 @@ allprojects {
 apply plugin: 'com.android.library'
 
 android {
+  compileOptions {
+    sourceCompatibility 1.8
+    targetCompatibility 1.8
+  }
   compileSdkVersion 28
 
   sourceSets {
