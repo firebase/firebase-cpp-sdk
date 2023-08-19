@@ -261,14 +261,14 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   util::Initialize(env, activity);
   env->GetJavaVM(&java_vm_);
 
-const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-    util::CacheEmbeddedFiles(env, activity,
-                             firebase::internal::EmbeddedFile::ToVector(
-                                 firebase_ump::ump_resources_filename,
-                                 firebase_ump::ump_resources_data,
-                                 firebase_ump::ump_resources_size));
+  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+      util::CacheEmbeddedFiles(env, activity,
+                               firebase::internal::EmbeddedFile::ToVector(
+                                   firebase_ump::ump_resources_filename,
+                                   firebase_ump::ump_resources_data,
+                                   firebase_ump::ump_resources_size));
   if (!(consent_info_helper::CacheClassFromFiles(env, activity,
-						 &embedded_files) != nullptr &&
+                                                 &embedded_files) != nullptr &&
         consent_info_helper::CacheMethodIds(env, activity) &&
         consent_info_helper::CacheFieldIds(env, activity) &&
         consentinformation_consentstatus::CacheFieldIds(env, activity) &&
