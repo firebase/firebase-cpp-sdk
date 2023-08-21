@@ -629,6 +629,9 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
+    - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithPhoneNumber
+      function to facilitate the [on-device conversion
+      measurement](https://support.google.com/google-ads/answer/12119136) API.
     - Auth: Add Firebase Auth Emulator support. Set the environment variable
       USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099) 
       to connect to the local Firebase Auth Emulator.
