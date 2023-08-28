@@ -35,6 +35,7 @@ set(common_SRCS
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
+    src/common/firestore_swift.cc
     src/common/firestore_exceptions_common.h
     src/common/futures.cc
     src/common/futures.h
@@ -352,7 +353,7 @@ if(IOS)
   set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
     ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include
   )
-  
+
 else()
   # Desktop and Android get their public headers from the CMake build in
   # firebase-ios-sdk.
