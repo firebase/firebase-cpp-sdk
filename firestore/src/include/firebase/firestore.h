@@ -200,6 +200,7 @@ class Firestore {
   Firestore(const Firestore& src) noexcept;
 #else
   Firestore(const Firestore& src) = delete;
+#endif
 #else
   Firestore(const Firestore& src) = delete;
 #endif
