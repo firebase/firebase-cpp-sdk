@@ -194,7 +194,14 @@ class Firestore {
    * Deleted copy constructor; Firestore must be created with
    * Firestore::GetInstance().
    */
+#if defined(__swift__)
+#if FIREBASE_PLATFORM_WINDOWS
+  Firestore(const Firestore& src) noexcept;
+#else
   Firestore(const Firestore& src) = delete;
+#else
+  Firestore(const Firestore& src) = delete;
+#endif
 
   /**
    * Deleted copy assignment operator; Firestore must be created with
