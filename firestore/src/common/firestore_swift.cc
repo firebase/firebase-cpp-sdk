@@ -19,8 +19,8 @@
 
 #if FIREBASE_PLATFORM_WINDOWS
 namespace firebase {
-namespace firstore {
-Firestore::Firestore(const Firestore&) noexcept = default;
+namespace firestore {
+Firestore::Firestore(const Firestore &) noexcept = default;
 }
 }  // namespace firebase
 #endif
