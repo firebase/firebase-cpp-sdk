@@ -157,6 +157,11 @@ void UpdateCurrentUser(AuthData *auth_data) {
   SetUserImpl(auth_data, user);
 }
 
+void SetEmulatorJni(AuthData *auth_data, const char *host, uint32_t port) {
+  NSUInteger ns_port = port;
+  [AuthImpl(auth_data) useEmulatorWithHost:@(host) port:ns_port];
+}
+
 void CheckEmulator(AuthData *auth_data) {
   // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
@@ -171,8 +176,7 @@ void CheckEmulator(AuthData *auth_data) {
     port = std::stoi(std::getenv("AUTH_EMULATOR_PORT"));
   }
 
-  NSUInteger ns_port = port;
-  [AuthImpl(auth_data) useEmulatorWithHost:@(kEmulatorLocalHost) port:ns_port];
+  SetEmulatorJni(auth_data, kEmulatorLocalHost, port);
 }
 
 // Platform-specific method to initialize AuthData.
@@ -697,6 +701,10 @@ Future<void> Auth::SendPasswordResetEmail(const char *email) {
                                         }];
 
   return MakeFuture(&futures, handle);
+}
+
+void Auth::useEmulator(std::string host, uint32_t port) {
+  SetEmulatorJni(auth_data_, host.c_str(), port);
 }
 
 // Remap iOS SDK errors reported by the UIDelegate. While these errors seem like

@@ -23,6 +23,8 @@
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "auth/src/desktop/auth_desktop.h"
+#include "auth/src/include/firebase/auth.h"
 #include "firebase/log.h"
 
 namespace firebase {
@@ -33,43 +35,60 @@ const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
 
 AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
                          bool deliver_heartbeat)
-    : RequestJson(schema) {
-  CheckEmulator();
+    : RequestJson(schema), app(app) {
+  CheckEnvEmulator();
 }
 
 std::string AuthRequest::GetUrl() {
+  std::string emulator_url;
+  Auth* auth_ptr = Auth::GetAuth(&app);
+  std::string assigned_emulator_url =
+      static_cast<AuthImpl*>(auth_ptr->auth_data_->auth_impl)
+          ->assigned_emulator_url;
+  LogInfo("Gemulator_url: %s \n EnvEmulator_url: %s",
+          assigned_emulator_url.c_str(), env_emulator_url.c_str());
+  if (assigned_emulator_url.empty()) {
+    emulator_url = env_emulator_url;
+  } else {
+    emulator_url = assigned_emulator_url;
+  }
+
   if (emulator_url.empty()) {
     std::string url(kHttps);
     url += kServerURL;
+    LogInfo("Get prod url: %s", url.c_str());
     return url;
   } else {
+    LogInfo("Get emulator url.");
     std::string url(kHttp);
     url += emulator_url;
     url += "/";
     url += kServerURL;
+    LogInfo("Get emulator url: %s", url.c_str());
     return url;
   }
 }
 
-void AuthRequest::CheckEmulator() {
-  if (!emulator_url.empty()) {
-    LogInfo("Emulator Url already set: %s", emulator_url.c_str());
+void AuthRequest::CheckEnvEmulator() {
+  if (!env_emulator_url.empty()) {
+    LogInfo("Environment Emulator Url already set: %s",
+            env_emulator_url.c_str());
     return;
   }
+
   // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
-    LogInfo("Using Auth Prod for testing.");
+    LogInfo("USE_AUTH_EMULATOR not set.");
     return;
   }
-  LogInfo("Using Auth Emulator.");
-  emulator_url.append(kEmulatorLocalHost);
-  emulator_url.append(":");
+  env_emulator_url.append(kEmulatorLocalHost);
+  env_emulator_url.append(":");
   // Use AUTH_EMULATOR_PORT if it is set to non empty string,
   // otherwise use the default port.
   if (std::getenv("AUTH_EMULATOR_PORT") == nullptr) {
-    emulator_url.append(kEmulatorPort);
+    env_emulator_url.append(kEmulatorPort);
   } else {
-    emulator_url.append(std::getenv("AUTH_EMULATOR_PORT"));
+    env_emulator_url.append(std::getenv("AUTH_EMULATOR_PORT"));
   }
 }
 

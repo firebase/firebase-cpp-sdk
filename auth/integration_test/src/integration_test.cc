@@ -204,6 +204,8 @@ void FirebaseAuthTest::Initialize() {
 
   LogDebug("Successfully initialized Firebase Auth.");
 
+  //auth_->useEmulator("localhost", 9099);
+
   initialized_ = true;
 }
 

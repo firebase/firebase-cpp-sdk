@@ -45,6 +45,7 @@ struct AuthData;
 class AuthStateListener;
 class IdTokenListener;
 class PhoneAuthProvider;
+class AuthRequest;
 struct AuthCompletionHandle;
 struct AuthResultCompletionHandle;
 class FederatedAuthProvider;
@@ -631,6 +632,12 @@ class Auth {
   void RemoveIdTokenListener(IdTokenListener* listener);
 #endif  // not SWIG
 
+  ///
+  /// Modify this Auth instance to communicate with the Firebase Authentication 
+  /// emulator. 
+  /// 
+  void useEmulator(std::string host, uint32_t port);
+
   /// Gets the App this auth object is connected to.
   App& app();
 
@@ -653,6 +660,7 @@ class Auth {
   /// @cond FIREBASE_APP_INTERNAL
   friend class ::firebase::App;
   friend class ::firebase::auth::PhoneAuthProvider;
+  friend class ::firebase::auth::AuthRequest;
   friend class IdTokenRefreshListener;
   friend class IdTokenRefreshThread;
   friend class UserDataPersist;
