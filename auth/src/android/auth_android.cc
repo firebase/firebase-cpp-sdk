@@ -831,7 +831,7 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
   return MakeFuture(&futures, handle);
 }
 
-void Auth::useEmulator(std::string host, uint32_t port) {
+void Auth::UseEmulator(std::string host, uint32_t port) {
   SetEmulatorJni(auth_data_, host.c_str(), port);
 }
 
