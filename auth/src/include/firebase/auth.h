@@ -632,11 +632,13 @@ class Auth {
   void RemoveIdTokenListener(IdTokenListener* listener);
 #endif  // not SWIG
 
+#if !defined(DOXYGEN)
   ///
-  /// Modify this Auth instance to communicate with the Firebase Authentication 
-  /// emulator. 
-  /// 
+  /// Modify this Auth instance to communicate with the Firebase Authentication
+  /// emulator.
+  ///
   void useEmulator(std::string host, uint32_t port);
+#endif  //! defined(DOXYGEN), to hide the api from public documentation.
 
   /// Gets the App this auth object is connected to.
   App& app();

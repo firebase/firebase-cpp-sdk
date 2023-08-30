@@ -189,7 +189,6 @@ struct AuthImpl {
   // language by calling SetLanguageCode.
   std::string language_code;
 
-
   std::string assigned_emulator_url;
 };
 
