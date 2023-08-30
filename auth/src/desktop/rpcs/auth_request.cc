@@ -37,6 +37,19 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
                          bool deliver_heartbeat)
     : RequestJson(schema), app(app) {
   CheckEnvEmulator();
+
+  if (deliver_heartbeat) {
+    std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller =
+        app.GetHeartbeatController();
+    if (heartbeat_controller) {
+      std::string payload = heartbeat_controller->GetAndResetStoredHeartbeats();
+      std::string gmp_app_id = app.options().app_id();
+      if (!payload.empty()) {
+        add_header(app_common::kApiClientHeader, payload.c_str());
+        add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
+      }
+    }
+  }
 }
 
 std::string AuthRequest::GetUrl() {
