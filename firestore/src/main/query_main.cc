@@ -176,7 +176,8 @@ core::Bound QueryInternal::ToBound(
   const core::Query& internal_query = query_.query();
 
   SharedMessage<google_firestore_v1_ArrayValue> components{{}};
-  components->values_count = CheckedSize(internal_query.normalized_order_bys().size());
+  components->values_count =
+      CheckedSize(internal_query.normalized_order_bys().size());
   components->values =
       MakeArray<google_firestore_v1_Value>(components->values_count);
 
