@@ -45,8 +45,6 @@ std::string AuthRequest::GetUrl() {
   std::string assigned_emulator_url =
       static_cast<AuthImpl*>(auth_ptr->auth_data_->auth_impl)
           ->assigned_emulator_url;
-  LogInfo("Gemulator_url: %s \n EnvEmulator_url: %s",
-          assigned_emulator_url.c_str(), env_emulator_url.c_str());
   if (assigned_emulator_url.empty()) {
     emulator_url = env_emulator_url;
   } else {
@@ -56,15 +54,12 @@ std::string AuthRequest::GetUrl() {
   if (emulator_url.empty()) {
     std::string url(kHttps);
     url += kServerURL;
-    LogInfo("Get prod url: %s", url.c_str());
     return url;
   } else {
-    LogInfo("Get emulator url.");
     std::string url(kHttp);
     url += emulator_url;
     url += "/";
     url += kServerURL;
-    LogInfo("Get emulator url: %s", url.c_str());
     return url;
   }
 }

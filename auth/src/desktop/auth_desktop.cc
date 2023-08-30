@@ -721,7 +721,6 @@ void Auth::useEmulator(std::string host, uint32_t port) {
   auth_impl->assigned_emulator_url.append(host);
   auth_impl->assigned_emulator_url.append(":");
   auth_impl->assigned_emulator_url.append(std::to_string(port));
-  LogInfo("Set Gemulator_url: %s ", auth_impl->assigned_emulator_url.c_str());
 }
 
 void InitializeTokenRefresher(AuthData* auth_data) {
