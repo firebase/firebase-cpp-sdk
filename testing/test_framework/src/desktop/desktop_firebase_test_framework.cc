@@ -59,4 +59,6 @@ int FirebaseTest::GetGooglePlayServicesVersion() {
   return 0;
 }
 
+std::string FirebaseTest::GetDebugDeviceId() { return "placeholder-device-id"; }
+
 }  // namespace firebase_test_framework
