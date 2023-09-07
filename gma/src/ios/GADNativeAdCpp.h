@@ -20,6 +20,9 @@
 
 @interface GADNativeAd()
 
+/// AdChoices icon image.
+@property(nonatomic, readonly, strong, nullable) GADNativeAdImage *adChoicesIcon;
+
 /// Used only by allowlisted ad units. Provide a dictionary containing click data.
 - (void)performClickWithData:(nonnull NSDictionary *)clickData;
 
