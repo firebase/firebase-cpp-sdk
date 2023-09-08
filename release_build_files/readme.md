@@ -629,6 +629,8 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
+    - General (Android): Made dynamic code files read only to comply with new
+      Android 14 security requirements. This fixes a crash at API level 34+.
     - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithPhoneNumber
       function to facilitate the [on-device conversion
       measurement](https://support.google.com/google-ads/answer/12119136) API.
