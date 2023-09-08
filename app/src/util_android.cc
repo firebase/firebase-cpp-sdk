@@ -1587,6 +1587,7 @@ const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
         file::GetClass(), file::GetMethodId(file::kConstructorFilePath),
         cache_dir, filename);
     env->DeleteLocalRef(filename);
+    CheckAndClearJniExceptions(env);
     // Below, we would have set the file read only on a previous run. Here, set
     // it to writable and then delete it before creating it again.
     //
@@ -1599,8 +1600,8 @@ const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
       CheckAndClearJniExceptions(env);
       // output_file.delete();
       env->CallBooleanMethod(output_file, file::GetMethodId(file::kDelete));
+      CheckAndClearJniExceptions(env);
     }
-    CheckAndClearJniExceptions(env);
     jobject output_stream = env->NewObject(
         file_output_stream::GetClass(),
         file_output_stream::GetMethodId(file_output_stream::kConstructorFile),
