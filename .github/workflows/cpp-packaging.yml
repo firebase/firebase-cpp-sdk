@@ -762,15 +762,38 @@ jobs:
   create_windows_only_package:
     name: create-windows-only-package
     runs-on: ubuntu-20.04
-    needs: [merge_packages]
+    needs: [merge_packages, build_tools]
     steps:
+      - name: fetch SDK
+        uses: actions/checkout@v3
+        with:
+          path: sdk-src
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.7
       - name: download SDK zip
         uses: actions/download-artifact@v3
         with:
           name: firebase_cpp_sdk.zip
+      - name: download packaging tools
+        uses: actions/download-artifact@v3
+        with:
+          name: packaging-tools-linux
+          path: packaging-tools.tgz
+      - name: Install prerequisites
+        run: |
+          cd sdk-src
+          python scripts/gha/install_prereqs_desktop.py --ssl boringssl
+          cd ..
+          if [[ $(uname) == "Darwin"* ]]; then
+            brew install parallel
+          fi
       - name: unzip SDK and remove non-Windows files
         run: |
           set -x
+          tar -xvzf packaging-tools.tgz -C bin
+          chmod -R u+x bin
           unzip -q firebase_cpp_sdk.zip -d windows-sdk
           cd windows-sdk
           # Rename the top-level directory.
@@ -778,6 +801,14 @@ jobs:
           cd firebase_cpp_sdk_windows
           # Remove all non-Windows files.
           rm -rf xcframeworks frameworks libs/linux libs/ios libs/tvos libs/darwin libs/android Android
+          for d in libs/windows/*/*/*/*; do
+            if [[ */x86/* in d ]]; do
+              format=pe-i386,pe-bigobj-i386
+            else
+              format=pe-x86-64,pe-bigobj-x86-64
+            fi
+            python3 ../sdk-src/merge_libraries.py --platform windows --binutils_ar_cmd=../bin/ar --force_binutils_target "${format}" --output $d/firebase.lib $d/firebase_*.lib
+          done
           cat > readme_windows.md <<EOF
           # Firebase C++ SDK - Windows only
 
@@ -809,7 +840,7 @@ jobs:
     # This can happen after the final package merge is finished.
     name: cleanup-packaging-artifacts
     runs-on: ubuntu-20.04
-    needs: [merge_packages]
+    needs: [merge_packages, create_windows_only_package]
     if: |
       (
         (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '')
