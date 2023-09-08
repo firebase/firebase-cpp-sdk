@@ -232,6 +232,16 @@ TEST_F(AnalyticsTest,
   InitiateOnDeviceConversionMeasurementWithEmailAddress("my_email");
 }
 
+TEST_F(AnalyticsTest,
+       TestInitiateOnDeviceConversionMeasurementWithPhoneNumber) {
+  // InitiateOnDeviceConversionMeasurementWithPhoneNumber is no-op on Android
+  AddExpectationApple(
+      "+[FIRAnalytics initiateOnDeviceConversionMeasurementWithPhoneNumber:]",
+      {"+15551234567"});
+
+  InitiateOnDeviceConversionMeasurementWithPhoneNumber("+15551234567");
+}
+
 TEST_F(AnalyticsTest, TestSetUserProperty) {
   AddExpectationAndroid("FirebaseAnalytics.setUserProperty",
                         {"my_property", "my_value"});
