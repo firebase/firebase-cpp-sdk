@@ -791,6 +791,7 @@ jobs:
       - name: unzip SDK and remove non-Windows files
         run: |
           set -x
+          find . -type f
           tar -xvzf packaging-tools.tgz -C bin
           chmod -R u+x bin
           unzip -q firebase_cpp_sdk.zip -d windows-sdk
