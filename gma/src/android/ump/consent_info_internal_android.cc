@@ -154,14 +154,13 @@ static void ReleaseClasses(JNIEnv* env) {
 }
 
 ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
-  {
-    MutexLock lock(s_instance_mutex);
-    s_instance = nullptr;
-  }
-
   JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
                                    consent_info_helper::kDisconnect));
+
+  MutexLock lock(s_instance_mutex);
+  s_instance = nullptr;
+
   env->DeleteGlobalRef(helper_);
   helper_ = nullptr;
 
