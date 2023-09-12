@@ -154,8 +154,10 @@ static void ReleaseClasses(JNIEnv* env) {
 }
 
 ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
-  MutexLock lock(s_instance_mutex);
-  s_instance = nullptr;
+  {
+    MutexLock lock(s_instance_mutex);
+    s_instance = nullptr;
+  }
 
   JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
@@ -227,7 +229,7 @@ void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(
     JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_internal_ptr,
     jlong future_handle, jint error_code, jobject error_message_obj) {
   MutexLock lock(s_instance_mutex);
-  if (consent_info_internal_ptr == 0 || s_instance == 0) {
+  if (consent_info_internal_ptr == 0 || s_instance == nullptr) {
     // Calling this with a null pointer, or if there is no active
     // instance, is a no-op, so just return.
     return;
