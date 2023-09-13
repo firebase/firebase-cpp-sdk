@@ -356,8 +356,6 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 
 // Test cases below.
 
-#if 0  // jsimantov
-
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
   // Don't initialize mediation in this test so that a later test can still
   // verify that mediation has not been initialized.
@@ -2477,8 +2475,6 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
-#endif  // 0 // jsimantov
-
 class FirebaseGmaUmpTest : public FirebaseGmaTest {
  public:
   FirebaseGmaUmpTest() : consent_info_(nullptr) {}
@@ -2962,7 +2958,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
-      firebase::gma::ump::kConsentDebugGeographyEEA;
+      ShouldRunUITests() ? firebase::gma::ump::kConsentDebugGeographyEEA
+                         : firebase::gma::ump::kConsentDebugGeographyNonEEA;
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
@@ -2977,17 +2974,17 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
   FLAKY_TEST_SECTION_END();
 
-  FLAKY_TEST_SECTION_BEGIN();
-  firebase::Future<void> future_load_1 = consent_info_->LoadConsentForm();
-  firebase::Future<void> future_load_2 = consent_info_->LoadConsentForm();
-  WaitForCompletion(future_load_2, "LoadConsentForm second",
-                    firebase::gma::ump::kConsentFormErrorOperationInProgress);
-  WaitForCompletion(future_load_1, "LoadConsentForm first");
-  FLAKY_TEST_SECTION_END();
-
   if (ShouldRunUITests()) {
     // The below should only be checked if UI tests are enabled, as they
     // require some interaction.
+    FLAKY_TEST_SECTION_BEGIN();
+    firebase::Future<void> future_load_1 = consent_info_->LoadConsentForm();
+    firebase::Future<void> future_load_2 = consent_info_->LoadConsentForm();
+    WaitForCompletion(future_load_2, "LoadConsentForm second",
+                      firebase::gma::ump::kConsentFormErrorOperationInProgress);
+    WaitForCompletion(future_load_1, "LoadConsentForm first");
+    FLAKY_TEST_SECTION_END();
+
     FLAKY_TEST_SECTION_BEGIN();
     firebase::Future<void> future_show_1 =
         consent_info_->ShowConsentForm(app_framework::GetWindowController());
