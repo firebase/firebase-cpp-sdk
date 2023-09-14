@@ -56,13 +56,12 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
 
   ConsentInfo* consent_info = new ConsentInfo();
 #if FIREBASE_PLATFORM_ANDROID
-  InitResult result =
-      consent_info->Initialize(/* jni_env, activity */);  // TODO(b/291622888)
+  InitResult result = consent_info->Initialize(jni_env, activity);
 #else
   InitResult result = consent_info->Initialize();
 #endif
+  if (init_result_out) *init_result_out = result;
   if (result != kInitResultSuccess) {
-    if (init_result_out) *init_result_out = result;
     delete consent_info;
     return nullptr;
   }
@@ -85,11 +84,19 @@ ConsentInfo::~ConsentInfo() {
   s_instance_ = nullptr;
 }
 
+#if FIREBASE_PLATFORM_ANDROID
+InitResult ConsentInfo::Initialize(JNIEnv* jni_env, jobject activity) {
+  FIREBASE_ASSERT(!internal_);
+  internal_ = internal::ConsentInfoInternal::CreateInstance(jni_env, activity);
+  return internal_ ? kInitResultSuccess : kInitResultFailedMissingDependency;
+}
+#else
 InitResult ConsentInfo::Initialize() {
   FIREBASE_ASSERT(!internal_);
   internal_ = internal::ConsentInfoInternal::CreateInstance();
   return kInitResultSuccess;
 }
+#endif
 
 // Below this, everything is a passthrough to ConsentInfoInternal. If there is
 // no internal_ pointer (e.g. it's been cleaned up), return default values and

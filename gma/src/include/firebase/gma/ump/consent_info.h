@@ -202,8 +202,7 @@ class ConsentInfo {
  private:
   ConsentInfo();
 #if FIREBASE_PLATFORM_ANDROID
-  // TODO(b/291622888) Implement Android-specific Initialize..
-  InitResult Initialize(/* JNIEnv* jni_env, jobject activity */);
+  InitResult Initialize(JNIEnv* jni_env, jobject activity);
 #else
   InitResult Initialize();
 #endif  // FIREBASE_PLATFORM_ANDROID

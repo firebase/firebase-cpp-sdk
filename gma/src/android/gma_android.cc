@@ -49,6 +49,12 @@
 namespace firebase {
 namespace gma {
 
+namespace internal {
+::firebase::Mutex g_cached_gma_embedded_files_mutex;
+std::vector<::firebase::internal::EmbeddedFile>* g_cached_gma_embedded_files =
+    nullptr;
+}  // namespace internal
+
 METHOD_LOOKUP_DEFINITION(mobile_ads,
                          PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/MobileAds",
@@ -308,12 +314,22 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     return Future<AdapterInitializationStatus>();
   }
 
-  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-      util::CacheEmbeddedFiles(env, activity,
-                               firebase::internal::EmbeddedFile::ToVector(
-                                   firebase_gma::gma_resources_filename,
-                                   firebase_gma::gma_resources_data,
-                                   firebase_gma::gma_resources_size));
+  // Between this and UMP, we only want to load these files once.
+  {
+    MutexLock lock(internal::g_cached_gma_embedded_files_mutex);
+    if (internal::g_cached_gma_embedded_files == nullptr) {
+      internal::g_cached_gma_embedded_files =
+          new std::vector<firebase::internal::EmbeddedFile>();
+      *internal::g_cached_gma_embedded_files =
+          util::CacheEmbeddedFiles(env, activity,
+                                   firebase::internal::EmbeddedFile::ToVector(
+                                       firebase_gma::gma_resources_filename,
+                                       firebase_gma::gma_resources_data,
+                                       firebase_gma::gma_resources_size));
+    }
+  }
+  const std::vector<firebase::internal::EmbeddedFile>& embedded_files =
+      *internal::g_cached_gma_embedded_files;
 
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
         ad_request_builder::CacheMethodIds(env, activity) &&
