@@ -127,7 +127,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: llvm-src/llvm/build/bin
-          key: llvm-bin-${{matrix.tools_platform}}${{matrix.tools_platform == 'darwin' && join(['-', env.xcodeVersion]) || ''}}-${{env.llvmVer}}
+          key: llvm-bin-${{matrix.tools_platform}}${{matrix.tools_platform == 'darwin' && format('-{0}', env.xcodeVersion) || ''}}-${{env.llvmVer}}
 
       - name: Fetch LLVM source
         # Only fetch LLVM if we don't already have binaries from the cache.
