@@ -554,7 +554,7 @@ jobs:
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
             additional_flags=(${verbose_flag})
             # Several build targets require to use LLVM binutils.
-            if [[ "${{ matrix.sdk_platform }}" == "darwin" || ${{ matrix.sdk_platform }}" == "windows" ]]; then
+            if [[ "${{ matrix.sdk_platform }}" == "darwin" || "${{ matrix.sdk_platform }}" == "windows" ]]; then
               # MacOS/Windows: use LLVM binutils for all architectures
               additional_flags+=(-L)
             fi
