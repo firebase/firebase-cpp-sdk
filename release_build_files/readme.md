@@ -630,7 +630,7 @@ code.
 ### 11.5.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 10.15.0.
-    - General (Android): Update to Firebase Android BoM version 32.3.0.
+    - General (Android): Update to Firebase Android BoM version 32.3.1.
     - General (Android): Made dynamic code files read only to comply with new
       Android 14 security requirements. This fixes a crash at API level 34+.
     - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithPhoneNumber
