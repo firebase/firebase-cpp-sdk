@@ -627,8 +627,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Next Release
+### 11.5.0
 -   Changes
+    - General (iOS): Update to Firebase Cocoapods version 10.15.0.
+    - General (Android): Update to Firebase Android BoM version 32.3.1.
     - General (Android): Made dynamic code files read only to comply with new
       Android 14 security requirements. This fixes a crash at API level 34+.
     - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithPhoneNumber
@@ -637,6 +639,7 @@ code.
     - Auth: Add Firebase Auth Emulator support. Set the environment variable
       USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099) 
       to connect to the local Firebase Auth Emulator.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.10.0.
 
 ### 11.4.0
 -   Changes
