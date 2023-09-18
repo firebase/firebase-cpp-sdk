@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
 
+#include <string>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 
@@ -39,11 +41,8 @@ GetAccountInfoRequest::GetAccountInfoRequest(::firebase::App& app,
 void GetAccountInfoRequest::SetUrl(const char* const api_key) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] =
-      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
-      "getAccountInfo?key=";
-  std::string url;
-  url.reserve(strlen(api_host) + strlen(api_key));
+  const char api_host[] = "getAccountInfo?key=";
+  std::string url = GetUrl();
   url.append(api_host);
   url.append(api_key);
   set_url(url.c_str());

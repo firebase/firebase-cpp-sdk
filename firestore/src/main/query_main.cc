@@ -170,7 +170,8 @@ core::Bound QueryInternal::ToBound(
   const core::Query& internal_query = query_.query();
 
   SharedMessage<google_firestore_v1_ArrayValue> components{{}};
-  components->values_count = CheckedSize(internal_query.order_bys().size());
+  components->values_count =
+      CheckedSize(internal_query.normalized_order_bys().size());
   components->values =
       MakeArray<google_firestore_v1_Value>(components->values_count);
 
@@ -181,8 +182,8 @@ core::Bound QueryInternal::ToBound(
   // the provided document. Without the key (by using the explicit sort orders),
   // multiple documents could match the position, yielding duplicate results.
 
-  for (size_t i = 0; i < internal_query.order_bys().size(); ++i) {
-    const core::OrderBy& order_by = internal_query.order_bys()[i];
+  for (size_t i = 0; i < internal_query.normalized_order_bys().size(); ++i) {
+    const core::OrderBy& order_by = internal_query.normalized_order_bys()[i];
     const model::FieldPath& field_path = order_by.field();
 
     if (field_path.IsKeyFieldPath()) {

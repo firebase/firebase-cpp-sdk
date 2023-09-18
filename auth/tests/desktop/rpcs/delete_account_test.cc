@@ -37,7 +37,7 @@ TEST(DeleteAccountTest, TestDeleteAccountRequest) {
       request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  idToken: \"token\"\n"
+      "  \"idToken\": \"token\"\n"
       "}\n",
       request.options().post_fields);
 }

@@ -241,7 +241,7 @@ function(build_external_dependencies)
   if(NOT ANDROID AND NOT IOS)
     if (FIREBASE_USE_BORINGSSL)
       execute_process(
-        COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl
+        COMMAND ${ENV_COMMAND} ${CMAKE_COMMAND} -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
         RESULT_VARIABLE boringssl_configure_status
       )
@@ -255,7 +255,7 @@ function(build_external_dependencies)
       endif()
     
       execute_process(
-        COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
+        COMMAND ${ENV_COMMAND} ${CMAKE_COMMAND} --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
         RESULT_VARIABLE boringssl_build_status
       )

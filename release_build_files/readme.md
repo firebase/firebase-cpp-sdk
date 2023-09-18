@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.2.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.2.3)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -134,7 +134,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:22.2.0
+|                          | com.google.android.gms:play-services-ads:22.3.0
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -228,49 +228,49 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (10.12.0)
+|                          | Firebase/Analytics Cocoapod (10.15.0)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck Cocoapod (10.12.0)
+|                          | Firebase/AppCheck Cocoapod (10.15.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Firebase Dynamic Links     | firebase_dynamic_links.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/DynamicLinks Cocoapod (10.12.0)
+|                          | Firebase/DynamicLinks Cocoapod (10.15.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Firestore Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Functions Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (10.12.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.8.0)
+|                          | Firebase/CoreOnly Cocoapod (10.15.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.10.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (10.12.0)
+|                          | FirebaseInstallations Cocoapod (10.15.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging Cocoapod (10.12.0)
+|                          | Firebase/Messaging Cocoapod (10.15.0)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Database Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig Cocoapod (10.12.0)
+|                          | Firebase/RemoteConfig Cocoapod (10.15.0)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Storage Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -290,49 +290,49 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (10.12.0)
+|                          | Firebase/Analytics Cocoapod (10.15.0)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck Cocoapod (10.12.0)
+|                          | Firebase/AppCheck Cocoapod (10.15.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | Firebase/DynamicLinks Cocoapod (10.12.0)
+|                          | Firebase/DynamicLinks Cocoapod (10.15.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Firestore Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Functions Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (10.12.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.8.0)
+|                          | Firebase/CoreOnly Cocoapod (10.15.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.10.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (10.12.0)
+|                          | FirebaseInstallations Cocoapod (10.15.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging Cocoapod (10.12.0)
+|                          | Firebase/CloudMessaging Cocoapod (10.15.0)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Database Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig Cocoapod (10.12.0)
+|                          | Firebase/RemoteConfig Cocoapod (10.15.0)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage Cocoapod (10.12.0)
-|                          | Firebase/Auth Cocoapod (10.12.0)
+|                          | Firebase/Storage Cocoapod (10.15.0)
+|                          | Firebase/Auth Cocoapod (10.15.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -627,8 +627,24 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### Next Release
 -   Changes
+    - General (Android): Made dynamic code files read only to comply with new
+      Android 14 security requirements. This fixes a crash at API level 34+.
+    - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithPhoneNumber
+      function to facilitate the [on-device conversion
+      measurement](https://support.google.com/google-ads/answer/12119136) API.
+    - Auth: Add Firebase Auth Emulator support. Set the environment variable
+      USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099) 
+      to connect to the local Firebase Auth Emulator.
+
+### 11.4.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 32.2.2.
+    - General (iOS): Update to Firebase Cocoapods version 10.13.0.
+    - General (iOS): 32-bit iOS builds (i386 and armv7) are no longer supported.
+    - General: Add FirebaseApp.GetApps(), to return the list of `firebase::App` instances.
+    - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
     - Firestore: Add support for disjunctions in queries (OR queries)
       ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
 
@@ -647,6 +663,10 @@ code.
     - GMA (Android): Updated dependency to play-services-ads version 22.2.0.
     - Remote Config (Desktop): Additional fix for handling of non-English time
       zone names on Windows.
+    - Firestore (Android): Fix the intermittent global references exhaustion
+      crash when working with documents with a large number of keys and/or large
+      map and/or array fields.
+      ([#1364](https://github.com/firebase/firebase-cpp-sdk/pull/1364)).
 
 ### 11.2.0
 -   Changes
@@ -660,10 +680,6 @@ code.
       time zone name in the current system language contains an accented
       character or apostrophe. This adds a requirement for applications using
       Remote Config on Windows desktop to link the "icu.dll" system library.
-    - Firestore (Android): Fix the intermittent global references exhaustion
-      crash when working with documents with a large number of keys and/or large
-      map and/or array fields.
-      ([#1364](https://github.com/firebase/firebase-cpp-sdk/pull/1364)).
 
 ### 11.1.0
 -   Changes
