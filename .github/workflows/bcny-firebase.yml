@@ -52,9 +52,18 @@ jobs:
           Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore/Firestore/core/include/firebase/firestore/firestore_errors.h" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/include/firebase/firestore/firestore_errors.h"
           Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore/Firestore/core/include/firebase/firestore/geo_point.h" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/include/firebase/firestore/geo_point.h"
           Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore/Firestore/core/include/firebase/firestore/timestamp.h" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/include/firebase/firestore/timestamp.h"
-          Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore-build/Firestore/core/Release/firestore_nanopb.lib" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows/firestore_nanopb.lib"
-          Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore-build/Firestore/core/Release/firestore_util.lib" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows/firestore_util.lib"
-          Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore-build/Firestore/core/Release/firestore_core.lib" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows/firestore_core.lib"
+
+          Write-Host "Copying .lib files into place..."
+          $sourceDirectory = "${{ github.workspace }}/BinaryCache/firebase"
+          $destinationDirectory = "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows"
+
+          $libFiles = Get-ChildItem -Path $sourceDirectory -File -Recurse -Filter *.lib
+
+          foreach ($file in $libFiles) {
+            $destinationPath = Join-Path -Path $destinationDirectory -ChildPath $file.Name
+            Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+            Write-Host "Copy operation completed for ${destinationPath}"
+          }
       - uses: actions/upload-artifact@v3
         with:
           name: firebase-windows-amd64
