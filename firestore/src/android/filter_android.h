@@ -31,7 +31,7 @@ class FilterInternal final {
  public:
   static void Initialize(jni::Loader& loader);
 
-  FilterInternal(jni::Object&& object, bool is_empty);
+  FilterInternal(const jni::Object& object, bool is_empty);
 
   static Filter ArrayContains(const FieldPath& field, const FieldValue& value);
   static Filter ArrayContainsAny(const FieldPath& field,
@@ -51,7 +51,7 @@ class FilterInternal final {
   static Filter Or(const std::vector<Filter>& filters);
   static Filter And(const std::vector<Filter>& filters);
 
-  const jni::Global<jni::Object>& ToJava() const { return object_; }
+  jni::Local<jni::Object> ToJava() const;
 
  private:
   friend class Filter;
@@ -63,7 +63,7 @@ class FilterInternal final {
 
   static jni::Env GetEnv();
 
-  jni::Global<jni::Object> object_;
+  jni::ArenaRef obj_;
   const bool is_empty_;
 
   // A generalized function for all WhereFoo calls.
