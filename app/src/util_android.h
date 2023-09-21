@@ -568,6 +568,10 @@ METHOD_LOOKUP_DECLARATION(intent, INTENT_METHODS);
   X(ConstructorFilePath, "<init>", "(Ljava/io/File;Ljava/lang/String;)V"), \
   X(GetAbsolutePath, "getAbsolutePath", "()Ljava/lang/String;"),           \
   X(GetPath, "getPath", "()Ljava/lang/String;"),                           \
+  X(Exists, "exists", "()Z"),                                              \
+  X(Delete, "delete", "()Z"),                                              \
+  X(SetReadOnly, "setReadOnly", "()Z"),                                    \
+  X(SetWritable, "setWritable", "(Z)Z"),                                   \
   X(ToUri, "toURI", "()Ljava/net/URI;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(file, FILE_METHODS)
