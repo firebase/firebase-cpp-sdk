@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.2.3)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.3.1)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -147,7 +147,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.10.1  (Maven package)
+|                          | androidx.core:core:1.12.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -629,6 +629,12 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
+    - Firestore: Add support for disjunctions in queries (OR queries)
+      ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
+### 11.5.0
+-   Changes
+    - General (iOS): Update to Firebase Cocoapods version 10.15.0.
+    - General (Android): Update to Firebase Android BoM version 32.3.1.
     - General (Android): Made dynamic code files read only to comply with new
       Android 14 security requirements. This fixes a crash at API level 34+.
     - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithPhoneNumber
@@ -637,8 +643,6 @@ code.
     - Auth: Add Firebase Auth Emulator support. Set the environment variable
       USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099) 
       to connect to the local Firebase Auth Emulator.
-    - Firestore: Add support for disjunctions in queries (OR queries)
-      ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
 
 ### 11.4.0
 -   Changes

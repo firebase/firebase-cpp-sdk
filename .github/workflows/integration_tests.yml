@@ -1046,6 +1046,7 @@ jobs:
           test_devices: ${{ steps.device-info.outputs.device }}
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
+          additional_flags: '--client-details matrixLabel=android-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.android_device }}'
       - name: Read FTL Test Result
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
@@ -1189,6 +1190,7 @@ jobs:
           test_devices: ${{ steps.device-info.outputs.device }}
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
+          additional_flags: '--client-details matrixLabel=ios-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.ios_device }}'
       - name: Read FTL Test Result
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
