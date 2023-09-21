@@ -200,7 +200,8 @@ Filter FilterInternal::Where(const StaticMethod<Object>& method,
     }
   }
   size_t non_empty_size = non_empty_indexes.size();
-  Local<Array<Object>> java_filters = env.NewArray(non_empty_size, filter_class);
+  Local<Array<Object>> java_filters =
+      env.NewArray(non_empty_size, filter_class);
   for (int i = 0; i < non_empty_size; ++i) {
     java_filters.Set(env, i, filters[non_empty_indexes[i]].internal_->ToJava());
   }
