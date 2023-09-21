@@ -637,6 +637,8 @@ code.
     - Auth: Add Firebase Auth Emulator support. Set the environment variable
       USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099) 
       to connect to the local Firebase Auth Emulator.
+    - Firestore: Add support for disjunctions in queries (OR queries)
+      ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
 
 ### 11.4.0
 -   Changes
@@ -645,8 +647,6 @@ code.
     - General (iOS): 32-bit iOS builds (i386 and armv7) are no longer supported.
     - General: Add FirebaseApp.GetApps(), to return the list of `firebase::App` instances.
     - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
-    - Firestore: Add support for disjunctions in queries (OR queries)
-      ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
 
 ### 11.3.0
 -   Changes
