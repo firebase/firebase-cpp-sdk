@@ -227,7 +227,15 @@ void NativeAdInternalIOS::NativeAdDidReceiveAd(GADNativeAd *ad) {
   {
     NativeAdImageInternal icon_internal;
     icon_internal.native_ad_image = gad_icon;
-    GmaInternal::InsertNativeInternalImage(this, icon_internal, true, true );
+    GmaInternal::InsertNativeInternalImage(this, icon_internal, "icon", true );
+  }
+
+  NSObject *gad_choices_icon = ad.adChoicesIcon;
+  if (gad_choices_icon != nil)
+  {
+    NativeAdImageInternal adchoices_icon_internal;
+    adchoices_icon_internal.native_ad_image = gad_choices_icon;
+    GmaInternal::InsertNativeInternalImage(this, adchoices_icon_internal, "adchoices_icon", true );
   }
 
   NSArray *gad_images = ad.images;
@@ -235,7 +243,7 @@ void NativeAdInternalIOS::NativeAdDidReceiveAd(GADNativeAd *ad) {
   {
     NativeAdImageInternal image_internal;
     image_internal.native_ad_image = gad_image;
-    GmaInternal::InsertNativeInternalImage(this, image_internal, false, false );
+    GmaInternal::InsertNativeInternalImage(this, image_internal, "image", false );
   }
 
   if (ad_load_callback_data_ != nil) {
