@@ -136,6 +136,8 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | (Maven package)
 |                          | com.google.android.gms:play-services-ads:22.3.0
 |                          | (Maven package)
+|                          | com.google.android.ump:user-messaging-platform:2.1.0
+|                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-installations
@@ -252,6 +254,7 @@ Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/CoreOnly Cocoapod (10.15.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (10.10.0)
+|                          | GoogleUserMessagingPlatform Cocoapod (2.1.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (10.15.0)
@@ -314,6 +317,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/CoreOnly Cocoapod (10.15.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (10.10.0)
+|                          | GoogleUserMessagingPlatform Cocoapod (2.1.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (10.15.0)
@@ -629,9 +633,16 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
-    - GMA: Added the User Messaging Platform SDK. See the [Get Started
+    - GMA: Added the User Messaging Platform (UMP) SDK, required for obtaining
+      consent from users before showing ads. See the [Get Started
       Guide](https://firebase.google.com/docs/admob/cpp/privacy/) for more
       information.
+    - GMA (iOS): Added a new Cocoapod dependency for the UMP SDK:
+      GoogleUserMessagingPlatform version 2.1.0.
+    - GMA (Android): Added a new Maven package dependency for the UMP SDK:
+      com.google.android.ump:user-messaging-platform version 2.1.0. This
+      dependency will automatically be included if you include "gma" in the
+      firebaseCpp.dependencies list in your build.gradle file.
 
 ### 11.5.0
 -   Changes
