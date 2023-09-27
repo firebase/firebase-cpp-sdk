@@ -36,6 +36,7 @@
 #include "firebase/firestore/document_snapshot.h"
 #include "firebase/firestore/field_path.h"
 #include "firebase/firestore/field_value.h"
+#include "firebase/firestore/filter.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/listener_registration.h"
