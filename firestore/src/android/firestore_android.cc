@@ -37,6 +37,7 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
+#include "firestore/src/android/filter_android.h"
 #include "firestore/src/android/geo_point_android.h"
 #include "firestore/src/android/jni_runnable_android.h"
 #include "firestore/src/android/lambda_event_listener.h"
@@ -339,6 +340,7 @@ bool FirestoreInternal::Initialize(App* app) {
     ExceptionInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     FieldValueInternal::Initialize(loader);
+    FilterInternal::Initialize(loader);
     GeoPointInternal::Initialize(loader);
     JniRunnableBase::Initialize(loader);
     ListenerRegistrationInternal::Initialize(loader);

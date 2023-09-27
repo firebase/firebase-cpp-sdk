@@ -627,6 +627,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Next Release
+-   Changes
+    - GMA: Added the User Messaging Platform SDK. See the [Get Started
+      Guide](https://firebase.google.com/docs/admob/cpp/privacy/) for more
+      information.
+
 ### 11.5.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 10.15.0.
@@ -650,7 +656,7 @@ code.
     - General: Add FirebaseApp.GetApps(), to return the list of `firebase::App` instances.
     - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
     - Firestore: Add support for disjunctions in queries (OR queries)
-      ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
+      ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
 
 ### 11.3.0
 -   Changes
