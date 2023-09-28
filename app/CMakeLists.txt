@@ -518,6 +518,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/filter.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/load_bundle_task_progress.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/map_field_value.h

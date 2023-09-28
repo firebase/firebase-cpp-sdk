@@ -633,6 +633,8 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
+    - Firestore: Add support for disjunctions in queries (OR queries)
+      ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
     - GMA: Added the User Messaging Platform (UMP) SDK, required for obtaining
       consent from users before showing ads. See the [Get Started
       Guide](https://firebase.google.com/docs/admob/cpp/privacy/) for more
@@ -666,8 +668,6 @@ code.
     - General (iOS): 32-bit iOS builds (i386 and armv7) are no longer supported.
     - General: Add FirebaseApp.GetApps(), to return the list of `firebase::App` instances.
     - GMA (Android): Fixed a crash when initializing GMA without a Firebase App.
-    - Firestore: Add support for disjunctions in queries (OR queries)
-      ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
 
 ### 11.3.0
 -   Changes
