@@ -194,10 +194,12 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
       # all failures/errors are due to flakiness (succeeded after retry)
       title = _COMMENT_TITLE_FLAKY
       firebase_github.add_label(token, issue_number, _LABEL_SUCCEED)
+      firebase_github.delete_label(token, issue_number, _LABEL_FAILED)
     else:
       # failures/errors still exist after retry
       title = _COMMENT_TITLE_FAIL
       firebase_github.add_label(token, issue_number, _LABEL_FAILED)
+      firebase_github.delete_label(token, issue_number, _LABEL_SUCCEED)
     comment = (title +
                _get_description(actor, commit, run_id) +
                log_summary +
