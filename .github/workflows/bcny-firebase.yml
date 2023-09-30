@@ -7,6 +7,15 @@ jobs:
   windows:
     runs-on: windows-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: 'amd64'
+            platform: 'x64'
+          - arch: 'arm64'
+            platform: 'ARM64'
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -18,8 +27,8 @@ jobs:
       - uses: compnerd/gha-setup-vsdevenv@main
         with:
           host_arch: amd64
-          components: 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64'
-          arch: amd64
+          components: 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64;Microsoft.VisualStudio.Component.VC.Tools.ARM64'
+          arch: ${{ matrix.arch }}
 
       - uses: actions/setup-python@v4
         with:
@@ -36,7 +45,7 @@ jobs:
                 -D CMAKE_BUILD_TYPE=Release `
                 -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/BuildRoot/Library/firebase/usr `
                 -G "Visual Studio 17 2022" `
-                -A x64 `
+                -A ${{ matrix.platform }} `
                 -S ${{ github.workspace }}/SourceCache/firebase-cpp-sdk `
                 -D FIREBASE_CPP_BUILD_PACKAGE=YES `
                 -D FIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF `
@@ -53,18 +62,15 @@ jobs:
           Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore/Firestore/core/include/firebase/firestore/geo_point.h" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/include/firebase/firestore/geo_point.h"
           Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore/Firestore/core/include/firebase/firestore/timestamp.h" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/include/firebase/firestore/timestamp.h"
 
-          Write-Host "Copying .lib files into place..."
-          $sourceDirectory = "${{ github.workspace }}/BinaryCache/firebase"
-          $destinationDirectory = "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows"
-
-          $libFiles = Get-ChildItem -Path $sourceDirectory -File -Recurse -Filter *.lib
-
-          foreach ($file in $libFiles) {
-            $destinationPath = Join-Path -Path $destinationDirectory -ChildPath $file.Name
-            Copy-Item -Path $file.FullName -Destination $destinationPath -Force
-            Write-Host "Copy operation completed for ${destinationPath}"
+          Write-Host "Copying static libraries ..."
+          $source = "${{ github.workspace }}/BinaryCache/firebase"
+          $libraries = Get-ChildItem -Path $source -File -Recurse -Filter *.lib
+          foreach ($library in $libraries) {
+            $destination = Join-Path -Path "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows" -ChildPath $library.Name
+            Copy-Item -Path $library.FullName -Destination $destination -Force
+            Write-Host "... copied ${destination}"
           }
       - uses: actions/upload-artifact@v3
         with:
-          name: firebase-windows-amd64
+          name: firebase-windows-${{ matrix.arch }}
           path: ${{ github.workspace }}/BuildRoot/Library/firebase
