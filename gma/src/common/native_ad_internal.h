@@ -70,6 +70,9 @@ class NativeAdInternal {
   // Returns the associated image assets of the native ad.
   const std::vector<NativeAdImage>& images() const { return images_; }
 
+  // Returns the associated icon asset of the native ad.
+  const NativeAdImage& adchoices_icon() const { return adchoices_icon_; }
+
   // Only used by allowlisted ad units.
   virtual Future<void> RecordImpression(const Variant& impression_data) = 0;
 
@@ -86,7 +89,8 @@ class NativeAdInternal {
   explicit NativeAdInternal(NativeAd* base);
 
   // Invoked after a native ad has been loaded to fill native ad image assets.
-  void insert_image(const NativeAdImage& ad_image, const bool& is_icon);
+  void insert_image(const NativeAdImage& ad_image,
+                    const std::string& image_type);
 
   // Invoked before filling native ad image assets.
   void clear_existing_images();
@@ -102,6 +106,9 @@ class NativeAdInternal {
 
   // Tracks the native ad image assets.
   std::vector<NativeAdImage> images_;
+
+  // Tracks the native ad choices icon asset.
+  NativeAdImage adchoices_icon_;
 };
 
 }  // namespace internal
