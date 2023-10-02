@@ -34,4 +34,6 @@ public final class GmaInitializationHelper {
 
   public static native void initializationCompleteCallback(
       InitializationStatus initializationStatus);
+
+  private GmaInitializationHelper() {}
 }

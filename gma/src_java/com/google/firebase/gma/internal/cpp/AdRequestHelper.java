@@ -16,6 +16,7 @@
 
 package com.google.firebase.gma.internal.cpp;
 
+import androidx.annotation.Nullable;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -35,6 +36,7 @@ public class AdRequestHelper {
    * @param day The day to use in creating the Date object
    * @return A Date object with the appropriate date
    */
+  @Nullable
   public Date createDate(int year, int month, int day) {
     try {
       Calendar cal = Calendar.getInstance();
