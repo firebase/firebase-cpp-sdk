@@ -2963,6 +2963,10 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
+  if (!ShouldRunUITests()) {
+    LogInfo("Running in non-UI test mode");
+  }
+  
   FLAKY_TEST_SECTION_BEGIN();
   firebase::Future<void> future_request_1 =
       consent_info_->RequestConsentInfoUpdate(params);
