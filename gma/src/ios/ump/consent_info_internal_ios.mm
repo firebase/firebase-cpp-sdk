@@ -135,6 +135,13 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
 
   LogInfo("UMP C++: RequestConsentInfoUpdate dispatching");
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
       LogInfo("UMP C++: RequestConsentInfoUpdate calling iOS method in main thread");
       [UMPConsentInformation.sharedInstance
 	  requestConsentInfoUpdateWithParameters:ios_parameters
@@ -215,6 +222,13 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 
   LogInfo("UMP C++: LoadConsentForm dispatching");
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
       LogInfo("UMP C++: LoadConsentForm calling iOS method in main thread");
 	[UMPConsentForm
 	  loadWithCompletionHandler:^(UMPConsentForm *_Nullable form, NSError *_Nullable error){
@@ -264,6 +278,13 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
     }
     
     util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
 	[loaded_form_ presentFromViewController:parent
 			     completionHandler:^(NSError *_Nullable error){
 	    LogInfo("UMP C++: ShowConsentForm completionHandler start");
@@ -306,6 +327,13 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
   }
 
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
       [UMPConsentForm loadAndPresentIfRequiredFromViewController:parent
 					       completionHandler:^(NSError *_Nullable error){
 	  LogInfo("UMP C++: LoadAndShowConsentFormIfRequired completionHandler start");
@@ -362,6 +390,13 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   }
 
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
       [UMPConsentForm presentPrivacyOptionsFormFromViewController:parent
 						completionHandler:^(NSError *_Nullable error){
 	  LogInfo("UMP C++: ShowPrivacyOptionsForm completionHandler start");
