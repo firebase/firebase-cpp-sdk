@@ -91,7 +91,6 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   if (RequestConsentInfoUpdateLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    LogInfo("UMP C++: RequestConsentInfoUpdate returning operation in progress error");
     SafeFutureHandle<void> error_handle = CreateFuture();
     CompleteFuture(error_handle, kConsentRequestErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
@@ -133,7 +132,6 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     callback_instance_tag = s_instance_tag;
   }
 
-  LogInfo("UMP C++: RequestConsentInfoUpdate dispatching");
   util::DispatchAsyncSafeMainQueue(^{
       {
 	MutexLock lock(s_instance_mutex);
@@ -142,11 +140,9 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
 	  return;
 	}
       }
-      LogInfo("UMP C++: RequestConsentInfoUpdate calling iOS method in main thread");
       [UMPConsentInformation.sharedInstance
 	  requestConsentInfoUpdateWithParameters:ios_parameters
 	  completionHandler:^(NSError *_Nullable error){
-	  LogInfo("UMP C++: RequestConsentInfoUpdate completionHandler start");
 	  if (!error) {
             MutexLock lock(s_instance_mutex);
             if (s_instance && s_instance_tag == callback_instance_tag) {
@@ -158,7 +154,6 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
               CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription.UTF8String);
             }
 	  }
-	  LogInfo("UMP C++: RequestConsentInfoUpdate completionHandler end");
 	}];
     });
 
@@ -220,7 +215,6 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
     callback_instance_tag = s_instance_tag;
   }
 
-  LogInfo("UMP C++: LoadConsentForm dispatching");
   util::DispatchAsyncSafeMainQueue(^{
       {
 	MutexLock lock(s_instance_mutex);
@@ -229,10 +223,8 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 	  return;
 	}
       }
-      LogInfo("UMP C++: LoadConsentForm calling iOS method in main thread");
 	[UMPConsentForm
 	  loadWithCompletionHandler:^(UMPConsentForm *_Nullable form, NSError *_Nullable error){
-	    LogInfo("UMP C++: LoadConsentForm completionHandler start");
 	    if (form) {
 	      MutexLock lock(s_instance_mutex);
 	      if (s_instance && s_instance_tag == callback_instance_tag) {
@@ -250,7 +242,6 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 		CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
 	      }
 	    }
-	    LogInfo("UMP C++: LoadConsentForm completionHandler end");
 	  }];
       });
   return MakeFuture<void>(futures(), handle);
@@ -287,7 +278,6 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
       }
 	[loaded_form_ presentFromViewController:parent
 			     completionHandler:^(NSError *_Nullable error){
-	    LogInfo("UMP C++: ShowConsentForm completionHandler start");
 	    if (!error) {
 	      MutexLock lock(s_instance_mutex);
 	      if (s_instance && s_instance_tag == callback_instance_tag) {
@@ -299,7 +289,6 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	    }
-	    LogInfo("UMP C++: ShowConsentForm completionHandler end");
 	  }];
       });
   }
@@ -336,7 +325,6 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
       }
       [UMPConsentForm loadAndPresentIfRequiredFromViewController:parent
 					       completionHandler:^(NSError *_Nullable error){
-	  LogInfo("UMP C++: LoadAndShowConsentFormIfRequired completionHandler start");
 	  if (!error) {
 	      MutexLock lock(s_instance_mutex);
 	      if (s_instance && s_instance_tag == callback_instance_tag) {
@@ -348,7 +336,6 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	  }
-	  LogInfo("UMP C++: LoadAndShowConsentFormIfRequired completionHandler end");
 	}];
     });
   return MakeFuture<void>(futures(), handle);
@@ -399,7 +386,6 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
       }
       [UMPConsentForm presentPrivacyOptionsFormFromViewController:parent
 						completionHandler:^(NSError *_Nullable error){
-	  LogInfo("UMP C++: ShowPrivacyOptionsForm completionHandler start");
 	  if (!error) {
 	      MutexLock lock(s_instance_mutex);
 	      if (s_instance && s_instance_tag == callback_instance_tag) {
@@ -411,7 +397,6 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	  }
-	  LogInfo("UMP C++: ShowPrivacyOptionsForm completionHandler end");
 	}];
     });
   return MakeFuture<void>(futures(), handle);

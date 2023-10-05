@@ -2960,7 +2960,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
 
   if (ShouldRunUITests()) {
     params.debug_settings.debug_geography =
-      firebase::gma::ump::kConsentDebugGeographyEEA;
+        firebase::gma::ump::kConsentDebugGeographyEEA;
     params.debug_settings.debug_device_ids = kTestDeviceIDs;
     params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
   }
@@ -2980,7 +2980,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
     firebase::Future<void> future_load_1 = consent_info_->LoadConsentForm();
     firebase::Future<void> future_load_2 = consent_info_->LoadConsentForm();
     WaitForCompletion(future_load_2, "LoadConsentForm second",
-		      firebase::gma::ump::kConsentFormErrorOperationInProgress);
+                      firebase::gma::ump::kConsentFormErrorOperationInProgress);
     WaitForCompletion(future_load_1, "LoadConsentForm first");
 
     firebase::Future<void> future_show_1 =
