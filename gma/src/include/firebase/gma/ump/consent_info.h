@@ -39,11 +39,16 @@ namespace internal {
 class ConsentInfoInternal;
 }  // namespace internal
 
+/// @brief Consent Information class for the User Messaging Platform SDK.
+///
+/// The User Messaging Platform (UMP) SDK is Google’s option to handle user
+/// privacy and consent in mobile apps.
+///
 /// This class contains all of the methods necessary for obtaining
 /// consent from the user.
 class ConsentInfo {
  public:
-  /// Shut down the User Messaging Platform Consent SDK
+  /// Shut down the User Messaging Platform Consent SDK.
   ~ConsentInfo();
 
   /// Initializes the User Messaging Platform Consent SDK.
@@ -109,6 +114,9 @@ class ConsentInfo {
   /// @return A pointer to the ConsentInfo instance. Each call to GetInstance()
   /// will return the same pointer; when you are finished using the SDK, you can
   /// delete the pointer, and the UMP SDK will shut down.
+  ///
+  /// @note Once any overload of ConsentInfo::GetInstance has been called, you
+  /// can use this method to obtain the same instance again.
   static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
@@ -119,10 +127,10 @@ class ConsentInfo {
 
   /// Requests consent information update. Must be called in every app session
   /// before checking the user’s consent status or loading a consent form. After
-  /// calling this method, GetConsentStatus() will be updated immediately to
-  /// hold the consent state from the previous app session, if one
-  /// exists. GetConsentStatus() may be updated again immediately before the
-  /// returned future is completed.
+  /// calling this method, GetConsentStatus() and CanRequestAds() will be
+  /// updated immediately to hold the consent state from the previous app
+  /// session, if one exists. GetConsentStatus() and CanRequestAds() may be
+  /// updated again immediately before the returned future is completed.
   Future<void> RequestConsentInfoUpdate(const ConsentRequestParameters& params);
 
   /// Get the Future from the most recent call to RequestConsentInfoUpdate().
@@ -144,7 +152,11 @@ class ConsentInfo {
   /// will be dismissed and the Future will be completed after the user selects
   /// an option.
   ///
-  /// GetConsentStatus() is updated when the returned Future is completed.
+  /// GetConsentStatus() and CanRequestAds() are updated when the returned
+  /// Future is completed.
+  ///
+  /// @param[in] parent A FormParent, which is an Activity object on Android and
+  /// a UIViewController object on iOS.
   ///
   /// @note You must call LoadConsentForm() and wait for it to complete before
   /// calling this method.
@@ -160,7 +172,11 @@ class ConsentInfo {
   /// (and the form is dismissed), or if the form is not required. The Future
   /// will be completed with an error if the form fails to load or show.
   ///
-  /// GetConsentStatus() will be updated prior to the Future being completed.
+  /// GetConsentStatus() and CanRequestAds() will be updated prior to the Future
+  /// being completed.
+  ///
+  /// @param[in] parent A FormParent, which is an Activity object on Android and
+  /// a UIViewController object on iOS.
   Future<void> LoadAndShowConsentFormIfRequired(FormParent parent);
 
   /// Get the Future from the most recent call to
@@ -184,6 +200,9 @@ class ConsentInfo {
   /// presented. The privacy options form is preloaded by the SDK automatically
   /// when a form becomes available. If no form has been preloaded, the SDK will
   /// try to load one asynchronously.
+  ///
+  /// @param[in] parent A FormParent, which is an Activity object on Android and
+  /// a UIViewController object on iOS.
   Future<void> ShowPrivacyOptionsForm(FormParent parent);
 
   /// Get the Future from the most recent call to ShowPrivacyOptionsForm().
