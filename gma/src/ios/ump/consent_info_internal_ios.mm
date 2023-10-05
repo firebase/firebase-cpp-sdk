@@ -122,9 +122,15 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
 	  requestConsentInfoUpdateWithParameters:ios_parameters
 	  completionHandler:^(NSError *_Nullable error){
 	  if (!error) {
-	    CompleteFuture(handle, kConsentRequestSuccess);
+            MutexLock lock(s_instance_mutex);
+            if (s_instance) {
+              CompleteFuture(handle, kConsentRequestSuccess);
+            }
 	  } else {
-	    CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription.UTF8String);
+            MutexLock lock(s_instance_mutex);
+            if (s_instance) {
+              CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription.UTF8String);
+            }
 	  }
 	}];
     });

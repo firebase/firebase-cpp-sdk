@@ -2966,7 +2966,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   if (!ShouldRunUITests()) {
     LogInfo("Running in non-UI test mode");
   }
-  
+
   FLAKY_TEST_SECTION_BEGIN();
   firebase::Future<void> future_request_1 =
       consent_info_->RequestConsentInfoUpdate(params);
