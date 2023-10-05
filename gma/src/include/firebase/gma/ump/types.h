@@ -47,7 +47,7 @@ enum ConsentDebugGeography {
 };
 
 /// Debug settings for `ConsentInfo::RequestConsentInfoUpdate()`. These let you
-/// force a speific geographic location. Be sure to include debug device IDs to
+/// force a specific geographic location. Be sure to include debug device IDs to
 /// enable this on hardware. Debug features are always enabled for simulators.
 struct ConsentDebugSettings {
   /// Create a default debug setting, with debugging disabled.
