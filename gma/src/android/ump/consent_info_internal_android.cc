@@ -420,7 +420,7 @@ Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
   if (RequestConsentInfoUpdateLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentRequestErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -489,7 +489,7 @@ Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
   if (LoadConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -514,7 +514,7 @@ Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
   if (ShowConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -546,7 +546,7 @@ Future<void> ConsentInfoInternalAndroid::LoadAndShowConsentFormIfRequired(
       kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -588,7 +588,7 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
   if (ShowPrivacyOptionsFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }

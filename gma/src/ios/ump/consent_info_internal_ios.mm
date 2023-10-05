@@ -27,7 +27,7 @@ namespace internal {
 
 ConsentInfoInternalIos* ConsentInfoInternalIos::s_instance = nullptr;
 firebase::Mutex ConsentInfoInternalIos::s_instance_mutex;
-
+unsigned int ConsentInfoInternalIos::s_instance_tag = 0;
 
 // This explicitly implements the constructor for the outer class,
 // ConsentInfoInternal.
@@ -40,6 +40,9 @@ ConsentInfoInternalIos::ConsentInfoInternalIos()
   MutexLock lock(s_instance_mutex);
   FIREBASE_ASSERT(s_instance == nullptr);
   s_instance = this;
+  // Increment this with each created instance, to ensure that any leftover
+  // callbacks don't run if a new instance is created.
+  s_instance_tag++;
 }
 
 ConsentInfoInternalIos::~ConsentInfoInternalIos() {
@@ -89,7 +92,7 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
     LogInfo("UMP C++: RequestConsentInfoUpdate returning operation in progress error");
-    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
+    SafeFutureHandle<void> error_handle = CreateFuture();
     CompleteFuture(error_handle, kConsentRequestErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -123,6 +126,12 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   if (has_debug_settings) {
     ios_parameters.debugSettings = ios_debug_settings;
   }
+  
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
 
   LogInfo("UMP C++: RequestConsentInfoUpdate dispatching");
   util::DispatchAsyncSafeMainQueue(^{
@@ -133,12 +142,12 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
 	  LogInfo("UMP C++: RequestConsentInfoUpdate completionHandler start");
 	  if (!error) {
             MutexLock lock(s_instance_mutex);
-            if (s_instance) {
+            if (s_instance && s_instance_tag == callback_instance_tag) {
               CompleteFuture(handle, kConsentRequestSuccess);
             }
 	  } else {
             MutexLock lock(s_instance_mutex);
-            if (s_instance) {
+            if (s_instance && s_instance_tag == callback_instance_tag) {
               CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription.UTF8String);
             }
 	  }
@@ -190,13 +199,19 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   if (LoadConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
+    SafeFutureHandle<void> error_handle = CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
 
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
   loaded_form_ = nil;
+
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
 
   LogInfo("UMP C++: LoadConsentForm dispatching");
   util::DispatchAsyncSafeMainQueue(^{
@@ -206,18 +221,18 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 	    LogInfo("UMP C++: LoadConsentForm completionHandler start");
 	    if (form) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		SetLoadedForm(form);
 		CompleteFuture(handle, kConsentFormSuccess, "Success");
 	      }
 	    } else if (error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	    } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
 	      }
 	    }
@@ -231,7 +246,7 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
   if (ShowConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
+    SafeFutureHandle<void> error_handle = CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -242,18 +257,24 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
     CompleteFuture(handle, kConsentFormErrorInvalidOperation,
 		   "You must call LoadConsentForm() prior to calling ShowConsentForm().");
   } else {
+    unsigned int callback_instance_tag;
+    {
+      MutexLock lock(s_instance_mutex);
+      callback_instance_tag = s_instance_tag;
+    }
+    
     util::DispatchAsyncSafeMainQueue(^{
 	[loaded_form_ presentFromViewController:parent
 			     completionHandler:^(NSError *_Nullable error){
 	    LogInfo("UMP C++: ShowConsentForm completionHandler start");
 	    if (!error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentRequestSuccess);
 	      }
 	    } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	    }
@@ -270,7 +291,7 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
       kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
+    SafeFutureHandle<void> error_handle = CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -278,18 +299,24 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
 
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
+
   util::DispatchAsyncSafeMainQueue(^{
       [UMPConsentForm loadAndPresentIfRequiredFromViewController:parent
 					       completionHandler:^(NSError *_Nullable error){
 	  LogInfo("UMP C++: LoadAndShowConsentFormIfRequired completionHandler start");
 	  if (!error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentRequestSuccess);
 	      }
 	  } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	  }
@@ -321,25 +348,31 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   if (ShowPrivacyOptionsFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
+    SafeFutureHandle<void> error_handle = CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
 
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
+
   util::DispatchAsyncSafeMainQueue(^{
       [UMPConsentForm presentPrivacyOptionsFormFromViewController:parent
 						completionHandler:^(NSError *_Nullable error){
 	  LogInfo("UMP C++: ShowPrivacyOptionsForm completionHandler start");
 	  if (!error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentRequestSuccess);
 	      }
 	  } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	  }
