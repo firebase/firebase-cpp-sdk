@@ -40,6 +40,7 @@ enum ConsentInfoFn {
   kConsentInfoFnShowConsentForm,
   kConsentInfoFnLoadAndShowConsentFormIfRequired,
   kConsentInfoFnShowPrivacyOptionsForm,
+  kConsentInfoFnOperationInProgress,
   kConsentInfoFnCount
 };
 

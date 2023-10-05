@@ -88,7 +88,8 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   if (RequestConsentInfoUpdateLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    LogInfo("UMP C++: RequestConsentInfoUpdate returning operation in progress error");
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentRequestErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -123,7 +124,9 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     ios_parameters.debugSettings = ios_debug_settings;
   }
 
+  LogInfo("UMP C++: RequestConsentInfoUpdate dispatching");
   util::DispatchAsyncSafeMainQueue(^{
+      LogInfo("UMP C++: RequestConsentInfoUpdate calling iOS method in main thread");
       [UMPConsentInformation.sharedInstance
 	  requestConsentInfoUpdateWithParameters:ios_parameters
 	  completionHandler:^(NSError *_Nullable error){
@@ -187,7 +190,7 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   if (LoadConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -195,7 +198,9 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
   loaded_form_ = nil;
 
+  LogInfo("UMP C++: LoadConsentForm dispatching");
   util::DispatchAsyncSafeMainQueue(^{
+      LogInfo("UMP C++: LoadConsentForm calling iOS method in main thread");
 	[UMPConsentForm
 	  loadWithCompletionHandler:^(UMPConsentForm *_Nullable form, NSError *_Nullable error){
 	    LogInfo("UMP C++: LoadConsentForm completionHandler start");
@@ -226,7 +231,7 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
   if (ShowConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -265,7 +270,7 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
       kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -316,7 +321,7 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   if (ShowPrivacyOptionsFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
+    SafeFutureHandle<void> error_handle = CreateFuture(kConsentInfoFnOperationInProgress);
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
