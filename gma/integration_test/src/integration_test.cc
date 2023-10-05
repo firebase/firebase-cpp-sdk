@@ -256,6 +256,7 @@ FirebaseGmaTest::~FirebaseGmaTest() {}
 
 void FirebaseGmaTest::SetUp() {
   TEST_DOES_NOT_REQUIRE_USER_INTERACTION;
+  ProcessEvents(100); // Flush main thread queue.
   FirebaseTest::SetUp();
 
   // This example uses ad units that are specially configured to return test ads
