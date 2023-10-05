@@ -27,7 +27,7 @@ namespace internal {
 
 ConsentInfoInternalIos* ConsentInfoInternalIos::s_instance = nullptr;
 firebase::Mutex ConsentInfoInternalIos::s_instance_mutex;
-
+unsigned int ConsentInfoInternalIos::s_instance_tag = 0;
 
 // This explicitly implements the constructor for the outer class,
 // ConsentInfoInternal.
@@ -40,6 +40,9 @@ ConsentInfoInternalIos::ConsentInfoInternalIos()
   MutexLock lock(s_instance_mutex);
   FIREBASE_ASSERT(s_instance == nullptr);
   s_instance = this;
+  // Increment this with each created instance, to ensure that any leftover
+  // callbacks don't run if a new instance is created.
+  s_instance_tag++;
 }
 
 ConsentInfoInternalIos::~ConsentInfoInternalIos() {
@@ -99,13 +102,16 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   UMPRequestParameters *ios_parameters = [[UMPRequestParameters alloc] init];
   ios_parameters.tagForUnderAgeOfConsent = params.tag_for_under_age_of_consent ? YES : NO;
   UMPDebugSettings *ios_debug_settings = [[UMPDebugSettings alloc] init];
+  bool has_debug_settings = false;
 
   switch(params.debug_settings.debug_geography) {
   case kConsentDebugGeographyEEA:
     ios_debug_settings.geography = UMPDebugGeographyEEA;
+    has_debug_settings = true;
     break;
   case kConsentDebugGeographyNonEEA:
     ios_debug_settings.geography = UMPDebugGeographyNotEEA;
+    has_debug_settings = true;
     break;
   case kConsentDebugGeographyDisabled:
     ios_debug_settings.geography = UMPDebugGeographyDisabled;
@@ -114,17 +120,39 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   if (params.debug_settings.debug_device_ids.size() > 0) {
     ios_debug_settings.testDeviceIdentifiers =
       firebase::util::StringVectorToNSMutableArray(params.debug_settings.debug_device_ids);
+    has_debug_settings = true;
   }
-  ios_parameters.debugSettings = ios_debug_settings;
+  if (has_debug_settings) {
+    ios_parameters.debugSettings = ios_debug_settings;
+  }
+  
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
 
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
       [UMPConsentInformation.sharedInstance
 	  requestConsentInfoUpdateWithParameters:ios_parameters
 	  completionHandler:^(NSError *_Nullable error){
 	  if (!error) {
-	    CompleteFuture(handle, kConsentRequestSuccess);
+            MutexLock lock(s_instance_mutex);
+            if (s_instance && s_instance_tag == callback_instance_tag) {
+              CompleteFuture(handle, kConsentRequestSuccess);
+            }
 	  } else {
-	    CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription.UTF8String);
+            MutexLock lock(s_instance_mutex);
+            if (s_instance && s_instance_tag == callback_instance_tag) {
+              CompleteFuture(handle, CppRequestErrorFromIosRequestError(error.code), error.localizedDescription.UTF8String);
+            }
 	  }
 	}];
     });
@@ -181,23 +209,36 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
   loaded_form_ = nil;
 
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
+
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
 	[UMPConsentForm
 	  loadWithCompletionHandler:^(UMPConsentForm *_Nullable form, NSError *_Nullable error){
 	    if (form) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		SetLoadedForm(form);
 		CompleteFuture(handle, kConsentFormSuccess, "Success");
 	      }
 	    } else if (error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	    } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
 	      }
 	    }
@@ -221,17 +262,30 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
     CompleteFuture(handle, kConsentFormErrorInvalidOperation,
 		   "You must call LoadConsentForm() prior to calling ShowConsentForm().");
   } else {
+    unsigned int callback_instance_tag;
+    {
+      MutexLock lock(s_instance_mutex);
+      callback_instance_tag = s_instance_tag;
+    }
+    
     util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
 	[loaded_form_ presentFromViewController:parent
 			     completionHandler:^(NSError *_Nullable error){
 	    if (!error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentRequestSuccess);
 	      }
 	    } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	    }
@@ -255,17 +309,30 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
 
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
+
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
       [UMPConsentForm loadAndPresentIfRequiredFromViewController:parent
 					       completionHandler:^(NSError *_Nullable error){
 	  if (!error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentRequestSuccess);
 	      }
 	  } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	  }
@@ -303,17 +370,30 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
 
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
+  unsigned int callback_instance_tag;
+  {
+    MutexLock lock(s_instance_mutex);
+    callback_instance_tag = s_instance_tag;
+  }
+
   util::DispatchAsyncSafeMainQueue(^{
+      {
+	MutexLock lock(s_instance_mutex);
+	if (!s_instance || s_instance_tag != callback_instance_tag) {
+	  // Instance changed or was invalidated, don't call the iOS method any more.
+	  return;
+	}
+      }
       [UMPConsentForm presentPrivacyOptionsFormFromViewController:parent
 						completionHandler:^(NSError *_Nullable error){
 	  if (!error) {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, kConsentRequestSuccess);
 	      }
 	  } else {
 	      MutexLock lock(s_instance_mutex);
-	      if (s_instance) {
+	      if (s_instance && s_instance_tag == callback_instance_tag) {
 		CompleteFuture(handle, CppFormErrorFromIosFormError(error.code), error.localizedDescription.UTF8String);
 	      }
 	  }
