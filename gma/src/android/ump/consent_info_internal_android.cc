@@ -421,7 +421,7 @@ Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
     SafeFutureHandle<void> error_handle =
-        CreateFuture(kConsentInfoFnOperationInProgress);
+        CreateFuture();
     CompleteFuture(error_handle, kConsentRequestErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -491,7 +491,7 @@ Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
     SafeFutureHandle<void> error_handle =
-        CreateFuture(kConsentInfoFnOperationInProgress);
+        CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -517,7 +517,7 @@ Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
     SafeFutureHandle<void> error_handle =
-        CreateFuture(kConsentInfoFnOperationInProgress);
+        CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -550,7 +550,7 @@ Future<void> ConsentInfoInternalAndroid::LoadAndShowConsentFormIfRequired(
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
     SafeFutureHandle<void> error_handle =
-        CreateFuture(kConsentInfoFnOperationInProgress);
+        CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
@@ -593,7 +593,7 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
     SafeFutureHandle<void> error_handle =
-        CreateFuture(kConsentInfoFnOperationInProgress);
+        CreateFuture();
     CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
     return MakeFuture<void>(futures(), error_handle);
   }
