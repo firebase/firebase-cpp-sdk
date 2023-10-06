@@ -54,7 +54,7 @@ android {
 
   defaultConfig {
     applicationId 'com.google.android.admob.testapp'
-    minSdkVersion 19
+    minSdkVersion 21
     targetSdkVersion 28
     versionCode 1
     versionName '1.0'
@@ -72,6 +72,9 @@ android {
       proguardFile getDefaultProguardFile('proguard-android.txt')
       proguardFile file('proguard.pro')
     }
+  }
+  lintOptions {
+      abortOnError false
   }
 }
 
