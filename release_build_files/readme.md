@@ -134,7 +134,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:22.3.0
+|                          | com.google.android.gms:play-services-ads:22.4.0
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:2.1.0
 |                          | (Maven package)
