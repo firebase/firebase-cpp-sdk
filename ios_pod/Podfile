@@ -25,5 +25,5 @@ end
 post_install do |installer|
   # Patch FirebaseAppCheck 10.16.0 header to replace @import with #import.
   # TODO (b/304327855): Remove when iOS SDK 10.17.0 is released.
-  system("sed '-i~' 's%^@import FirebaseAppCheckInterop;%#import \"FirebaseAppCheck/Interop/FIRAppCheckInterop.h\"%' Pods/FirebaseAppCheck/FirebaseAppCheck/Sources/Public/FirebaseAppCheck/FIRAppCheck.h")
+  system("sed '-i~' 's%^@import FirebaseAppCheckInterop;%#import \"FirebaseAppCheck/Interop/FIRAppCheckInterop.h\"\\n#import \"FirebaseAppCheck/Interop/FIRAppCheckProtocol.h\"\\n#import \"FirebaseAppCheck/Interop/FIRAppCheckTokenResultInterop.h\"%' Pods/FirebaseAppCheck/FirebaseAppCheck/Sources/Public/FirebaseAppCheck/FIRAppCheck.h")
 end
