@@ -183,6 +183,7 @@ elseif(IOS)
       FirebaseCore
       FirebaseAppCheck
       FirebaseAppCheckInterop
+      INCLUDE_PRIVATE_HEADERS
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
