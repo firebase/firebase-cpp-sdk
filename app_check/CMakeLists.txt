@@ -182,6 +182,7 @@ elseif(IOS)
     POD_NAMES
       FirebaseCore
       FirebaseAppCheck
+      FirebaseAppCheckInterop
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
