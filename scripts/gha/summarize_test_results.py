@@ -49,7 +49,7 @@ from absl import flags
 from absl import logging
 from print_matrix_configuration import PARAMETERS
 from print_matrix_configuration import BUILD_CONFIGS
-from print_matrix_configuration import get_test_devices
+from print_matrix_configuration import get_test_device
 
 import glob
 import re
