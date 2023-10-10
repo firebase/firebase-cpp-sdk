@@ -1044,7 +1044,7 @@ jobs:
           testapp_dir: testapps
           test_type: "game-loop"
           test_devices: ${{ steps.device-info.outputs.device }}
-	  test_device_selection: random
+          test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
           additional_flags: '--client-details matrixLabel=android-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.android_device }}'
@@ -1189,7 +1189,7 @@ jobs:
           testapp_dir: testapps
           test_type: "game-loop"
           test_devices: ${{ steps.device-info.outputs.device }}
-	  test_device_selection: random
+          test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
           additional_flags: '--client-details matrixLabel=ios-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.ios_device }}'
