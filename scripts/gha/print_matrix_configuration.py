@@ -244,29 +244,7 @@ def get_test_device(device_type):
   if not isinstance(device_entry, list):
     # If None or just a dictionary (not in an array)
     return device_entry
-
-  selection = -1
-  # Check if a selection was already made on this machine. If so,
-  # load it and use it. Otherwise, make a random selection and save
-  # the index to ~/.ftl_test_devices/<device_type>.txt.
-  saved_selections_dir = os.path.join(os.path.expanduser("~"),
-                                      ".ftl_test_devices")
-  if not os.path.isdir(saved_selections_dir):
-    os.makedirs(saved_selections_dir)
-  saved_selection_file = os.path.join(saved_selections_dir,
-                                      "%s.txt" % device_type)
-  if os.path.isfile(saved_selection_file):
-    with open(saved_selection_file, 'r') as f:
-      try:
-        selection = int(f.readline())
-        if selection >= len(device_entry): selection = -1
-      except ValueError:
-        selection = -1
-  if selection < 0:
-    selection = random.randint(0, len(device_entry)-1)
-    with open(saved_selection_file, 'w') as f:
-      f.write("%d\n" % selection)
-  return device_entry[selection]
+  return random.choice(device_entry)
 
 
 def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
