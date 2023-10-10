@@ -1043,7 +1043,7 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
           test_type: "game-loop"
-          test_devices: ${{ steps.device-info.outputs.device }}
+          test_devices: '${{ steps.device-info.outputs.device }}'
           test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
@@ -1188,7 +1188,7 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
           test_type: "game-loop"
-          test_devices: ${{ steps.device-info.outputs.device }}
+          test_devices: '${{ steps.device-info.outputs.device }}'
           test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
