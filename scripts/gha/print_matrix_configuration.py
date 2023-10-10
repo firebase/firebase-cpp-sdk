@@ -169,6 +169,8 @@ BUILD_CONFIGS = {
 # For each device type, one entry from the list will be used for each
 # run. If there is only one device type listed, it will be chosen by
 # default.
+#
+# Note: All entries in a given list must have the same type, (ftl or virtual).
 TEST_DEVICES = {
   "android_target": [
       {"type": "ftl", "device": "model=blueline,version=28"}, # Pixel 3
