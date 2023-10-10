@@ -1020,7 +1020,7 @@ jobs:
         id: device-info
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)" >> $GITHUB_OUTPUT
-          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
+          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device_list)" >> $GITHUB_OUTPUT
       - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
         with:
@@ -1037,13 +1037,14 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
+        uses: FirebaseExtended/github-actions/firebase-test-lab@add_random_device_selection
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
           test_type: "game-loop"
           test_devices: ${{ steps.device-info.outputs.device }}
+	  test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
           additional_flags: '--client-details matrixLabel=android-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.android_device }}'
@@ -1148,7 +1149,7 @@ jobs:
         id: device-info
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_device_type)" >> $GITHUB_OUTPUT
-          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
+          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device_list)" >> $GITHUB_OUTPUT
       - name: Set up Node (16)
         uses: actions/setup-node@v3
         with:
@@ -1181,13 +1182,14 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
+        uses: FirebaseExtended/github-actions/firebase-test-lab@add_random_device_selection
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
           test_type: "game-loop"
           test_devices: ${{ steps.device-info.outputs.device }}
+	  test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
           additional_flags: '--client-details matrixLabel=ios-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.ios_device }}'
