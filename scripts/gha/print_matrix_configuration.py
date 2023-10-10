@@ -432,6 +432,9 @@ def main():
   if args.get_ftl_device:
     print(get_test_device(args.parm_key).get("device"))
     return
+  if args.get_ftl_device_list:
+    print(";".join([entry.get("device") for entry in TEST_DEVICES.get(args.parm_key)]))
+    return
 
   if args.expanded:
     test_matrix = EXPANDED_KEY
@@ -461,6 +464,8 @@ def parse_cmdline_args():
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   parser.add_argument('-get_device_type', action='store_true', help='Get the device type, used with -k $device')
   parser.add_argument('-get_ftl_device', action='store_true', help='Get the ftl test device, used with -k $device')
+  parser.add_argument('-get_ftl_device_list', action='store_true',
+                      help='Get the FTL device list (semicolon-delimited) for the given -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
   parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"],
                       help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
