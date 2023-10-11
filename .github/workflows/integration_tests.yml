@@ -1037,7 +1037,7 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@add_random_device_selection
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.3
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
@@ -1182,7 +1182,7 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@add_random_device_selection
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.3
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
