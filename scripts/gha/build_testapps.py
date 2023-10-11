@@ -367,6 +367,7 @@ def _build(
           Failure(testapp=testapp, platform=_ANDROID, error_message=str(e)))
     _rm_dir_safe(os.path.join(project_dir, "build", "intermediates"))
     _rm_dir_safe(os.path.join(project_dir, ".externalNativeBuild"))
+    _rm_dir_safe(os.path.join(project_dir, ".cxx"))
     logging.info("END %s, %s", testapp, _ANDROID)
 
   if _IOS in platforms:
