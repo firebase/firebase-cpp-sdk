@@ -3024,7 +3024,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance) {
 TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_IOS_SIMULATOR;  // LoadAndShowConsentFormIfRequired
-			       // is too quick on simulator.
+                               // is too quick on simulator.
 
   using firebase::gma::ump::ConsentFormStatus;
   using firebase::gma::ump::ConsentRequestParameters;
