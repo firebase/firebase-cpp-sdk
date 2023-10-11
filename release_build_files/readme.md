@@ -633,6 +633,8 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
+    - General (Android): Firebase C++ on Android is now built using Android API
+      level 31 and Gradle 6.7.1.
     - Firestore: Add support for disjunctions in queries (OR queries)
       ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
     - GMA: Added the User Messaging Platform (UMP) SDK, required for obtaining
