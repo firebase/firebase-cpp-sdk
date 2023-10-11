@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
-    <string>com.google.FirebaseCppDynamicLinksTestApp.dev</string>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -18,7 +18,7 @@
     <string>1.0</string>
     <key>CFBundleURLSchemes</key>
     <array>
-      <string>com.google.FirebaseCppDynamicLinksTestApp.dev</string>
+      <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     </array>
     <key>CFBundleURLTypes</key>
     <array>
@@ -26,10 +26,10 @@
         <key>CFBundleTypeRole</key>
         <string>Editor</string>
         <key>CFBundleURLName</key>
-        <string>com.google.FirebaseCppDynamicLinksTestApp.dev</string>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.google.FirebaseCppDynamicLinksTestApp.dev</string>
+          <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
         </array>
       </dict>
       <dict>
@@ -39,7 +39,7 @@
         <string>google</string>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.googleusercontent.apps.200275889654-qu769gpsdre751k4mb40d2ihp91fpqgu</string>
+          <string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
           <string>firebase-game-loop</string>
         </array>
       </dict>
