@@ -34,7 +34,8 @@ allprojects {
 apply plugin: 'com.android.library'
 
 android {
-  compileSdkVersion 28
+  compileSdkVersion 31
+  ndkPath System.getenv('ANDROID_NDK_HOME')
   buildToolsVersion '28.0.3'
 
   sourceSets {
