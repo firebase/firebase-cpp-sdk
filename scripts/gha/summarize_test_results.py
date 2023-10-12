@@ -49,7 +49,7 @@ from absl import flags
 from absl import logging
 from print_matrix_configuration import PARAMETERS
 from print_matrix_configuration import BUILD_CONFIGS
-from print_matrix_configuration import TEST_DEVICES
+from print_matrix_configuration import get_test_device
 
 import glob
 import re
@@ -388,8 +388,8 @@ def combine_config(platform, config, config_value, k):
   if len(config_value) > 1 and len(config) == len(config_value):
     config = ["All %d %s" % (len(config_value), config_name)]
   elif config_name == "ios_device":
-    ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "ftl", config_value))
-    simulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
+    ftl_devices = set(filter(lambda device: get_test_device(device).get("type") in "ftl", config_value))
+    simulators = set(filter(lambda device: get_test_device(device).get("type") in "virtual", config_value))
     if len(ftl_devices) > 1 and ftl_devices.issubset(set(config)):
       config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
@@ -397,8 +397,8 @@ def combine_config(platform, config, config_value, k):
       config.insert(0, "All %d Local Simulators" % len(simulators))
       config = [x for x in config if (x not in simulators)]
   elif config_name == "android_device":
-    ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "ftl", config_value))
-    emulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
+    ftl_devices = set(filter(lambda device: get_test_device(device).get("type") in "ftl", config_value))
+    emulators = set(filter(lambda device: get_test_device(device).get("type") in "virtual", config_value))
     if len(ftl_devices) > 1 and ftl_devices.issubset(set(config)):
       config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
