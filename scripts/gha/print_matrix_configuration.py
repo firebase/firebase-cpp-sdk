@@ -57,6 +57,7 @@ python3 scripts/gha/print_matrix_configuration.py -c -w integration_tests
 import argparse
 import json
 import os
+import random
 import re
 import subprocess
 import sys
@@ -164,23 +165,94 @@ BUILD_CONFIGS = {
 # Check currently supported models and versions with the following commands:
 #   gcloud firebase test android models list
 #   gcloud firebase test ios models list
+
+# For each device type, one entry from the list will be used for each
+# run. If there is only one device type listed, it will be chosen by
+# default.
+#
+# Note: All entries in a given list must have the same type, (ftl or virtual).
 TEST_DEVICES = {
-  "android_target": {"type": "ftl", "device": "model=blueline,version=28"},
-  "android_latest": {"type": "ftl", "device": "model=oriole,version=33"},
-  "emulator_ftl_target": {"type": "ftl", "device": "model=Pixel2,version=28"},
-  "emulator_ftl_latest": {"type": "ftl", "device": "model=Pixel2.arm,version=32"},
-  "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
-  "emulator_latest": {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"},
-  "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
-  "ios_min": {"type": "ftl", "device": "model=iphone8,version=14.7"},
-  "ios_target": {"type": "ftl", "device": "model=iphone13pro,version=15.7"},
-  "ios_latest": {"type": "ftl", "device": "model=iphone11pro,version=16.6"},
-  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"15.2"},
-  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"16.1"},
-  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"16.1"},
-  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"16.1"},
+  "android_target": [
+      {"type": "ftl", "device": "model=blueline,version=28"}, # Pixel 3
+      {"type": "ftl", "device": "model=dreamlte,version=28"},  # Galaxy S8
+      {"type": "ftl", "device": "model=gts3lltevzw,version=28"},  # Galaxy Tab S3
+      {"type": "ftl", "device": "model=vivo_1906,version=28"},  # vivo 1906
+      {"type": "ftl", "device": "model=SH-01L,version=28"},  # AQUOS sense2 SH-01L
+      {"type": "ftl", "device": "model=PD1901,version=28"},  # VIVO 1901
+  ],
+  "android_latest": [
+      {"type": "ftl", "device": "model=oriole,version=33"},  # Pixel 6
+      {"type": "ftl", "device": "model=panther,version=33"},  # Pixel 7
+      {"type": "ftl", "device": "model=lynx,version=33"},  # Pixel 7a
+      {"type": "ftl", "device": "model=cheetah,version=33"},  # Pixel 7 Pro
+      {"type": "ftl", "device": "model=felix,version=33"},  # Pixel Fold
+      {"type": "ftl", "device": "model=tangorpro,version=33"},  # Pixel Tablet
+      {"type": "ftl", "device": "model=gts8uwifi,version=33"},  # Galaxy Tab S8 Ultra
+      {"type": "ftl", "device": "model=b0q,version=33"},  # Galaxy S22 Ultra
+      {"type": "ftl", "device": "model=b4q,version=33"},  # Galaxy Z Flip4
+  ],
+  "emulator_ftl_target": [
+      {"type": "ftl", "device": "model=Pixel2,version=28"},
+      {"type": "ftl", "device": "model=Pixel2.arm,version=28"},
+      {"type": "ftl", "device": "model=MediumPhone.arm,version=28"},
+      {"type": "ftl", "device": "model=MediumTablet.arm,version=28"},
+      {"type": "ftl", "device": "model=SmallPhone.arm,version=28"},
+  ],
+  "emulator_ftl_latest": [
+      {"type": "ftl", "device": "model=Pixel2.arm,version=32"},
+      {"type": "ftl", "device": "model=MediumPhone.arm,version=32"},
+      {"type": "ftl", "device": "model=MediumTablet.arm,version=32"},
+      {"type": "ftl", "device": "model=SmallPhone.arm,version=32"},
+  ],
+  "emulator_target": [ {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"} ],
+  "emulator_latest": [ {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"} ],
+  "emulator_32bit": [ {"type": "virtual", "image":"system-images;android-30;google_apis;x86"} ],
+  "ios_min": [
+      # Slightly different OS versions because of limited FTL selection.
+      {"type": "ftl", "device": "model=iphone8,version=14.7"},
+      {"type": "ftl", "device": "model=iphone11pro,version=14.7"},
+      {"type": "ftl", "device": "model=iphone12pro,version=14.8"},
+  ],
+  "ios_target": [
+      # Slightly different OS versions because of limited FTL selection.
+      {"type": "ftl", "device": "model=iphone13pro,version=15.7"},
+      {"type": "ftl", "device": "model=iphone8,version=15.7"},
+      {"type": "ftl", "device": "model=ipadmini4,version=15.4"},
+  ],
+  "ios_latest": [
+      {"type": "ftl", "device": "model=iphone14pro,version=16.6"},
+      {"type": "ftl", "device": "model=iphone11pro,version=16.6"},
+      {"type": "ftl", "device": "model=iphone8,version=16.6"},
+      {"type": "ftl", "device": "model=ipad10,version=16.6"},
+  ],
+  "simulator_min": [ {"type": "virtual", "name":"iPhone 8", "version":"15.2"} ],
+  "simulator_target": [ {"type": "virtual", "name":"iPhone 8", "version":"16.1"} ],
+  "simulator_latest": [ {"type": "virtual", "name":"iPhone 11", "version":"16.1"} ],
+  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],
 }
 
+# Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model
+# is chosen on a specific machine, it will be maintained on that same machine.
+def get_test_device(device_type):
+  """Get a TEST_DEVICES entry for the given device type.
+
+  If there is more than one entry listed for the given device type, one will be
+  selected randomly. Once a selection is made for a given device_type, the same
+  selection will be returned on subsequent calls.
+
+  Args:
+      device_type(str): Device type (key for TEST_DEVICES dictionary)
+
+  Returns:
+      A single entry from TEST_DEVICES (dictionary), or None if the key is not
+      found.
+
+  """
+  device_entry = TEST_DEVICES.get(device_type)
+  if not isinstance(device_entry, list):
+    # If None or just a dictionary (not in an array)
+    return device_entry
+  return random.choice(device_entry)
 
 
 def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
@@ -208,7 +280,7 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
     if test_matrix and test_matrix in workflow_block["matrix"]:
       if parm_key in workflow_block["matrix"][test_matrix]:
         return workflow_block["matrix"][test_matrix][parm_key]
-    
+
     return workflow_block[parm_type_key][parm_key]
 
   else:
@@ -223,8 +295,8 @@ def filter_devices(devices, device_type):
   """ Filter device by device_type
   """
   device_type = device_type.replace("real","ftl")
-  filtered_value = filter(lambda device: TEST_DEVICES.get(device).get("type") in device_type, devices)
-  return list(filtered_value)  
+  filtered_value = filter(lambda device: get_test_device(device).get("type") in device_type, devices)
+  return list(filtered_value)
 
 
 def print_value(value):
@@ -343,7 +415,7 @@ def filter_platforms_on_apis(platforms, apis):
     supported_apis = [api for api in apis if config.get_api(api).tvos_target]
     if not supported_apis:
       platforms.remove("tvOS")
-  
+
   return platforms
 
 
@@ -361,11 +433,14 @@ def main():
     return
 
   if args.get_device_type:
-    print(TEST_DEVICES.get(args.parm_key).get("type"))
-    return 
+    print(get_test_device(args.parm_key).get("type"))
+    return
   if args.get_ftl_device:
-    print(TEST_DEVICES.get(args.parm_key).get("device"))
-    return 
+    print(get_test_device(args.parm_key).get("device"))
+    return
+  if args.get_ftl_device_list:
+    print(";".join([entry.get("device") for entry in TEST_DEVICES.get(args.parm_key)]))
+    return
 
   if args.expanded:
     test_matrix = EXPANDED_KEY
@@ -395,8 +470,10 @@ def parse_cmdline_args():
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   parser.add_argument('-get_device_type', action='store_true', help='Get the device type, used with -k $device')
   parser.add_argument('-get_ftl_device', action='store_true', help='Get the ftl test device, used with -k $device')
+  parser.add_argument('-get_ftl_device_list', action='store_true',
+                      help='Get the FTL device list (semicolon-delimited) for the given -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
-  parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"], 
+  parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"],
                       help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
   args = parser.parse_args()
   return args
