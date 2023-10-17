@@ -1413,7 +1413,7 @@ jobs:
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
       - name: Retry failed tests
-        if: failure() # && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
+        if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
         run: |
           echo "::warning ::Running workflow to attempt to retry failed tests"
           python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
@@ -1421,5 +1421,3 @@ jobs:
           -p run_id ${{ github.run_id }} \
           -s 10 \
           -A
-
-
