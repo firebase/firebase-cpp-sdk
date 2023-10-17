@@ -1038,7 +1038,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.3
-        timeout-minutes: 90
+        timeout-minutes: 20
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1412,8 +1412,23 @@ jobs:
             ${additional_flags[*]}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
+
+  attempt_retry:
+    name: "attempt-retry"
+    needs: [check_and_prepare, summarize_results]
+    runs-on: ubuntu-20.04
+    if: ${{ failed() }} # && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.pythonVersion }}
+      - name: Install python deps
+        run: pip install -r scripts/gha/python_requirements.txt
       - name: Retry failed tests
-        if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
         run: |
           echo "::warning ::Attempting to retry failed tests"
           python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
