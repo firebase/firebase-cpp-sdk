@@ -66,6 +66,10 @@ def main(argv):
   # Get list of workflow jobs.
   workflow_jobs = firebase_github.list_jobs_for_workflow_run(
       FLAGS.token, FLAGS.run_id, attempt='all')
+  if not workflow_jobs or len(workflow_jobs) == 0:
+    logging.error("No jobs found for workflow run %s", FLAGS.run_id)
+    exit(1)
+
   failed_jobs = {}
   all_jobs = {}
   for job in workflow_jobs:
@@ -116,7 +120,8 @@ def main(argv):
     logging.info("Re-running failed jobs in workflow run %s", FLAGS.run_id)
     if not firebase_github.rerun_failed_jobs_for_workflow_run(
         FLAGS.token, FLAGS.run_id):
-      logging.fatal("Error submitting GitHub API request")
+      logging.error("Error submitting GitHub API request")
+      exit(1)
   else:
     logging.info("Not re-running jobs.")
 
