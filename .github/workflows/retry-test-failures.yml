@@ -1,0 +1,17 @@
+name: Retry Test Failures
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID to check and retry'
+        default: ''
+        required: true
+
+jobs:
+  check_results_and_retry_if_needed:
+    name: check-results-and-retry-if-needed
+    runs-on: ubuntu-20.04
+    if:
+    steps:
+      - name: No-op
+        run: true
