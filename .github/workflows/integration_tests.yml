@@ -1415,7 +1415,7 @@ jobs:
       - name: Retry failed tests
         if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
         run: |
-          echo "::warning ::Running workflow to attempt to retry failed tests"
+          echo "::warning ::Attempting to retry failed tests"
           python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
           -w retry-test-failures.yml \
           -p run_id ${{ github.run_id }} \
