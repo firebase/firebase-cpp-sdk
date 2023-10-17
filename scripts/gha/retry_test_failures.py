@@ -93,7 +93,7 @@ def main(argv):
       break
     if job['run_attempt'] > MAX_RETRIES:
       # Don't retry a job more than MAX_RETRIES times.
-      logging.info("Not retrying, as %s has already been retried %d times",
+      logging.info("Not retrying, as %s has already been attempted %d times",
                    job['name'], job['run_attempt'])
       should_rerun_jobs = False
       break
