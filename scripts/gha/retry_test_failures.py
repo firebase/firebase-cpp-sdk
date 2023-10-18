@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A utility to dismiss PR reviews.
+"""A utility to retry failed jobs in a workflow run.
 
 USAGE:
   python3 scripts/gha/retry_test_failures.py \
