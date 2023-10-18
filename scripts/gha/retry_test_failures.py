@@ -78,7 +78,7 @@ def main(argv):
       if job['name'] in failed_jobs:
         other_run = failed_jobs[job['name']]
         if job['run_attempt'] > other_run['run_attempt']:
-          # This is a later run than the one that's arleady there
+          # This is a later run than the one that's already there
           failed_jobs[job['name']] = job
       else:
         failed_jobs[job['name']] = job
