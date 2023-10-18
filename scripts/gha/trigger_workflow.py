@@ -86,8 +86,8 @@ def main():
     workflow_url = 'https://github.com/firebase/firebase-cpp-sdk/actions/runs/%s' % (run_id)
   else:
     # Couldn't get a run ID, use a generic URL.
-    workflow_url = 'https://github.com/firebase/firebase-cpp-sdk/actions/workflows/%s?query=%s+%s' % (
-      args.workflow,
+    workflow_url = '%s/actions/workflows/%s?query=%s+%s' % (
+      'https://github.com/firebase/firebase-cpp-sdk', args.workflow,
       urllib.parse.quote('event:workflow_dispatch', safe=''),
       urllib.parse.quote('branch:'+args.branch, safe=''))
   print('%sStarted workflow %s: %s' % ('::warning ::' if args.in_github_action else '',
