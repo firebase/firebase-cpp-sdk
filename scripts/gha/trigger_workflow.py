@@ -53,13 +53,13 @@ def main():
     print(f'request_url: {firebase_github.GITHUB_API_URL}/actions/workflows/{args.workflow}/dispatches')
     print(f'request_body: ref: {args.branch}, inputs: {json_params}')
   if args.dryrun:
-    return(0)
+    exit(0)
 
   print('Sending request to GitHub API...')
   if not firebase_github.create_workflow_dispatch(args.token, args.workflow, args.branch, json_params):
     print('%sFailed to trigger workflow %s' % (
       '::error ::' if args.in_github_action else '', args.workflow))
-    return(-1)
+    exit(1)
 
   print('Success!')
   time.sleep(args.sleep)  # Give a few seconds for the job to become queued.
