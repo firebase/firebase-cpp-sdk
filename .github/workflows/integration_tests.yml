@@ -1412,3 +1412,34 @@ jobs:
             ${additional_flags[*]}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
+
+  attempt_retry:
+    name: "attempt-retry"
+    needs: [check_and_prepare, summarize_results]
+    runs-on: ubuntu-20.04
+    if: ${{ failure() && !cancelled() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.pythonVersion }}
+      - name: Install python deps
+        run: pip install -r scripts/gha/python_requirements.txt
+      # The default token can't run workflows, so get an alternate token.
+      - name: Generate token for GitHub API
+        uses: tibdex/github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+      - name: Retry failed tests
+        run: |
+          echo "::warning ::Attempting to retry failed tests"
+          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+          -w retry-test-failures.yml \
+          -p run_id ${{ github.run_id }} \
+          -s 10 \
+          -A
