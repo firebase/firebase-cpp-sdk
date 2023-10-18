@@ -366,5 +366,5 @@ def rerun_failed_jobs_for_workflow_run(token, run_id):
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests.post(url, headers=headers,
                     stream=True, timeout=TIMEOUT) as response:
-    logging.info("rerun_failed_jobs_for_workflow_run: %s response: %s", run_id, response)
+    logging.info("rerun_failed_jobs_for_workflow_run: %s response: %s", url, response)
     return True if response.status_code == 201 else False
