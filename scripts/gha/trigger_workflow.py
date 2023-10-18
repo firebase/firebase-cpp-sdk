@@ -38,6 +38,7 @@ def main():
   args = parse_cmdline_args()
   if args.branch is None:
     args.branch=subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').rstrip('\n')
+    if args.branch == 'HEAD': args.branch = 'main'
     print('autodetected branch: %s' % args.branch)
   if args.repo: # else use default firebase/firebase-cpp-sdk repo
     if not firebase_github.set_repo_url(args.repo):
