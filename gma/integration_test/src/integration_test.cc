@@ -2661,8 +2661,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
             firebase::gma::ump::kConsentFormStatusAvailable);
 
   // Load the form. Run this step with retry in case of network timeout.
-  WaitForCompletionAnyResult(RunWithRetry([&]() { return consent_info_->LoadConsentForm(); }),
-    "LoadConsentForm");
+  WaitForCompletionAnyResult(
+      RunWithRetry([&]() { return consent_info_->LoadConsentForm(); }),
+      "LoadConsentForm");
 
   firebase::Future<void> future = consent_info_->LoadConsentFormLastResult();
 
