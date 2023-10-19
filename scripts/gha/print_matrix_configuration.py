@@ -176,7 +176,6 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=blueline,version=28"}, # Pixel 3
       {"type": "ftl", "device": "model=dreamlte,version=28"},  # Galaxy S8
       {"type": "ftl", "device": "model=gts3lltevzw,version=28"},  # Galaxy Tab S3
-      {"type": "ftl", "device": "model=vivo_1906,version=28"},  # vivo 1906
       {"type": "ftl", "device": "model=SH-01L,version=28"},  # AQUOS sense2 SH-01L
       {"type": "ftl", "device": "model=PD1901,version=28"},  # VIVO 1901
   ],

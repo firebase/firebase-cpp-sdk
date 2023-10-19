@@ -10,7 +10,7 @@ on *iOS* and *Android*:
 *   Firebase Dynamic Links
 *   Cloud Firestore
 *   Firebase Functions
-*   Google Mobile Ads
+*   Google Mobile Ads (with User Messaging Platform)
 *   Firebase Installations
 *   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
@@ -631,10 +631,14 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Next Release
+### Upcoming Release
 -   Changes
     - General (Android): Firebase C++ on Android is now built using Android API
       level 31 and Gradle 6.7.1.
+
+### 11.6.0
+-   Changes
+    - General (iOS): Update to Firebase Cocoapods version 10.16.0.
     - Firestore: Add support for disjunctions in queries (OR queries)
       ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
     - GMA: Added the User Messaging Platform (UMP) SDK, required for obtaining
