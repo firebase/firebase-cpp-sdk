@@ -2660,12 +2660,14 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
 
-  // Load the form.
-  firebase::Future<void> future = consent_info_->LoadConsentForm();
+  // Load the form. Run this step with retry in case of timeout.
+  WaitForCompletion(RunWithRetry(
+      [&]() { return consent_info_->LoadConsentForm(); }, "LoadConsentForm",
+      firebase::gma::ump::kConsentFormErrorTimeout), "LoadconsentForm");
+
+  firebase::Future<void> future = consent_info_->LoadConsentFormLastResult();
 
   EXPECT_TRUE(future == consent_info_->LoadConsentFormLastResult());
-
-  WaitForCompletion(future, "LoadConsentForm");
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
