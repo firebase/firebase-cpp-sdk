@@ -41,7 +41,7 @@ GITHUB_API_URL = '%s/repos/%s/%s' % (BASE_URL, OWNER, REPO)
 logging.set_verbosity(logging.INFO)
 
 
-def set_repo_url(repo):  
+def set_repo_url(repo):
   match = re.match(r'https://github\.com/([^/]+)/([^/.]+)', repo)
   if not match:
     logging.info('Error, only pattern https://github.com/\{repo_owner\}/\{repo_name\} are allowed.')
@@ -312,3 +312,59 @@ def list_workflow_runs(token, workflow_id, branch=None, event=None, limit=200):
         results = results[:limit]
   return results
 
+
+def list_jobs_for_workflow_run(token, run_id, attempt=None, limit=200):
+  """https://docs.github.com/en/rest/actions/workflow-jobs#list-jobs-for-a-workflow-run
+  https://docs.github.com/en/rest/actions/workflow-jobs#list-jobs-for-a-workflow-run-attempt
+
+  Args:
+    attempt: Which attempt to fetch. Should be a number >0, 'latest', or 'all'.
+    If unspecified, returns 'latest'.
+  """
+  if attempt == 'latest' or attempt== 'all' or attempt == None:
+    url = f'{GITHUB_API_URL}/actions/runs/{run_id}/jobs'
+  else:
+    url = f'{GITHUB_API_URL}/actions/runs/{run_id}/attempts/{attempt}/jobs'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  page = 1
+  per_page = 100
+  results = []
+  keep_going = True
+  while keep_going:
+    params = {'per_page': per_page, 'page': page}
+    if attempt == 'latest' or attempt == 'all':
+      params.update({'filter': attempt})
+    page = page + 1
+    keep_going = False
+    with requests_retry_session().get(url, headers=headers, params=params,
+                      stream=True, timeout=TIMEOUT) as response:
+      logging.info("list_jobs_for_workflow_run: %s page %d, response: %s",
+                   url, params['page'], response)
+      if 'jobs' not in response.json():
+        break
+      job_results = response.json()['jobs']
+      results = results + job_results
+      # If exactly per_page results were retrieved, read the next page.
+      keep_going = (len(job_results) == per_page)
+      if limit > 0 and len(results) >= limit:
+        keep_going = False
+        results = results[:limit]
+  return results
+
+def download_job_logs(token, job_id):
+  """https://docs.github.com/en/rest/actions/workflow-jobs#download-job-logs-for-a-workflow-run"""
+  url = f'{GITHUB_API_URL}/actions/jobs/{job_id}/logs'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  with requests_retry_session().get(url, headers=headers, stream=True, timeout=TIMEOUT) as response:
+    logging.info("download_job_logs: %s response: %s", url, response)
+    return response.content.decode('utf-8')
+
+
+def rerun_failed_jobs_for_workflow_run(token, run_id):
+  """https://docs.github.com/en/rest/actions/workflow-runs#re-run-failed-jobs-from-a-workflow-run"""
+  url = f'{GITHUB_API_URL}/actions/runs/{run_id}/rerun-failed-jobs'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  with requests.post(url, headers=headers,
+                    stream=True, timeout=TIMEOUT) as response:
+    logging.info("rerun_failed_jobs_for_workflow_run: %s response: %s", url, response)
+    return True if response.status_code == 201 else False

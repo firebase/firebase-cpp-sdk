@@ -38,6 +38,7 @@ def main():
   args = parse_cmdline_args()
   if args.branch is None:
     args.branch=subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').rstrip('\n')
+    if args.branch == 'HEAD': args.branch = 'main'
     print('autodetected branch: %s' % args.branch)
   if args.repo: # else use default firebase/firebase-cpp-sdk repo
     if not firebase_github.set_repo_url(args.repo):
@@ -52,13 +53,13 @@ def main():
     print(f'request_url: {firebase_github.GITHUB_API_URL}/actions/workflows/{args.workflow}/dispatches')
     print(f'request_body: ref: {args.branch}, inputs: {json_params}')
   if args.dryrun:
-    return(0)
+    exit(0)
 
   print('Sending request to GitHub API...')
   if not firebase_github.create_workflow_dispatch(args.token, args.workflow, args.branch, json_params):
     print('%sFailed to trigger workflow %s' % (
       '::error ::' if args.in_github_action else '', args.workflow))
-    return(-1)
+    exit(1)
 
   print('Success!')
   time.sleep(args.sleep)  # Give a few seconds for the job to become queued.
@@ -67,12 +68,16 @@ def main():
   workflows = firebase_github.list_workflows(args.token, args.workflow, args.branch)
   run_id = 0
   if "workflow_runs" in workflows:
-    branch_sha = subprocess.check_output(['git', 'rev-parse', args.branch]).decode('utf-8').rstrip('\n')
+    try:
+      branch_sha = subprocess.check_output(['git', 'rev-parse', args.branch]).decode('utf-8').rstrip('\n')
+    except subprocess.CalledProcessError as e:
+      # Failed to get branch SHA, ignore.
+      branch_sha = None
     for workflow in workflows['workflow_runs']:
       # Use a heuristic to get the new workflow's run ID.
       # Must match the branch name and commit sha, and be queued/in progress.
       if (workflow['status'] in ('queued', 'in_progress') and
-          workflow['head_sha'] == branch_sha and
+          (workflow['head_sha'] == branch_sha or not branch_sha) and
           workflow['head_branch'] == args.branch):
         run_id = workflow['id']
         break
@@ -82,7 +87,7 @@ def main():
   else:
     # Couldn't get a run ID, use a generic URL.
     workflow_url = '%s/actions/workflows/%s?query=%s+%s' % (
-      firebase_github.GITHUB_API_URL, args.workflow,
+      'https://github.com/firebase/firebase-cpp-sdk', args.workflow,
       urllib.parse.quote('event:workflow_dispatch', safe=''),
       urllib.parse.quote('branch:'+args.branch, safe=''))
   print('%sStarted workflow %s: %s' % ('::warning ::' if args.in_github_action else '',
