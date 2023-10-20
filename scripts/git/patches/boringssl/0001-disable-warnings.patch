@@ -9,6 +9,9 @@
 +      "C4191" # 'operator/operation' : unsafe conversion from 'type of
 +              # expression' to 'type required'
 +      "C5264" # 'const' variable is not used
++      "C4746" # volatile access of 'label' is subject to /volatile:<iso|ms>
++              # setting; consider using __iso_volatile_load/store intrinsic
++              # functions
        "C4267" # conversion from 'size_t' to 'int', possible loss of data
        "C4371" # layout of class may have changed from a previous version of the
                # compiler due to better packing of member '...'
