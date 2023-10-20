@@ -85,6 +85,10 @@ const std::vector<NativeAdImage>& NativeAd::images() const {
   return internal_->images();
 }
 
+const NativeAdImage& NativeAd::adchoices_icon() const {
+  return internal_->adchoices_icon();
+}
+
 Future<void> NativeAd::RecordImpression(const Variant& impression_data) {
   if (!impression_data.is_map()) {
     return CreateAndCompleteFuture(

@@ -188,16 +188,26 @@ void UpdateCurrentUser(AuthData* auth_data) {
   }
 }
 
+void SetEmulatorJni(AuthData* auth_data, const char* host, uint32_t port) {
+  JNIEnv* env = Env(auth_data);
+
+  jstring j_host = env->NewStringUTF(host);
+  env->CallVoidMethod(AuthImpl(auth_data),
+                      auth::GetMethodId(auth::kUseEmulator), j_host, port);
+  env->DeleteLocalRef(j_host);
+  firebase::util::CheckAndClearJniExceptions(env);
+}
+
 const char* const kEmulatorLocalHost = "10.0.2.2";
 const char* const kEmulatorPort = "9099";
 void CheckEmulator(AuthData* auth_data) {
-  JNIEnv* env = Env(auth_data);
-
   // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_AUTH_EMULATOR") == nullptr) {
-    LogDebug("Using Auth Prod for testing.");
+    LogInfo("Using Auth Prod for testing.");
     return;
   }
+
+  LogInfo("Using Auth Emulator for testing.");
 
   // Use AUTH_EMULATOR_PORT if it is set to non empty string,
   // otherwise use the default port.
@@ -205,12 +215,7 @@ void CheckEmulator(AuthData* auth_data) {
   if (std::getenv("AUTH_EMULATOR_PORT") != nullptr) {
     port = std::stoi(std::getenv("AUTH_EMULATOR_PORT"));
   }
-
-  jstring j_host = env->NewStringUTF(kEmulatorLocalHost);
-  env->CallVoidMethod(AuthImpl(auth_data),
-                      auth::GetMethodId(auth::kUseEmulator), j_host, port);
-  env->DeleteLocalRef(j_host);
-  firebase::util::CheckAndClearJniExceptions(env);
+  SetEmulatorJni(auth_data, kEmulatorLocalHost, port);
 }
 
 // Release cached Java classes.
@@ -824,6 +829,10 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
     env->DeleteLocalRef(pending_result);
   }
   return MakeFuture(&futures, handle);
+}
+
+void Auth::UseEmulator(std::string host, uint32_t port) {
+  SetEmulatorJni(auth_data_, host.c_str(), port);
 }
 
 // Not implemented for Android.

@@ -23,6 +23,8 @@
 
 + (void)initiateOnDeviceConversionMeasurementWithEmailAddress:(nonnull NSString *)emailAddress;
 
++ (void)InitiateOnDeviceConversionMeasurementWithPhoneNumber:(nonnull NSString *)phoneNumber;
+
 + (void)setUserPropertyString:(nullable NSString *)value forName:(nonnull NSString *)name;
 
 + (void)setUserID:(nullable NSString *)userID;

@@ -35,8 +35,8 @@ TEST(ResetPasswordTest, TestResetPasswordRequest) {
       request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  oobCode: \"oob\",\n"
-      "  newPassword: \"password\"\n"
+      "  \"oobCode\": \"oob\",\n"
+      "  \"newPassword\": \"password\"\n"
       "}\n",
       request.options().post_fields);
 }

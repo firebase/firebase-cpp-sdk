@@ -60,6 +60,11 @@
                           { [emailAddress UTF8String] });
 }
 
++ (void)initiateOnDeviceConversionMeasurementWithPhoneNumber:(nonnull NSString *)phoneNumber {
+  FakeReporter->AddReport("+[FIRAnalytics initiateOnDeviceConversionMeasurementWithPhoneNumber:]",
+                          { [phoneNumber UTF8String] });
+}
+
 + (void)setUserPropertyString:(nullable NSString *)value forName:(nonnull NSString *)name {
   FakeReporter->AddReport("+[FIRAnalytics setUserPropertyString:forName:]",
                           { [name UTF8String], value ? [value UTF8String] : "nil" });

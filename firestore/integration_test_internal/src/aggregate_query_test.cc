@@ -17,6 +17,11 @@
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
 
+#if defined(__ANDROID__)
+#include "firestore/src/android/aggregate_query_android.h"
+#include "firestore/src/common/wrapper_assertions.h"
+#endif  // defined(__ANDROID__)
+
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -331,6 +336,16 @@ TEST_F(AggregateQueryTest, TestHashCode) {
   EXPECT_EQ(AggregateQueryHash(query1.Count()),
             AggregateQueryHash(query1.Count()));
 }
+
+#if defined(__ANDROID__)
+TEST(QueryTestAndroidStub, Construction) {
+  testutil::AssertWrapperConstructionContract<AggregateQuery>();
+}
+
+TEST(QueryTestAndroidStub, Assignment) {
+  testutil::AssertWrapperAssignmentContract<AggregateQuery>();
+}
+#endif  // defined(__ANDROID__)
 
 }  // namespace
 }  // namespace firestore

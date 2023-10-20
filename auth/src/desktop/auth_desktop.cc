@@ -715,6 +715,14 @@ void Auth::UseAppLanguage() {
   auth_impl->language_code.assign(empty_string);
 }
 
+void Auth::UseEmulator(std::string host, uint32_t port) {
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  auth_impl->assigned_emulator_url = "";
+  auth_impl->assigned_emulator_url.append(host);
+  auth_impl->assigned_emulator_url.append(":");
+  auth_impl->assigned_emulator_url.append(std::to_string(port));
+}
+
 void InitializeTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Initialize(auth_data);

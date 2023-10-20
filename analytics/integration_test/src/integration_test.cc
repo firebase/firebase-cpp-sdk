@@ -190,6 +190,8 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
   // Initiate on-device conversion measurement.
   firebase::analytics::InitiateOnDeviceConversionMeasurementWithEmailAddress(
       "my_email@site.com");
+  firebase::analytics::InitiateOnDeviceConversionMeasurementWithPhoneNumber(
+      "+15551234567");
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {

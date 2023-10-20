@@ -164,6 +164,7 @@ class FieldPath final {
   friend bool operator!=(const FieldPath& lhs, const FieldPath& rhs);
   friend struct std::hash<FieldPath>;
 
+  friend class Filter;
   friend class DocumentSnapshot;  // For access to `FromDotSeparatedString`
   friend class Query;
   friend class QueryInternal;

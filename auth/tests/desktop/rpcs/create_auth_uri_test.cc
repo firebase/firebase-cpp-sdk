@@ -36,8 +36,8 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
       request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  identifier: \"email\",\n"
-      "  continueUri: \"http://localhost\"\n"
+      "  \"identifier\": \"email\",\n"
+      "  \"continueUri\": \"http://localhost\"\n"
       "}\n",
       request.options().post_fields);
 }

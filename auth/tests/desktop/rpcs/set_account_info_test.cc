@@ -41,9 +41,9 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  email: \"fakeemail\",\n"
-      "  returnSecureToken: true,\n"
-      "  idToken: \"token\"\n"
+      "  \"email\": \"fakeemail\",\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"token\"\n"
       "}\n",
       request->options().post_fields);
 }
@@ -60,9 +60,9 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdatePassword) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  password: \"fakepassword\",\n"
-      "  returnSecureToken: true,\n"
-      "  idToken: \"token\"\n"
+      "  \"password\": \"fakepassword\",\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"token\"\n"
       "}\n",
       request->options().post_fields);
 }
@@ -79,10 +79,10 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Full) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  displayName: \"New Name\",\n"
-      "  returnSecureToken: true,\n"
-      "  idToken: \"token\",\n"
-      "  photoUrl: \"new_url\"\n"
+      "  \"displayName\": \"New Name\",\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"token\",\n"
+      "  \"photoUrl\": \"new_url\"\n"
       "}\n",
       request->options().post_fields);
 }
@@ -99,9 +99,9 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Partial) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  returnSecureToken: true,\n"
-      "  idToken: \"token\",\n"
-      "  photoUrl: \"new_url\"\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"token\",\n"
+      "  \"photoUrl\": \"new_url\"\n"
       "}\n",
       request->options().post_fields);
 }
@@ -117,9 +117,9 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_DeleteFields) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  returnSecureToken: true,\n"
-      "  idToken: \"token\",\n"
-      "  deleteAttribute: [\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"token\",\n"
+      "  \"deleteAttribute\": [\n"
       "    \"DISPLAY_NAME\",\n"
       "    \"PHOTO_URL\"\n"
       "  ]\n"
@@ -140,10 +140,10 @@ TEST(SetAccountInfoTest,
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  returnSecureToken: true,\n"
-      "  idToken: \"token\",\n"
-      "  photoUrl: \"new_url\",\n"
-      "  deleteAttribute: [\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"token\",\n"
+      "  \"photoUrl\": \"new_url\",\n"
+      "  \"deleteAttribute\": [\n"
       "    \"DISPLAY_NAME\"\n"
       "  ]\n"
       "}\n",
@@ -162,9 +162,9 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_Unlink) {
       request->options().url);
   EXPECT_EQ(
       "{\n"
-      "  returnSecureToken: true,\n"
-      "  idToken: \"token\",\n"
-      "  deleteProvider: [\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"token\",\n"
+      "  \"deleteProvider\": [\n"
       "    \"fakeprovider\"\n"
       "  ]\n"
       "}\n",

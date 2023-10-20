@@ -966,32 +966,6 @@ TEST_F(ValidationTest, QueryOrderByKeyBoundsMustBeStringsWithoutSlashes) {
                ErrorMessage(ErrorCase::kQueryInvalidBoundWithSlash));
 }
 
-TEST_F(ValidationTest, QueriesWithDifferentInequalityFieldsFail) {
-  EXPECT_ERROR(Collection()
-                   .WhereGreaterThan("x", FieldValue::Integer(32))
-                   .WhereLessThan("y", FieldValue::String("cat")),
-               ErrorMessage(ErrorCase::kQueryDifferentInequalityFields));
-}
-
-TEST_F(ValidationTest, QueriesWithInequalityDifferentThanFirstOrderByFail) {
-  CollectionReference collection = Collection();
-  std::string reason =
-      ErrorMessage(ErrorCase::kQueryInequalityOrderByDifferentFields);
-  EXPECT_ERROR(
-      collection.WhereGreaterThan("x", FieldValue::Integer(32)).OrderBy("y"),
-      reason);
-  EXPECT_ERROR(
-      collection.OrderBy("y").WhereGreaterThan("x", FieldValue::Integer(32)),
-      reason);
-  EXPECT_ERROR(collection.WhereGreaterThan("x", FieldValue::Integer(32))
-                   .OrderBy("y")
-                   .OrderBy("x"),
-               reason);
-  EXPECT_ERROR(collection.OrderBy("y").OrderBy("x").WhereGreaterThan(
-                   "x", FieldValue::Integer(32)),
-               reason);
-}
-
 TEST_F(ValidationTest, QueriesMustNotSpecifyStartingOrEndingPointAfterOrderBy) {
   CollectionReference collection = Collection();
   Query query = collection.OrderBy("foo");

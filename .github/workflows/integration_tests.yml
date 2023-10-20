@@ -983,7 +983,7 @@ jobs:
   test_android:
     name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_android]
-    runs-on: macos-12
+    runs-on: ubuntu-20.04
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Android') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -1020,7 +1020,7 @@ jobs:
         id: device-info
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)" >> $GITHUB_OUTPUT
-          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
+          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device_list)" >> $GITHUB_OUTPUT
       - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
         with:
@@ -1037,15 +1037,17 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.3
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
           test_type: "game-loop"
-          test_devices: ${{ steps.device-info.outputs.device }}
+          test_devices: '${{ steps.device-info.outputs.device }}'
+          test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
+          additional_flags: '--client-details matrixLabel=android-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.android_device }}'
       - name: Read FTL Test Result
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
@@ -1147,7 +1149,7 @@ jobs:
         id: device-info
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_device_type)" >> $GITHUB_OUTPUT
-          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
+          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device_list)" >> $GITHUB_OUTPUT
       - name: Set up Node (16)
         uses: actions/setup-node@v3
         with:
@@ -1180,15 +1182,17 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.3
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
           test_type: "game-loop"
-          test_devices: ${{ steps.device-info.outputs.device }}
+          test_devices: '${{ steps.device-info.outputs.device }}'
+          test_device_selection: random
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
+          additional_flags: '--client-details matrixLabel=ios-${{ github.run_id }}-${{ matrix.build_os }}-${{ matrix.ios_device }}'
       - name: Read FTL Test Result
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
@@ -1408,3 +1412,34 @@ jobs:
             ${additional_flags[*]}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
+
+  attempt_retry:
+    name: "attempt-retry"
+    needs: [check_and_prepare, summarize_results]
+    runs-on: ubuntu-20.04
+    if: ${{ failure() && !cancelled() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.pythonVersion }}
+      - name: Install python deps
+        run: pip install -r scripts/gha/python_requirements.txt
+      # The default token can't run workflows, so get an alternate token.
+      - name: Generate token for GitHub API
+        uses: tibdex/github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+      - name: Retry failed tests
+        run: |
+          echo "::warning ::Attempting to retry failed tests"
+          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+          -w retry-test-failures.yml \
+          -p run_id ${{ github.run_id }} \
+          -s 10 \
+          -A

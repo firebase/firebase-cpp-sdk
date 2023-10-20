@@ -62,13 +62,16 @@ Future<AdResult> NativeAdInternal::GetLoadAdLastResult() {
 }
 
 void NativeAdInternal::insert_image(const NativeAdImage& image,
-                                    const bool& is_icon) {
-  if (is_icon) {
+                                    const std::string& image_type) {
+  if (image_type == "icon") {
     icon_ = image;
+  } else if (image_type == "adchoices_icon") {
+    adchoices_icon_ = image;
   } else {
     images_.push_back(image);
   }
 }
+
 void NativeAdInternal::clear_existing_images() { images_.clear(); }
 
 }  // namespace internal

@@ -28,6 +28,7 @@
 #include "Firestore/core/src/core/query.h"
 #include "Firestore/core/src/nanopb/message.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
+#include "firestore/src/include/firebase/firestore/filter.h"
 #include "firestore/src/include/firebase/firestore/query.h"
 #include "firestore/src/main/firestore_main.h"
 #include "firestore/src/main/promise_factory_main.h"
@@ -68,6 +69,7 @@ class QueryInternal {
           callback);
 
   // Delegating methods
+  Query Where(const Filter& filter) const;
 
   Query WhereEqualTo(const FieldPath& field, const FieldValue& value) const {
     return Where(field, Operator::Equal, value);

@@ -19,7 +19,11 @@
 
 #include <jni.h>
 
+#include <vector>
+
+#include "app/src/embedded_file.h"
 #include "app/src/util_android.h"
+#include "firebase/internal/mutex.h"
 #include "gma/src/common/gma_common.h"
 
 namespace firebase {
@@ -188,6 +192,14 @@ void ReleaseClasses(JNIEnv* env);
 // counterpart.
 jobject CreateJavaAdSize(JNIEnv* env, jobject activity,
                          const AdSize& an_ad_size);
+
+namespace internal {
+// GMA and UMP share embedded dex files; this ensures
+// that they are only loaded once each run.
+extern ::firebase::Mutex g_cached_gma_embedded_files_mutex;
+extern std::vector<::firebase::internal::EmbeddedFile>*
+    g_cached_gma_embedded_files;
+}  // namespace internal
 
 }  // namespace gma
 }  // namespace firebase

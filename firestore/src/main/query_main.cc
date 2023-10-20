@@ -37,6 +37,7 @@
 #include "firestore/src/main/aggregate_query_main.h"
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/document_snapshot_main.h"
+#include "firestore/src/main/filter_main.h"
 #include "firestore/src/main/listener_main.h"
 #include "firestore/src/main/promise_main.h"
 #include "firestore/src/main/set_options_main.h"
@@ -98,31 +99,24 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
 
 AggregateQuery QueryInternal::Count() { return MakePublic(query_.Count()); }
 
-Query QueryInternal::Where(const FieldPath& field_path,
-                           Operator op,
-                           const FieldValue& value) const {
-  const model::FieldPath& path = GetInternal(field_path);
-  Message<google_firestore_v1_Value> parsed =
-      user_data_converter_.ParseQueryValue(value);
-  auto describer = [&value] { return Describe(value.type()); };
-
-  api::Query decorated = query_.AddNewFilter(
-      query_.ParseFieldFilter(path, op, std::move(parsed), describer));
+Query QueryInternal::Where(const Filter& filter) const {
+  SIMPLE_HARD_ASSERT(!filter.IsEmpty());
+  core::Filter core_filter =
+      GetInternal(&filter)->ToCoreFilter(query_, user_data_converter_);
+  api::Query decorated = query_.AddNewFilter(std::move(core_filter));
   return MakePublic(std::move(decorated));
 }
 
 Query QueryInternal::Where(const FieldPath& field_path,
                            Operator op,
-                           const std::vector<FieldValue>& values) const {
-  const model::FieldPath& path = GetInternal(field_path);
-  auto array_value = FieldValue::Array(values);
-  Message<google_firestore_v1_Value> parsed =
-      user_data_converter_.ParseQueryValue(array_value, true);
-  auto describer = [&array_value] { return Describe(array_value.type()); };
+                           const FieldValue& value) const {
+  return Where(UnaryFilterInternal::UnaryFilter(field_path, op, value));
+}
 
-  api::Query decorated = query_.AddNewFilter(
-      query_.ParseFieldFilter(path, op, std::move(parsed), describer));
-  return MakePublic(std::move(decorated));
+Query QueryInternal::Where(const FieldPath& field_path,
+                           Operator op,
+                           const std::vector<FieldValue>& values) const {
+  return Where(UnaryFilterInternal::UnaryFilter(field_path, op, values));
 }
 
 Query QueryInternal::WithBound(BoundPosition bound_pos,
@@ -176,7 +170,8 @@ core::Bound QueryInternal::ToBound(
   const core::Query& internal_query = query_.query();
 
   SharedMessage<google_firestore_v1_ArrayValue> components{{}};
-  components->values_count = CheckedSize(internal_query.order_bys().size());
+  components->values_count =
+      CheckedSize(internal_query.normalized_order_bys().size());
   components->values =
       MakeArray<google_firestore_v1_Value>(components->values_count);
 
@@ -187,8 +182,8 @@ core::Bound QueryInternal::ToBound(
   // the provided document. Without the key (by using the explicit sort orders),
   // multiple documents could match the position, yielding duplicate results.
 
-  for (size_t i = 0; i < internal_query.order_bys().size(); ++i) {
-    const core::OrderBy& order_by = internal_query.order_bys()[i];
+  for (size_t i = 0; i < internal_query.normalized_order_bys().size(); ++i) {
+    const core::OrderBy& order_by = internal_query.normalized_order_bys()[i];
     const model::FieldPath& field_path = order_by.field();
 
     if (field_path.IsKeyFieldPath()) {

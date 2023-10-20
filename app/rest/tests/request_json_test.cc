@@ -64,8 +64,8 @@ TEST(RequestJsonTest, UpdatePostFields) {
   request.set_token("abc");
   EXPECT_EQ(
       "{\n"
-      "  token: \"abc\",\n"
-      "  number: 123\n"
+      "  \"token\": \"abc\",\n"
+      "  \"number\": 123\n"
       "}\n",
       request.options().post_fields);
 }

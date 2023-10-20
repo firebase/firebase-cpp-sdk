@@ -73,6 +73,9 @@ class NativeAd {
   /// Returns the associated image assets of the native ad.
   const std::vector<NativeAdImage>& images() const;
 
+  // Returns the associated adchoices icon asset of the native ad.
+  const NativeAdImage& adchoices_icon() const;
+
   /// Only allowlisted ad units use this api.
   Future<void> RecordImpression(const Variant& impression_data);
 

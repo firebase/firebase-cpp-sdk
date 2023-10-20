@@ -41,6 +41,7 @@ class RequestJson : public Request {
   explicit RequestJson(const char* schema) : application_data_(new FbsTypeT()) {
     flatbuffers::IDLOptions fbs_options;
     fbs_options.skip_unexpected_fields_in_json = true;
+    fbs_options.strict_json = true;
     parser_.reset(new flatbuffers::Parser(fbs_options));
 
     bool parse_status = parser_->Parse(schema);

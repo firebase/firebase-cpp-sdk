@@ -35,7 +35,7 @@ TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
       request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  returnSecureToken: true\n"
+      "  \"returnSecureToken\": true\n"
       "}\n",
       request.options().post_fields);
 }
@@ -50,10 +50,10 @@ TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
       request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  email: \"e@mail\",\n"
-      "  password: \"pwd\",\n"
-      "  displayName: \"rabbit\",\n"
-      "  returnSecureToken: true\n"
+      "  \"email\": \"e@mail\",\n"
+      "  \"password\": \"pwd\",\n"
+      "  \"displayName\": \"rabbit\",\n"
+      "  \"returnSecureToken\": true\n"
       "}\n",
       request.options().post_fields);
 }

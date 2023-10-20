@@ -49,6 +49,12 @@
 namespace firebase {
 namespace gma {
 
+namespace internal {
+::firebase::Mutex g_cached_gma_embedded_files_mutex;
+std::vector<::firebase::internal::EmbeddedFile>* g_cached_gma_embedded_files =
+    nullptr;
+}  // namespace internal
+
 METHOD_LOOKUP_DEFINITION(mobile_ads,
                          PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/MobileAds",
@@ -308,12 +314,22 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     return Future<AdapterInitializationStatus>();
   }
 
-  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-      util::CacheEmbeddedFiles(env, activity,
-                               firebase::internal::EmbeddedFile::ToVector(
-                                   firebase_gma::gma_resources_filename,
-                                   firebase_gma::gma_resources_data,
-                                   firebase_gma::gma_resources_size));
+  // Between this and UMP, we only want to load these files once.
+  {
+    MutexLock lock(internal::g_cached_gma_embedded_files_mutex);
+    if (internal::g_cached_gma_embedded_files == nullptr) {
+      internal::g_cached_gma_embedded_files =
+          new std::vector<firebase::internal::EmbeddedFile>();
+      *internal::g_cached_gma_embedded_files =
+          util::CacheEmbeddedFiles(env, activity,
+                                   firebase::internal::EmbeddedFile::ToVector(
+                                       firebase_gma::gma_resources_filename,
+                                       firebase_gma::gma_resources_data,
+                                       firebase_gma::gma_resources_size));
+    }
+  }
+  const std::vector<firebase::internal::EmbeddedFile>& embedded_files =
+      *internal::g_cached_gma_embedded_files;
 
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
         ad_request_builder::CacheMethodIds(env, activity) &&
@@ -904,6 +920,7 @@ void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
 void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
                                    jlong native_internal_data_ptr,
                                    jobject j_icon, jobjectArray j_images,
+                                   jobject j_adchoices_icon,
                                    jobject j_response_info) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
@@ -922,8 +939,20 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
 
     // Invoke a friend of NativeAdInternal to update its icon image asset.
     GmaInternal::InsertNativeInternalImage(native_ad_internal, icon_internal,
-                                           true, true);
+                                           "icon", true);
     env->DeleteLocalRef(j_icon);
+  }
+
+  // getAdChoicesInfo().getImages() can return an empty list and a valid ad can
+  // exist without an adchoices icon image.
+  if (j_adchoices_icon != nullptr) {
+    NativeAdImageInternal adchoices_icon_internal;
+    adchoices_icon_internal.native_ad_image = j_adchoices_icon;
+
+    // Invoke a friend of NativeAdInternal to update its icon image asset.
+    GmaInternal::InsertNativeInternalImage(
+        native_ad_internal, adchoices_icon_internal, "adchoices_icon", true);
+    env->DeleteLocalRef(j_adchoices_icon);
   }
 
   const size_t len = env->GetArrayLength(j_images);
@@ -933,7 +962,7 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
     NativeAdImageInternal image_internal;
     image_internal.native_ad_image = j_image;
     GmaInternal::InsertNativeInternalImage(native_ad_internal, image_internal,
-                                           false, false);
+                                           "image", false);
   }
 
   FutureCallbackData<AdResult>* callback_data =
@@ -1224,7 +1253,7 @@ bool RegisterNatives() {
       {"completeNativeLoadedAd",
        "(JJLcom/google/android/gms/ads/nativead/NativeAd$Image;[Lcom/google/"
        "android/gms/ads/nativead/NativeAd$Image;Lcom/google/android/gms/ads/"
-       "ResponseInfo;)V",
+       "nativead/NativeAd$Image;Lcom/google/android/gms/ads/ResponseInfo;)V",
        reinterpret_cast<void*>(&JNI_NativeAd_completeLoadedAd)},
       {"completeNativeLoadAdError",
        "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",

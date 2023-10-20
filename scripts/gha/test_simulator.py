@@ -19,7 +19,7 @@ Usage:
   python3 test_simulator.py --testapp_dir ~/testapps --test_type gameloop
 
 This will recursively search ~/testapps for apps,
-test on local simulators/emulators, and validate their results. The validation is 
+test on local simulators/emulators, and validate their results. The validation is
 specific to the structure of the Firebase Unity and C++ testapps.
 
 ----iOS only----
@@ -27,7 +27,7 @@ Requires simulators installed. iOS simulator can be installed via tool:
   https://github.com/xcpretty/xcode-install#simulators
 
 If you wish to specify a particular iOS device to test on, you will need the model
-id and version (OS version for iOS). These change over time. You can listing all 
+id and version (OS version for iOS). These change over time. You can listing all
 available simulators (supported models and versions) with the following commands:
 
   xcrun simctl list
@@ -50,8 +50,8 @@ Environment Variables (on Linux)
     JAVA_HOME=/usr/local/buildtools/java/jdk8/
     ANDROID_HOME=~/Android/Sdk
 
-If you wish to specify a particular Android device to test on, you will need 
-the sdk id and build tool version. These change over time. You can listing all 
+If you wish to specify a particular Android device to test on, you will need
+the sdk id and build tool version. These change over time. You can listing all
 available tools with the following commands:
 
   $ANDROID_HOME/tools/bin/sdkmanager --list
@@ -68,11 +68,11 @@ Example:
 
 Returns:
    1: No iOS/Android integration_test apps found
-   20: Invalid ios_device flag  
-   21: iOS Simulator created fail  
+   20: Invalid ios_device flag
+   21: iOS Simulator created fail
    22: iOS helper app not found
    23: build_testapps.json file not found
-   30: Invalid android_device flag  
+   30: Invalid android_device flag
    31: For android test, JAVA_HOME is not set to java 8
 """
 
@@ -92,7 +92,7 @@ from absl import flags
 from absl import logging
 import attr
 from integration_testing import test_validation
-from print_matrix_configuration import TEST_DEVICES
+from print_matrix_configuration import get_test_device
 
 
 # Gameloop test will skip UI Tests
@@ -170,7 +170,7 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "logfile_name", "simulator-test",
     "Create test log artifact test-results-$logfile_name.log."
-    " logfile will be created and placed in testapp_dir.")   
+    " logfile will be created and placed in testapp_dir.")
 flags.DEFINE_boolean(
     "ci", False,
     "If this script used in a CI system, set True.")
@@ -188,7 +188,7 @@ def main(argv):
 
   current_dir = pathlib.Path(__file__).parent.absolute()
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
-  
+
   config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
   with open(config_path, "r") as configFile:
     config = json.load(configFile)
@@ -219,7 +219,7 @@ def main(argv):
         if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
           logging.info("Skip %s, as it has no uitest", full_path)
         else:
-          android_testapps.append(full_path)    
+          android_testapps.append(full_path)
 
   if not ios_testapps and not tvos_testapps and not android_testapps:
     logging.info("No testapps found")
@@ -228,9 +228,9 @@ def main(argv):
   tests = []
   if ios_testapps:
     logging.info("iOS Testapps found: %s", "\n".join(path for path in ios_testapps))
-    
+
     if FLAGS.ios_device:
-      device_info = TEST_DEVICES.get(FLAGS.ios_device)
+      device_info = get_test_device(FLAGS.ios_device)
       if not device_info:
         logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
         return 20
@@ -251,7 +251,7 @@ def main(argv):
     if not ios_helper_app:
       logging.error("helper app not found")
       return 22
-  
+
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
       logs=_run_apple_test(testapp_dir, bundle_id, app_path, ios_helper_app, device_id)
@@ -261,9 +261,9 @@ def main(argv):
 
   if tvos_testapps:
     logging.info("tvOS Testapps found: %s", "\n".join(path for path in tvos_testapps))
-    
+
     if FLAGS.tvos_device:
-      device_info = TEST_DEVICES.get(FLAGS.tvos_device)
+      device_info = get_test_device(FLAGS.tvos_device)
       if not device_info:
         logging.error("Not a valid tvos device: %s" % FLAGS.tvos_device)
         return 20
@@ -291,7 +291,7 @@ def main(argv):
     if not config:
       logging.error("No config file found")
       return 23
-  
+
     for app_path in tvos_testapps:
       bundle_id = _get_bundle_id(app_path, config)
       logs=_run_apple_test(testapp_dir, bundle_id, app_path, tvos_helper_app, device_id, record_video_display="external")
@@ -304,7 +304,7 @@ def main(argv):
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
 
     if FLAGS.android_device:
-      device_info = TEST_DEVICES.get(FLAGS.android_device)
+      device_info = get_test_device(FLAGS.android_device)
       if not device_info:
         logging.error("Not a valid android device: %s" % FLAGS.android_device)
         return 30
@@ -312,7 +312,7 @@ def main(argv):
     else:
       sdk_id = FLAGS.android_sdk
 
-    
+
     platform_version = sdk_id.split(";")[1]
     build_tool_version = FLAGS.build_tools_version
 
@@ -320,7 +320,7 @@ def main(argv):
       logging.error("Please set JAVA_HOME to java 8")
       return 31
 
-    _setup_android(platform_version, build_tool_version, sdk_id)  
+    _setup_android(platform_version, build_tool_version, sdk_id)
 
     _create_and_boot_emulator(sdk_id)
 
@@ -335,17 +335,17 @@ def main(argv):
     _shutdown_emulator()
 
   return test_validation.summarize_test_results(
-    tests, 
-    test_validation.CPP, 
-    testapp_dir, 
+    tests,
+    test_validation.CPP,
+    testapp_dir,
     test_type=FLAGS.test_type,
-    file_name="test-results-" + FLAGS.logfile_name + ".log", 
+    file_name="test-results-" + FLAGS.logfile_name + ".log",
     extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
 # -------------------Apple Only-------------------
 def _build_ios_helper(helper_project, device_name, device_os):
-  """Build helper UI Test app. 
+  """Build helper UI Test app.
 
   This helper app can run integration_test app automatically.
   """
@@ -355,20 +355,20 @@ def _build_ios_helper(helper_project, device_name, device_os):
   """Build the helper app for test."""
   args = ["xcodebuild", "-project", project_path,
     "-scheme", CONSTANTS[FLAGS.test_type]["apple_scheme"],
-    "build-for-testing", 
-    "-destination", "platform=iOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
+    "build-for-testing",
+    "-destination", "platform=iOS Simulator,name=%s,OS=%s" % (device_name, device_os),
     "SYMROOT=%s" % output_path]
   logging.info("Building game-loop test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-  
+
   for file_dir, _, file_names in os.walk(output_path):
     for file_name in file_names:
-      if file_name.endswith(".xctestrun") and "iphonesimulator" in file_name: 
+      if file_name.endswith(".xctestrun") and "iphonesimulator" in file_name:
         return os.path.join(file_dir, file_name)
 
 
 def _build_tvos_helper(helper_project, device_name, device_os):
-  """Build helper UI Test app. 
+  """Build helper UI Test app.
 
   This helper app can run integration_test app automatically.
   """
@@ -378,15 +378,15 @@ def _build_tvos_helper(helper_project, device_name, device_os):
   """Build the helper app for test."""
   args = ["xcodebuild", "-project", project_path,
     "-scheme", "%s_tvos" % CONSTANTS[FLAGS.test_type]["apple_scheme"],
-    "build-for-testing", 
-    "-destination", "platform=tvOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
+    "build-for-testing",
+    "-destination", "platform=tvOS Simulator,name=%s,OS=%s" % (device_name, device_os),
     "SYMROOT=%s" % output_path]
   logging.info("Building game-loop test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-  
+
   for file_dir, _, file_names in os.walk(output_path):
     for file_name in file_names:
-      if file_name.endswith(".xctestrun") and "appletvsimulator" in file_name: 
+      if file_name.endswith(".xctestrun") and "appletvsimulator" in file_name:
         return os.path.join(file_dir, file_name)
 
 
@@ -468,8 +468,8 @@ def _run_xctest(helper_app, device_id):
   """Run the helper app.
     This helper app can run integration_test app automatically.
   """
-  args = ["xcodebuild", "test-without-building", 
-    "-xctestrun", helper_app, 
+  args = ["xcodebuild", "test-without-building",
+    "-xctestrun", helper_app,
     "-destination", "id=%s" % device_id]
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
@@ -520,7 +520,7 @@ def _create_and_boot_simulator(apple_platform, device_name, device_os):
     args = ["sudo", "xcodes", "runtimes", "install", "%s %s" % (apple_platform, device_os)]
     logging.info("Download simulator: %s", " ".join(args))
     subprocess.run(args=args, check=False)
-    
+
     args = ["xcrun", "simctl", "create", "test_simulator", device_name, "%s%s" % (apple_platform, device_os)]
     logging.info("Create test simulator: %s", " ".join(args))
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
@@ -590,7 +590,7 @@ def _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, max
     attempt_num += 1
 
   return log
-  
+
 
 def _install_apple_app(app_path, device_id):
   """Install integration_test app into the simulator."""
@@ -613,13 +613,13 @@ def _get_apple_test_log(bundle_id, app_path, device_id):
   result = subprocess.run(
       args=args,
       capture_output=True, text=True, check=False)
-  
+
   if not result.stdout:
     logging.info("No test Result")
     return None
 
-  log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", _RESULT_FILE) 
-  log = _read_file(log_path) 
+  log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", _RESULT_FILE)
+  log = _read_file(log_path)
   logging.info("Apple test result: %s", log)
   return log
 
@@ -647,16 +647,16 @@ def _check_java_version():
 
 def _setup_android(platform_version, build_tool_version, sdk_id):
   android_home = os.environ["ANDROID_HOME"]
-  pathlist = [os.path.join(android_home, "emulator"), 
-    os.path.join(android_home, "tools"), 
-    os.path.join(android_home, "tools", "bin"), 
-    os.path.join(android_home, "platform-tools"), 
+  pathlist = [os.path.join(android_home, "emulator"),
+    os.path.join(android_home, "tools"),
+    os.path.join(android_home, "tools", "bin"),
+    os.path.join(android_home, "platform-tools"),
     os.path.join(android_home, "build-tools", build_tool_version)]
   os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
 
-  args = ["sdkmanager", 
-    "emulator", "platform-tools", 
-    "platforms;%s" % platform_version, 
+  args = ["sdkmanager",
+    "emulator", "platform-tools",
+    "platforms;%s" % platform_version,
     "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
   _run_with_retry(args)
@@ -696,7 +696,7 @@ def _create_and_boot_emulator(sdk_id):
   logging.info("Start adb server: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
-  if not FLAGS.ci: 
+  if not FLAGS.ci:
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"
   else:
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator -no-window -no-audio -no-boot-anim -gpu auto &"
@@ -706,7 +706,7 @@ def _create_and_boot_emulator(sdk_id):
   args = ["adb", "wait-for-device"]
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-  if FLAGS.ci: 
+  if FLAGS.ci:
     # wait extra 210 seconds to ensure emulator fully booted.
     time.sleep(210)
   else:
@@ -728,7 +728,7 @@ def _reset_emulator_on_error(type=_RESET_TYPE_REBOOT):
   args = ["adb", "wait-for-device"]
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-  if FLAGS.ci: 
+  if FLAGS.ci:
     # wait extra 210 seconds to ensure emulator booted.
     time.sleep(210)
   else:
@@ -740,10 +740,10 @@ def _get_package_name(app_path):
   logging.info("Get package_name: %s", command)
   result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
   package_name = result.stdout.read().strip()
-  return package_name  
+  return package_name
 
 
-def _run_android_test(testapp_dir, package_name, app_path, helper_project, max_attempts=_MAX_ATTEMPTS): 
+def _run_android_test(testapp_dir, package_name, app_path, helper_project, max_attempts=_MAX_ATTEMPTS):
   attempt_num = 1
   while attempt_num <= max_attempts:
     logging.info("Running android helper test (attempt %s of %s): %s, %s, %s", attempt_num, max_attempts, package_name, app_path, helper_project)
@@ -764,7 +764,7 @@ def _run_android_test(testapp_dir, package_name, app_path, helper_project, max_a
     _save_recorded_android_video(video_name, testapp_dir)
     _save_android_logcat(logcat_name, testapp_dir)
     attempt_num += 1
-  
+
   return log
 
 
@@ -810,7 +810,7 @@ def _record_android_tests(video_name):
 def _save_recorded_android_video(video_name, summary_dir):
   args = ["adb", "pull", "/sdcard/%s" % video_name, summary_dir]
   logging.info("Save test video: %s", " ".join(args))
-  subprocess.run(args=args, capture_output=True, text=True, check=False) 
+  subprocess.run(args=args, capture_output=True, text=True, check=False)
 
 
 def _save_android_logcat(logcat_name, summary_dir):
@@ -832,9 +832,9 @@ def _run_instrumented_test():
     This helper app can run integration_test app automatically.
   """
   args = ["adb", "shell", "am", "instrument",
-    "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % CONSTANTS[FLAGS.test_type]["android_package"]] 
+    "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % CONSTANTS[FLAGS.test_type]["android_package"]]
   logging.info("Running game-loop test: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
+  result = subprocess.run(args=args, capture_output=True, text=True, check=False)
   # if "FAILURES!!!" in result.stdout:
   #   _reset_emulator_on_error(_RESET_TYPE_REBOOT)
 

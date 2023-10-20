@@ -36,8 +36,8 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
       request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  returnSecureToken: true,\n"
-      "  token: \"token123\"\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"token\": \"token123\"\n"
       "}\n",
       request.options().post_fields);
 }

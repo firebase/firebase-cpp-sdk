@@ -106,6 +106,15 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
+/// Initiates on-device conversion measurement given a phone number on iOS
+/// (no-op on Android). On iOS, requires dependency
+/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
+    const char* phone_number) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+}
+
 // Set a user property to the given value.
 void SetUserProperty(const char* /*name*/, const char* /*value*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());

@@ -34,8 +34,8 @@ TEST(SecureTokenTest, TestSetRefreshRequest) {
             request.options().url);
   EXPECT_EQ(
       "{\n"
-      "  grantType: \"refresh_token\",\n"
-      "  refreshToken: \"token123\"\n"
+      "  \"grantType\": \"refresh_token\",\n"
+      "  \"refreshToken\": \"token123\"\n"
       "}\n",
       request.options().post_fields);
 }
