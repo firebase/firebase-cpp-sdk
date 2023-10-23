@@ -430,6 +430,9 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
     WaitForCompletion(f7, "SetLongDouble");
   }
 
+  // Wait a moment for everything to be updated.
+  ProcessEvents(1000);
+
   // Get the values that we just set, and confirm that they match what we
   // set them to.
   {
