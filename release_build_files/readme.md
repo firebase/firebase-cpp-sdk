@@ -253,7 +253,7 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/CoreOnly Cocoapod (10.15.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.10.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.12.0)
 |                          | GoogleUserMessagingPlatform Cocoapod (2.1.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
@@ -316,7 +316,7 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/CoreOnly Cocoapod (10.15.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.10.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.12.0)
 |                          | GoogleUserMessagingPlatform Cocoapod (2.1.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -638,7 +638,7 @@ code.
 
 ### 11.6.0
 -   Changes
-    - General (iOS): Update to Firebase Cocoapods version 10.16.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.15.0.
     - Firestore: Add support for disjunctions in queries (OR queries)
       ([#1453](https://github.com/firebase/firebase-cpp-sdk/pull/1453)).
     - GMA: Added the User Messaging Platform (UMP) SDK, required for obtaining

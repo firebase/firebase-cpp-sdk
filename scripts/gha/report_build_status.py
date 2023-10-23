@@ -592,10 +592,10 @@ def main(argv):
   elif FLAGS.report == "test_summary":
     test_list = {}
     for day in days_sorted:
-      if source_tests[day]['log_results']:
+      if day in source_tests and source_tests[day]['log_results']:
         errors = aggregate_errors_from_log(source_tests[day]['log_results'])
         test_link = source_tests[day]['html_url']
-      elif package_tests[day]['log_results']:
+      elif day in package_tests and package_tests[day]['log_results']:
         errors = aggregate_errors_from_log(package_tests[day]['log_results'])
         test_link = package_tests[day]['html_url']
       else:
