@@ -767,7 +767,6 @@ jobs:
         with:
           node-version: 16.x
       - name: Setup Firestore Emulator
-        if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         uses: nick-invision/retry@v2
         with:
           shell: bash
@@ -775,7 +774,6 @@ jobs:
           max_attempts: 3
           command: npm install firebase-tools     
       - name: Add firebase-tools to PATH
-        if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         shell: bash
         run: echo "$(npm root)/.bin" >> $GITHUB_PATH
       - name: Setup java
