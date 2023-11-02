@@ -89,9 +89,10 @@ function(setup_pod_headers target_name)
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
           ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Public
           ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Public/${pod}
-	  ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Source/Library/Public
-	  ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Source/Library/Public/${pod}
-)
+          ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Source/Library/Public
+          ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Source/Library/Public/${pod}
+          ${FIREBASE_POD_DIR}/Pods/${pod}/Public
+        )
       if("${SETUP_POD_HEADERS_INCLUDE_PRIVATE_HEADERS}")
         # Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
         # we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
