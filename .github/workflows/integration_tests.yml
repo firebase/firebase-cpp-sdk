@@ -773,7 +773,11 @@ jobs:
           shell: bash
           timeout_minutes: 5
           max_attempts: 3
-          command: npm install firebase-tools
+          command: npm install firebase-tools     
+      - name: Add firebase-tools to PATH
+        if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        shell: bash
+        run: echo "$HOME/node_modules/.bin" >> $GITHUB_PATH
       - name: Setup java
         uses: actions/setup-java@v3
         with:
@@ -784,9 +788,8 @@ jobs:
           USE_FIRESTORE_EMULATOR: true
         shell: bash
         run: |
-          FIREBASE_BIN=node_modules/.bin/firebase
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
-            "${FIREBASE_BIN}" emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"'
+            firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"'
           else
             python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
           fi
@@ -911,15 +914,14 @@ jobs:
           # Use arch command to ensure that the app is running in the correct processor mode (arm64).
           cmd_prefix='arch -arm64'
 
-          FIREBASE_BIN=node_modules/.bin/firebase
           # If Firestore is included, use the emulator; otherwise just run the tests standalone.
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
             # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
             # Otherwise the Firestore emulator cannot connect, probably because localhost is ipv6.
             echo '{"emulators":{"firestore":{"port":"8080","host":"127.0.0.1"}}}' > firebase.json
-            echo "::warning ::Firestore emulator version: $("${FIREBASE_BIN}" --version)"
+            echo "::warning ::Firestore emulator version: $(firebase --version)"
             set -x
-            "${FIREBASE_BIN}" emulators:exec --only firestore --project demo-example \
+            firebase emulators:exec --only firestore --project demo-example \
               'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix='"\"${cmd_prefix}\""
           else
             set -x
@@ -1170,11 +1172,14 @@ jobs:
           timeout_minutes: 5
           max_attempts: 3
           command: npm install firebase-tools     
+      - name: Add firebase-tools to PATH
+        if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        shell: bash
+        run: echo "$HOME/node_modules/.bin" >> $GITHUB_PATH
       - name: Start Firestore Emulator
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
-          FIREBASE_BIN=node_modules/.bin/firebase
-          "${FIREBASE_BIN}" emulators:start --only firestore --project demo-example &
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 150
         if: steps.device-info.outputs.device_type == 'virtual'
@@ -1292,11 +1297,14 @@ jobs:
           timeout_minutes: 5
           max_attempts: 3
           command: npm install firebase-tools     
+      - name: Add firebase-tools to PATH
+        if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        shell: bash
+        run: echo "$HOME/node_modules/.bin" >> $GITHUB_PATH
       - name: Start Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
-          FIREBASE_BIN=node_modules/.bin/firebase
-          "${FIREBASE_BIN}" emulators:start --only firestore --project demo-example &
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 90
         run: |
