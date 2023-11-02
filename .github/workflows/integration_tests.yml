@@ -784,8 +784,8 @@ jobs:
           USE_FIRESTORE_EMULATOR: true
         shell: bash
         run: |
-	  FIREBASE_BIN=node_modules/.bin/firebase
-	  if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
+          FIREBASE_BIN=node_modules/.bin/firebase
+          if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
             "${FIREBASE_BIN}" emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"'
           else
@@ -912,8 +912,8 @@ jobs:
           # Use arch command to ensure that the app is running in the correct processor mode (arm64).
           cmd_prefix='arch -arm64'
 
-	  FIREBASE_BIN=node_modules/.bin/firebase
-	  if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
+          FIREBASE_BIN=node_modules/.bin/firebase
+          if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
           # If Firestore is included, use the emulator; otherwise just run the tests standalone.
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
             # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
@@ -1175,9 +1175,9 @@ jobs:
       - name: Start Firestore Emulator
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
-	  FIREBASE_BIN=node_modules/.bin/firebase
-	  if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
-	  "${FIREBASE_BIN}" emulators:start --only firestore --project demo-example &
+          FIREBASE_BIN=node_modules/.bin/firebase
+          if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
+          "${FIREBASE_BIN}" emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 150
         if: steps.device-info.outputs.device_type == 'virtual'
@@ -1298,8 +1298,8 @@ jobs:
       - name: Start Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
-	  FIREBASE_BIN=node_modules/.bin/firebase
-	  if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
+          FIREBASE_BIN=node_modules/.bin/firebase
+          if [ -z "${FIREBASE_BIN}" ] ; FIREBASE_BIN=firebase; fi
           "${FIREBASE_BIN}" emulators:start --only firestore --project demo-example &
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 90
