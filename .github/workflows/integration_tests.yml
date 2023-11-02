@@ -777,7 +777,7 @@ jobs:
       - name: Add firebase-tools to PATH
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         shell: bash
-        run: echo "$HOME/node_modules/.bin" >> $GITHUB_PATH
+        run: echo "$(npm root)/.bin" >> $GITHUB_PATH
       - name: Setup java
         uses: actions/setup-java@v3
         with:
@@ -1175,7 +1175,7 @@ jobs:
       - name: Add firebase-tools to PATH
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         shell: bash
-        run: echo "$HOME/node_modules/.bin" >> $GITHUB_PATH
+        run: echo "$(npm root)/.bin" >> $GITHUB_PATH
       - name: Start Firestore Emulator
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
@@ -1300,7 +1300,7 @@ jobs:
       - name: Add firebase-tools to PATH
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         shell: bash
-        run: echo "$HOME/node_modules/.bin" >> $GITHUB_PATH
+        run: echo "$(npm root)/.bin" >> $GITHUB_PATH
       - name: Start Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
