@@ -3057,18 +3057,6 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
       future_request_2, "RequestConsentInfoUpdate second",
       firebase::gma::ump::kConsentRequestErrorOperationInProgress);
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
-
-  firebase::Future<void> future_load_and_show_1 =
-      consent_info_->LoadAndShowConsentFormIfRequired(
-          app_framework::GetWindowController());
-  firebase::Future<void> future_load_and_show_2 =
-      consent_info_->LoadAndShowConsentFormIfRequired(
-          app_framework::GetWindowController());
-  WaitForCompletion(future_load_and_show_2,
-                    "LoadAndShowConsentFormIfRequired second",
-                    firebase::gma::ump::kConsentFormErrorOperationInProgress);
-  WaitForCompletion(future_load_and_show_1,
-                    "LoadAndShowConsentFormIfRequired first");
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgressWithUI) {

@@ -76,7 +76,10 @@ class ConsentInfo {
   /// @code
   /// #if defined(__ANDROID__)
   /// consent_info = firebase::gma::ump::ConsentInfo::GetInstance(jni_env,
-  /// activity); #else consent_info = firebase::gma::ump::GetInstance(); #endif
+  /// activity);
+  /// #else
+  /// consent_info = firebase::gma::ump::GetInstance();
+  /// #endif
   /// @endcode
   ///
   /// @param[in] jni_env JNIEnv pointer.
