@@ -345,6 +345,7 @@ if(IOS)
       # FirebaseFirestore pod, so depend on headers available in the source
       # distribution.
       ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore
+      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal
   )
   set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
     ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
@@ -428,13 +429,14 @@ elseif(IOS)
     POD_NAMES
       FirebaseCore
       FirebaseFirestore
+      FirebaseFirestoreInternal
       abseil
       nanopb
       gRPC-C++
       gRPC-Core
       FirebaseAuthInterop/FirebaseAuth/Interop
       FirebaseCoreExtension/FirebaseCore/Extension
-)
+  )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_firestore PROPERTIES
