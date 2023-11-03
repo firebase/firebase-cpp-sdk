@@ -813,7 +813,9 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 					"/Users/wuandy/projects/firebase-cpp-sdk",
 				);
@@ -861,7 +863,9 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 					"/Users/wuandy/projects/firebase-cpp-sdk",
 				);
@@ -928,7 +932,9 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
@@ -998,7 +1004,9 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
