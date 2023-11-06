@@ -532,10 +532,10 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
-    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_errors.h
-    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_version.h
-    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/geo_point.h
-    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/timestamp.h)
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_errors.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_version.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/geo_point.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/timestamp.h)
   set(functions_HDRS
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
