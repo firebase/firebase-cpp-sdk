@@ -55,7 +55,7 @@ jobs:
                 -D FIREBASE_INCLUDE_FIRESTORE=YES `
                 -D FIREBASE_USE_BORINGSSL=YES `
                 -D MSVC_RUNTIME_LIBRARY_STATIC=NO `
-                -D Python3_EXECUTABLE=${{ steps.python.outputs.python-path }}
+                -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }}
       - name: Build firebase
         run: cmake --build ${{ github.workspace }}/BinaryCache/firebase --config Release
       - name: Install firebase
