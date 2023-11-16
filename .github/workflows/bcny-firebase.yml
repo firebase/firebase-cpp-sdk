@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 1
           path: ${{ github.workspace }}/SourceCache/flatbuffers
-          ref: master
+          ref: 99aa1ef21dd9dc3f9d4fb0eb82f4b59d0bb5e4c5
           repository: google/flatbuffers
 
       - uses: actions/checkout@v3
