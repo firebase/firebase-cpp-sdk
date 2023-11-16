@@ -20,6 +20,13 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
+          path: ${{ github.workspace }}/SourceCache/flatbuffers
+          ref: master
+          repository: google/flatbuffers
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
           path: ${{ github.workspace }}/SourceCache/firebase-cpp-sdk
           ref: refs/heads/compnerd/swift
           repository: thebrowsercompany/firebase-cpp-sdk
@@ -39,6 +46,16 @@ jobs:
       - name: Install absl-py
         run: pip install absl-py
 
+      - name: Configure flatbuffers
+        run:
+          cmake -B ${{ github.workspace }}/BinaryCache/flatbuffers `
+                -D CMAKE_BUILD_TYPE=Release `
+                -G "Visual Studio 17 2022" `
+                -A x64 `
+                -S ${{ github.workspace }}/SourceCache/flatbuffers
+      - name: Build flatc
+        run: cmake --build ${{ github.workspace }}/BinaryCache/flatbuffers --config Release --target flatc
+
       - name: Configure firebase
         run:
           cmake -B ${{ github.workspace }}/BinaryCache/firebase `
@@ -56,7 +73,8 @@ jobs:
                 -D FIREBASE_INCLUDE_FIRESTORE=YES `
                 -D FIREBASE_USE_BORINGSSL=YES `
                 -D MSVC_RUNTIME_LIBRARY_STATIC=NO `
-                -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }}
+                -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }} `
+                -D FLATBUFFERS_FLATC_EXECUTABLE=${{ github.workspace }}/BinaryCache/flatbuffers/Release/flatc.exe
       - name: Build firebase
         run: cmake --build ${{ github.workspace }}/BinaryCache/firebase --config Release
       - name: Install firebase
