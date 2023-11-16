@@ -48,6 +48,7 @@ jobs:
                 -G "Visual Studio 17 2022" `
                 -A ${{ matrix.platform }} `
                 -S ${{ github.workspace }}/SourceCache/firebase-cpp-sdk `
+                -D FLATBUFFERS_BUILD_FLATC=NO `
                 -D FIREBASE_CPP_BUILD_PACKAGE=YES `
                 -D FIREBASE_GITHUB_ACTION_BUILD=YES `
                 -D FIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF `
