@@ -43,32 +43,36 @@ git clone https://github.com/firebase/firebase-cpp-sdk.git
 
 <details><summary><h2>Prerequisites</h2></summary>
 
-The following prerequisites are required for all platforms.  Be sure to add any
+The following prerequisites are required for all platforms. Be sure to add any
 directories to your PATH as needed.
 
 - [CMake](https://cmake.org/), version 3.7, or newer
 - [Python](https://www.python.org/), version of 3.7, or newer
 - [Abseil-py](https://github.com/abseil/abseil-py)
 
-Note: Once python is installed you can use the following commands to install
+**Note:** Once Python is installed you can use the following commands to install
 required packages:
 
 * python3 -m ensurepip --default-pip
 * python3 -m pip install --user absl-py
 
 ### Prerequisites for Desktop
-The following prerequisites are required when building the libraries for
-desktop platforms.
 
-- [OpenSSL](https://www.openssl.org/), needed for Realtime Database and Cloud Firestore
+The following prerequisites are required when building the libraries for
+desktop platforms:
+
+- [OpenSSL](https://www.openssl.org/): needed for Realtime Database and Cloud Firestore
 
 ### Prerequisites for Windows
-Prebuilt packages for openssl can be found using google and if CMake fails to
-find the install path use the command line option
+
+Prebuilt packages for OpenSSL can be found using Google. If CMake fails to
+find the OpenSSL install path, use the command line option to specify the directory path:
+
 **-DOPENSSL_ROOT_DIR=[Open SSL Dir]**.
 
 ### Prerequisites for Mac
-Home brew can be used to install required dependencies:
+
+Homebrew can be used to install required dependencies:
 
 ```bash
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
@@ -78,8 +82,9 @@ sudo chown -R $(whoami) /usr/local
 ```
 
 ### Prerequisites for Android
+
 The following prerequisites are required when building the libraries for
-Android.
+Android:
 
 - Android SDK, Android NDK, and CMake for Android (version 3.10.2 recommended)
   - Download sdkmanager (either independently, or as a part of Android Studio)
@@ -91,10 +96,11 @@ Android.
   > You will have to run Strings once from the command line to accept the
     EULA before it will work as part of the build process.
 
-Note that we include the Gradle wrapper, which if used will acquire the
-necessary version of Gradle for you.
+**Note:** We include the Gradle wrapper, which can be used to acquire the necessary Gradle version.
 
 ### Prerequisites for iOS/tvOS
+
+In order to to build the libraries for iOS or tvOS, you need the following prerequisites:
 The following prerequisites are required when building the libraries for iOS or tvOS.
 - [Cocoapods](https://cocoapods.org/)
 
@@ -106,7 +112,7 @@ The following prerequisites are required when building the libraries for iOS or 
 ### Building with CMake
 The build uses CMake to generate the necessary build files, and supports out of
 source builds.
-The CMake following targets are available to build and link with:
+The following CMake targets are available to build and link with:
 
 | Feature | CMake Target |
 | ------- | ------------ |
@@ -131,7 +137,7 @@ cmake ..
 cmake --build . --target firebase_analytics
 ```
 
-Note that you can provide a different generator on the configure step, for
+**Note:** You can provide a different generator on the configure step, for
 example to generate a project for Visual Studio 2017, you could run:
 
 ``` bash
@@ -235,7 +241,8 @@ run the following from the root directory:
 ```
 
 #### Proguard File Generation
-Note that as part of the build process, each library generates a proguard file
+
+As part of the build process, each library generates a proguard file
 that should be included in your application.  The generated file is located in
 each library’s build directory.  For example, the Analytics proguard file would
 be generated to `analytics/build/analytics.pro`.
