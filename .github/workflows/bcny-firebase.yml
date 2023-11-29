@@ -60,7 +60,6 @@ jobs:
         run:
           cmake -B ${{ github.workspace }}/BinaryCache/firebase `
                 -D BUILD_SHARED_LIBS=NO `
-                -D CMAKE_BUILD_TYPE=Release `
                 -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/BuildRoot/Library/firebase/usr `
                 -G "Visual Studio 17 2022" `
                 -A ${{ matrix.platform }} `
@@ -73,6 +72,7 @@ jobs:
                 -D FIREBASE_INCLUDE_FIRESTORE=YES `
                 -D FIREBASE_USE_BORINGSSL=YES `
                 -D MSVC_RUNTIME_LIBRARY_STATIC=NO `
+                -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded `
                 -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }} `
                 -D FLATBUFFERS_FLATC_EXECUTABLE=${{ github.workspace }}/BinaryCache/flatbuffers/Release/flatc.exe
       - name: Build firebase
