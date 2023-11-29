@@ -93,13 +93,6 @@ jobs:
             Copy-Item -Path $library.FullName -Destination $destination -Force
             Write-Host "... copied ${destination}"
           }
-
-          $pdbs = Get-ChildItem -Path $source -File -Recurse -Filter *.pdb
-          foreach ($pdb in $pdbs) {
-            $destination = Join-Path -Path "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows" -ChildPath $pdb.Name
-            Copy-Item -Path $pdb.FullName -Destination $destination -Force
-            Write-Host "... copied ${destination}"
-          }
       - uses: actions/upload-artifact@v3
         with:
           name: firebase-windows-${{ matrix.arch }}
