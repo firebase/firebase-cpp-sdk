@@ -14,6 +14,10 @@
 
 # Top level CMake file that defines the entire Firebase C++ SDK build.
 
+if(POLICY CMP0141)
+  cmake_policy(SET CMP0141 NEW)
+endif()
+
 cmake_minimum_required (VERSION 3.1)
 
 set (CMAKE_CXX_STANDARD 14)
