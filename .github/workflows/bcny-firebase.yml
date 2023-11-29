@@ -76,9 +76,9 @@ jobs:
                 -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }} `
                 -D FLATBUFFERS_FLATC_EXECUTABLE=${{ github.workspace }}/BinaryCache/flatbuffers/Release/flatc.exe
       - name: Build firebase
-        run: cmake --build ${{ github.workspace }}/BinaryCache/firebase --config Release
+        run: cmake --build ${{ github.workspace }}/BinaryCache/firebase --config RelWithDebInfo
       - name: Install firebase
-        run: cmake --build ${{ github.workspace }}/BinaryCache/firebase --config Release --target install
+        run: cmake --build ${{ github.workspace }}/BinaryCache/firebase --config RelWithDebInfo --target install
       - name: Install firebase (manual)
         run: |
           Copy-Item "${{ github.workspace }}/BinaryCache/firebase/external/src/firestore/Firestore/core/include/firebase/firestore/firestore_errors.h" "${{ github.workspace }}/BuildRoot/Library/firebase/usr/include/firebase/firestore/firestore_errors.h"
@@ -91,6 +91,13 @@ jobs:
           foreach ($library in $libraries) {
             $destination = Join-Path -Path "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows" -ChildPath $library.Name
             Copy-Item -Path $library.FullName -Destination $destination -Force
+            Write-Host "... copied ${destination}"
+          }
+
+          $pdbs = Get-ChildItem -Path $source -File -Recurse -Filter *.pdb
+          foreach ($pdb in $pdbs) {
+            $destination = Join-Path -Path "${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/windows" -ChildPath $pdb.Name
+            Copy-Item -Path $pdb.FullName -Destination $destination -Force
             Write-Host "... copied ${destination}"
           }
       - uses: actions/upload-artifact@v3
