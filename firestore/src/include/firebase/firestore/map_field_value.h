@@ -31,6 +31,15 @@ using MapFieldValue = std::unordered_map<std::string, FieldValue>;
 /** @brief A map of `FieldValue`s indexed by field paths. */
 using MapFieldPathValue = std::unordered_map<FieldPath, FieldValue>;
 
+#if defined(__swift__)
+// Reference the following types so that they are included in the CXX
+// module. A workaround for deserialization cross reference compiler
+// crashes https://github.com/apple/swift/issues/70253
+using FieldValueVector = std::vector<FieldValue>;
+using FieldValueVectorConstIterator = std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<FieldValue>>>;
+using StringVectorConstIterator = std::vector<std::string>::const_iterator;
+#endif
+
 }  // namespace firestore
 }  // namespace firebase
 
