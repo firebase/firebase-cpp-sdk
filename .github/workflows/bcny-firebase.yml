@@ -231,9 +231,26 @@ jobs:
             </files>
           </package>
           "@ | Out-File -Encoding UTF8 firebase.nuspec
-          nuget pack -Properties BUILDROOT=${{ github.workspace }}\BuildRoot\Library\firebase -Suffix (git log -1 --format=%h) firebase.nuspec
+          nuget pack -Properties BUILDROOT=${{ github.workspace }}\BuildRoot\Library\firebase -Suffix (git -C ${{ github.workspace }}/SourceCache/firebase-cpp-sdk log -1 --format=%h) firebase.nuspec
         shell: pwsh
       - uses: actions/upload-artifact@v3
         with:
           name: windows-${{ matrix.arch }}.nupkg
           path: com.google.firebase.windows.${{ matrix.arch }}.*.nupkg
+
+      - name: Publish NuGet Packages
+        env:
+          NUGET_SOURCE_NAME: TheBrowserCompany
+          NUGET_SOURCE_URL: https://nuget.pkg.github.com/thebrowsercompany/index.json
+          NUGET_SOURCE_USERNAME: thebrowsercompany-bot2
+          NUGET_SOURCE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          NUGET_API_KEY: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ((nuget sources List | Select-String "${env:NUGET_SOURCE_NAME}").Count -gt 0) {
+            nuget sources Remove -Name "${env:NUGET_SOURCE_NAME}"
+          }
+          nuget sources Add -Name ${env:NUGET_SOURCE_NAME} -Source ${env:NUGET_SOURCE_URL} -Username ${env:NUGET_SOURCE_USERNAME} -Password ${env:NUGET_SOURCE_PASSWORD} -StorePasswordInClearText
+          nuget setApiKey ${env:NUGET_API_KEY} -Source ${env:NUGET_SOURCE_URL}
+          $pkgs = Get-ChildItem -Path com.google.firebase.windows.${{ matrix.arch }}.*.nupkg
+          nuget push $pkgs[0].Name -Source ${env:NUGET_SOURCE_URL} -SkipDuplicate
+        shell: pwsh
