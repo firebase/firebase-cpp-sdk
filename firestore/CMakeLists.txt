@@ -350,7 +350,7 @@ if(IOS)
       ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal
   )
   set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
-    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include
   )
   
 else()
