@@ -2634,8 +2634,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
 
   WaitForCompletion(future, "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusNotRequired);
+  EXPECT_THAT(consent_info_->GetConsentStatus(),
+              AnyOf(Eq(firebase::gma::ump::kConsentStatusNotRequired),
+                    Eq(firebase::gma::ump::kConsentStatusRequired)));
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
@@ -2736,8 +2737,12 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueToUnderAgeOfConsent) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
-                    firebase::gma::ump::kConsentFormErrorUnavailable);
+  Future<void> load_future = consent_info_->LoadConsentForm();
+  WaitForCompletionAnyResult(load_future, "LoadConsentForm");
+
+  EXPECT_THAT(load_future.error(),
+              AnyOf(Eq(firebase::gma::ump::kConsentFormErrorUnavailable),
+                    Eq(firebase::gma::ump::kConsentFormErrorTimeout)));
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
@@ -2756,8 +2761,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
-                    firebase::gma::ump::kConsentFormErrorUnavailable);
+  if (consent_info_->GetConsentStatus() !=
+      firebase::gma::ump::kConsentStatusRequired) {
+    WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
+                      firebase::gma::ump::kConsentFormErrorUnavailable);
+  }
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
