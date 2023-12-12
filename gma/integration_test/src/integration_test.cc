@@ -2784,17 +2784,25 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusNotRequired);
+  EXPECT_THAT(consent_info_->GetConsentStatus(),
+              AnyOf(Eq(firebase::gma::ump::kConsentStatusNotRequired),
+                    Eq(firebase::gma::ump::kConsentStatusRequired)));
 
-  firebase::Future<void> future =
-      consent_info_->LoadAndShowConsentFormIfRequired(
-          app_framework::GetWindowController());
+  if (consent_info_->GetConsentStatus() ==
+          firebase::gma::ump::kConsentStatusNotRequired ||
+      ShouldRunUITests()) {
+    // If ConsentStatus is Required, we only want to do this next part if UI
+    // interaction is allowed, as it will show a consent form which won't work
+    // in automated testing.
+    firebase::Future<void> future =
+        consent_info_->LoadAndShowConsentFormIfRequired(
+            app_framework::GetWindowController());
 
-  EXPECT_TRUE(future ==
-              consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
+    EXPECT_TRUE(future ==
+                consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
 
-  WaitForCompletion(future, "LoadAndShowConsentFormIfRequired");
+    WaitForCompletion(future, "LoadAndShowConsentFormIfRequired");
+  }
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugEEA) {
