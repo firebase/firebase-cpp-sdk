@@ -3051,6 +3051,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   // Check that all of the UMP operations properly return an OperationInProgress
   // error if called more than once at the same time.
 
+  // This depends on timing, so it's inherently flaky.
+  FLAKY_TEST_SECTION_BEGIN();
+
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
@@ -3066,6 +3069,10 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
       future_request_2, "RequestConsentInfoUpdate second",
       firebase::gma::ump::kConsentRequestErrorOperationInProgress);
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
+
+  consent_info_->Reset();
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgressWithUI) {
