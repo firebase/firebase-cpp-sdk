@@ -39,6 +39,7 @@
 #include "auth/src/desktop/rpcs/secure_token_response.h"
 #include "auth/src/desktop/rpcs/set_account_info_request.h"
 #include "auth/src/desktop/rpcs/set_account_info_response.h"
+#include "auth/src/desktop/rpcs/sign_up_request.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
 #include "auth/src/desktop/rpcs/verify_assertion_response.h"
 #include "auth/src/desktop/rpcs/verify_password_request.h"
@@ -257,6 +258,44 @@ void TriggerSaveUserFlow(AuthData* const auth_data) {
 }
 
 template <typename ResultT>
+void PerformSignUpFlow(AuthDataHandle<ResultT, SignUpRequest>* const handle) {
+  const auto response = GetResponse<SignUpNewUserResponse>(*handle->request);
+
+  if (response.IsSuccessful()) {
+    // Call GetAccountInfo to get more information, since SignUp doesn't include
+    // everything we need.
+    typedef GetAccountInfoRequest RequestT;
+    auto request = std::unique_ptr<GetAccountInfoRequest>(
+        new RequestT(*handle->auth_data->app, GetApiKey(*handle->auth_data),
+                     response.id_token().c_str()));  // NOLINT
+
+    const auto callback =
+        [](AuthDataHandle<ResultT, RequestT>* const inner_handle) {
+          const GetAccountInfoResult account_info =
+              GetAccountInfo(*inner_handle->request);
+
+          if (account_info.IsValid()) {
+            account_info.MergeToCurrentUser(inner_handle->auth_data);
+            TriggerSaveUserFlow(inner_handle->auth_data);
+            CompleteSetAccountInfoPromise(
+                &inner_handle->promise, &inner_handle->auth_data->current_user);
+          } else {
+            SignOutIfUserNoLongerValid(inner_handle->auth_data->auth,
+                                       account_info.error());
+            FailPromise(&inner_handle->promise, account_info.error());
+          }
+        };
+
+    CallAsyncWithFreshToken(handle->auth_data, handle->promise,
+                            std::move(request), callback);
+
+  } else {
+    SignOutIfUserNoLongerValid(handle->auth_data->auth, response.error_code());
+    FailPromise(&handle->promise, response.error_code());
+  }
+}
+
+template <typename ResultT>
 void PerformSetAccountInfoFlow(
     AuthDataHandle<ResultT, SetAccountInfoRequest>* const handle) {
   const auto response = GetResponse<SetAccountInfoResponse>(*handle->request);
@@ -306,14 +345,14 @@ Future<ResultT> DoLinkWithEmailAndPassword(
   const EmailAuthCredential* email_credential =
       GetEmailCredential(raw_credential_impl);
 
-  typedef SetAccountInfoRequest RequestT;
+  typedef SignUpRequest RequestT;
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
       *auth_data->app, GetApiKey(*auth_data),
       email_credential->GetEmail().c_str(),
       email_credential->GetPassword().c_str());
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 PerformSetAccountInfoFlow<ResultT>);
+                                 PerformSignUpFlow<ResultT>);
 }
 
 // Calls setAccountInfo endpoint to link the current user with the given email
@@ -329,14 +368,14 @@ Future<ResultT> DoLinkWithEmailAndPassword_DEPRECATED(
   const EmailAuthCredential* email_credential =
       GetEmailCredential(raw_credential_impl);
 
-  typedef SetAccountInfoRequest RequestT;
+  typedef SignUpRequest RequestT;
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
       *auth_data->app, GetApiKey(*auth_data),
       email_credential->GetEmail().c_str(),
       email_credential->GetPassword().c_str());
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 PerformSetAccountInfoFlow_DEPRECATED<ResultT>);
+                                 PerformSignUpFlow<ResultT>);
 }
 
 // Checks that the given provider wasn't already linked to the currently

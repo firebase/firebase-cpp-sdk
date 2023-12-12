@@ -634,6 +634,9 @@ code.
 ### Upcoming Release
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 10.17.0.
+    - Auth: Fix a bug where anonymous account can't be linked with
+      email password credential. For background, see
+      [Email Enumeration Protection](https://cloud.google.com/identity-platform/docs/admin/email-enumeration-protection#overview)
     
 ### 11.6.0
 -   Changes
