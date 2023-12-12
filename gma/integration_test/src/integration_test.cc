@@ -2738,7 +2738,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueToUnderAgeOfConsent) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  Future<void> load_future = consent_info_->LoadConsentForm();
+  firebase::Future<void> load_future = consent_info_->LoadConsentForm();
   WaitForCompletionAnyResult(load_future, "LoadConsentForm");
 
   EXPECT_THAT(load_future.error(),
