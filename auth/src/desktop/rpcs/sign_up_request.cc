@@ -16,6 +16,7 @@
 
 #include "auth/src/desktop/rpcs/sign_up_request.h"
 
+#include <memory>
 #include <string>
 
 #include "app/src/assert.h"
