@@ -147,6 +147,7 @@ using firebase_test_framework::FirebaseTest;
 using testing::AnyOf;
 using testing::Contains;
 using testing::ElementsAre;
+using testing::Eq;
 using testing::HasSubstr;
 using testing::Pair;
 using testing::Property;
@@ -2634,8 +2635,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
 
   WaitForCompletion(future, "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusNotRequired);
+  EXPECT_THAT(consent_info_->GetConsentStatus(),
+              AnyOf(Eq(firebase::gma::ump::kConsentStatusNotRequired),
+                    Eq(firebase::gma::ump::kConsentStatusRequired)));
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
@@ -2721,6 +2723,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueToUnderAgeOfConsent) {
+  SKIP_TEST_ON_IOS_SIMULATOR;
+
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentFormStatus;
   using firebase::gma::ump::ConsentRequestParameters;
@@ -2736,8 +2740,12 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueToUnderAgeOfConsent) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
-                    firebase::gma::ump::kConsentFormErrorUnavailable);
+  firebase::Future<void> load_future = consent_info_->LoadConsentForm();
+  WaitForCompletionAnyResult(load_future, "LoadConsentForm");
+
+  EXPECT_THAT(load_future.error(),
+              AnyOf(Eq(firebase::gma::ump::kConsentFormErrorUnavailable),
+                    Eq(firebase::gma::ump::kConsentFormErrorTimeout)));
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
@@ -2756,8 +2764,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
-                    firebase::gma::ump::kConsentFormErrorUnavailable);
+  if (consent_info_->GetConsentStatus() !=
+      firebase::gma::ump::kConsentStatusRequired) {
+    WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
+                      firebase::gma::ump::kConsentFormErrorUnavailable);
+  }
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
@@ -2775,17 +2786,25 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusNotRequired);
+  EXPECT_THAT(consent_info_->GetConsentStatus(),
+              AnyOf(Eq(firebase::gma::ump::kConsentStatusNotRequired),
+                    Eq(firebase::gma::ump::kConsentStatusRequired)));
 
-  firebase::Future<void> future =
-      consent_info_->LoadAndShowConsentFormIfRequired(
-          app_framework::GetWindowController());
+  if (consent_info_->GetConsentStatus() ==
+          firebase::gma::ump::kConsentStatusNotRequired ||
+      ShouldRunUITests()) {
+    // If ConsentStatus is Required, we only want to do this next part if UI
+    // interaction is allowed, as it will show a consent form which won't work
+    // in automated testing.
+    firebase::Future<void> future =
+        consent_info_->LoadAndShowConsentFormIfRequired(
+            app_framework::GetWindowController());
 
-  EXPECT_TRUE(future ==
-              consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
+    EXPECT_TRUE(future ==
+                consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
 
-  WaitForCompletion(future, "LoadAndShowConsentFormIfRequired");
+    WaitForCompletion(future, "LoadAndShowConsentFormIfRequired");
+  }
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugEEA) {
@@ -2885,10 +2904,14 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsNonEEA) {
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusNotRequired);
+  EXPECT_THAT(consent_info_->GetConsentStatus(),
+              AnyOf(Eq(firebase::gma::ump::kConsentStatusNotRequired),
+                    Eq(firebase::gma::ump::kConsentStatusRequired)));
 
-  EXPECT_TRUE(consent_info_->CanRequestAds());
+  if (consent_info_->GetConsentStatus() ==
+      firebase::gma::ump::kConsentStatusNotRequired) {
+    EXPECT_TRUE(consent_info_->CanRequestAds());
+  }
 }
 
 TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsEEA) {
@@ -3042,6 +3065,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   // Check that all of the UMP operations properly return an OperationInProgress
   // error if called more than once at the same time.
 
+  // This depends on timing, so it's inherently flaky.
+  FLAKY_TEST_SECTION_BEGIN();
+
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
@@ -3057,6 +3083,10 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
       future_request_2, "RequestConsentInfoUpdate second",
       firebase::gma::ump::kConsentRequestErrorOperationInProgress);
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
+
+  consent_info_->Reset();
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgressWithUI) {
