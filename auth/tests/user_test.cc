@@ -411,7 +411,9 @@ TEST_F(UserTest, TestLinkWithCredential) {
       "futuregeneric:{ticker:1}},"
       "    {fake:'FIRUser.linkWithCredential:completion:',"
       "     futuregeneric:{ticker:1}},"
-      "    {fake:'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=not_a_real_api_key',"
+      "    "
+      "{fake:'https://identitytoolkit.googleapis.com/v1/"
+      "accounts:signUp?key=not_a_real_api_key',"
       "     httpresponse: {"
       "       header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
       "       body: ['{"
@@ -435,8 +437,7 @@ TEST_F(UserTest, TestLinkWithCredential) {
       "     }"
       "    }"
       "  ]"
-      "}"
-  );
+      "}");
 
   Future<User*> result = firebase_user_->LinkWithCredential_DEPRECATED(
       EmailAuthProvider::GetCredential("i@email.com", "pw"));
