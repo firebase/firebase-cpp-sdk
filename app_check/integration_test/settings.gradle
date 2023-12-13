@@ -36,4 +36,6 @@ if (!(new File(firebase_cpp_sdk_dir)).exists()) {
             firebase_cpp_sdk_dir))
 }
 gradle.ext.firebase_cpp_sdk_dir = "$firebase_cpp_sdk_dir"
-includeBuild "$firebase_cpp_sdk_dir"
+includeBuild("$firebase_cpp_sdk_dir") {
+  name = "firebase_cpp_sdk"
+}
