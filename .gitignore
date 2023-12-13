@@ -13,6 +13,7 @@ __pycache__/
 .gradle
 **/build/
 **/.externalNativeBuild/
+**/.cxx/
 
 ### IDE generated files
 .vscode/
