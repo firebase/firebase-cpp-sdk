@@ -72,7 +72,7 @@ def defineGenerateProguardFile(String subproject, String buildType,
       String nativeBuildDir =
           project.android.externalNativeBuild.cmake.buildStagingDirectory
       if (nativeBuildDir == null || nativeBuildDir.isEmpty()) {
-        nativeBuildDir = file('.externalNativeBuild/cmake').absolutePath
+        nativeBuildDir = file('.cxx/cmake').absolutePath
       }
 
       // Find the static library that was built. Note that there are multiple

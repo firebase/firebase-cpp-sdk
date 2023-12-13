@@ -19,7 +19,6 @@
           package="com.google.firebase.cpp.messaging.testapp"
           android:versionCode="1"
           android:versionName="1.0">
-  <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="28" />
   <!-- Required by firebase-iid from
        java/com/google/android/gmscore/integ/client/firebase-iid/\
        AndroidManifest.xml -->

@@ -51,9 +51,9 @@ for retry in {1..10} error; do
 done
 set -e
 
-# Gradle puts the build output inside the source tree, in various
-# "build" and ".externalNativeBuild" directories. Grab them and place
-# them in the build output directory.
+# Gradle puts the build output inside the source tree, in various "build",
+# ".externalNativeBuild", and ".cxx" directories. Grab them and place them in
+# the build output directory.
 declare -a paths
 for lib in *; do
     if [[ -d "${lib}/build" ]]; then
@@ -61,6 +61,9 @@ for lib in *; do
     fi
     if [[ -d "${lib}/.externalNativeBuild" ]]; then
         paths+=("${lib}/.externalNativeBuild")
+    fi
+    if [[ -d "${lib}/.cxx" ]]; then
+        paths+=("${lib}/.cxx")
     fi
     if [[ -d "${lib}/${lib}_resources/build" ]]; then
         paths+=("${lib}/${lib}_resources/build")

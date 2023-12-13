@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.3.1)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.7.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -134,7 +134,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:22.3.0
+|                          | com.google.android.gms:play-services-ads:22.6.0
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:2.1.0
 |                          | (Maven package)
@@ -633,11 +633,15 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General (Android): Firebase C++ on Android is now built using Android API
+      level 33 and Gradle 6.7.1.
+    - General (Android): Update to Firebase Android BoM version 32.3.1.
     - General (iOS): Update to Firebase Cocoapods version 10.17.0.
     - Auth: Fix a bug where anonymous account can't be linked with
       email password credential. For background, see
       [Email Enumeration Protection](https://cloud.google.com/identity-platform/docs/admin/email-enumeration-protection#overview)
-    
+    - GMA (Android) Updated dependency to play-services-ads version 22.4.0.
+
 ### 11.6.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 10.15.0.
