@@ -277,6 +277,7 @@ void PerformSignUpFlow(AuthDataHandle<ResultT, SignUpRequest>* const handle) {
           if (account_info.IsValid()) {
             account_info.MergeToCurrentUser(inner_handle->auth_data);
             TriggerSaveUserFlow(inner_handle->auth_data);
+            NotifyIdTokenListeners(inner_handle->auth_data);
             CompleteSetAccountInfoPromise(
                 &inner_handle->promise, &inner_handle->auth_data->current_user);
           } else {
