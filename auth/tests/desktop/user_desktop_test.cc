@@ -569,7 +569,9 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_OauthCredential) {
 TEST_F(UserDesktopTest, TestLinkWithCredential_EmailCredential) {
   FakeSetT fakes;
   const auto api_url =
-      std::string("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=") + API_KEY;
+      std::string(
+          "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=") +
+      API_KEY;
   fakes[api_url] =
       FakeSuccessfulResponse("SignupNewUserResponse",
                              " \"idToken\": \"idtoken123\","
@@ -587,9 +589,9 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_EmailCredential) {
                              "   \"idToken\": \"new_fake_token\","
                              "   \"passwordHash\": \"new_fake_hash\","
                              "   \"emailVerified\": false," +
-                             GetFakeProviderInfo() +
-                             "  }"
-                             " ]");
+                                 GetFakeProviderInfo() +
+                                 "  }"
+                                 " ]");
   InitializeConfigWithFakes(fakes);
 
   // Response contains a new ID token, but user should have stayed the same.
