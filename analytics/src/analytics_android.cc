@@ -70,6 +70,12 @@ static const ::firebase::App* g_app = nullptr;
       util::kFieldTypeStatic),                                                \
   X(AdStorage, "AD_STORAGE",                                                  \
     "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
+      util::kFieldTypeStatic),                                                \
+  X(AdUserData, "AD_USER_DATA",                                               \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
+      util::kFieldTypeStatic),                                                \
+  X(AdPersonalization, "AD_PERSONALIZATION",                                  \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
       util::kFieldTypeStatic)
 
 #define ANALYTICS_CONSENT_STATUS_FIELDS(X)                                    \
@@ -219,6 +225,30 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
 
         if (util::LogException(env, kLogLevelError,
                                "Failed to get ConsentTypeAnalyticsStorage")) {
+          env->DeleteLocalRef(consent_map);
+          return;
+        }
+        break;
+      case kConsentTypeAdUserData:
+        consent_type = env->GetStaticObjectField(
+            analytics_consent_type::GetClass(),
+            analytics_consent_type::GetFieldId(
+                analytics_consent_type::AdUserData));
+
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentTypeAdUserData")) {
+          env->DeleteLocalRef(consent_map);
+          return;
+        }
+        break;
+      case kConsentTypeAdPersonalization:
+        consent_type = env->GetStaticObjectField(
+            analytics_consent_type::GetClass(),
+            analytics_consent_type::GetFieldId(
+                analytics_consent_type::AdPersonalization));
+
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentTypeAdPersonalization")) {
           env->DeleteLocalRef(consent_map);
           return;
         }

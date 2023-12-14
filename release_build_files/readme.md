@@ -637,6 +637,7 @@ code.
       level 33 and Gradle 6.7.1.
     - General (Android): Update to Firebase Android BoM version 32.3.1.
     - General (iOS): Update to Firebase Cocoapods version 10.17.0.
+    - Analytics: Updated the consent management API to include new consent signals.
     - GMA (Android) Updated dependency to play-services-ads version 22.4.0.
 
 ### 11.6.0
