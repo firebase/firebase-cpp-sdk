@@ -230,10 +230,10 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         }
         break;
       case kConsentTypeAdUserData:
-        consent_type = env->GetStaticObjectField(
-            analytics_consent_type::GetClass(),
-            analytics_consent_type::GetFieldId(
-                analytics_consent_type::AdUserData));
+        consent_type =
+            env->GetStaticObjectField(analytics_consent_type::GetClass(),
+                                      analytics_consent_type::GetFieldId(
+                                          analytics_consent_type::AdUserData));
 
         if (util::LogException(env, kLogLevelError,
                                "Failed to get ConsentTypeAdUserData")) {
