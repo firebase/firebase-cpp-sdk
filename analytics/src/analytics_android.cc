@@ -233,7 +233,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         consent_type =
             env->GetStaticObjectField(analytics_consent_type::GetClass(),
                                       analytics_consent_type::GetFieldId(
-                                          analytics_consent_type::AdUserData));
+                                          analytics_consent_type::kAdUserData));
 
         if (util::LogException(env, kLogLevelError,
                                "Failed to get ConsentTypeAdUserData")) {
@@ -245,7 +245,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         consent_type = env->GetStaticObjectField(
             analytics_consent_type::GetClass(),
             analytics_consent_type::GetFieldId(
-                analytics_consent_type::AdPersonalization));
+                analytics_consent_type::kAdPersonalization));
 
         if (util::LogException(env, kLogLevelError,
                                "Failed to get ConsentTypeAdPersonalization")) {
