@@ -151,7 +151,7 @@ jobs:
               <file src="`$BUILDROOT`$\usr\include\firebase\firestore\write_batch.h" target="include/firebase/firestore" />
               <file src="`$BUILDROOT`$\usr\include\firebase\internal\common.h" target="include/firebase/internal" />
               <file src="`$BUILDROOT`$\usr\include\firebase\internal\future_impl.h" target="include/firebase/internal" />
-              <file src="`$BUILDROOT`$\usr\include\firebase\internal\mutex.h" target="include/firebase/include/internal" />
+              <file src="`$BUILDROOT`$\usr\include\firebase\internal\mutex.h" target="include/firebase/internal" />
               <file src="`$BUILDROOT`$\usr\include\firebase\internal\platform.h" target="include/firebase/internal" />
               <file src="`$BUILDROOT`$\usr\include\firebase\internal\type_traits.h" target="include/firebase/internal" />
               <!-- FIXME(compnerd) is this header actually required? -->
