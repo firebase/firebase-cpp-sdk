@@ -160,6 +160,7 @@ jobs:
               <file src="`$BUILDROOT`$\usr\libs\windows\firebase_auth.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\firebase_firestore.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\firebase_rest_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\firebase_util.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\firestore_core.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\firestore_nanopb.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\firestore_protos_nanopb.lib" target="lib" />
