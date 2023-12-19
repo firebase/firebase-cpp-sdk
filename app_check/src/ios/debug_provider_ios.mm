@@ -93,7 +93,8 @@ void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& toke
   // Write to the same location that the iOS SDK will read from.
   NSString* token_string = (!token.empty()) ? util::StringToNSString(token) : nullptr;
   [[NSUserDefaults standardUserDefaults] setObject:token_string forKey:kDebugTokenUserDefaultsKey];
-  [[NSUserDefaults standardUserDefaults] setObject:token_string forKey:kGACDebugTokenUserDefaultsKey];
+  [[NSUserDefaults standardUserDefaults] setObject:token_string
+                                            forKey:kGACDebugTokenUserDefaultsKey];
 }
 
 }  // namespace internal
