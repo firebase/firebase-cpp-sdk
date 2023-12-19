@@ -257,42 +257,44 @@ void TriggerSaveUserFlow(AuthData* const auth_data) {
   }
 }
 
-template <typename ResultT>
+template <typename ResponseT, typename ResultT>
 void PerformSignUpFlow(AuthDataHandle<ResultT, SignUpRequest>* const handle) {
-  const auto response = GetResponse<SignUpNewUserResponse>(*handle->request);
+  FIREBASE_ASSERT_RETURN_VOID(handle && handle->request);
 
-  if (response.IsSuccessful()) {
-    // Call GetAccountInfo to get more information, since SignUp doesn't include
-    // everything we need.
-    typedef GetAccountInfoRequest RequestT;
-    auto request = std::unique_ptr<GetAccountInfoRequest>(
-        new RequestT(*handle->auth_data->app, GetApiKey(*handle->auth_data),
-                     response.id_token().c_str()));  // NOLINT
+  const auto response = GetResponse<ResponseT>(*handle->request);
+  const AuthenticationResult auth_response =
+      CompleteSignInFlow(handle->auth_data, response);
 
-    const auto callback =
-        [](AuthDataHandle<ResultT, RequestT>* const inner_handle) {
-          const GetAccountInfoResult account_info =
-              GetAccountInfo(*inner_handle->request);
-
-          if (account_info.IsValid()) {
-            account_info.MergeToCurrentUser(inner_handle->auth_data);
-            TriggerSaveUserFlow(inner_handle->auth_data);
-            NotifyIdTokenListeners(inner_handle->auth_data);
-            CompleteSetAccountInfoPromise(
-                &inner_handle->promise, &inner_handle->auth_data->current_user);
-          } else {
-            SignOutIfUserNoLongerValid(inner_handle->auth_data->auth,
-                                       account_info.error());
-            FailPromise(&inner_handle->promise, account_info.error());
-          }
-        };
-
-    CallAsyncWithFreshToken(handle->auth_data, handle->promise,
-                            std::move(request), callback);
-
+  if (auth_response.IsValid()) {
+    const AuthResult auth_result =
+        auth_response.SetAsCurrentUser(handle->auth_data);
+    // The usual SignIn flow doesn't trigger this, but since this is used
+    // to upgrade anonymous accounts, it is needed for SignUp
+    NotifyIdTokenListeners(handle->auth_data);
+    CompletePromise(&handle->promise, auth_result);
   } else {
-    SignOutIfUserNoLongerValid(handle->auth_data->auth, response.error_code());
-    FailPromise(&handle->promise, response.error_code());
+    FailPromise(&handle->promise, auth_response.error());
+  }
+}
+
+template <typename ResponseT, typename ResultT>
+void PerformSignUpFlow_DEPRECATED(
+    AuthDataHandle<ResultT, SignUpRequest>* const handle) {
+  FIREBASE_ASSERT_RETURN_VOID(handle && handle->request);
+
+  const auto response = GetResponse<ResponseT>(*handle->request);
+  const AuthenticationResult auth_response =
+      CompleteSignInFlow(handle->auth_data, response);
+
+  if (auth_response.IsValid()) {
+    const SignInResult sign_in_result =
+        auth_response.SetAsCurrentUser_DEPRECATED(handle->auth_data);
+    // The usual SignIn flow doesn't trigger this, but since this is used
+    // to upgrade anonymous accounts, it is needed for SignUp
+    NotifyIdTokenListeners(handle->auth_data);
+    CompletePromise(&handle->promise, sign_in_result);
+  } else {
+    FailPromise(&handle->promise, auth_response.error());
   }
 }
 
@@ -353,7 +355,7 @@ Future<ResultT> DoLinkWithEmailAndPassword(
       email_credential->GetPassword().c_str());
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 PerformSignUpFlow<ResultT>);
+                                 PerformSignUpFlow<SignUpNewUserResponse>);
 }
 
 // Calls setAccountInfo endpoint to link the current user with the given email
@@ -375,8 +377,9 @@ Future<ResultT> DoLinkWithEmailAndPassword_DEPRECATED(
       email_credential->GetEmail().c_str(),
       email_credential->GetPassword().c_str());
 
-  return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 PerformSignUpFlow<ResultT>);
+  return CallAsyncWithFreshToken(
+      auth_data, promise, std::move(request),
+      PerformSignUpFlow_DEPRECATED<SignUpNewUserResponse>);
 }
 
 // Checks that the given provider wasn't already linked to the currently
