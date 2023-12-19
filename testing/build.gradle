@@ -18,7 +18,7 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.3.3'
+    classpath 'com.android.tools.build:gradle:4.2.1'
     classpath 'com.google.gms:google-services:4.2.0'
     classpath 'com.google.flatbuffers:flatbuffers-java:1.12.0'
   }
@@ -34,8 +34,9 @@ allprojects {
 apply plugin: 'com.android.library'
 
 android {
-  compileSdkVersion 28
-  buildToolsVersion '28.0.3'
+  compileSdkVersion 33
+  ndkPath System.getenv('ANDROID_NDK_HOME')
+  buildToolsVersion '30.0.2'
 
   sourceSets {
     main {
