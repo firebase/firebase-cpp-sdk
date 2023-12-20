@@ -638,7 +638,11 @@ code.
     - General (Android): Update to Firebase Android BoM version 32.7.0.
     - General (iOS): Update to Firebase Cocoapods version 10.19.0.
     - Analytics: Updated the consent management API to include new consent signals.
+    - Auth: Fix a bug where an anonymous account can't be linked with
+      email password credential. For background, see [Email Enumeration
+      Protection](https://cloud.google.com/identity-platform/docs/admin/email-enumeration-protection)
     - GMA (Android) Updated dependency to play-services-ads version 22.6.0.
+    - GMA (iOS) Updated dependency to Google-Mobile-Ads-SDK version 10.14.0.
 
 ### 11.6.0
 -   Changes
