@@ -567,8 +567,32 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_OauthCredential) {
 }
 
 TEST_F(UserDesktopTest, TestLinkWithCredential_EmailCredential) {
-  InitializeConfigWithAFake(GetUrlForApi(API_KEY, "setAccountInfo"),
-                            FakeSetAccountInfoResponse());
+  FakeSetT fakes;
+  const auto api_url =
+      std::string(
+          "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=") +
+      API_KEY;
+  fakes[api_url] =
+      FakeSuccessfulResponse("SignupNewUserResponse",
+                             " \"idToken\": \"idtoken123\","
+                             " \"refreshToken\": \"refreshtoken123\","
+                             " \"expiresIn\": \"3600\","
+                             " \"localId\": \"localid123\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] =
+      FakeSuccessfulResponse("GetAccountInfoResponse",
+                             " \"users\": ["
+                             "  {"
+                             "   \"localId\": \"localid123\","
+                             "   \"lastLoginAt\": \"123\","
+                             "   \"createdAt\": \"456\","
+                             "   \"email\": \"new_fake_email@example.com\","
+                             "   \"idToken\": \"new_fake_token\","
+                             "   \"passwordHash\": \"new_fake_hash\","
+                             "   \"emailVerified\": false," +
+                                 GetFakeProviderInfo() +
+                                 "  }"
+                                 " ]");
+  InitializeConfigWithFakes(fakes);
 
   // Response contains a new ID token, but user should have stayed the same.
   id_token_listener.ExpectChanges(1);
@@ -840,18 +864,6 @@ TEST_F(UserDesktopTestSignOutOnError, Unlink) {
       kAuthErrorUserNotFound, [&] {
         sem_.Post();
         return firebase_user_->Unlink_DEPRECATED("fake_provider_id");
-      });
-  sem_.Wait();
-}
-
-TEST_F(UserDesktopTestSignOutOnError, LinkWithEmail) {
-  CheckSignOutIfUserIsInvalid(
-      GetUrlForApi(API_KEY, "setAccountInfo"), "USER_NOT_FOUND",
-      kAuthErrorUserNotFound, [&] {
-        sem_.Post();
-        return firebase_user_->LinkWithCredential_DEPRECATED(
-            EmailAuthProvider::GetCredential("fake_email@example.com",
-                                             "fake_password"));
       });
   sem_.Wait();
 }
