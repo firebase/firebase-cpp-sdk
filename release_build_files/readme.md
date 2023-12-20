@@ -637,6 +637,7 @@ code.
       level 33 and Gradle 6.7.1.
     - General (Android): Update to Firebase Android BoM version 32.3.1.
     - General (iOS): Update to Firebase Cocoapods version 10.17.0.
+    - Analytics: Updated the consent management API to include new consent signals.
     - Auth: Fix a bug where anonymous account can't be linked with
       email password credential. For background, see
       [Email Enumeration Protection](https://cloud.google.com/identity-platform/docs/admin/email-enumeration-protection#overview)
