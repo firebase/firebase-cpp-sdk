@@ -28,8 +28,9 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// The key used by the iOS SDK to get the debug token from.
+// The keys used by the iOS SDK to get the debug token from.
 static NSString* const kDebugTokenUserDefaultsKey = @"FIRAAppCheckDebugToken";
+static NSString* const kGACDebugTokenUserDefaultsKey = @"GACAppCheckDebugToken";
 
 class DebugAppCheckProvider : public AppCheckProvider {
  public:
@@ -92,6 +93,8 @@ void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& toke
   // Write to the same location that the iOS SDK will read from.
   NSString* token_string = (!token.empty()) ? util::StringToNSString(token) : nullptr;
   [[NSUserDefaults standardUserDefaults] setObject:token_string forKey:kDebugTokenUserDefaultsKey];
+  [[NSUserDefaults standardUserDefaults] setObject:token_string
+                                            forKey:kGACDebugTokenUserDefaultsKey];
 }
 
 }  // namespace internal
