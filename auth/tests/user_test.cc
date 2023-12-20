@@ -402,18 +402,42 @@ TEST_F(UserTest, TestSendEmailVerification) {
 }
 
 TEST_F(UserTest, TestLinkWithCredential) {
-  const std::string config =
-      std::string(
-          "{"
-          "  config:["
-          "    {fake:'FirebaseUser.linkWithCredential', "
-          "futuregeneric:{ticker:1}},"
-          "    {fake:'FIRUser.linkWithCredential:completion:',"
-          "     futuregeneric:{ticker:1}},") +
-      SET_ACCOUNT_INFO_SUCCESSFUL_RESPONSE +
+  // Under the hood, since this is linking an email/password,
+  // it is expecting a signUp call, followed by a getAccountInfo.
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseUser.linkWithCredential', "
+      "futuregeneric:{ticker:1}},"
+      "    {fake:'FIRUser.linkWithCredential:completion:',"
+      "     futuregeneric:{ticker:1}},"
+      "    "
+      "{fake:'https://identitytoolkit.googleapis.com/v1/"
+      "accounts:signUp?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
+      "       body: ['{"
+      " \"kind\": \"identitytoolkit#SignupNewUserResponse\","
+      " \"idToken\": \"idtoken123\","
+      " \"refreshToken\": \"refreshtoken123\","
+      " \"expiresIn\": \"3600\","
+      " \"localId\": \"localid123\""
+      "}',]"
+      "     }"
+      "    },"
+      "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "getAccountInfo?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
+      "       body: ['{"
+      "         \"users\": [{"
+      "           \"localId\": \"localid123\""
+      "         }]}',"
+      "       ]"
+      "     }"
+      "    }"
       "  ]"
-      "}";
-  firebase::testing::cppsdk::ConfigSet(config.c_str());
+      "}");
 
   Future<User*> result = firebase_user_->LinkWithCredential_DEPRECATED(
       EmailAuthProvider::GetCredential("i@email.com", "pw"));
