@@ -59,6 +59,10 @@ void GetAccountInfoResult::MergeToUser(UserView::Writer& user) const {
       user_impl_.has_email_password_credential;
   user->creation_timestamp = user_impl_.creation_timestamp;
   user->last_sign_in_timestamp = user_impl_.last_sign_in_timestamp;
+  // If the account info has an email, make sure is_anonymous is false
+  if (!user_impl_.email.empty() && user_impl_.has_email_password_credential) {
+    user->is_anonymous = false;
+  }
 
   user.ResetUserInfos(provider_data_);
 }
