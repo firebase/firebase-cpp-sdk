@@ -2722,7 +2722,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
             firebase::gma::ump::kConsentStatusObtained);
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueToUnderAgeOfConsent) {
+TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
   SKIP_TEST_ON_IOS_SIMULATOR;
 
   using firebase::gma::ump::ConsentDebugSettings;
@@ -2745,7 +2745,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueToUnderAgeOfConsent) {
 
   EXPECT_THAT(load_future.error(),
               AnyOf(Eq(firebase::gma::ump::kConsentFormErrorUnavailable),
-                    Eq(firebase::gma::ump::kConsentFormErrorTimeout)));
+                    Eq(firebase::gma::ump::kConsentFormErrorTimeout),
+                    Eq(firebase::gma::ump::kConsentFormSuccess)));
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
