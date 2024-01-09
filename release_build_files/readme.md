@@ -641,8 +641,8 @@ code.
     - Auth: Fix a bug where an anonymous account can't be linked with
       email password credential. For background, see [Email Enumeration
       Protection](https://cloud.google.com/identity-platform/docs/admin/email-enumeration-protection)
-    - GMA (Android) Updated dependency to play-services-ads version 22.6.0.
-    - GMA (iOS) Updated dependency to Google-Mobile-Ads-SDK version 10.14.0.
+    - GMA (Android): Updated dependency to play-services-ads version 22.6.0.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.14.0.
 
 ### 11.6.0
 -   Changes
