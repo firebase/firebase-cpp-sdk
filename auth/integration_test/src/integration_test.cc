@@ -153,6 +153,19 @@ class FirebaseAuthTest : public FirebaseTest {
     }
   }
 
+  void SignInAnonymously() {
+    FLAKY_TEST_SECTION_BEGIN();
+    WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+    FLAKY_TEST_SECTION_END();
+  }
+
+  void SignInAnonymously_DEPRECATED() {
+    FLAKY_TEST_SECTION_BEGIN();
+    WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
+                      "SignInAnonymously_DEPRECATED");
+    FLAKY_TEST_SECTION_END();
+  }
+
   bool initialized_;
   firebase::auth::Auth* auth_;
 };
@@ -375,7 +388,7 @@ TEST_F(FirebaseAuthTest, TestInitialization) {
 TEST_F(FirebaseAuthTest, TestAnonymousSignin) {
   // Test notification on SignIn().
 
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   EXPECT_TRUE(auth_->current_user().is_valid());
   EXPECT_TRUE(auth_->current_user().is_anonymous());
   DeleteUser();
@@ -383,8 +396,7 @@ TEST_F(FirebaseAuthTest, TestAnonymousSignin) {
 
 TEST_F(FirebaseAuthTest, TestAnonymousSignin_DEPRECATED) {
   // Test notification on SignIn().
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   if (auth_->current_user_DEPRECATED() != nullptr) {
     EXPECT_TRUE(auth_->current_user_DEPRECATED()->is_anonymous());
@@ -476,7 +488,7 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
   TestIdTokenListener token_listener;
   auth_->AddAuthStateListener(&listener);
   auth_->AddIdTokenListener(&token_listener);
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   // Get an initial token.
   firebase::Future<std::string> token_future =
       auth_->current_user().GetToken(false);
@@ -631,7 +643,7 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin_DEPRECATED) {
 }
 
 TEST_F(FirebaseAuthTest, TestCopyUser) {
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   EXPECT_TRUE(auth_->current_user().is_valid());
   if (!auth_->current_user().is_valid()) return;
 
@@ -659,8 +671,7 @@ TEST_F(FirebaseAuthTest, TestCopyUser) {
 }
 
 TEST_F(FirebaseAuthTest, TestCopyUser_DEPRECATED) {
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   if (auth_->current_user_DEPRECATED() == nullptr) return;
 
@@ -937,7 +948,7 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword_DEPRECATED) {
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   firebase::auth::User user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
   std::string email = GenerateEmailAddress();
@@ -947,7 +958,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   WaitForCompletion(user.LinkWithCredential(credential), "LinkWithCredential");
   WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink");
   SignOut();
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
   std::string email1 = GenerateEmailAddress();
@@ -971,8 +982,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential_DEPRECATED) {
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   firebase::auth::User* user = auth_->current_user_DEPRECATED();
   std::string email = GenerateEmailAddress();
@@ -984,8 +994,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential_DEPRECATED) {
   WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()),
                     "Unlink");
   SignOut();
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   std::string email1 = GenerateEmailAddress();
   firebase::auth::Credential credential1 =
@@ -1006,7 +1015,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential_DEPRECATED) {
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   firebase::auth::User pre_link_user = auth_->current_user();
   EXPECT_TRUE(pre_link_user.is_valid());
   firebase::auth::Credential twitter_cred =
@@ -1023,8 +1032,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential_DEPRECATED) {
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   firebase::auth::User* pre_link_user = auth_->current_user_DEPRECATED();
   firebase::auth::Credential twitter_cred =
@@ -1150,7 +1158,7 @@ TEST_F(FirebaseAuthTest, TestCreateUserWithExistingEmailFails_DEPRECATED) {
 
 TEST_F(FirebaseAuthTest, TestSignInWithBadCredentials) {
   // Get an anonymous user first.
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   EXPECT_TRUE(auth_->current_user().is_valid());
   // Hold on to the existing user, to make sure it is unchanged by bad signins.
   firebase::auth::User existing_user = auth_->current_user();
@@ -1404,7 +1412,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
 
   FLAKY_TEST_SECTION_BEGIN();
 
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   EXPECT_TRUE(auth_->current_user().is_valid());
   EXPECT_TRUE(auth_->current_user().is_anonymous());
   Terminate();
@@ -2108,7 +2116,7 @@ TEST_F(FirebaseAuthTest,
 TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProviderNoScopes) {
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   ASSERT_TRUE(auth_->current_user().is_valid());
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
@@ -2125,8 +2133,7 @@ TEST_F(FirebaseAuthTest,
        TestSuccessfulLinkFederatedProviderNoScopes_DEPRECATED) {
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
@@ -2144,7 +2151,7 @@ TEST_F(FirebaseAuthTest,
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
 
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   ASSERT_TRUE(auth_->current_user().is_valid());
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
@@ -2163,8 +2170,7 @@ TEST_F(
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
 
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
@@ -2181,7 +2187,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProvider) {
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
 
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   ASSERT_TRUE(auth_->current_user().is_valid());
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
@@ -2200,8 +2206,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProvider_DEPRECATED) {
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
 
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
@@ -2220,7 +2225,7 @@ TEST_F(FirebaseAuthTest, TestLinkFederatedProviderBadProviderIdFails) {
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
 
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  SignInAnonymously();
   ASSERT_TRUE(auth_->current_user().is_valid());
   firebase::auth::FederatedOAuthProviderData provider_data(
       /*provider=*/"MadeUpProvider",
@@ -2239,8 +2244,7 @@ TEST_F(FirebaseAuthTest,
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
 
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(),
-                    "SignInAnonymously_DEPRECATED");
+  SignInAnonymously_DEPRECATED();
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   firebase::auth::FederatedOAuthProviderData provider_data(
       /*provider=*/"MadeUpProvider",
