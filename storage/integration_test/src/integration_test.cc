@@ -1353,7 +1353,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   EXPECT_EQ(metadata->size_bytes(), kLargeFileSize);
 
   FLAKY_TEST_SECTION_END();
-  const int kDownloadTimeoutSeconds = 2;
+  const int kDownloadTimeoutSeconds = 120;
 
   // Download the file and confirm it's correct.
   {
