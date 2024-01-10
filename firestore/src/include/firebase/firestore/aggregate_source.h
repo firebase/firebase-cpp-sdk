@@ -32,7 +32,7 @@ enum class AggregateSource {
    * considering any local state. That is, documents in the local cache are not
    * taken into consideration, neither are local modifications not yet
    * synchronized with the server. Previously-downloaded results, if any, are
-   * not used: every request using this source necessarily involves a round trip
+   * not used. Every request using this source necessarily involves a round trip
    * to the server.
    *
    * The AggregateQuery will fail if the server cannot be reached, such as if
