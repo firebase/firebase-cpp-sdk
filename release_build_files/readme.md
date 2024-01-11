@@ -7,7 +7,7 @@ on *iOS* and *Android*:
 *   Firebase App Check
 *   Firebase Authentication
 *   Firebase Cloud Messaging
-*   Firebase Dynamic Links
+*   Firebase Dynamic Links (deprecated SDK)
 *   Cloud Firestore
 *   Firebase Functions
 *   Google Mobile Ads (with User Messaging Platform)
@@ -631,6 +631,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming release
+-   Changes
+    - Dynamic Links: The Dynamic Links SDK is now deprecated. See the [support
+      documentation](https://firebase.google.com/support/dynamic-links-faq)
+      for more information.
+
 ### 11.7.0
 -   Changes
     - General (Android): Firebase C++ on Android is now built using Android API
