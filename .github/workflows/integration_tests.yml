@@ -174,7 +174,6 @@ jobs:
         elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then
           # auto-diff only apply when running in a PR.
           # diff against the PR's base. "git merge-base main branch_name" will give the common ancestor of both branches.
-          git merge-base 'origin/${{github.event.pull_request.head.ref}}' 'origin/${{github.event.pull_request.base.ref}}' || true
           MERGE_BASE=$(git merge-base 'origin/${{github.event.pull_request.head.ref}}' 'origin/${{github.event.pull_request.base.ref}}' || true)
           # If origin/<branch> is no longer valid, then just run all tests.
           if [[ -n "${MERGE_BASE}" ]]; then
