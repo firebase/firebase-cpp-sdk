@@ -2434,7 +2434,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
     firebase::gma::AdRequest request = GetAdRequest();
     firebase::Future<firebase::gma::AdResult> future =
         rewarded->LoadAd(kRewardedAdUnit, request);
-    WaitForCompletionAnyResult(
+    WaitForCompletion(
         future, "TestRewardedAdStress LoadAd",
         {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
     // Stress tests may exhaust the ad pool. If so, loadAd will return
@@ -2758,11 +2758,10 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
                     "RequestConsentInfoUpdate");
 
   firebase::Future<void> load_future = consent_info_->LoadConsentForm();
-  WaitForCompletion(
-      load_future,
-      "LoadConsentForm" {firebase::gma::ump::kConsentFormErrorUnavailable,
-                         firebase::gma::ump::kConsentFormErrorTimeout,
-                         firebase::gma::ump::kConsentFormSuccess});
+  WaitForCompletion(load_future, "LoadConsentForm",
+                    {firebase::gma::ump::kConsentFormErrorUnavailable,
+                     firebase::gma::ump::kConsentFormErrorTimeout,
+                     firebase::gma::ump::kConsentFormSuccess});
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
