@@ -164,6 +164,9 @@ jobs:
         shell: bash
         command: pip install -r scripts/gha/python_requirements.txt
     - id: matrix_config
+      env:
+        HEAD_REF: ${{github.event.pull_request.head.ref}}
+        BASE_REF: ${{github.event.pull_request.base.ref}}
       run: |
         if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then
           TEST_MATRIX_PARAM=-e=1
@@ -174,12 +177,12 @@ jobs:
         elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then
           # auto-diff only apply when running in a PR.
           # diff against the PR's base. "git merge-base main branch_name" will give the common ancestor of both branches.
-          MERGE_BASE=$(git merge-base 'origin/${{github.event.pull_request.head.ref}}' 'origin/${{github.event.pull_request.base.ref}}' || true)
+          MERGE_BASE=$(git merge-base "origin/${HEAD_REF}" "origin/${BASE_REF}" || true)
           # If origin/<branch> is no longer valid, then just run all tests.
           if [[ -n "${MERGE_BASE}" ]]; then
-            echo '::warning ::Auto-diff origin/${{github.event.pull_request.head.ref}}'.."${MERGE_BASE}"
-            git diff --name-only 'origin/${{github.event.pull_request.head.ref}}'.."${MERGE_BASE}"
-            TEST_MATRIX_PARAM='--auto_diff origin/${{github.event.pull_request.head.ref}}'.."${MERGE_BASE}"
+            echo '::warning ::Auto-diff origin/${HEAD_REF}..${MERGE_BASE}"
+            git diff --name-only "origin/${HEAD_REF}..${MERGE_BASE}"
+            TEST_MATRIX_PARAM="--auto_diff origin/${HEAD_REF}..${MERGE_BASE}"
           fi
         fi
 
