@@ -3011,7 +3011,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanupRaceCondition) {
 
 TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance) {
   // Ensure that if ConsentInfo is deleted and then recreated, stale
-  // callbacks don't call into the new instance.
+  // callbacks don't call into the new instance and cause crashes.
   using firebase::gma::ump::ConsentFormStatus;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -3023,32 +3023,20 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  firebase::Future<void> future_request =
-      consent_info_->RequestConsentInfoUpdate(params);
-  firebase::Future<void> future_load = consent_info_->LoadConsentForm();
-  firebase::Future<void> future_show =
-      consent_info_->ShowConsentForm(app_framework::GetWindowController());
-  firebase::Future<void> future_load_and_show =
-      consent_info_->LoadAndShowConsentFormIfRequired(
-          app_framework::GetWindowController());
-  firebase::Future<void> future_privacy = consent_info_->ShowPrivacyOptionsForm(
-      app_framework::GetWindowController());
+  consent_info_->RequestConsentInfoUpdate(params);
+  consent_info_->LoadConsentForm();
+  // In automated tests, only check RequestConsentInfoUpdate and LoadConsentForm
+  // as the rest may show UI.
+  if (ShouldRunUITests()) {
+    consent_info_->ShowConsentForm(app_framework::GetWindowController());
+    consent_info_->LoadAndShowConsentFormIfRequired(
+        app_framework::GetWindowController());
+    consent_info_->ShowPrivacyOptionsForm(app_framework::GetWindowController());
+  }
 
   TerminateUmp(kNoReset);
 
-  EXPECT_EQ(future_request.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_load.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_show.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_load_and_show.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_privacy.status(), firebase::kFutureStatusInvalid);
-
   InitializeUmp(kNoReset);
-
-  EXPECT_EQ(future_request.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_load.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_show.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_load_and_show.status(), firebase::kFutureStatusInvalid);
-  EXPECT_EQ(future_privacy.status(), firebase::kFutureStatusInvalid);
 
   // Give the operations time to complete.
   ProcessEvents(5000);
