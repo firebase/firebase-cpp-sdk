@@ -2373,11 +2373,11 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
     // Load the AdView ad.
     firebase::gma::AdRequest request = GetAdRequest();
     firebase::Future<firebase::gma::AdResult> future = ad_view->LoadAd(request);
-    WaitForCompletionAnyResult(future, "TestAdViewStress LoadAd");
+    WaitForCompletion(
+        future, "TestAdViewStress LoadAd",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
     // Stress tests may exhaust the ad pool. If so, loadAd will return
     // kAdErrorCodeNoFill.
-    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
-                future.error() == firebase::gma::kAdErrorCodeNoFill);
     if (future.error() == firebase::gma::kAdErrorCodeNone) {
       EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
       EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
@@ -2407,11 +2407,11 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
     firebase::gma::AdRequest request = GetAdRequest();
     firebase::Future<firebase::gma::AdResult> future =
         interstitial->LoadAd(kInterstitialAdUnit, request);
-    WaitForCompletionAnyResult(future, "TestInterstitialAdStress LoadAd");
+    WaitForCompletion(
+        future, "TestInterstitialAdStress LoadAd",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
     // Stress tests may exhaust the ad pool. If so, loadAd will return
     // kAdErrorCodeNoFill.
-    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
-                future.error() == firebase::gma::kAdErrorCodeNoFill);
     delete interstitial;
   }
 }
@@ -2434,11 +2434,11 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
     firebase::gma::AdRequest request = GetAdRequest();
     firebase::Future<firebase::gma::AdResult> future =
         rewarded->LoadAd(kRewardedAdUnit, request);
-    WaitForCompletionAnyResult(future, "TestRewardedAdStress LoadAd");
+    WaitForCompletionAnyResult(
+        future, "TestRewardedAdStress LoadAd",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
     // Stress tests may exhaust the ad pool. If so, loadAd will return
     // kAdErrorCodeNoFill.
-    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
-                future.error() == firebase::gma::kAdErrorCodeNoFill);
     delete rewarded;
   }
 }
@@ -2683,16 +2683,13 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
             firebase::gma::ump::kConsentFormStatusAvailable);
 
   // Load the form. Run this step with retry in case of network timeout.
-  WaitForCompletionAnyResult(
+  WaitForCompletion(
       RunWithRetry([&]() { return consent_info_->LoadConsentForm(); }),
-      "LoadConsentForm");
+      "LoadConsentForm",
+      {firebase::gma::ump::kConsentFormSuccess,
+       firebase::gma::ump::kConsentFormErrorTimeout});
 
   firebase::Future<void> future = consent_info_->LoadConsentFormLastResult();
-
-  // If it still timed out after all the retries, let the test pass.
-  EXPECT_THAT(future.error(),
-              AnyOf(firebase::gma::ump::kConsentFormSuccess,
-                    firebase::gma::ump::kConsentFormErrorTimeout));
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
@@ -2761,12 +2758,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
                     "RequestConsentInfoUpdate");
 
   firebase::Future<void> load_future = consent_info_->LoadConsentForm();
-  WaitForCompletionAnyResult(load_future, "LoadConsentForm");
-
-  EXPECT_THAT(load_future.error(),
-              AnyOf(Eq(firebase::gma::ump::kConsentFormErrorUnavailable),
-                    Eq(firebase::gma::ump::kConsentFormErrorTimeout),
-                    Eq(firebase::gma::ump::kConsentFormSuccess)));
+  WaitForCompletion(
+      load_future,
+      "LoadConsentForm" {firebase::gma::ump::kConsentFormErrorUnavailable,
+                         firebase::gma::ump::kConsentFormErrorTimeout,
+                         firebase::gma::ump::kConsentFormSuccess});
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
