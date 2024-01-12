@@ -873,15 +873,28 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       interstitial->LoadAd(kInterstitialAdUnit, GetAdRequest());
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  // This test behaves differently if it's running in UI mode
+  // (manually on a device) or in non-UI mode (via automated tests).
+  if (ShouldRunUITests()) {
+    // Run in manual mode: fail if any error occurs.
+    WaitForCompletion(load_ad_future, "LoadAd");
+  } else {
+    // Run in automated test mode: don't fail if NoFill occurred.
+    WaitForCompletion(load_ad_future,
+		      "LoadAd (ignoring NoFill error)",
+		      {firebase::gma::kAdErrorCodeNone,
+		       firebase::gma::kAdErrorCodeNoFill});
+  }
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+		 result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
 
   load_ad_future.Release();
   delete interstitial;
@@ -1759,16 +1772,27 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       interstitial->LoadAd(kInterstitialAdUnit, request);
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
-
+  // This test behaves differently if it's running in UI mode
+  // (manually on a device) or in non-UI mode (via automated tests).
+  if (ShouldRunUITests()) {
+    // Run in manual mode: fail if any error occurs.
+    WaitForCompletion(load_ad_future, "LoadAd");
+  } else {
+    // Run in automated test mode: don't fail if NoFill occurred.
+    WaitForCompletion(load_ad_future,
+		      "LoadAd (ignoring NoFill error)",
+		      {firebase::gma::kAdErrorCodeNone,
+		       firebase::gma::kAdErrorCodeNoFill});
+  }
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
   load_ad_future.Release();
   delete interstitial;
 }
