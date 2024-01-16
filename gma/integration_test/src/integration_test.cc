@@ -3038,23 +3038,34 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
+  LogDebug("Running RequestConsentInfoUpdate");
   consent_info_->RequestConsentInfoUpdate(params);
+  LogDebug("Running LoadConsentForm");
   consent_info_->LoadConsentForm();
+
   // In automated tests, only check RequestConsentInfoUpdate and LoadConsentForm
   // as the rest may show UI.
   if (ShouldRunUITests()) {
+    LogDebug("Running additional UI-enabled operations");
     consent_info_->ShowConsentForm(app_framework::GetWindowController());
     consent_info_->LoadAndShowConsentFormIfRequired(
         app_framework::GetWindowController());
     consent_info_->ShowPrivacyOptionsForm(app_framework::GetWindowController());
   }
 
+  LogDebug("Terminating UMP...");
   TerminateUmp(kNoReset);
 
+  ProcessEvents(100);
+
+  LogDebug("Initializing UMP...");
   InitializeUmp(kNoReset);
 
   // Give the operations time to complete.
+  LogDebug("Waiting for callbacks...");
   ProcessEvents(5000);
+  
+  LogDebug("Finished.");
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {

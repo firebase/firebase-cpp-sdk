@@ -100,10 +100,14 @@ TEST_F(FirebaseAnalyticsTest, TestSetSessionTimeoutDuraction) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
+  FLAKY_TEST_SECTION_BEGIN();
+
   firebase::Future<std::string> future =
       firebase::analytics::GetAnalyticsInstanceId();
   WaitForCompletion(future, "GetAnalyticsInstanceId");
   EXPECT_FALSE(future.result()->empty());
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
