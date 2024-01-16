@@ -873,15 +873,27 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       interstitial->LoadAd(kInterstitialAdUnit, GetAdRequest());
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  // This test behaves differently if it's running in UI mode
+  // (manually on a device) or in non-UI mode (via automated tests).
+  if (ShouldRunUITests()) {
+    // Run in manual mode: fail if any error occurs.
+    WaitForCompletion(load_ad_future, "LoadAd");
+  } else {
+    // Run in automated test mode: don't fail if NoFill occurred.
+    WaitForCompletion(
+        load_ad_future, "LoadAd (ignoring NoFill error)",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
+  }
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
 
   load_ad_future.Release();
   delete interstitial;
@@ -907,10 +919,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
     WaitForCompletion(load_ad_future, "LoadAd");
   } else {
     // Run in automated test mode: don't fail if NoFill occurred.
-    WaitForCompletionAnyResult(load_ad_future,
-                               "LoadAd (ignoring NoFill error)");
-    EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
-                load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+    WaitForCompletion(
+        load_ad_future, "LoadAd (ignoring NoFill error)",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
   }
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
     // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that
@@ -942,9 +953,9 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
 
   // Don't fail loadAd, if NoFill occurred.
-  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
-  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
-              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+  WaitForCompletion(
+      load_ad_future, "LoadAd (ignoring NoFill error)",
+      {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
 
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
     const firebase::gma::AdResult* result_ptr = load_ad_future.result();
@@ -1759,16 +1770,27 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       interstitial->LoadAd(kInterstitialAdUnit, request);
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
-
+  // This test behaves differently if it's running in UI mode
+  // (manually on a device) or in non-UI mode (via automated tests).
+  if (ShouldRunUITests()) {
+    // Run in manual mode: fail if any error occurs.
+    WaitForCompletion(load_ad_future, "LoadAd");
+  } else {
+    // Run in automated test mode: don't fail if NoFill occurred.
+    WaitForCompletion(
+        load_ad_future, "LoadAd (ignoring NoFill error)",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
+  }
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
   load_ad_future.Release();
   delete interstitial;
 }
@@ -1943,10 +1965,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
     WaitForCompletion(load_ad_future, "LoadAd");
   } else {
     // Run in automated test mode: don't fail if NoFill occurred.
-    WaitForCompletionAnyResult(load_ad_future,
-                               "LoadAd (ignoring NoFill error)");
-    EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
-                load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+    WaitForCompletion(
+        load_ad_future, "LoadAd (ignoring NoFill error)",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
   }
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
     // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that
@@ -2120,10 +2141,9 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
       native_ad->LoadAd(kNativeAdUnit, request);
 
   // Don't fail loadAd, if NoFill occurred.
-  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
-  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
-              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
-
+  WaitForCompletion(
+      load_ad_future, "LoadAd (ignoring NoFill error)",
+      {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
     const firebase::gma::AdResult* result_ptr = load_ad_future.result();
     ASSERT_NE(result_ptr, nullptr);
@@ -2155,9 +2175,9 @@ TEST_F(FirebaseGmaTest, TestNativeRecordImpression) {
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
 
   // Don't fail loadAd, if NoFill occurred.
-  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
-  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
-              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+  WaitForCompletion(
+      load_ad_future, "LoadAd (ignoring NoFill error)",
+      {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
 
   // Proceed verifying the RecordImpression, only when loadAd is successful.
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
@@ -2206,9 +2226,9 @@ TEST_F(FirebaseGmaTest, TestNativePerformClick) {
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
 
   // Don't fail loadAd, if NoFill occurred.
-  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
-  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
-              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+  WaitForCompletion(
+      load_ad_future, "LoadAd (ignoring NoFill error)",
+      {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
 
   // Proceed verifying the PerformClick, only when loadAd is successful.
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
@@ -2353,11 +2373,11 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
     // Load the AdView ad.
     firebase::gma::AdRequest request = GetAdRequest();
     firebase::Future<firebase::gma::AdResult> future = ad_view->LoadAd(request);
-    WaitForCompletionAnyResult(future, "TestAdViewStress LoadAd");
+    WaitForCompletion(
+        future, "TestAdViewStress LoadAd",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
     // Stress tests may exhaust the ad pool. If so, loadAd will return
     // kAdErrorCodeNoFill.
-    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
-                future.error() == firebase::gma::kAdErrorCodeNoFill);
     if (future.error() == firebase::gma::kAdErrorCodeNone) {
       EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
       EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
@@ -2387,11 +2407,11 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
     firebase::gma::AdRequest request = GetAdRequest();
     firebase::Future<firebase::gma::AdResult> future =
         interstitial->LoadAd(kInterstitialAdUnit, request);
-    WaitForCompletionAnyResult(future, "TestInterstitialAdStress LoadAd");
+    WaitForCompletion(
+        future, "TestInterstitialAdStress LoadAd",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
     // Stress tests may exhaust the ad pool. If so, loadAd will return
     // kAdErrorCodeNoFill.
-    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
-                future.error() == firebase::gma::kAdErrorCodeNoFill);
     delete interstitial;
   }
 }
@@ -2414,11 +2434,11 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
     firebase::gma::AdRequest request = GetAdRequest();
     firebase::Future<firebase::gma::AdResult> future =
         rewarded->LoadAd(kRewardedAdUnit, request);
-    WaitForCompletionAnyResult(future, "TestRewardedAdStress LoadAd");
+    WaitForCompletion(
+        future, "TestRewardedAdStress LoadAd",
+        {firebase::gma::kAdErrorCodeNone, firebase::gma::kAdErrorCodeNoFill});
     // Stress tests may exhaust the ad pool. If so, loadAd will return
     // kAdErrorCodeNoFill.
-    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
-                future.error() == firebase::gma::kAdErrorCodeNoFill);
     delete rewarded;
   }
 }
@@ -2663,16 +2683,13 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
             firebase::gma::ump::kConsentFormStatusAvailable);
 
   // Load the form. Run this step with retry in case of network timeout.
-  WaitForCompletionAnyResult(
+  WaitForCompletion(
       RunWithRetry([&]() { return consent_info_->LoadConsentForm(); }),
-      "LoadConsentForm");
+      "LoadConsentForm",
+      {firebase::gma::ump::kConsentFormSuccess,
+       firebase::gma::ump::kConsentFormErrorTimeout});
 
   firebase::Future<void> future = consent_info_->LoadConsentFormLastResult();
-
-  // If it still timed out after all the retries, let the test pass.
-  EXPECT_THAT(future.error(),
-              AnyOf(firebase::gma::ump::kConsentFormSuccess,
-                    firebase::gma::ump::kConsentFormErrorTimeout));
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
@@ -2741,12 +2758,10 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
                     "RequestConsentInfoUpdate");
 
   firebase::Future<void> load_future = consent_info_->LoadConsentForm();
-  WaitForCompletionAnyResult(load_future, "LoadConsentForm");
-
-  EXPECT_THAT(load_future.error(),
-              AnyOf(Eq(firebase::gma::ump::kConsentFormErrorUnavailable),
-                    Eq(firebase::gma::ump::kConsentFormErrorTimeout),
-                    Eq(firebase::gma::ump::kConsentFormSuccess)));
+  WaitForCompletion(load_future, "LoadConsentForm",
+                    {firebase::gma::ump::kConsentFormErrorUnavailable,
+                     firebase::gma::ump::kConsentFormErrorTimeout,
+                     firebase::gma::ump::kConsentFormSuccess});
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
