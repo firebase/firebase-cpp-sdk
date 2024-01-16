@@ -127,6 +127,7 @@ set(desktop_SRCS
     src/desktop/rpcs/reset_password_request.cc
     src/desktop/rpcs/secure_token_request.cc
     src/desktop/rpcs/set_account_info_request.cc
+    src/desktop/rpcs/sign_up_request.cc
     src/desktop/rpcs/sign_up_new_user_request.cc
     src/desktop/rpcs/verify_assertion_request.cc
     src/desktop/rpcs/verify_custom_token_request.cc

@@ -14,6 +14,7 @@
 
 #include "firebase_test_framework.h"  // NOLINT
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -126,10 +127,10 @@ bool FirebaseTest::RunFlakyBlockBase(bool (*flaky_block)(void* context),
 
 firebase::FutureBase FirebaseTest::RunWithRetryBase(
     firebase::FutureBase (*run_future)(void* context), void* context,
-    const char* name, int expected_error) {
+    const char* name, std::vector<int> expected_errors) {
   // Run run_future(context), which returns a Future, then wait for that Future
-  // to complete. If the Future returns Invalid, or if its error() does
-  // not match expected_error, pause a moment and try again.
+  // to complete. If the Future returns Invalid, or if its error() is
+  // not present in expected_errors, pause a moment and try again.
   //
   // In most cases, this will return the Future once it's been completed.
   // However, if it reaches the last attempt, it will return immediately once
@@ -139,6 +140,10 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
                                 100, 1000, 5000, 10000, 30000};
   const int kNumAttempts =
       1 + (sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]));
+
+  if (expected_errors.empty()) {
+    expected_errors.push_back(0);
+  }
 
   int attempt = 0;
   firebase::FutureBase future;
@@ -158,10 +163,14 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
       app_framework::LogDebug(
           "RunWithRetry%s%s: Attempt %d returned invalid status",
           *name ? " " : "", name, attempt + 1);
-    } else if (future.error() != expected_error) {
+    } else if (std::find(expected_errors.begin(), expected_errors.end(),
+                         future.error()) == std::end(expected_errors)) {
+      std::string expected_errors_str =
+          VariantToString(firebase::Variant(expected_errors));
       app_framework::LogDebug(
-          "RunWithRetry%s%s: Attempt %d returned error %d, expected %d",
-          *name ? " " : "", name, attempt + 1, future.error(), expected_error);
+          "RunWithRetry%s%s: Attempt %d returned error %d, expected one of %s",
+          *name ? " " : "", name, attempt + 1, future.error(),
+          expected_errors_str.c_str());
     } else {
       // Future is completed and the error matches what's expected, no need to
       // retry further.
@@ -178,18 +187,24 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
 }
 
 bool FirebaseTest::WaitForCompletion(const firebase::FutureBase& future,
-                                     const char* name, int expected_error) {
+                                     const char* name,
+                                     std::vector<int> expected_errors) {
+  if (expected_errors.empty()) {
+    // If unspecified, default expected error is 0, success.
+    expected_errors.push_back(0);
+  }
   app_framework::LogDebug("WaitForCompletion %s", name);
   while (future.status() == firebase::kFutureStatusPending) {
     app_framework::ProcessEvents(100);
   }
   EXPECT_EQ(future.status(), firebase::kFutureStatusComplete)
       << name << " returned an invalid status.";
-  EXPECT_EQ(future.error(), expected_error)
-      << name << " returned error " << future.error() << ": "
+  EXPECT_THAT(expected_errors, testing::Contains(future.error()))
+      << name << " returned unexpected error " << future.error() << ": "
       << future.error_message();
   return (future.status() == firebase::kFutureStatusComplete &&
-          future.error() == expected_error);
+          std::find(expected_errors.begin(), expected_errors.end(),
+                    future.error()) != std::end(expected_errors));
 }
 
 bool FirebaseTest::WaitForCompletionAnyResult(

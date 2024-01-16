@@ -388,10 +388,20 @@ class FirebaseTest : public testing::Test {
   // Google Play services version. Otherwise, returns 0.
   static int GetGooglePlayServicesVersion();
 
+  // Returns true if the future completed with one of the expected
+  // error codes, fails the test and returns false otherwise.
+  static bool WaitForCompletion(const firebase::FutureBase& future,
+                                const char* name,
+                                std::vector<int> expected_errors = {});
+
   // Returns true if the future completed as expected, fails the test and
   // returns false otherwise.
   static bool WaitForCompletion(const firebase::FutureBase& future,
-                                const char* name, int expected_error = 0);
+                                const char* name, int expected_error) {
+    std::vector<int> error_list;
+    error_list.push_back(expected_error);
+    return WaitForCompletion(future, name, error_list);
+  }
 
   // Just wait for completion, not caring what the result is (as long as
   // it's not Invalid). Returns true, unless Invalid.
@@ -429,7 +439,7 @@ class FirebaseTest : public testing::Test {
   // exponential backoff if the operation fails.
   //
   // Blocks until the operation succeeds (the Future completes, with error
-  // matching expected_error) or if the final attempt is started (in which case
+  // matching expected_errors) or if the final attempt is started (in which case
   // the Future returned may still be in progress). You should use
   // WaitForCompletion to await the results of this function in any case.
   //
@@ -445,10 +455,9 @@ class FirebaseTest : public testing::Test {
   //                            return auth->DeleteUser(auth->current_user());
   //                        }, auth_), "DeleteUser"));
   template <class CallbackType, class ContextType>
-  static firebase::FutureBase RunWithRetry(CallbackType run_future_typed,
-                                           ContextType* context_typed,
-                                           const char* name = "",
-                                           int expected_error = 0) {
+  static firebase::FutureBase RunWithRetry(
+      CallbackType run_future_typed, ContextType* context_typed,
+      const char* name = "", std::vector<int> expected_errors = {}) {
     struct RunData {
       CallbackType callback;
       ContextType* context;
@@ -460,7 +469,7 @@ class FirebaseTest : public testing::Test {
           ContextType* context = static_cast<RunData*>(ctx)->context;
           return static_cast<firebase::FutureBase>(callback(context));
         },
-        static_cast<void*>(&run_data), name, expected_error);
+        static_cast<void*>(&run_data), name, expected_errors);
   }
 
   // Same as RunWithRetry, but templated to return a Future<ResultType>
@@ -470,7 +479,7 @@ class FirebaseTest : public testing::Test {
   template <class ResultType, class CallbackType, class ContextType>
   static firebase::Future<ResultType> RunWithRetry(
       CallbackType run_future_typed, ContextType* context_typed,
-      const char* name = "", int expected_error = 0) {
+      const char* name = "", std::vector<int> expected_errors = {}) {
     struct RunData {
       CallbackType callback;
       ContextType* context;
@@ -486,7 +495,7 @@ class FirebaseTest : public testing::Test {
           firebase::Future<ResultType> future_result = callback(context);
           return static_cast<firebase::FutureBase>(future_result);
         },
-        static_cast<void*>(&run_data), name, expected_error);
+        static_cast<void*>(&run_data), name, expected_errors);
     // Future<T> and FutureBase are reinterpret_cast-compatible, by design.
     return *reinterpret_cast<firebase::Future<ResultType>*>(&result_base);
   }
@@ -494,7 +503,7 @@ class FirebaseTest : public testing::Test {
   // Same as RunWithRetry above, but use std::function to allow captures.
   static firebase::FutureBase RunWithRetry(
       std::function<firebase::FutureBase()> run_future, const char* name = "",
-      int expected_error = 0) {
+      std::vector<int> expected_errors = {}) {
     struct RunData {
       std::function<firebase::FutureBase()>* callback;
     };
@@ -504,13 +513,13 @@ class FirebaseTest : public testing::Test {
           auto& callback = *static_cast<RunData*>(ctx)->callback;
           return static_cast<firebase::FutureBase>(callback());
         },
-        static_cast<void*>(&run_data), name, expected_error);
+        static_cast<void*>(&run_data), name, expected_errors);
   }
   // Same as RunWithRetry<type>, but use std::function to allow captures.
   template <class ResultType>
   static firebase::Future<ResultType> RunWithRetry(
       std::function<firebase::Future<ResultType>()> run_future,
-      const char* name = "", int expected_error = 0) {
+      const char* name = "", std::vector<int> expected_errors = {}) {
     struct RunData {
       std::function<firebase::Future<ResultType>()>* callback;
     };
@@ -524,7 +533,7 @@ class FirebaseTest : public testing::Test {
           firebase::Future<ResultType> future_result = callback();
           return static_cast<firebase::FutureBase>(future_result);
         },
-        static_cast<void*>(&run_data), name, expected_error);
+        static_cast<void*>(&run_data), name, expected_errors);
     // Future<T> and FutureBase are reinterpret_cast-compatible, by design.
     return *reinterpret_cast<firebase::Future<ResultType>*>(&result_base);
   }
@@ -569,7 +578,17 @@ class FirebaseTest : public testing::Test {
   // for type safety.
   static firebase::FutureBase RunWithRetryBase(
       firebase::FutureBase (*run_future)(void* context), void* context,
-      const char* name, int expected_error);
+      const char* name, std::vector<int> expected_errors);
+
+  // Untyped version of RunWithRetry with one expected error.
+  static firebase::FutureBase RunWithRetryBase(
+      firebase::FutureBase (*run_future)(void* context), void* context,
+      const char* name, int expected_error) {
+    std::vector<int> error_list;
+    error_list.push_back(expected_error);
+    return RunWithRetryBase(run_future, context, name, error_list);
+  }
+
   // Untyped version of RunFlakyBlock, with implementation.
   // This is kept private because the templated version should be used instead,
   // for type safety.

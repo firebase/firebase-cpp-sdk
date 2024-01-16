@@ -339,15 +339,18 @@ if(IOS)
       # The Firestore core on iOS comes via the FirebaseFirestore CocoaPod, and
       # public headers should come from there.
       ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
+      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include
       ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/Protos/nanopb
+      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb
     PRIVATE
       # Additionally, the core C++ API is not declared publicly within the
       # FirebaseFirestore pod, so depend on headers available in the source
       # distribution.
       ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore
+      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal
   )
   set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
-    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include
   )
   
 else()
@@ -428,13 +431,14 @@ elseif(IOS)
     POD_NAMES
       FirebaseCore
       FirebaseFirestore
+      FirebaseFirestoreInternal
       abseil
       nanopb
       gRPC-C++
       gRPC-Core
       FirebaseAuthInterop/FirebaseAuth/Interop
       FirebaseCoreExtension/FirebaseCore/Extension
-)
+  )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_firestore PROPERTIES

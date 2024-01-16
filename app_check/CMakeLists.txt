@@ -182,7 +182,7 @@ elseif(IOS)
     POD_NAMES
       FirebaseCore
       FirebaseAppCheck
-      FirebaseAppCheckInterop
+      FirebaseAppCheckInterop/FirebaseAppCheck/Interop
       INCLUDE_PRIVATE_HEADERS
   )
 

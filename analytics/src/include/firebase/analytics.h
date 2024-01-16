@@ -273,9 +273,14 @@ void SetAnalyticsCollectionEnabled(bool enabled);
 
 /// @brief The type of consent to set.
 ///
-/// Supported consent types are kConsentTypeAdStorage and
-/// kConsentTypeAnalyticsStorage. Omitting a type retains its previous status.
-enum ConsentType { kConsentTypeAdStorage = 0, kConsentTypeAnalyticsStorage };
+/// Supported consent types are mapped to corresponding constants in the Android
+/// and iOS SDKs. Omitting a type retains its previous status.
+enum ConsentType {
+  kConsentTypeAdStorage = 0,
+  kConsentTypeAnalyticsStorage,
+  kConsentTypeAdUserData,
+  kConsentTypeAdPersonalization
+};
 
 /// @brief The status value of the consent type.
 ///

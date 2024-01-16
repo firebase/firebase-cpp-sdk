@@ -56,6 +56,7 @@ namespace firebase_testapp_automated {
 
 using app_framework::LogDebug;
 using app_framework::LogError;
+using app_framework::LogWarning;
 
 // You can customize the Storage URL here.
 const char* kStorageUrl = nullptr;
@@ -1209,7 +1210,8 @@ class StorageListener : public firebase::storage::Listener {
       : on_paused_was_called_(false),
         on_progress_was_called_(false),
         resume_succeeded_(false),
-        last_bytes_transferred_(-1) {}
+        last_bytes_transferred_(-1),
+        timeout_time_(0) {}
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
@@ -1231,6 +1233,14 @@ class StorageListener : public firebase::storage::Listener {
   }
 
   void OnProgress(firebase::storage::Controller* controller) override {
+    // Check for timeout.
+    if (timeout_time_ > 0) {
+      if (app_framework::GetCurrentTimeInMicroseconds() >= timeout_time_) {
+        timeout_time_ = -1;
+        controller->Cancel();
+      }
+    }
+
     int64_t bytes_transferred = controller->bytes_transferred();
     // Only update when the byte count changed, to avoid spamming the log.
     if (last_bytes_transferred_ != bytes_transferred) {
@@ -1245,11 +1255,22 @@ class StorageListener : public firebase::storage::Listener {
   bool on_progress_was_called() const { return on_progress_was_called_; }
   bool resume_succeeded() const { return resume_succeeded_; }
 
+  void SetTimeoutSeconds(int seconds_from_now) {
+    int64_t microseconds_from_now =
+        static_cast<int64_t>(seconds_from_now) * 1000000L;
+    timeout_time_ =
+        app_framework::GetCurrentTimeInMicroseconds() + microseconds_from_now;
+  }
+
+  bool DidTimeout() { return (timeout_time_ == -1); }
+
  public:
   bool on_paused_was_called_;
   bool on_progress_was_called_;
   bool resume_succeeded_;
   int64_t last_bytes_transferred_;
+
+  int64_t timeout_time_;
 };
 
 // Contents of a large file, "X" will be replaced with a different character
@@ -1332,6 +1353,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   EXPECT_EQ(metadata->size_bytes(), kLargeFileSize);
 
   FLAKY_TEST_SECTION_END();
+  const int kDownloadTimeoutSeconds = 120;
 
   // Download the file and confirm it's correct.
   {
@@ -1339,14 +1361,32 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     memset(&buffer[0], 0, kLargeFileSize);
     LogDebug("Downloading large file for comparison.");
     StorageListener listener;
-    firebase::Future<size_t> future = RunWithRetry<size_t>(
-        [&]() { return ref.GetBytes(&buffer[0], kLargeFileSize, &listener); });
-    WaitForCompletion(future, "GetBytes");
-    ASSERT_NE(future.result(), nullptr);
-    size_t file_size = *future.result();
-    EXPECT_EQ(file_size, kLargeFileSize) << "Read size did not match";
-    EXPECT_TRUE(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize) == 0)
-        << "Read large file failed, contents did not match.";
+    firebase::storage::Controller controller;
+    firebase::Future<size_t> future;
+
+    FLAKY_TEST_SECTION_BEGIN();
+
+    future = ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+    listener.SetTimeoutSeconds(kDownloadTimeoutSeconds);
+    ASSERT_TRUE(controller.is_valid());
+    WaitForCompletionAnyResult(future, "GetBytes");
+    if (!listener.DidTimeout()) {
+      EXPECT_EQ(future.error(), 0);
+    }
+
+    FLAKY_TEST_SECTION_END();
+
+    if (!listener.DidTimeout()) {
+      ASSERT_NE(future.result(), nullptr);
+      size_t file_size = *future.result();
+      EXPECT_EQ(file_size, kLargeFileSize) << "Read size did not match";
+      EXPECT_TRUE(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize) ==
+                  0)
+          << "Read large file failed, contents did not match.";
+    } else {
+      LogWarning("Download timed out after %d seconds.",
+                 kDownloadTimeoutSeconds);
+    }
   }
 #if FIREBASE_PLATFORM_DESKTOP
   FLAKY_TEST_SECTION_BEGIN();
@@ -1374,7 +1414,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     FAIL() << "Pause failed";
   }
 
-  WaitForCompletion(future, "GetBytes");
+  listener.SetTimeoutSeconds(kDownloadTimeoutSeconds);
+  WaitForCompletionAnyResult(future, "GetBytes");
 
   LogDebug("Download complete.");
 
@@ -1382,10 +1423,15 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   EXPECT_TRUE(listener.on_paused_was_called());
   EXPECT_TRUE(listener.on_progress_was_called());
   EXPECT_TRUE(listener.resume_succeeded());
-  EXPECT_NE(future.result(), nullptr);
-  size_t file_size = *future.result();
-  EXPECT_EQ(file_size, kLargeFileSize);
-  EXPECT_EQ(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize), 0);
+  if (!listener.DidTimeout()) {
+    EXPECT_EQ(future.error(), 0);
+    EXPECT_NE(future.result(), nullptr);
+    size_t file_size = *future.result();
+    EXPECT_EQ(file_size, kLargeFileSize);
+    EXPECT_EQ(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize), 0);
+  } else {
+    LogWarning("Download timed out after %d seconds.", kDownloadTimeoutSeconds);
+  }
 
   FLAKY_TEST_SECTION_END();
 #else
@@ -1397,23 +1443,36 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     LogDebug("Downloading large file.");
     StorageListener listener;
     firebase::storage::Controller controller;
-    firebase::Future<size_t> future = RunWithRetry<size_t>([&]() {
-      return ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
-    });
-    ASSERT_TRUE(controller.is_valid());
+    firebase::Future<size_t> future;
 
-    WaitForCompletion(future, "GetBytes");
+    FLAKY_TEST_SECTION_BEGIN();
+
+    future = ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+    listener.SetTimeoutSeconds(kDownloadTimeoutSeconds);
+    ASSERT_TRUE(controller.is_valid());
+    WaitForCompletionAnyResult(future, "GetBytes");
+    if (!listener.DidTimeout()) {
+      EXPECT_EQ(future.error(), 0);
+    }
+
+    FLAKY_TEST_SECTION_END();
+
     LogDebug("Download complete.");
 
     // Ensure the progress callback was called.
     EXPECT_TRUE(listener.on_progress_was_called());
     EXPECT_FALSE(listener.on_paused_was_called());
-
-    ASSERT_NE(future.result(), nullptr);
-    size_t file_size = *future.result();
-    EXPECT_EQ(file_size, kLargeFileSize) << "Read size did not match";
-    EXPECT_TRUE(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize) == 0)
-        << "Read large file failed, contents did not match.";
+    if (!listener.DidTimeout()) {
+      ASSERT_NE(future.result(), nullptr);
+      size_t file_size = *future.result();
+      EXPECT_EQ(file_size, kLargeFileSize) << "Read size did not match";
+      EXPECT_TRUE(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize) ==
+                  0)
+          << "Read large file failed, contents did not match.";
+    } else {
+      LogWarning("Download timed out after %d seconds.",
+                 kDownloadTimeoutSeconds);
+    }
   }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 

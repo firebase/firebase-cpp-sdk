@@ -164,6 +164,12 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
       case kConsentTypeAnalyticsStorage:
         consent_type = FIRConsentTypeAnalyticsStorage;
         break;
+      case kConsentTypeAdUserData:
+        consent_type = FIRConsentTypeAdUserData;
+        break;
+      case kConsentTypeAdPersonalization:
+        consent_type = FIRConsentTypeAdPersonalization;
+        break;
       default:
         LogError("Unknown ConsentType value: %d", it->first);
         return;
