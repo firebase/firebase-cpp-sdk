@@ -3040,26 +3040,29 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance) {
 
   LogDebug("RequestConsentInfoUpdate");
   consent_info_->RequestConsentInfoUpdate(params).OnCompletion(
-      [](const Future<void>&) { LogDebug("RequestConsentInfoUpdate done"); });
+      [](const firebase::Future<void>&) {
+        LogDebug("RequestConsentInfoUpdate done");
+      });
   LogDebug("LoadConsentForm");
   consent_info_->LoadConsentForm().OnCompletion(
-      [](const Future<void>&) { LogDebug("LoadConsentForm done"); });
+      [](const firebase::Future<void>&) { LogDebug("LoadConsentForm done"); });
   // In automated tests, only check RequestConsentInfoUpdate and LoadConsentForm
   // as the rest may show UI.
   if (ShouldRunUITests()) {
     LogDebug("ShowConsentForm");
     consent_info_->ShowConsentForm(app_framework::GetWindowController())
-        .OnCompletion(
-            [](const Future<void>&) { LogDebug("ShowConsentForm done"); });
+        .OnCompletion([](const firebase::Future<void>&) {
+          LogDebug("ShowConsentForm done");
+        });
     LogDebug("LoadAndShowConsentFormIfRequired");
     consent_info_
         ->LoadAndShowConsentFormIfRequired(app_framework::GetWindowController())
-        .OnCompletion([](const Future<void>&) {
+        .OnCompletion([](const firebase::Future<void>&) {
           LogDebug("LoadAndShowConsentFormIfRequired done");
         });
     LogDebug("ShowPrivacyOptionsForm");
     consent_info_->ShowPrivacyOptionsForm(app_framework::GetWindowController())
-        .OnCompletion([](const Future<void>&) {
+        .OnCompletion([](const firebase::Future<void>&) {
           LogDebug("ShowPrivacyOptionsForm done");
         });
   }
