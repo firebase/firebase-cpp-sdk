@@ -119,7 +119,7 @@ class FirebaseStorageTest : public FirebaseTest {
   firebase::storage::StorageReference CreateFolder();
 
   int64_t GetRemoteTimeInMilliseconds();
-  
+
   static firebase::App* shared_app_;
   static firebase::auth::Auth* shared_auth_;
 
@@ -329,13 +329,17 @@ firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
 int64_t FirebaseStorageTest::GetRemoteTimeInMilliseconds() {
   SignIn();
 
-  firebase::storage::StorageReference ref = CreateFolder().Child("timestamp.txt");
-  firebase::Future<firebase::storage::Metadata> future = ref.PutBytes("TS00", 4);
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("timestamp.txt");
+  firebase::Future<firebase::storage::Metadata> future =
+      RunWithRetry<firebase::storage::Metadata>(
+          [&]() { return ref.PutBytes("TS00", 4); });
   WaitForCompletionAnyResult(future, "GetRemoteTime_PutBytes");
   if (future.error() == 0 && future.result() != nullptr &&
       future.result()->creation_time() > 0) {
     int64_t timestamp = future.result()->creation_time();
-    WaitForCompletionAnyResult(ref.Delete(), "GetRemoteTime_Delete");
+    WaitForCompletionAnyResult(RunWithRetry([&]() { return ref.Delete(); }),
+                               "GetRemoteTime_Delete");
     return timestamp;
   } else {
     LogWarning("Couldn't get remote timestamp, using local time");
