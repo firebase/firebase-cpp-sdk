@@ -3024,7 +3024,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanupRaceCondition) {
   ProcessEvents(5000);
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance_DISABLED) {
+TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance) {
   // Ensure that if ConsentInfo is deleted and then recreated, stale
   // callbacks don't call into the new instance and cause crashes.
   using firebase::gma::ump::ConsentFormStatus;
@@ -3038,23 +3038,33 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance_DISABLED) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
+  LogDebug("RequestConsentInfoUpdate");
   consent_info_->RequestConsentInfoUpdate(params);
+  LogDebug("LoadConsentForm");
   consent_info_->LoadConsentForm();
   // In automated tests, only check RequestConsentInfoUpdate and LoadConsentForm
   // as the rest may show UI.
   if (ShouldRunUITests()) {
+    LogDebug("ShowConsentForm");
     consent_info_->ShowConsentForm(app_framework::GetWindowController());
+    LogDebug("LoadAndShowConsentFormIfRequired");
     consent_info_->LoadAndShowConsentFormIfRequired(
         app_framework::GetWindowController());
+    LogDebug("ShowPrivacyOptionsForm");
     consent_info_->ShowPrivacyOptionsForm(app_framework::GetWindowController());
   }
 
+  LogDebug("Terminate");
   TerminateUmp(kNoReset);
 
+  LogDebug("Initialize");
   InitializeUmp(kNoReset);
 
   // Give the operations time to complete.
+  LogDebug("Wait");
   ProcessEvents(5000);
+
+  LogDebug("Done");
 }
 
 TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
