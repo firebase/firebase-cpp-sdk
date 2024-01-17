@@ -509,8 +509,8 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadFileWithCustomMetadata) {
                 time_difference_seconds > -kAllowedTimeDifferenceSeconds)
         << "Bad timestamp in metadata. Metadata timestamp is "
         << updated_time_seconds << ", current time is " << current_time_seconds
-        << ", difference = " << time_difference_seconds " (allowed difference "
-        << kAllowedTimeDifferenceSeconds << ").";
+        << ", difference = " << time_difference_seconds
+        << " (allowed difference " << kAllowedTimeDifferenceSeconds << ").";
 
     EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     EXPECT_EQ(metadata->content_type(), content_type);
