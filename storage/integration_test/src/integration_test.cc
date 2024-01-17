@@ -497,7 +497,8 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadFileWithCustomMetadata) {
     ASSERT_NE(metadata, nullptr);
 
     // Get the current time to compare to the Timestamp.
-    int64_t current_time_seconds = static_cast<int64_t>(time(nullptr));
+    int64_t current_time_seconds =
+        app_framework::GetCurrentTimeInMicroseconds() / 1000000L;
     int64_t updated_time_milliseconds = metadata->updated_time();
     int64_t updated_time_seconds = updated_time_milliseconds / 1000;
     int64_t time_difference_seconds =
