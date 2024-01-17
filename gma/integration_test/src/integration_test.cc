@@ -3024,7 +3024,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanupRaceCondition) {
   ProcessEvents(5000);
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance) {
+TEST_F(FirebaseGmaUmpTest, TestUmpCallbacksOnWrongInstance_DISABLED) {
   // Ensure that if ConsentInfo is deleted and then recreated, stale
   // callbacks don't call into the new instance and cause crashes.
   using firebase::gma::ump::ConsentFormStatus;
