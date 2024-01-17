@@ -118,6 +118,8 @@ class FirebaseStorageTest : public FirebaseTest {
   // Create a unique working folder and return a reference to it.
   firebase::storage::StorageReference CreateFolder();
 
+  int64_t GetRemoteTimeInMilliseconds();
+  
   static firebase::App* shared_app_;
   static firebase::auth::Auth* shared_auth_;
 
@@ -324,6 +326,23 @@ firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
   return storage_->GetReference(kRootNodeName).Child(saved_url_);
 }
 
+int64_t FirebaseStorageTest::GetRemoteTimeInMilliseconds() {
+  SignIn();
+
+  firebase::storage::StorageReference ref = CreateFolder().Child("timestamp.txt");
+  firebase::Future<firebase::storage::Metadata> future = ref.PutBytes("TS00", 4);
+  WaitForCompletionAnyResult(future, "GetRemoteTime_PutBytes");
+  if (future.error() == 0 && future.result() != nullptr &&
+      future.result()->creation_time() > 0) {
+    int64_t timestamp = future.result()->creation_time();
+    WaitForCompletionAnyResult(ref.Delete(), "GetRemoteTime_Delete");
+    return timestamp;
+  } else {
+    LogWarning("Couldn't get remote timestamp, using local time");
+    return app_framework::GetCurrentTimeInMicroseconds() / 1000L;
+  }
+}
+
 // Test cases below.
 
 TEST_F(FirebaseStorageTest, TestInitializeAndTerminate) {
@@ -497,12 +516,13 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadFileWithCustomMetadata) {
     ASSERT_NE(metadata, nullptr);
 
     // Get the current time to compare to the Timestamp.
-    int64_t current_time_seconds =
-        app_framework::GetCurrentTimeInMicroseconds() / 1000000L;
+    int64_t current_time_seconds = GetRemoteTimeInMilliseconds() / 1000L;
     int64_t updated_time_milliseconds = metadata->updated_time();
-    int64_t updated_time_seconds = updated_time_milliseconds / 1000;
+    int64_t updated_time_seconds = updated_time_milliseconds / 1000L;
     int64_t time_difference_seconds =
         updated_time_seconds - current_time_seconds;
+    if (time_difference_seconds < 0)
+      time_difference_seconds = -time_difference_seconds;
     // As long as our timestamp is within a day, it's correct enough for
     // our purposes.
     const int64_t kAllowedTimeDifferenceSeconds = 60L * 60L * 24L;
