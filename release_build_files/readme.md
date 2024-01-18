@@ -636,6 +636,8 @@ code.
     - Dynamic Links: The Dynamic Links SDK is now deprecated. See the [support
       documentation](https://firebase.google.com/support/dynamic-links-faq)
       for more information.
+    - Messaging (Android): Fixed minSdkVersion in the firebase_messaging.aar
+      manifest file.
 
 ### 11.7.0
 -   Changes
