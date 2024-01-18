@@ -371,7 +371,6 @@ firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
 int64_t FirebaseDatabaseTest::GetRemoteTimeInMilliseconds() {
   firebase::database::DatabaseReference ref =
       CreateWorkingPath().Child("timestamp");
-  ;
   WaitForCompletionAnyResult(
       ref.SetValue(firebase::database::ServerTimestamp()),
       "GetRemoteTime_SetValue");
