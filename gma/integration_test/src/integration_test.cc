@@ -2599,6 +2599,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
 
@@ -2607,7 +2609,13 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
 
   EXPECT_TRUE(future == consent_info_->RequestConsentInfoUpdateLastResult());
 
-  WaitForCompletion(future, "RequestConsentInfoUpdate");
+  WaitForCompletion(future, "RequestConsentInfoUpdate",
+                    {firebase::gma::ump::kConsentRequestSuccess,
+                     firebase::gma::ump::kConsentRequestErrorNetwork});
+  // Retry only network errors.
+  EXPECT_NE(future.error(), firebase::gma::ump::kConsentRequestErrorNetwork);
+
+  FLAKY_TEST_SECTION_END();
 
   EXPECT_NE(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusUnknown);
@@ -2622,6 +2630,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
@@ -2632,7 +2642,13 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
   firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
 
-  WaitForCompletion(future, "RequestConsentInfoUpdate");
+  WaitForCompletion(future, "RequestConsentInfoUpdate",
+                    {firebase::gma::ump::kConsentRequestSuccess,
+                     firebase::gma::ump::kConsentRequestErrorNetwork});
+  // Retry only network errors.
+  EXPECT_NE(future.error(), firebase::gma::ump::kConsentRequestErrorNetwork);
+
+  FLAKY_TEST_SECTION_END();
 
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusRequired);
@@ -2642,6 +2658,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
+
+  FLAKY_TEST_SECTION_BEGIN();
 
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
@@ -2653,7 +2671,13 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
   firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
 
-  WaitForCompletion(future, "RequestConsentInfoUpdate");
+  WaitForCompletion(future, "RequestConsentInfoUpdate",
+                    {firebase::gma::ump::kConsentRequestSuccess,
+                     firebase::gma::ump::kConsentRequestErrorNetwork});
+  // Retry only network errors.
+  EXPECT_NE(future.error(), firebase::gma::ump::kConsentRequestErrorNetwork);
+
+  FLAKY_TEST_SECTION_END();
 
   EXPECT_THAT(consent_info_->GetConsentStatus(),
               AnyOf(Eq(firebase::gma::ump::kConsentStatusNotRequired),
@@ -2747,6 +2771,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = true;
   params.debug_settings.debug_geography =
@@ -2754,8 +2780,16 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
-                    "RequestConsentInfoUpdate");
+  firebase::Future<void> future =
+      consent_info_->RequestConsentInfoUpdate(params);
+
+  WaitForCompletion(future, "RequestConsentInfoUpdate",
+                    {firebase::gma::ump::kConsentRequestSuccess,
+                     firebase::gma::ump::kConsentRequestErrorNetwork});
+  // Retry only network errors.
+  EXPECT_NE(future.error(), firebase::gma::ump::kConsentRequestErrorNetwork);
+
+  FLAKY_TEST_SECTION_END();
 
   firebase::Future<void> load_future = consent_info_->LoadConsentForm();
   WaitForCompletion(load_future, "LoadConsentForm",
@@ -2770,6 +2804,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
@@ -2777,8 +2813,16 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
-                    "RequestConsentInfoUpdate");
+  firebase::Future<void> future =
+      consent_info_->RequestConsentInfoUpdate(params);
+
+  WaitForCompletion(future, "RequestConsentInfoUpdate",
+                    {firebase::gma::ump::kConsentRequestSuccess,
+                     firebase::gma::ump::kConsentRequestErrorNetwork});
+  // Retry only network errors.
+  EXPECT_NE(future.error(), firebase::gma::ump::kConsentRequestErrorNetwork);
+
+  FLAKY_TEST_SECTION_END();
 
   if (consent_info_->GetConsentStatus() !=
       firebase::gma::ump::kConsentStatusRequired) {
@@ -2792,6 +2836,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   ConsentRequestParameters params;
   params.tag_for_under_age_of_consent = false;
   params.debug_settings.debug_geography =
@@ -2799,8 +2845,16 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
-                    "RequestConsentInfoUpdate");
+  firebase::Future<void> future =
+      consent_info_->RequestConsentInfoUpdate(params);
+
+  WaitForCompletion(future, "RequestConsentInfoUpdate",
+                    {firebase::gma::ump::kConsentRequestSuccess,
+                     firebase::gma::ump::kConsentRequestErrorNetwork});
+  // Retry only network errors.
+  EXPECT_NE(future.error(), firebase::gma::ump::kConsentRequestErrorNetwork);
+
+  FLAKY_TEST_SECTION_END();
 
   EXPECT_THAT(consent_info_->GetConsentStatus(),
               AnyOf(Eq(firebase::gma::ump::kConsentStatusNotRequired),
@@ -3109,7 +3163,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpMethodsReturnOperationInProgress) {
   WaitForCompletion(
       future_request_2, "RequestConsentInfoUpdate second",
       firebase::gma::ump::kConsentRequestErrorOperationInProgress);
-  WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
+  WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first",
+                    {firebase::gma::ump::kConsentRequestSuccess,
+                     firebase::gma::ump::kConsentRequestErrorNetwork});
 
   consent_info_->Reset();
 
