@@ -43,6 +43,10 @@ android {
   }
   compileSdkVersion 33
 
+  defaultConfig {
+    minSdkVersion 14
+  }
+
   sourceSets {
     main {
       manifest.srcFile '../src/android/java/LibraryManifest.xml'
