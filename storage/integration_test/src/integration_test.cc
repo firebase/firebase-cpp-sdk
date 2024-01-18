@@ -340,6 +340,9 @@ int64_t FirebaseStorageTest::GetRemoteTimeInMilliseconds() {
     int64_t timestamp = future.result()->creation_time();
     WaitForCompletionAnyResult(RunWithRetry([&]() { return ref.Delete(); }),
                                "GetRemoteTime_Delete");
+    LogDebug("Got server timestamp: %lld", timestamp);
+    LogDebug("     Local timestamp: %lld",
+             app_framework::GetCurrentTimeInMicroseconds() / 1000L);
     return timestamp;
   } else {
     LogWarning("Couldn't get remote timestamp, using local time");
