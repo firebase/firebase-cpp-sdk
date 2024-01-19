@@ -125,24 +125,19 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    {
-      MutexLock lock(s_instance_mutex);
-      if (!s_instance || s_instance_tag != callback_instance_tag) {
-        // Instance changed or was invalidated, don't call the iOS method any more.
-        return;
-      }
+    MutexLock lock(s_instance_mutex);
+    if (!s_instance || s_instance_tag != callback_instance_tag) {
+      // Instance changed or was invalidated, don't call the iOS method any more.
+      return;
     }
     [UMPConsentInformation.sharedInstance
         requestConsentInfoUpdateWithParameters:ios_parameters
                              completionHandler:^(NSError* _Nullable error) {
-                               if (!error) {
-                                 MutexLock lock(s_instance_mutex);
-                                 if (s_instance && s_instance_tag == callback_instance_tag) {
+                               MutexLock lock(s_instance_mutex);
+                               if (s_instance && s_instance_tag == callback_instance_tag) {
+                                 if (!error) {
                                    CompleteFuture(handle, kConsentRequestSuccess);
-                                 }
-                               } else {
-                                 MutexLock lock(s_instance_mutex);
-                                 if (s_instance && s_instance_tag == callback_instance_tag) {
+                                 } else {
                                    CompleteFuture(handle,
                                                   CppRequestErrorFromIosRequestError(error.code),
                                                   error.localizedDescription.UTF8String);
@@ -203,30 +198,22 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    {
-      MutexLock lock(s_instance_mutex);
-      if (!s_instance || s_instance_tag != callback_instance_tag) {
-        // Instance changed or was invalidated, don't call the iOS method any more.
-        return;
-      }
+    MutexLock lock(s_instance_mutex);
+    if (!s_instance || s_instance_tag != callback_instance_tag) {
+      // Instance changed or was invalidated, don't call the iOS method any more.
+      return;
     }
     [UMPConsentForm
         loadWithCompletionHandler:^(UMPConsentForm* _Nullable form, NSError* _Nullable error) {
-          if (form) {
-            MutexLock lock(s_instance_mutex);
-            if (s_instance && s_instance_tag == callback_instance_tag) {
+          MutexLock lock(s_instance_mutex);
+          if (s_instance && s_instance_tag == callback_instance_tag) {
+            if (form) {
               SetLoadedForm(form);
               CompleteFuture(handle, kConsentFormSuccess, "Success");
-            }
-          } else if (error) {
-            MutexLock lock(s_instance_mutex);
-            if (s_instance && s_instance_tag == callback_instance_tag) {
+            } else if (error) {
               CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),
                              error.localizedDescription.UTF8String);
-            }
-          } else {
-            MutexLock lock(s_instance_mutex);
-            if (s_instance && s_instance_tag == callback_instance_tag) {
+            } else {
               CompleteFuture(handle, kConsentFormErrorUnknown, "An unknown error occurred.");
             }
           }
@@ -254,23 +241,18 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
     callback_instance_tag = s_instance_tag;
 
     util::DispatchAsyncSafeMainQueue(^{
-      {
-        MutexLock lock(s_instance_mutex);
-        if (!s_instance || s_instance_tag != callback_instance_tag) {
-          // Instance changed or was invalidated, don't call the iOS method any more.
-          return;
-        }
+      MutexLock lock(s_instance_mutex);
+      if (!s_instance || s_instance_tag != callback_instance_tag) {
+        // Instance changed or was invalidated, don't call the iOS method any more.
+        return;
       }
       [loaded_form_ presentFromViewController:parent
                             completionHandler:^(NSError* _Nullable error) {
-                              if (!error) {
-                                MutexLock lock(s_instance_mutex);
-                                if (s_instance && s_instance_tag == callback_instance_tag) {
+                              MutexLock lock(s_instance_mutex);
+                              if (s_instance && s_instance_tag == callback_instance_tag) {
+                                if (!error) {
                                   CompleteFuture(handle, kConsentRequestSuccess);
-                                }
-                              } else {
-                                MutexLock lock(s_instance_mutex);
-                                if (s_instance && s_instance_tag == callback_instance_tag) {
+                                } else {
                                   CompleteFuture(handle, CppFormErrorFromIosFormError(error.code),
                                                  error.localizedDescription.UTF8String);
                                 }
@@ -297,24 +279,19 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(FormParent
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    {
-      MutexLock lock(s_instance_mutex);
-      if (!s_instance || s_instance_tag != callback_instance_tag) {
-        // Instance changed or was invalidated, don't call the iOS method any more.
-        return;
-      }
+    MutexLock lock(s_instance_mutex);
+    if (!s_instance || s_instance_tag != callback_instance_tag) {
+      // Instance changed or was invalidated, don't call the iOS method any more.
+      return;
     }
     [UMPConsentForm
         loadAndPresentIfRequiredFromViewController:parent
                                  completionHandler:^(NSError* _Nullable error) {
-                                   if (!error) {
-                                     MutexLock lock(s_instance_mutex);
-                                     if (s_instance && s_instance_tag == callback_instance_tag) {
+                                   MutexLock lock(s_instance_mutex);
+                                   if (s_instance && s_instance_tag == callback_instance_tag) {
+                                     if (!error) {
                                        CompleteFuture(handle, kConsentRequestSuccess);
-                                     }
-                                   } else {
-                                     MutexLock lock(s_instance_mutex);
-                                     if (s_instance && s_instance_tag == callback_instance_tag) {
+                                     } else {
                                        CompleteFuture(handle,
                                                       CppFormErrorFromIosFormError(error.code),
                                                       error.localizedDescription.UTF8String);
@@ -357,24 +334,19 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    {
-      MutexLock lock(s_instance_mutex);
-      if (!s_instance || s_instance_tag != callback_instance_tag) {
-        // Instance changed or was invalidated, don't call the iOS method any more.
-        return;
-      }
+    MutexLock lock(s_instance_mutex);
+    if (!s_instance || s_instance_tag != callback_instance_tag) {
+      // Instance changed or was invalidated, don't call the iOS method any more.
+      return;
     }
     [UMPConsentForm
         presentPrivacyOptionsFormFromViewController:parent
                                   completionHandler:^(NSError* _Nullable error) {
-                                    if (!error) {
-                                      MutexLock lock(s_instance_mutex);
-                                      if (s_instance && s_instance_tag == callback_instance_tag) {
+                                    MutexLock lock(s_instance_mutex);
+                                    if (s_instance && s_instance_tag == callback_instance_tag) {
+                                      if (!error) {
                                         CompleteFuture(handle, kConsentRequestSuccess);
-                                      }
-                                    } else {
-                                      MutexLock lock(s_instance_mutex);
-                                      if (s_instance && s_instance_tag == callback_instance_tag) {
+                                      } else {
                                         CompleteFuture(handle,
                                                        CppFormErrorFromIosFormError(error.code),
                                                        error.localizedDescription.UTF8String);
