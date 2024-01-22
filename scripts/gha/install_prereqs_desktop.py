@@ -63,7 +63,7 @@ def main():
           # brew install openssl
           utils.run_command(['brew', 'install', 'openssl'])
       elif utils.is_windows_os():
-          utils.run_command(['choco', 'install', 'openssl', '-r'])
+          utils.run_command(['choco', 'install', 'openssl', '-r', '--version', '3.1.1'])
 
     # Install ccache on linux/mac if its not installed already
     if not utils.is_command_installed('ccache'):

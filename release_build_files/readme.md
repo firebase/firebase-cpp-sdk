@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.7.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.7.1)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -631,8 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming release
+### 11.8.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 32.7.1.
+    - General (iOS): Update to Firebase Cocoapods version 10.20.0.
     - Dynamic Links: The Dynamic Links SDK is now deprecated. See the [support
       documentation](https://firebase.google.com/support/dynamic-links-faq)
       for more information.
