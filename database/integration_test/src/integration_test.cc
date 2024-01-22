@@ -698,8 +698,8 @@ TEST_F(FirebaseDatabaseTest, TestUpdateChildren) {
   WaitForCompletion(update_future, "UpdateChildren");
   read_future = ref.Child(test_name).GetValue();
   WaitForCompletion(read_future, "GetValue 2");
-  int64_t current_time_milliseconds =
-      static_cast<int64_t>(time(nullptr)) * 1000L;
+  int64_t current_time_milliseconds = GetRemoteTimeInMilliseconds();
+
   EXPECT_THAT(
       read_future.result()->value().map(),
       UnorderedElementsAre(
