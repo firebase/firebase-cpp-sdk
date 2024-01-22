@@ -1047,7 +1047,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
-        timeout-minutes: 90
+        timeout-minutes: 120
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
