@@ -112,7 +112,7 @@ def main(argv):
           should_rerun_jobs = True
       elif job['name'].startswith('download-'):
         # If a download step failed, automatically retry.
-          should_rerun_jobs = True
+        should_rerun_jobs = True
       elif job['name'].startswith('package-'):
         # Retry packaging jobs that timed out
         if not re.search(r'exceeded the maximum execution time', job_logs):
