@@ -147,8 +147,6 @@ class FirebaseDatabaseTest : public FirebaseTest {
   // Shut down Firebase Database.
   void TerminateDatabase();
 
-  int64_t GetRemoteTimeInMilliseconds();
-
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
 
@@ -368,30 +366,6 @@ firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
   return ref;
 }
 
-int64_t FirebaseDatabaseTest::GetRemoteTimeInMilliseconds() {
-  firebase::database::DatabaseReference ref =
-      CreateWorkingPath().Child("timestamp");
-  WaitForCompletionAnyResult(
-      ref.SetValue(firebase::database::ServerTimestamp()),
-      "GetRemoteTime_SetValue");
-  firebase::Future<firebase::database::DataSnapshot> future = ref.GetValue();
-  WaitForCompletionAnyResult(future, "GetRemoteTime_GetValue");
-  int64_t timestamp = 0;
-  if (future.error() == 0 && future.result() &&
-      future.result()->value().is_int64()) {
-    timestamp = future.result()->value().int64_value();
-  }
-  if (timestamp > 0) {
-    LogDebug("Got server timestamp: %lld", timestamp);
-    LogDebug("     Local timestamp: %lld",
-             app_framework::GetCurrentTimeInMicroseconds() / 1000L);
-    return timestamp;
-  } else {
-    LogWarning("Couldn't get remote timestamp, using local time");
-    return app_framework::GetCurrentTimeInMicroseconds() / 1000L;
-  }
-}
-
 // Test cases below.
 TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
@@ -487,7 +461,7 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
     WaitForCompletion(f7, "GetLongDouble");
 
     // Get the current time to compare to the Timestamp.
-    int64_t current_time_milliseconds = GetRemoteTimeInMilliseconds();
+    int64_t current_time_milliseconds = GetCurrentTimeInSecondsSinceEpoch() * 1000L;
 
     EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
     EXPECT_EQ(f2.result()->value().AsInt64(), kSimpleInt);
@@ -698,7 +672,7 @@ TEST_F(FirebaseDatabaseTest, TestUpdateChildren) {
   WaitForCompletion(update_future, "UpdateChildren");
   read_future = ref.Child(test_name).GetValue();
   WaitForCompletion(read_future, "GetValue 2");
-  int64_t current_time_milliseconds = GetRemoteTimeInMilliseconds();
+  int64_t current_time_milliseconds = GetCurrentTimeInSecondsSinceEpoch() * 1000L;
 
   EXPECT_THAT(
       read_future.result()->value().map(),
