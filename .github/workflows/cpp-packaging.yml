@@ -899,7 +899,7 @@ jobs:
     name: "attempt-retry"
     needs: [trigger_integration_tests]
     runs-on: ubuntu-20.04
-    if: ${{ failure() && !cancelled() && github.event_name == 'schedule' }}
+    if: ${{ failure() && !cancelled() }} # && github.event_name == 'schedule' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
