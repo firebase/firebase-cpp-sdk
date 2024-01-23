@@ -901,8 +901,8 @@ jobs:
     runs-on: ubuntu-20.04
     if: ${{ failure() && !cancelled() && github.event_name == 'schedule' }}
     steps:
-      - uses: actions/checkout@v3
-        with:
+      - name: Checkout repo
+        uses: actions/checkout@v3
       - name: Setup python
         uses: actions/setup-python@v4
         with:
