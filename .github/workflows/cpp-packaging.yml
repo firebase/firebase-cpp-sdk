@@ -906,7 +906,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.pythonVersion }}
+          python-version: 3.8
       - name: Install python deps
         run: pip install -r scripts/gha/python_requirements.txt
       # The default token can't run workflows, so get an alternate token.
