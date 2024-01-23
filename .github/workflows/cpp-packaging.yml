@@ -903,7 +903,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Setup python
         uses: actions/setup-python@v4
         with:
