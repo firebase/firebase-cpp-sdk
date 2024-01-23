@@ -107,13 +107,24 @@ def main(argv):
         # Retry all build failures that don't match a compiler error.
         if not re.search(r'.*/.*:[0-9]+:[0-9]+: error:', job_logs):
           should_rerun_jobs = True
+        # Also retry build jobs that timed out
+        if not re.search(r'exceeded the maximum execution time', job_logs):
+          should_rerun_jobs = True
+      elif job['name'].startswith('download-'):
+        # If a download step failed, automatically retry.
+          should_rerun_jobs = True
+      elif job['name'].startswith('package-'):
+        # Retry packaging jobs that timed out
+        if not re.search(r'exceeded the maximum execution time', job_logs):
+          should_rerun_jobs = True
       elif job['name'].startswith('test-'):
         if '-android' in job['name'] or '-ios' in job['name']:
           # Mobile tests should always be retried.
           should_rerun_jobs = True
         else:
-          # Desktop tests should only retry on a network error.
-          if re.search(r'timed out|network error', job_logs, re.IGNORECASE):
+          # Desktop tests should only retry on a network error or timeout.
+          if re.search(r'timed out|network error|maximum execution time',
+                       job_logs, re.IGNORECASE):
             should_rerun_jobs = True
 
   if should_rerun_jobs:
