@@ -293,6 +293,53 @@ bool FirebaseTest::Base64Decode(const std::string& input, std::string* output) {
   return ::firebase::internal::Base64Decode(input, output);
 }
 
+int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
+#if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  // Quick and dirty function to retrieve GMT time from worldtimeapi.org
+  // and parse the very simple JSON to obtain the "unixtime" value.
+  // If any step fails, it will return the local time instead.
+  int response_code = 0;
+  std::string response_body;
+  bool success = SendHttpGetRequest("http://worldtimeapi.org/api/timezone/GMT",
+                                    {}, &response_code, &response_body);
+  if (!success || response_code != 200 || response_body.empty()) {
+    LogDebug("GetCurrentTimeInSecondsSinceEpoch: HTTP request failed");
+    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+  }
+
+  const char kJsonTag[] = "\"unixtime\":";
+  size_t begin = response_body.find(kJsonTag);
+  if (begin < 0) {
+    LogDebug(
+        "GetCurrentTimeInSecondsSinceEpoch: Can't find unixtime JSON field");
+    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+  }
+  begin += strlen(kJsonTag);
+
+  size_t end = response_body.find(",", begin);
+  if (end < 0) end = response_body.find("}", begin);
+  if (end < 0) {
+    LogDebug(
+        "GetCurrentTimeInSecondsSinceEpoch: Can't extract unixtime JSON field");
+    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+  }
+  std::string time_str = response_body.substr(begin, end - begin);
+  int64_t timestamp = std::stoll(time_str);
+  if (timestamp <= 0) {
+    LogDebug(
+        "GetCurrentTimeInSecondsSinceEpoch: Can't parse unixtime JSON value %s",
+        time_str);
+    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+  }
+  LogInfo("Got remote timestamp: %lld", timestamp);
+  return timestamp;
+#else
+  // On desktop, just return the local time since SendHttpGetRequest is not
+  // implemented.
+  return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+#endif
+}
+
 class LogTestEventListener : public testing::EmptyTestEventListener {
  public:
   void OnTestPartResult(

@@ -567,6 +567,11 @@ class FirebaseTest : public testing::Test {
 
   static std::string GetDebugDeviceId();
 
+  // Get the current time in seconds since epoch.  On desktop, this will use the
+  // local machine's time. On mobile, it will retrieve UTC time from a server if
+  // possible, otherwise use the local machine's time.
+  int64_t GetCurrentTimeInSecondsSinceEpoch();
+
   firebase::App* app_;
   static int argc_;
   static char** argv_;
