@@ -919,7 +919,7 @@ jobs:
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: Retry failed tests
         run: |
-          echo "::warning ::Attempting to retry failed tests"
+          echo "::warning ::Attempting to retry failed jobs"
           python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
           -w retry-test-failures.yml \
           -p run_id ${{ github.run_id }} \
