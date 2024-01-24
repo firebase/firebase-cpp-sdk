@@ -189,6 +189,7 @@ else()
   # Platform abstraction layer for the desktop integration test.
   set(FIREBASE_APP_FRAMEWORK_DESKTOP_SRCS
     src/desktop/desktop_app_framework.cc
+    src/desktop/desktop_firebase_test_framework.cc
   )
 
   set(integration_test_target_name "integration_test")
