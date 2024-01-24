@@ -304,7 +304,7 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
                                     {}, &response_code, &response_body);
   if (!success || response_code != 200 || response_body.empty()) {
     LogDebug("GetCurrentTimeInSecondsSinceEpoch: HTTP request failed");
-    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
   }
 
   const char kJsonTag[] = "\"unixtime\":";
@@ -312,7 +312,7 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   if (begin < 0) {
     LogDebug(
         "GetCurrentTimeInSecondsSinceEpoch: Can't find unixtime JSON field");
-    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
   }
   begin += strlen(kJsonTag);
 
@@ -321,7 +321,7 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   if (end < 0) {
     LogDebug(
         "GetCurrentTimeInSecondsSinceEpoch: Can't extract unixtime JSON field");
-    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
   }
   std::string time_str = response_body.substr(begin, end - begin);
   int64_t timestamp = std::stoll(time_str);
@@ -329,14 +329,14 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
     LogDebug(
         "GetCurrentTimeInSecondsSinceEpoch: Can't parse unixtime JSON value %s",
         time_str);
-    return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
   }
   LogInfo("Got remote timestamp: %lld", timestamp);
   return timestamp;
 #else
   // On desktop, just return the local time since SendHttpGetRequest is not
   // implemented.
-  return (app_framework::GetCurrentTimeInMilliseconds() / 1000L);
+  return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
 #endif
 }
 
