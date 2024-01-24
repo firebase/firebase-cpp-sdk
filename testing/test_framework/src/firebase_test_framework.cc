@@ -22,6 +22,8 @@
 
 #include "firebase/future.h"
 
+using app_framework::LogDebug;
+
 namespace firebase {
 namespace internal {
 // Borrow Firebase's internal Base64 encoder and decoder.
@@ -296,12 +298,13 @@ bool FirebaseTest::Base64Decode(const std::string& input, std::string* output) {
 int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
 #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   // Quick and dirty function to retrieve GMT time from worldtimeapi.org
-  // and parse the very simple JSON to obtain the "unixtime" value.
+  // and parse the very simple JSON response to obtain the "unixtime" value.
   // If any step fails, it will return the local time instead.
+  std::map<std::string, std::string> empty_headers;
   int response_code = 0;
   std::string response_body;
   bool success = SendHttpGetRequest("http://worldtimeapi.org/api/timezone/GMT",
-                                    {}, &response_code, &response_body);
+                                    empty_headers, &response_code, &response_body);
   if (!success || response_code != 200 || response_body.empty()) {
     LogDebug("GetCurrentTimeInSecondsSinceEpoch: HTTP request failed");
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
@@ -328,10 +331,10 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   if (timestamp <= 0) {
     LogDebug(
         "GetCurrentTimeInSecondsSinceEpoch: Can't parse unixtime JSON value %s",
-        time_str);
+        time_str.c_str());
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
   }
-  LogInfo("Got remote timestamp: %lld", timestamp);
+  LogDebug("Got remote timestamp: %lld", timestamp);
   return timestamp;
 #else
   // On desktop, just return the local time since SendHttpGetRequest is not
