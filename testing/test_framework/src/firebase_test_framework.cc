@@ -319,6 +319,10 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000L);
   }
   begin += strlen(kJsonTag);
+  if (response_body[begin] == ' ') {
+    // Advance past a single space, if present.
+    begin++;
+  }
 
   size_t end = response_body.find(",", begin);
   if (end < 0) end = response_body.find("}", begin);
