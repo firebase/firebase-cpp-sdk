@@ -465,11 +465,7 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
         GetCurrentTimeInSecondsSinceEpoch() * 1000LL;
     LogDebug("Comparing current time %" PRId64 " with timestamp %" PRId64,
              current_time_milliseconds,
-             read_future.result()
-                 ->value()
-                 .map()["timestamp"]
-                 .AsInt64()
-                 .int64_value());
+             f5.result()->value().AsInt64().int64_value());
 
     EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
     EXPECT_EQ(f2.result()->value().AsInt64(), kSimpleInt);
