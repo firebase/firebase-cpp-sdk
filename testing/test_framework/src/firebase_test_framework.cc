@@ -14,6 +14,8 @@
 
 #include "firebase_test_framework.h"  // NOLINT
 
+#include <inttypes.h>
+
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -304,8 +306,9 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   std::map<std::string, std::string> empty_headers;
   int response_code = 0;
   std::string response_body;
-  bool success = SendHttpGetRequest("http://worldtimeapi.org/api/timezone/GMT",
-                                    empty_headers, &response_code, &response_body);
+  bool success =
+      SendHttpGetRequest("http://worldtimeapi.org/api/timezone/GMT",
+                         empty_headers, &response_code, &response_body);
   if (!success || response_code != 200 || response_body.empty()) {
     LogDebug("GetCurrentTimeInSecondsSinceEpoch: HTTP request failed");
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
@@ -315,7 +318,9 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   size_t begin = response_body.find(kJsonTag);
   if (begin < 0) {
     LogDebug(
-        "GetCurrentTimeInSecondsSinceEpoch: Can't find unixtime JSON field");
+        "GetCurrentTimeInSecondsSinceEpoch: Can't find unixtime JSON field in "
+        "response: %s",
+        response_body.c_str());
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
   }
   begin += strlen(kJsonTag);
@@ -328,7 +333,9 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   if (end < 0) end = response_body.find("}", begin);
   if (end < 0) {
     LogDebug(
-        "GetCurrentTimeInSecondsSinceEpoch: Can't extract unixtime JSON field");
+        "GetCurrentTimeInSecondsSinceEpoch: Can't extract unixtime JSON field "
+        "from response: %s",
+        response_body.c_str());
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
   }
   std::string time_str = response_body.substr(begin, end - begin);
@@ -339,13 +346,14 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
         time_str.c_str());
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
   }
-  LogDebug("Got remote timestamp: %I64d", timestamp);
+  LogDebug("Got remote timestamp: %" PRId64, timestamp);
   return timestamp;
 #else
   // On desktop, just return the local time since SendHttpGetRequest is not
   // implemented.
-  int64_t time_in_microseconds = app_framework::GetCurrentTimeInMicroseconds() / 1000000LL;
-  LogDebug("Got local time: %I64d", time_in_microseconds);
+  int64_t time_in_microseconds =
+      app_framework::GetCurrentTimeInMicroseconds() / 1000000LL;
+  LogDebug("Got local time: %" PRId64, time_in_microseconds);
   return (time_in_microseconds);
 #endif
 }

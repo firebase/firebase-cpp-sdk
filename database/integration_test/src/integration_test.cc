@@ -461,7 +461,11 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
     WaitForCompletion(f7, "GetLongDouble");
 
     // Get the current time to compare to the Timestamp.
-    int64_t current_time_milliseconds = GetCurrentTimeInSecondsSinceEpoch() * 1000LL;
+    int64_t current_time_milliseconds =
+        GetCurrentTimeInSecondsSinceEpoch() * 1000LL;
+    LogDebug("Comparing current time %" PRId64 " with timestamp %" PRId64,
+             current_time_milliseconds,
+             f5.result()->value().AsInt64().int64_value());
 
     EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
     EXPECT_EQ(f2.result()->value().AsInt64(), kSimpleInt);
@@ -672,10 +676,12 @@ TEST_F(FirebaseDatabaseTest, TestUpdateChildren) {
   WaitForCompletion(update_future, "UpdateChildren");
   read_future = ref.Child(test_name).GetValue();
   WaitForCompletion(read_future, "GetValue 2");
-  int64_t current_time_milliseconds = GetCurrentTimeInSecondsSinceEpoch() * 1000L;
-  LogDebug("Comparing current time %I64d with timestamp %I64d",
-           current_time_milliseconds,
-           read_future.result()->value().map()["timestamp"].AsInt64().int64_value());
+  int64_t current_time_milliseconds =
+      GetCurrentTimeInSecondsSinceEpoch() * 1000L;
+  LogDebug(
+      "Comparing current time %" PRId64 " with timestamp %" PRId64,
+      current_time_milliseconds,
+      read_future.result()->value().map()["timestamp"].AsInt64().int64_value());
   EXPECT_THAT(
       read_future.result()->value().map(),
       UnorderedElementsAre(
