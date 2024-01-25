@@ -347,7 +347,7 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   // On desktop, just return the local time since SendHttpGetRequest is not
   // implemented.
   int64_t time_in_microseconds = app_framework::GetCurrentTimeInMicroseconds() / 1000000LL;
-  LogDebug("Got local time: %I64d", time_in_microseconds);
+  LogDebug("Got local time: %" PRId64, time_in_microseconds);
   return (time_in_microseconds);
 #endif
 }
