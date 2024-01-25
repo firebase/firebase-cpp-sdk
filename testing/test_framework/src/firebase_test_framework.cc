@@ -14,6 +14,8 @@
 
 #include "firebase_test_framework.h"  // NOLINT
 
+#include <inttypes.h>
+
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -339,7 +341,7 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
         time_str.c_str());
     return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
   }
-  LogDebug("Got remote timestamp: %I64d", timestamp);
+  LogDebug("Got remote timestamp: %" PRId64, timestamp);
   return timestamp;
 #else
   // On desktop, just return the local time since SendHttpGetRequest is not
