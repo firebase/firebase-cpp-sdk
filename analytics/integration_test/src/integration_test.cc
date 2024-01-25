@@ -249,6 +249,15 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
+  // On Android, this test must be performed at the end, after all the tests for
+  // session ID and instance ID. This is because once you call SetConsent to
+  // deny consent on Android, calling it again to grant consent may not take
+  // effect until the app restarts, thus breaking any of those tests that are
+  // run after this one.
+  //
+  // If this test does happen to run earlier (due to randomizing test order, for
+  // example), the tests that could fail will be skipped (on Android).
+
   // Can't confirm that these do anything but just run them all to ensure the
   // app doesn't crash.
   std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
