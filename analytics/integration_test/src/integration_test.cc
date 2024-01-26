@@ -108,7 +108,8 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
   LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
   if (did_test_setconsent_) {
     LogInfo(
-        "Skipping %s after TestSetConsent, as the test may fail until the app is restarted.",
+        "Skipping %s after TestSetConsent, as the test may fail until the app "
+        "is restarted.",
         ::testing::UnitTest::GetInstance()->current_test_info()->name());
     GTEST_SKIP();
     return;
@@ -141,7 +142,8 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
   if (did_test_setconsent_) {
     LogInfo(
-        "Skipping %s after TestSetConsent, as the test may fail until the app is restarted.",
+        "Skipping %s after TestSetConsent, as the test may fail until the app "
+        "is restarted.",
         ::testing::UnitTest::GetInstance()->current_test_info()->name());
     GTEST_SKIP();
     return;
@@ -181,7 +183,8 @@ TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
   LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
   if (did_test_setconsent_) {
     LogInfo(
-        "Skipping %s after TestSetConsent, as the test may fail until the app is restarted.",
+        "Skipping %s after TestSetConsent, as the test may fail until the app "
+        "is restarted.",
         ::testing::UnitTest::GetInstance()->current_test_info()->name());
     GTEST_SKIP();
     return;
