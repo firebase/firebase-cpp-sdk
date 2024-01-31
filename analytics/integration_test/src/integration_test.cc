@@ -100,10 +100,30 @@ TEST_F(FirebaseAnalyticsTest, TestSetSessionTimeoutDuraction) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
+  // On Android, if SetConsent was tested, this test will fail, since the app
+  // needs to be restarted after consent is denied or it won't generate a new
+  // sessionID. To not break the tests, skip this test in that case.
+#if defined(__ANDROID__)
+  // Log the Google Play services version for debugging in case this test fails.
+  LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
+  if (did_test_setconsent_) {
+    LogInfo(
+        "Skipping %s after TestSetConsent, as the test may fail until the app "
+        "is restarted.",
+        ::testing::UnitTest::GetInstance()->current_test_info()->name());
+    GTEST_SKIP();
+    return;
+  }
+#endif
+
+  FLAKY_TEST_SECTION_BEGIN();
+
   firebase::Future<std::string> future =
       firebase::analytics::GetAnalyticsInstanceId();
   WaitForCompletion(future, "GetAnalyticsInstanceId");
   EXPECT_FALSE(future.result()->empty());
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
@@ -120,11 +140,11 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
 #if defined(__ANDROID__)
   // Log the Google Play services version for debugging in case this test fails.
   LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
-
   if (did_test_setconsent_) {
     LogInfo(
-        "Skipping TestGetSessionID after TestSetConsent, as GetSessionId() "
-        "will fail until the app is restarted.");
+        "Skipping %s after TestSetConsent, as the test may fail until the app "
+        "is restarted.",
+        ::testing::UnitTest::GetInstance()->current_test_info()->name());
     GTEST_SKIP();
     return;
   }
@@ -154,39 +174,39 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   }
 }
 
-TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
-  // Can't confirm that these do anything but just run them all to ensure the
-  // app doesn't crash.
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_allow = {
-          {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentStatusGranted},
-          {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentStatusGranted},
-          {firebase::analytics::kConsentTypeAdUserData,
-           firebase::analytics::kConsentStatusGranted},
-          {firebase::analytics::kConsentTypeAdPersonalization,
-           firebase::analytics::kConsentStatusGranted}};
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_deny = {
-          {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentStatusDenied},
-          {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentStatusDenied},
-          {firebase::analytics::kConsentTypeAdUserData,
-           firebase::analytics::kConsentStatusDenied},
-          {firebase::analytics::kConsentTypeAdPersonalization,
-           firebase::analytics::kConsentStatusDenied}};
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_empty;
-  firebase::analytics::SetConsent(consent_settings_empty);
-  ProcessEvents(1000);
-  firebase::analytics::SetConsent(consent_settings_deny);
-  ProcessEvents(1000);
-  firebase::analytics::SetConsent(consent_settings_allow);
-  ProcessEvents(1000);
+TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
+  // On Android, if SetConsent was tested, this test will fail, since the app
+  // needs to be restarted after consent is denied or it won't generate a new
+  // sessionID. To not break the tests, skip this test in that case.
+#if defined(__ANDROID__)
+  // Log the Google Play services version for debugging in case this test fails.
+  LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
+  if (did_test_setconsent_) {
+    LogInfo(
+        "Skipping %s after TestSetConsent, as the test may fail until the app "
+        "is restarted.",
+        ::testing::UnitTest::GetInstance()->current_test_info()->name());
+    GTEST_SKIP();
+    return;
+  }
+#endif
+  FLAKY_TEST_SECTION_BEGIN();
 
-  did_test_setconsent_ = true;
+  firebase::Future<std::string> future =
+      firebase::analytics::GetAnalyticsInstanceId();
+  WaitForCompletion(future, "GetAnalyticsInstanceId");
+  EXPECT_FALSE(future.result()->empty());
+  std::string instance_id = *future.result();
+
+  firebase::analytics::ResetAnalyticsData();
+
+  future = firebase::analytics::GetAnalyticsInstanceId();
+  WaitForCompletion(future, "GetAnalyticsInstanceId after ResetAnalyticsData");
+  std::string new_instance_id = *future.result();
+  EXPECT_FALSE(future.result()->empty());
+  EXPECT_NE(instance_id, new_instance_id);
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
@@ -231,29 +251,48 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
       sizeof(kLevelUpParameters) / sizeof(kLevelUpParameters[0]));
 }
 
-TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
-  // Test is flaky on iPhone due to a known issue in iOS.  See b/143656277.
-#if TARGET_OS_IPHONE
-  FLAKY_TEST_SECTION_BEGIN();
-#endif  // TARGET_OS_IPHONE
+TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
+  // On Android, this test must be performed at the end, after all the tests for
+  // session ID and instance ID. This is because once you call SetConsent to
+  // deny consent on Android, calling it again to grant consent may not take
+  // effect until the app restarts, thus breaking any of those tests that are
+  // run after this one.
+  //
+  // If this test does happen to run earlier (due to randomizing test order, for
+  // example), the tests that could fail will be skipped (on Android).
 
-  firebase::Future<std::string> future =
-      firebase::analytics::GetAnalyticsInstanceId();
-  WaitForCompletion(future, "GetAnalyticsInstanceId");
-  EXPECT_FALSE(future.result()->empty());
-  std::string instance_id = *future.result();
+  // Can't confirm that these do anything but just run them all to ensure the
+  // app doesn't crash.
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_allow = {
+          {firebase::analytics::kConsentTypeAnalyticsStorage,
+           firebase::analytics::kConsentStatusGranted},
+          {firebase::analytics::kConsentTypeAdStorage,
+           firebase::analytics::kConsentStatusGranted},
+          {firebase::analytics::kConsentTypeAdUserData,
+           firebase::analytics::kConsentStatusGranted},
+          {firebase::analytics::kConsentTypeAdPersonalization,
+           firebase::analytics::kConsentStatusGranted}};
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_deny = {
+          {firebase::analytics::kConsentTypeAnalyticsStorage,
+           firebase::analytics::kConsentStatusDenied},
+          {firebase::analytics::kConsentTypeAdStorage,
+           firebase::analytics::kConsentStatusDenied},
+          {firebase::analytics::kConsentTypeAdUserData,
+           firebase::analytics::kConsentStatusDenied},
+          {firebase::analytics::kConsentTypeAdPersonalization,
+           firebase::analytics::kConsentStatusDenied}};
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_empty;
+  firebase::analytics::SetConsent(consent_settings_empty);
+  ProcessEvents(1000);
+  firebase::analytics::SetConsent(consent_settings_deny);
+  ProcessEvents(1000);
+  firebase::analytics::SetConsent(consent_settings_allow);
+  ProcessEvents(1000);
 
-  firebase::analytics::ResetAnalyticsData();
-
-  future = firebase::analytics::GetAnalyticsInstanceId();
-  WaitForCompletion(future, "GetAnalyticsInstanceId after ResetAnalyticsData");
-  std::string new_instance_id = *future.result();
-  EXPECT_FALSE(future.result()->empty());
-  EXPECT_NE(instance_id, new_instance_id);
-
-#if TARGET_OS_IPHONE
-  FLAKY_TEST_SECTION_END();
-#endif  // TARGET_OS_IPHONE
+  did_test_setconsent_ = true;
 }
 
 }  // namespace firebase_testapp_automated

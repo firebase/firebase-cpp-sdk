@@ -948,7 +948,10 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword_DEPRECATED) {
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
-  SignInAnonymously();
+  FLAKY_TEST_SECTION_BEGIN();
+
+  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+
   firebase::auth::User user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
   std::string email = GenerateEmailAddress();
@@ -958,7 +961,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   WaitForCompletion(user.LinkWithCredential(credential), "LinkWithCredential");
   WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink");
   SignOut();
-  SignInAnonymously();
+  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
   std::string email1 = GenerateEmailAddress();
@@ -979,10 +982,16 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
                     firebase::auth::kAuthErrorProviderAlreadyLinked);
   WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink 2");
   DeleteUser();
+
+  // In case any operations failed, force signout before retrying the test.
+  SignOut();
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential_DEPRECATED) {
-  SignInAnonymously_DEPRECATED();
+  FLAKY_TEST_SECTION_BEGIN();
+
+  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   firebase::auth::User* user = auth_->current_user_DEPRECATED();
   std::string email = GenerateEmailAddress();
@@ -994,7 +1003,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential_DEPRECATED) {
   WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()),
                     "Unlink");
   SignOut();
-  SignInAnonymously_DEPRECATED();
+  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   std::string email1 = GenerateEmailAddress();
   firebase::auth::Credential credential1 =
@@ -1012,6 +1021,9 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential_DEPRECATED) {
   WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()),
                     "Unlink_DEPRECATED 2");
   DeleteUser_DEPRECATED();
+
+  SignOut();
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
