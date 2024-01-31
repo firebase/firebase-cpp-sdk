@@ -112,7 +112,7 @@ if(ANDROID)
 
   # Expose the Messaging Java AAR file as a target
   set(FIREBASE_MESSAGING_JAVA_AAR_PATH
-    "${CMAKE_CURRENT_LIST_DIR}/messaging_java/build/outputs/aar/messaging_java.aar")
+    "${CMAKE_CURRENT_LIST_DIR}/messaging_java/build/outputs/aar/messaging_java-release.aar")
   firebase_cpp_gradle(":messaging:messaging_java:assemble"
     "${FIREBASE_MESSAGING_JAVA_AAR_PATH}"
   )
