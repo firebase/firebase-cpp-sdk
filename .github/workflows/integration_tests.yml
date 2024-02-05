@@ -1438,7 +1438,7 @@ jobs:
     name: "attempt-retry"
     needs: [check_and_prepare, summarize_results]
     runs-on: ubuntu-20.04
-    if: ${{ failure() && !cancelled() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
+    if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
     steps:
       - uses: actions/checkout@v3
         with:
