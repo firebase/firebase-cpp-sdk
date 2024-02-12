@@ -164,10 +164,10 @@ void SetRequestConfiguration(const RequestConfiguration& request_configuration) 
 
   switch (request_configuration.tag_for_child_directed_treatment) {
     case RequestConfiguration::kChildDirectedTreatmentFalse:
-      GADMobileAds.sharedInstance.requestConfiguration.tagForChildDirectedTreatment = NO;
+      GADMobileAds.sharedInstance.requestConfiguration.tagForChildDirectedTreatment = false;
       break;
     case RequestConfiguration::kChildDirectedTreatmentTrue:
-      GADMobileAds.sharedInstance.requestConfiguration tagForChildDirectedTreatment = YES;
+      GADMobileAds.sharedInstance.requestConfiguration.tagForChildDirectedTreatment = true;
       break;
     default:
     case RequestConfiguration::kChildDirectedTreatmentUnspecified:
@@ -177,10 +177,10 @@ void SetRequestConfiguration(const RequestConfiguration& request_configuration) 
 
   switch (request_configuration.tag_for_under_age_of_consent) {
     case RequestConfiguration::kUnderAgeOfConsentFalse:
-      GADMobileAds.sharedInstance.requestConfiguration.tagForUnderAgeOfConsent = NO;
+      GADMobileAds.sharedInstance.requestConfiguration.tagForUnderAgeOfConsent = false;
       break;
     case RequestConfiguration::kUnderAgeOfConsentTrue:
-      GADMobileAds.sharedInstance.requestConfiguration.tagForUnderAgeOfConsent = YES;
+      GADMobileAds.sharedInstance.requestConfiguration.tagForUnderAgeOfConsent = true;
       break;
     default:
     case RequestConfiguration::kUnderAgeOfConsentUnspecified:
