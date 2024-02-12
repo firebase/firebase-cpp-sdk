@@ -28,6 +28,7 @@
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
 		D66B16871CE46E8900E5638A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */; };
 		D67D355822BABD2200292C1D /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D67D355622BABD2100292C1D /* gtest-all.cc */; };
+		D6A908EC2B786EDF00EF5160 /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E722CB322900C2651A /* ios_app_framework.mm */; };
 		D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
@@ -368,6 +369,7 @@
 				9F3A09032669792100E1D69F /* app_framework.cc in Sources */,
 				9F3A09022669791E00E1D69F /* gtest-all.cc in Sources */,
 				9F3A09042669792400E1D69F /* firebase_test_framework.cc in Sources */,
+				D6A908EC2B786EDF00EF5160 /* ios_firebase_test_framework.mm in Sources */,
 				9F5DD0AC266A7AD30058C144 /* integration_test.cc in Sources */,
 				9F5DD0AB266A7ACE0058C144 /* ios_app_framework.mm in Sources */,
 			);

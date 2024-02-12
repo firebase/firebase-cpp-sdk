@@ -14,13 +14,18 @@
 
 #include "firebase_test_framework.h"  // NOLINT
 
+#include <inttypes.h>
+
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <string>
 #include <vector>
 
 #include "firebase/future.h"
+
+using app_framework::LogDebug;
 
 namespace firebase {
 namespace internal {
@@ -291,6 +296,66 @@ bool FirebaseTest::Base64Encode(const std::string& input, std::string* output) {
 
 bool FirebaseTest::Base64Decode(const std::string& input, std::string* output) {
   return ::firebase::internal::Base64Decode(input, output);
+}
+
+int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
+#if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  // Quick and dirty function to retrieve GMT time from worldtimeapi.org
+  // and parse the very simple JSON response to obtain the "unixtime" value.
+  // If any step fails, it will return the local time instead.
+  std::map<std::string, std::string> empty_headers;
+  int response_code = 0;
+  std::string response_body;
+  bool success =
+      SendHttpGetRequest("https://worldtimeapi.org/api/timezone/GMT",
+                         empty_headers, &response_code, &response_body);
+  if (!success || response_code != 200 || response_body.empty()) {
+    LogDebug("GetCurrentTimeInSecondsSinceEpoch: HTTP request failed");
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
+  }
+
+  const char kJsonTag[] = "\"unixtime\":";
+  size_t begin = response_body.find(kJsonTag);
+  if (begin < 0) {
+    LogDebug(
+        "GetCurrentTimeInSecondsSinceEpoch: Can't find unixtime JSON field in "
+        "response: %s",
+        response_body.c_str());
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
+  }
+  begin += strlen(kJsonTag);
+  if (response_body[begin] == ' ') {
+    // Advance past a single space, if present.
+    begin++;
+  }
+
+  size_t end = response_body.find(",", begin);
+  if (end < 0) end = response_body.find("}", begin);
+  if (end < 0) {
+    LogDebug(
+        "GetCurrentTimeInSecondsSinceEpoch: Can't extract unixtime JSON field "
+        "from response: %s",
+        response_body.c_str());
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
+  }
+  std::string time_str = response_body.substr(begin, end - begin);
+  int64_t timestamp = std::stoll(time_str);
+  if (timestamp <= 0) {
+    LogDebug(
+        "GetCurrentTimeInSecondsSinceEpoch: Can't parse unixtime JSON value %s",
+        time_str.c_str());
+    return (app_framework::GetCurrentTimeInMicroseconds() / 1000000LL);
+  }
+  LogDebug("Got remote timestamp: %" PRId64, timestamp);
+  return timestamp;
+#else
+  // On desktop, just return the local time since SendHttpGetRequest is not
+  // implemented.
+  int64_t time_in_microseconds =
+      app_framework::GetCurrentTimeInMicroseconds() / 1000000LL;
+  LogDebug("Got local time: %" PRId64, time_in_microseconds);
+  return (time_in_microseconds);
+#endif
 }
 
 class LogTestEventListener : public testing::EmptyTestEventListener {
