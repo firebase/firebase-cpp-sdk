@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.7.1)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.7.2)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -136,7 +136,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | (Maven package)
 |                          | com.google.android.gms:play-services-ads:22.6.0
 |                          | (Maven package)
-|                          | com.google.android.ump:user-messaging-platform:2.1.0
+|                          | com.google.android.ump:user-messaging-platform:2.2.0
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -631,6 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 32.7.2.
+
 ### 11.8.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.7.1.
