@@ -631,6 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 32.7.2.
+
 ### 11.8.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.7.1.
