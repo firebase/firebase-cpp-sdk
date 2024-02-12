@@ -307,7 +307,7 @@ int64_t FirebaseTest::GetCurrentTimeInSecondsSinceEpoch() {
   int response_code = 0;
   std::string response_body;
   bool success =
-      SendHttpGetRequest("http://worldtimeapi.org/api/timezone/GMT",
+      SendHttpGetRequest("https://worldtimeapi.org/api/timezone/GMT",
                          empty_headers, &response_code, &response_body);
   if (!success || response_code != 200 || response_body.empty()) {
     LogDebug("GetCurrentTimeInSecondsSinceEpoch: HTTP request failed");
