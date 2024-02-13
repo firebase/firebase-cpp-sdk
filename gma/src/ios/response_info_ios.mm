@@ -41,7 +41,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
       util::NSStringToString(response_info_internal.gad_response_info.responseIdentifier);
 
   mediation_adapter_class_name_ =
-      util::NSStringToString(response_info_internal.gad_response_info.adNetworkClassName);
+      util::NSStringToString(response_info_internal.gad_response_info.loadedAdNetworkResponseInfo.adNetworkClassName);
 
   NSEnumerator* enumerator =
       [response_info_internal.gad_response_info.adNetworkInfoArray objectEnumerator];
@@ -58,7 +58,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
                                         "response_id: %@, mediation_adapter_classname : %@, "
                                         "adapter_response_info: %@",
                                        response_info_internal.gad_response_info.responseIdentifier,
-                                       response_info_internal.gad_response_info.adNetworkClassName,
+                                       response_info_internal.gad_response_info.loadedAdNetworkResponseInfo.adNetworkClassName,
                                        response_info_internal.gad_response_info.adNetworkInfoArray];
   to_string_ = util::NSStringToString(to_string);
 }
