@@ -175,9 +175,11 @@ int64_t GetCurrentTimeInMicroseconds() {
   now.LowPart = file_time.dwLowDateTime;
   now.HighPart = file_time.dwHighDateTime;
 
+  // Windows file time has a different offset, year 1601 instead of 1970.
+  now.QuadPart -= 116444736000000000ULL;
   // Windows file time is expressed in 100s of nanoseconds.
-  // To convert to microseconds, multiply x10.
-  return now.QuadPart * 10LL;
+  // To convert to microseconds, divide by 10.
+  return now.QuadPart / 10LL;
 }
 #endif  // defined(_WIN32)
 
