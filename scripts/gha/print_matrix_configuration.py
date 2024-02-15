@@ -82,7 +82,7 @@ PARAMETERS = {
 
       EXPANDED_KEY: {
         "os": ["ubuntu-20.04", "macos-13", "windows-latest"],
-        "xcode_version": ["15.1"],
+        "xcode_version": ["14.1"],
       }
     }
   },
