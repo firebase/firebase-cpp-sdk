@@ -2170,6 +2170,10 @@ TEST_F(FirebaseGmaTest, TestNativeRecordImpression) {
   WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
 
+  // Set the listener.
+  TestAdListener ad_listener;
+  native_ad->SetAdListener(&ad_listener);
+
   // When the NativeAd is initialized, load an ad.
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
@@ -2199,6 +2203,10 @@ TEST_F(FirebaseGmaTest, TestNativeRecordImpression) {
                       firebase::gma::kAdErrorCodeInvalidRequest);
 #endif
 
+    // Use an allowlisted Ad unit ID that can record an impression, to verify
+    // the impression count while testing locally.
+    EXPECT_EQ(ad_listener.num_on_ad_impression_, 0);
+
     firebase::Variant str_variant =
         firebase::Variant::FromMutableString("test");
     WaitForCompletion(native_ad->RecordImpression(str_variant),
@@ -2221,6 +2229,10 @@ TEST_F(FirebaseGmaTest, TestNativePerformClick) {
   WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
 
+  // Set the listener.
+  TestAdListener ad_listener;
+  native_ad->SetAdListener(&ad_listener);
+
   // When the NativeAd is initialized, load an ad.
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
@@ -2240,6 +2252,11 @@ TEST_F(FirebaseGmaTest, TestNativePerformClick) {
 
     // Android and iOS doesn't have a return type for this API.
     WaitForCompletion(native_ad->PerformClick(click_payload), "PerformClick");
+
+    // Test Ad unit IDs are not allowlisted to use PerformClick API and the
+    // request is expected to be rejected by the server. Use an allowlisted Ad
+    // unit ID to verify the ad click count while testing locally.
+    EXPECT_EQ(ad_listener.num_on_ad_clicked_, 0);
 
     firebase::Variant str_variant =
         firebase::Variant::FromMutableString("test");
