@@ -973,6 +973,43 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
   env->DeleteLocalRef(j_response_info);
 }
 
+void JNI_NativeAd_notifyAdClicked(JNIEnv* env, jclass clazz, jlong data_ptr) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+
+  firebase::gma::internal::NativeAdInternal* internal =
+      reinterpret_cast<firebase::gma::internal::NativeAdInternal*>(data_ptr);
+  internal->NotifyListenerAdClicked();
+}
+
+void JNI_NativeAd_notifyAdClosed(JNIEnv* env, jclass clazz, jlong data_ptr) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+
+  firebase::gma::internal::NativeAdInternal* internal =
+      reinterpret_cast<firebase::gma::internal::NativeAdInternal*>(data_ptr);
+  internal->NotifyListenerAdClosed();
+}
+
+void JNI_NativeAd_notifyAdImpression(JNIEnv* env, jclass clazz,
+                                     jlong data_ptr) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+
+  firebase::gma::internal::NativeAdInternal* internal =
+      reinterpret_cast<firebase::gma::internal::NativeAdInternal*>(data_ptr);
+  internal->NotifyListenerAdImpression();
+}
+
+void JNI_NativeAd_notifyAdOpened(JNIEnv* env, jclass clazz, jlong data_ptr) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+
+  firebase::gma::internal::NativeAdInternal* internal =
+      reinterpret_cast<firebase::gma::internal::NativeAdInternal*>(data_ptr);
+  internal->NotifyListenerAdOpened();
+}
+
 void JNI_NativeImage_completeLoadedImage(JNIEnv* env, jclass clazz,
                                          jlong data_ptr,
                                          jobject j_image_bytes) {
@@ -1260,6 +1297,14 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(&JNI_completeLoadAdError)},
       {"completeNativeLoadAdInternalError", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeLoadAdInternalError)},
+      {"notifyAdClicked", "(J)V",
+       reinterpret_cast<void*>(&JNI_NativeAd_notifyAdClicked)},
+      {"notifyAdClosed", "(J)V",
+       reinterpret_cast<void*>(&JNI_NativeAd_notifyAdClosed)},
+      {"notifyAdImpression", "(J)V",
+       reinterpret_cast<void*>(&JNI_NativeAd_notifyAdImpression)},
+      {"notifyAdOpened", "(J)V",
+       reinterpret_cast<void*>(&JNI_NativeAd_notifyAdOpened)},
   };
 
   static const JNINativeMethod kNativeImageMethods[] = {

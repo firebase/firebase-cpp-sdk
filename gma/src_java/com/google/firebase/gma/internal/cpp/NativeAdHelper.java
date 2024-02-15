@@ -98,7 +98,7 @@ public class NativeAdHelper {
     });
   }
 
-  /** Disconnect the helper from the interstital ad. */
+  /** Disconnect the helper from the native ad. */
   public void disconnect() {
     synchronized (mNativeLock) {
       mNativeAdInternalPtr = CPP_NULLPTR;
@@ -263,6 +263,42 @@ public class NativeAdHelper {
         }
       }
     }
+
+    @Override
+    public void onAdClicked() {
+      synchronized (mNativeLock) {
+        if (mNativeAdInternalPtr != CPP_NULLPTR) {
+          notifyAdClicked(mNativeAdInternalPtr);
+        }
+      }
+    }
+
+    @Override
+    public void onAdImpression() {
+      synchronized (mNativeLock) {
+        if (mNativeAdInternalPtr != CPP_NULLPTR) {
+          notifyAdImpression(mNativeAdInternalPtr);
+        }
+      }
+    }
+
+    @Override
+    public void onAdClosed() {
+      synchronized (mNativeLock) {
+        if (mNativeAdInternalPtr != CPP_NULLPTR) {
+          notifyAdClosed(mNativeAdInternalPtr);
+        }
+      }
+    }
+
+    @Override
+    public void onAdOpened() {
+      synchronized (mNativeLock) {
+        if (mNativeAdInternalPtr != CPP_NULLPTR) {
+          notifyAdOpened(mNativeAdInternalPtr);
+        }
+      }
+    }
   }
 
   /** Native callback to instruct the C++ wrapper to complete the corresponding future. */
@@ -287,4 +323,16 @@ public class NativeAdHelper {
    */
   public static native void completeNativeLoadAdInternalError(
       long nativeInternalPtr, int gmaErrorCode, String errorMessage);
+
+  /** Native callback to notify the C++ wrapper of an ad clicked event */
+  public static native void notifyAdClicked(long nativeInternalPtr);
+
+  /** Native callback to notify the C++ wrapper of an ad closed event */
+  public static native void notifyAdClosed(long nativeInternalPtr);
+
+  /** Native callback to notify the C++ wrapper of an ad impression event */
+  public static native void notifyAdImpression(long nativeInternalPtr);
+
+  /** Native callback to notify the C++ wrapper of an ad opened event */
+  public static native void notifyAdOpened(long nativeInternalPtr);
 }
