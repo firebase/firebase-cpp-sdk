@@ -67,6 +67,12 @@ class NativeAd {
   /// LoadAd.
   Future<AdResult> LoadAdLastResult() const;
 
+  /// Sets an AdListener for this native ad.
+  ///
+  /// @param[in] listener An AdListener object which will be invoked
+  /// when lifecycle events occur on this NativeAd.
+  void SetAdListener(AdListener* listener);
+
   /// Returns the associated icon asset of the native ad.
   const NativeAdImage& icon() const;
 

@@ -50,4 +50,22 @@
   _nativeAd->NativeAdDidReceiveAd(nativeAd);
 }
 
+#pragma mark GADNativeAdDelegate implementation
+
+- (void)nativeAdDidRecordClick:(nonnull GADNativeAd *)nativeAd {
+  _nativeAd->NotifyListenerAdClicked();
+}
+
+- (void)nativeAdDidRecordImpression:(nonnull GADNativeAd *)nativeAd {
+  _nativeAd->NotifyListenerAdImpression();
+}
+
+- (void)nativeAdWillPresentScreen:(nonnull GADNativeAd *)nativeAd {
+  _nativeAd->NotifyListenerAdOpened();
+}
+
+- (void)nativeAdDidDismissScreen:(nonnull GADNativeAd *)nativeAd {
+  _nativeAd->NotifyListenerAdClosed();
+}
+
 @end
