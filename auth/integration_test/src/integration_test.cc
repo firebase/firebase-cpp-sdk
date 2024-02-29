@@ -963,8 +963,9 @@ TEST_F(FirebaseAuthTest, TestVerifyBeforeUpdatingEmail) {
 
   // Update the user's email and password.
   const std::string new_email = "new_" + email;
-  WaitForCompletion(user.SendEmailVerificationBeforeUpdatingEmail(new_email),
-                    "SendEmailVerificationBeforeUpdatingEmail");
+  WaitForCompletion(
+      user.SendEmailVerificationBeforeUpdatingEmail(new_email.c_str()),
+      "SendEmailVerificationBeforeUpdatingEmail");
   EXPECT_TRUE(user.is_valid());
   DeleteUser();
 }
