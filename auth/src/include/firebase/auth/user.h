@@ -255,14 +255,19 @@ class User : public UserInfoInterface {
   FIREBASE_DEPRECATED const std::vector<UserInfoInterface*>&
   provider_data_DEPRECATED() const;
 
+  /// @deprecated This is a deprecated method. Please use
+  /// SendEmailVerificationBeforeUpdatingEmail(email) instead.
+  ///
   /// Sets the email address for the user.
   ///
   /// May fail if there is already an email/password-based account for the same
   /// email address.
-  Future<void> UpdateEmail(const char* email);
+  FIREBASE_DEPRECATED Future<void> UpdateEmail(const char* email);
 
+  /// @deprecated
+  ///
   /// Get results of the most recent call to UpdateEmail.
-  Future<void> UpdateEmailLastResult() const;
+  FIREBASE_DEPRECATED Future<void> UpdateEmailLastResult() const;
 
   /// Attempts to change the password for the current user.
   ///
@@ -380,6 +385,14 @@ class User : public UserInfoInterface {
 
   /// Get results of the most recent call to SendEmailVerification.
   Future<void> SendEmailVerificationLastResult() const;
+
+  /// Send an email to verify the ownership of the account, then update
+  /// to the new email.
+  Future<void> SendEmailVerificationBeforeUpdatingEmail(const char* email);
+
+  /// Get results of the most recent call to
+  /// SendEmailVerificationBeforeUpdatingEmail.
+  Future<void> SendEmailVerificationBeforeUpdatingEmailLastResult() const;
 
   /// Updates a subset of user profile information.
   Future<void> UpdateUserProfile(const UserProfile& profile);

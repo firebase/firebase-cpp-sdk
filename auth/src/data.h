@@ -56,6 +56,7 @@ enum AuthApiFunction {
   kUserFn_ReauthenticateAndRetrieveData,
   kUserFn_ReauthenticateAndRetrieveData_DEPRECATED,
   kUserFn_SendEmailVerification,
+  kUserFn_SendEmailVerificationBeforeUpdatingEmail,
   kUserFn_ConfirmEmailVerification,
   kUserFn_UpdateUserProfile,
   kUserFn_LinkWithCredential,
