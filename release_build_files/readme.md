@@ -634,8 +634,9 @@ code.
 ### Upcoming Release
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.7.2.
-    - Auth: Add User::SendEmailVerificationBeforeUpdatingEmail, and deprecate
-      the older method of updating emails, User::UpdateEmail.
+    - Auth: Add User::SendEmailVerificationBeforeUpdatingEmail, a new method to
+      verify and change the User's email.
+    - Auth: Deprecate the older method of updating emails, User::UpdateEmail.
 
 ### 11.8.0
 -   Changes
