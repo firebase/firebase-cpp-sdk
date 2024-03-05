@@ -401,6 +401,33 @@ TEST_F(UserTest, TestSendEmailVerification) {
   Verify(result);
 }
 
+TEST_F(UserTest, TestSendEmailVerificationBeforeUpdatingEmail) {
+  // Test send email verification before updating.
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseUser.sendEmailVerification',"
+      "     futuregeneric:{ticker:1}},"
+      "    {fake:'FIRUser.sendEmailVerificationWithCompletion:',"
+      "     futuregeneric:{ticker:1}},"
+      "    {"
+      "      fake: 'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "getOobConfirmationCode?key=not_a_real_api_key',"
+      "      httpresponse: {"
+      "        header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
+      "        body: ['{"
+      "          \"kind\": \"identitytoolkit#GetOobConfirmationCodeResponse\","
+      "          \"email\": \"fake_email@fake_domain.com\""
+      "        }']"
+      "      }"
+      "    }"
+      "  ]"
+      "}");
+  Future<void> result =
+      firebase_user_->SendEmailVerificationBeforeUpdatingEmail("new@email.com");
+  Verify(result);
+}
+
 TEST_F(UserTest, TestLinkWithCredential) {
   // Under the hood, since this is linking an email/password,
   // it is expecting a signUp call, followed by a getAccountInfo.
