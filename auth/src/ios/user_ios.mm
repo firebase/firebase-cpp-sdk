@@ -188,6 +188,21 @@ Future<void> User::SendEmailVerification() {
   return MakeFuture(&futures, handle);
 }
 
+Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char *email) {
+  if (!ValidUser(auth_data_)) {
+    return Future<void>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerificationBeforeUpdatingEmail);
+  [UserImpl(auth_data_)
+      sendEmailVerificationBeforeUpdatingEmail:@(email)
+                                    completion:^(NSError *_Nullable error) {
+                                      futures.Complete(handle, AuthErrorFromNSError(error),
+                                                       [error.localizedDescription UTF8String]);
+                                    }];
+  return MakeFuture(&futures, handle);
+}
+
 Future<AuthResult> User::LinkWithCredential(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
     return Future<AuthResult>();
