@@ -56,7 +56,40 @@ jobs:
       - name: Build flatc
         run: cmake --build ${{ github.workspace }}/BinaryCache/flatbuffers --config Release --target flatc
 
+      - name: Adjust cmake build settings for debugging
+        run: powershell ${{ github.workspace }}/SourceCache/firebase-cpp-sdk/build_scripts/windows/fix_cmake_debugflags.ps1 ${{ github.workspace }}/SourceCache/firebase-cpp-sdk/CMakeLists.txt
+
       - name: Configure firebase
+        run:
+          cmake -B ${{ github.workspace }}/BinaryCache/firebase `
+                -D BUILD_SHARED_LIBS=NO `
+                -D CMAKE_BUILD_TYPE=Release `
+                -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/BuildRoot/Library/firebase/usr `
+                -G "Visual Studio 17 2022" `
+                -A ${{ matrix.platform }} `
+                -S ${{ github.workspace }}/SourceCache/firebase-cpp-sdk `
+                -D FLATBUFFERS_BUILD_FLATC=NO `
+                -D FIREBASE_CPP_BUILD_PACKAGE=YES `
+                -D FIREBASE_GITHUB_ACTION_BUILD=YES `
+                -D FIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF `
+                -D FIREBASE_INCLUDE_AUTH=YES `
+                -D FIREBASE_INCLUDE_FIRESTORE=YES `
+                -D FIREBASE_USE_BORINGSSL=YES `
+                -D MSVC_RUNTIME_LIBRARY_STATIC=NO `
+                -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded `
+                -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }} `
+                -D FLATBUFFERS_FLATC_EXECUTABLE=${{ github.workspace }}/BinaryCache/flatbuffers/Release/flatc.exe
+
+      - name: Adjust external project build settings for debugging
+        run: |
+          $names = Get-ChildItem -Path "${{ github.workspace }}/BinaryCache/firebase" -File -Recurse -Filter CMakeLists.txt
+          foreach ($name in $names) {
+            $fullName = $name.FullName
+            powershell ${{ github.workspace }}/SourceCache/firebase-cpp-sdk/build_scripts/windows/fix_cmake_debugflags.ps1 $fullName
+            Write-Host "... fixed up debug options for ${fullName}"
+          }
+
+      - name: Configure firebase after build setting adjustments
         run:
           cmake -B ${{ github.workspace }}/BinaryCache/firebase `
                 -D BUILD_SHARED_LIBS=NO `
