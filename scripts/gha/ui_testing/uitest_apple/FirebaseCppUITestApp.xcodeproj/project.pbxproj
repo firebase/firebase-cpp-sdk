@@ -366,7 +366,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.uitestapp.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "Google Development";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.3;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -385,7 +385,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.uitestapp.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "Google Development";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.3;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -405,7 +405,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FirebaseCppUITestAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "Google Development";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.3;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = FirebaseCppUITestApp;
 			};
@@ -426,7 +426,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FirebaseCppUITestAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "Google Development";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.3;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = FirebaseCppUITestApp;
 			};
