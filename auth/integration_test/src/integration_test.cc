@@ -816,6 +816,12 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   WaitForCompletionOrInvalidStatus(void_future, "SendEmailVerification");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
 
+  void_future = invalid_user.SendEmailVerificationBeforeUpdatingEmail(
+      GenerateEmailAddress().c_str());
+  WaitForCompletionOrInvalidStatus(void_future,
+                                   "SendEmailVerificationBeforeUpdatingEmail");
+  EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
+
   firebase::auth::User::UserProfile profile;
   void_future = invalid_user.UpdateUserProfile(profile);
   WaitForCompletionOrInvalidStatus(void_future, "UpdateUserProfile");
@@ -945,6 +951,23 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword_DEPRECATED) {
 
   WaitForCompletion(user->SendEmailVerification(), "SendEmailVerification");
   DeleteUser_DEPRECATED();
+}
+
+TEST_F(FirebaseAuthTest, TestVerifyBeforeUpdatingEmail) {
+  std::string email = GenerateEmailAddress();
+  WaitForCompletion(
+      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      "CreateUserWithEmailAndPassword");
+  firebase::auth::User user = auth_->current_user();
+  EXPECT_TRUE(user.is_valid());
+
+  // Update the user's email and password.
+  const std::string new_email = "new_" + email;
+  WaitForCompletion(
+      user.SendEmailVerificationBeforeUpdatingEmail(new_email.c_str()),
+      "SendEmailVerificationBeforeUpdatingEmail");
+  EXPECT_TRUE(user.is_valid());
+  DeleteUser();
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {

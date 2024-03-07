@@ -47,6 +47,25 @@ GetOobConfirmationCodeRequest::CreateSendEmailVerificationRequest(
   return request;
 }
 
+std::unique_ptr<GetOobConfirmationCodeRequest> GetOobConfirmationCodeRequest::
+    CreateSendEmailVerificationBeforeUpdatingEmailRequest(
+        ::firebase::App& app, const char* api_key, const char* email,
+        const char* language_code) {
+  auto request = std::unique_ptr<GetOobConfirmationCodeRequest>(  // NOLINT
+      new GetOobConfirmationCodeRequest(app, api_key));
+  request->application_data_->requestType = "VERIFY_AND_CHANGE_EMAIL";
+  if (language_code != nullptr) {
+    request->add_header(kHeaderFirebaseLocale, language_code);
+  }
+  if (email) {
+    request->application_data_->newEmail = email;
+  } else {
+    LogError("No email token given.");
+  }
+  request->UpdatePostFields();
+  return request;
+}
+
 std::unique_ptr<GetOobConfirmationCodeRequest>
 GetOobConfirmationCodeRequest::CreateSendPasswordResetEmailRequest(
     ::firebase::App& app, const char* api_key, const char* email,
