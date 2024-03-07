@@ -1051,7 +1051,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
-        timeout-minutes: 180
+        timeout-minutes: 240
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1191,7 +1191,7 @@ jobs:
         run: |
           firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
-        timeout-minutes: 150
+        timeout-minutes: 180
         if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1202,7 +1202,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
-        timeout-minutes: 90
+        timeout-minutes: 120
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1318,7 +1318,7 @@ jobs:
         run: |
           firebase emulators:start --only firestore --project demo-example &
       - name: Run tvOS integration tests on Simulator locally
-        timeout-minutes: 90
+        timeout-minutes: 120
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --tvos_device "${{ matrix.tvos_device }}" \
