@@ -156,8 +156,8 @@ if(APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nullability-completeness")
 endif()
 
-if(DESKTOP)
-  # For desktop, disable deprecated builtins warnings, as absl-cpp uses them.
+if(DESKTOP AND APPLE)
+  # For macOS, disable deprecated builtins warnings, as absl-cpp uses them.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-builtins")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-builtins")
 endif()
