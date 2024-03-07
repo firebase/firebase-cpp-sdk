@@ -222,9 +222,9 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "simulator_min": [ {"type": "virtual", "name":"iPhone SE (3rd generation)", "version":"16.1"} ],
-  "simulator_target": [ {"type": "virtual", "name":"iPhone 14", "version":"17.0.1"} ],
-  "simulator_latest": [ {"type": "virtual", "name":"iPhone 14 Pro Max", "version":"17.2"} ],
+  "simulator_min": [ {"type": "virtual", "name":"iPhone SE (3rd generation)", "version":"17.0"} ],
+  "simulator_target": [ {"type": "virtual", "name":"iPhone 14", "version":"17.0"} ],
+  "simulator_latest": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
   "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],
 }
 
