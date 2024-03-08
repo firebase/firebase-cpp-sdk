@@ -222,10 +222,10 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "simulator_min": [ {"type": "virtual", "name":"iPhone SE (3rd generation)", "version":"17.0"} ],
-  "simulator_target": [ {"type": "virtual", "name":"iPhone 14", "version":"17.0"} ],
-  "simulator_latest": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
-  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],
+  "simulator_min": [ {"type": "virtual", "name":"iPhone SE (3rd generation) Simulator", "version":"17.0"} ],
+  "simulator_target": [ {"type": "virtual", "name":"iPhone 15 Simulator", "version":"17.2"} ],
+  "simulator_latest": [ {"type": "virtual", "name":"iPad Pro (12.9-inch) (6th generation) Simulator", "version":"17.4"} ],
+  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV Simulator", "version":"16.1"} ],
 }
 
 # Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model
