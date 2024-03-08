@@ -132,6 +132,18 @@ jobs:
           name: firebase-windows-${{ matrix.arch }}
           path: ${{ github.workspace }}/BuildRoot/Library/firebase
 
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Compress-Archive -Path "${{ github.workspace }}/BuildRoot/Library/firebase" -DestinationPath firebase-windows-${{ matrix.arch }}.zip
+          $SHA256 = Get-FileHash -Path firebase-windows-${{ matrix.arch }}.zip -Algorithm SHA256 > firebase-windows-${{ matrix.arch }}.zip.sha256
+          $Date = Get-Date -Format 'yyyyMMdd'
+          $Release = $(gh release list -R ${{ github.repository }} | Select-String -Pattern $Date -AllMatches).Count
+          gh release create "$Date.$Release" -R ${{ github.repository }}
+          gh release upload "$Date.$Release" firebase-windows-${{ matrix.arch }}.zip -R ${{ github.repository }}
+          gh release upload "$Date.$Release" firebase-windows-${{ matrix.arch }}.zip.sha256 -R ${{ github.repository }}
+
       - name: Package firebase-cpp-sdk
         run: |
           @"
