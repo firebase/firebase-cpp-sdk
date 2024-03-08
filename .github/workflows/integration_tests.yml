@@ -294,7 +294,10 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
         if: ${{ runner.os == 'macOS' }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install Desktop SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -541,7 +544,10 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
         if: ${{ runner.os == 'macOS' }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install iOS SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -643,7 +649,10 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
         if: ${{ runner.os == 'macOS' }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install tvOS SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -774,7 +783,10 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
         if: ${{ runner.os == 'macOS' }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
@@ -1166,7 +1178,10 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
         if: ${{ runner.os == 'macOS' }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
@@ -1305,7 +1320,10 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
         if: ${{ runner.os == 'macOS' }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
