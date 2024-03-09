@@ -357,7 +357,10 @@ def _build_ios_helper(helper_project, device_name, device_os):
     "-scheme", CONSTANTS[FLAGS.test_type]["apple_scheme"],
     "build-for-testing",
     "-destination", "platform=iOS Simulator,name=%s,OS=%s" % (device_name, device_os),
-    "SYMROOT=%s" % output_path]
+    "SYMROOT=%s" % output_path,
+    'CODE_SIGN_IDENTITY=""',
+    "CODE_SIGNING_REQUIRED=NO",
+    "CODE_SIGNING_ALLOWED=NO"]
   logging.info("Building game-loop test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
@@ -380,7 +383,10 @@ def _build_tvos_helper(helper_project, device_name, device_os):
     "-scheme", "%s_tvos" % CONSTANTS[FLAGS.test_type]["apple_scheme"],
     "build-for-testing",
     "-destination", "platform=tvOS Simulator,name=%s,OS=%s" % (device_name, device_os),
-    "SYMROOT=%s" % output_path]
+    "SYMROOT=%s" % output_path,
+    'CODE_SIGN_IDENTITY=""',
+    "CODE_SIGNING_REQUIRED=NO",
+    "CODE_SIGNING_ALLOWED=NO"]
   logging.info("Building game-loop test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
