@@ -496,7 +496,7 @@ def _create_and_boot_simulator(apple_platform, device_name, device_os):
   command = "xcrun xctrace list devices 2>&1 | grep \"%s Simulator (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
   logging.info("Get test simulator: %s", command)
   result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
-  device_id = result.stdout.read().strip()
+  device_id = result.stdout.readline().strip()
 
   if not device_id:
     # download and create device
