@@ -225,7 +225,7 @@ TEST_DEVICES = {
   "simulator_min": [ {"type": "virtual", "name":"iPhone SE (3rd generation)", "version":"17.0.1"} ],
   "simulator_target": [ {"type": "virtual", "name":"iPhone 15", "version":"17.2"} ],
   "simulator_latest": [ {"type": "virtual", "name":"iPad Pro (12.9-inch) (6th generation)", "version":"17.4"} ],
-  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV Simulator", "version":"16.1"} ],
+  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],
 }
 
 # Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model
