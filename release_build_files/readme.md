@@ -631,8 +631,8 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
--   11.9.0
+### 11.9.0
+-   Changes
     - General (Android): Update to Firebase Android BoM version 32.7.3.
     - General (iOS): Update to Firebase Cocoapods version 10.22.0.
     - Auth: Add User::SendEmailVerificationBeforeUpdatingEmail, a new method to
