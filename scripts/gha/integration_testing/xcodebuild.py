@@ -62,9 +62,10 @@ def get_args_for_build(
       "BUILD_DIR=" + output_dir
   ]
 
-  args.extend(['CODE_SIGN_IDENTITY=""',
-    "CODE_SIGNING_REQUIRED=NO",
-    "CODE_SIGNING_ALLOWED=NO"])
+  if apple_sdk == "real":
+    args.extend(['CODE_SIGN_IDENTITY=""',
+      "CODE_SIGNING_REQUIRED=NO",
+      "CODE_SIGNING_ALLOWED=NO"])
   if apple_sdk == "virtual" and apple_platfrom == "tvOS":
     args.extend(['-arch', "x86_64"])
 
