@@ -632,8 +632,9 @@ code.
 
 ## Release Notes
 ### Upcoming Release
--   Changes
-    - General (Android): Update to Firebase Android BoM version 32.7.2.
+-   11.9.0
+    - General (Android): Update to Firebase Android BoM version 32.7.3.
+    - General (iOS): Update to Firebase Cocoapods version 10.22.0.
     - Auth: Add User::SendEmailVerificationBeforeUpdatingEmail, a new method to
       verify and change the User's email.
     - Auth: Deprecate the older method of updating emails, User::UpdateEmail.
