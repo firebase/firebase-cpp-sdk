@@ -1220,6 +1220,25 @@ jobs:
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           firebase emulators:start --only firestore --project demo-example &
+      - name: Create keychain (macOS Simulator)
+        if: ${{ runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual'}}
+        shell: bash
+        run: |
+          echo "Creating temporary keychain"
+          # Create a local keychain on Mac:
+          # Clean up previous temp keychain, if any.
+          security delete-keychain tmp-keychain 2> /dev/null || true
+          # Create temp keychain file and unlock it.
+          # (Avoid passing in -p on command line by using interactive mode.)
+          # Also set it to default settings so there is no unlock timeout.
+          security -i <<EOF
+          create-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          set-keychain-settings tmp-keychain
+          unlock-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          EOF
+          # Change the keychain list and default keychain to the temp keychain.
+          security list-keychains -d user -s tmp-keychain
+          security default-keychain -s tmp-keychain
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 180
         if: steps.device-info.outputs.device_type == 'virtual'
@@ -1256,6 +1275,15 @@ jobs:
           if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json"
           fi
+      - name: Delete keychain (macOS Simulator)
+        if: ${{ always() && runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual' }}
+        shell: bash
+        run: |
+          # Remove the local keychain on Mac:
+          # Set back to the default login keychain.
+          security list-keychains -d user -s login.keychain
+          # Delete the temp keychain, if it exists.
+          security delete-keychain tmp-keychain || true
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -1353,6 +1381,25 @@ jobs:
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           firebase emulators:start --only firestore --project demo-example &
+      - name: Create keychain (macOS Simulator)
+        if: ${{ runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual'}}
+        shell: bash
+        run: |
+          echo "Creating temporary keychain"
+          # Create a local keychain on Mac:
+          # Clean up previous temp keychain, if any.
+          security delete-keychain tmp-keychain 2> /dev/null || true
+          # Create temp keychain file and unlock it.
+          # (Avoid passing in -p on command line by using interactive mode.)
+          # Also set it to default settings so there is no unlock timeout.
+          security -i <<EOF
+          create-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          set-keychain-settings tmp-keychain
+          unlock-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          EOF
+          # Change the keychain list and default keychain to the temp keychain.
+          security list-keychains -d user -s tmp-keychain
+          security default-keychain -s tmp-keychain
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 120
         run: |
@@ -1368,6 +1415,15 @@ jobs:
           if [ -d "testapps/testapps-tvos-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json"
           fi
+      - name: Delete keychain (macOS Simulator)
+        if: ${{ always() && runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual' }}
+        shell: bash
+        run: |
+          # Remove the local keychain on Mac:
+          # Set back to the default login keychain.
+          security list-keychains -d user -s login.keychain
+          # Delete the temp keychain, if it exists.
+          security delete-keychain tmp-keychain || true
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
