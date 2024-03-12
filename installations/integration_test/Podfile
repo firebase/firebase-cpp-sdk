@@ -1,9 +1,10 @@
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '11.0'
+platform :ios, '12.0'
 # Firebase Installations test application.
 use_frameworks! :linkage => :static
 
 target 'integration_test' do
+  platform :ios, '12.0'
   pod 'Firebase/Analytics', '10.22.0'
   pod 'Firebase/Installations', '10.22.0'
 end
