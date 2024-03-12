@@ -134,7 +134,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:23.0.0
+|                          | com.google.android.gms:play-services-ads:22.6.0
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:2.2.0
 |                          | (Maven package)
@@ -633,7 +633,7 @@ code.
 ## Release Notes
 ### 11.9.0
 -   Changes
-    - General (Android): Update to Firebase Android BoM version 32.7.3.
+    - General (Android): Update to Firebase Android BoM version 32.7.4.
     - General (iOS): Update to Firebase Cocoapods version 10.22.0.
     - Auth: Add User::SendEmailVerificationBeforeUpdatingEmail, a new method to
       verify and change the User's email.
