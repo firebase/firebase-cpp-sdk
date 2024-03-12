@@ -631,6 +631,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
+      using Xcode 15.1.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 11.0.1.
+
 ### 11.9.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.7.4.

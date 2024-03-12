@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'macos-12' ]
+        os: [ 'macos-13' ]
         xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
       - name: Store git credentials for all git commands

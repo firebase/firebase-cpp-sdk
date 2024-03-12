@@ -73,35 +73,35 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-20.04", "macos-12"],
+      "os": ["ubuntu-20.04", "macos-13"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["14.1"],
+      "xcode_version": ["15.1"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
-        "xcode_version": ["14.1"],
+        "os": ["ubuntu-20.04", "macos-13", "windows-latest"],
+        "xcode_version": ["15.1"],
       }
     }
   },
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
+      "os": ["ubuntu-20.04", "macos-13", "windows-latest"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-20.04", "macos-12", "windows-latest"]
+        "os": ["ubuntu-20.04", "macos-13", "windows-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
+      "os": ["ubuntu-20.04", "macos-13", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_ftl_target"],
@@ -113,7 +113,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["14.1"],  # only the first one is used
+      "xcode_version": ["15.1"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -141,10 +141,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["14.1"],
+      "xcode_version": ["15.1"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["14.1"]
+        "xcode_version": ["15.1"]
       }
     }
   },
@@ -222,9 +222,9 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "simulator_min": [ {"type": "virtual", "name":"iPhone 8", "version":"15.2"} ],
-  "simulator_target": [ {"type": "virtual", "name":"iPhone 8", "version":"16.1"} ],
-  "simulator_latest": [ {"type": "virtual", "name":"iPhone 11", "version":"16.1"} ],
+  "simulator_min": [ {"type": "virtual", "name":"iPhone SE (3rd generation)", "version":"17.0.1"} ],
+  "simulator_target": [ {"type": "virtual", "name":"iPhone 15", "version":"17.2"} ],
+  "simulator_latest": [ {"type": "virtual", "name":"iPad Pro (12.9-inch) (6th generation)", "version":"17.4"} ],
   "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],
 }
 
