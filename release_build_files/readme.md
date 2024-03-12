@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.7.3)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.7.4)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -633,7 +633,7 @@ code.
 ## Release Notes
 ### 11.9.0
 -   Changes
-    - General (Android): Update to Firebase Android BoM version 32.7.3.
+    - General (Android): Update to Firebase Android BoM version 32.7.4.
     - General (iOS): Update to Firebase Cocoapods version 10.22.0.
     - Auth: Add User::SendEmailVerificationBeforeUpdatingEmail, a new method to
       verify and change the User's email.
