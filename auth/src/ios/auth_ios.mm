@@ -381,7 +381,8 @@ void AuthResultCallback(FIRAuthDataResult *_Nullable fir_auth_result, NSError *_
 
   // If there is a NSLocalizedFailureReasonErrorKey in the userInfo, append that to the
   // error message.
-  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription) : "");
+  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription)
+                                            : "");
   if (error != nullptr && error.userInfo != nullptr &&
       error.userInfo[NSLocalizedFailureReasonErrorKey] != nullptr) {
     error_string += ": ";
@@ -409,15 +410,15 @@ void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
 
   // If there is a NSLocalizedFailureReasonErrorKey in the userInfo, append that to the
   // error message.
-  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription) : "");
+  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription)
+                                            : "");
   if (error != nullptr && error.userInfo != nullptr &&
       error.userInfo[NSLocalizedFailureReasonErrorKey] != nullptr) {
     error_string += ": ";
     error_string += util::NSStringToString(error.userInfo[NSLocalizedFailureReasonErrorKey]);
   }
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
-                             error_string.c_str(),
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error), error_string.c_str(),
                              auth_result);
 }
 
@@ -428,15 +429,15 @@ void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
   if (current_user != nullptr) user_result = *current_user;
   // If there is a NSLocalizedFailureReasonErrorKey in the userInfo, append that to the
   // error message.
-  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription) : "");
+  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription)
+                                            : "");
   if (error != nullptr && error.userInfo != nullptr &&
       error.userInfo[NSLocalizedFailureReasonErrorKey] != nullptr) {
     error_string += ": ";
     error_string += util::NSStringToString(error.userInfo[NSLocalizedFailureReasonErrorKey]);
   }
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
-                             error_string.c_str(),
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error), error_string.c_str(),
                              user_result);
 }
 
@@ -456,7 +457,8 @@ void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
 
   // If there is a NSLocalizedFailureReasonErrorKey in the userInfo, append that to the
   // error message.
-  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription) : "");
+  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription)
+                                            : "");
   if (error != nullptr && error.userInfo != nullptr &&
       error.userInfo[NSLocalizedFailureReasonErrorKey] != nullptr) {
     error_string += ": ";
@@ -500,7 +502,8 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nu
 
   // If there is a NSLocalizedFailureReasonErrorKey in the userInfo, append that to the
   // error message.
-  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription) : "");
+  std::string error_string(error != nullptr ? util::NSStringToString(error.localizedDescription)
+                                            : "");
   if (error != nullptr && error.userInfo != nullptr &&
       error.userInfo[NSLocalizedFailureReasonErrorKey] != nullptr) {
     error_string += ": ";
