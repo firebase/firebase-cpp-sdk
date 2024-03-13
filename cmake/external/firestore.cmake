@@ -20,7 +20,7 @@ endif()
 
 # If the format of the line below changes, then be sure to update
 # https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
-set(version CocoaPods-10.20.0)
+set(version "346f225d09ba30ca8ae01e068a8256c49a17252f")
 
 function(GetReleasedDep)
   message("Getting released firebase-ios-sdk @ ${version}")
@@ -68,7 +68,7 @@ if((NOT FIRESTORE_DEP_SOURCE) OR (FIRESTORE_DEP_SOURCE STREQUAL "RELEASED"))
   GetReleasedDep()
 else()
   if(FIRESTORE_DEP_SOURCE STREQUAL "TIP")
-    GetTag("origin/master")
+    GetTag("origin/main")
   else()
     GetTag(${FIRESTORE_DEP_SOURCE})
   endif()

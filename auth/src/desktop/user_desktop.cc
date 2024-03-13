@@ -953,6 +953,38 @@ Future<void> User::SendEmailVerification() {
                                  callback);
 }
 
+Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
+  Promise<void> promise(&auth_data_->future_impl,
+                        kUserFn_SendEmailVerificationBeforeUpdatingEmail);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
+
+  const char* language_code = nullptr;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  if (!auth_impl->language_code.empty()) {
+    language_code = auth_impl->language_code.c_str();
+  }
+
+  typedef GetOobConfirmationCodeRequest RequestT;
+  auto request =
+      RequestT::CreateSendEmailVerificationBeforeUpdatingEmailRequest(
+          *auth_data_->app, GetApiKey(*auth_data_), email, language_code);
+
+  const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
+    const auto response =
+        GetResponse<GetOobConfirmationCodeResponse>(*handle->request);
+    if (response.IsSuccessful()) {
+      handle->promise.Complete();
+    } else {
+      FailPromise(&handle->promise, response.error_code());
+    }
+  };
+
+  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+                                 callback);
+}
+
 Future<void> User::Reload() {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reload);
   if (!ValidateCurrentUser(&promise, auth_data_)) {

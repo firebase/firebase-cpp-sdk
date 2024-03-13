@@ -21,7 +21,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-20.04,windows-latest,macos-12'
+        default: 'ubuntu-20.04,windows-latest,macos-13'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
@@ -47,7 +47,7 @@ env:
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
   pythonVersion: '3.8'
-  xcodeVersion: '14.1'
+  xcodeVersion: '15.1'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
   # All self-hosted ARM Mac runners should have this label. Due to how
@@ -204,7 +204,7 @@ jobs:
           # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
           echo "::warning ::Running against Firestore tip-of-tree"
           matrix_platform="Desktop"
-          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-20.04,macos-12")
+          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-20.04,macos-13")
         else
           matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --apis ${apis} )
           matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")
@@ -271,7 +271,7 @@ jobs:
         - os: ubuntu-20.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
-        - os: macos-12
+        - os: macos-13
           arch: x86
         # Until we support building openssl from source, we can't use the
         # system's openssl when cross-compiling, except on Linux. Builds all
@@ -280,7 +280,7 @@ jobs:
         - os: windows-latest
           ssl_variant: openssl
           arch: x86
-        - os: macos-12
+        - os: macos-13
           ssl_variant: openssl
           arch: arm64
     steps:
@@ -292,6 +292,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: setup default Xcode version (macos)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install Desktop SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -420,6 +426,10 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+      - name: Force Java 8 (macOS)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: echo "JAVA_HOME=${JAVA_HOME_8_X64}" >> $GITHUB_ENV
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.1
@@ -522,7 +532,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12]
+        os: [macos-13]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -532,6 +542,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: setup default Xcode version (macos)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install iOS SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -621,7 +637,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12]
+        os: [macos-13]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -631,6 +647,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: setup default Xcode version (macos)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install tvOS SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -732,7 +754,7 @@ jobs:
         - os: ubuntu-20.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
-        - os: macos-12
+        - os: macos-13
           arch: x86
         # Until we support building openssl from source, we can't use the
         # system's openssl when cross-compiling, except on Linux. Builds all
@@ -744,7 +766,7 @@ jobs:
         # Custom for this matrix: MacOS GitHub-hosted runner cannot test arm64
         # code. Exclude that scenario from running here; it will run in
         # test_desktop_custom_runners.
-        - os: macos-12
+        - os: macos-13
           arch: arm64
     steps:
       - uses: actions/checkout@v3
@@ -759,6 +781,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: setup default Xcode version (macos)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
@@ -843,7 +871,7 @@ jobs:
     name: test-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}-custom-runner
     needs: [check_and_prepare, build_desktop]
     runs-on: [self-hosted, firebase-cpp, '${{ matrix.runner_label }}']
-    if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') && contains(needs.check_and_prepare.outputs.matrix_arch_combined, 'arm64') && contains(needs.check_and_prepare.outputs.matrix_os, 'macos-12') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
+    if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') && contains(needs.check_and_prepare.outputs.matrix_arch_combined, 'arm64') && contains(needs.check_and_prepare.outputs.matrix_os, 'macos-13') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
@@ -858,15 +886,15 @@ jobs:
         - os: windows-latest
           runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         # Don't run x86 tests on any Mac runner.
-        - os: macos-12
+        - os: macos-13
           arch: x86
         # Don't run x64 tests on the Mac arm64 runner.
-        - os: macos-12
+        - os: macos-13
           arch: x64
           runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         # Until we support building openssl from source, we can't link to system
         # openssl when cross-compiling, so exclude openssl from mac arm64 testing.
-        - os: macos-12
+        - os: macos-13
           arch: arm64
           ssl_variant: openssl
     steps:
@@ -911,7 +939,7 @@ jobs:
           ${{ secrets.TEST_SECRET }}
           EOF
       - name: Run Desktop integration tests on M1 Mac
-        if: ${{ matrix.os == 'macos-12' && matrix.arch == 'arm64' && matrix.runner_label == needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
+        if: ${{ matrix.os == 'macos-13' && matrix.arch == 'arm64' && matrix.runner_label == needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         shell: bash
         run: |
           # This is an M1 Mac GitHub self-hosted runner.
@@ -1036,7 +1064,7 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
       - name: Run Android integration tests on Emulator locally
-        timeout-minutes: 150
+        timeout-minutes: 180
         if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1047,7 +1075,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
-        timeout-minutes: 120
+        timeout-minutes: 240
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1120,7 +1148,7 @@ jobs:
   test_ios:
     name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_ios]
-    runs-on: macos-12
+    runs-on: macos-13
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -1134,7 +1162,7 @@ jobs:
              test_type: "uitest"
           -  ios_device: "ios_latest"
              test_type: "uitest"
-        build_os: [macos-12]
+        build_os: [macos-13]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -1148,6 +1176,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: setup default Xcode version (macos)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
@@ -1186,8 +1220,27 @@ jobs:
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           firebase emulators:start --only firestore --project demo-example &
+      - name: Create keychain (macOS Simulator)
+        if: ${{ runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual'}}
+        shell: bash
+        run: |
+          echo "Creating temporary keychain"
+          # Create a local keychain on Mac:
+          # Clean up previous temp keychain, if any.
+          security delete-keychain tmp-keychain 2> /dev/null || true
+          # Create temp keychain file and unlock it.
+          # (Avoid passing in -p on command line by using interactive mode.)
+          # Also set it to default settings so there is no unlock timeout.
+          security -i <<EOF
+          create-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          set-keychain-settings tmp-keychain
+          unlock-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          EOF
+          # Change the keychain list and default keychain to the temp keychain.
+          security list-keychains -d user -s tmp-keychain
+          security default-keychain -s tmp-keychain
       - name: Run iOS integration tests on Simulator locally
-        timeout-minutes: 150
+        timeout-minutes: 180
         if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1198,7 +1251,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
-        timeout-minutes: 90
+        timeout-minutes: 120
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1222,6 +1275,15 @@ jobs:
           if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json"
           fi
+      - name: Delete keychain (macOS Simulator)
+        if: ${{ always() && runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual' }}
+        shell: bash
+        run: |
+          # Remove the local keychain on Mac:
+          # Set back to the default login keychain.
+          security list-keychains -d user -s login.keychain
+          # Delete the temp keychain, if it exists.
+          security delete-keychain tmp-keychain || true
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -1264,13 +1326,13 @@ jobs:
   test_tvos:
     name: test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
     needs: [check_and_prepare, build_tvos]
-    runs-on: macos-12
+    runs-on: macos-13
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
         tvos_device: ${{ fromJson(needs.check_and_prepare.outputs.tvos_device) }}
-        build_os: [macos-12]
+        build_os: [macos-13]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -1284,6 +1346,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: setup default Xcode version (macos)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+          # Remove default Xcode version to prevent the wrong SDK from being used.
+          rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
@@ -1313,8 +1381,27 @@ jobs:
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           firebase emulators:start --only firestore --project demo-example &
+      - name: Create keychain (macOS Simulator)
+        if: ${{ runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual'}}
+        shell: bash
+        run: |
+          echo "Creating temporary keychain"
+          # Create a local keychain on Mac:
+          # Clean up previous temp keychain, if any.
+          security delete-keychain tmp-keychain 2> /dev/null || true
+          # Create temp keychain file and unlock it.
+          # (Avoid passing in -p on command line by using interactive mode.)
+          # Also set it to default settings so there is no unlock timeout.
+          security -i <<EOF
+          create-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          set-keychain-settings tmp-keychain
+          unlock-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          EOF
+          # Change the keychain list and default keychain to the temp keychain.
+          security list-keychains -d user -s tmp-keychain
+          security default-keychain -s tmp-keychain
       - name: Run tvOS integration tests on Simulator locally
-        timeout-minutes: 90
+        timeout-minutes: 120
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --tvos_device "${{ matrix.tvos_device }}" \
@@ -1328,6 +1415,15 @@ jobs:
           if [ -d "testapps/testapps-tvos-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json"
           fi
+      - name: Delete keychain (macOS Simulator)
+        if: ${{ always() && runner.os == 'macOS' && steps.device-info.outputs.device_type == 'virtual' }}
+        shell: bash
+        run: |
+          # Remove the local keychain on Mac:
+          # Set back to the default login keychain.
+          security list-keychains -d user -s login.keychain
+          # Delete the temp keychain, if it exists.
+          security delete-keychain tmp-keychain || true
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -1438,7 +1534,7 @@ jobs:
     name: "attempt-retry"
     needs: [check_and_prepare, summarize_results]
     runs-on: ubuntu-20.04
-    if: ${{ failure() && !cancelled() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
+    if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
     steps:
       - uses: actions/checkout@v3
         with:

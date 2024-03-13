@@ -38,7 +38,7 @@ namespace gma {
 namespace internal {
 
 NativeAdInternal::NativeAdInternal(NativeAd* base)
-    : base_(base), future_data_(kNativeAdFnCount) {}
+    : base_(base), future_data_(kNativeAdFnCount), ad_listener_(nullptr) {}
 
 NativeAdInternal* NativeAdInternal::CreateInstance(NativeAd* base) {
 #if FIREBASE_PLATFORM_ANDROID
@@ -59,6 +59,39 @@ Future<void> NativeAdInternal::GetLastResult(NativeAdFn fn) {
 Future<AdResult> NativeAdInternal::GetLoadAdLastResult() {
   return static_cast<const Future<AdResult>&>(
       future_data_.future_impl.LastResult(kNativeAdFnLoadAd));
+}
+
+void NativeAdInternal::SetAdListener(AdListener* listener) {
+  MutexLock lock(listener_mutex_);
+  ad_listener_ = listener;
+}
+
+void NativeAdInternal::NotifyListenerAdClicked() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdClicked();
+  }
+}
+
+void NativeAdInternal::NotifyListenerAdClosed() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdClosed();
+  }
+}
+
+void NativeAdInternal::NotifyListenerAdImpression() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdImpression();
+  }
+}
+
+void NativeAdInternal::NotifyListenerAdOpened() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdOpened();
+  }
 }
 
 void NativeAdInternal::insert_image(const NativeAdImage& image,
