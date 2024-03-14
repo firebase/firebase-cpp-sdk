@@ -41,16 +41,20 @@ namespace gma {
   X(Constructor, "<init>", "()V"),                                           \
   X(Build, "build", "()Lcom/google/android/gms/ads/AdRequest;"),             \
   X(AddKeyword, "addKeyword",                                                \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
+    "(Ljava/lang/String;)"                                                   \
+    "Lcom/google/android/gms/ads/AbstractAdRequestBuilder;"),                \
   X(AddNetworkExtrasBundle, "addNetworkExtrasBundle",                        \
-      "(Ljava/lang/Class;Landroid/os/Bundle;)"                               \
-      "Lcom/google/android/gms/ads/AdRequest$Builder;"),                     \
+    "(Ljava/lang/Class;Landroid/os/Bundle;)"                                 \
+    "Lcom/google/android/gms/ads/AbstractAdRequestBuilder;"),                \
   X(SetContentUrl, "setContentUrl",                                          \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
+    "(Ljava/lang/String;)"                                                   \
+    "Lcom/google/android/gms/ads/AbstractAdRequestBuilder;"),                \
   X(SetNeighboringContentUrls, "setNeighboringContentUrls",                  \
-      "(Ljava/util/List;)Lcom/google/android/gms/ads/AdRequest$Builder;"),   \
+    "(Ljava/util/List;)"                                                     \
+    "Lcom/google/android/gms/ads/AbstractAdRequestBuilder;"),                \
   X(SetRequestAgent, "setRequestAgent",                                      \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;")
+    "(Ljava/lang/String;)"                                                   \
+    "Lcom/google/android/gms/ads/AbstractAdRequestBuilder;")
 // clang-format on
 
 // clang-format off
