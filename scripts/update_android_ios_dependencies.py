@@ -187,7 +187,7 @@ PODS = [
 
 # List of GMA pods we are also interested in.
 PODS_GMA = [
-  'Google-Mobile-Ads-SDK'
+  'Google-Mobile-Ads-SDK',
   'GoogleUserMessagingPlatform'
 ]
 
