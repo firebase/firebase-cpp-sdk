@@ -354,8 +354,8 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       "Android": None,
       # Uncomment the two below lines when debugging this script, or GitHub
       # actions related to auto-diff mode.
-      ".github": None,
-      "scripts": None,
+      #".github": None,
+      #"scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
       # For example, if auth is touched by a PR, we also need to test functions,
       # database, firestore, and storage.
