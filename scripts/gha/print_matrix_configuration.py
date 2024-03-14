@@ -310,6 +310,22 @@ def print_value(value):
 
   print(json.dumps(value))
 
+def scan_changes_in_file(parm_key, auto_diff, path, requested_api_list):
+  """Scan for changes in the given file and return APIs that were modified."""
+  change_lines = subprocess.check_output(['git', 'diff', '-U0', auto_diff, path]).decode('utf-8').rstrip('\n').split('\n')
+  change_lines = [l for l in change_lines if l.startswith('-') or l.startswith('+')]
+  change_lines = [l for l in change_lines if not l.startswith('---') and not l.startswith('+++')]
+  change_lines = [l for l in change_lines if len(l) > 20]
+  changed_apis = set()
+  for line in change_lines:
+    if ("Google-Mobile-Ads" in line or "GoogleUserMessagingPlatform" in line or
+       "play-services-ads" in line or "user-messaging-platform" in line):
+      changed_apis.add("gma")
+    else:
+      changed_apis.update(requested_api_list)
+  changed_apis.intersection_update(requested_api_list)
+  return ",".join(changed_apis)
+
 def filter_values_on_diff(parm_key, value, auto_diff):
   """Filter the given key based on a branch diff.
 
@@ -317,37 +333,49 @@ def filter_values_on_diff(parm_key, value, auto_diff):
   source tree, relative to the given base branch."""
   file_list = set(subprocess.check_output(['git', 'diff', '--name-only', auto_diff]).decode('utf-8').rstrip('\n').split('\n'))
   if parm_key == 'apis':
+    file_redirects = {
+      # Custom handling for specific files, to be treated as a different path,
+      # ignored completely (set to None), or scan the changes more in-depth (set
+      # to scan_changes function)
+      "cmake/external/firestore.cmake": "firestore",
+      "cmake/external/libuv.cmake": "database",
+      "cmake/external/uWebSockets.cmake": "database",
+      "ios_pod/Podfile":scan_changes_in_file,
+      "Android/firebase_dependencies.gradle":scan_changes_in_file,
+      "release_build_files/Android/firebase_dependencies.gradle":scan_changes_in_file,
+    }
     custom_triggers = {
       # Special handling for several top-level directories.
       # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
+      # These two handled by file_redirects above.
+      "ios_pod": None,
+      "Android": None,
       # Uncomment the two below lines when debugging this script, or GitHub
       # actions related to auto-diff mode.
-      # ".github": None,
-      # "scripts": None,
+      ".github": None,
+      "scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
       # For example, if auth is touched by a PR, we also need to test functions,
       # database, firestore, and storage.
       "auth": "auth,functions,database,firestore,storage",
     }
-    file_redirects = {
-      # Custom handling for specific files, to be treated as a different path or
-      # ignored completely (set to None).
-      "cmake/external/firestore.cmake": "firestore",
-      "cmake/external/libuv.cmake": "database",
-      "cmake/external/uWebSockets.cmake": "database",
-    }
     requested_api_list = set(value.split(','))
     filtered_api_list = set()
-
-    for path in file_list:
+    file_list_array = list(file_list)
+    for path in file_list_array:
       if len(path) == 0: continue
       if path in file_redirects:
         if file_redirects[path] is None:
           continue
         else:
-          path = os.path.join(file_redirects[path], path)
+          if callable(file_redirects[path]):
+            add_paths = file_redirects[path](parm_key, auto_diff, path, requested_api_list)
+            if add_paths: file_list_array.extend(add_paths.split(","))
+            continue
+          else:
+            path = os.path.join(file_redirects[path], path)
       topdir = path.split(os.path.sep)[0]
       if topdir in custom_triggers:
         if not custom_triggers[topdir]: continue  # Skip ones set to None.
