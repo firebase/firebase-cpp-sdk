@@ -323,6 +323,7 @@ def scan_changes_in_file(parm_key, auto_diff, path, requested_api_list):
       changed_apis.add("gma")
     else:
       changed_apis.update(requested_api_list)
+      break
   changed_apis.intersection_update(requested_api_list)
   return ",".join(changed_apis)
 
