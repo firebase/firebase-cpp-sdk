@@ -8,6 +8,9 @@ on:
       updateiOS:
         description: 'update iOS dependencies?'
         default: 1
+      updateGMA:
+        description: 'include GMA?'
+        default: 0
       triggerTests:
         description: 'trigger tests on PR?'
         default: 1
@@ -63,16 +66,20 @@ jobs:
 
       - name: Run update script
         run: |
+          gma_flag=
+          if [[ ${{ github.event.inputs.updateGMA }} -eq 1 ]]; then
+            gma_flag="--include_gma"
+          fi
           if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
             if [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
               # Update both
               echo "Updating all dependencies"
-              python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE}
+              python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE} ${gma_flag}
               echo "CHOSEN_DEPS=mobile" >> $GITHUB_ENV
             else
               # Update iOS only
               echo "Updating iOS dependencies only"
-              python scripts/update_android_ios_dependencies.py --skip_android --logfile=${UPDATE_LOGFILE}
+              python scripts/update_android_ios_dependencies.py --skip_android --logfile=${UPDATE_LOGFILE} ${gma_flag}
               echo "CHOSEN_DEPS=iOS" >> $GITHUB_ENV
             fi
             # iOS: Update Firestore external version to match Firestore Cocoapod version.
@@ -156,7 +163,7 @@ jobs:
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"
-            python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE}
+            python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE} ${gma_flag}
             echo "CHOSEN_DEPS=Android" >> $GITHUB_ENV
           else
             echo "::error ::Neither Android nor iOS selected. Exiting."
