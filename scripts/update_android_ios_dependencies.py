@@ -285,8 +285,14 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None,
     #  { 'PodnameA' : ['1.0.1', '2.0.4'], 'PodnameB': ['3.0.4', '1.0.2'] }
     # Convert string version numbers to semantic version objects
     # for easier comparison and get the latest version.
-    latest_version = max([packaging.version.parse(v)
-                        for v in all_versions[pod]])
+    parsed_versions = []
+    for v in all_versions[pod]:
+      try:
+        parsed_versions.append(packaging.version.parse(v))
+      except:
+        # Sometimes version numbers don't parse; ignore them.
+        continue
+    latest_version = max(parsed_versions)
     # Replace the list of versions with just the latest version
     latest_versions[pod] = latest_version.base_version
   print("Latest pod versions retreived from cocoapods specs repo: \n")
