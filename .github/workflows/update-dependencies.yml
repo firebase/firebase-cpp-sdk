@@ -8,7 +8,7 @@ on:
       updateiOS:
         description: 'update iOS dependencies?'
         default: 1
-      updateGMA:
+      includeGMA:
         description: 'include GMA?'
         default: 0
       triggerTests:
@@ -67,7 +67,7 @@ jobs:
       - name: Run update script
         run: |
           gma_flag=
-          if [[ ${{ github.event.inputs.updateGMA }} -eq 1 ]]; then
+          if [[ ${{ github.event.inputs.includeGMA }} -eq 1 ]]; then
             gma_flag="--include_gma"
           fi
           if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
