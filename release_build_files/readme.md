@@ -635,7 +635,10 @@ code.
 -   Changes
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 15.1.
-    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 11.0.1.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 11.2.0 and
+      GoogleUserMessagingPlatform version 2.3.0.
+    - GMA (Android): Updated dependency to play-services-ads version 23.0.0 and
+      user-messaging-platform version 2.2.0.
 
 ### 11.9.0
 -   Changes
