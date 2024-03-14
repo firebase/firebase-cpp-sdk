@@ -168,7 +168,7 @@ RE_NON_EXPERIMENTAL_VERSION = re.compile('[0-9.]+$')
 PODSPEC_REPOSITORY = 'https://github.com/CocoaPods/Specs.git'
 
 # List of Pods that we are interested in.
-PODS = (
+PODS = [
   'Firebase',
   'FirebaseCore',
   'FirebaseAnalytics',
@@ -183,9 +183,19 @@ PODS = (
   'FirebaseMessaging',
   'FirebaseRemoteConfig',
   'FirebaseStorage',
-  'Google-Mobile-Ads-SDK'
-)
+]
 
+# List of GMA pods we are also interested in.
+PODS_GMA = [
+  'Google-Mobile-Ads-SDK',
+  'GoogleUserMessagingPlatform'
+]
+
+ANDROID_GMA_PACKAGES = [
+  'firebase-ads',
+  'play-services-ads',
+  'user-messaging-platform',
+]
 
 def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None,
                      allow_experimental=False):
@@ -275,8 +285,14 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None,
     #  { 'PodnameA' : ['1.0.1', '2.0.4'], 'PodnameB': ['3.0.4', '1.0.2'] }
     # Convert string version numbers to semantic version objects
     # for easier comparison and get the latest version.
-    latest_version = max([packaging.version.parse(v)
-                        for v in all_versions[pod]])
+    parsed_versions = []
+    for v in all_versions[pod]:
+      try:
+        parsed_versions.append(packaging.version.parse(v))
+      except:
+        # Sometimes version numbers don't parse; ignore them.
+        continue
+    latest_version = max(parsed_versions)
     # Replace the list of versions with just the latest version
     latest_versions[pod] = latest_version.base_version
   print("Latest pod versions retreived from cocoapods specs repo: \n")
@@ -695,7 +711,6 @@ def parse_cmdline_args():
   # iOS options
   parser.add_argument('--skip_ios', action='store_true',
             help='Skip iOS pod version update completely.')
-  # TODO: remove default values when Ads SDK does not need to be pinned.
   parser.add_argument('--ignore_ios_pods', nargs='+', default=(),
             help='Ignore iOS pods which have any of the items specified in '
                  'this list as substrings.')
@@ -709,11 +724,11 @@ def parse_cmdline_args():
   # Android options
   parser.add_argument('--skip_android', action='store_true',
             help='Skip Android libraries version update completely.')
-  # TODO: remove default values when Ads SDK does not need to be pinned.
-  parser.add_argument('--ignore_android_packages', nargs='+',
-            default=('firebase-ads',),
+  parser.add_argument('--ignore_android_packages', nargs='+', default=(),
             help='Ignore Android packages which have any of the items '
                  'specified in this list as substrings.')
+  parser.add_argument('--include_gma', action='store_true',
+                      help='Also update GMA dependencies')
   parser.add_argument('--depfiles', nargs='+',
             default=('Android/firebase_dependencies.gradle',
                     'release_build_files/Android/firebase_dependencies.gradle'),
@@ -758,7 +773,9 @@ def main():
                            file_name='readme')
 
   if not args.skip_ios:
-    latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS,
+    latest_pod_versions_map = get_latest_pod_versions(
+      args.specs_repo,
+      (PODS + PODS_GMA) if args.include_gma else PODS,
       set(args.ignore_ios_pods), args.allow_experimental)
     pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile',
                           ignore_directories=set(args.ignore_directories))
@@ -769,8 +786,11 @@ def main():
       modify_readme_file_pods(readme_file, latest_pod_versions_map, args.dryrun)
 
   if not args.skip_android:
+    ignore_android_packages = set(args.ignore_android_packages)
+    if not args.include_gma:
+      ignore_android_packages.update(ANDROID_GMA_PACKAGES)
     latest_android_versions_map = get_latest_maven_versions(
-      set(args.ignore_android_packages), args.allow_experimental)
+      ignore_android_packages, args.allow_experimental)
     dep_files = get_files(args.depfiles, file_extension='.gradle',
                           file_name='firebase_dependencies.gradle',
                           ignore_directories=set(args.ignore_directories))

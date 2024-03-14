@@ -134,7 +134,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:22.6.0
+|                          | com.google.android.gms:play-services-ads:23.0.0
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:2.2.0
 |                          | (Maven package)
@@ -253,8 +253,8 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/CoreOnly Cocoapod (10.22.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.14.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.1.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (11.1.0)
+|                          | GoogleUserMessagingPlatform Cocoapod (2.2.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (10.22.0)
@@ -316,8 +316,8 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/CoreOnly Cocoapod (10.22.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.14.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.1.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (11.1.0)
+|                          | GoogleUserMessagingPlatform Cocoapod (2.2.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (10.22.0)
