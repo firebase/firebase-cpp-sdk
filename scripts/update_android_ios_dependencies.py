@@ -788,7 +788,7 @@ def main():
   if not args.skip_android:
     ignore_android_packages = set(args.ignore_android_packages)
     if not args.include_gma:
-      ignore_android_packages = ignore_android_packages + set(ANDROID_GMA_PACKAGES)
+      ignore_android_packages.update(ANDROID_GMA_PACKAGES)
     latest_android_versions_map = get_latest_maven_versions(
       ignore_android_packages, args.allow_experimental)
     dep_files = get_files(args.depfiles, file_extension='.gradle',
