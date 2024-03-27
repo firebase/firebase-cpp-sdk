@@ -185,7 +185,15 @@ set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
 # Directory for any shared scripts.
 set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+# This must be called before checking CMAKE_SYSTEM_PROCESSOR below.
+# Otherwise it is unset.
+project(FirebaseCppSdk)
+
 if (MSVC)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES AMD64)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:"/arch:AVX2">)
+  endif()
+
   if (MSVC_RUNTIME_LIBRARY_STATIC)
     add_compile_options(
       $<$<CONFIG:>:/MT>
