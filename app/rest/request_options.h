@@ -45,7 +45,8 @@ struct RequestOptions {
   bool stream_post_fields;
   // Stores key-value pairs in header.
   std::map<std::string, std::string> header;
-  // The maximum time in milliseconds to allow the request and response.
+  // The maximum time in milliseconds to allow the request and response
+  // (or 0 for no timeout).
   int64_t timeout_ms;
 
   // Set true to make the library display more verbose info to help debug. Does

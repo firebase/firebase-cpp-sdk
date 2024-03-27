@@ -639,6 +639,7 @@ code.
       GoogleUserMessagingPlatform version 2.3.0.
     - GMA (Android): Updated dependency to play-services-ads version 23.0.0 and
       user-messaging-platform version 2.2.0.
+    - Storage (Desktop): Removed 5-minute timeout for uploads and downloads.
 
 ### 11.9.0
 -   Changes
