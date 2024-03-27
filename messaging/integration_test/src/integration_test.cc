@@ -58,8 +58,9 @@ const char kRestEndpoint[] = "https://fcm.googleapis.com/fcm/send";
 const char kNotificationLinkKey[] = "gcm.n.link";
 const char kTestLink[] = "https://this-is-a-test-link/";
 
-// Give each operation approximately 120 seconds before failing.
-const int kTimeoutSeconds = 120;
+// Give each operation approximately 30 seconds before failing.
+// Much longer than this and our FTL tests time out.
+const int kTimeoutSeconds = 30;
 const char kTestingNotificationKey[] = "fcm_testing_notification";
 
 using app_framework::LogDebug;
@@ -82,6 +83,9 @@ class FirebaseMessagingTest : public FirebaseTest {
 
   void SetUp() override;
   void TearDown() override;
+
+  static bool InitializeMessaging();
+  static void TerminateMessaging();
 
   // Create a request and heads for a test message (returning false if unable to
   // do so). send_to can be a FCM token or a topic subscription.
@@ -133,6 +137,15 @@ firebase::messaging::PollableListener* FirebaseMessagingTest::shared_listener_ =
 bool FirebaseMessagingTest::is_desktop_stub_;
 
 void FirebaseMessagingTest::SetUpTestSuite() {
+  ASSERT_TRUE(InitializeMessaging());
+
+  is_desktop_stub_ = false;
+#if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  is_desktop_stub_ = true;
+#endif  // !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+}
+
+bool FirebaseMessagingTest::InitializeMessaging() {
   LogDebug("Initialize Firebase App.");
 
 #if defined(__ANDROID__)
@@ -173,18 +186,27 @@ void FirebaseMessagingTest::SetUpTestSuite() {
 
   WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
 
-  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+  EXPECT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
-  LogDebug("Successfully initialized Firebase Cloud Messaging.");
-  is_desktop_stub_ = false;
-#if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  is_desktop_stub_ = true;
-#endif  // !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  if (initializer.InitializeLastResult().error() == 0) {
+    LogDebug("Successfully initialized Firebase Cloud Messaging.");
+  }
+
+  return (initializer.InitializeLastResult().error() == 0);
 }
 
 void FirebaseMessagingTest::TearDownTestSuite() {
   LogDebug("All tests finished, cleaning up.");
+
+  TerminateMessaging();
+
+  // On iOS/FTL, most or all of the tests are skipped, so add a delay so the app
+  // doesn't finish too quickly, as this makes test results flaky.
+  ProcessEvents(1000);
+}
+
+void FirebaseMessagingTest::TerminateMessaging() {
   firebase::messaging::SetListener(nullptr);
   delete shared_listener_;
   shared_listener_ = nullptr;
@@ -193,13 +215,10 @@ void FirebaseMessagingTest::TearDownTestSuite() {
 
   LogDebug("Shutdown Firebase Cloud Messaging.");
   firebase::messaging::Terminate();
+
   LogDebug("Shutdown Firebase App.");
   delete shared_app_;
   shared_app_ = nullptr;
-
-  // On iOS/FTL, most or all of the tests are skipped, so add a delay so the app
-  // doesn't finish too quickly, as this makes test results flaky.
-  ProcessEvents(1000);
 }
 
 FirebaseMessagingTest::FirebaseMessagingTest() {
@@ -362,14 +381,28 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
 
   SKIP_TEST_ON_ANDROID_EMULATOR;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   EXPECT_TRUE(RequestPermission());
 
   EXPECT_TRUE(::firebase::messaging::IsTokenRegistrationOnInitEnabled());
 
-  FLAKY_TEST_SECTION_BEGIN();
-
   EXPECT_TRUE(WaitForToken());
   EXPECT_NE(*shared_token_, "");
+
+  FLAKY_TEST_SECTION_RESET();
+
+  // This section will run after each failed flake attempt. If we failed to get
+  // a token, we might need to completely uninitialize messaging and
+  // reinitialize it.
+  LogInfo("Reinitializing FCM before retry...");
+  TerminateMessaging();
+  ProcessEvents(2000);  // Pause a few seconds.
+  EXPECT_TRUE(InitializeMessaging());
+  ProcessEvents(2000);  // Pause a few seconds.
+  // Toggle SetTokenRegistrationOnInitEnabled.
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(false);
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(true);
 
   FLAKY_TEST_SECTION_END();
 }
@@ -378,10 +411,8 @@ TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   // TODO(b/196589796) Test fails on Android emulators and causes failures in
-  // our CI. Since we don't have a good way to deterine if the runtime is an
-  // emulator or real device, we should disable the test in CI until we find
-  // the cause of problem.
-  TEST_REQUIRES_USER_INTERACTION_ON_ANDROID;
+  // our CI.
+  SKIP_TEST_ON_ANDROID_EMULATOR;
 
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
@@ -512,12 +543,16 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
 
   SKIP_TEST_ON_ANDROID_EMULATOR;
 
-  EXPECT_TRUE(RequestPermission());
-  EXPECT_TRUE(WaitForToken());
-
+  // When deflaking this test, sometimes we get out of sync, so attempt #2
+  // receives the message that was meant for attempt #1. By storing the previous
+  // unique ID, we can catch this situation and consume the extraneous message.
+  std::string previous_unique_id = "XXX";
+  std::string unique_id;
   FLAKY_TEST_SECTION_BEGIN();
 
-  std::string unique_id = GetUniqueMessageId();
+  EXPECT_TRUE(RequestPermission());
+  EXPECT_TRUE(WaitForToken());
+  unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "Token Test";
   const char kNotificationBody[] = "Token Test notification body";
   SendTestMessage(shared_token()->c_str(), kNotificationTitle,
@@ -527,7 +562,15 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
                    {kNotificationLinkKey, kTestLink}});
   LogDebug("Waiting for message.");
   firebase::messaging::Message message;
+
   EXPECT_TRUE(WaitForMessage(&message));
+  if (message.data["unique_id"] == previous_unique_id) {
+    // Flaky fix: We've received a leftover message from the previous attempt.
+    // Consume it and get another (with a short timeout), to see if it matches.
+    LogDebug(
+        "Message unique_id matches *previous* attempt, getting another...");
+    EXPECT_TRUE(WaitForMessage(&message, 10));
+  }
   EXPECT_EQ(message.data["unique_id"], unique_id);
   EXPECT_NE(message.notification, nullptr);
   if (message.notification) {
@@ -535,6 +578,22 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
     EXPECT_EQ(message.notification->body, kNotificationBody);
   }
   EXPECT_EQ(message.link, kTestLink);
+
+  FLAKY_TEST_SECTION_RESET();
+
+  previous_unique_id = unique_id;
+
+  // This section will run after each failed flake attempt. If we failed to get
+  // a token, we might need to completely uninitialize messaging and
+  // reinitialize it.
+  LogInfo("Reinitializing FCM before retry...");
+  TerminateMessaging();
+  ProcessEvents(2000);  // Pause a few seconds.
+  EXPECT_TRUE(InitializeMessaging());
+  ProcessEvents(2000);  // Pause a few seconds.
+  // Toggle SetTokenRegistrationOnInitEnabled.
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(false);
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(true);
 
   FLAKY_TEST_SECTION_END();
 }
@@ -585,6 +644,16 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
   // If this returns true, it means we received a message but
   // shouldn't have.
   EXPECT_FALSE(WaitForMessage(&message, 5));
+
+  FLAKY_TEST_SECTION_RESET();
+
+  // This section will run after each failed flake attempt. If we failed to get
+  // a token, we might need to completely uninitialize messaging and
+  // reinitialize it.
+  LogInfo("Reinitializing FCM before retry...");
+  TerminateMessaging();
+  ProcessEvents(3000);  // Pause a few seconds.
+  EXPECT_TRUE(InitializeMessaging());
 
   FLAKY_TEST_SECTION_END();
 }
