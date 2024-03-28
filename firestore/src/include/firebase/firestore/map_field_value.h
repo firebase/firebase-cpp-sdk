@@ -36,7 +36,11 @@ using MapFieldPathValue = std::unordered_map<FieldPath, FieldValue>;
 // module. A workaround for deserialization cross reference compiler
 // crashes https://github.com/apple/swift/issues/70253
 using FieldValueVector = std::vector<FieldValue>;
+#if defined(_WIN32)
 using FieldValueVectorConstIterator = std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<FieldValue>>>;
+#else
+using FieldValueVectorConstIterator = std::vector<FieldValue>::const_iterator;
+#endif
 using StringVectorConstIterator = std::vector<std::string>::const_iterator;
 #endif
 
