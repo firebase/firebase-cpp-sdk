@@ -238,6 +238,9 @@ void StorageReferenceInternal::PrepareRequestBlocking(
   request->set_url(url);
   request->set_method(method);
 
+  // Set this request to have no timeout.
+  request->options().timeout_ms = 0;
+
   // Fetch auth token and apply it, if there is one:
   std::string token = storage_->GetAuthToken();
   if (token.length() > 0) {
