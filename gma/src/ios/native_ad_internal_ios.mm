@@ -220,6 +220,7 @@ Future<AdResult> NativeAdInternalIOS::LoadAd(const char *ad_unit_id, const AdReq
 
 void NativeAdInternalIOS::NativeAdDidReceiveAd(GADNativeAd *ad) {
   firebase::MutexLock lock(mutex_);
+  ad.delegate = native_ad_delegate_;
   native_ad_ = ad;
 
   NSObject *gad_icon = ad.icon;

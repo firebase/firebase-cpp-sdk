@@ -32,7 +32,7 @@ class NativeAdInternalIOS;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FADNativeDelegate : NSObject <GADNativeAdLoaderDelegate, GADAdLoaderDelegate>
+@interface FADNativeDelegate : NSObject <GADNativeAdLoaderDelegate, GADAdLoaderDelegate, GADNativeAdDelegate>
 
 /// Returns a FADNativeDelegate object with NativeAdInternalIOS.
 - (FADNativeDelegate *)initWithInternalNativeAd:
