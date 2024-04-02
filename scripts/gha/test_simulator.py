@@ -249,6 +249,7 @@ def main(argv):
     ios_helper_project = os.path.join(current_dir, CONSTANTS[FLAGS.test_type]["apple_path"])
     ios_helper_app = _build_ios_helper(ios_helper_project, device_name, device_os)
     if not ios_helper_app:
+
       logging.error("helper app not found")
       return 22
 
@@ -364,11 +365,13 @@ def _build_ios_helper(helper_project, device_name, device_os):
   logging.info("Building game-loop test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
+  all_files_list = []
   for file_dir, _, file_names in os.walk(output_path):
     for file_name in file_names:
+      all_files_list.append(file_name)
       if file_name.endswith(".xctestrun") and "iphonesimulator" in file_name:
         return os.path.join(file_dir, file_name)
-
+  logging.error("Couldn't find helper app in file list: %s", "\n".join(all_files_list))
 
 def _build_tvos_helper(helper_project, device_name, device_os):
   """Build helper UI Test app.
