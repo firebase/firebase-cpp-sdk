@@ -176,7 +176,9 @@ class DocumentChange {
   std::size_t Hash() const;
 
   friend bool operator==(const DocumentChange& lhs, const DocumentChange& rhs);
+#ifndef SWIG
   friend std::size_t DocumentChangeHash(const DocumentChange& change);
+#endif  // not SWIG
 
   friend class FirestoreInternal;
   friend class Wrapper;

@@ -265,7 +265,9 @@ class DocumentSnapshot {
 
   friend bool operator==(const DocumentSnapshot& lhs,
                          const DocumentSnapshot& rhs);
+#ifndef SWIG
   friend std::size_t DocumentSnapshotHash(const DocumentSnapshot& snapshot);
+#endif  // not SWIG
 
   friend class DocumentChangeInternal;
   friend class EventListenerInternal;

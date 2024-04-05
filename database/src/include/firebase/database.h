@@ -181,8 +181,10 @@ class Database {
   LogLevel log_level() const;
 
  private:
+#ifndef SWIG
   friend Database* GetDatabaseInstance(::firebase::App* app, const char* url,
                                        InitResult* init_result_out);
+#endif  // not SWIG
   Database(::firebase::App* app, internal::DatabaseInternal* internal);
   Database(const Database& src);
   Database& operator=(const Database& src);

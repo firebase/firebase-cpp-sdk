@@ -167,7 +167,9 @@ class QuerySnapshot {
   std::size_t Hash() const;
 
   friend bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs);
+#ifndef SWIG
   friend std::size_t QuerySnapshotHash(const QuerySnapshot& snapshot);
+#endif  // not SWIG
 
   friend class EventListenerInternal;
   friend class FirestoreInternal;

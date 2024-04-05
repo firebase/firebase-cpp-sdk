@@ -148,7 +148,9 @@ class MutableData {
   friend class internal::DatabaseInternal;
   friend class internal::MutableDataInternal;
   friend class internal::Repo;
+#ifndef SWIG
   friend MutableData GetInvalidMutableData();
+#endif  // not SWIG
   /// @endcond
 
   explicit MutableData(internal::MutableDataInternal* internal);

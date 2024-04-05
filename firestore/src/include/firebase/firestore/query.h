@@ -678,7 +678,9 @@ class Query {
   size_t Hash() const;
 
   friend bool operator==(const Query& lhs, const Query& rhs);
+#ifndef SWIG
   friend size_t QueryHash(const Query& query);
+#endif  // not SWIG
 
   friend class FirestoreInternal;
   friend class QueryInternal;
