@@ -669,10 +669,12 @@ class Auth {
   friend class UserDesktopTest;
   friend class AuthDesktopTest;
 
+#ifndef SWIG
   friend void EnableTokenAutoRefresh(AuthData* authData);
   friend void DisableTokenAutoRefresh(AuthData* authData);
   friend void ResetTokenRefreshCounter(AuthData* authData);
   friend void LogHeartbeat(Auth* auth);
+#endif  // not SWIG
   /// @endcond
 
   // Find Auth instance using App.  Return null if the instance does not exist.

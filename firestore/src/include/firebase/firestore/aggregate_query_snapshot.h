@@ -126,8 +126,10 @@ class AggregateQuerySnapshot {
 
   friend bool operator==(const AggregateQuerySnapshot& lhs,
                          const AggregateQuerySnapshot& rhs);
+#ifndef SWIG
   friend std::size_t AggregateQuerySnapshotHash(
       const AggregateQuerySnapshot& snapshot);
+#endif  // not SWIG
   friend struct ConverterImpl;
   friend class AggregateQuerySnapshotTest;
 
