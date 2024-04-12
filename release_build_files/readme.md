@@ -631,8 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 11.10.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 32.8.1.
+    - General (iOS): Update to Firebase Cocoapods version 10.24.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 15.1.
     - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 11.2.0 and
