@@ -135,7 +135,7 @@ def print_summary_table(headers, rows):
   colwidths = []
   for col_idx, _ in enumerate(headers):
     # Find the widest word in each column.
-    # Add "1" for an additonal space between columns.
+    # Add "1" for an additional space between columns.
     colwidths.append(max( [len(headers[col_idx])] + [ len(row[col_idx]) for row in rows])+1)
 
   print('*'*sum(colwidths))

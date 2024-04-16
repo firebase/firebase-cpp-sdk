@@ -38,7 +38,7 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
                          Output can be accessed as <return_object>.stdout
   cwd (str): Directory to execute the command from.
   check (bool): Raises a CalledProcessError if True and the command errored out
-  as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
+  as_root (bool): Run command as root user with admin privileges (supported on mac and linux).
   print_cmd (bool): Print the command we are running to stdout.
 
  Raises:
@@ -200,7 +200,7 @@ def verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix=False):
       tools_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads', 'tools')
       for name in os.listdir(tools_dir_path):
         # In the specific windows error that we noticed, the error occurs while
-        # trying to rename intermediate directories for donwloaded tools
+        # trying to rename intermediate directories for downloaded tools
         # like "powershell.partial.<pid>" to "powershell". Renaming via python
         # also runs into the same error. Workaround is to copy instead of rename.
         if '.partial.' in name and os.path.isdir(os.path.join(tools_dir_path, name)):
