@@ -31,7 +31,7 @@ allprojects {
 apply plugin: 'com.android.library'
 
 android {
-  compileSdkVersion 33
+  compileSdkVersion 34
   ndkPath System.getenv('ANDROID_NDK_HOME')
   buildToolsVersion '30.0.2'
 
@@ -49,8 +49,8 @@ android {
 
   defaultConfig {
     // Jelly Bean is the minimum supported version needed by Firebase.
-    minSdkVersion 19
-    targetSdkVersion 28
+    minSdkVersion 21
+    targetSdkVersion 34
     versionCode 1
     versionName "1.0"
 
