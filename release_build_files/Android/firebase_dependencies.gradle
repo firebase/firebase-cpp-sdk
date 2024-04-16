@@ -132,7 +132,7 @@ project.afterEvaluate {
 
       // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:32.8.0')
+      implementation platform('com.google.firebase:firebase-bom:32.8.1')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Messaging includes an aar, which to be depended on properly requires
