@@ -21,7 +21,7 @@
             android:screenOrientation="landscape"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/app_name"
-            android:exported="false"
+            android:exported="true"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -57,7 +57,7 @@
 
         <!-- [START messaging_add_custom_listener_service] -->
         <service android:name="com.google.firebase.messaging.cpp.samples.MyListenerService"
-                 android:exported="false">
+                 android:exported="true">
           <intent-filter>
             <action android:name="com.google.firebase.MESSAGING_EVENT"/>
           </intent-filter>
@@ -67,7 +67,7 @@
         <!-- [START messaging_forwarding_service] -->
         <service android:name="com.google.firebase.messaging.MessageForwardingService"
              android:permission="android.permission.BIND_JOB_SERVICE"
-             android:exported="false" >
+             android:exported="true" >
         </service>
         <!-- [END messaging_forwarding_service] -->
     </application>
