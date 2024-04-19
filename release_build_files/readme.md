@@ -633,8 +633,8 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - Storage (iOS): Fix invalid pointer in `GetFile()` when running in a
-      secondary thread
+    - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
+      running in a secondary thread
       ([#1570](https://github.com/firebase/firebase-cpp-sdk/issues/1570)).
 
 ### 11.10.0
