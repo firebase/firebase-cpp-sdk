@@ -631,6 +631,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Storage (iOS): Fix invalid pointer in `GetFile()` when running in a
+      secondary thread.
+
 ### 11.10.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.8.1.
