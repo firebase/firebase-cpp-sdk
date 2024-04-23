@@ -142,11 +142,12 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path, Listener* lis
   // Cache a copy of the impl and storage, in case this is destroyed before the thread runs.
   FIRStorageReference* my_impl = impl();
   StorageInternal* storage = storage_;
+  NSURL* local_file_url = [NSURL URLWithString:@(path)];
   util::DispatchAsyncSafeMainQueue(^() {
       FIRStorageDownloadTask *download_task;
       {
         MutexLock mutex(controller_init_mutex_);
-        download_task = [my_impl writeToFile:[NSURL URLWithString:@(path)] completion:completion];
+        download_task = [my_impl writeToFile:local_file_url completion:completion];
         local_controller->AssignTask(storage, download_task);
       }
       if (listener) {
