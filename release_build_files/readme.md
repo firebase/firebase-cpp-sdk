@@ -635,6 +635,9 @@ code.
 -   Changes
     - General (Android): Updated minSdkVersion to 21, and targetSdkVersion
       and compileSdkVersion to 34.
+    - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
+      running in a secondary thread
+      ([#1570](https://github.com/firebase/firebase-cpp-sdk/issues/1570)).
 
 ### 11.10.0
 -   Changes
