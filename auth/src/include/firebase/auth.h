@@ -50,7 +50,6 @@ struct AuthCompletionHandle;
 struct AuthResultCompletionHandle;
 class FederatedAuthProvider;
 class FederatedOAuthProvider;
-struct SignInResult;
 
 /// @brief Firebase authentication object.
 ///

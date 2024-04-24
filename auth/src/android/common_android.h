@@ -91,22 +91,6 @@ struct FutureCallbackData {
 void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
                     bool success, void* void_data);
 
-// The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
-void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
-                      bool success, void* void_data);
-
-// The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initializes the `User` in `void_data`.
-void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
-                            bool success, void* void_data);
-
-// The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initializes the `User*` in
-// `void_data`.
-void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
-                              bool success, void* void_data);
-
 inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
                                    AdditionalUserInfo* info) {
   if (j_additional_user_info == nullptr) {

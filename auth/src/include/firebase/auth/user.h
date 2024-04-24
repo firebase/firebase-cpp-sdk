@@ -294,7 +294,7 @@ class User : public UserInfoInterface {
   ///
   /// @param[in] provider Contains information on the auth provider to
   /// authenticate with.
-  /// @return A Future<SignInResult> with the result of the re-authentication
+  /// @return A Future<AuthResult> with the result of the re-authentication
   /// request.
   /// @note: This operation is supported only on iOS, tvOS and Android
   /// platforms. On other platforms this method will return a Future with a
