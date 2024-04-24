@@ -1,4 +1,4 @@
-/*
+s/*
  * Copyright 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,15 +49,6 @@ void LogHeartbeat(Auth* auth);
   Future<result_type> class_name::fn_name##LastResult() const {           \
     return static_cast<const Future<result_type>&>(                       \
         auth_data_->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
-  }
-
-// All the result functions are similar.
-// Just return the local Future, cast to the proper result type.
-#define AUTH_RESULT_DEPRECATED_FN(class_name, fn_name, result_type)        \
-  Future<result_type> class_name::fn_name##LastResult_DEPRECATED() const { \
-    return static_cast<const Future<result_type>&>(                        \
-        auth_data_->future_impl.LastResult(                                \
-            k##class_name##Fn_##fn_name##_DEPRECATED));                    \
   }
 
 // Returns true if `auth_data` has a user that's currently active.

@@ -595,7 +595,7 @@ class Auth {
   // Delete the internal AuthData object.
   void DeleteInternal();
 
-  // This class uses the pimpl mechanism to avoid exposing platform-dependent
+ // This class uses the pimpl mechanism to avoid exposing platform-dependent
   // implementation.
   AuthData* auth_data_;
 };
