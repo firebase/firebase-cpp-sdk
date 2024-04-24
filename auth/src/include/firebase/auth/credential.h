@@ -513,23 +513,6 @@ class PhoneAuthProvider {
     Listener();
     virtual ~Listener();
 
-    /// @deprecated This method has been deprecated. Please use
-    /// OnVerificationCompleted(PhoneAuthCredential) instead.
-    ///
-    /// @brief Phone number auto-verification succeeded.
-    ///
-    /// Called when,
-    ///  - auto-sms-retrieval has succeeded--flow (2) in @ref PhoneAuthProvider
-    ///  - instant validation has succeeded--flow (3) in @ref PhoneAuthProvider
-    ///
-    /// @note This callback is never called on iOS, since iOS does not have
-    ///    auto-validation. It is always called immediately in the stub desktop
-    ///    implementation, however, since it fakes immediate success.
-    ///
-    /// @param[in] credential The completed credential from the phone number
-    ///    verification flow.
-    virtual void OnVerificationCompleted(Credential credential) {}
-
     /// @brief Phone number auto-verification succeeded.
     ///
     /// Called when,
@@ -590,32 +573,6 @@ class PhoneAuthProvider {
     PhoneListenerData* data_;
   };
 
-  /// @deprecated This is a deprecated method. Please use
-  /// VerifyPhoneNumber(const PhoneAuthOptions&, Listener*) instead.
-  ///
-  /// Start the phone number authentication operation.
-  ///
-  /// @param[in] phone_number The phone number identifier supplied by the user.
-  ///    Its format is normalized on the server, so it can be in any format
-  ///    here.
-  /// @param[in] auto_verify_time_out_ms The time out for SMS auto retrieval, in
-  ///    miliseconds. Currently SMS auto retrieval is only supported on Android.
-  ///    If 0, do not do SMS auto retrieval.
-  ///    If positive, try to auto-retrieve the SMS verification code.
-  ///    When the time out is exceeded, listener->OnCodeAutoRetrievalTimeOut()
-  ///    is called.
-  /// @param[in] force_resending_token If NULL, assume this is a new phone
-  ///    number to verify. If not-NULL, bypass the verification session deduping
-  ///    and force resending a new SMS.
-  ///    This token is received in @ref Listener::OnCodeSent.
-  ///    This should only be used when the user presses a Resend SMS button.
-  /// @param[in,out] listener Class that receives notification whenever an SMS
-  ///    verification event occurs. See sample code at top of class.
-  void VerifyPhoneNumber(const char* phone_number,
-                         uint32_t auto_verify_time_out_ms,
-                         const ForceResendingToken* force_resending_token,
-                         Listener* listener);
-
   /// Start the phone number authentication operation.
   ///
   /// @param[in] options The PhoneAuthOptions struct with a verification
@@ -636,22 +593,6 @@ class PhoneAuthProvider {
   /// @returns New Credential.
   PhoneAuthCredential GetCredential(const char* verification_id,
                                     const char* verification_code);
-
-  /// @deprecated This is a deprecated method. Please use GetCredential
-  /// instead.
-  ///
-  /// Generate a credential for the given phone number.
-  ///
-  /// @param[in] verification_id The id returned when sending the verification
-  ///    code. Sent to the caller via @ref Listener::OnCodeSent.
-  /// @param[in] verification_code The verification code supplied by the user,
-  ///    most likely by a GUI where the user manually enters the code
-  ///    received in the SMS sent by @ref VerifyPhoneNumber.
-  ///
-  /// @returns New Credential.
-  FIREBASE_DEPRECATED
-  Credential GetCredential_DEPRECATED(const char* verification_id,
-                                      const char* verification_code);
 
   /// Return the PhoneAuthProvider for the specified `auth`.
   ///

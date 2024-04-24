@@ -150,24 +150,6 @@ struct UserMetadata {
   uint64_t creation_timestamp;
 };
 
-/// @deprecated This structure will be replaced with AuthResult.
-///
-/// @brief Result of operations that can affect authentication state.
-struct SignInResult {
-  SignInResult() : user(NULL) {}
-
-  /// The currently signed-in User, or NULL if there isn't any (i.e. the
-  /// user is signed out).
-  User* user;
-
-  /// Identity-provider specific information for the user, if the provider is
-  /// one of Facebook, GitHub, Google, or Twitter.
-  AdditionalUserInfo info;
-
-  /// Metadata associated with the Firebase user.
-  UserMetadata meta;
-};
-
 /// @brief Firebase user account object.
 ///
 /// This class allows you to manipulate the profile of a user, link to and
@@ -247,28 +229,6 @@ class User : public UserInfoInterface {
   /// </SWIG>
   std::vector<UserInfoInterface> provider_data() const;
 
-  /// @deprecated This is a deprecated method. Please use provider_data()
-  /// instead.
-  ///
-  /// Gets the third party profile data associated with this user returned by
-  /// the authentication server, if any.
-  FIREBASE_DEPRECATED const std::vector<UserInfoInterface*>&
-  provider_data_DEPRECATED() const;
-
-  /// @deprecated This is a deprecated method. Please use
-  /// SendEmailVerificationBeforeUpdatingEmail(email) instead.
-  ///
-  /// Sets the email address for the user.
-  ///
-  /// May fail if there is already an email/password-based account for the same
-  /// email address.
-  FIREBASE_DEPRECATED Future<void> UpdateEmail(const char* email);
-
-  /// @deprecated
-  ///
-  /// Get results of the most recent call to UpdateEmail.
-  FIREBASE_DEPRECATED Future<void> UpdateEmailLastResult() const;
-
   /// Attempts to change the password for the current user.
   ///
   /// For an account linked to an Identity Provider (IDP) with no password,
@@ -330,29 +290,6 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to ReauthenticateAndRetrieveData.
   Future<AuthResult> ReauthenticateAndRetrieveDataLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use
-  /// ReauthenticateAndRetrieveData(const Credential&) instead.
-  ///
-  /// Reauthenticate using a credential.
-  ///
-  /// Data from the Identity Provider used to sign-in is returned in the
-  /// AdditionalUserInfo inside the returned SignInResult.
-  ///
-  /// Returns an error if the existing credential is not for this user
-  /// or if sign-in with that credential failed.
-  ///
-  /// @note: The current user may be signed out if this operation fails on
-  /// Android and desktop platforms.
-  FIREBASE_DEPRECATED Future<SignInResult>
-  ReauthenticateAndRetrieveData_DEPRECATED(const Credential& credential);
-
-  /// @deprecated
-  ///
-  /// Get results of the most recent call to
-  /// ReauthenticateAndRetrieveData_DEPRECATED.
-  FIREBASE_DEPRECATED Future<SignInResult>
-  ReauthenticateAndRetrieveDataLastResult_DEPRECATED() const;
-
   /// @brief Re-authenticates the user with a federated auth provider.
   ///
   /// @param[in] provider Contains information on the auth provider to
@@ -364,21 +301,6 @@ class User : public UserInfoInterface {
   /// preset error code: kAuthErrorUnimplemented.
   Future<AuthResult> ReauthenticateWithProvider(
       FederatedAuthProvider* provider) const;
-
-  /// @deprecated This is a deprecated method. Please use
-  /// ReauthenticateWithProvider(FederatedAuthProvider*) instead.
-  ///
-  /// @brief Re-authenticates the user with a federated auth provider.
-  ///
-  /// @param[in] provider Contains information on the auth provider to
-  /// authenticate with.
-  /// @return A Future<SignInResult> with the result of the re-authentication
-  /// request.
-  /// @note: This operation is supported only on iOS, tvOS and Android
-  /// platforms. On other platforms this method will return a Future with a
-  /// preset error code: kAuthErrorUnimplemented.
-  FIREBASE_DEPRECATED Future<SignInResult>
-  ReauthenticateWithProvider_DEPRECATED(FederatedAuthProvider* provider) const;
 
   /// Initiates email verification for the user.
   Future<void> SendEmailVerification();
@@ -417,44 +339,6 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to LinkWithCredential.
   Future<AuthResult> LinkWithCredentialLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use
-  /// LinkWithCredential(const Credential&) instead.
-  ///
-  /// Convenience function for ReauthenticateAndRetrieveData that discards
-  /// the returned AdditionalUserInfo in SignInResult.
-  FIREBASE_DEPRECATED Future<User*> LinkWithCredential_DEPRECATED(
-      const Credential& credential);
-
-  /// @deprecated
-  ///
-  /// Get results of the most recent call to LinkWithCredential_DEPRECATED.
-  FIREBASE_DEPRECATED Future<User*> LinkWithCredentialLastResult_DEPRECATED()
-      const;
-
-  /// @deprecated This is a deprecated method. Please use
-  /// LinkWithCredential(const Credential&) instead.
-  ///
-  /// Links the user with the given 3rd party credentials.
-  ///
-  /// For example, a Facebook login access token, a Twitter token/token-secret
-  /// pair.
-  /// Status will be an error if the token is invalid, expired, or otherwise
-  /// not accepted by the server as well as if the given 3rd party
-  /// user id is already linked with another user account or if the current user
-  /// is already linked with another id from the same provider.
-  ///
-  /// Data from the Identity Provider used to sign-in is returned in the
-  /// AdditionalUserInfo inside SignInResult.
-  FIREBASE_DEPRECATED Future<SignInResult> LinkAndRetrieveDataWithCredential(
-      const Credential& credential);
-
-  /// @deprecated
-  ///
-  /// Get results of the most recent call to
-  /// LinkAndRetrieveDataWithCredential.
-  FIREBASE_DEPRECATED Future<SignInResult>
-  LinkAndRetrieveDataWithCredentialLastResult() const;
-
   ///
   /// @param[in] provider Contains information on the auth provider to link
   /// with.
@@ -466,40 +350,12 @@ class User : public UserInfoInterface {
   /// preset error code: kAuthErrorUnimplemented.
   Future<AuthResult> LinkWithProvider(FederatedAuthProvider* provider) const;
 
-  /// @deprecated This is a deprecated method. Please use
-  /// LinkWithProvider(FederatedAuthProvider*) instead.
-  ///
-  /// Links this user with a federated auth provider.
-  ///
-  /// @param[in] provider Contains information on the auth provider to link
-  /// with.
-  /// @return A Future<SignInResult> with the user data result of the link
-  /// request.
-  ///
-  /// @note: This operation is supported only on iOS, tvOS and Android
-  /// platforms. On other platforms this method will return a Future with a
-  /// preset error code: kAuthErrorUnimplemented.
-  FIREBASE_DEPRECATED Future<SignInResult> LinkWithProvider_DEPRECATED(
-      FederatedAuthProvider* provider) const;
-
   /// Unlinks the current user from the provider specified.
   /// Status will be an error if the user is not linked to the given provider.
   Future<AuthResult> Unlink(const char* provider);
 
   /// Get results of the most recent call to Unlink.
   Future<AuthResult> UnlinkLastResult() const;
-
-  /// @deprecated This is a deprecated method. Please use Unlink(const
-  /// char*) instead.
-  ///
-  /// Unlinks the current user from the provider specified.
-  /// Status will be an error if the user is not linked to the given provider.
-  FIREBASE_DEPRECATED Future<User*> Unlink_DEPRECATED(const char* provider);
-
-  /// @deprecated
-  ///
-  /// Get results of the most recent call to Unlink_DEPRECATED.
-  FIREBASE_DEPRECATED Future<User*> UnlinkLastResult_DEPRECATED() const;
 
   /// Updates the currently linked phone number on the user.
   /// This is useful when a user wants to change their phone number. It is a
@@ -512,24 +368,6 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to
   /// UpdatePhoneNumberCredential.
   Future<User> UpdatePhoneNumberCredentialLastResult() const;
-
-  /// @deprecated This is a deprecated method. Please use
-  /// UpdatePhoneNumberCredential(const PhoneAuthCredential&) instead.
-  ///
-  /// Updates the currently linked phone number on the user.
-  /// This is useful when a user wants to change their phone number. It is a
-  /// shortcut to calling Unlink_DEPRECATED(phone_credential.provider().c_str())
-  /// and then LinkWithCredential_DEPRECATED(phone_credential). `credential`
-  /// must have been created with PhoneAuthProvider.
-  FIREBASE_DEPRECATED Future<User*> UpdatePhoneNumberCredential_DEPRECATED(
-      const Credential& credential);
-
-  /// @deprecated
-  ////
-  /// Get results of the most recent call to
-  /// UpdatePhoneNumberCredential_DEPRECATED.
-  FIREBASE_DEPRECATED Future<User*>
-  UpdatePhoneNumberCredentialLastResult_DEPRECATED() const;
 
   /// Refreshes the data for this user.
   ///
