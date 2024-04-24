@@ -77,43 +77,6 @@ Future<AuthResult> CreateAuthFuture(AuthData* auth_data,
   }
 }
 
-// @deprecated
-//
-// Helper function which returns a Future for the corresponding auth
-// api function. Or, if that operation is already in progress,
-// returns a Future in an error state instead, thereby blocking duplicate
-// operations on the same auth instance.
-Future<SignInResult> CreateSignInFuture(AuthData* auth_data,
-                                        AuthApiFunction api_function) {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), auth_data);
-  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  MutexLock lock(auth_impl->provider_mutex);
-  auto future_base = auth_data->future_impl.LastResult(api_function);
-  if (future_base.status() == kFutureStatusPending) {
-    // There's an operation in progress. Create and return a new failed
-    // future.
-    SafeFutureHandle<SignInResult> handle =
-        auth_data->future_impl.SafeAlloc<SignInResult>(api_function);
-    auth_data->future_impl.CompleteWithResult(
-        handle, kAuthErrorFederatedProviderAreadyInUse,
-        "Provider operation already in progress.",
-        /*result=*/{});
-    return MakeFuture(&auth_data->future_impl, handle);
-  } else if (future_base.status() == kFutureStatusInvalid) {
-    // initialize the future.
-    SafeFutureHandle<SignInResult> handle =
-        auth_data->future_impl.SafeAlloc<SignInResult>(api_function);
-    Future<SignInResult> result = MakeFuture(
-        &auth_data->future_impl, SafeFutureHandle<SignInResult>(handle));
-    auto future_base = auth_data->future_impl.LastResult(api_function);
-    return result;
-  } else {
-    // Construct future.
-    return MakeFuture(&auth_data->future_impl,
-                      SafeFutureHandle<SignInResult>(future_base.GetHandle()));
-  }
-}
-
 Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), handler_);
   assert(auth_data);
@@ -123,20 +86,6 @@ Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
     AuthResultCompletionHandle* auth_completion_handle =
         new AuthResultCompletionHandle(
             SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
-    handler_->OnSignIn(provider_data_, auth_completion_handle);
-  }
-  return future;
-}
-
-Future<SignInResult> FederatedOAuthProvider::SignIn_DEPRECATED(
-    AuthData* auth_data) {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
-  assert(auth_data);
-  Future<SignInResult> future =
-      CreateSignInFuture(auth_data, kAuthFn_SignInWithProvider_DEPRECATED);
-  if (future.status() == kFutureStatusPending) {
-    AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
-        SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
     handler_->OnSignIn(provider_data_, auth_completion_handle);
   }
   return future;
@@ -156,20 +105,6 @@ Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   return future;
 }
 
-Future<SignInResult> FederatedOAuthProvider::Link_DEPRECATED(
-    AuthData* auth_data) {
-  assert(auth_data);
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
-  Future<SignInResult> future =
-      CreateSignInFuture(auth_data, kUserFn_LinkWithProvider_DEPRECATED);
-  if (future.status() == kFutureStatusPending) {
-    AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
-        SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
-    handler_->OnLink(provider_data_, auth_completion_handle);
-  }
-  return future;
-}
-
 Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
   assert(auth_data);
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), handler_);
@@ -179,20 +114,6 @@ Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
     AuthResultCompletionHandle* auth_completion_handle =
         new AuthResultCompletionHandle(
             SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
-    handler_->OnReauthenticate(provider_data_, auth_completion_handle);
-  }
-  return future;
-}
-
-Future<SignInResult> FederatedOAuthProvider::Reauthenticate_DEPRECATED(
-    AuthData* auth_data) {
-  assert(auth_data);
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
-  Future<SignInResult> future = CreateSignInFuture(
-      auth_data, kUserFn_ReauthenticateWithProvider_DEPRECATED);
-  if (future.status() == kFutureStatusPending) {
-    AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
-        SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
     handler_->OnReauthenticate(provider_data_, auth_completion_handle);
   }
   return future;
@@ -216,7 +137,7 @@ const char* CheckForRequiredAuthenicatedUserData(
 }
 
 // Helper function which uses the AuthCompletionHandle to plumb an
-// asynchronous custom-application result into a Future<SignInResult>.
+// asynchronous custom-application result into a Future<AuthResult>.
 // Note: error_message is an optional parameter.
 void CompleteAuthHandle(
     AuthResultCompletionHandle* completion_handle,
@@ -245,38 +166,6 @@ void CompleteAuthHandle(
   completion_handle->auth_data->future_impl.CompleteWithResult(
       completion_handle->future_handle, auth_error,
       (error_message) ? error_message : "", auth_result);
-  delete completion_handle;
-}
-
-// Helper function which uses the AuthCompletionHandle to plumb an
-// asynchronous custom-application result into a Future<SignInResult>.
-// Note: error_message is an optional parameter.
-void CompleteAuthHandle(
-    AuthCompletionHandle* completion_handle,
-    const FederatedAuthProvider::AuthenticatedUserData& user_data,
-    AuthError auth_error, const char* error_message) {
-  assert(completion_handle);
-  assert(completion_handle->auth_data);
-  SignInResult sign_in_result;
-  if (auth_error == kAuthErrorNone) {
-    error_message = CheckForRequiredAuthenicatedUserData(user_data);
-    if (error_message != nullptr) {
-      auth_error = kAuthErrorInvalidAuthenticatedUserData;
-    } else {
-      AuthenticationResult auth_result = CompleteAuthenticedUserSignInFlow(
-          completion_handle->auth_data, user_data);
-      if (auth_result.IsValid()) {
-        sign_in_result = auth_result.SetAsCurrentUser_DEPRECATED(
-            completion_handle->auth_data);
-      } else {
-        auth_error = kAuthErrorInvalidAuthenticatedUserData;
-        error_message = "Internal parse error";
-      }
-    }
-  }
-  completion_handle->auth_data->future_impl.CompleteWithResult(
-      completion_handle->future_handle, auth_error,
-      (error_message) ? error_message : "", sign_in_result);
   delete completion_handle;
 }
 

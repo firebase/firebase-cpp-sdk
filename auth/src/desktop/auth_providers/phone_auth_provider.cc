@@ -97,14 +97,6 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
   return PhoneAuthCredential(nullptr);
 }
 
-Credential PhoneAuthProvider::GetCredential_DEPRECATED(
-    const char* verification_id, const char* verification_code) {
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(nullptr), false,
-                                 "Phone Auth is not supported on desktop");
-
-  return Credential(nullptr);
-}
-
 // static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   return auth->auth_data_->phone_auth_provider;

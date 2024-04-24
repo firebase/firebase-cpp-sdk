@@ -47,19 +47,6 @@ GetAccountInfoResult GetAccountInfo(const GetAccountInfoRequest& request);
 template <typename ResponseT, typename FutureResultT, typename RequestT>
 void PerformSignInFlow(AuthDataHandle<FutureResultT, RequestT>* handle);
 
-// @deprecated Supports older sign in methods. Use @ref PerformSignInFlow
-// for new auth methods.
-//
-// Makes a network call to one of the sign-in endpoints (e.g., verifyPassword or
-// verifyAssertion), and completes the promise contained within the given
-// handle, either successfully or with an error.
-//
-// Note: this is a blocking call! It's the caller's responsibility to make sure
-// it's invoked on the appropriate thread.
-template <typename ResponseT, typename FutureResultT, typename RequestT>
-void PerformSignInFlow_DEPRECATED(
-    AuthDataHandle<FutureResultT, RequestT>* handle);
-
 // Parses the given response and calls getAccountInfo endpoint for the user
 // contained within the given response to retrieve additional user info.
 //
@@ -124,24 +111,6 @@ inline void PerformSignInFlow(
     const AuthResult auth_result =
         auth_response.SetAsCurrentUser(handle->auth_data);
     CompletePromise(&handle->promise, auth_result);
-  } else {
-    FailPromise(&handle->promise, auth_response.error());
-  }
-}
-
-template <typename ResponseT, typename FutureResultT, typename RequestT>
-inline void PerformSignInFlow_DEPRECATED(
-    AuthDataHandle<FutureResultT, RequestT>* const handle) {
-  FIREBASE_ASSERT_RETURN_VOID(handle && handle->request);
-
-  const auto response = GetResponse<ResponseT>(*handle->request);
-  const AuthenticationResult auth_response =
-      CompleteSignInFlow(handle->auth_data, response);
-
-  if (auth_response.IsValid()) {
-    const SignInResult sign_in_result =
-        auth_response.SetAsCurrentUser_DEPRECATED(handle->auth_data);
-    CompletePromise(&handle->promise, sign_in_result);
   } else {
     FailPromise(&handle->promise, auth_response.error());
   }
