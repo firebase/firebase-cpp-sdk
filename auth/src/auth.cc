@@ -365,8 +365,6 @@ AUTH_RESULT_FN(Auth, SendPasswordResetEmail, void)
 
 AUTH_RESULT_FN(Auth, SignInWithCustomToken, AuthResult)
 
-AUTH_RESULT_FN(Auth, SignInWithCredential, User)
-
 AUTH_RESULT_FN(Auth, SignInAndRetrieveDataWithCredential, AuthResult)
 
 AUTH_RESULT_FN(Auth, SignInAnonymously, AuthResult)
