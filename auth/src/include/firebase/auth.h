@@ -845,6 +845,12 @@ class FederatedAuthProvider {
   FederatedAuthProvider() {}
   virtual ~FederatedAuthProvider() {}
 
+  virtual Future<AuthResult> SignIn(AuthData* auth_data) = 0;
+
+  virtual Future<AuthResult> Link(AuthData* auth_data) = 0;
+
+  virtual Future<AuthResult> Reauthenticate(AuthData* auth_data) = 0;
+  
  private:
   friend class ::firebase::auth::Auth;
   friend class ::firebase::auth::User;
@@ -929,6 +935,12 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
 
  private:
   friend class ::firebase::auth::Auth;
+
+  Future<AuthResult> SignIn(AuthData* auth_data) override;
+
+  Future<AuthResult> Link(AuthData* auth_data) override;
+
+  Future<AuthResult> Reauthenticate(AuthData* auth_data) override;
 
   FederatedOAuthProviderData provider_data_;
 #ifdef INTERNAL_EXPERIMENTAL

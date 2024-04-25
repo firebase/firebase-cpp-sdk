@@ -49,7 +49,9 @@ const char* GetApiKey(const AuthData& auth_data);
 void CompletePromise(Promise<AuthResult>* promise,
                      const AuthResult& auth_result);
 
-void CompletePromise(Promise<void>* promise, const AuthResult& sign_in_result);
+void CompletePromise(Promise<User>* promise, const AuthResult& auth_result);
+
+void CompletePromise(Promise<void>* promise, const AuthResult& auth_result);
 
 // Fails the given promise with the given error_code and also provides
 // a human-readable description corresponding to the error code.

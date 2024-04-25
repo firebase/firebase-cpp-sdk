@@ -35,6 +35,12 @@ void CompletePromise(Promise<AuthResult>* const promise,
   promise->CompleteWithResult(auth_result);
 }
 
+void CompletePromise(Promise<User>* const promise,
+                     const AuthResult& auth_result) {
+  FIREBASE_ASSERT_RETURN_VOID(promise);
+  promise->CompleteWithResult(auth_result.user);
+}
+
 void CompletePromise(Promise<void>* const promise,
                      const AuthResult& /*unused*/) {
   FIREBASE_ASSERT_RETURN_VOID(promise);

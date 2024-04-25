@@ -180,17 +180,8 @@ void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::SignInComplete(
 }
 
 template <>
-void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::SignInComplete(
-    AuthCompletionHandle* completion_handle,
-    const AuthenticatedUserData& user_data, AuthError auth_error,
-    const char* error_message) {
-  FIREBASE_ASSERT_RETURN_VOID(completion_handle);
-  CompleteAuthHandle(completion_handle, user_data, auth_error, error_message);
-}
-
-template <>
 void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::LinkComplete(
-    AuthCompletionHandle* completion_handle,
+    AuthResultCompletionHandle* completion_handle,
     const AuthenticatedUserData& user_data, AuthError auth_error,
     const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
@@ -199,7 +190,7 @@ void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::LinkComplete(
 
 template <>
 void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::
-    ReauthenticateComplete(AuthCompletionHandle* completion_handle,
+    ReauthenticateComplete(AuthResultCompletionHandle* completion_handle,
                            const AuthenticatedUserData& user_data,
                            AuthError auth_error, const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
