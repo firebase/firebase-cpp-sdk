@@ -625,12 +625,6 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   WaitForCompletionOrInvalidStatus(auth_result_future, "Unlink");
   EXPECT_NE(user_ptr_future.error(), firebase::auth::kAuthErrorNone);
 
-  user_ptr_future =
-      invalid_user.UpdatePhoneNumberCredential(email_cred);
-  WaitForCompletionOrInvalidStatus(user_ptr_future,
-                                   "UpdatePhoneNumberCredential");
-  EXPECT_NE(user_ptr_future.error(), firebase::auth::kAuthErrorNone);
-
   void_future = invalid_user.Reload();
   WaitForCompletionOrInvalidStatus(void_future, "Reload");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
@@ -912,6 +906,7 @@ TEST_F(FirebaseAuthTest, TestGameCenterSignIn) {
   }
   DeleteUser();
 }
+#endif  // TARGET_OS_IPHONE
 
 TEST_F(FirebaseAuthTest, TestSendPasswordResetEmail) {
   // Test Auth::SendPasswordResetEmail().
@@ -1037,12 +1032,6 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
         "verification.");
     on_verification_complete_phone_auth_credential_count_++;
     phone_auth_credential_ = phone_auth_credential;
-  }
-
-  void OnVerificationCompleted(firebase::auth::Credential credential) override {
-    LogDebug("PhoneListener: Credential successful automatic verification.");
-    on_verification_complete_credential_count_++;
-    credential_ = credential;
   }
 
   void OnVerificationFailed(const std::string& error) override {
