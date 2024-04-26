@@ -582,10 +582,12 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   WaitForCompletionOrInvalidStatus(string_future, "GetToken");
   EXPECT_NE(string_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("Update Email");
   void_future = invalid_user.UpdateEmail(GenerateEmailAddress().c_str());
   WaitForCompletionOrInvalidStatus(void_future, "UpdateEmail");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("Update Password");
   void_future = invalid_user.UpdatePassword(kTestPassword);
   WaitForCompletionOrInvalidStatus(void_future, "UpdatePassword");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
@@ -593,42 +595,51 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   firebase::auth::Credential email_cred =
       firebase::auth::EmailAuthProvider::GetCredential(
           GenerateEmailAddress().c_str(), kTestPasswordUpdated);
+  LogDebug("Reauthenticate");
   void_future = invalid_user.Reauthenticate(email_cred);
   WaitForCompletionOrInvalidStatus(void_future, "Reauthenticate");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("ReauthenticateAndRetrieveData");
   auth_result_future = invalid_user.ReauthenticateAndRetrieveData(email_cred);
   WaitForCompletionOrInvalidStatus(auth_result_future,
                                    "ReauthenticateAndRetrieveData");
   EXPECT_NE(auth_result_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("SendEmailVerification");
   void_future = invalid_user.SendEmailVerification();
   WaitForCompletionOrInvalidStatus(void_future, "SendEmailVerification");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("SendEmailVerificationBeforeUpdatingEmail");
   void_future = invalid_user.SendEmailVerificationBeforeUpdatingEmail(
       GenerateEmailAddress().c_str());
   WaitForCompletionOrInvalidStatus(void_future,
                                    "SendEmailVerificationBeforeUpdatingEmail");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("UpdateUserProfile");
   firebase::auth::User::UserProfile profile;
   void_future = invalid_user.UpdateUserProfile(profile);
   WaitForCompletionOrInvalidStatus(void_future, "UpdateUserProfile");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("LinkWithCredential");
   auth_result_future = invalid_user.LinkWithCredential(email_cred);
   WaitForCompletionOrInvalidStatus(auth_result_future, "LinkWithCredential");
   EXPECT_NE(auth_result_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("Unlink");
   auth_result_future = invalid_user.Unlink(email_cred.provider().c_str());
   WaitForCompletionOrInvalidStatus(auth_result_future, "Unlink");
   EXPECT_NE(user_ptr_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("Reload");
   void_future = invalid_user.Reload();
   WaitForCompletionOrInvalidStatus(void_future, "Reload");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
 
+  LogDebug("Delete");
   void_future = invalid_user.Delete();
   WaitForCompletionOrInvalidStatus(void_future, "Delete");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);

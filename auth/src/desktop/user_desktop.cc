@@ -655,6 +655,9 @@ Future<std::string> User::GetToken(const bool force_refresh) {
 
 Future<std::string> User::GetTokenInternal(const bool force_refresh,
                                            const int future_identifier) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<std::string>();  // invalid future
+  }
   Promise<std::string> promise(&auth_data_->future_impl, future_identifier);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -694,6 +697,9 @@ Future<std::string> User::GetTokenInternal(const bool force_refresh,
 }
 
 Future<void> User::Delete() {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Delete);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -720,6 +726,9 @@ Future<void> User::Delete() {
 }
 
 Future<void> User::SendEmailVerification() {
+  if (!is_valid()){
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl,
                         kUserFn_SendEmailVerification);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -751,6 +760,9 @@ Future<void> User::SendEmailVerification() {
 }
 
 Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
+  if (!is_valid()){
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl,
                         kUserFn_SendEmailVerificationBeforeUpdatingEmail);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -783,6 +795,9 @@ Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
 }
 
 Future<void> User::Reload() {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reload);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -821,6 +836,9 @@ Future<void> User::Reload() {
 }
 
 Future<void> User::UpdateEmail(const char* const email) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();  // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateEmail);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -846,6 +864,9 @@ Future<void> User::UpdateEmail(const char* const email) {
 }
 
 Future<void> User::UpdatePassword(const char* const password) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();  // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdatePassword);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -869,6 +890,9 @@ Future<void> User::UpdatePassword(const char* const password) {
 }
 
 Future<void> User::UpdateUserProfile(const UserProfile& profile) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();  // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateUserProfile);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -884,6 +908,9 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 }
 
 Future<AuthResult> User::Unlink(const char* const provider) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_Unlink);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -916,6 +943,9 @@ Future<AuthResult> User::Unlink(const char* const provider) {
 }
 
 Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kUserFn_LinkWithCredential);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -927,6 +957,9 @@ Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
 
 Future<AuthResult> User::LinkWithProvider(
     FederatedAuthProvider* provider) const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   SafeFutureHandle<AuthResult> handle =
       auth_data_->future_impl.SafeAlloc<AuthResult>(kUserFn_LinkWithProvider);
@@ -938,6 +971,9 @@ Future<AuthResult> User::LinkWithProvider(
 }
 
 Future<void> User::Reauthenticate(const Credential& credential) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();  // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -948,6 +984,9 @@ Future<void> User::Reauthenticate(const Credential& credential) {
 
 Future<AuthResult> User::ReauthenticateAndRetrieveData(
     const Credential& credential) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kUserFn_ReauthenticateAndRetrieveData);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -959,6 +998,9 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(
 
 Future<AuthResult> User::ReauthenticateWithProvider(
     FederatedAuthProvider* provider) const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   SafeFutureHandle<AuthResult> handle =
       auth_data_->future_impl.SafeAlloc<AuthResult>(
@@ -991,7 +1033,9 @@ std::vector<UserInfoInterface> User::provider_data() const {
 }
 
 UserMetadata User::metadata() const {
-  if (!ValidUser(auth_data_)) return UserMetadata();
+  if (auth_data_ == nullptr) {  // user is not valid
+    return UserMetadata();
+  }
 
   UserData* user_data = static_cast<UserData*>(auth_data_->user_impl);
   UserMetadata metadata;
@@ -1002,47 +1046,74 @@ UserMetadata User::metadata() const {
 }
 
 bool User::is_email_verified() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return false;
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->is_email_verified : false;
 }
 
 bool User::is_anonymous() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return false;
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->is_anonymous : true;
 }
 
 std::string User::uid() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->uid : std::string();
 }
 
 std::string User::email() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->email : std::string();
 }
 
 std::string User::display_name() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->display_name : std::string();
 }
 
 std::string User::phone_number() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->phone_number : std::string();
 }
 
 std::string User::photo_url() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->photo_url : std::string();
 }
 
 std::string User::provider_id() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->provider_id : std::string();
 }
 
 Future<User> User::UpdatePhoneNumberCredential(
     const PhoneAuthCredential& credential) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<User>();  // invalid future
+  }
   Promise<User> promise(&auth_data_->future_impl,
                         kUserFn_UpdatePhoneNumberCredential);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
