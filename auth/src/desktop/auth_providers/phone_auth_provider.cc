@@ -74,6 +74,14 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   listener->OnCodeSent(kMockVerificationId, token);
 }
 
+PhoneAuthCredential PhoneAuthProvider::GetCredential(
+    const char* verification_id, const char* verification_code) {
+  FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(nullptr), false,
+                                 "Phone Auth is not supported on desktop");
+
+  return PhoneAuthCredential(nullptr);
+}
+
 // static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   return auth->auth_data_->phone_auth_provider;
