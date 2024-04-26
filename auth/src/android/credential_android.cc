@@ -1009,23 +1009,6 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   env->DeleteLocalRef(phone_auth_options);
 }
 
-void PhoneAuthProvider::VerifyPhoneNumber(
-    const char* phone_number, uint32_t auto_verify_time_out_ms,
-    const ForceResendingToken* force_resending_token, Listener* listener) {
-  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-  JNIEnv* env = GetJniEnv();
-
-  PhoneAuthOptions options;
-  options.force_resending_token =
-      const_cast<ForceResendingToken*>(force_resending_token);
-  options.timeout_milliseconds = auto_verify_time_out_ms;
-  if (phone_number != nullptr) {
-    options.phone_number = phone_number;
-  }
-
-  VerifyPhoneNumber(options, listener);
-}
-
 PhoneAuthCredential PhoneAuthProvider::GetCredential(
     const char* verification_id, const char* verification_code) {
   FIREBASE_ASSERT_RETURN(PhoneAuthCredential(),
@@ -1079,7 +1062,7 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationCompleted(
     JNIEnv* env, jobject j_listener, jlong c_listener, jobject j_credential) {
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
   listener->OnVerificationCompleted(
-      Credential(CredentialLocalToGlobalRef(j_credential)));
+      PhoneAuthCredential(CredentialLocalToGlobalRef(j_credential)));
 }
 
 // Redirect JniAuthPhoneListener.java callback to C++

@@ -163,7 +163,12 @@ class PhoneAuthCredential : public Credential {
   std::string sms_code() const;
 
  private:
+#ifndef SWIG
   friend class PhoneAuthProvider;
+#if FIREBASE_PLATFORM_ANDROID
+  friend class JniAuthPhoneListener;
+#endif  // FIREBASE_PLATFORM_ANDROID
+#endif  // SWIG
 
   /// Should only be created by the `PhoneAuthProvider` class.
   explicit PhoneAuthCredential(void* impl);
