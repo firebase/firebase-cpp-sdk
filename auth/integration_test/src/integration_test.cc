@@ -101,7 +101,6 @@ class FirebaseAuthTest : public FirebaseTest {
   // Delete the current user if it's currently signed in.
   void DeleteUser();
 
-
   // Passthrough method to the base class's WaitForCompletion.
   bool WaitForCompletion(firebase::Future<std::string> future, const char* fn,
                          int expected_error = firebase::auth::kAuthErrorNone) {
@@ -565,7 +564,6 @@ TEST_F(FirebaseAuthTest, TestRetainedUser) {
   EXPECT_FALSE(auth_->current_user().is_valid());
   EXPECT_FALSE(retained_user.is_valid());
 }
-
 
 TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   EXPECT_FALSE(auth_->current_user().is_valid());
@@ -1219,7 +1217,6 @@ TEST_F(FirebaseAuthTest, TestSuccessfulSignInFederatedProviderNoScopes) {
   WaitForCompletion(auth_result_future, "SignInWithProvider", provider_id);
   DeleteUser();
 }
-
 
 TEST_F(FirebaseAuthTest,
        TestSuccessfulSignInFederatedProviderNoScopesNoCustomParameters) {

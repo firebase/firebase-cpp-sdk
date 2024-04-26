@@ -655,7 +655,7 @@ Future<std::string> User::GetToken(const bool force_refresh) {
 
 Future<std::string> User::GetTokenInternal(const bool force_refresh,
                                            const int future_identifier) {
-  if (auth_data_ == nullptr) {  // user is not valid
+  if (auth_data_ == nullptr) {     // user is not valid
     return Future<std::string>();  // invalid future
   }
   Promise<std::string> promise(&auth_data_->future_impl, future_identifier);
@@ -726,7 +726,7 @@ Future<void> User::Delete() {
 }
 
 Future<void> User::SendEmailVerification() {
-  if (!is_valid()){
+  if (!is_valid()) {
     return Future<void>();
   }
   Promise<void> promise(&auth_data_->future_impl,
@@ -760,7 +760,7 @@ Future<void> User::SendEmailVerification() {
 }
 
 Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
-  if (!is_valid()){
+  if (!is_valid()) {
     return Future<void>();
   }
   Promise<void> promise(&auth_data_->future_impl,
@@ -837,7 +837,7 @@ Future<void> User::Reload() {
 
 Future<void> User::UpdateEmail(const char* const email) {
   if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();  // invalid future
+    return Future<void>();      // invalid future
   }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateEmail);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -865,7 +865,7 @@ Future<void> User::UpdateEmail(const char* const email) {
 
 Future<void> User::UpdatePassword(const char* const password) {
   if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();  // invalid future
+    return Future<void>();      // invalid future
   }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdatePassword);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -891,7 +891,7 @@ Future<void> User::UpdatePassword(const char* const password) {
 
 Future<void> User::UpdateUserProfile(const UserProfile& profile) {
   if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();  // invalid future
+    return Future<void>();      // invalid future
   }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateUserProfile);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -908,7 +908,7 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 }
 
 Future<AuthResult> User::Unlink(const char* const provider) {
-  if (auth_data_ == nullptr) {  // user is not valid
+  if (auth_data_ == nullptr) {    // user is not valid
     return Future<AuthResult>();  // invalid future
   }
   Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_Unlink);
@@ -943,7 +943,7 @@ Future<AuthResult> User::Unlink(const char* const provider) {
 }
 
 Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
-  if (auth_data_ == nullptr) {  // user is not valid
+  if (auth_data_ == nullptr) {    // user is not valid
     return Future<AuthResult>();  // invalid future
   }
   Promise<AuthResult> promise(&auth_data_->future_impl,
@@ -957,7 +957,7 @@ Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
 
 Future<AuthResult> User::LinkWithProvider(
     FederatedAuthProvider* provider) const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  if (auth_data_ == nullptr) {    // user is not valid
     return Future<AuthResult>();  // invalid future
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
@@ -972,19 +972,19 @@ Future<AuthResult> User::LinkWithProvider(
 
 Future<void> User::Reauthenticate(const Credential& credential) {
   if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();  // invalid future
+    return Future<void>();      // invalid future
   }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }
   return DoReauthenticate(promise, auth_data_, credential.provider(),
-                                     credential.impl_);
+                          credential.impl_);
 }
 
 Future<AuthResult> User::ReauthenticateAndRetrieveData(
     const Credential& credential) {
-  if (auth_data_ == nullptr) {  // user is not valid
+  if (auth_data_ == nullptr) {    // user is not valid
     return Future<AuthResult>();  // invalid future
   }
   Promise<AuthResult> promise(&auth_data_->future_impl,
@@ -998,7 +998,7 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(
 
 Future<AuthResult> User::ReauthenticateWithProvider(
     FederatedAuthProvider* provider) const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  if (auth_data_ == nullptr) {    // user is not valid
     return Future<AuthResult>();  // invalid future
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
@@ -1016,7 +1016,7 @@ std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
   if (is_valid()) {
     std::vector<UserInfoInterface*> internal_provider_data =
-      auth_data_->user_infos;
+        auth_data_->user_infos;
     provider_data.reserve(internal_provider_data.size());
     for (size_t i = 0; i < internal_provider_data.size(); ++i) {
       UserInfoInterface user_info;
@@ -1112,7 +1112,7 @@ std::string User::provider_id() const {
 Future<User> User::UpdatePhoneNumberCredential(
     const PhoneAuthCredential& credential) {
   if (auth_data_ == nullptr) {  // user is not valid
-    return Future<User>();  // invalid future
+    return Future<User>();      // invalid future
   }
   Promise<User> promise(&auth_data_->future_impl,
                         kUserFn_UpdatePhoneNumberCredential);

@@ -512,7 +512,6 @@ Future<AuthResult> User::Unlink(const char* provider) {
   return MakeFuture(&futures, handle);
 }
 
-
 Future<User> User::UpdatePhoneNumberCredential(
     const PhoneAuthCredential& credential) {
   if (!ValidUser(auth_data_)) {

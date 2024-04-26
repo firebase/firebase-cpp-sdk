@@ -594,7 +594,7 @@ class Auth {
   // Delete the internal AuthData object.
   void DeleteInternal();
 
- // This class uses the pimpl mechanism to avoid exposing platform-dependent
+  // This class uses the pimpl mechanism to avoid exposing platform-dependent
   // implementation.
   AuthData* auth_data_;
 };
@@ -814,7 +814,6 @@ class FederatedAuthProvider {
         const T& provider_data, AuthResultCompletionHandle* completion_handle) {
     }
 
-
     /// Completion for non-mobile user authorization handlers.
     ///
     /// Invoke this method once the OnReauthenticate process has been
@@ -837,7 +836,6 @@ class FederatedAuthProvider {
                                 const AuthenticatedUserData& user_data,
                                 AuthError auth_error,
                                 const char* error_message);
-
   };
 #endif  // not SWIG
 #endif  // INTERNAL_EXPERIMENTAL
@@ -850,7 +848,7 @@ class FederatedAuthProvider {
   virtual Future<AuthResult> Link(AuthData* auth_data) = 0;
 
   virtual Future<AuthResult> Reauthenticate(AuthData* auth_data) = 0;
-  
+
  private:
   friend class ::firebase::auth::Auth;
   friend class ::firebase::auth::User;
