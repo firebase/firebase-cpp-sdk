@@ -332,6 +332,7 @@ PhoneAuthProvider::~PhoneAuthProvider() { delete data_; }
 PhoneAuthProvider::~PhoneAuthProvider() {}
 #endif  // FIREBASE_PLATFORM_IOS
 
+#if FIREBASE_PLATFORM_IOS
 void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
                                           PhoneAuthProvider::Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
@@ -366,21 +367,6 @@ void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
   }
 }
 #else   // non-iOS Apple platforms (eg: tvOS)
-void PhoneAuthProvider::VerifyPhoneNumber(const char* /*phone_number*/,
-                                          uint32_t /*auto_verify_time_out_ms*/,
-                                          const ForceResendingToken* force_resending_token,
-                                          Listener* listener) {
-  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-
-  // Mock the tokens by sending a new one whenever it's unspecified.
-  ForceResendingToken token;
-  if (force_resending_token != nullptr) {
-    token = *force_resending_token;
-  }
-
-  listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
-  listener->OnCodeSent(kMockVerificationId, token);
-}
 
 void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
                                           PhoneAuthProvider::Listener* listener) {
