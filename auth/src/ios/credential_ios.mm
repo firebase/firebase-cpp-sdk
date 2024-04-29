@@ -332,43 +332,6 @@ PhoneAuthProvider::~PhoneAuthProvider() { delete data_; }
 PhoneAuthProvider::~PhoneAuthProvider() {}
 #endif  // FIREBASE_PLATFORM_IOS
 
-#if FIREBASE_PLATFORM_IOS
-void PhoneAuthProvider::VerifyPhoneNumber(const char* phone_number,
-                                          uint32_t /*auto_verify_time_out_ms*/,
-                                          const ForceResendingToken* /*force_resending_token*/,
-                                          Listener* listener) {
-  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-  const PhoneAuthProvider::ForceResendingToken invalid_resending_token;
-  PhoneListenerDataObjC* objc_listener_data = listener->data_->objc;
-
-  [data_->objc_provider
-      verifyPhoneNumber:@(phone_number)
-             UIDelegate:nil
-             completion:^(NSString* _Nullable verificationID, NSError* _Nullable error) {
-               MutexLock lock(objc_listener_data->listener_mutex);
-
-               // If the listener has been deleted before this callback, do nothing.
-               if (objc_listener_data->active_listener == nullptr) return;
-
-               // Call OnVerificationFailed() or OnCodeSent() as appropriate.
-               if (verificationID == nullptr) {
-                 listener->OnVerificationFailed(
-                     util::StringFromNSString(error.localizedDescription));
-               } else {
-                 listener->OnCodeSent(util::StringFromNSString(verificationID),
-                                      invalid_resending_token);
-               }
-             }];
-
-  // Only call the callback when protected by the mutex.
-  {
-    MutexLock lock(objc_listener_data->listener_mutex);
-    if (objc_listener_data->active_listener != nullptr) {
-      listener->OnCodeAutoRetrievalTimeOut(std::string());
-    }
-  }
-}
-
 void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
                                           PhoneAuthProvider::Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
