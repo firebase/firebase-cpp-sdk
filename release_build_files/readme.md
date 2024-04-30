@@ -631,8 +631,9 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 12.0.0
 -   Changes
+    - Auth: Removed methods that were deprecated in v11.0.0.
     - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
       running in a secondary thread
       ([#1570](https://github.com/firebase/firebase-cpp-sdk/issues/1570)).
