@@ -634,7 +634,6 @@ code.
 ### Upcoming Release
 -   Changes
     - General (iOS): Minimum iOS deployment target is now 13.0.
-    - General (tvOS): Minimum tvOS deployment target is now 11.0.
     - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
       running in a secondary thread
       ([#1570](https://github.com/firebase/firebase-cpp-sdk/issues/1570)).
