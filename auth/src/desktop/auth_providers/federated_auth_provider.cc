@@ -136,7 +136,7 @@ const char* CheckForRequiredAuthenicatedUserData(
   return error_message;
 }
 
-// Helper function which uses the AuthCompletionHandle to plumb an
+// Helper function which uses the AuthResultCompletionHandle to plumb an
 // asynchronous custom-application result into a Future<AuthResult>.
 // Note: error_message is an optional parameter.
 void CompleteAuthHandle(

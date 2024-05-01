@@ -46,7 +46,6 @@ class AuthStateListener;
 class IdTokenListener;
 class PhoneAuthProvider;
 class AuthRequest;
-struct AuthCompletionHandle;
 struct AuthResultCompletionHandle;
 class FederatedAuthProvider;
 class FederatedOAuthProvider;
