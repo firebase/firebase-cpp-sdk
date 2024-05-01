@@ -68,7 +68,7 @@ GetFakeAuthenticatedUserData() {
   return user_data;
 }
 
-inline void VerifySignInResult(const Future<SignInResult>& future,
+inline void VerifyAuthResult(const Future<AuthResult>& future,
                                AuthError auth_error,
                                const char* error_message) {
   EXPECT_EQ(future.status(), kFutureStatusComplete);
@@ -78,9 +78,9 @@ inline void VerifySignInResult(const Future<SignInResult>& future,
   }
 }
 
-inline void VerifySignInResult(const Future<SignInResult>& future,
+inline void VerifyAuthResult(const Future<AuthResult>& future,
                                AuthError auth_error) {
-  VerifySignInResult(future, auth_error,
+  VerifyAuthResult(future, auth_error,
                      /*error_message=*/nullptr);
   EXPECT_EQ(future.error(), auth_error);
 }

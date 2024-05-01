@@ -167,10 +167,9 @@ class UserTest : public ::testing::Test {
         "}");
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
+    Future<AuthResult> result = firebase_auth_->SignInAnonymously();
     MaybeWaitForFuture(result);
-    firebase_user_ = firebase_auth_->current_user_DEPRECATED();
-    EXPECT_NE(nullptr, firebase_user_);
+    EXPECT_TRUE(firebase_auth_->current_user().is_valid());
   }
 
   void TearDown() override {
@@ -341,8 +340,8 @@ TEST_F(UserTest, TestReauthenticate) {
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
-  Future<User*> sign_in_result =
-      firebase_auth_->SignInWithCredential_DEPRECATED(credential);
+  Future<AuthResult> sign_in_result =
+      firebase_auth_->SignInWithCredential(credential);
   Verify(sign_in_result);
 
   Future<void> reauthenticate_result =
@@ -368,8 +367,8 @@ TEST_F(UserTest, TestReauthenticateAndRetrieveData) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<SignInResult> result =
-      firebase_user_->ReauthenticateAndRetrieveData_DEPRECATED(
+  Future<AuthResult> result =
+      firebase_user_->ReauthenticateAndRetrieveData(
           EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
@@ -466,7 +465,7 @@ TEST_F(UserTest, TestLinkWithCredential) {
       "  ]"
       "}");
 
-  Future<User*> result = firebase_user_->LinkWithCredential_DEPRECATED(
+  Future<AuthResult> result = firebase_user_->LinkWithCredential(
       EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
@@ -494,7 +493,7 @@ TEST_F(UserTest, TestUnlink) {
   // MaybeWaitForFuture because to Reload will return immediately for mobile
   // wrappers, and Verify expects at least a single "tick".
   MaybeWaitForFuture(firebase_user_->Reload());
-  Future<User*> result = firebase_user_->Unlink_DEPRECATED("provider");
+  Future<AuthResult> result = firebase_user_->Unlink("provider");
   Verify(result);
   // For desktop, the provider must have been removed. For mobile wrappers, the
   // whole flow must have been a no-op, and the provider list was empty to begin
@@ -605,20 +604,6 @@ TEST_F(UserTest, TestComparisonOperator) {
     User user1 = firebase_auth_->current_user();
     User user2 = firebase_auth_->current_user();
     EXPECT_EQ(user1, user2);
-  }
-
-  {
-    // Two copied of current_user_DEPRECATED()
-    User* user1 = firebase_auth_->current_user_DEPRECATED();
-    User* user2 = firebase_auth_->current_user_DEPRECATED();
-    EXPECT_EQ(*user1, *user2);
-  }
-
-  {
-    // User from deprecated API and new API
-    User* user_deprecated = firebase_auth_->current_user_DEPRECATED();
-    User user_new = firebase_auth_->current_user();
-    EXPECT_EQ(*user_deprecated, user_new);
   }
 }
 
