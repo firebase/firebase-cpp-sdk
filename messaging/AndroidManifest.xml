@@ -3,7 +3,7 @@
           package="${applicationId}"
           android:versionCode="1"
           android:versionName="1.0">
-  <uses-sdk android:minSdkVersion="10" />
+  <uses-sdk android:minSdkVersion='21' />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
 
@@ -15,7 +15,7 @@
 
   <application>
     <service android:name="com.google.firebase.messaging.cpp.ListenerService"
-             android:exported="false" >
+             android:exported="true" >
       <intent-filter>
         <action android:name="com.google.firebase.MESSAGING_EVENT" />
       </intent-filter>
@@ -23,7 +23,7 @@
 
     <service android:name="com.google.firebase.messaging.cpp.RegistrationIntentService"
              android:permission="android.permission.BIND_JOB_SERVICE"
-             android:exported="false" >
+             android:exported="true" >
     </service>
   </application>
 
