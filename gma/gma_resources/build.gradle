@@ -37,7 +37,7 @@ android {
     targetCompatibility 1.8
   }
 
-  compileSdkVersion 33
+  compileSdkVersion 34
 
   sourceSets {
     main {
