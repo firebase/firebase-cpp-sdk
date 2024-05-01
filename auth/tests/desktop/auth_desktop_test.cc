@@ -287,7 +287,7 @@ class AuthDesktopTest : public ::testing::Test {
 TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
   Future<AuthResult> future = firebase_auth_->SignInWithProvider(&provider);
-  EXPECT_EQ(future.result()->user, nullptr);
+  EXPECT_TRUE(future.result()->user.is_valid());
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
             "Operation is not supported on non-mobile systems.");
@@ -776,7 +776,7 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_Twitter) {
       "fake_access_token", "fake_oauth_token");
   AuthResult result = WaitForFuture(
       firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
-  EXPECT_FALSE(result.user->is_anonymous());
+  EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
   EXPECT_EQ("twitter.com", result.additional_user_info.provider_id);
