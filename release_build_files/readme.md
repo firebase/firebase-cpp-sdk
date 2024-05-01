@@ -633,6 +633,7 @@ code.
 ## Release Notes
 ### 12.0.0
 -   Changes
+    - General (iOS): Minimum iOS deployment target is now 13.0.
     - Auth: Removed methods that were deprecated in v11.0.0.
     - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
       running in a secondary thread
