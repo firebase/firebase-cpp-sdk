@@ -659,8 +659,8 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleIdToken) {
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
-  AuthResult result =
-      WaitForFuture(firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+  AuthResult result = WaitForFuture(
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 }
@@ -673,8 +673,8 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleAccessToken) {
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
-  AuthResult result =
-      WaitForFuture(firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+  AuthResult result = WaitForFuture(
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 }
@@ -692,7 +692,8 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential), kAuthErrorFailure);
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential),
+      kAuthErrorFailure);
   EXPECT_FALSE(result.user.is_valid());
 }
 
@@ -710,7 +711,8 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential), kAuthErrorFailure);
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential),
+      kAuthErrorFailure);
   EXPECT_FALSE(result.user.is_valid());
 }
 

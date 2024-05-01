@@ -231,7 +231,8 @@ TEST_F(AuthTest, TestSignInWithCustomTokenSucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<AuthResult> result = firebase_auth_->SignInWithCustomToken("its-a-token");
+  Future<AuthResult> result =
+      firebase_auth_->SignInWithCustomToken("its-a-token");
   Verify(kAuthErrorNone, result);
 }
 
