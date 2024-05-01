@@ -555,7 +555,8 @@ TEST_F(AuthDesktopTest, TestSignInAnonymously) {
   auth_state_listener.ExpectChanges(2);
 
   AuthResult result = WaitForFuture(firebase_auth_->SignInAnonymously());
-  const User user(result.user) EXPECT_TRUE(user.is_anonymous());
+  const User user(result.user);
+  EXPECT_TRUE(user.is_anonymous());
   EXPECT_EQ("localid123", user.uid());
   EXPECT_EQ("", user.email());
   EXPECT_EQ("", user.display_name());
@@ -623,7 +624,7 @@ TEST_F(AuthDesktopTest, TestCreateUserWithEmailAndPassword) {
                                                      "testsignin");
   AuthResult result = WaitForFuture(future);
   EXPECT_FALSE(result.user.is_anonymous());
-  VerifyUser(user);
+  VerifyUser(result.user);
 }
 
 // Test Auth::SignInWithCustomToken.
@@ -642,10 +643,10 @@ TEST_F(AuthDesktopTest, TestSignInWithCustomToken) {
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
 
-  AuthResult user =
+  AuthResult result =
       WaitForFuture(firebase_auth_->SignInWithCustomToken("fake_custom_token"));
   EXPECT_FALSE(result.user.is_anonymous());
-  VerifyUser(user);
+  VerifyUser(result.user);
 }
 
 // Test Auth::TestSignInWithCredential.
@@ -659,9 +660,9 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleIdToken) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   AuthResult result =
-      WaitForFuture(firebase_auth_->SignInWithCredential(credential));
+      WaitForFuture(firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
-  VerifyUser(user);
+  VerifyUser(result.user);
 }
 
 TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleAccessToken) {
@@ -673,9 +674,9 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleAccessToken) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result =
-      WaitForFuture(firebase_auth_->SignInWithCredential(credential));
+      WaitForFuture(firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
-  VerifyUser(user);
+  VerifyUser(result.user);
 }
 
 TEST_F(AuthDesktopTest,
@@ -691,7 +692,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInWithCredential(credential), kAuthErrorFailure);
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential), kAuthErrorFailure);
   EXPECT_FALSE(result.user.is_valid());
 }
 
@@ -709,8 +710,8 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInWithCredential(credential), kAuthErrorFailure);
-  EXPECT_FALSE(user.is_valid());
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential), kAuthErrorFailure);
+  EXPECT_FALSE(result.user.is_valid());
 }
 
 TEST_F(AuthDesktopTest, TestSignInWithCredential_NeedsConfirmation) {
@@ -747,17 +748,17 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_GitHub) {
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
-  EXPECT_STREQ("github.com", result.info.provider_id.c_str());
-  EXPECT_STREQ("fake_user_name", result.info.user_name.c_str());
+  EXPECT_STREQ("github.com", result.additional_user_info.provider_id.c_str());
+  EXPECT_STREQ("fake_user_name", result.additional_user_info.user_name.c_str());
 
   const auto found_str_value =
-      result.info.profile.find(Variant("some_str_key"));
-  EXPECT_NE(found_str_value, result.info.profile.end());
+      result.additional_user_info.profile.find(Variant("some_str_key"));
+  EXPECT_NE(found_str_value, result.additional_user_info.profile.end());
   EXPECT_STREQ("some_value", found_str_value->second.string_value());
 
   const auto found_num_value =
-      result.info.profile.find(Variant("some_num_key"));
-  EXPECT_NE(found_num_value, result.info.profile.end());
+      result.additional_user_info.profile.find(Variant("some_num_key"));
+  EXPECT_NE(found_num_value, result.additional_user_info.profile.end());
   EXPECT_EQ(123, found_num_value->second.int64_value());
 }
 
@@ -776,8 +777,8 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_Twitter) {
   EXPECT_FALSE(result.user->is_anonymous());
   VerifyUser(result.user);
 
-  EXPECT_EQ("twitter.com", result.info.provider_id);
-  EXPECT_EQ("fake_user_name", result.info.user_name);
+  EXPECT_EQ("twitter.com", result.additional_user_info.provider_id);
+  EXPECT_EQ("fake_user_name", result.additional_user_info.user_name);
 }
 
 TEST_F(AuthDesktopTest,
@@ -796,9 +797,9 @@ TEST_F(AuthDesktopTest,
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
-  EXPECT_EQ("github.com", result.info.provider_id);
-  EXPECT_THAT(result.info.profile, IsEmpty());
-  EXPECT_THAT(result.info.user_name, IsEmpty());
+  EXPECT_EQ("github.com", result.additional_user_info.provider_id);
+  EXPECT_THAT(result.additional_user_info.profile, IsEmpty());
+  EXPECT_THAT(result.additional_user_info.user_name, IsEmpty());
 }
 
 TEST_F(AuthDesktopTest,
@@ -819,8 +820,8 @@ TEST_F(AuthDesktopTest,
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
-  EXPECT_EQ("twitter.com", result.info.provider_id);
-  EXPECT_THAT(result.info.user_name, IsEmpty());
+  EXPECT_EQ("twitter.com", result.additional_user_info.provider_id);
+  EXPECT_THAT(result.additional_user_info.user_name, IsEmpty());
 }
 
 TEST_F(AuthDesktopTest, TestFetchProvidersForEmail) {

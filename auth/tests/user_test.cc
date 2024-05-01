@@ -341,7 +341,7 @@ TEST_F(UserTest, TestReauthenticate) {
 
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
   Future<AuthResult> sign_in_result =
-      firebase_auth_->SignInWithCredential(credential);
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential);
   Verify(sign_in_result);
 
   Future<void> reauthenticate_result =
