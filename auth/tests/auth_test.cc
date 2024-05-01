@@ -231,8 +231,7 @@ TEST_F(AuthTest, TestSignInWithCustomTokenSucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<AuthResult> =
-      firebase_auth_->SignInWithCustomToken("its-a-token");
+  Future<AuthResult> = firebase_auth_->SignInWithCustomToken("its-a-token");
   Verify(kAuthErrorNone, result);
 }
 
@@ -261,8 +260,7 @@ TEST_F(AuthTest, TestSignInWithCredentialSucceeded) {
       "}");
   MakeAuth();
   Credential credential = EmailAuthProvider::GetCredential("abc@g.com", "abc");
-  Future<User> result =
-      firebase_auth_->SignInWithCredential(credential);
+  Future<User> result = firebase_auth_->SignInWithCredential(credential);
   Verify(kAuthErrorNone, result);
 }
 
@@ -318,8 +316,8 @@ TEST_F(AuthTest, TestSignInWithEmailAndPasswordSucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<AuthResult> result = firebase_auth_->SignInWithEmailAndPassword(
-      "abc@xyz.com", "password");
+  Future<AuthResult> result =
+      firebase_auth_->SignInWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorNone, result);
 }
 
@@ -348,8 +346,7 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordSucceeded) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com",
-                                                                "password");
+      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorNone, result);
 }
 
@@ -403,8 +400,7 @@ TEST_F(AuthTest, TestSignInWithCredentialFailed) {
       "}");
   MakeAuth();
   Credential credential = EmailAuthProvider::GetCredential("abc@g.com", "abc");
-  Future<User> result =
-      firebase_auth_->SignInWithCredential(credential);
+  Future<User> result = firebase_auth_->SignInWithCredential(credential);
   Verify(kAuthErrorInvalidEmail, result);
 }
 
@@ -450,8 +446,8 @@ TEST_F(AuthTest, TestSignInWithEmailAndPasswordFailed) {
       "  ]"
       "}");
   MakeAuth();
-  Future<AuthResult> result = firebase_auth_->SignInWithEmailAndPassword(
-      "abc@xyz.com", "password");
+  Future<AuthResult> result =
+      firebase_auth_->SignInWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorWrongPassword, result);
 }
 
@@ -475,8 +471,7 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordFailed) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com",
-                                                                "password");
+      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorEmailAlreadyInUse, result);
 }
 

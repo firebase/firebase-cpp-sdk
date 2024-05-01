@@ -69,8 +69,7 @@ GetFakeAuthenticatedUserData() {
 }
 
 inline void VerifyAuthResult(const Future<AuthResult>& future,
-                               AuthError auth_error,
-                               const char* error_message) {
+                             AuthError auth_error, const char* error_message) {
   EXPECT_EQ(future.status(), kFutureStatusComplete);
   EXPECT_EQ(future.error(), auth_error);
   if (error_message != nullptr) {
@@ -79,9 +78,9 @@ inline void VerifyAuthResult(const Future<AuthResult>& future,
 }
 
 inline void VerifyAuthResult(const Future<AuthResult>& future,
-                               AuthError auth_error) {
+                             AuthError auth_error) {
   VerifyAuthResult(future, auth_error,
-                     /*error_message=*/nullptr);
+                   /*error_message=*/nullptr);
   EXPECT_EQ(future.error(), auth_error);
 }
 
@@ -188,8 +187,9 @@ class OAuthProviderTestHandler
   }
 
  private:
-  void PerformIntegrityChecks(const FederatedOAuthProviderData& provider_data,
-                              const AuthResultCompletionHandle* completion_handle) {
+  void PerformIntegrityChecks(
+      const FederatedOAuthProviderData& provider_data,
+      const AuthResultCompletionHandle* completion_handle) {
     if (extra_integrity_checks_) {
       // check the auth_completion_handle the implementation provided.
       // note that the auth completion handle is an opaque type for our users,

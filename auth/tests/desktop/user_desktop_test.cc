@@ -969,8 +969,7 @@ TEST_F(UserDesktopTest, DISABLED_TestLinkWithProviderSignInResultUserPasses) {
       ProcessLinkWithProviderFlow(&provider, &handler, /*trigger_link=*/true);
   AuthResult result = WaitForFuture(future);
   EXPECT_NE(result.user, nullptr);
-  EXPECT_EQ(result.user.is_email_verified(),
-            user_data.is_email_verified);
+  EXPECT_EQ(result.user.is_email_verified(), user_data.is_email_verified);
   EXPECT_FALSE(result.user.is_anonymous());
   EXPECT_EQ(result.user.uid(), user_data.uid);
   EXPECT_EQ(result.user.email(), user_data.email);
@@ -1134,8 +1133,7 @@ TEST_F(UserDesktopTest,
       &provider, &handler, /*trigger_reauthenticate=*/true);
   AuthResult result = WaitForFuture(future);
   EXPECT_NE(result.user, nullptr);
-  EXPECT_EQ(result.user.is_email_verified(),
-            user_data.is_email_verified);
+  EXPECT_EQ(result.user.is_email_verified(), user_data.is_email_verified);
   EXPECT_FALSE(result.user.is_anonymous());
   EXPECT_EQ(result.user.uid(), user_data.uid);
   EXPECT_EQ(result.user.email(), user_data.email);
