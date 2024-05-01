@@ -437,7 +437,7 @@ TEST_F(UserDesktopTest, TestReload) {
   auth_state_listener.ExpectChanges(0);
 
   WaitForFuture(firebase_user_.Reload());
-  VerifyProviderData(*firebase_user_);
+  VerifyProviderData(firebase_user_);
 }
 
 // Tests the happy case of setting a new email on the currently logged in user.
@@ -454,7 +454,7 @@ TEST_F(UserDesktopTest, TestUpdateEmail) {
   EXPECT_NE(new_email, firebase_user_.email());
   WaitForFuture(firebase_user_.UpdateEmail(new_email.c_str()));
   EXPECT_EQ(new_email, firebase_user_.email());
-  VerifyProviderData(*firebase_user_);
+  VerifyProviderData(firebase_user_);
 }
 
 // Tests the happy case of setting a new password on the currently logged in
@@ -468,7 +468,7 @@ TEST_F(UserDesktopTest, TestUpdatePassword) {
   auth_state_listener.ExpectChanges(0);
 
   WaitForFuture(firebase_user_.UpdatePassword("new_password"));
-  VerifyProviderData(*firebase_user_);
+  VerifyProviderData(firebase_user_);
 }
 
 // Tests the happy case of setting new profile properties (display name and
@@ -492,7 +492,7 @@ TEST_F(UserDesktopTest, TestUpdateProfile_Update) {
   WaitForFuture(firebase_user_.UpdateUserProfile(profile));
   EXPECT_EQ(display_name, firebase_user_.display_name());
   EXPECT_EQ(photo_url, firebase_user_.photo_url());
-  VerifyProviderData(*firebase_user_);
+  VerifyProviderData(firebase_user_);
 }
 
 // Tests the happy case of deleting profile properties from the currently logged
@@ -563,7 +563,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_OauthCredential) {
   AuthResult result =
       WaitForFuture(firebase_user_.LinkWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
-  VerifyUser(user);
+  VerifyUser(result.user);
 }
 
 TEST_F(UserDesktopTest, TestLinkWithCredential_EmailCredential) {
@@ -715,7 +715,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredentialAndRetrieveData) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   const AuthResult result = WaitForFuture(
-      firebase_user_.LinkAndRetrieveDataWithCredential(credential));
+      firebase_user_.LinkDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 }
@@ -1081,7 +1081,7 @@ TEST_F(UserDesktopTest, TestReauthentciateWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
   Future<AuthResult> future =
       firebase_user_.ReauthenticateWithProvider(&provider);
-  EXPECT_EQ(future.result()->user, nullptr);
+  EXPECT_TRUE(future.result()->user.is_valid());
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
             "Operation is not supported on non-mobile systems.");
