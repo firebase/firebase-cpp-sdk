@@ -715,7 +715,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredentialAndRetrieveData) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   const AuthResult result = WaitForFuture(
-      firebase_user_.LinkDataWithCredential(credential));
+      firebase_user_.LinkWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 }
