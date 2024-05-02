@@ -287,7 +287,7 @@ class AuthDesktopTest : public ::testing::Test {
 TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
   Future<AuthResult> future = firebase_auth_->SignInWithProvider(&provider);
-  EXPECT_TRUE(future.result()->user.is_valid());
+  EXPECT_FALSE(future.result()->user.is_valid());
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
             "Operation is not supported on non-mobile systems.");
