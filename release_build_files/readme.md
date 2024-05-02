@@ -634,7 +634,7 @@ code.
 ### Upcoming Release
 -   Changes
     - General (iOS): Minimum iOS deployment target is now 13.0.
-    - General (Android): Updated minSdkVersion to 21, and targetSdkVersion
+    - General (Android): Updated minSdkVersion to 23, and targetSdkVersion
       and compileSdkVersion to 34.
     - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
       running in a secondary thread
