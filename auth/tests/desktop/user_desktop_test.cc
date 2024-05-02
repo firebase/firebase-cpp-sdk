@@ -902,14 +902,14 @@ TEST_F(UserDesktopTest, TestRaceCondition_SetAccountInfoAndSignOut) {
   }
 
   EXPECT_THAT(future.error(), AnyOf(kAuthErrorNone, kAuthErrorNoSignedInUser));
-  EXPECT_TRUE(firebase_auth_->current_user().is_valid());
+  EXPECT_FALSE(firebase_auth_->current_user().is_valid());
 }
 
 // LinkWithProvider tests.
 TEST_F(UserDesktopTest, TestLinkWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
   Future<AuthResult> future = firebase_user_.LinkWithProvider(&provider);
-  EXPECT_TRUE(future.result()->user.is_valid());
+  EXPECT_FALSE(future.result()->user.is_valid());
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
             "Operation is not supported on non-mobile systems.");
@@ -1068,7 +1068,7 @@ TEST_F(UserDesktopTest, TestReauthentciateWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
   Future<AuthResult> future =
       firebase_user_.ReauthenticateWithProvider(&provider);
-  EXPECT_TRUE(future.result()->user.is_valid());
+  EXPECT_FALSE(future.result()->user.is_valid());
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
             "Operation is not supported on non-mobile systems.");
