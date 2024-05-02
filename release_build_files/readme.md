@@ -631,11 +631,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 12.0.0
 -   Changes
-    - General (iOS): Minimum iOS deployment target is now 13.0.
+    - General (Android): Update to Firebase Android BoM version 33.0.0.
     - General (Android): Updated minSdkVersion to 23, and targetSdkVersion
       and compileSdkVersion to 34.
+    - General (iOS): Update to Firebase Cocoapods version 10.25.0.
+    - General (iOS): Minimum iOS deployment target is now 13.0.
     - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
       running in a secondary thread
       ([#1570](https://github.com/firebase/firebase-cpp-sdk/issues/1570)).
