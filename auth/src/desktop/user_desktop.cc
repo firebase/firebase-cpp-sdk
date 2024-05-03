@@ -226,27 +226,12 @@ void CompleteSetAccountInfoPromise(Promise<void>* const promise,
   promise->Complete();
 }
 
-void CompleteSetAccountInfoPromise(Promise<User*>* const promise,
-                                   User* const user) {
-  FIREBASE_ASSERT_RETURN_VOID(promise && user);
-  promise->CompleteWithResult(user);
-}
-
 void CompleteSetAccountInfoPromise(Promise<AuthResult>* const promise,
                                    User* const user) {
   FIREBASE_ASSERT_RETURN_VOID(promise && user);
 
   AuthResult result;
   result.user = *user;
-  promise->CompleteWithResult(result);
-}
-
-void CompleteSetAccountInfoPromise(Promise<SignInResult>* const promise,
-                                   User* const user) {
-  FIREBASE_ASSERT_RETURN_VOID(promise && user);
-
-  SignInResult result;
-  result.user = user;
   promise->CompleteWithResult(result);
 }
 
@@ -277,48 +262,8 @@ void PerformSignUpFlow(AuthDataHandle<ResultT, SignUpRequest>* const handle) {
   }
 }
 
-template <typename ResponseT, typename ResultT>
-void PerformSignUpFlow_DEPRECATED(
-    AuthDataHandle<ResultT, SignUpRequest>* const handle) {
-  FIREBASE_ASSERT_RETURN_VOID(handle && handle->request);
-
-  const auto response = GetResponse<ResponseT>(*handle->request);
-  const AuthenticationResult auth_response =
-      CompleteSignInFlow(handle->auth_data, response);
-
-  if (auth_response.IsValid()) {
-    const SignInResult sign_in_result =
-        auth_response.SetAsCurrentUser_DEPRECATED(handle->auth_data);
-    // The usual SignIn flow doesn't trigger this, but since this is used
-    // to upgrade anonymous accounts, it is needed for SignUp
-    NotifyIdTokenListeners(handle->auth_data);
-    CompletePromise(&handle->promise, sign_in_result);
-  } else {
-    FailPromise(&handle->promise, auth_response.error());
-  }
-}
-
 template <typename ResultT>
 void PerformSetAccountInfoFlow(
-    AuthDataHandle<ResultT, SetAccountInfoRequest>* const handle) {
-  const auto response = GetResponse<SetAccountInfoResponse>(*handle->request);
-  const auto account_info = SetAccountInfoResult::FromResponse(response);
-
-  if (account_info.IsValid()) {
-    User* api_user_to_return =
-        account_info.MergeToCurrentUser(handle->auth_data);
-
-    TriggerSaveUserFlow(handle->auth_data);
-    CompleteSetAccountInfoPromise(&handle->promise, api_user_to_return);
-  } else {
-    SignOutIfUserNoLongerValid(handle->auth_data->auth, account_info.error());
-    FailPromise(&handle->promise, account_info.error());
-  }
-}
-
-/// @deprecated Supports older SignInResult and User* return types.
-template <typename ResultT>
-void PerformSetAccountInfoFlow_DEPRECATED(
     AuthDataHandle<ResultT, SetAccountInfoRequest>* const handle) {
   const auto response = GetResponse<SetAccountInfoResponse>(*handle->request);
   const auto account_info = SetAccountInfoResult::FromResponse(response);
@@ -356,30 +301,6 @@ Future<ResultT> DoLinkWithEmailAndPassword(
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  PerformSignUpFlow<SignUpNewUserResponse>);
-}
-
-// Calls setAccountInfo endpoint to link the current user with the given email
-// credential. The given void pointer must be a CredentialImpl containing
-// a EmailAuthCredential.
-// Non-blocking.
-template <typename ResultT>
-Future<ResultT> DoLinkWithEmailAndPassword_DEPRECATED(
-    AuthData* const auth_data, Promise<ResultT> promise,
-    const void* const raw_credential_impl) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && raw_credential_impl);
-
-  const EmailAuthCredential* email_credential =
-      GetEmailCredential(raw_credential_impl);
-
-  typedef SignUpRequest RequestT;
-  auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
-      *auth_data->app, GetApiKey(*auth_data),
-      email_credential->GetEmail().c_str(),
-      email_credential->GetPassword().c_str());
-
-  return CallAsyncWithFreshToken(
-      auth_data, promise, std::move(request),
-      PerformSignUpFlow_DEPRECATED<SignUpNewUserResponse>);
 }
 
 // Checks that the given provider wasn't already linked to the currently
@@ -454,63 +375,6 @@ Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
       });
 }
 
-template <typename ResultT>
-Future<ResultT> DoLinkCredential_DEPRECATED(Promise<ResultT> promise,
-                                            AuthData* const auth_data,
-                                            const std::string& provider,
-                                            const void* const raw_credential) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && raw_credential);
-
-  if (!ValidateCredential(&promise, provider, raw_credential)) {
-    return promise.LastResult();
-  }
-
-  bool is_provider_already_linked = false;
-  const bool is_user_logged_in =
-      UserView::TryRead(auth_data, [&](const UserView::Reader& user) {
-        is_provider_already_linked = IsProviderAlreadyLinked(provider, user);
-      });
-
-  if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
-  }
-  if (is_provider_already_linked) {
-    FailPromise(&promise, kAuthErrorProviderAlreadyLinked);
-    return promise.LastResult();
-  }
-
-  if (provider == kEmailPasswordAuthProviderId) {
-    return DoLinkWithEmailAndPassword_DEPRECATED(auth_data, promise,
-                                                 raw_credential);
-  }
-
-  // The difference with sign in is that verifyAssertion is called with an ID
-  // token.
-  // Current user may have become invalid - sign out in this case (this doesn't
-  // apply to PerformSignIn, which is why it's not used here).
-  return CallAsyncWithFreshToken(
-      auth_data, promise,
-      CreateVerifyAssertionRequest(*auth_data, raw_credential),
-      [](AuthDataHandle<ResultT, VerifyAssertionRequest>* const handle) {
-        FIREBASE_ASSERT_RETURN_VOID(handle && handle->request);
-
-        const auto response =
-            GetResponse<VerifyAssertionResponse>(*handle->request);
-        const AuthenticationResult auth_result =
-            CompleteSignInFlow(handle->auth_data, response);
-
-        if (auth_result.IsValid()) {
-          const SignInResult sign_in_result =
-              auth_result.SetAsCurrentUser_DEPRECATED(handle->auth_data);
-          CompletePromise(&handle->promise, sign_in_result);
-        } else {
-          SignOutIfUserNoLongerValid(handle->auth_data->auth,
-                                     auth_result.error());
-          FailPromise(&handle->promise, auth_result.error());
-        }
-      });
-}
-
 // Reauthenticates the current user and completes the promise contained within
 // the given handle (either successfully or with an error, if the backend call
 // failed).
@@ -546,43 +410,6 @@ void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const handle) {
   }
 }
 
-/// @deprecated Supports older SignInResult return type.
-///
-// Reauthenticates the current user and completes the promise contained within
-// the given handle (either successfully or with an error, if the backend call
-// failed). This deprecated method handles the deprecated return types.
-template <typename ResponseT, typename FutureResultT, typename RequestT>
-void PerformReauthFlow_DEPRECATED(
-    AuthDataHandle<FutureResultT, RequestT>* const handle) {
-  const auto response = GetResponse<ResponseT>(*handle->request);
-  const AuthenticationResult auth_result =
-      CompleteSignInFlow(handle->auth_data, response);
-  if (!auth_result.IsValid()) {
-    SignOutIfUserNoLongerValid(handle->auth_data->auth, auth_result.error());
-    FailPromise(&handle->promise, auth_result.error());
-    return;
-  }
-
-  std::string current_uid;
-  const bool is_user_logged_in = UserView::TryRead(
-      handle->auth_data,
-      [&](const UserView::Reader& user) { current_uid = user->uid; });
-  if (!is_user_logged_in) {
-    FailPromise(&handle->promise, kAuthErrorNoSignedInUser);
-    return;
-  }
-
-  if (auth_result.uid() == current_uid) {
-    const SignInResult sign_in_result =
-        auth_result.SetAsCurrentUser_DEPRECATED(handle->auth_data);
-
-    TriggerSaveUserFlow(handle->auth_data);
-    CompletePromise(&handle->promise, sign_in_result);
-  } else {
-    FailPromise(&handle->promise, kAuthErrorUserMismatch);
-  }
-}
-
 template <typename ResultT>
 Future<ResultT> DoReauthenticate(Promise<ResultT> promise,
                                  AuthData* const auth_data,
@@ -607,36 +434,6 @@ Future<ResultT> DoReauthenticate(Promise<ResultT> promise,
   } else {
     CallAsync(auth_data, promise, std::move(request),
               PerformReauthFlow<VerifyAssertionResponse>);
-  }
-
-  return promise.LastResult();
-}
-
-/// @deprecated Supports older SignInResult return type.
-template <typename ResultT>
-Future<ResultT> DoReauthenticate_DEPRECATED(Promise<ResultT> promise,
-                                            AuthData* const auth_data,
-                                            const std::string& provider,
-                                            const void* const raw_credential) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && raw_credential);
-
-  if (!ValidateCurrentUser(&promise, auth_data)) {
-    return promise.LastResult();
-  }
-  if (!ValidateCredential(&promise, provider, raw_credential)) {
-    return promise.LastResult();
-  }
-
-  auto request =
-      CreateRequestFromCredential(auth_data, provider, raw_credential);
-
-  // Note: no need to get fresh tokens for reauthentication
-  if (provider == kEmailPasswordAuthProviderId) {
-    CallAsync(auth_data, promise, std::move(request),
-              PerformReauthFlow_DEPRECATED<VerifyPasswordResponse>);
-  } else {
-    CallAsync(auth_data, promise, std::move(request),
-              PerformReauthFlow_DEPRECATED<VerifyAssertionResponse>);
   }
 
   return promise.LastResult();
@@ -858,6 +655,9 @@ Future<std::string> User::GetToken(const bool force_refresh) {
 
 Future<std::string> User::GetTokenInternal(const bool force_refresh,
                                            const int future_identifier) {
+  if (auth_data_ == nullptr) {     // user is not valid
+    return Future<std::string>();  // invalid future
+  }
   Promise<std::string> promise(&auth_data_->future_impl, future_identifier);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -897,6 +697,9 @@ Future<std::string> User::GetTokenInternal(const bool force_refresh,
 }
 
 Future<void> User::Delete() {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Delete);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -923,6 +726,9 @@ Future<void> User::Delete() {
 }
 
 Future<void> User::SendEmailVerification() {
+  if (!is_valid()) {
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl,
                         kUserFn_SendEmailVerification);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -954,6 +760,9 @@ Future<void> User::SendEmailVerification() {
 }
 
 Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
+  if (!is_valid()) {
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl,
                         kUserFn_SendEmailVerificationBeforeUpdatingEmail);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -986,6 +795,9 @@ Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
 }
 
 Future<void> User::Reload() {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reload);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -1024,6 +836,9 @@ Future<void> User::Reload() {
 }
 
 Future<void> User::UpdateEmail(const char* const email) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();      // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateEmail);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -1049,6 +864,9 @@ Future<void> User::UpdateEmail(const char* const email) {
 }
 
 Future<void> User::UpdatePassword(const char* const password) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();      // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdatePassword);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -1072,6 +890,9 @@ Future<void> User::UpdatePassword(const char* const password) {
 }
 
 Future<void> User::UpdateUserProfile(const UserProfile& profile) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();      // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateUserProfile);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -1087,6 +908,9 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 }
 
 Future<AuthResult> User::Unlink(const char* const provider) {
+  if (auth_data_ == nullptr) {    // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_Unlink);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
@@ -1118,39 +942,10 @@ Future<AuthResult> User::Unlink(const char* const provider) {
                                  PerformSetAccountInfoFlow<AuthResult>);
 }
 
-Future<User*> User::Unlink_DEPRECATED(const char* const provider) {
-  Promise<User*> promise(&auth_data_->future_impl, kUserFn_Unlink_DEPRECATED);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-  if (!provider || strlen(provider) == 0) {
-    FailPromise(&promise, kAuthErrorNoSuchProvider);
-    return promise.LastResult();
-  }
-
-  bool is_provider_linked = false;
-  const bool is_user_logged_in =
-      UserView::TryRead(auth_data_, [&](const UserView::Reader& user) {
-        is_provider_linked = IsProviderAlreadyLinked(provider, user);
-      });
-
-  if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
-  }
-  if (!is_provider_linked) {
-    FailPromise(&promise, kAuthErrorNoSuchProvider);
-    return promise.LastResult();
-  }
-
-  typedef SetAccountInfoRequest RequestT;
-  auto request = RequestT::CreateUnlinkProviderRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), provider);
-
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
-                                 PerformSetAccountInfoFlow_DEPRECATED<User*>);
-}
-
 Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
+  if (auth_data_ == nullptr) {    // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kUserFn_LinkWithCredential);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -1159,30 +954,12 @@ Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
   return DoLinkCredential(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
-Future<User*> User::LinkWithCredential_DEPRECATED(
-    const Credential& credential) {
-  Promise<User*> promise(&auth_data_->future_impl,
-                         kUserFn_LinkWithCredential_DEPRECATED);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-  return DoLinkCredential_DEPRECATED(promise, auth_data_, credential.provider(),
-                                     credential.impl_);
-}
-
-Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
-    const Credential& credential) {
-  Promise<SignInResult> promise(&auth_data_->future_impl,
-                                kUserFn_LinkAndRetrieveDataWithCredential);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-  return DoLinkCredential_DEPRECATED(promise, auth_data_, credential.provider(),
-                                     credential.impl_);
-}
 
 Future<AuthResult> User::LinkWithProvider(
     FederatedAuthProvider* provider) const {
+  if (auth_data_ == nullptr) {    // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   SafeFutureHandle<AuthResult> handle =
       auth_data_->future_impl.SafeAlloc<AuthResult>(kUserFn_LinkWithProvider);
@@ -1193,32 +970,23 @@ Future<AuthResult> User::LinkWithProvider(
   return MakeFuture(&auth_data_->future_impl, handle);
 }
 
-Future<SignInResult> User::LinkWithProvider_DEPRECATED(
-    FederatedAuthProvider* provider) const {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  // TODO(b/139363200)
-  // return provider->Link(auth_data_);
-  SafeFutureHandle<SignInResult> handle =
-      auth_data_->future_impl.SafeAlloc<SignInResult>(
-          kUserFn_LinkWithProvider_DEPRECATED);
-  auth_data_->future_impl.CompleteWithResult(
-      handle, kAuthErrorUnimplemented,
-      "Operation is not supported on non-mobile systems.",
-      /*result=*/{});
-  return MakeFuture(&auth_data_->future_impl, handle);
-}
-
 Future<void> User::Reauthenticate(const Credential& credential) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<void>();      // invalid future
+  }
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }
-  return DoReauthenticate_DEPRECATED(promise, auth_data_, credential.provider(),
-                                     credential.impl_);
+  return DoReauthenticate(promise, auth_data_, credential.provider(),
+                          credential.impl_);
 }
 
 Future<AuthResult> User::ReauthenticateAndRetrieveData(
     const Credential& credential) {
+  if (auth_data_ == nullptr) {    // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kUserFn_ReauthenticateAndRetrieveData);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
@@ -1228,20 +996,11 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(
                           credential.impl_);
 }
 
-Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
-    const Credential& credential) {
-  Promise<SignInResult> promise(
-      &auth_data_->future_impl,
-      kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-  return DoReauthenticate_DEPRECATED(promise, auth_data_, credential.provider(),
-                                     credential.impl_);
-}
-
 Future<AuthResult> User::ReauthenticateWithProvider(
     FederatedAuthProvider* provider) const {
+  if (auth_data_ == nullptr) {    // user is not valid
+    return Future<AuthResult>();  // invalid future
+  }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   SafeFutureHandle<AuthResult> handle =
       auth_data_->future_impl.SafeAlloc<AuthResult>(
@@ -1253,47 +1012,30 @@ Future<AuthResult> User::ReauthenticateWithProvider(
   return MakeFuture(&auth_data_->future_impl, handle);
 }
 
-Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
-    FederatedAuthProvider* provider) const {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  // TODO(b/139363200)
-  // return provider->Reauthenticate(auth_data_);
-  SafeFutureHandle<SignInResult> handle =
-      auth_data_->future_impl.SafeAlloc<SignInResult>(
-          kUserFn_ReauthenticateWithProvider_DEPRECATED);
-  auth_data_->future_impl.CompleteWithResult(
-      handle, kAuthErrorUnimplemented,
-      "Operation is not supported on non-mobile systems.",
-      /*result=*/{});
-  return MakeFuture(&auth_data_->future_impl, handle);
-}
-
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
   if (is_valid()) {
-    std::vector<UserInfoInterface*> deprecated_provider_data =
-        provider_data_DEPRECATED();
-    provider_data.reserve(deprecated_provider_data.size());
-    for (size_t i = 0; i < deprecated_provider_data.size(); ++i) {
+    std::vector<UserInfoInterface*> internal_provider_data =
+        auth_data_->user_infos;
+    provider_data.reserve(internal_provider_data.size());
+    for (size_t i = 0; i < internal_provider_data.size(); ++i) {
       UserInfoInterface user_info;
-      user_info.uid_ = deprecated_provider_data[i]->uid();
-      user_info.email_ = deprecated_provider_data[i]->email();
-      user_info.display_name_ = deprecated_provider_data[i]->display_name();
-      user_info.photo_url_ = deprecated_provider_data[i]->photo_url();
-      user_info.provider_id_ = deprecated_provider_data[i]->provider_id();
-      user_info.phone_number_ = deprecated_provider_data[i]->phone_number();
+      user_info.uid_ = internal_provider_data[i]->uid();
+      user_info.email_ = internal_provider_data[i]->email();
+      user_info.display_name_ = internal_provider_data[i]->display_name();
+      user_info.photo_url_ = internal_provider_data[i]->photo_url();
+      user_info.provider_id_ = internal_provider_data[i]->provider_id();
+      user_info.phone_number_ = internal_provider_data[i]->phone_number();
       provider_data.push_back(user_info);
     }
   }
   return provider_data;
 }
 
-const std::vector<UserInfoInterface*>& User::provider_data_DEPRECATED() const {
-  return auth_data_->user_infos;
-}
-
 UserMetadata User::metadata() const {
-  if (!ValidUser(auth_data_)) return UserMetadata();
+  if (auth_data_ == nullptr) {  // user is not valid
+    return UserMetadata();
+  }
 
   UserData* user_data = static_cast<UserData*>(auth_data_->user_impl);
   UserMetadata metadata;
@@ -1304,62 +1046,76 @@ UserMetadata User::metadata() const {
 }
 
 bool User::is_email_verified() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return false;
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->is_email_verified : false;
 }
 
 bool User::is_anonymous() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return false;
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->is_anonymous : true;
 }
 
 std::string User::uid() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->uid : std::string();
 }
 
 std::string User::email() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->email : std::string();
 }
 
 std::string User::display_name() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->display_name : std::string();
 }
 
 std::string User::phone_number() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->phone_number : std::string();
 }
 
 std::string User::photo_url() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->photo_url : std::string();
 }
 
 std::string User::provider_id() const {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return "";
+  }
   const auto user_view = UserView::GetReader(auth_data_);
   return user_view.IsValid() ? user_view->provider_id : std::string();
 }
 
 Future<User> User::UpdatePhoneNumberCredential(
     const PhoneAuthCredential& credential) {
+  if (auth_data_ == nullptr) {  // user is not valid
+    return Future<User>();      // invalid future
+  }
   Promise<User> promise(&auth_data_->future_impl,
                         kUserFn_UpdatePhoneNumberCredential);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-
-  promise.Fail(kAuthErrorApiNotAvailable,
-               "Phone Auth is not supported on desktop");
-  return promise.LastResult();
-}
-
-Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(
-    const Credential& credential) {
-  Promise<User*> promise(&auth_data_->future_impl,
-                         kUserFn_UpdatePhoneNumberCredential_DEPRECATED);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }

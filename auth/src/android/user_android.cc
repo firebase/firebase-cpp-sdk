@@ -353,41 +353,6 @@ std::vector<UserInfoInterface> User::provider_data() const {
   return provider_data;
 }
 
-const std::vector<UserInfoInterface*>& User::provider_data_DEPRECATED() const {
-  ClearUserInfos(auth_data_);
-
-  if (ValidUser(auth_data_)) {
-    JNIEnv* env = Env(auth_data_);
-
-    // getProviderData returns `List<? extends UserInfo>`
-    const jobject list = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kProviderData));
-    assert(env->ExceptionCheck() == false);
-
-    // Copy the list into auth_data_->user_infos.
-    if (list != nullptr) {
-      const int num_providers =
-          env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
-      assert(env->ExceptionCheck() == false);
-      auth_data_->user_infos.resize(num_providers);
-
-      for (int i = 0; i < num_providers; ++i) {
-        // user_info is converted to a global reference in
-        // AndroidWrappedUserInfo() and the local reference is released.
-        jobject user_info = env->CallObjectMethod(
-            list, util::list::GetMethodId(util::list::kGet), i);
-        assert(env->ExceptionCheck() == false);
-        auth_data_->user_infos[i] =
-            new AndroidWrappedUserInfo(auth_data_, user_info);
-      }
-      env->DeleteLocalRef(list);
-    }
-  }
-
-  // Return a reference to our internally-backed values.
-  return auth_data_->user_infos;
-}
-
 Future<void> User::UpdateEmail(const char* email) {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
@@ -521,59 +486,10 @@ Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> User::LinkWithCredential_DEPRECATED(
-    const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<User*>();
-  }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<User*>(kUserFn_LinkWithCredential_DEPRECATED);
-  JNIEnv* env = Env(auth_data_);
-
-  jobject pending_result = env->CallObjectMethod(
-      UserImpl(auth_data_), user::GetMethodId(user::kLinkWithCredential),
-      CredentialFromImpl(credential.impl_));
-
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_,
-                     ReadUserFromSignInResult);
-    env->DeleteLocalRef(pending_result);
-  }
-  return MakeFuture(&futures, handle);
-}
-
-Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
-    const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<SignInResult>();
-  }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
-      kUserFn_LinkAndRetrieveDataWithCredential);
-  JNIEnv* env = Env(auth_data_);
-
-  jobject pending_result = env->CallObjectMethod(
-      UserImpl(auth_data_), user::GetMethodId(user::kLinkWithCredential),
-      CredentialFromImpl(credential.impl_));
-
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadSignInResult);
-    env->DeleteLocalRef(pending_result);
-  }
-  return MakeFuture(&futures, handle);
-}
-
 Future<AuthResult> User::LinkWithProvider(
     FederatedAuthProvider* provider) const {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   return provider->Link(auth_data_);
-}
-
-Future<SignInResult> User::LinkWithProvider_DEPRECATED(
-    FederatedAuthProvider* provider) const {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->Link_DEPRECATED(auth_data_);
 }
 
 Future<AuthResult> User::Unlink(const char* provider) {
@@ -591,27 +507,6 @@ Future<AuthResult> User::Unlink(const char* provider) {
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
-    env->DeleteLocalRef(pending_result);
-  }
-  return MakeFuture(&futures, handle);
-}
-
-Future<User*> User::Unlink_DEPRECATED(const char* provider) {
-  if (!ValidUser(auth_data_)) {
-    return Future<User*>();
-  }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kUserFn_Unlink_DEPRECATED);
-  JNIEnv* env = Env(auth_data_);
-
-  jstring j_provider = env->NewStringUTF(provider);
-  jobject pending_result = env->CallObjectMethod(
-      UserImpl(auth_data_), user::GetMethodId(user::kUnlink), j_provider);
-  env->DeleteLocalRef(j_provider);
-
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_,
-                     ReadUserFromSignInResult);
     env->DeleteLocalRef(pending_result);
   }
   return MakeFuture(&futures, handle);
@@ -636,34 +531,6 @@ Future<User> User::UpdatePhoneNumberCredential(
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterCallback(pending_result, handle, auth_data_,
                        ReadUserFromAuthResult);
-      env->DeleteLocalRef(pending_result);
-    }
-  } else {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
-                     "Credential is not a phone credential.");
-  }
-  return MakeFuture(&futures, handle);
-}
-
-Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(
-    const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<User*>();
-  }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<User*>(kUserFn_UpdatePhoneNumberCredential_DEPRECATED);
-  JNIEnv* env = Env(auth_data_);
-
-  jobject j_credential = CredentialFromImpl(credential.impl_);
-  if (env->IsInstanceOf(j_credential, phonecredential::GetClass())) {
-    jobject pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_),
-        user::GetMethodId(user::kUpdatePhoneNumberCredential), j_credential);
-
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(pending_result, handle, auth_data_,
-                       ReadUserFromSignInResult);
       env->DeleteLocalRef(pending_result);
     }
   } else {
@@ -732,38 +599,10 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
-    const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<SignInResult>();
-  }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
-      kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
-  JNIEnv* env = Env(auth_data_);
-
-  jobject pending_result = env->CallObjectMethod(
-      UserImpl(auth_data_),
-      user::GetMethodId(user::kReauthenticateAndRetrieveData),
-      CredentialFromImpl(credential.impl_));
-
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadSignInResult);
-    env->DeleteLocalRef(pending_result);
-  }
-  return MakeFuture(&futures, handle);
-}
-
 Future<AuthResult> User::ReauthenticateWithProvider(
     FederatedAuthProvider* provider) const {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   return provider->Reauthenticate(auth_data_);
-}
-
-Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
-    FederatedAuthProvider* provider) const {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->Reauthenticate_DEPRECATED(auth_data_);
 }
 
 Future<void> User::SendEmailVerification() {

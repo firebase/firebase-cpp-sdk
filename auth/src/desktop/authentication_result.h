@@ -78,14 +78,6 @@ class AuthenticationResult {
   // Updates to AuthData are done in a thread-safe manner.
   AuthResult SetAsCurrentUser(AuthData* auth_data) const;
 
-  // @deprecated Use SetAsCurrentUser instead.
-  //
-  // Sets the currently signed in user to the one associated with this sign-in
-  // operation, and updates listeners if the user changed.
-  //
-  // Updates to AuthData are done in a thread-safe manner.
-  SignInResult SetAsCurrentUser_DEPRECATED(AuthData* auth_data) const;
-
   // Merges user information from the given response into current state.
   // The new response will override fields read from any previous response, but
   // will not reset any fields from the previous response that are absent from

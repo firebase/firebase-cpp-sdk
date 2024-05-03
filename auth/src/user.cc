@@ -33,15 +33,6 @@ AUTH_RESULT_FN(User, Reload, void)
 AUTH_RESULT_FN(User, Delete, void)
 AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
-AUTH_RESULT_DEPRECATED_FN(User, LinkWithCredential, User*)
-// LinkAndRetrieveDataWithCredential is deprecated but there is no conflict,
-// therefore no need of DEPRECATED suffix. Put it here for easier removal in the
-// future.
-AUTH_RESULT_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
-AUTH_RESULT_DEPRECATED_FN(User, ReauthenticateAndRetrieveData, SignInResult)
-AUTH_RESULT_DEPRECATED_FN(User, Unlink, User*)
-AUTH_RESULT_DEPRECATED_FN(User, UpdatePhoneNumberCredential, User*)
-
 #if defined(INTERNAL_EXPERIMENTAL)
 // I'd like to change all the above functions to use LastResultProxy, as it
 // makes multi-threaded situations more deterministic. However, LastResult

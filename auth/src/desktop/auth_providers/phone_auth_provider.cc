@@ -74,35 +74,12 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   listener->OnCodeSent(kMockVerificationId, token);
 }
 
-void PhoneAuthProvider::VerifyPhoneNumber(
-    const char* /*phone_number*/, uint32_t /*auto_verify_time_out_ms*/,
-    const ForceResendingToken* force_resending_token, Listener* listener) {
-  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-
-  // Mock the tokens by sending a new one whenever it's unspecified.
-  ForceResendingToken token;
-  if (force_resending_token != nullptr) {
-    token = *force_resending_token;
-  }
-
-  listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
-  listener->OnCodeSent(kMockVerificationId, token);
-}
-
 PhoneAuthCredential PhoneAuthProvider::GetCredential(
     const char* verification_id, const char* verification_code) {
   FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(nullptr), false,
                                  "Phone Auth is not supported on desktop");
 
   return PhoneAuthCredential(nullptr);
-}
-
-Credential PhoneAuthProvider::GetCredential_DEPRECATED(
-    const char* verification_id, const char* verification_code) {
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(nullptr), false,
-                                 "Phone Auth is not supported on desktop");
-
-  return Credential(nullptr);
 }
 
 // static

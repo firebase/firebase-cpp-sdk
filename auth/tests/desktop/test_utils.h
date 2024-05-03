@@ -68,9 +68,8 @@ GetFakeAuthenticatedUserData() {
   return user_data;
 }
 
-inline void VerifySignInResult(const Future<SignInResult>& future,
-                               AuthError auth_error,
-                               const char* error_message) {
+inline void VerifyAuthResult(const Future<AuthResult>& future,
+                             AuthError auth_error, const char* error_message) {
   EXPECT_EQ(future.status(), kFutureStatusComplete);
   EXPECT_EQ(future.error(), auth_error);
   if (error_message != nullptr) {
@@ -78,10 +77,10 @@ inline void VerifySignInResult(const Future<SignInResult>& future,
   }
 }
 
-inline void VerifySignInResult(const Future<SignInResult>& future,
-                               AuthError auth_error) {
-  VerifySignInResult(future, auth_error,
-                     /*error_message=*/nullptr);
+inline void VerifyAuthResult(const Future<AuthResult>& future,
+                             AuthError auth_error) {
+  VerifyAuthResult(future, auth_error,
+                   /*error_message=*/nullptr);
   EXPECT_EQ(future.error(), auth_error);
 }
 
@@ -128,17 +127,6 @@ class OAuthProviderTestHandler
     return &authenticated_user_data_;
   }
 
-  // Caches the auth_completion_handler, which will be invoked via
-  // the test framework's inovcation of the TriggerSignInComplete method.
-  void OnSignIn(const FederatedOAuthProviderData& provider_data,
-                AuthCompletionHandle* completion_handle) override {
-    // ensure we're not invoking this handler twice, thereby overwritting the
-    // sign_in_auth_completion_handle_
-    assert(sign_in_auth_completion_handle_ == nullptr);
-    sign_in_auth_completion_handle_ = completion_handle;
-    PerformIntegrityChecks(provider_data, completion_handle);
-  }
-
   // Invokes SignInComplete with the auth completion handler provided to this
   // during the Auth::SignInWithProvider flow. The ability to trigger this from
   // the test framework, instead of immediately from OnSignIn, provides
@@ -158,15 +146,6 @@ class OAuthProviderTestHandler
                    auth_error, error_message);
   }
 
-  // Caches the auth_completion_handler, which will be invoked via
-  // the test framework's inovcation of the TriggerLinkComplete method.
-  void OnLink(const FederatedOAuthProviderData& provider_data,
-              AuthCompletionHandle* completion_handle) override {
-    assert(link_auth_completion_handle_ == nullptr);
-    link_auth_completion_handle_ = completion_handle;
-    PerformIntegrityChecks(provider_data, completion_handle);
-  }
-
   // Invokes LinkComplete with the auth completion handler provided to this
   // during the User::LinkWithProvider flow. The ability to trigger this from
   // the test framework, instead of immediately from OnLink, provides
@@ -184,16 +163,6 @@ class OAuthProviderTestHandler
     assert(link_auth_completion_handle_);
     LinkComplete(link_auth_completion_handle_, authenticated_user_data_,
                  auth_error, error_message);
-  }
-
-  // Caches the auth_completion_handler, which will be invoked via
-  // the test framework's inovcation of the TriggerReauthenticateComplete
-  // method.
-  void OnReauthenticate(const FederatedOAuthProviderData& provider_data,
-                        AuthCompletionHandle* completion_handle) override {
-    assert(reauthenticate_auth_completion_handle_ == nullptr);
-    reauthenticate_auth_completion_handle_ = completion_handle;
-    PerformIntegrityChecks(provider_data, completion_handle);
   }
 
   // Invokes ReauthenticateComplete with the auth completion handler provided to
@@ -218,8 +187,9 @@ class OAuthProviderTestHandler
   }
 
  private:
-  void PerformIntegrityChecks(const FederatedOAuthProviderData& provider_data,
-                              const AuthCompletionHandle* completion_handle) {
+  void PerformIntegrityChecks(
+      const FederatedOAuthProviderData& provider_data,
+      const AuthResultCompletionHandle* completion_handle) {
     if (extra_integrity_checks_) {
       // check the auth_completion_handle the implementation provided.
       // note that the auth completion handle is an opaque type for our users,
@@ -241,9 +211,9 @@ class OAuthProviderTestHandler
     }
   }
 
-  AuthCompletionHandle* sign_in_auth_completion_handle_;
-  AuthCompletionHandle* link_auth_completion_handle_;
-  AuthCompletionHandle* reauthenticate_auth_completion_handle_;
+  AuthResultCompletionHandle* sign_in_auth_completion_handle_;
+  AuthResultCompletionHandle* link_auth_completion_handle_;
+  AuthResultCompletionHandle* reauthenticate_auth_completion_handle_;
   FederatedAuthProvider::AuthenticatedUserData authenticated_user_data_;
   bool extra_integrity_checks_;
 };

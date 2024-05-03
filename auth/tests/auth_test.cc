@@ -231,8 +231,8 @@ TEST_F(AuthTest, TestSignInWithCustomTokenSucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result =
-      firebase_auth_->SignInWithCustomToken_DEPRECATED("its-a-token");
+  Future<AuthResult> result =
+      firebase_auth_->SignInWithCustomToken("its-a-token");
   Verify(kAuthErrorNone, result);
 }
 
@@ -261,8 +261,7 @@ TEST_F(AuthTest, TestSignInWithCredentialSucceeded) {
       "}");
   MakeAuth();
   Credential credential = EmailAuthProvider::GetCredential("abc@g.com", "abc");
-  Future<User*> result =
-      firebase_auth_->SignInWithCredential_DEPRECATED(credential);
+  Future<User> result = firebase_auth_->SignInWithCredential(credential);
   Verify(kAuthErrorNone, result);
 }
 
@@ -290,7 +289,7 @@ TEST_F(AuthTest, TestSignInAnonymouslySucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
+  Future<AuthResult> result = firebase_auth_->SignInAnonymously();
   Verify(kAuthErrorNone, result);
 }
 
@@ -318,8 +317,8 @@ TEST_F(AuthTest, TestSignInWithEmailAndPasswordSucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result = firebase_auth_->SignInWithEmailAndPassword_DEPRECATED(
-      "abc@xyz.com", "password");
+  Future<AuthResult> result =
+      firebase_auth_->SignInWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorNone, result);
 }
 
@@ -347,9 +346,8 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordSucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result =
-      firebase_auth_->CreateUserWithEmailAndPassword_DEPRECATED("abc@xyz.com",
-                                                                "password");
+  Future<AuthResult> result =
+      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorNone, result);
 }
 
@@ -378,8 +376,8 @@ TEST_F(AuthTest, TestSignInWithCustomTokenFailed) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result =
-      firebase_auth_->SignInWithCustomToken_DEPRECATED("its-a-token");
+  Future<AuthResult> result =
+      firebase_auth_->SignInWithCustomToken("its-a-token");
   Verify(kAuthErrorInvalidCustomToken, result);
 }
 
@@ -403,8 +401,7 @@ TEST_F(AuthTest, TestSignInWithCredentialFailed) {
       "}");
   MakeAuth();
   Credential credential = EmailAuthProvider::GetCredential("abc@g.com", "abc");
-  Future<User*> result =
-      firebase_auth_->SignInWithCredential_DEPRECATED(credential);
+  Future<User> result = firebase_auth_->SignInWithCredential(credential);
   Verify(kAuthErrorInvalidEmail, result);
 }
 
@@ -427,7 +424,7 @@ TEST_F(AuthTest, TestSignInAnonymouslyFailed) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
+  Future<AuthResult> result = firebase_auth_->SignInAnonymously();
   Verify(kAuthErrorOperationNotAllowed, result);
 }
 
@@ -450,8 +447,8 @@ TEST_F(AuthTest, TestSignInWithEmailAndPasswordFailed) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result = firebase_auth_->SignInWithEmailAndPassword_DEPRECATED(
-      "abc@xyz.com", "password");
+  Future<AuthResult> result =
+      firebase_auth_->SignInWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorWrongPassword, result);
 }
 
@@ -474,9 +471,8 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordFailed) {
       "  ]"
       "}");
   MakeAuth();
-  Future<User*> result =
-      firebase_auth_->CreateUserWithEmailAndPassword_DEPRECATED("abc@xyz.com",
-                                                                "password");
+  Future<AuthResult> result =
+      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorEmailAlreadyInUse, result);
 }
 
@@ -513,7 +509,7 @@ TEST_F(AuthTest, TestCurrentUserAndSignOut) {
   EXPECT_FALSE(firebase_auth_->current_user().is_valid());
 
   // Now sign-in, say anonymously.
-  Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
+  Future<AuthResult> result = firebase_auth_->SignInAnonymously();
   MaybeWaitForFuture(result);
   EXPECT_TRUE(firebase_auth_->current_user().is_valid());
 

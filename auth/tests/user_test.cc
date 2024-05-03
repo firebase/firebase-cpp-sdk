@@ -167,10 +167,10 @@ class UserTest : public ::testing::Test {
         "}");
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
+    Future<AuthResult> result = firebase_auth_->SignInAnonymously();
     MaybeWaitForFuture(result);
-    firebase_user_ = firebase_auth_->current_user_DEPRECATED();
-    EXPECT_NE(nullptr, firebase_user_);
+    EXPECT_TRUE(firebase_auth_->current_user().is_valid());
+    firebase_user_ = firebase_auth_->current_user();
   }
 
   void TearDown() override {
@@ -184,7 +184,6 @@ class UserTest : public ::testing::Test {
     firebase::internal::Sleep(200);
 
     // We do not own firebase_user_ object. So just assign it to nullptr here.
-    firebase_user_ = nullptr;
     delete firebase_auth_;
     firebase_auth_ = nullptr;
     delete firebase_app_;
@@ -215,7 +214,7 @@ class UserTest : public ::testing::Test {
 
   App* firebase_app_ = nullptr;
   Auth* firebase_auth_ = nullptr;
-  User* firebase_user_ = nullptr;
+  User firebase_user_;
 };
 
 TEST_F(UserTest, TestGetToken) {
@@ -245,7 +244,7 @@ TEST_F(UserTest, TestGetToken) {
       "  ]"
       "}");
   Future<std::string> token =
-      firebase_user_->GetToken(false /* force_refresh, doesn't matter here */);
+      firebase_user_.GetToken(false /* force_refresh, doesn't matter here */);
 
   Verify(token);
   EXPECT_FALSE(token.result()->empty());
@@ -255,7 +254,7 @@ TEST_F(UserTest, TestGetProviderData) {
   // Test get provider data. Right now, most of the sign-in does not have extra
   // data coming from providers.
   const std::vector<UserInfoInterface>& provider =
-      firebase_user_->provider_data();
+      firebase_user_.provider_data();
   EXPECT_TRUE(provider.empty());
 }
 
@@ -272,21 +271,21 @@ TEST_F(UserTest, TestUpdateEmail) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  EXPECT_NE("new@email.com", firebase_user_->email());
-  Future<void> result = firebase_user_->UpdateEmail("new@email.com");
+  EXPECT_NE("new@email.com", firebase_user_.email());
+  Future<void> result = firebase_user_.UpdateEmail("new@email.com");
 
 // Fake Android & iOS implemented the delay. Desktop stub completed immediately.
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
     FIREBASE_PLATFORM_TVOS
   EXPECT_EQ(firebase::kFutureStatusPending, result.status());
-  EXPECT_NE("new@email.com", firebase_user_->email());
+  EXPECT_NE("new@email.com", firebase_user_.email());
   firebase::testing::cppsdk::TickerElapse();
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
         // FIREBASE_PLATFORM_TVOS
   MaybeWaitForFuture(result);
   EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
   EXPECT_EQ(0, result.error());
-  EXPECT_EQ("new@email.com", firebase_user_->email());
+  EXPECT_EQ("new@email.com", firebase_user_.email());
 }
 
 TEST_F(UserTest, TestUpdatePassword) {
@@ -302,7 +301,7 @@ TEST_F(UserTest, TestUpdatePassword) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<void> result = firebase_user_->UpdatePassword("1234567");
+  Future<void> result = firebase_user_.UpdatePassword("1234567");
   Verify(result);
 }
 
@@ -321,7 +320,7 @@ TEST_F(UserTest, TestUpdateUserProfile) {
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
   User::UserProfile profile;
-  Future<void> result = firebase_user_->UpdateUserProfile(profile);
+  Future<void> result = firebase_user_.UpdateUserProfile(profile);
   Verify(result);
 }
 
@@ -341,12 +340,12 @@ TEST_F(UserTest, TestReauthenticate) {
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
-  Future<User*> sign_in_result =
-      firebase_auth_->SignInWithCredential_DEPRECATED(credential);
-  Verify(sign_in_result);
+  Future<AuthResult> result =
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential);
+  Verify(result);
 
   Future<void> reauthenticate_result =
-      firebase_user_->Reauthenticate(credential);
+      firebase_user_.Reauthenticate(credential);
   Verify(reauthenticate_result);
 }
 
@@ -368,9 +367,8 @@ TEST_F(UserTest, TestReauthenticateAndRetrieveData) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<SignInResult> result =
-      firebase_user_->ReauthenticateAndRetrieveData_DEPRECATED(
-          EmailAuthProvider::GetCredential("i@email.com", "pw"));
+  Future<AuthResult> result = firebase_user_.ReauthenticateAndRetrieveData(
+      EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
 #endif  // !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
@@ -397,7 +395,7 @@ TEST_F(UserTest, TestSendEmailVerification) {
       "    }"
       "  ]"
       "}");
-  Future<void> result = firebase_user_->SendEmailVerification();
+  Future<void> result = firebase_user_.SendEmailVerification();
   Verify(result);
 }
 
@@ -424,7 +422,7 @@ TEST_F(UserTest, TestSendEmailVerificationBeforeUpdatingEmail) {
       "  ]"
       "}");
   Future<void> result =
-      firebase_user_->SendEmailVerificationBeforeUpdatingEmail("new@email.com");
+      firebase_user_.SendEmailVerificationBeforeUpdatingEmail("new@email.com");
   Verify(result);
 }
 
@@ -466,7 +464,7 @@ TEST_F(UserTest, TestLinkWithCredential) {
       "  ]"
       "}");
 
-  Future<User*> result = firebase_user_->LinkWithCredential_DEPRECATED(
+  Future<AuthResult> result = firebase_user_.LinkWithCredential(
       EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
@@ -493,13 +491,13 @@ TEST_F(UserTest, TestUnlink) {
   // provider ID is valid. For mobile wrappers, this will be a no-op. Use
   // MaybeWaitForFuture because to Reload will return immediately for mobile
   // wrappers, and Verify expects at least a single "tick".
-  MaybeWaitForFuture(firebase_user_->Reload());
-  Future<User*> result = firebase_user_->Unlink_DEPRECATED("provider");
+  MaybeWaitForFuture(firebase_user_.Reload());
+  Future<AuthResult> result = firebase_user_.Unlink("provider");
   Verify(result);
   // For desktop, the provider must have been removed. For mobile wrappers, the
   // whole flow must have been a no-op, and the provider list was empty to begin
   // with.
-  EXPECT_TRUE(firebase_user_->provider_data().empty());
+  EXPECT_TRUE(firebase_user_.provider_data().empty());
 }
 
 TEST_F(UserTest, TestReload) {
@@ -516,7 +514,7 @@ TEST_F(UserTest, TestReload) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<void> result = firebase_user_->Reload();
+  Future<void> result = firebase_user_.Reload();
   Verify(result);
 }
 
@@ -539,38 +537,38 @@ TEST_F(UserTest, TestDelete) {
       "    }"
       "  ]"
       "}");
-  Future<void> result = firebase_user_->Delete();
+  Future<void> result = firebase_user_.Delete();
   Verify(result);
 }
 
 TEST_F(UserTest, TestIsEmailVerified) {
   // Test is email verified. Right now both stub and fake will return false
   // unanimously.
-  EXPECT_FALSE(firebase_user_->is_email_verified());
+  EXPECT_FALSE(firebase_user_.is_email_verified());
 }
 
 TEST_F(UserTest, TestIsAnonymous) {
   // Test is anonymous.
-  EXPECT_TRUE(firebase_user_->is_anonymous());
+  EXPECT_TRUE(firebase_user_.is_anonymous());
 }
 
 TEST_F(UserTest, TestGetter) {
 // Test getter functions. The fake value are different between stub and fake.
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
     FIREBASE_PLATFORM_TVOS
-  EXPECT_EQ("fake email", firebase_user_->email());
-  EXPECT_EQ("fake display name", firebase_user_->display_name());
-  EXPECT_EQ("fake provider id", firebase_user_->provider_id());
+  EXPECT_EQ("fake email", firebase_user_.email());
+  EXPECT_EQ("fake display name", firebase_user_.display_name());
+  EXPECT_EQ("fake provider id", firebase_user_.provider_id());
 #else   // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
         // FIREBASE_PLATFORM_TVOS
-  EXPECT_TRUE(firebase_user_->email().empty());
-  EXPECT_TRUE(firebase_user_->display_name().empty());
-  EXPECT_EQ("Firebase", firebase_user_->provider_id());
+  EXPECT_TRUE(firebase_user_.email().empty());
+  EXPECT_TRUE(firebase_user_.display_name().empty());
+  EXPECT_EQ("Firebase", firebase_user_.provider_id());
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
         // FIREBASE_PLATFORM_TVOS
 
-  EXPECT_FALSE(firebase_user_->uid().empty());
-  EXPECT_TRUE(firebase_user_->photo_url().empty());
+  EXPECT_FALSE(firebase_user_.uid().empty());
+  EXPECT_TRUE(firebase_user_.photo_url().empty());
 }
 
 TEST_F(UserTest, TestComparisonOperator) {
@@ -584,13 +582,13 @@ TEST_F(UserTest, TestComparisonOperator) {
   {
     // A invalid user
     User user_invalid;
-    EXPECT_NE(*firebase_user_, user_invalid);
+    EXPECT_NE(firebase_user_, user_invalid);
   }
 
   {
     // Copied valid user
-    User user_copy(*firebase_user_);
-    EXPECT_EQ(*firebase_user_, user_copy);
+    User user_copy(firebase_user_);
+    EXPECT_EQ(firebase_user_, user_copy);
   }
 
   {
@@ -605,20 +603,6 @@ TEST_F(UserTest, TestComparisonOperator) {
     User user1 = firebase_auth_->current_user();
     User user2 = firebase_auth_->current_user();
     EXPECT_EQ(user1, user2);
-  }
-
-  {
-    // Two copied of current_user_DEPRECATED()
-    User* user1 = firebase_auth_->current_user_DEPRECATED();
-    User* user2 = firebase_auth_->current_user_DEPRECATED();
-    EXPECT_EQ(*user1, *user2);
-  }
-
-  {
-    // User from deprecated API and new API
-    User* user_deprecated = firebase_auth_->current_user_DEPRECATED();
-    User user_new = firebase_auth_->current_user();
-    EXPECT_EQ(*user_deprecated, user_new);
   }
 }
 

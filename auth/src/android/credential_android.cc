@@ -1009,23 +1009,6 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   env->DeleteLocalRef(phone_auth_options);
 }
 
-void PhoneAuthProvider::VerifyPhoneNumber(
-    const char* phone_number, uint32_t auto_verify_time_out_ms,
-    const ForceResendingToken* force_resending_token, Listener* listener) {
-  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-  JNIEnv* env = GetJniEnv();
-
-  PhoneAuthOptions options;
-  options.force_resending_token =
-      const_cast<ForceResendingToken*>(force_resending_token);
-  options.timeout_milliseconds = auto_verify_time_out_ms;
-  if (phone_number != nullptr) {
-    options.phone_number = phone_number;
-  }
-
-  VerifyPhoneNumber(options, listener);
-}
-
 PhoneAuthCredential PhoneAuthProvider::GetCredential(
     const char* verification_id, const char* verification_code) {
   FIREBASE_ASSERT_RETURN(PhoneAuthCredential(),
@@ -1048,29 +1031,6 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
   env->DeleteLocalRef(j_verification_code);
 
   return PhoneAuthCredential(CredentialLocalToGlobalRef(j_cred));
-}
-
-Credential PhoneAuthProvider::GetCredential_DEPRECATED(
-    const char* verification_id, const char* verification_code) {
-  FIREBASE_ASSERT_RETURN(Credential(), verification_id && verification_code);
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
-                                 kMethodsNotCachedError);
-
-  JNIEnv* env = Env(data_->auth_data);
-
-  jstring j_verification_id = env->NewStringUTF(verification_id);
-  jstring j_verification_code = env->NewStringUTF(verification_code);
-
-  jobject j_cred = env->CallStaticObjectMethod(
-      phoneauthprovider::GetClass(),
-      phoneauthprovider::GetMethodId(phoneauthprovider::kGetCredential),
-      j_verification_id, j_verification_code);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
-
-  env->DeleteLocalRef(j_verification_id);
-  env->DeleteLocalRef(j_verification_code);
-
-  return Credential(CredentialLocalToGlobalRef(j_cred));
 }
 
 // static
@@ -1102,7 +1062,7 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationCompleted(
     JNIEnv* env, jobject j_listener, jlong c_listener, jobject j_credential) {
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
   listener->OnVerificationCompleted(
-      Credential(CredentialLocalToGlobalRef(j_credential)));
+      PhoneAuthCredential(CredentialLocalToGlobalRef(j_credential)));
 }
 
 // Redirect JniAuthPhoneListener.java callback to C++
@@ -1242,32 +1202,6 @@ Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> FederatedOAuthProvider::SignIn_DEPRECATED(
-    AuthData* auth_data) {
-  assert(auth_data);
-  JNIEnv* env = Env(auth_data);
-
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
-      kAuthFn_SignInWithProvider_DEPRECATED, SignInResult());
-
-  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        AuthImpl(auth_data),
-        auth_idp::GetMethodId(auth_idp::kStartActivityForSignInWithProvider),
-        auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadSignInResult);
-    }
-    env->DeleteLocalRef(task);
-  }
-
-  env->DeleteLocalRef(oauthprovider);
-  return MakeFuture(&futures, handle);
-}
-
 Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   assert(auth_data);
   JNIEnv* env = Env(auth_data);
@@ -1284,31 +1218,6 @@ Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterFederatedAuthProviderCallback(task, handle, auth_data,
                                             ReadAuthResult);
-    }
-    env->DeleteLocalRef(task);
-  }
-
-  env->DeleteLocalRef(oauthprovider);
-  return MakeFuture(&futures, handle);
-}
-
-Future<SignInResult> FederatedOAuthProvider::Link_DEPRECATED(
-    AuthData* auth_data) {
-  assert(auth_data);
-  JNIEnv* env = Env(auth_data);
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
-      kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
-
-  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        UserImpl(auth_data),
-        user_idp::GetMethodId(user_idp::kStartActivityForLinkWithProvider),
-        auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadSignInResult);
     }
     env->DeleteLocalRef(task);
   }
@@ -1334,32 +1243,6 @@ Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterFederatedAuthProviderCallback(task, handle, auth_data,
                                             ReadAuthResult);
-    }
-    env->DeleteLocalRef(task);
-  }
-
-  env->DeleteLocalRef(oauthprovider);
-  return MakeFuture(&futures, handle);
-}
-
-Future<SignInResult> FederatedOAuthProvider::Reauthenticate_DEPRECATED(
-    AuthData* auth_data) {
-  assert(auth_data);
-  JNIEnv* env = Env(auth_data);
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
-      kUserFn_ReauthenticateWithProvider_DEPRECATED, SignInResult());
-
-  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        UserImpl(auth_data),
-        user_idp::GetMethodId(
-            user_idp::kStartActivityForReauthenticateWithProvider),
-        auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadSignInResult);
     }
     env->DeleteLocalRef(task);
   }

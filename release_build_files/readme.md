@@ -638,6 +638,7 @@ code.
       and compileSdkVersion to 34.
     - General (iOS): Update to Firebase Cocoapods version 10.25.0.
     - General (iOS): Minimum iOS deployment target is now 13.0.
+    - Auth: Removed methods that were deprecated in v11.0.0.
     - Storage (iOS): Fix invalid pointer in `StorageReference::GetFile()` when
       running in a secondary thread
       ([#1570](https://github.com/firebase/firebase-cpp-sdk/issues/1570)).

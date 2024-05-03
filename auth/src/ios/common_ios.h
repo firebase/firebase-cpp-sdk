@@ -133,21 +133,6 @@ void AuthResultWithProviderCallback(FIRAuthDataResult *_Nullable auth_result,
 void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
                     SafeFutureHandle<User *> handle, AuthData *_Nonnull auth_data);
 
-/// Common code for all API calls that return a SignInResult.
-/// Initialize `auth_data->current_user` and complete the `future`.
-void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
-                          SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data);
-
-/// Common code for all FederatedOAuth API calls which return a SignInResult and
-/// must hold a reference to a FIROAuthProvider so that the provider is not
-/// deallocated by the Objective-C environment. Directly invokes
-/// SignInResultCallback().
-void SignInResultWithProviderCallback(FIRAuthDataResult *_Nullable auth_result,
-                                      NSError *_Nullable error,
-                                      SafeFutureHandle<SignInResult> handle,
-                                      AuthData *_Nonnull auth_data,
-                                      const FIROAuthProvider *_Nonnull ios_auth_provider);
-
 /// Remap iOS SDK errors reported by the UIDelegate. While these errors seem
 /// like user interaction errors, they are actually caused by bad provider ids.
 NSError *RemapBadProviderIDErrors(NSError *_Nonnull error);
