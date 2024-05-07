@@ -11,7 +11,6 @@ jobs:
   check_results_and_retry_if_needed:
     name: check-results-and-retry-if-needed
     runs-on: ubuntu-20.04
-    if:
     steps:
       - name: Get token for firebase-workflow-trigger
         uses: tibdex/github-app-token@v1
