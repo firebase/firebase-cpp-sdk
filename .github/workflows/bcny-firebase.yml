@@ -59,6 +59,9 @@ jobs:
       - name: Adjust cmake build settings for debugging
         run: powershell ${{ github.workspace }}/SourceCache/firebase-cpp-sdk/build_scripts/windows/fix_cmake_debugflags.ps1 ${{ github.workspace }}/SourceCache/firebase-cpp-sdk/CMakeLists.txt
 
+      # For curl we set '-D HAVE_IOCTLSOCKET_FIONBIO=1'. This should automatically be set to 1 by
+      # https://github.com/curl/curl/blob/60580f9f214869b501ba0caaa5a6bf335e6aee1d/CMake/Platforms/WindowsCache.cmake
+      # but this is not what we observe in CI.
       - name: Configure firebase
         run:
           cmake -B ${{ github.workspace }}/BinaryCache/firebase `
@@ -79,6 +82,7 @@ jobs:
                 -D CMAKE_C_FLAGS="/D_HAS_EXCEPTIONS=0 /EHsc-"`
                 -D CMAKE_CXX_FLAGS="/D_HAS_EXCEPTIONS=0 /EHsc-" `
                 -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded `
+                -D HAVE_IOCTLSOCKET_FIONBIO=1 `
                 -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }} `
                 -D FLATBUFFERS_FLATC_EXECUTABLE=${{ github.workspace }}/BinaryCache/flatbuffers/Release/flatc.exe
 
