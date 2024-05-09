@@ -154,6 +154,10 @@ jobs:
           gh release upload "$Date.$Release" firebase-windows-${{ matrix.arch }}.zip -R ${{ github.repository }}
           gh release upload "$Date.$Release" firebase-windows-${{ matrix.arch }}.zip.sha256 -R ${{ github.repository }}
 
+      - name: Print built libraries
+        run: |
+          Get-ChildItem 
+
       - name: Package firebase-cpp-sdk
         run: |
           @"
@@ -294,6 +298,11 @@ jobs:
               <file src="`$BUILDROOT`$\usr\libs\windows\snappy.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\ssl.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\uv_a.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_base_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_json_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_mem_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_message_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_textformat_lib.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\zlibstatic.lib" target="lib" />
             </files>
           </package>
