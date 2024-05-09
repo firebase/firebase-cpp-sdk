@@ -154,6 +154,9 @@ jobs:
           gh release upload "$Date.$Release" firebase-windows-${{ matrix.arch }}.zip -R ${{ github.repository }}
           gh release upload "$Date.$Release" firebase-windows-${{ matrix.arch }}.zip.sha256 -R ${{ github.repository }}
 
+      - name: Print built libraries
+        run: Get-ChildItem -Recurse -Name -Path ${{ github.workspace }}\BuildRoot\Library\firebase -Include *.lib
+
       - name: Package firebase-cpp-sdk
         run: |
           @"
