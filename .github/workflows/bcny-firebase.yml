@@ -1,6 +1,7 @@
 name: firebase
 
 on:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -28,7 +29,6 @@ jobs:
         with:
           fetch-depth: 1
           path: ${{ github.workspace }}/SourceCache/firebase-cpp-sdk
-          ref: refs/heads/compnerd/swift
           repository: thebrowsercompany/firebase-cpp-sdk
 
       - uses: compnerd/gha-setup-vsdevenv@main
@@ -301,11 +301,13 @@ jobs:
           nuget pack -Properties BUILDROOT=${{ github.workspace }}\BuildRoot\Library\firebase -Suffix (git -C ${{ github.workspace }}/SourceCache/firebase-cpp-sdk log -1 --format=%h) firebase.nuspec
         shell: pwsh
       - uses: actions/upload-artifact@v3
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           name: windows-${{ matrix.arch }}.nupkg
           path: com.google.firebase.windows.${{ matrix.arch }}.*.nupkg
 
       - name: Publish NuGet Packages
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           NUGET_SOURCE_NAME: TheBrowserCompany
           NUGET_SOURCE_URL: https://nuget.pkg.github.com/thebrowsercompany/index.json
