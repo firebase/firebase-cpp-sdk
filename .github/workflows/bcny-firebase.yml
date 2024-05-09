@@ -297,6 +297,11 @@ jobs:
               <file src="`$BUILDROOT`$\usr\libs\windows\snappy.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\ssl.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\uv_a.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_base_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_json_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_mem_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_message_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\upb_textformat_lib.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\zlibstatic.lib" target="lib" />
             </files>
           </package>
