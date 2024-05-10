@@ -245,6 +245,10 @@ jobs:
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_cordz_functions.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_cordz_handle.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_cordz_info.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc_cord_state.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc_cpu_detect.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc_internal.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc32c.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_debugging_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_demangle_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_exponential_biased.lib" target="lib" />
