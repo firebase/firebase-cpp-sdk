@@ -248,10 +248,19 @@ jobs:
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_debugging_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_demangle_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_exponential_biased.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_commandlineflag_internal.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_commandlineflag.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_config.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_internal.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_marshalling.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_private_handle_accessor.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_program_name.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_reflection.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_graphcycles_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_hash.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_hashtablez_sampler.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_int128.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_kernel_timeout_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_log_severity.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_low_level_hash.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_malloc_internal.lib" target="lib" />
@@ -273,6 +282,7 @@ jobs:
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_statusor.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_str_format_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_strerror.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\absl_string_view.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_strings.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_strings_internal.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\absl_symbolize.lib" target="lib" />
