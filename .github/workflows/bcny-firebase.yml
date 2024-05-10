@@ -157,8 +157,15 @@ jobs:
       - name: Print built libraries
         run: Get-ChildItem -Recurse -Name -Path ${{ github.workspace }}\BuildRoot\Library\firebase -Include *.lib
 
-      - name: Package firebase-cpp-sdk
+      - name: Generate firebase.nuspec
         run: |
+          # Gather all built libraries.
+          $XMLLibFiles=""
+          $LibFileNames=(Get-ChildItem -Recurse -Path ${{ github.workspace }}\BuildRoot\Library\firebase -Include *.lib)
+          foreach ($LibFileName in $LibFileNames) {
+            $XMLLibFiles += "<file src=`"``$BUILDROOT``$LibFileName`" target=`"lib`" />`n"
+          }
+
           @"
           <?xml version="1.0" encoding="utf-8"?>
           <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
@@ -224,104 +231,16 @@ jobs:
               <file src="`$BUILDROOT`$\usr\include\firebase\internal\type_traits.h" target="include/firebase/internal" />
               <!-- FIXME(compnerd) is this header actually required? -->
               <file src="`$BUILDROOT`$\usr\include\google_play_services\availability.h" target="include/google_play_services" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firebase_app.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firebase_auth.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firebase_firestore.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firebase_functions.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firebase_storage.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firebase_rest_lib.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firestore_core.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firestore_nanopb.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firestore_protos_nanopb.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\firestore_util.lib" target="lib" />
-              <!-- dependencies -->
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_bad_optional_access.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_bad_variant_access.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_base.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_city.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_civil_time.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_cord.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_cord_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_cordz_functions.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_cordz_handle.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_cordz_info.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc_cord_state.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc_cpu_detect.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_crc32c.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_debugging_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_demangle_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_exponential_biased.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_commandlineflag_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_commandlineflag.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_config.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_marshalling.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_private_handle_accessor.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_program_name.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_flags_reflection.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_graphcycles_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_hash.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_hashtablez_sampler.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_int128.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_kernel_timeout_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_log_severity.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_low_level_hash.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_malloc_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_distributions.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_internal_seed_material.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_internal_platform.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_internal_pool_urbg.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_internal_randen.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_internal_randen_hwaes.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_internal_randen_hwaes_impl.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_internal_randen_slow.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_seed_gen_exception.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_random_seed_sequences.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_raw_hash_set.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_raw_logging_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_spinlock_wait.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_stacktrace.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_status.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_statusor.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_str_format_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_strerror.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_string_view.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_strings.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_strings_internal.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_symbolize.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_synchronization.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_throw_delegate.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_time.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\absl_time_zone.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\address_sorting.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\cares.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\crypto.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\fipsmodule.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\flatbuffers.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\gpr.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\grpc.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\grpc++.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\leveldb.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\libcurl.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\libprotobuf.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\libuWS.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\protobuf-nanopb.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\re2.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\snappy.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\ssl.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\uv_a.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\upb_base_lib.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\upb_json_lib.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\upb_mem_lib.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\upb_message_lib.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\upb_textformat_lib.lib" target="lib" />
-              <file src="`$BUILDROOT`$\usr\libs\windows\zlibstatic.lib" target="lib" />
+              $($XMLLibFiles.Trim())
             </files>
           </package>
-          "@ | Out-File -Encoding UTF8 firebase.nuspec
-          nuget pack -Properties BUILDROOT=${{ github.workspace }}\BuildRoot\Library\firebase -Suffix (git -C ${{ github.workspace }}/SourceCache/firebase-cpp-sdk log -1 --format=%h) firebase.nuspec
-        shell: pwsh
+          "@ | Out-File -Encoding UTF8 ${{ github.workspace }}/firebase.nuspec
+
+          Get-Content ${{ github.workspace }}/firebase.nuspec
+
+      - name: Package firebase-cpp-sdk
+        run: nuget pack -Properties BUILDROOT=${{ github.workspace }}\BuildRoot\Library\firebase -Suffix (git -C ${{ github.workspace }}/SourceCache/firebase-cpp-sdk log -1 --format=%h) ${{ github.workspace }}/firebase.nuspec
+
       - uses: actions/upload-artifact@v3
         if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
