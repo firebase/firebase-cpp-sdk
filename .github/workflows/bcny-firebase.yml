@@ -316,6 +316,8 @@ jobs:
               <file src="`$BUILDROOT`$\usr\libs\windows\upb_mem_lib.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\upb_message_lib.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\upb_textformat_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\utf8_range_lib.lib" target="lib" />
+              <file src="`$BUILDROOT`$\usr\libs\windows\utf8_validity.lib" target="lib" />
               <file src="`$BUILDROOT`$\usr\libs\windows\zlibstatic.lib" target="lib" />
             </files>
           </package>
