@@ -193,6 +193,7 @@ jobs:
               <file src="`$BUILDROOT`$\usr\include\firebase\firestore\document_snapshot.h" target="include/firebase/firestore" />
               <file src="`$BUILDROOT`$\usr\include\firebase\firestore\field_path.h" target="include/firebase/firestore" />
               <file src="`$BUILDROOT`$\usr\include\firebase\firestore\field_value.h" target="include/firebase/firestore" />
+              <file src="`$BUILDROOT`$\usr\include\firebase\firestore\filter.h" target="include/firebase/firestore" />
               <file src="`$BUILDROOT`$\usr\include\firebase\firestore\firestore_errors.h" target="include/firebase/firestore" />
               <file src="`$BUILDROOT`$\usr\include\firebase\firestore\geo_point.h" target="include/firebase/firestore" />
               <file src="`$BUILDROOT`$\usr\include\firebase\firestore\listener_registration.h" target="include/firebase/firestore" />
