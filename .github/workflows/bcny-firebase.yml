@@ -81,8 +81,8 @@ jobs:
                 -D FIREBASE_INCLUDE_STORAGE=YES `
                 -D FIREBASE_USE_BORINGSSL=YES `
                 -D MSVC_RUNTIME_LIBRARY_STATIC=NO `
-                -D CMAKE_C_FLAGS="/D_HAS_EXCEPTIONS=0 /EHsc-"`
-                -D CMAKE_CXX_FLAGS="/D_HAS_EXCEPTIONS=0 /EHsc-" `
+                -D CMAKE_C_FLAGS="/D_HAS_EXCEPTIONS=0 /EHsc- /arch:AVX2" `
+                -D CMAKE_CXX_FLAGS="/D_HAS_EXCEPTIONS=0 /EHsc- /arch:AVX2" `
                 -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded `
                 -D HAVE_IOCTLSOCKET_FIONBIO=1 `
                 -D FIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=${{ steps.python.outputs.python-path }} `
