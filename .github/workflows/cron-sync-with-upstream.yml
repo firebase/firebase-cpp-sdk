@@ -1,0 +1,19 @@
+name: Cron - Sync with upstream
+
+on:
+  schedule:
+    # Every day 8:00 am UTC
+    - cron: '0 8 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  sync_with_upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: thebrowsercompany/gha-sync-fork@2374ecc08280ab56d3a6161d0cede45ebf95cd61
+        with:
+          fork_repo: thebrowsercompany/firebase-cpp-sdk
+          fork_branch: compnerd/swift
+          upstream_repo: firebase/firebase-cpp-sdk
+          upstream_branch: main
