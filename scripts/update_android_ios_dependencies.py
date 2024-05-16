@@ -450,7 +450,7 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
 
 ########## Android versions update #############################
 
-# Android gMaven repostiory from where we scan available Android packages
+# Android gMaven repository from where we scan available Android packages
 # and their versions
 GMAVEN_MASTER_INDEX = "https://dl.google.com/dl/android/maven2/master-index.xml"
 GMAVEN_GROUP_INDEX = "https://dl.google.com/dl/android/maven2/{0}/group-index.xml"
