@@ -348,3 +348,137 @@ jobs:
           $pkgs = Get-ChildItem -Path com.google.firebase.windows.${{ matrix.arch }}.*.nupkg
           nuget push $pkgs[0].Name -Source ${env:NUGET_SOURCE_URL} -SkipDuplicate
         shell: pwsh
+
+  android:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: 'arm64-v8a'
+          - arch: 'x86_64'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          path: ${{ github.workspace }}/SourceCache/firebase-cpp-sdk
+          ref: refs/heads/compnerd/swift
+          repository: thebrowsercompany/firebase-cpp-sdk
+
+      - name: Install Ninja
+        run: sudo apt-get install -y ninja-build
+
+      - name: Download Android NDK
+        run: |
+          NDK_VERSION="r21e"
+          NDK_FILE="android-ndk-${NDK_VERSION}-linux-x86_64.zip"
+          curl -L -o "${NDK_FILE}" "https://dl.google.com/android/repository/${NDK_FILE}"
+          unzip -q "${NDK_FILE}"
+          rm "${NDK_FILE}"
+          echo "NDK_ROOT=$(pwd)/android-ndk-${NDK_VERSION}" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$(pwd)/android-ndk-${NDK_VERSION}" >> $GITHUB_ENV
+
+      - name: Install absl-py
+        run: pip install absl-py
+
+      - name: Build
+        run: |
+          echo "NDK: $NDK_ROOT"
+
+          export SRC=${{ github.workspace }}/SourceCache/firebase-cpp-sdk
+          export DST=${{ github.workspace }}/SourceCache/firebase-cpp-sdk
+          function cmake_build {
+              arch=$1
+              module=$2
+              extra_params=$3
+              src_dir=$SRC
+              dst_dir=$DST
+              ndk_dir="$NDK_ROOT"
+              config_command="cmake \
+          	-H$src_dir \
+          	-B$dst_dir/$module/.externalNativeBuild/cmake/release/$arch \
+          	-DANDROID_ABI=$arch \
+          	-DANDROID_PLATFORM=android-19 \
+          	-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$dst_dir/$module/build/intermediates/cmake/release/obj/$arch \
+          	-D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/BuildRoot/Library/firebase/usr \
+          	-DCMAKE_BUILD_TYPE=Release \
+          	-DANDROID_NDK=$ndk_dir \
+          	-DCMAKE_TOOLCHAIN_FILE=$ndk_dir/build/cmake/android.toolchain.cmake \
+          	-GNinja \
+          	-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF \
+          	-D FIREBASE_GITHUB_ACTION_BUILD=YES \
+          	$extra_params"
+              echo "Configuring $module..."
+              eval "$config_command"
+              echo "Building $module..."
+              cmake --build $dst_dir/$module/.externalNativeBuild/cmake/release/$arch
+          }
+          arch="${{ matrix.arch }}"
+          cd ${{ github.workspace }}/SourceCache/firebase-cpp-sdk
+          
+          # Prebuild the gradle app to avoid any gradle <-> cmake issues on GHA workflow.
+          ./gradlew :app:invites_resources:generateDexJarRelease
+
+          # Build the invididual components
+          cmake_build $arch "app" ""
+          cmake_build $arch "storage" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_STORAGE=ON"
+          cmake_build $arch "messaging" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_MESSAGING=ON"
+          cmake_build $arch "analytics" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_ANALYTICS=ON"
+          cmake_build $arch "database" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_DATABASE=ON"
+          cmake_build $arch "gma" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_GMA=ON"
+          cmake_build $arch "dynamic_links" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_DYNAMIC_LINKS=ON"
+          cmake_build $arch "installations" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_INSTALLATIONS=ON"
+          cmake_build $arch "app_check" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_APP_CHECK=ON"
+          cmake_build $arch "firestore" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_FIRESTORE=ON"
+          cmake_build $arch "auth" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_AUTH=ON"
+          cmake_build $arch "functions" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_FUNCTIONS=ON"
+          cmake_build $arch "remote_config" "-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON -DFIREBASE_INCLUDE_REMOTE_CONFIG=ON"
+
+      - name: Install (manual)
+        run: |
+          echo "Copying static libraries ..."
+          source="${{ github.workspace }}/SourceCache/firebase-cpp-sdk"
+          destination_dir=${{ github.workspace }}/BuildRoot/Library/firebase/usr/libs/android/${{ matrix.arch }}
+          mkdir -p $destination_dir
+          while IFS= read -r file; do
+            cp "$file" "$destination_dir"
+            echo "Copied: $file"
+          done < <(find $source -type f -name "*.a")
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: firebase-android-${{ matrix.arch }}
+          path: ${{ github.workspace }}/BuildRoot/Library/firebase
+
+  release_android:
+    needs: [android]
+    runs-on: windows-latest
+    steps:
+      - name: Download firebase-android-arm64-v8a artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: firebase-android-arm64-v8a
+          path: ${{ github.workspace }}/firebase-android-arm64-v8a
+
+      - name: Download firebase-android-x86_64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: firebase-android-x86_64
+          path: ${{ github.workspace }}/firebase-android-x86_64
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Compress-Archive -Path "${{ github.workspace }}/firebase-android-arm64-v8a" -DestinationPath firebase-android-arm64-v8a.zip
+          $SHA256_arm64 = Get-FileHash -Path firebase-android-arm64-v8a.zip -Algorithm SHA256 > firebase-android-arm64-v8a.zip.sha256
+          Compress-Archive -Path "${{ github.workspace }}/firebase-android-x86_64" -DestinationPath firebase-android-x86_64.zip
+          $SHA256_x86_64 = Get-FileHash -Path firebase-android-x86_64.zip -Algorithm SHA256 > firebase-android-x86_64.zip.sha256
+          $Date = Get-Date -Format 'yyyyMMdd'
+          $Release = $(gh release list -R ${{ github.repository }} | Select-String -Pattern $Date -AllMatches).Count
+          gh release create "$Date.$Release" -R ${{ github.repository }}
+          gh release upload "$Date.$Release" firebase-android-arm64-v8a.zip -R ${{ github.repository }}
+          gh release upload "$Date.$Release" firebase-android-arm64-v8a.zip.sha256 -R ${{ github.repository }}
+          gh release upload "$Date.$Release" firebase-android-x86_64.zip -R ${{ github.repository }}
+          gh release upload "$Date.$Release" firebase-android-x86_64.zip.sha256 -R ${{ github.repository }}
+
