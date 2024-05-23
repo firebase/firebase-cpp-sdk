@@ -546,6 +546,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/native_ad.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/query_info.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump.h
