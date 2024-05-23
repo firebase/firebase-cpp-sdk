@@ -53,7 +53,7 @@ class QueryInfoInternalStub : public QueryInfoInternal {
  private:
   Future<void> CreateAndCompleteFutureStub(QueryInfoFn fn) {
     CreateAndCompleteFuture(fn, kAdErrorCodeNone, nullptr, &future_data_);
-    return GetLastResult(fn);
+    return GetInitializeLastResult();
   }
 
   Future<QueryInfoResult> CreateAndCompleteQueryInfoFutureStub(QueryInfoFn fn) {
