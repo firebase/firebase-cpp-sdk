@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_COMMON_QUERY_INNFO_INTERNAL_H_
-#define FIREBASE_GMA_SRC_COMMON_QUERY_INNFO_INTERNAL_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_QUERY_INFO_INTERNAL_H_
+#define FIREBASE_GMA_SRC_COMMON_QUERY_INFO_INTERNAL_H_
 
 #include <string>
 
@@ -84,4 +84,4 @@ class QueryInfoInternal {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_COMMON_QUERY_INNFO_INTERNAL_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_QUERY_INFO_INTERNAL_H_
