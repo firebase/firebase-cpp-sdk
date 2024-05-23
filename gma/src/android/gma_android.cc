@@ -40,6 +40,7 @@
 #include "gma/src/android/interstitial_ad_internal_android.h"
 #include "gma/src/android/native_ad_image_android.h"
 #include "gma/src/android/native_ad_internal_android.h"
+#include "gma/src/android/query_info_internal_android.h"
 #include "gma/src/android/response_info_android.h"
 #include "gma/src/android/rewarded_ad_internal_android.h"
 #include "gma/src/common/gma_common.h"
@@ -363,6 +364,9 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         download_helper::CacheClassFromFiles(env, activity, &embedded_files) !=
             nullptr &&
         download_helper::CacheMethodIds(env, activity) &&
+        query_info_helper::CacheClassFromFiles(env, activity,
+                                               &embedded_files) != nullptr &&
+        query_info_helper::CacheMethodIds(env, activity) &&
         rewarded_ad_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
         rewarded_ad_helper::CacheMethodIds(env, activity) &&
@@ -705,6 +709,7 @@ void ReleaseClasses(JNIEnv* env) {
   native_ad_helper::ReleaseClass(env);
   native_image::ReleaseClass(env);
   download_helper::ReleaseClass(env);
+  query_info_helper::ReleaseClass(env);
   rewarded_ad_helper::ReleaseClass(env);
   load_ad_error::ReleaseClass(env);
 }
@@ -915,6 +920,35 @@ void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
   GmaInternal::CompleteLoadAdFutureSuccess(
       callback_data, ResponseInfoInternal({j_response_info}));
   env->DeleteLocalRef(j_response_info);
+}
+
+void JNI_completeCreateQueryInfoSuccess(JNIEnv* env, jclass clazz,
+                                        jlong data_ptr, jstring j_query_info) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+  FIREBASE_ASSERT(j_query_info);
+
+  std::string query_info = util::JStringToString(env, j_query_info);
+  FutureCallbackData<QueryInfoResult>* callback_data =
+      reinterpret_cast<FutureCallbackData<QueryInfoResult>*>(data_ptr);
+  GmaInternal::CompleteCreateQueryInfoFutureSuccess(callback_data, query_info);
+  env->DeleteLocalRef(j_query_info);
+}
+
+void JNI_completeQueryInfoError(JNIEnv* env, jclass clazz, jlong data_ptr,
+                                jint j_error_code, jstring j_error_message) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+  FIREBASE_ASSERT(j_error_message);
+
+  // QueryInfo errors return only internal AdErrorCode values.
+  const AdErrorCode error_code = static_cast<AdErrorCode>(j_error_code);
+  std::string error_message = util::JStringToString(env, j_error_message);
+
+  FutureCallbackData<QueryInfoResult>* callback_data =
+      reinterpret_cast<FutureCallbackData<QueryInfoResult>*>(data_ptr);
+  GmaInternal::CompleteCreateQueryInfoFutureFailure(callback_data, error_code,
+                                                    error_message);
 }
 
 void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
@@ -1307,6 +1341,15 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(&JNI_NativeAd_notifyAdOpened)},
   };
 
+  static const JNINativeMethod kQueryInfoMethods[] = {
+      {"completeQueryInfoFutureCallback", "(JILjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
+      {"completeCreateQueryInfoSuccess", "(JLjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeCreateQueryInfoSuccess)},
+      {"completeCreateQueryInfoError", "(JILjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeQueryInfoError)},
+  };
+
   static const JNINativeMethod kNativeImageMethods[] = {
       {"completeNativeImageFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
@@ -1370,6 +1413,8 @@ bool RegisterNatives() {
          download_helper::RegisterNatives(
              env, kNativeImageMethods,
              FIREBASE_ARRAYSIZE(kNativeImageMethods)) &&
+         query_info_helper::RegisterNatives(
+             env, kQueryInfoMethods, FIREBASE_ARRAYSIZE(kQueryInfoMethods)) &&
          rewarded_ad_helper::RegisterNatives(
              env, kRewardedAdMethods, FIREBASE_ARRAYSIZE(kRewardedAdMethods)) &&
          gma_initialization_helper::RegisterNatives(
