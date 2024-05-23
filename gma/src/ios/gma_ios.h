@@ -47,6 +47,17 @@ void CompleteLoadImageInternalSuccess(
     FutureCallbackData<ImageResult>* callback_data,
     const std::vector<unsigned char>& img_data);
 
+// Pipes query info generation errors that exist in the C++ SDK.
+void CompleteQueryInfoInternalError(
+    FutureCallbackData<QueryInfoResult>* callback_data,
+    int error_code,
+    const char* error_message);
+
+// Completes QueryInfoResult futures for successful query info generation.
+void CompleteQueryInfoInternalSuccess(
+    FutureCallbackData<QueryInfoResult>* callback_data,
+    NSString* query_info);
+
 // Resolves LoadImage errors that exist in the C++ SDK before initiating image
 // loads.
 void CompleteLoadImageInternalError(

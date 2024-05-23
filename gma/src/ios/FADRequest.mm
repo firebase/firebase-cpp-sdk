@@ -164,5 +164,24 @@ AdErrorCode MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode
   }
 }
 
+GADAdFormat MapCPPAdFormatToGADAdformat(AdFormat format) {
+  switch (format) {
+    case kAdFormatBanner:
+      return GADAdFormatBanner;
+    case kAdFormatInterstitial:
+      return GADAdFormatInterstitial;
+    case kAdFormatRewarded:
+      return GADAdFormatRewarded;
+    case kAdFormatRewardedInterstitial:
+      return GADAdFormatRewardedInterstitial;
+    case kAdFormatNative:
+      return GADAdFormatNative;
+    case kAdFormatAppOpen:
+      return GADAdFormatAppOpen;
+    default:
+      return GADAdFormatBanner;
+  }
+}
+
 }  // namespace gma
 }  // namespace firebase
