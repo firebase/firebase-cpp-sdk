@@ -82,7 +82,6 @@ set(stub_SRCS
     src/stub/adapter_response_info_stub.cc
     src/stub/gma_stub.cc
     src/stub/native_ad_image_stub.cc
-    src/stub/query_info_internal_stub.cc
     src/stub/response_info_stub.cc)
 
 if(ANDROID)
