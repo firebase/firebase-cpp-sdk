@@ -1,15 +1,15 @@
 package com.google.firebase.test.runner;
 
 import com.google.firebase.test.$activity_name;
-import com.google.thirdparty.robolectric.GoogleRobolectricTestRunner;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 /** A test wrapper that wraps around native C++ code that calls RUN_ALL_TESTS(). */
-@RunWith(GoogleRobolectricTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE)
 public class $wrapper_name {
   @Test

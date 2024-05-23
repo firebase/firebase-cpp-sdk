@@ -24,7 +24,6 @@ import android.os.Bundle;
 import com.google.common.io.ByteStreams;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.firebase.messaging.RemoteMessageUtil;
-import com.google.thirdparty.robolectric.GoogleRobolectricTestRunner;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
@@ -37,8 +36,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.robolectric.RobolectricTestRunner;
 
-@RunWith(GoogleRobolectricTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 public final class MessageWriterTest {
   private static final Path STORAGE_FILE_PATH = Paths.get("/tmp/" + MessageWriter.STORAGE_FILE);
 

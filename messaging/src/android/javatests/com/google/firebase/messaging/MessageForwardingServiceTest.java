@@ -23,15 +23,15 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import android.content.Context;
 import android.content.Intent;
 import com.google.firebase.messaging.cpp.MessageWriter;
-import com.google.thirdparty.robolectric.GoogleRobolectricTestRunner;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.robolectric.RobolectricTestRunner;
 
-@RunWith(GoogleRobolectricTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 public final class MessageForwardingServiceTest {
   @Mock private Context context;
   @Mock private MessageWriter messageWriter;

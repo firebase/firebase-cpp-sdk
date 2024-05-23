@@ -23,14 +23,14 @@ import android.net.Uri;
 import android.os.Bundle;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.firebase.messaging.RemoteMessageUtil;
-import com.google.thirdparty.robolectric.GoogleRobolectricTestRunner;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.robolectric.RobolectricTestRunner;
 
-@RunWith(GoogleRobolectricTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 public final class ListenerServiceTest {
   @Mock private MessageWriter messageWriter;
 
