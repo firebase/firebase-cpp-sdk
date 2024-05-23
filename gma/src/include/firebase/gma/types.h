@@ -153,6 +153,15 @@ enum AdErrorCode {
   kAdErrorCodeUnknown,
 };
 
+enum AdFormat {
+  kAdFormatAppOpen,
+  kAdFormatBanner,
+  kAdFormatInterstitial,
+  kAdFormatNative,
+  kAdFormatRewarded,
+  kAdFormatRewardedInterstitial,
+};
+
 /// A listener for receiving notifications during the lifecycle of a BannerAd.
 class AdListener {
  public:
