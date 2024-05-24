@@ -1,7 +1,7 @@
 package com.google.firebase.test;
 
 import android.app.Activity;
-import com.google.thirdparty.robolectric.GoogleRobolectricTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -10,7 +10,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.annotation.Config;
 
 /** A test wrapper that wraps around native C++ code that calls RUN_ALL_TESTS(). */
-@RunWith(GoogleRobolectricTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE)
 public final class $wrapper_name {
   @Test
