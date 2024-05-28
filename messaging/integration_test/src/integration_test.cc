@@ -20,6 +20,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <map>
+#include <string>
 #include <thread>
 
 #include "app_framework.h"  // NOLINT
