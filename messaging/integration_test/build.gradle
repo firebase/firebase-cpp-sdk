@@ -73,10 +73,15 @@ android {
       proguardFile file('proguard.pro')
     }
   }
+
+  lintOptions {
+    abortOnError false
+  }
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
 firebaseCpp.dependencies {
+  functions
   messaging
 }
 

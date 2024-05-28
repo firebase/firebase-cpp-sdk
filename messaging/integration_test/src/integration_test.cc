@@ -15,13 +15,16 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <thread>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
+#include "firebase/functions.h"
 #include "firebase/messaging.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
@@ -47,13 +50,6 @@
 #endif  // FIREBASE_CONFIG
 
 namespace firebase_testapp_automated {
-
-// Your Firebase project's Server Key for Cloud Messaging goes here.
-// You can get this from Firebase Console, in your Project settings under Cloud
-// Messaging.
-const char kFcmServerKey[] = "REPLACE_WITH_YOUR_SERVER_KEY";
-
-const char kRestEndpoint[] = "https://fcm.googleapis.com/fcm/send";
 
 const char kNotificationLinkKey[] = "gcm.n.link";
 const char kTestLink[] = "https://this-is-a-test-link/";
@@ -91,12 +87,19 @@ class FirebaseMessagingTest : public FirebaseTest {
       const std::map<std::string, std::string>& message_fields,
       std::string* request_out,
       std::map<std::string, std::string>* headers_out);
-  // Send a message previously created by CreateTestMessage.
-  void SendTestMessage(const std::string& request,
-                       const std::map<std::string, std::string>& headers);
-  // Convenience method combining the above.
-  void SendTestMessage(
+  // Send a message to a token or topic by using Firebase Functions to trigger
+  // it.
+  void SendTestMessageToToken(
       const char* send_to, const char* notification_title,
+      const char* notification_body,
+      const std::map<std::string, std::string>& message_fields);
+  void SendTestMessageToTopic(
+      const char* send_to, const char* notification_title,
+      const char* notification_body,
+      const std::map<std::string, std::string>& message_fields);
+  // Called by the above.
+  void SendTestMessage(
+      const char* send_to, bool is_token, const char* notification_title,
       const char* notification_body,
       const std::map<std::string, std::string>& message_fields);
 
@@ -122,6 +125,8 @@ class FirebaseMessagingTest : public FirebaseTest {
   static firebase::messaging::PollableListener* shared_listener_;
   static std::string* shared_token_;
   static bool is_desktop_stub_;
+
+  static firebase::functions::Functions* functions_;
 };
 
 const char kObtainedPermissionKey[] = "messaging_got_permission";
@@ -131,6 +136,7 @@ firebase::App* FirebaseMessagingTest::shared_app_ = nullptr;
 firebase::messaging::PollableListener* FirebaseMessagingTest::shared_listener_ =
     nullptr;
 bool FirebaseMessagingTest::is_desktop_stub_;
+firebase::functions::Functions* FirebaseMessagingTest::functions_ = nullptr;
 
 void FirebaseMessagingTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
@@ -177,6 +183,7 @@ void FirebaseMessagingTest::SetUpTestSuite() {
       << initializer.InitializeLastResult().error_message();
 
   LogDebug("Successfully initialized Firebase Cloud Messaging.");
+  functions_ = firebase::functions::Functions::GetInstance(shared_app_);
   is_desktop_stub_ = false;
 #if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   is_desktop_stub_ = true;
@@ -193,6 +200,11 @@ void FirebaseMessagingTest::TearDownTestSuite() {
 
   LogDebug("Shutdown Firebase Cloud Messaging.");
   firebase::messaging::Terminate();
+  if (functions_) {
+    LogDebug("Shutdown the Functions library.");
+    delete functions_;
+    functions_ = nullptr;
+  }
   LogDebug("Shutdown Firebase App.");
   delete shared_app_;
   shared_app_ = nullptr;
@@ -220,68 +232,41 @@ std::string FirebaseMessagingTest::GetUniqueMessageId() {
   return std::string(buffer);
 }
 
-// send_to can be a FCM token or a topic subscription.
-bool FirebaseMessagingTest::CreateTestMessage(
-    const char* send_to, const char* notification_title,
-    const char* notification_body,
-    const std::map<std::string, std::string>& message_fields,
-    std::string* request_out, std::map<std::string, std::string>* headers_out) {
-  if (is_desktop_stub_) {
-    // Don't send HTTP requests in stub mode.
-    return false;
-  }
-  if (strcasecmp(kFcmServerKey, "replace_with_your_server_key") == 0) {
-    LogWarning(
-        "Please put your Firebase Cloud Messaging server key in "
-        "kFcmServerKey.");
-    LogWarning("Without a server key, most of these tests will fail.");
-  }
-  std::map<std::string, std::string> headers;
-  headers.insert(std::make_pair("Content-type", "application/json"));
-  headers.insert(
-      std::make_pair("Authorization", std::string("key=") + kFcmServerKey));
-  std::string request;  // Build a JSON request.
-  request += "{\"notification\":{\"title\":\"";
-  request += notification_title ? notification_title : "";
-  request += "\",\"body\":\"";
-  request += notification_body ? notification_body : "";
-  request += "\"},\"data\":{";
-  for (auto i = message_fields.begin(); i != message_fields.end(); ++i) {
-    if (i != message_fields.begin()) request += ",";
-    request += "\"";
-    request += i->first;
-    request += "\":\"";
-    request += i->second;
-    request += "\"";
-  }
-  request += "}, \"to\":\"";
-  request += send_to;
-  // Messages will expire after 5 minutes, so if there are stale/leftover
-  // messages from a previous run, just wait 5 minutes and try again.
-  request += "\", \"time_to_live\":300}";
-  *request_out = request;
-  *headers_out = headers;
-  return true;
-}
-
-void FirebaseMessagingTest::SendTestMessage(
+void FirebaseMessagingTest::SendTestMessageToToken(
     const char* send_to, const char* notification_title,
     const char* notification_body,
     const std::map<std::string, std::string>& message_fields) {
-  std::string request;
-  std::map<std::string, std::string> headers;
-  EXPECT_TRUE(CreateTestMessage(send_to, notification_title, notification_body,
-                                message_fields, &request, &headers));
-  SendTestMessage(request, headers);
+  SendTestMessage(send_to, true, notification_title, notification_body,
+                  message_fields);
+}
+
+void FirebaseMessagingTest::SendTestMessageToTopic(
+    const char* send_to, const char* notification_title,
+    const char* notification_body,
+    const std::map<std::string, std::string>& message_fields) {
+  SendTestMessage(send_to, false, notification_title, notification_body,
+                  message_fields);
 }
 
 void FirebaseMessagingTest::SendTestMessage(
-    const std::string& request,
-    const std::map<std::string, std::string>& headers) {
-  LogDebug("Request: %s", request.c_str());
-  LogDebug("Triggering FCM message from server...");
-  EXPECT_TRUE(
-      SendHttpPostRequest(kRestEndpoint, headers, request, nullptr, nullptr));
+    const char* send_to, bool is_token, const char* notification_title,
+    const char* notification_body,
+    const std::map<std::string, std::string>& message_fields) {
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["sendTo"] = firebase::Variant(send_to);
+  data.map()["isToken"] = firebase::Variant(is_token);
+  data.map()["notificationTitle"] = firebase::Variant(notification_title);
+  data.map()["notificationBody"] = firebase::Variant(notification_body);
+  data.map()["messageFields"] = firebase::Variant(message_fields);
+
+  firebase::functions::HttpsCallableReference ref =
+      functions_->GetHttpsCallable("sendMessage");
+
+  LogDebug("Triggering FCM message via Firebase Functions...");
+  firebase::Future<firebase::functions::HttpsCallableResult> future =
+      ref.Call(data);
+
+  EXPECT_TRUE(WaitForCompletion(future, "SendTestMessage"));
 }
 
 bool FirebaseMessagingTest::WaitForToken(int timeout) {
@@ -372,6 +357,10 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
   EXPECT_NE(*shared_token_, "");
 
   FLAKY_TEST_SECTION_END();
+
+  // Add in a small delay to make sure that the backend is ready to send
+  // targeted messages to the new device.
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 }
 
 TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
@@ -391,121 +380,6 @@ TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
       firebase::messaging::Unsubscribe("SubscribeTest"), "Unsubscribe"));
 }
 
-static std::string ConstructHtmlToSendMessage(
-    const std::string& request,
-    const std::map<std::string, std::string>& headers, int delay_seconds) {
-  // Generate some simple HTML/Javascript to pause a few seconds, then send the
-  // POST request via XMLHttpRequest.
-  std::string h;
-  h += "<script>window.onload = function(e){"
-       "document.write('<h1>FCM Integration Test</h1>');"
-       "document.write('<h2>Pausing a moment...</h2>');"
-       "setTimeout(function(e2){"
-       "document.write('<h2>Sending message request...</h2>');"
-       "let xhttp = new XMLHttpRequest();"
-       "xhttp.open('POST','";
-  h += kRestEndpoint;
-  h += "',false);";
-  for (auto i = headers.begin(); i != headers.end(); ++i) {
-    h += "xhttp.setRequestHeader('" + i->first + "','" + i->second + "');";
-  }
-  h += "xhttp.send('" + request + "', false);";
-  h += "if(xhttp.status==200){"
-#if defined(__ANDROID__)
-       "document.write('<h2>Notification sent.<br>Open system tray and tap "
-       "notification to return to tests.</h2>');"
-#else
-       "document.write('<h2>Notification sent.<br>Tap notification to return "
-       "to tests.</h2>');"
-#endif  // defined(__ANDROID__)
-       "}else{"
-       "document.write('<h1>Failed to send notification.</h1>');"
-       "document.write('Status '+xhttp.status+': '+xhttp.response);"
-       "}},";
-  char delay_seconds_string[22];
-  snprintf(delay_seconds_string, 22, "%d", delay_seconds);
-  h += delay_seconds_string;
-  h += ");}</script>";
-  return h;
-}
-
-TEST_F(FirebaseMessagingTest, TestNotification) {
-  TEST_REQUIRES_USER_INTERACTION;
-  SKIP_TEST_ON_DESKTOP;
-
-  EXPECT_TRUE(RequestPermission());
-  EXPECT_TRUE(WaitForToken());
-
-  // To test notifications, this test app must be running in the background. To
-  // accomplish this, switch over to the device's web browser, loading an HTML
-  // page that will, after a short delay, send the FCM message request to the
-  // app in the background. This will produce the system notification that you
-  // can then click on to go back into the app and continue the test.
-
-  std::string unique_id = GetUniqueMessageId();
-  std::string token = *shared_token_;
-  const char kNotificationTitle[] = "FCM Integration Test";
-  const char kNotificationBody[] = "Test notification, open to resume testing.";
-  std::string value;
-  if (!GetPersistentString(kTestingNotificationKey, &value) || value.empty()) {
-    // If the notification test is already in progress, just go straight to the
-    // waiting part. This can happen if you wait too long to click on the
-    // notification and the app is no longer running in the background.
-    std::string request;
-    std::map<std::string, std::string> headers;
-    std::map<std::string, std::string> message_fields = {
-      {"message", "This is a notification."},
-      {"unique_id", unique_id},
-#if defined(__ANDROID__)
-      // Duplicate notification.title and notification.body here, see
-      // below for why.
-      {"notification_title", kNotificationTitle},
-      {"notification_body", kNotificationBody},
-#endif  // defined(__ANDROID__)
-    };
-    EXPECT_TRUE(CreateTestMessage(shared_token_->c_str(), kNotificationTitle,
-                                  kNotificationBody, message_fields, &request,
-                                  &headers));
-    std::string html = ConstructHtmlToSendMessage(request, headers, 5);
-    // We now have some HTML/Javascript to send the message request. Embed it in
-    // a data: url so we can try receiving a message with the app in the
-    // background.
-    // Encode the HTML into base64.
-    std::string html_encoded;
-    EXPECT_TRUE(Base64Encode(html, &html_encoded));
-    std::string url = std::string("data:text/html;base64,") + html_encoded;
-    LogInfo("Opening browser to trigger FCM message.");
-    if (OpenUrlInBrowser(url.c_str())) {
-      SetPersistentString(kTestingNotificationKey, "1");
-    } else {
-      FAIL() << "Failed to open URL in browser.";
-    }
-  }
-  SetPersistentString(kTestingNotificationKey, nullptr);
-  LogDebug("Waiting for message.");
-  firebase::messaging::Message message;
-  EXPECT_TRUE(WaitForMessage(&message, 120));
-  EXPECT_EQ(message.data["unique_id"], unique_id);
-  EXPECT_TRUE(message.notification_opened);
-
-#if defined(__ANDROID__)
-  // On Android, if the app is running in the background, FCM does not deliver
-  // both the "notification" and the "data". So for our purposes, duplicate the
-  // notification fields we are checking into the data fields so we can still
-  // check that it's correct.
-  EXPECT_EQ(message.notification, nullptr);
-  EXPECT_EQ(message.data["notification_title"], kNotificationTitle);
-  EXPECT_EQ(message.data["notification_body"], kNotificationBody);
-#else
-  // On iOS, we do get the notification.
-  EXPECT_NE(message.notification, nullptr);
-  if (message.notification) {
-    EXPECT_EQ(message.notification->title, kNotificationTitle);
-    EXPECT_EQ(message.notification->body, kNotificationBody);
-  }
-#endif  // defined(__ANDROID__)
-}
-
 TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
@@ -520,11 +394,11 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "Token Test";
   const char kNotificationBody[] = "Token Test notification body";
-  SendTestMessage(shared_token()->c_str(), kNotificationTitle,
-                  kNotificationBody,
-                  {{"message", "Hello, world!"},
-                   {"unique_id", unique_id},
-                   {kNotificationLinkKey, kTestLink}});
+  SendTestMessageToToken(shared_token()->c_str(), kNotificationTitle,
+                         kNotificationBody,
+                         {{"message", "Hello, world!"},
+                          {"unique_id", unique_id},
+                          {kNotificationLinkKey, kTestLink}});
   LogDebug("Waiting for message.");
   firebase::messaging::Message message;
   EXPECT_TRUE(WaitForMessage(&message));
@@ -561,10 +435,10 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
                                : "00");
   std::string topic = "FCMTestTopic" + unique_id_tag;
   firebase::Future<void> sub = firebase::messaging::Subscribe(topic.c_str());
-  WaitForCompletion(sub, "Subscribe");
-  SendTestMessage(("/topics/" + topic).c_str(), kNotificationTitle,
-                  kNotificationBody,
-                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+  WaitForCompletion(sub, ("Subscribe " + topic).c_str());
+  SendTestMessageToTopic(
+      ("/topics/" + topic).c_str(), kNotificationTitle, kNotificationBody,
+      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
   firebase::messaging::Message message;
   EXPECT_TRUE(WaitForMessage(&message));
 
@@ -579,8 +453,9 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
 
   // Ensure that we *don't* receive a message now.
   unique_id = GetUniqueMessageId();
-  SendTestMessage(("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
-                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+  SendTestMessageToTopic(
+      ("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
+      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
 
   // If this returns true, it means we received a message but
   // shouldn't have.
@@ -611,8 +486,9 @@ TEST_F(FirebaseMessagingTest, TestChangingListener) {
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "New Listener Test";
   const char kNotificationBody[] = "New Listener Test notification body";
-  SendTestMessage(shared_token_->c_str(), kNotificationTitle, kNotificationBody,
-                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+  SendTestMessageToToken(
+      shared_token_->c_str(), kNotificationTitle, kNotificationBody,
+      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
   LogDebug("Waiting for message.");
   firebase::messaging::Message message;
   EXPECT_TRUE(WaitForMessage(&message));
