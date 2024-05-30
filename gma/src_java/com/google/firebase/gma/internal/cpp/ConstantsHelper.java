@@ -84,4 +84,22 @@ public final class ConstantsHelper {
   public static final int AD_VIEW_POSITION_BOTTOM_LEFT = 4;
 
   public static final int AD_VIEW_POSITION_BOTTOM_RIGHT = 5;
+
+  /**
+   * Ad formats (matches the firebase::gma::AdFormat and com.google.android.gms.ads.AdFormat
+   * enumerations ).
+   */
+  public static final int AD_FORMAT_UNDEFINED = -1;
+
+  public static final int AD_FORMAT_APP_OPEN_AD = 0;
+
+  public static final int AD_FORMAT_BANNER = 1;
+
+  public static final int AD_FORMAT_INTERSTITIAL = 2;
+
+  public static final int AD_FORMAT_NATIVE = 3;
+
+  public static final int AD_FORMAT_REWARDED = 4;
+
+  public static final int AD_FORMAT_REWARDED_INTERSTITIAL = 5;
 }

@@ -51,6 +51,10 @@ AdErrorCode MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code);
 AdErrorCode MapFullScreenContentErrorCodeToCPPErrorCode(
     GADPresentationErrorCode error_code);
 
+// Converts the platform independent ad format defined in AdFormat to the iOS
+// ad format.
+GADAdFormat MapCPPAdFormatToGADAdformat(AdFormat format);
+
 }  // namespace gma
 }  // namespace firebase
 

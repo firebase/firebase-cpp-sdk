@@ -27,6 +27,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "gma/src/include/firebase/gma/internal/native_ad.h"
+#include "gma/src/include/firebase/gma/internal/query_info.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
@@ -109,6 +110,12 @@ Future<ImageResult> CreateAndCompleteFutureWithImageResult(
     int fn_idx, int error, const char* error_msg, FutureData* future_data,
     const ImageResult& result);
 
+// For calls that aren't asynchronous, create and complete a future with a
+// result at the same time.
+Future<QueryInfoResult> CreateAndCompleteFutureWithQueryInfoResult(
+    int fn_idx, int error, const char* error_msg, FutureData* future_data,
+    const QueryInfoResult& result);
+
 template <class T>
 struct FutureCallbackData {
   FutureData* future_data;
@@ -120,14 +127,19 @@ struct FutureCallbackData {
 FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
                                                        FutureData* future_data);
 
-// Constructs a FutureCallbackData instance to handle results from LoadAd.
+// Constructs a FutureCallbackData instance to handle results from LoadAd
 // requests.
 FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
     int fn_idx, FutureData* future_data);
 
-// Constructs a FutureCallbackData instance to handle results from LoadImage.
+// Constructs a FutureCallbackData instance to handle results from LoadImage
 // requests.
 FutureCallbackData<ImageResult>* CreateImageResultFutureCallbackData(
+    int fn_idx, FutureData* future_data);
+
+// Constructs a FutureCallbackData instance to handle results from
+// createQueryInfo requests.
+FutureCallbackData<QueryInfoResult>* CreateQueryInfoResultFutureCallbackData(
     int fn_idx, FutureData* future_data);
 
 // Template function implementations.
@@ -165,6 +177,16 @@ class GmaInternal {
   // Completes an ImageResult future as an error.
   static void CompleteLoadImageFutureFailure(
       FutureCallbackData<ImageResult>* callback_data, int error_code,
+      const std::string& error_message);
+
+  // Completes an QueryInfoResult future with a successful result.
+  static void CompleteCreateQueryInfoFutureSuccess(
+      FutureCallbackData<QueryInfoResult>* callback_data,
+      const std::string& query_info_data);
+
+  // Completes an QueryInfoResult future as an error.
+  static void CompleteCreateQueryInfoFutureFailure(
+      FutureCallbackData<QueryInfoResult>* callback_data, int error_code,
       const std::string& error_message);
 
   // Constructs and returns an AdError object given an AdErrorInternal object.

@@ -29,6 +29,7 @@
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
 #include "gma/src/include/firebase/gma/internal/native_ad.h"
+#include "gma/src/include/firebase/gma/internal/query_info.h"
 #include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "gma/src/include/firebase/gma/rewarded_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
@@ -111,6 +112,25 @@ void GmaInternal::CompleteLoadImageFutureFailure(
   delete callback_data;
 }
 
+void GmaInternal::CompleteCreateQueryInfoFutureSuccess(
+    FutureCallbackData<QueryInfoResult>* callback_data,
+    const std::string& query_info_data) {
+  callback_data->future_data->future_impl.CompleteWithResult(
+      callback_data->future_handle, static_cast<int>(kAdErrorCodeNone), "",
+      QueryInfoResult(query_info_data));
+  delete callback_data;
+}
+
+void GmaInternal::CompleteCreateQueryInfoFutureFailure(
+    FutureCallbackData<QueryInfoResult>* callback_data, int error_code,
+    const std::string& error_message) {
+  callback_data->future_data->future_impl.CompleteWithResult(
+      callback_data->future_handle, static_cast<int>(error_code),
+      error_message.c_str(), QueryInfoResult());
+  // This method is responsible for disposing of the callback data struct.
+  delete callback_data;
+}
+
 AdError GmaInternal::CreateAdError(const AdErrorInternal& ad_error_internal) {
   return AdError(ad_error_internal);
 }
@@ -159,6 +179,15 @@ bool ImageResult::is_successful() const { return is_successful_; }
 const std::vector<unsigned char>& ImageResult::image() const {
   return image_info_;
 }
+
+// QueryInfoResult
+QueryInfoResult::QueryInfoResult() : is_successful_(false) {}
+QueryInfoResult::QueryInfoResult(const std::string& query_info)
+    : is_successful_(true), query_info_(query_info) {}
+
+QueryInfoResult::~QueryInfoResult() {}
+bool QueryInfoResult::is_successful() const { return is_successful_; }
+const std::string& QueryInfoResult::query_info() const { return query_info_; }
 
 // AdSize
 // Hardcoded values are from publicly available documentation:
@@ -367,6 +396,15 @@ Future<ImageResult> CreateAndCompleteFutureWithImageResult(
   return MakeFuture(&future_data->future_impl, handle);
 }
 
+Future<QueryInfoResult> CreateAndCompleteFutureWithQueryInfoResult(
+    int fn_idx, int error, const char* error_msg, FutureData* future_data,
+    const QueryInfoResult& result) {
+  SafeFutureHandle<QueryInfoResult> handle =
+      CreateFuture<QueryInfoResult>(fn_idx, future_data);
+  CompleteFuture(error, error_msg, handle, future_data, result);
+  return MakeFuture(&future_data->future_impl, handle);
+}
+
 FutureCallbackData<void>* CreateVoidFutureCallbackData(
     int fn_idx, FutureData* future_data) {
   return new FutureCallbackData<void>{
@@ -385,6 +423,13 @@ FutureCallbackData<ImageResult>* CreateImageResultFutureCallbackData(
   return new FutureCallbackData<ImageResult>{
       future_data,
       future_data->future_impl.SafeAlloc<ImageResult>(fn_idx, ImageResult())};
+}
+
+FutureCallbackData<QueryInfoResult>* CreateQueryInfoResultFutureCallbackData(
+    int fn_idx, FutureData* future_data) {
+  return new FutureCallbackData<QueryInfoResult>{
+      future_data, future_data->future_impl.SafeAlloc<QueryInfoResult>(
+                       fn_idx, QueryInfoResult())};
 }
 
 }  // namespace gma

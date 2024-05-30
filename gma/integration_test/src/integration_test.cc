@@ -993,6 +993,72 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
   delete native_ad;
 }
 
+TEST_F(FirebaseGmaTest, TestCreateQueryInfo) {
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
+
+  firebase::gma::QueryInfo* query_info = new firebase::gma::QueryInfo();
+
+  WaitForCompletion(query_info->Initialize(app_framework::GetWindowContext()),
+                    "Initialize");
+
+  firebase::gma::AdRequest request = GetAdRequest();
+  // Set the requester type to 8. QueryInfo gets generated without a
+  // query_info_type set, but throws a warning that it is missing.
+  request.add_extra(kAdNetworkExtrasClassName, "query_info_type",
+                    "requester_type_8");
+  // When the QueryInfo is initialized, generate a query info string.
+  firebase::Future<firebase::gma::QueryInfoResult> create_query_info_future =
+      query_info->CreateQueryInfo(firebase::gma::kAdFormatNative, request);
+
+  WaitForCompletion(create_query_info_future, "CreateQueryInfo");
+
+  if (create_query_info_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::QueryInfoResult* result_ptr =
+        create_query_info_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->query_info().empty());
+  }
+
+  create_query_info_future.Release();
+  delete query_info;
+}
+
+TEST_F(FirebaseGmaTest, TestCreateQueryInfoWithAdUnit) {
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
+
+  firebase::gma::QueryInfo* query_info = new firebase::gma::QueryInfo();
+
+  WaitForCompletion(query_info->Initialize(app_framework::GetWindowContext()),
+                    "Initialize");
+
+  firebase::gma::AdRequest request = GetAdRequest();
+  // Set the requester type to 8. QueryInfo gets generated without a
+  // query_info_type set, but throws a warning that it is missing.
+  request.add_extra(kAdNetworkExtrasClassName, "query_info_type",
+                    "requester_type_8");
+  // When the QueryInfo is initialized, generate a query info string.
+  // Providing a bad/empty ad unit does not affect the query info generation.
+  firebase::Future<firebase::gma::QueryInfoResult> create_query_info_future =
+      query_info->CreateQueryInfoWithAdUnit(firebase::gma::kAdFormatNative,
+                                            request, kNativeAdUnit);
+
+  WaitForCompletion(create_query_info_future, "CreateQueryInfoWithAdUnit");
+
+  if (create_query_info_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::QueryInfoResult* result_ptr =
+        create_query_info_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->query_info().empty());
+  }
+
+  create_query_info_future.Release();
+  delete query_info;
+}
+
 // Interactive test section.  These have been placed up front so that the
 // tester doesn't get bored waiting for them.
 TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {

@@ -153,6 +153,24 @@ enum AdErrorCode {
   kAdErrorCodeUnknown,
 };
 
+#if !defined(DOXYGEN)
+/// Format of the ad being requested. Currently used only for internal updates.
+enum AdFormat {
+  /// App open ad format.
+  kAdFormatAppOpen,
+  /// Banner ad format.
+  kAdFormatBanner,
+  /// Interstitial ad format.
+  kAdFormatInterstitial,
+  /// Native ad format.
+  kAdFormatNative,
+  /// Rewarded ad format.
+  kAdFormatRewarded,
+  /// Rewarded interstitial ad format.
+  kAdFormatRewardedInterstitial,
+};
+#endif  // !defined(DOXYGEN)
+
 /// A listener for receiving notifications during the lifecycle of a BannerAd.
 class AdListener {
  public:

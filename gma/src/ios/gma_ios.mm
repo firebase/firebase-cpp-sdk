@@ -357,6 +357,23 @@ void CompleteLoadImageInternalError(FutureCallbackData<ImageResult>* callback_da
   GmaInternal::CompleteLoadImageFutureFailure(callback_data, error_code, std::string(error_message));
 }
 
+void CompleteQueryInfoInternalSuccess(FutureCallbackData<QueryInfoResult>* callback_data,
+                                      NSString* query_info) {
+  FIREBASE_ASSERT(callback_data);
+
+  GmaInternal::CompleteCreateQueryInfoFutureSuccess(callback_data,
+                                                    util::NSStringToString(query_info));
+}
+
+void CompleteQueryInfoInternalError(FutureCallbackData<QueryInfoResult>* callback_data,
+                                 int error_code, const char* error_message) {
+  FIREBASE_ASSERT(callback_data);
+  FIREBASE_ASSERT(error_message);
+
+  GmaInternal::CompleteCreateQueryInfoFutureFailure(callback_data, error_code,
+                                                    std::string(error_message));
+}
+
 void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data, NSError* gad_error,
                            bool is_load_ad_error) {
   FIREBASE_ASSERT(callback_data);

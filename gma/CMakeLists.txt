@@ -26,6 +26,8 @@ set(common_SRCS
     src/common/full_screen_ad_event_listener.cc
     src/common/native_ad.cc
     src/common/native_ad_internal.cc
+    src/common/query_info.cc
+    src/common/query_info_internal.cc
     src/common/rewarded_ad.cc
     src/common/rewarded_ad_internal.cc)
 
@@ -49,6 +51,7 @@ set(android_SRCS
     src/android/interstitial_ad_internal_android.cc
     src/android/native_ad_image_android.cc
     src/android/native_ad_internal_android.cc
+    src/android/query_info_internal_android.cc
     src/android/response_info_android.cc
     src/android/rewarded_ad_internal_android.cc)
 
@@ -68,6 +71,7 @@ set(ios_SRCS
     src/ios/interstitial_ad_internal_ios.mm
     src/ios/native_ad_image_ios.mm
     src/ios/native_ad_internal_ios.mm
+    src/ios/query_info_internal_ios.mm
     src/ios/response_info_ios.mm
     src/ios/rewarded_ad_internal_ios.mm)
 
