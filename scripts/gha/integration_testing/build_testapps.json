@@ -133,6 +133,7 @@
       "tvos_target": "integration_test_tvos",
       "testapp_path": "messaging/integration_test",
       "frameworks": [
+        "firebase_functions.xcframework",
         "firebase_messaging.xcframework",
         "firebase.xcframework"
       ],

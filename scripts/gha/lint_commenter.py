@@ -127,7 +127,7 @@ def main():
        '-H', header,
        '-H', 'Authorization: token %s' % args.token,
        request_url
-      ] + ([] if not args.verbose else ['-v'])).decode('utf-8')
+      ] + ([] if not args.verbose else ['-v'])).decode('utf-8', errors='replace')
   # Parse the diff to determine the whether each source line is touched.
   # Only lint lines that refer to parts of files that are diffed will be shown.
   # Information on what this means here:

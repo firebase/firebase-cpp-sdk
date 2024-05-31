@@ -124,13 +124,6 @@ def main(argv):
     dlinks_project = os.path.join(repo_dir, "dynamic_links", "integration_test")
     _patch_main_src(dlinks_project, "REPLACE_WITH_YOUR_URI_PREFIX", uri_prefix)
 
-  if not FLAGS.apis or "messaging" in FLAGS.apis:
-    print("Attempting to patch Messaging server key.")
-    server_key_path = os.path.join(secrets_dir, "messaging", "server_key.txt.gpg")
-    server_key = _decrypt(server_key_path, passphrase)
-    messaging_project = os.path.join(repo_dir, "messaging", "integration_test")
-    _patch_main_src(messaging_project, "REPLACE_WITH_YOUR_SERVER_KEY", server_key)
-
   if not FLAGS.apis or "app_check" in FLAGS.apis:
     print("Attempting to patch app check debug token.")
     app_check_token_path = os.path.join(
