@@ -826,8 +826,12 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
   FutureHandle handle(future_id);
   Error error =
       (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  api->Complete(handle, error, status_message);
+  if (FutureData::Get() && FutureData::Get()->api()) {
+    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+    api->Complete(handle, error, status_message);
+  } else {
+    LogWarning("Failed to complete Future as it was likely already deleted.");
+  }
   if (result) env->DeleteLocalRef(result);
 }
 
@@ -843,8 +847,12 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
   SafeFutureHandle<std::string>* handle =
       reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data);
   Error error = success ? kErrorNone : kErrorUnknown;
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  api->CompleteWithResult(*handle, error, status_message, result_value);
+  if (FutureData::Get() && FutureData::Get()->api()) {
+    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+    api->CompleteWithResult(*handle, error, status_message, result_value);
+  } else {
+    LogWarning("Failed to complete Future as it was likely already deleted.");
+  }
   delete handle;
 }
 
