@@ -503,20 +503,21 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number);
 
-/// Initiates on-device conversion measurement given a sha256-hashed user email address. 
-/// Requires dependency GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is
-/// a no-op.
-/// @param hashedEmailAddress User email address as a UTF8-encoded string normalized and 
-/// hashed according to the instructions at 
+/// Initiates on-device conversion measurement given a sha256-hashed user email
+/// address. Requires dependency GoogleAppMeasurementOnDeviceConversion to be
+/// linked in, otherwise it is a no-op.
+/// @param hashedEmailAddress User email address as a UTF8-encoded string
+/// normalized and hashed according to the instructions at
 /// https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
-    std::vector<unsigned char*> &hashed_email_address);
+    std::vector<unsigned char*>& hashed_email_address);
 
-/// Initiates on-device conversion measurement given a sha256-hashed phone number in E.164 
-/// format. Requires dependency GoogleAppMeasurementOnDeviceConversion to be linked in, 
-/// otherwise it is a no-op.
-/// @param hashedPhoneNumber UTF8-encoded user phone number in E.164 format and then hashed 
-/// according to the instructions at 
+/// Initiates on-device conversion measurement given a sha256-hashed phone
+/// number in E.164 format. Requires dependency
+/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+/// @param hashedPhoneNumber UTF8-encoded user phone number in E.164 format and
+/// then hashed according to the instructions at
 /// https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone_number);
