@@ -139,6 +139,10 @@ NSData *BytesToNSData(const char *bytes, const int len) {
   return [NSData dataWithBytes:bytes length:len];
 }
 
+NSData *BytesToNSData(const unsigned char *bytes, const int len) {
+  return [NSData dataWithBytes:bytes length:len];
+}
+
 std::string NSDataToString(NSData *data) {
   return std::string(static_cast<const char *>(data.bytes), data.length);
 }

@@ -451,6 +451,24 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
   // No-op on Android
 }
 
+/// Initiates on-device conversion measurement given a hashed user email address
+/// on iOS (no-op on Android). On iOS, requires dependency
+/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(std::vector<unsigned char> hashed_email) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // No-op on Android
+}
+
+/// Initiates on-device conversion measurement given a hashed phone number on
+/// iOS (no-op on Android). On iOS, requires dependency
+/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(std::vector<unsigned char> hashed_phone) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // No-op on Android
+}
+
 // Set a user property to the given value.
 void SetUserProperty(const char* name, const char* value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
