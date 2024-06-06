@@ -631,6 +631,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Changes
+    - Messaging (Android): Addressed potential race condition on receiving
+      messages after cleanup.
+
 ### 12.0.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 33.0.0.

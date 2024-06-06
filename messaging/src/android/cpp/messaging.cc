@@ -124,6 +124,9 @@ static std::string* g_lockfile_path;
 
 static Mutex* g_file_locker_mutex;
 
+// Mutex for managing if FutureData is safe to use, or if it has been deleted.
+static Mutex g_future_data_mutex;
+
 static const char* kMessagingNotInitializedError = "Messaging not initialized.";
 
 static void HandlePendingSubscriptions();
@@ -706,7 +709,10 @@ void Terminate() {
   SetListener(nullptr);
   ReleaseClasses(env);
   util::Terminate(env);
-  FutureData::Destroy();
+  {
+    MutexLock(g_future_data_mutex);
+    FutureData::Destroy();
+  }
 }
 
 // Start a service which will communicate with the Firebase Cloud Messaging
@@ -826,6 +832,7 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
   FutureHandle handle(future_id);
   Error error =
       (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
+  MutexLock(g_future_data_mutex);
   if (FutureData::Get() && FutureData::Get()->api()) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     api->Complete(handle, error, status_message);
@@ -847,6 +854,7 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
   SafeFutureHandle<std::string>* handle =
       reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data);
   Error error = success ? kErrorNone : kErrorUnknown;
+  MutexLock(g_future_data_mutex);
   if (FutureData::Get() && FutureData::Get()->api()) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     api->CompleteWithResult(*handle, error, status_message, result_value);
