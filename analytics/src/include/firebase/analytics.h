@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "firebase/app.h"
 #include "firebase/future.h"
