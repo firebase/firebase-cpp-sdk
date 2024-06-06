@@ -507,7 +507,7 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
 /// Initiates on-device conversion measurement given a sha256-hashed user email
 /// address. Requires dependency GoogleAppMeasurementOnDeviceConversion to be
 /// linked in, otherwise it is a no-op.
-/// @param hashedEmailAddress User email address as a UTF8-encoded string
+/// @param hashed_email_address User email address as a UTF8-encoded string
 /// normalized and hashed according to the instructions at
 /// https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
@@ -517,7 +517,7 @@ void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
 /// number in E.164 format. Requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
-/// @param hashedPhoneNumber UTF8-encoded user phone number in E.164 format and
+/// @param hashed_phone_number UTF8-encoded user phone number in E.164 format and
 /// then hashed according to the instructions at
 /// https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
