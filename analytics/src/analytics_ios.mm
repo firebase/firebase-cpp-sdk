@@ -284,9 +284,11 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(const char* phone_numb
 /// on iOS (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
-void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(std::vector<unsigned char> hashed_email) {
+void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
+    std::vector<unsigned char> hashed_email) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  NSData *hashed_email_data = firebase::util::BytesToNSData(&hashed_email.data(), hashed_email.size());
+  NSData* hashed_email_data =
+      firebase::util::BytesToNSData(&hashed_email.data(), hashed_email.size());
   [FIRAnalytics initiateOnDeviceConversionMeasurementWithHashedEmailAddress:hashed_email_data];
 }
 
@@ -294,9 +296,11 @@ void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(std::vector<uns
 /// iOS (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
-void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(std::vector<unsigned char> hashed_phone) {
+void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
+    std::vector<unsigned char> hashed_phone) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  NSData *hashed_phone_data = firebase::util::BytesToNSData(&hashed_phone.data(), hashed_phone.size());
+  NSData* hashed_phone_data =
+      firebase::util::BytesToNSData(&hashed_phone.data(), hashed_phone.size());
   [FIRAnalytics initiateOnDeviceConversionMeasurementWithHashedPhoneNumber:hashed_phone_data];
 }
 

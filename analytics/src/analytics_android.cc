@@ -455,7 +455,8 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
 /// on iOS (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
-void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(std::vector<unsigned char> hashed_email) {
+void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
+    std::vector<unsigned char> hashed_email) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   // No-op on Android
 }
@@ -464,7 +465,8 @@ void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(std::vector<uns
 /// iOS (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
-void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(std::vector<unsigned char> hashed_phone) {
+void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
+    std::vector<unsigned char> hashed_phone) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   // No-op on Android
 }
