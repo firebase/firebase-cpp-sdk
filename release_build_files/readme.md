@@ -631,6 +631,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Analytics (iOS): Add support for
+    `InitiateOnDeviceConversionMeasurementWithHashedEmailAddress` and
+    `InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber`.
+
 ### 12.0.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 33.0.0.
