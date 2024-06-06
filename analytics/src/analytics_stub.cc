@@ -106,12 +106,22 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
+void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
+    std::vector<unsigned char> email_address) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+}
+
 /// Initiates on-device conversion measurement given a phone number on iOS
 /// (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+}
+
+void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
+    std::vector<unsigned char> phone_number_hash) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 

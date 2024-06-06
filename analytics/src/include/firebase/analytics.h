@@ -510,7 +510,7 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
 /// normalized and hashed according to the instructions at
 /// https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
-    std::vector<unsigned char*>& hashed_email_address);
+    std::vector<unsigned char> hashed_email_address);
 
 /// Initiates on-device conversion measurement given a sha256-hashed phone
 /// number in E.164 format. Requires dependency
