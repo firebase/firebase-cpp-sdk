@@ -504,7 +504,7 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number);
 
-/// Initiates on-device conversion measurement given a sha256-hashed user email
+/// Initiates on-device conversion measurement given a SHA256-hashed user email
 /// address. Requires dependency GoogleAppMeasurementOnDeviceConversion to be
 /// linked in, otherwise it is a no-op.
 /// @param hashed_email_address User email address as a UTF8-encoded string
@@ -513,7 +513,7 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email_address);
 
-/// Initiates on-device conversion measurement given a sha256-hashed phone
+/// Initiates on-device conversion measurement given a SHA256-hashed phone
 /// number in E.164 format. Requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
