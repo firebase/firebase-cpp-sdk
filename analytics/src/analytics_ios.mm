@@ -288,7 +288,7 @@ void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSData* hashed_email_data =
-      firebase::util::BytesToNSData(&hashed_email.data(), hashed_email.size());
+      firebase::util::BytesToNSData(hashed_email.data(), hashed_email.size());
   [FIRAnalytics initiateOnDeviceConversionMeasurementWithHashedEmailAddress:hashed_email_data];
 }
 
@@ -300,7 +300,7 @@ void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSData* hashed_phone_data =
-      firebase::util::BytesToNSData(&hashed_phone.data(), hashed_phone.size());
+      firebase::util::BytesToNSData(hashed_phone.data(), hashed_phone.size());
   [FIRAnalytics initiateOnDeviceConversionMeasurementWithHashedPhoneNumber:hashed_phone_data];
 }
 
