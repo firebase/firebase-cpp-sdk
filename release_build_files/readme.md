@@ -634,8 +634,10 @@ code.
 ### Upcoming Release
 -   Changes
     - Analytics (iOS): Add support for
-    `InitiateOnDeviceConversionMeasurementWithHashedEmailAddress` and
-    `InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber`.
+      `InitiateOnDeviceConversionMeasurementWithHashedEmailAddress` and
+      `InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber`.
+    - Messaging (Android): Addressed potential race condition on receiving
+      messages after cleanup.
 
 ### 12.0.0
 -   Changes
