@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -502,6 +503,25 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
 ///   and country code with no dashes, parentheses, or spaces.
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number);
+
+/// Initiates on-device conversion measurement given a SHA256-hashed user email
+/// address. Requires dependency GoogleAppMeasurementOnDeviceConversion to be
+/// linked in, otherwise it is a no-op.
+/// @param hashed_email_address User email address as a UTF8-encoded string
+/// normalized and hashed according to the instructions at
+/// https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
+void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
+    std::vector<unsigned char> hashed_email_address);
+
+/// Initiates on-device conversion measurement given a SHA256-hashed phone
+/// number in E.164 format. Requires dependency
+/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+/// @param hashed_phone_number UTF8-encoded user phone number in E.164 format
+/// and then hashed according to the instructions at
+/// https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
+void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
+    std::vector<unsigned char> hashed_phone_number);
 
 /// @brief Set a user property to the given value.
 ///

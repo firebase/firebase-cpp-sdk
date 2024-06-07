@@ -217,6 +217,9 @@ NSData *StringToNSData(const std::string &str);
 // Convert bytes to NSData.
 NSData *BytesToNSData(const char *bytes, const int len);
 
+// Convert bytes to NSData.
+NSData *BytesToNSData(const unsigned char *bytes, const int len);
+
 // Convert an NSData to std::string.
 std::string NSDataToString(NSData *data);
 
