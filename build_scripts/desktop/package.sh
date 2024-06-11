@@ -21,6 +21,7 @@ options:
   -L, use LLVM binutils
   -R, print rename prefix and exit
   -N, print allowed namespaces and exit
+  -D, delete package files after using them to save disk space
 example:
   build_scripts/desktop/package.sh -b firebase-cpp-sdk-linux -p linux -o package_out -v x86 -j"
 }
@@ -31,6 +32,7 @@ platform=
 python_cmd=python
 variant=.
 verbose=0
+delete_files_after_using=0
 root_dir=$(cd $(dirname $0)/../..; pwd -P)
 merge_libraries_script=${root_dir}/scripts/merge_libraries.py
 tools_path=~/bin
@@ -57,13 +59,16 @@ abspath(){
     fi
 }
 
-while getopts "f:b:o:p:d:m:P:t:NRhjLv" opt; do
+while getopts "f:b:o:p:d:m:P:t:NRhjLDv" opt; do
     case $opt in
         f)
             binutils_format=$OPTARG
             ;;
         b)
             built_sdk_path=$OPTARG
+            ;;
+        D)
+            delete_files_after_using=1
             ;;
         j)
             run_in_parallel=1
@@ -158,6 +163,9 @@ if [[ ! -d "${built_sdk_path}" && -f "${built_sdk_path}" ]]; then
     echo "Uncompressing tarfile into temporary directory..."
     tar -xf "${built_sdk_path}" -C "${temp_dir}"
     built_sdk_path="${temp_dir}"
+    if [[ ${delete_files_after_using} -eq 1 ]]; then
+	rm -f "${built_sdk_path}"
+    fi
 fi
 
 if [[ ! -r "${built_sdk_path}/CMakeCache.txt" ]]; then
@@ -363,13 +371,13 @@ for product in ${product_list[*]}; do
       --scan_libs=\"${allfiles}\" \\
       --hide_c_symbols=\"${deps_hidden}\" \\
       \"${libfile_src}\" ${deps[*]}" >> "${merge_libraries_tmp}/merge_${product}.sh"
-      chmod u+x "${merge_libraries_tmp}/merge_${product}.sh"
-      if [[ ${run_in_parallel} -eq 0 ]]; then
-        # Run immediately if not set to run in parallel.
-        "${merge_libraries_tmp}/merge_${product}.sh"
-      else
-        echo "echo \"${libfile_out}\" DONE" >> "${merge_libraries_tmp}/merge_${product}.sh"
-      fi
+    chmod u+x "${merge_libraries_tmp}/merge_${product}.sh"
+    if [[ ${run_in_parallel} -eq 0 ]]; then
+      # Run immediately if not set to run in parallel.
+      "${merge_libraries_tmp}/merge_${product}.sh"
+    else
+      echo "echo \"${libfile_out}\" DONE" >> "${merge_libraries_tmp}/merge_${product}.sh"
+    fi
 done
 
 if [[ ${run_in_parallel} -ne 0 ]]; then
