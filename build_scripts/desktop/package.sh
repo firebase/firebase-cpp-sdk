@@ -162,10 +162,10 @@ if [[ ! -d "${built_sdk_path}" && -f "${built_sdk_path}" ]]; then
     trap "rm -rf \"\${temp_dir}\"" SIGKILL SIGTERM SIGQUIT EXIT
     echo "Uncompressing tarfile into temporary directory..."
     tar -xf "${built_sdk_path}" -C "${temp_dir}"
-    built_sdk_path="${temp_dir}"
     if [[ ${delete_files_after_using} -eq 1 ]]; then
 	rm -f "${built_sdk_path}"
     fi
+    built_sdk_path="${temp_dir}"
 fi
 
 if [[ ! -r "${built_sdk_path}/CMakeCache.txt" ]]; then
