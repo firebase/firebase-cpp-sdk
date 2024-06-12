@@ -541,6 +541,7 @@ jobs:
           if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
             verbose_flag=-v
           fi
+	  du -skch || true
           declare -a additional_flags
           tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
           chmod -R u+x bin
@@ -567,6 +568,7 @@ jobs:
               # Windows x86: force input and output target format
               additional_flags+=(-f pe-i386,pe-bigobj-i386)
             fi
+            du -skch || true
             sdk-src/build_scripts/desktop/package.sh -D -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
