@@ -204,10 +204,10 @@ else
     ext='a'
 fi
 
-if [[ ${delete_files_after_using} -eq 1 ]]; then
-    # Delete all non-library, non-header files.
-    find "${built_sdk_path}" -not -name "*.${ext}" -and -not -name "*.h" -print0 | xargs -0 rm
-fi
+#if [[ ${delete_files_after_using} -eq 1 ]]; then
+#    # Delete all non-library, non-header files.
+#    find "${built_sdk_path}" -type f -not -name "*.${ext}" -and -not -name "*.h" -print0 | xargs -0 rm
+#fi
 
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
