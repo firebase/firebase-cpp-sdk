@@ -541,7 +541,7 @@ jobs:
           if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
             verbose_flag=-v
           fi
-	  du -skch || true
+          du -skch || true
           declare -a additional_flags
           tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
           chmod -R u+x bin
