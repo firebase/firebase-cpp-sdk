@@ -371,6 +371,9 @@ for product in ${product_list[*]}; do
       --scan_libs=\"${allfiles}\" \\
       --hide_c_symbols=\"${deps_hidden}\" \\
       \"${libfile_src}\" ${deps[*]}" >> "${merge_libraries_tmp}/merge_${product}.sh"
+    if [[ ${delete_files_after_using} -eq 1 ]]; then
+	echo "rm -f ${deps[*]}" >>  "${merge_libraries_tmp}/merge_${product}.sh"
+    fi
     chmod u+x "${merge_libraries_tmp}/merge_${product}.sh"
     if [[ ${run_in_parallel} -eq 0 ]]; then
       # Run immediately if not set to run in parallel.
