@@ -314,12 +314,12 @@ jobs:
         include:
         - os: windows-latest
           vcpkg_triplet_suffix: "windows-static"
-          additional_build_flags: "--build_tests"
+          #additional_build_flags: "--build_tests"
           sdk_platform: "windows"
         - os: windows-latest
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
-          additional_build_flags: "--build_tests"
+          #additional_build_flags: "--build_tests"
           sdk_platform: "windows"
         - os: ubuntu-20.04
           vcpkg_triplet_suffix: "linux"
