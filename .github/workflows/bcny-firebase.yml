@@ -143,6 +143,7 @@ jobs:
           path: ${{ github.workspace }}/BuildRoot/Library/firebase
 
       - name: Create Release
+        if: github.event_name != 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -326,13 +327,13 @@ jobs:
           nuget pack -Properties BUILDROOT=${{ github.workspace }}\BuildRoot\Library\firebase -Suffix (git -C ${{ github.workspace }}/SourceCache/firebase-cpp-sdk log -1 --format=%h) firebase.nuspec
         shell: pwsh
       - uses: actions/upload-artifact@v3
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: github.event_name != 'pull_request'
         with:
           name: windows-${{ matrix.arch }}.nupkg
           path: com.google.firebase.windows.${{ matrix.arch }}.*.nupkg
 
       - name: Publish NuGet Packages
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: github.event_name != 'pull_request'
         env:
           NUGET_SOURCE_NAME: TheBrowserCompany
           NUGET_SOURCE_URL: https://nuget.pkg.github.com/thebrowsercompany/index.json
