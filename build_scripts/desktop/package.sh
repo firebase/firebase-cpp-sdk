@@ -39,6 +39,11 @@ binutils_format=
 temp_dir=
 run_in_parallel=0
 use_llvm_binutils=0
+premerge_threshold=0
+# With this setting, if a given merge is split into multiple subtasks, this will
+# process the "grpc" library on its own; since it's by far the largest library,
+# this optimization speeds things up.
+grpc_special_case=1
 
 . "${root_dir}/build_scripts/packaging.conf"
 
@@ -179,6 +184,7 @@ fi
 
 # Desktop packaging settings.
 if [[ "${platform}" == "windows" ]]; then
+    premerge_threshold=40
     if [[ "${variant}" == *'Debug'* ]]; then
         subdir='Debug/'
         suffix='-d'
@@ -252,13 +258,22 @@ merge_libraries_params=(
     --auto_hide_cpp_namespaces
     --ignore_cpp_namespaces="${allow_cpp_namespaces}"
 )
+declare -a merge_libraries_params_no_rename
+merge_libraries_params_no_rename=(
+    --binutils_nm_cmd=${binutils_nm}
+    --binutils_ar_cmd=${binutils_ar}
+    --binutils_objcopy_cmd=${binutils_objcopy}
+    --platform=${platform}
+)
 cache_param=--cache=${cache_file}
 
 if [[ ${verbose} -eq 1 ]]; then
     merge_libraries_params+=(--verbosity=3)
+    merge_libraries_params_no_rename+=(--verbosity=3)
 fi
 if [[ -n "${binutils_format}" ]]; then
     merge_libraries_params+=(--force_binutils_target="${binutils_format}")
+    merge_libraries_params_no_rename+=(--force_binutils_target="${binutils_format}")
 fi
 
 
@@ -335,6 +350,7 @@ for product in ${product_list[*]}; do
     fi
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
+
     if [[ ${verbose} -eq 1 ]]; then
       echo "${python_cmd}" "${merge_libraries_script}" \
                     ${merge_libraries_params[*]} \
@@ -345,31 +361,102 @@ for product in ${product_list[*]}; do
                     ${libfile_src} ${deps[*]}
     fi
     # Place the merge command in a script so we can optionally run them in parallel.
-    echo "#!/bin/bash -e" > "${merge_libraries_tmp}/merge_${product}.sh"
-    if [[ ! -z ${deps_basenames[*]} ]]; then
-      echo "echo \"${libfile_out} <- ${deps[*]}\"" >> "${merge_libraries_tmp}/merge_${product}.sh"
-    else
-      echo "echo \"${libfile_out}\"" >> "${merge_libraries_tmp}/merge_${product}.sh"
-    fi
-    if [[ ! -z ${deps_basenames[*]} ]]; then
-        echo -n  >> "${merge_libraries_tmp}/merge_${product}.sh"
-    fi
-    echo >> "${merge_libraries_tmp}/merge_${product}.sh"
-    echo "\"${python_cmd}\" \\
-      \"${merge_libraries_script}\" \\
-      ${merge_libraries_params[*]} \\
-      \"${cache_param}\" \\
-      --output=\"${outfile}\" \\
-      --scan_libs=\"${allfiles}\" \\
-      --hide_c_symbols=\"${deps_hidden}\" \\
-      \"${libfile_src}\" ${deps[*]}" >> "${merge_libraries_tmp}/merge_${product}.sh"
-      chmod u+x "${merge_libraries_tmp}/merge_${product}.sh"
-      if [[ ${run_in_parallel} -eq 0 ]]; then
-        # Run immediately if not set to run in parallel.
-        "${merge_libraries_tmp}/merge_${product}.sh"
-      else
-        echo "echo \"${libfile_out}\" DONE" >> "${merge_libraries_tmp}/merge_${product}.sh"
+    merge_script="${merge_libraries_tmp}/merge_${product}.sh"
+    if [[ premerge_threshold -gt 0 && ${run_in_parallel} -eq 1 && ${#deps[@]} -ge ${premerge_threshold} ]]; then
+      merge_script="${merge_libraries_tmp}/postmerge_${product}.sh"
+      # Some libraries (e.g. Firestore) have lots of dependencies.  To speed
+      # these up on Windows, split up the dependencies list, and do all parts
+      # separately in parallel in a "premerge" step. Then do the final merge
+      # without renaming.
+      declare -a split_deps
+      num=0
+      reset=0
+      split_count=$(( (${#deps[@]}+${premerge_threshold}-1) / ${premerge_threshold} ))
+      ### echo "echo \"${libfile_out} SPLIT into ${split_count}\"" >> "${merge_script}"
+      # Add the original list of deps as a comment in the merge script, to
+      # preserve its rough size for prioritization purposes. (Since it runs the
+      # largest script first.)
+      ### echo "# ${allfiles} ${deps_hidden} ${deps[*]}" >> "${merge_script}"
+      # Split the dependencies list into ${split_count} pieces, alternating
+      # libraries in each list. Put them in size order first.
+      deps_sorted=$(ls -S ${deps[*]} ${libfile_src})
+      if [[ ${grpc_special_case} -eq 1 && "${deps_sorted}" == *"grpc"* ]]; then
+        # Special case: if grpc is included, let the largest library (which will
+        # be grpc) be alone in the 0th slot, so it can take up the entire time
+        # by itself.
+        reset=1
       fi
+      for dep in ${deps_sorted}; do
+        split_deps[${num}]+="${dep} "
+        num=$((num+1))
+        if [[ ${num} -ge ${split_count} ]]; then num=${reset}; fi
+      done
+      # Clear out the dependencies list for later.
+      libfile_src=
+      deps=()
+      # Create the premerge scripts, which will be added to the list of scripts
+      # to run in parallel.
+      for ((num=0; num < ${split_count}; num++)); do
+        premerge_script="${merge_libraries_tmp}/merge_${product}_0${num}.sh"
+        echo "#!/bin/bash -e" > "${premerge_script}"
+        if [[ $num -eq 0 && ${grpc_special_case} -eq 1 && "${split_deps[$num]}" == *"grpc"* ]]; then
+          # Special case: fake the 0th set with "grpc" as being quite large, so
+          # it gets scheduled first.
+          echo "# ${split_deps[*]}" >> "${premerge_script}"
+        fi
+        premerge_out_basename="premerge_${num}_${libfile_out}"
+        premerge_out="${merge_libraries_tmp}/${premerge_out_basename}"
+        echo "echo \"${premerge_out_basename} <- ${split_deps[$num]}\"" >> "${premerge_script}"
+        echo "\"${python_cmd}\" \\
+          \"${merge_libraries_script}\" \\
+          ${merge_libraries_params[*]} \\
+          \"${cache_param}\" \\
+          --output=\"${premerge_out}\" \\
+          --scan_libs=\"${allfiles}\" \\
+          --hide_c_symbols=\"${deps_hidden}\" \\
+          ${split_deps[${num}]}" >> "${premerge_script}"
+        echo "echo \"${premerge_out_basename}\" DONE" >> "${premerge_script}"
+        chmod u+x "${premerge_script}"
+        # Add the newly created library to the new dependencies list.
+        deps+=("${premerge_out}")
+      done
+      # In the main merge script, run the premerges in parallel.
+    fi
+    echo "#!/bin/bash -e" > "${merge_script}"
+    if [[ ! -z ${deps_basenames[*]} ]]; then
+      echo "echo \"${libfile_out} <- ${deps[*]}\"" >> "${merge_script}"
+    else
+      echo "echo \"${libfile_out}\"" >> "${merge_script}"
+    fi
+    if [[ ! -z ${deps_basenames[*]} ]]; then
+        echo -n  >> "${merge_script}"
+    fi
+    echo >> "${merge_script}"
+    if [[ -z "${libfile_src}" ]]; then
+      # If premerge occured, libfile_src was cleared above, so here we just need
+      # to merge with no rename.  This is much faster than the rename step.
+      echo "\"${python_cmd}\" \\
+        \"${merge_libraries_script}\" \\
+        ${merge_libraries_params_no_rename[*]} \\
+        --output=\"${outfile}\" \\
+        ${deps[*]}" >> "${merge_script}"
+    else
+      echo "\"${python_cmd}\" \\
+        \"${merge_libraries_script}\" \\
+        ${merge_libraries_params[*]} \\
+        \"${cache_param}\" \\
+        --output=\"${outfile}\" \\
+        --scan_libs=\"${allfiles}\" \\
+        --hide_c_symbols=\"${deps_hidden}\" \\
+        \"${libfile_src}\" ${deps[*]}" >> "${merge_script}"
+    fi
+    chmod u+x "${merge_script}"
+    if [[ ${run_in_parallel} -eq 0 ]]; then
+      # Run immediately if not set to run in parallel.
+      "${merge_script}"
+    else
+      echo "echo \"${libfile_out}\" DONE" >> "${merge_script}"
+    fi
 done
 
 if [[ ${run_in_parallel} -ne 0 ]]; then
@@ -390,8 +477,12 @@ if [[ ${run_in_parallel} -ne 0 ]]; then
     # Default version of parallel has a slightly different syntax.
     "${parallel_command}" -- $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
   fi
+  for postmerge in $(ls "${merge_libraries_tmp}"/postmerge_*.sh 2> /dev/null); do
+    ${postmerge}
+  done
   echo "All jobs finished!"
 fi
+
 cd "${run_path}"
 
 echo "Copying extra header files..."
