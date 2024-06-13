@@ -541,8 +541,6 @@ jobs:
           if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
             verbose_flag=-v
           fi
-          du -skch || true
-          df -h || true
           declare -a additional_flags
           tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
           rm -rf artifacts/packaging-tools-*.tgz
@@ -554,8 +552,6 @@ jobs:
               rm  -rf "${pkg}"
             fi
           done
-          du -skch || true
-          df -h || true
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
@@ -572,8 +568,6 @@ jobs:
               # Windows x86: force input and output target format
               additional_flags+=(-f pe-i386,pe-bigobj-i386)
             fi
-            du -skch || true
-            df -h || true
             sdk-src/build_scripts/desktop/package.sh -D -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
