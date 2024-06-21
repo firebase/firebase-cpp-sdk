@@ -78,7 +78,10 @@ namespace gma {
 /// @return If init_result_out is kInitResultSuccess, this Future will contain
 /// the initialization status of each adapter once initialization is complete.
 /// Otherwise, the returned Future will have kFutureStatusInvalid.
-Future<AdapterInitializationStatus> Initialize(
+///
+/// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
+/// https://developers.google.com/admob/cpp/sdk for more information.
+FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
     const ::firebase::App& app, InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -107,7 +110,10 @@ Future<AdapterInitializationStatus> Initialize(
 /// @return If init_result_out is kInitResultSuccess, this Future will contain
 /// the initialization status of each adapter once initialization is complete.
 /// Otherwise, the returned Future will have kFutureStatusInvalid.
-Future<AdapterInitializationStatus> Initialize(
+///
+/// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
+/// https://developers.google.com/admob/cpp/sdk for more information.
+FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
     JNIEnv* jni_env, jobject activity, InitResult* init_result_out = nullptr);
 
 #endif  // defined(__ANDROID__) || defined(DOXYGEN)
@@ -126,7 +132,10 @@ Future<AdapterInitializationStatus> Initialize(
 /// will contain the initialization status of each adapter once initialization
 /// is complete. Otherwise, the returned Future will have
 /// <code>kFutureStatusInvalid</code>.
-Future<AdapterInitializationStatus> Initialize(
+///
+/// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
+/// https://developers.google.com/admob/cpp/sdk for more information.
+FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
     InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
