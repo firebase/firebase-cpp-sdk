@@ -61,6 +61,9 @@ class Future {
 ///
 /// The GMA API allows you to load and display mobile ads using the Google
 /// Mobile Ads SDK. Each ad format has its own header file.
+///
+/// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
+/// https://developers.google.com/admob/cpp/sdk for more information.
 namespace gma {
 
 /// Initializes Google Mobile Ads (GMA) via Firebase.
