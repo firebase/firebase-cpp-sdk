@@ -638,7 +638,7 @@ code.
       `InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber`.
     - GMA: The GMA C++ SDK is now deprecated. For more information, see the
       [SDK documentation](https://developers.google.com/admob/cpp/sdk).
-    - Messaging (Android): Addressed potential race condition on receiving
+    - Messaging (Android): Fixed a potential race condition on receiving
       messages after cleanup.
 
 ### 12.0.0
