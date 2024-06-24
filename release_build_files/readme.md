@@ -631,11 +631,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 12.1.0
 -   Changes
     - Analytics (iOS): Add support for
       `InitiateOnDeviceConversionMeasurementWithHashedEmailAddress` and
       `InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber`.
+    - GMA: The GMA C++ SDK is now deprecated. For more information, see the
+      [SDK documentation](https://developers.google.com/admob/cpp/sdk).
     - Messaging (Android): Addressed potential race condition on receiving
       messages after cleanup.
 
