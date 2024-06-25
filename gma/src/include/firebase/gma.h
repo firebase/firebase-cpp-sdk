@@ -55,6 +55,14 @@ template <typename ResultType>
 class Future {
   // Empty class (used for documentation only).
 };
+
+/// @brief Firebase App class. For more information, see the <a
+/// href="https://firebase.google.com/docs/reference/cpp/class/firebase/app">Firebase
+/// C++ SDK documentation</a>.
+class App {
+  // Empty class (used for documentation only).
+};
+
 #endif  // defined(DOXYGEN_ADMOB)
 
 /// @brief API for Google Mobile Ads with Firebase.
@@ -62,8 +70,17 @@ class Future {
 /// The GMA API allows you to load and display mobile ads using the Google
 /// Mobile Ads SDK. Each ad format has its own header file.
 ///
-/// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
-/// https://developers.google.com/admob/cpp/sdk for more information.
+/// @deprecated **The Google Mobile Ads (GMA) C++ SDK is _deprecated_ as of June
+/// 17, 2024 and should not be adopted in projects that don't already use it. It
+/// will enter _End-of-Maintenance (EoM)_ on June 17, 2025. Note that versions
+/// of the SDK released before the EoM date will continue to function, but no
+/// further bug fixes or changes will be released after the EoM date.**
+///
+/// Instead of the Google Mobile Ads C++ SDK, consider using the
+/// [iOS](/docs/admob/ios/quick-start) and
+/// [Android](/docs/admob/android/quick-start) SDKs from AdMob. For support,
+/// reach out to the [Google Mobile Ads SDK Technical
+/// Forum](https://groups.google.com/g/google-admob-ads-sdk).
 namespace gma {
 
 /// Initializes Google Mobile Ads (GMA) via Firebase.
@@ -83,7 +100,10 @@ namespace gma {
 /// Otherwise, the returned Future will have kFutureStatusInvalid.
 ///
 /// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
-/// https://developers.google.com/admob/cpp/sdk for more information.
+/// the [SDK reference
+/// documentation](
+/// /admob/cpp/reference/namespace/firebase/gma)
+/// for more information.
 FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
     const ::firebase::App& app, InitResult* init_result_out = nullptr);
 
@@ -115,7 +135,8 @@ FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
 /// Otherwise, the returned Future will have kFutureStatusInvalid.
 ///
 /// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
-/// https://developers.google.com/admob/cpp/sdk for more information.
+/// https://developers.google.com/admob/cpp/reference/namespace/firebase/gma
+/// for more information.
 FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
     JNIEnv* jni_env, jobject activity, InitResult* init_result_out = nullptr);
 
@@ -137,7 +158,8 @@ FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
 /// <code>kFutureStatusInvalid</code>.
 ///
 /// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
-/// https://developers.google.com/admob/cpp/sdk for more information.
+/// https://developers.google.com/admob/cpp/reference/namespace/firebase/gma
+/// for more information.
 FIREBASE_DEPRECATED Future<AdapterInitializationStatus> Initialize(
     InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)

@@ -65,7 +65,8 @@ struct BoundingBox;
 /// @endcode
 ///
 /// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
-/// https://developers.google.com/admob/cpp/sdk for more information.
+/// https://developers.google.com/admob/cpp/reference/namespace/firebase/gma
+/// for more information.
 class AdView {
  public:
   /// The possible screen positions for a @ref AdView, configured via
