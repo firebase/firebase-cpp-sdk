@@ -314,12 +314,10 @@ jobs:
         include:
         - os: windows-latest
           vcpkg_triplet_suffix: "windows-static"
-          additional_build_flags: "--build_tests"
           sdk_platform: "windows"
         - os: windows-latest
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
-          additional_build_flags: "--build_tests"
           sdk_platform: "windows"
         - os: ubuntu-20.04
           vcpkg_triplet_suffix: "linux"
@@ -543,6 +541,7 @@ jobs:
           fi
           declare -a additional_flags
           tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
+          rm -rf artifacts/packaging-tools-*.tgz
           chmod -R u+x bin
           # To save space, delete any artifacts that we don't need for packaging.
           for pkg in artifacts/firebase-cpp-sdk-*; do
@@ -567,7 +566,7 @@ jobs:
               # Windows x86: force input and output target format
               additional_flags+=(-f pe-i386,pe-bigobj-i386)
             fi
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
+            sdk-src/build_scripts/desktop/package.sh -D -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             # Darwin has a final step after all the variants are done,

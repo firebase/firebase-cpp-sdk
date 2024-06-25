@@ -169,7 +169,8 @@ def _decrypt(encrypted_file, passphrase):
           encrypted_file],
       check=False,
       text=True,
-      capture_output=True)
+      capture_output=True,
+      encoding="cp1252")
   if result.returncode:
     # Remove any instances of the passphrase from error before logging it.
     raise RuntimeError(result.stderr.replace(passphrase, "****"))
@@ -183,10 +184,14 @@ def _patch_reverse_id(service_plist_path):
   print("Attempting to patch reverse id in Info.plist")
   with open(service_plist_path, "rb") as f:
     service_plist = plistlib.load(f)
-  _patch_file(
-      path=os.path.join(os.path.dirname(service_plist_path), "Info.plist"),
-      placeholder="REPLACE_WITH_REVERSED_CLIENT_ID",
-      value=service_plist["REVERSED_CLIENT_ID"])
+
+  try:
+    _patch_file(
+        path=os.path.join(os.path.dirname(service_plist_path), "Info.plist"),
+        placeholder="REPLACE_WITH_REVERSED_CLIENT_ID",
+        value=service_plist["REVERSED_CLIENT_ID"])
+  except KeyError as e:
+    print("No REVERSED_CLIENT_ID in plist, skipping.")
 
 
 def _patch_bundle_id(service_plist_path):
