@@ -642,6 +642,8 @@ code.
       [SDK documentation](https://developers.google.com/admob/cpp/sdk).
     - Messaging (Android): Fixed a potential race condition on receiving
       messages after cleanup.
+    - Messaging (iOS): Fixed an issue with notifications being lost if they
+      were received before Firebase Messaging was initialized.
 
 ### 12.0.0
 -   Changes
