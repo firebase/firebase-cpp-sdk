@@ -906,11 +906,11 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 #endif
     ::firebase::messaging::g_message_notification_opened = true;
     ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo);
-    id<UNUserNotificationCenterDelegate> user_delegate = ::firebase::messaging::g_user_delegate;
-    [user_delegate userNotificationCenter:notificationCenter
-           didReceiveNotificationResponse:response
-                    withCompletionHandler:completionHandler];
   }
+  id<UNUserNotificationCenterDelegate> user_delegate = ::firebase::messaging::g_user_delegate;
+  [user_delegate userNotificationCenter:notificationCenter
+         didReceiveNotificationResponse:response
+                  withCompletionHandler:completionHandler];
 }
 #endif // FIREBASE_PLATFORM_IOS
 
