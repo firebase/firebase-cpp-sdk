@@ -71,7 +71,8 @@ class InterstitialAdInternal;
 /// @endcode
 ///
 /// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
-/// https://developers.google.com/admob/cpp/sdk for more information.
+/// https://developers.google.com/admob/cpp/reference/namespace/firebase/gma
+/// for more information.
 class InterstitialAd {
  public:
   /// Creates an uninitialized @ref InterstitialAd object.
