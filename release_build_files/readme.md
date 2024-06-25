@@ -638,7 +638,9 @@ code.
     - Analytics (iOS): Add support for
       `InitiateOnDeviceConversionMeasurementWithHashedEmailAddress` and
       `InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber`.
-    - Messaging (Android): Addressed potential race condition on receiving
+    - GMA: The GMA C++ SDK is now deprecated. For more information, see the
+      [SDK documentation](https://developers.google.com/admob/cpp/sdk).
+    - Messaging (Android): Fixed a potential race condition on receiving
       messages after cleanup.
 
 ### 12.0.0
