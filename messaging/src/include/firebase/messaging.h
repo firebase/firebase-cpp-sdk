@@ -241,9 +241,6 @@ struct Message {
   /// Authenticated ID of the sender. This is a project number in most cases.
   ///
   /// Any value starting with google.com, goog. or gcm. are reserved.
-  ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
   std::string from;
 
   /// This parameter specifies the recipient of a message.
@@ -266,9 +263,6 @@ struct Message {
   /// This means a FCM connection server can simultaneously store 4 different
   /// send-to-sync messages per client app. If you exceed this number, there is
   /// no guarantee which 4 collapse keys the FCM connection server will keep.
-  ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
   std::string collapse_key;
 
   /// The metadata, including all original key/value pairs. Includes some of the
@@ -300,9 +294,6 @@ struct Message {
   ///     Parameters: "message_id" and "error"
   ///
   /// If this field is missing, the message is a regular message.
-  ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
   std::string message_type;
 
   /// Sets the priority of the message. Valid values are "normal" and "high." On
@@ -319,9 +310,6 @@ struct Message {
   ///
   /// For more information, see [Setting the priority of a message][1].
   ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
-  ///
   /// [1]:
   /// https://firebase.google.com/docs/cloud-messaging/concept-options#setting-the-priority-of-a-message
   std::string priority;
@@ -331,24 +319,15 @@ struct Message {
   /// supported is 4 weeks, and the default value is 4 weeks. For more
   /// information, see [Setting the lifespan of a message][1].
   ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
-  ///
   /// [1]: https://firebase.google.com/docs/cloud-messaging/concept-options#ttl
   int32_t time_to_live;
 
   /// Error code. Used in "nack" messages for CCS, and in responses from the
   /// server.
   /// See the CCS specification for the externally-supported list.
-  ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
   std::string error;
 
   /// Human readable details about the error.
-  ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
   std::string error_description;
 
   /// Optional notification to show. This only set if a notification was
@@ -359,9 +338,6 @@ struct Message {
   /// to make a copy of either the Message or Notification. Copying the Message
   /// object implicitly makes a deep copy of the notification (allocated with
   /// new) which is owned by the Message.
-  ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
   Notification* notification;
 
   /// A flag indicating whether this message was opened by tapping a
@@ -370,9 +346,6 @@ struct Message {
   bool notification_opened;
 
   /// The link into the app from the message.
-  ///
-  /// This field is only used for downstream messages received through
-  /// Listener::OnMessage().
   std::string link;
 
   /// @cond FIREBASE_APP_INTERNAL
