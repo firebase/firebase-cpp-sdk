@@ -192,8 +192,7 @@ struct Notification {
   AndroidNotificationParams* android;
 };
 
-/// @brief Data structure used to send messages to, and receive messages from,
-/// cloud messaging.
+/// @brief Data structure used to receive messages from cloud messaging.
 struct Message {
   /// Initialize the message.
   Message()
