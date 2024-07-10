@@ -167,7 +167,7 @@ function(build_external_dependencies)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
       set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-          -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
+          -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES})
     endif()
   elseif(MSVC)
     # Propagate MSVC build flags.
