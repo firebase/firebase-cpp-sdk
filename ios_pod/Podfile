@@ -20,6 +20,7 @@ target 'GetPods' do
   pod 'Firebase/RemoteConfig', '10.28.1'
   pod 'Firebase/Storage', '10.28.1'
 
+  pod 'GoogleUtilities/AppDelegateSwizzler'
 end
 
 post_install do |installer|

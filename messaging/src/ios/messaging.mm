@@ -34,10 +34,24 @@
 #include "messaging/src/common.h"
 
 #import "FIRMessaging.h"
+#import "GoogleUtilities/GULAppDelegateSwizzler.h"
 
-// This implements the messaging protocol so that we can receive notifcatons from Messaging.
+@interface FIRCppApplicationDelegateInterceptor : NSObject <UIApplicationDelegate>
++ (instancetype)sharedInstance;
+
+-(void)applicationDidBecomeActive:(UIApplication*)application;
+-(void)applicationDidEnterBackground:(UIApplication*)application;
+-(void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)data;
+-(void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error;
+-(BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
+-(void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)launchOptions;
+-(void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)launchOptions fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler;
+
+@end
+
 NS_ASSUME_NONNULL_BEGIN
-@interface FIRCppDelegate : NSObject<FIRMessagingDelegate>
+// This implements the messaging protocol so that we can receive notifcatons from Messaging.
+@interface FIRCppMessagingDelegate : NSObject<FIRMessagingDelegate>
 
 // Set to YES when Messaging C++ has a listener set.
 @property(nonatomic, readwrite) BOOL isListenerSet;
@@ -73,13 +87,13 @@ namespace messaging {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseMessaging);
 
-static FIRCppDelegate *g_delegate = nil;
-static Mutex g_delegate_mutex;  // Mutex for g_delegate's properties
+static FIRCppMessagingDelegate *g_messaging_delegate = nil;
+static Mutex g_delegate_mutex;  // Mutex for both g_*_delegates' properties
 static MessagingOptions g_messaging_options;
 
 static bool MessagingIsInitialized() {
   MutexLock lock(g_delegate_mutex);
-  return g_delegate.isListenerSet;
+  return g_messaging_delegate.isListenerSet;
 }
 
 static NSString *const kReservedPrefix = @"google.";
@@ -107,7 +121,6 @@ static NSString *const kLink = @"gcm.n.link";
 // Dual purpose body text or data dictionary.
 static NSString *const kAlert = @"alert";
 
-static void HookAppDelegateMethods(Class clazz);
 static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info);
 
 // Global reference to the Firebase App.
@@ -136,17 +149,21 @@ InitResult Initialize(const ::firebase::App &app, Listener *listener) {
 }
 
 InitResult Initialize(
-    const ::firebase::App &app, Listener *listener, const MessagingOptions& options) {
-  if (!g_delegate) {
-    g_delegate = [[FIRCppDelegate alloc] init];
-    [FIRMessaging messaging].delegate = g_delegate;
+	    const ::firebase::App &app, Listener *listener, const MessagingOptions& options) {
+  [GULAppDelegateSwizzler proxyOriginalDelegateIncludingAPNSMethods];
+  FIRCppApplicationDelegateInterceptor *interceptor = [FIRCppApplicationDelegateInterceptor sharedInstance];
+  [GULAppDelegateSwizzler registerAppDelegateInterceptor:interceptor];
+  
+  if (!g_messaging_delegate) {
+    g_messaging_delegate = [[FIRCppMessagingDelegate alloc] init];
+    [FIRMessaging messaging].delegate = g_messaging_delegate;
   }
 
   if (!g_app) {
 #if !defined(NDEBUG)
     {
       MutexLock lock(g_delegate_mutex);
-      assert(!g_delegate.isListenerSet);
+      assert(!g_messaging_delegate.isListenerSet);
     }
 #endif  // !defined(NDEBUG)
     g_app = &app;
@@ -167,8 +184,8 @@ void NotifyListenerSet(Listener* listener) {
   if (!listener) return;
   {
     MutexLock lock(g_delegate_mutex);
-    if (g_delegate.isListenerSet) return;
-    g_delegate.isListenerSet = YES;
+    if (g_messaging_delegate.isListenerSet) return;
+    g_messaging_delegate.isListenerSet = YES;
   }
 
   if (!g_messaging_options.suppress_notification_permission_prompt) {
@@ -195,7 +212,6 @@ Future<void> RequestPermission() {
     LogInfo("FCM: Using FCM senderID %s", senderID.UTF8String);
     id appDelegate = [UIApplication sharedApplication];
 
-  #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     if ([UNUserNotificationCenter class] != nil) {
       // iOS 10 or later, and tvOS
       // For iOS 10 display notification (sent via APNS)
@@ -208,34 +224,10 @@ Future<void> RequestPermission() {
           }];
       [appDelegate registerForRemoteNotifications];
     }
-    #endif //FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-
-    #if FIREBASE_PLATFORM_IOS
-      // Register for remote notifications. Both codepaths result in
-      // application:didRegisterForRemoteNotificationsWithDeviceToken: being called when they
-      // complete, or application:didFailToRegisterForRemoteNotificationsWithError: if there was an
-      // error. We complete the future there.
-      if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
-        // iOS 7.1 or earlier
-        UIRemoteNotificationType allNotificationTypes =
-            (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
-            UIRemoteNotificationTypeBadge);
-        [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-      } else if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_9_4) {
-        // 8.0 <= iOS version <= 9.4
-        // >= 10.0 is handled by the first if block above.
-        UIUserNotificationType allNotificationTypes =
-            (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
-        UIUserNotificationSettings *settings =
-            [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
-        [appDelegate registerUserNotificationSettings:settings];
-        [appDelegate registerForRemoteNotifications];
-      }
-    #endif // FIREBASE_PLATFORM_IOS
 
     // Only request the token automatically if permitted
     if ([FIRMessaging messaging].autoInitEnabled) {
-      [g_delegate processCachedRegistrationToken];
+      [g_messaging_delegate processCachedRegistrationToken];
       RetrieveRegistrationToken();
     }
 
@@ -272,17 +264,19 @@ void Terminate() {
   }
   FutureData::Destroy();
   internal::UnregisterTerminateOnDefaultAppDestroy();
-  // Ensure g_delegate still exists (it cannot be unallocated in case a token is received via a
+  // Ensure g_messaging_delegate still exists (it cannot be unallocated in case a token is received via a
   // different Firebase library e.g. Invites while Messaging is not enabled).
   {
     MutexLock lock(g_delegate_mutex);
-    g_delegate.isListenerSet = NO;
-    g_delegate.cachedMessaging = nil;
-    g_delegate.cachedFCMToken = nil;
+    g_messaging_delegate.isListenerSet = NO;
+    g_messaging_delegate.cachedMessaging = nil;
+    g_messaging_delegate.cachedFCMToken = nil;
   }
   SetListener(nullptr);
   g_app = nullptr;
 }
+
+
 
 // Reconnect to FCM when an app returns to the foreground.
 static void AppDelegateApplicationDidBecomeActive(id self, SEL selector_value,
@@ -539,12 +533,12 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
   }
 
-  g_message_notification_opened = false;
+  firebase::messaging::g_message_notification_opened = false;
   #if FIREBASE_PLATFORM_IOS
   // If the app was launched with a notification, cache it until we're connected.
-  g_launch_notification =
+  firebase::messaging::g_launch_notification =
       [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
-  g_message_notification_opened = g_launch_notification != nil;
+  firebase::messaging::g_message_notification_opened = g_launch_notification != nil;
   #endif // FIREBASE_PLATFORM_IOS
 
   IMP app_delegate_application_did_finish_launching_with_options =
@@ -800,7 +794,7 @@ void SetTokenRegistrationOnInitEnabled(bool enable) {
   // doesn't raise the event when flipping the bit to true, so we watch for
   // that here.
   if (!was_enabled && IsTokenRegistrationOnInitEnabled()) {
-    [g_delegate processCachedRegistrationToken];
+    [g_messaging_delegate processCachedRegistrationToken];
     RetrieveRegistrationToken();
   }
 }
@@ -862,11 +856,13 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
   ::firebase::messaging::HookAppDelegateMethods(app_delegate);
 }
 
+
 // Category for UIApplication that is used to hook methods in all classes.
 // Category +load() methods are called after all class load methods in each Mach-O
 // (see call_load_methods() in
 // http://www.opensource.apple.com/source/objc4/objc4-274/runtime/objc-runtime.m)
 @implementation UIApplication (FIRFCM)
+#ifdef OLD_SWIZZLER
 + (void)load {
   // C++ constructors may not be called yet so call NSLog rather than LogInfo.
   NSLog(@"FCM: Loading UIApplication FIRFCM category");
@@ -874,6 +870,7 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
     FirebaseMessagingHookAppDelegate(clazz);
   });
 }
+#endif
 
 #if FIREBASE_PLATFORM_IOS
 - (void)userNotificationCenter:(UNUserNotificationCenter *)notificationCenter
@@ -916,7 +913,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 
 @end
 
-@implementation FIRCppDelegate
+@implementation FIRCppMessagingDelegate
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
   ::firebase::messaging::g_delegate_mutex.Acquire();
   if (_isListenerSet) {
@@ -949,4 +946,83 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   }
   [self messaging:msg didReceiveRegistrationToken:token];
 }
+@end
+
+
+@implementation FIRCppApplicationDelegateInterceptor
++ (instancetype)sharedInstance {
+  static dispatch_once_t once;
+  static FIRCppApplicationDelegateInterceptor *sharedInstance;
+  dispatch_once(&once, ^{
+    sharedInstance = [[FIRCppApplicationDelegateInterceptor alloc] init];
+  });
+  return sharedInstance;
+}
+
+-(void)applicationDidBecomeActive:(UIApplication*)application {
+}
+
+-(void)applicationDidEnterBackground:(UIApplication*)application {
+}
+
+-(void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)data {
+}
+
+-(void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error {
+}
+
+-(BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launch_options {
+  // Set up Messaging on iOS 10, if possible.
+  Class notification_center_class = NSClassFromString(@"UNUserNotificationCenter");
+  if (notification_center_class && application) {
+    firebase::LogInfo("Setting up iOS 10 message delegate.");
+
+    // Cache the existing delegate if one exists it so we can pass along messages when needed.
+    id user_notification_center = [notification_center_class currentNotificationCenter];
+    firebase::messaging::g_user_delegate = [user_notification_center delegate];
+
+    // Because we've added the methods, we know that `application` supports the
+    // UNUserNotificationCenterDelegate protocol.
+    [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
+  }
+
+  firebase::messaging::g_message_notification_opened = false;
+  #if FIREBASE_PLATFORM_IOS
+  // If the app was launched with a notification, cache it until we're connected.
+  firebase::messaging::g_launch_notification =
+      [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+  firebase::messaging::g_message_notification_opened = firebase::messaging::g_launch_notification != nil;
+  #endif // FIREBASE_PLATFORM_IOS
+
+  return NO;
+}
+
+-(void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)user_info {
+  firebase::messaging::g_message_notification_opened = (application.applicationState == UIApplicationStateInactive ||
+                                   application.applicationState == UIApplicationStateBackground);
+#if !defined(NDEBUG)
+  firebase::LogInfo("FCM: Received notification (no handler): %s", [user_info description].UTF8String);
+#else
+  firebase::LogInfo("FCM: Received notification (no handler)");
+#endif
+
+  if (firebase::messaging::MessagingIsInitialized()) {
+    firebase::messaging::NotifyApplicationAndServiceOfMessage(user_info);
+  }
+}
+
+-(void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)user_info fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler {
+  firebase::messaging::g_message_notification_opened = (application.applicationState == UIApplicationStateInactive ||
+                                   application.applicationState == UIApplicationStateBackground);
+#if !defined(NDEBUG)
+  firebase::LogInfo("FCM: Received notification (using handler): %s", [user_info description].UTF8String);
+#else
+  firebase::LogInfo("FCM: Received notification (using handler)");
+#endif
+  if (firebase::messaging::MessagingIsInitialized()) {
+    firebase::messaging::NotifyApplicationAndServiceOfMessage(user_info);
+  }
+}
+
+
 @end

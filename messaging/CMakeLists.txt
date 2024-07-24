@@ -134,6 +134,7 @@ elseif(IOS)
     POD_NAMES
       FirebaseCore
       FirebaseMessaging
+      GoogleUtilities/GoogleUtilities/AppDelegateSwizzler
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
