@@ -127,7 +127,7 @@ PARAMETERS = {
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
         "android_device": ["android_target", "android_latest", "emulator_ftl_target", "emulator_ftl_latest"],
-        "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
+        "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_target"],
         "tvos_device": ["tvos_simulator"],
         "architecture_windows_linux": ["x64", "x86"],
         "architecture_macos": ["x64", "arm64"],
@@ -221,9 +221,7 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "simulator_min": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.0.1"} ],
   "simulator_target": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
-  "simulator_latest": [ {"type": "virtual", "name":"iPhone 15 Plus", "version":"17.4"} ],
   "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],
 }
 
