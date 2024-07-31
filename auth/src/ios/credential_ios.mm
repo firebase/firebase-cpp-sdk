@@ -19,14 +19,16 @@
 #include "auth/src/ios/common_ios.h"
 
 #import <GameKit/GameKit.h>
+#import <UIKit/UIKit.h>
 
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
 #import "FIREmailAuthProvider.h"
 #import "FIRFacebookAuthProvider.h"
 #import "FIRFederatedAuthProvider.h"
 #import "FIRGameCenterAuthProvider.h"
 #import "FIRGitHubAuthProvider.h"
 #import "FIRGoogleAuthProvider.h"
-#import "FIROAuthProvider.h"
+#import "FirebaseAuth-Swift.h"
 
 #if FIREBASE_PLATFORM_IOS
 // PhoneAuth is not supported on non-iOS Apple platforms (eg: tvOS).

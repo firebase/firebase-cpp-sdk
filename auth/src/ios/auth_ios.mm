@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-#import "FIRAdditionalUserInfo.h"
-#import "FIRAuthDataResult.h"
+#import <UIKit/UIKit.h>
+
 #import "FIRAuthErrors.h"
-#import "FIROAuthCredential.h"
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
 #import "FIROptions.h"
+#import "FirebaseAuth-Swift.h"
 
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"
