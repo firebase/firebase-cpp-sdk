@@ -21,13 +21,14 @@
 #import <GameKit/GameKit.h>
 #import <UIKit/UIKit.h>
 
-#import "FirebaseAuthInterop/FIRAuthInterop.h"
 #import "FIREmailAuthProvider.h"
 #import "FIRFacebookAuthProvider.h"
 #import "FIRFederatedAuthProvider.h"
 #import "FIRGameCenterAuthProvider.h"
 #import "FIRGitHubAuthProvider.h"
 #import "FIRGoogleAuthProvider.h"
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
+// This needs to be after the FIRAuthInterop import
 #import "FirebaseAuth-Swift.h"
 
 #if FIREBASE_PLATFORM_IOS

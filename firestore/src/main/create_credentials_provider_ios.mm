@@ -19,7 +19,7 @@
 #include <memory>
 
 #import "FIRAppInternal.h"
-#import "FIRAuthInterop.h"
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
 #import "FIRComponent.h"
 #import "FIRComponentContainer.h"
 #import "FIRComponentType.h"
