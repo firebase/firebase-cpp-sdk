@@ -445,6 +445,7 @@ Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   assert(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithProvider, AuthResult());
+#if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -465,6 +466,12 @@ Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
                                AuthResult());
     return future;
   }
+
+#else   // non-iOS Apple platforms (eg: tvOS)
+  Future<AuthResult> future = MakeFuture(&futures, handle);
+  futures.Complete(handle, kAuthErrorApiNotAvailable,
+                   "OAuth provider sign-in is not supported on non-iOS Apple platforms.");
+#endif  // FIREBASE_PLATFORM_IOS
 }
 
 Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
