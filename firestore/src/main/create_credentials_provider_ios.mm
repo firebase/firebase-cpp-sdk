@@ -19,10 +19,10 @@
 #include <memory>
 
 #import "FIRAppInternal.h"
-#import "FIRAuthInterop.h"
 #import "FIRComponent.h"
 #import "FIRComponentContainer.h"
 #import "FIRComponentType.h"
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
 #import "FirebaseCore.h"
 
 #include "Firestore/core/src/credentials/firebase_auth_credentials_provider_apple.h"
