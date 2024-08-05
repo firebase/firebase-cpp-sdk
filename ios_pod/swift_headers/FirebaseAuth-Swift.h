@@ -2521,7 +2521,7 @@ SWIFT_AVAILABILITY(watchos, introduced = 7)
 /// Profile data for each identity provider, if any.
 /// This data is cached on sign-in and updated when linking or unlinking.
 @property(nonatomic, readonly, copy)
-    NSArray<id<FIRUserInfo> > *_Nonnull providerData;
+    NSArray<id<FIRUserInfo>> *_Nonnull providerData;
 /// Metadata associated with the Firebase user in question.
 @property(nonatomic, readonly, strong) FIRUserMetadata *_Nonnull metadata;
 /// The tenant ID of the current user. <code>nil</code> if none is available.
@@ -5549,7 +5549,7 @@ SWIFT_AVAILABILITY(watchos, introduced = 7)
 /// Profile data for each identity provider, if any.
 /// This data is cached on sign-in and updated when linking or unlinking.
 @property(nonatomic, readonly, copy)
-    NSArray<id<FIRUserInfo> > *_Nonnull providerData;
+    NSArray<id<FIRUserInfo>> *_Nonnull providerData;
 /// Metadata associated with the Firebase user in question.
 @property(nonatomic, readonly, strong) FIRUserMetadata *_Nonnull metadata;
 /// The tenant ID of the current user. <code>nil</code> if none is available.
