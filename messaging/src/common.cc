@@ -93,7 +93,8 @@ Listener* SetListener(Listener* listener) {
     g_prev_token_received = new std::string;
   }
   g_listener = listener;
-  // If we have a pending token, send it before notifying other systems about the listener.
+  // If we have a pending token, send it before notifying other systems about
+  // the listener.
   if (g_listener && g_has_pending_token && g_prev_token_received) {
     g_listener->OnTokenReceived(g_prev_token_received->c_str());
     g_has_pending_token = false;
