@@ -48,6 +48,8 @@ static Listener* g_listener = nullptr;
 
 // Keep track of the most recent token received.
 static std::string* g_prev_token_received = nullptr;
+// Keep track if that token was receieved without a listener set.
+static bool g_has_pending_token = false;
 
 namespace internal {
 
@@ -91,11 +93,17 @@ Listener* SetListener(Listener* listener) {
     g_prev_token_received = new std::string;
   }
   g_listener = listener;
+  // If we have a pending token, send it before notifying other systems about the listener.
+  if (g_listener && g_has_pending_token && g_prev_token_received) {
+    g_listener->OnTokenReceived(g_prev_token_received->c_str());
+    g_has_pending_token = false;
+  }
   NotifyListenerSet(listener);
   if (!listener && g_prev_token_received) {
     std::string* ptr = g_prev_token_received;
     g_prev_token_received = nullptr;
     delete ptr;
+    g_has_pending_token = false;
   }
   return previous_listener;
 }
@@ -119,13 +127,20 @@ void NotifyListenerOnTokenReceived(const char* token) {
   MutexLock lock(g_listener_lock);
   // If we have a previous token that we've notified any listener about, check
   // to ensure no repeat.
-  if (g_prev_token_received) {
-    if (*g_prev_token_received == token) {
-      return;
-    }
-    *g_prev_token_received = token;
+  if (g_prev_token_received && *g_prev_token_received == token) {
+    return;
   }
-  if (g_listener) g_listener->OnTokenReceived(token);
+
+  if (!g_prev_token_received) g_prev_token_received = new std::string;
+  *g_prev_token_received = token;
+
+  if (g_listener) {
+    g_listener->OnTokenReceived(token);
+  } else {
+    // Set so that if a listener is set in the future, it will be sent
+    // the token, since the underlying platform won't send it again.
+    g_has_pending_token = true;
+  }
 }
 
 class PollableListenerImpl {
