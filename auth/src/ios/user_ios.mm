@@ -17,10 +17,6 @@
 #include "app/src/time.h"
 #include "auth/src/ios/common_ios.h"
 
-#if FIREBASE_PLATFORM_IOS
-#import "FIRPhoneAuthCredential.h"
-#endif
-
 namespace firebase {
 namespace auth {
 
