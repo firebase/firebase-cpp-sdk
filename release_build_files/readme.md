@@ -631,6 +631,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Messaging: Changed SetListener to send the last token received
+      before the listener was set.
+
 ### 12.2.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.0.0.
