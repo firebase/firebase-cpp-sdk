@@ -59,7 +59,7 @@ namespace firebase_testapp_automated {
 
 // Your Firebase project's Debug token goes here.
 // You can get this from Firebase Console, in the App Check settings.
-const char kAppCheckDebugToken[] = "REPLACE_WITH_APP_CHECK_TOKEN";
+const char kAppCheckDebugToken[] = "CD369669-D1E5-4997-9E8D-7D440909F503";
 
 using app_framework::LogDebug;
 using app_framework::LogError;

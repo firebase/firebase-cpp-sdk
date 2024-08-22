@@ -150,10 +150,6 @@ InitResult Initialize(const ::firebase::App &app, Listener *listener) {
 
 InitResult Initialize(
 	    const ::firebase::App &app, Listener *listener, const MessagingOptions& options) {
-  [GULAppDelegateSwizzler proxyOriginalDelegateIncludingAPNSMethods];
-  FIRCppApplicationDelegateInterceptor *interceptor = [FIRCppApplicationDelegateInterceptor sharedInstance];
-  [GULAppDelegateSwizzler registerAppDelegateInterceptor:interceptor];
-  
   if (!g_messaging_delegate) {
     g_messaging_delegate = [[FIRCppMessagingDelegate alloc] init];
     [FIRMessaging messaging].delegate = g_messaging_delegate;
@@ -861,16 +857,13 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
 // Category +load() methods are called after all class load methods in each Mach-O
 // (see call_load_methods() in
 // http://www.opensource.apple.com/source/objc4/objc4-274/runtime/objc-runtime.m)
-@implementation UIApplication (FIRFCM)
-#ifdef OLD_SWIZZLER
+@implementation FIRCppApplicationDelegateInterceptor (FIRFCM)
 + (void)load {
-  // C++ constructors may not be called yet so call NSLog rather than LogInfo.
-  NSLog(@"FCM: Loading UIApplication FIRFCM category");
-  ::firebase::util::ForEachAppDelegateClass(^(Class clazz) {
-    FirebaseMessagingHookAppDelegate(clazz);
-  });
+  NSLog(@"FCM: FIRCppApplicationDelegateInterceptor: Initializing GULAppDelegateSwizzler");
+  [GULAppDelegateSwizzler proxyOriginalDelegateIncludingAPNSMethods];
+  FIRCppApplicationDelegateInterceptor *interceptor = [FIRCppApplicationDelegateInterceptor sharedInstance];
+  [GULAppDelegateSwizzler registerAppDelegateInterceptor:interceptor];
 }
-#endif
 
 #if FIREBASE_PLATFORM_IOS
 - (void)userNotificationCenter:(UNUserNotificationCenter *)notificationCenter
@@ -966,12 +959,15 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 }
 
 -(void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)data {
+  NSLog(@"FIRCppApplicationDelegateInterceptor Got device token: %@", data)
 }
 
 -(void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error {
+  NSLog(@"FIRCppApplicationDelegateInterceptor Error getting device token: %@", error)
 }
 
 -(BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launch_options {
+  NSLog(@"FIRCppApplicationDelegateInterceptor: didFinishLaunchingWithOptions")
   // Set up Messaging on iOS 10, if possible.
   Class notification_center_class = NSClassFromString(@"UNUserNotificationCenter");
   if (notification_center_class && application) {
@@ -998,6 +994,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 }
 
 -(void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)user_info {
+  NSLog(@"FIRCppApplicationDelegateInterceptor: didReceiveRemoteNotification: %@", user_info)
   firebase::messaging::g_message_notification_opened = (application.applicationState == UIApplicationStateInactive ||
                                    application.applicationState == UIApplicationStateBackground);
 #if !defined(NDEBUG)
@@ -1012,6 +1009,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 }
 
 -(void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)user_info fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler {
+  NSLog(@"FIRCppApplicationDelegateInterceptor: didReceiveRemoteNotification: %@", user_info)
   firebase::messaging::g_message_notification_opened = (application.applicationState == UIApplicationStateInactive ||
                                    application.applicationState == UIApplicationStateBackground);
 #if !defined(NDEBUG)
