@@ -496,8 +496,14 @@ static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
                                     ConfigInfo* info) {
   FIREBASE_DEV_ASSERT(env->IsInstanceOf(jinfo, config_info::GetClass()));
 
-  info->fetch_time = env->CallLongMethod(
+  int64_t fetch_time = env->CallLongMethod(
       jinfo, config_info::GetMethodId(config_info::kGetFetchTimeMillis));
+  // The C++ fetch_time is a uint64_t, so if we are given a negative number,
+  // use 0 instead, to prevent getting a very large number.
+  if (fetch_time < 0) {
+    fetch_time = 0;
+  }
+  info->fetch_time = fetch_time;
   int64_t status_code = env->CallIntMethod(
       jinfo, config_info::GetMethodId(config_info::kGetLastFetchStatus));
   switch (status_code) {

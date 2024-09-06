@@ -94,7 +94,7 @@ struct ConfigUpdate {
 /// Normally returned as a result of the GetInfo() function.
 struct ConfigInfo {
   /// @brief The time (in milliseconds since the epoch) that the last fetch
-  /// operation completed.
+  /// operation completed. 0 if no fetch attempt has been made yet.
   uint64_t fetch_time;
 
   /// @brief The status of the last fetch request.
