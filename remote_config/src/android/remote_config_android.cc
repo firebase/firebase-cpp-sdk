@@ -504,6 +504,7 @@ static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
     fetch_time = 0;
   }
   info->fetch_time = fetch_time;
+  util::CheckAndClearJniExceptions(env);
   int64_t status_code = env->CallIntMethod(
       jinfo, config_info::GetMethodId(config_info::kGetLastFetchStatus));
   switch (status_code) {
