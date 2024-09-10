@@ -315,7 +315,7 @@ jobs:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -451,7 +451,7 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Android
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -555,7 +555,7 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p iOS
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -660,7 +660,7 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
