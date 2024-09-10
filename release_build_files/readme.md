@@ -635,6 +635,8 @@ code.
 -   Changes
     - Messaging: Changed SetListener to send the last token received
       before the listener was set.
+    - Remote Config: Fixed ConfigInfo fields to default to 0 when
+      not throttled or having previous fetch data.
 
 ### 12.2.0
 -   Changes
