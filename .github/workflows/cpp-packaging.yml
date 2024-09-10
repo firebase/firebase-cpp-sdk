@@ -507,7 +507,7 @@ jobs:
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -708,7 +708,7 @@ jobs:
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -764,7 +764,7 @@ jobs:
     needs: [merge_packages]
     steps:
       - name: download SDK zip
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: firebase_cpp_sdk.zip
       - name: unzip SDK and remove non-Windows files
