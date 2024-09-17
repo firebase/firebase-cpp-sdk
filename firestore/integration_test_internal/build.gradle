@@ -98,16 +98,16 @@ android {
   }
 }
 
-apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
-firebaseCpp.dependencies {
-  auth
-  firestore
-}
-
 dependencies {
     implementation 'com.google.guava:guava:32.0.1-android' {
       force = true
     }
+}
+
+apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
+firebaseCpp.dependencies {
+  auth
+  firestore
 }
 
 apply plugin: 'com.google.gms.google-services'
