@@ -104,6 +104,12 @@ firebaseCpp.dependencies {
   firestore
 }
 
+dependencies {
+    implementation ('com.google.firebase:firebase-firestore') {
+        constraint(group = 'com.google.guava', module = 'guava', version = '32.1.3-android') 
+    }
+}
+
 apply plugin: 'com.google.gms.google-services'
 
 task copyIntegrationTestFiles(type:Exec) {
