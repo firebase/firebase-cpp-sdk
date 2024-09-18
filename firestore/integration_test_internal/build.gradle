@@ -51,6 +51,14 @@ android {
       java.srcDirs = ['src/android/java']
       res.srcDirs = ['res']
     }
+    all {
+      configurations.getByName(runtimeClasspathConfigurationName) {
+        attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
+      }
+      configurations.getByName(compileClasspathConfigurationName) {
+        attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
+      }
+    }
   }
 
   Properties localProperties = new Properties()
@@ -96,12 +104,6 @@ android {
   lintOptions {
     abortOnError false
   }
-}
-
-dependencies {
-    implementation 'com.google.guava:guava:32.0.1-android' {
-      force = true
-    }
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
