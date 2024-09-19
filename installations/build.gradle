@@ -33,7 +33,7 @@ apply plugin: 'com.android.library'
 android {
   compileSdkVersion 34
   ndkPath System.getenv('ANDROID_NDK_HOME')
-  buildToolsVersion '30.0.2'
+  buildToolsVersion '32.0.0'
 
   sourceSets {
     main {
