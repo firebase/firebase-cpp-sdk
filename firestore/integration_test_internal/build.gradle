@@ -51,14 +51,6 @@ android {
       java.srcDirs = ['src/android/java']
       res.srcDirs = ['res']
     }
-    all {
-      configurations.getByName(runtimeClasspathConfigurationName) {
-        attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
-      }
-      configurations.getByName(compileClasspathConfigurationName) {
-        attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
-      }
-    }
   }
 
   Properties localProperties = new Properties()
