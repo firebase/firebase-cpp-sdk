@@ -449,10 +449,6 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Android
-      - name: Fix dexer command line on Windows
-        if: startsWith(matrix.os, 'windows')
-        shell: bash
-        run: sed -i~ 's/-Djava\.ext\.dirs="\%frameworkdir\%"//' "${ANDROID_HOME}/build-tools/*/d8.bat"
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
