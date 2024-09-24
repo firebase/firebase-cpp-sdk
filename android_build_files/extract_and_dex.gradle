@@ -61,13 +61,8 @@ def defineExtractionTasks(String resourceName, String buildType) {
       String dex_path = "${sdk_dir}/build-tools/${buildToolsVersion}/d8"
       if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
         dex_path = "${dex_path}.bat"
-
-        commandLine "cmd", "/c", "echo", "${dex_path}",
-            "$buildDir/classes.jar",
-            "--output",
-            "$dexedJar"
       }
-      
+
       commandLine "${dex_path}",
           "$buildDir/classes.jar",
           "--output",
