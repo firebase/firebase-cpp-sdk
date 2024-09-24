@@ -631,8 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 12.3.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 33.2.0.
+    - General (iOS): Update to Firebase Cocoapods version 11.2.0.
     - Messaging: Changed SetListener to send the last token received
       before the listener was set.
     - Remote Config: Fixed ConfigInfo fields to default to 0 when
