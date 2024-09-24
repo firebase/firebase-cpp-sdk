@@ -49,7 +49,7 @@ android {
 
   defaultConfig {
     // Jelly Bean is the minimum supported version needed by Firebase.
-    minSdkVersion 23
+    minSdkVersion 24
     targetSdkVersion 34
     versionCode 1
     versionName "1.0"
