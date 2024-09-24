@@ -55,7 +55,7 @@ android {
 
   defaultConfig {
     applicationId 'com.google.firebase.cpp.functions.testapp'
-    minSdkVersion 23
+    minSdkVersion 24
     targetSdkVersion 34
     versionCode 1
     versionName '1.0'
