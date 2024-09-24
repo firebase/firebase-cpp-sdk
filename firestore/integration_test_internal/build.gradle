@@ -91,6 +91,7 @@ android {
   }
   packagingOptions {
     pickFirst 'META-INF/**/coroutines.pro'
+    pickFirst 'META-INF/third_party.java_src.protobuf.current.java.com.google.protobuf.*.kotlin_module'
   }
   lintOptions {
     abortOnError false
