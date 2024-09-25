@@ -84,4 +84,6 @@ apply from: "$rootDir/android_build_files/android_abis.gradle"
 apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('installations')
+  preDebugBuild.dependsOn(':app:externalNativeBuildDebug')
+  preReleaseBuild.dependsOn(':app:externalNativeBuildRelease')
 }
