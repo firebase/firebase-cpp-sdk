@@ -18,7 +18,7 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:4.2.1'
+    classpath 'com.android.tools.build:gradle:7.4.2'
   }
 }
 allprojects {
@@ -33,7 +33,7 @@ apply plugin: 'com.android.library'
 android {
   compileSdkVersion 34
   ndkPath System.getenv('ANDROID_NDK_HOME')
-  buildToolsVersion '30.0.2'
+  buildToolsVersion '32.0.0'
 
   sourceSets {
     main {
@@ -49,7 +49,7 @@ android {
 
   defaultConfig {
     // Jelly Bean is the minimum supported version needed by Firebase.
-    minSdkVersion 23
+    minSdkVersion 24
     targetSdkVersion 34
     versionCode 1
     versionName "1.0"
@@ -87,4 +87,6 @@ apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('firestore')
   setupDexDependencies(':firestore:firestore_resources')
+  preBuild.dependsOn(':app:build')
+  preBuild.dependsOn(':auth:build')
 }
