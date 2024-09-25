@@ -35,6 +35,11 @@ android {
   compileSdkVersion 34
   buildToolsVersion '32.0.0'
 
+  defaultConfig {
+    minSdkVersion 24
+    targetSdkVersion 34
+  }
+
   sourceSets {
     main {
       manifest.srcFile '../../android_build_files/AndroidManifest.xml'
