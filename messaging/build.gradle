@@ -86,6 +86,5 @@ apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
 apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('messaging')
-  preDebugBuild.dependsOn(':app:externalNativeBuildDebug')
-  preReleaseBuild.dependsOn(':app:externalNativeBuildRelease')
+  preBuild.dependsOn(':app:build')
 }

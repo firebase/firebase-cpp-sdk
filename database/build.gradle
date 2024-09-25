@@ -86,4 +86,6 @@ apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('database')
   setupDexDependencies(':database:database_resources')
+  preBuild.dependsOn(':app:build')
+  preBuild.dependsOn(':auth:build')
 }

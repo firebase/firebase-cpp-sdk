@@ -86,8 +86,6 @@ apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('storage')
   setupDexDependencies(':storage:storage_resources')
-  preDebugBuild.dependsOn(':app:externalNativeBuildDebug')
-  preReleaseBuild.dependsOn(':app:externalNativeBuildRelease')
-  preDebugBuild.dependsOn(':auth:externalNativeBuildDebug')
-  preReleaseBuild.dependsOn(':auth:externalNativeBuildRelease')
+  preBuild.dependsOn(':app:build')
+  preBuild.dependsOn(':auth:build')
 }

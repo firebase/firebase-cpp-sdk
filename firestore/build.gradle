@@ -87,4 +87,6 @@ apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('firestore')
   setupDexDependencies(':firestore:firestore_resources')
+  preBuild.dependsOn(':app:build')
+  preBuild.dependsOn(':auth:build')
 }

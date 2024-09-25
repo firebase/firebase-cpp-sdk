@@ -84,4 +84,5 @@ apply from: "$rootDir/android_build_files/android_abis.gradle"
 apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('dynamic_links')
+  preBuild.dependsOn(':app:build')
 }
