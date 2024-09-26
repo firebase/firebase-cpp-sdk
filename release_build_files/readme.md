@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.1.2)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.3.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -631,8 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 12.3.0
 -   Changes
+    - General (iOS): Update to Firebase Cocoapods version 11.2.0.
+    - General (Android): Update to Firebase Android BoM version 33.3.0.
     - General (Android): Updated minSdkVersion to 24.
     - Messaging: Changed SetListener to send the last token received
       before the listener was set.
