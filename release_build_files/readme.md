@@ -633,6 +633,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General (Android): Updated minSdkVersion to 24.
     - Messaging: Changed SetListener to send the last token received
       before the listener was set.
     - Remote Config: Fixed ConfigInfo fields to default to 0 when

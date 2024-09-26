@@ -18,8 +18,8 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:4.2.1'
-    classpath 'com.google.gms:google-services:4.2.0'
+    classpath 'com.android.tools.build:gradle:7.4.2'
+    classpath 'com.google.gms:google-services:4.4.1'
   }
 }
 allprojects {
@@ -33,6 +33,12 @@ apply plugin: 'com.android.library'
 
 android {
   compileSdkVersion 34
+  buildToolsVersion '32.0.0'
+
+  defaultConfig {
+    minSdkVersion 24
+    targetSdkVersion 34
+  }
 
   sourceSets {
     main {

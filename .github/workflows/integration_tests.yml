@@ -426,10 +426,9 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Force Java 8 (macOS)
-        if: startsWith(matrix.os, 'macos')
+      - name: Force Java 11
         shell: bash
-        run: echo "JAVA_HOME=${JAVA_HOME_8_X64}" >> $GITHUB_ENV
+        run: echo "JAVA_HOME=${JAVA_HOME_11_X64}" >> $GITHUB_ENV
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.1
@@ -1058,11 +1057,11 @@ jobs:
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)" >> $GITHUB_OUTPUT
           echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device_list)" >> $GITHUB_OUTPUT
-      - name: Setup java 8 for test_simulator.py
+      - name: Setup java 11 for test_simulator.py
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '11'
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 180
         if: steps.device-info.outputs.device_type == 'virtual'
