@@ -631,8 +631,8 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
--   12.3.0
+### 12.3.0
+-   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.2.0.
     - General (Android): Update to Firebase Android BoM version 33.3.0.
     - General (Android): Updated minSdkVersion to 24.
