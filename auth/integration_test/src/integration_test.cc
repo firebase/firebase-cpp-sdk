@@ -671,6 +671,78 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
   DeleteUser();
 }
 
+TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
+  std::string email = GenerateEmailAddress();
+  firebase::Future<firebase::auth::AuthResult> create_user =
+      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
+  WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
+  EXPECT_TRUE(auth_->current_user().is_valid());
+  // Set some user profile properties.
+  firebase::auth::User user = create_user.result()->user;
+  const char kDisplayName[] = "Hello World";
+  const char kPhotoUrl[] = "http://example.com/image.jpg";
+  firebase::auth::User::UserProfile user_profile;
+  user_profile.display_name = kDisplayName;
+  user_profile.photo_url = kPhotoUrl;
+  firebase::Future<void> update_profile = user.UpdateUserProfile(user_profile);
+  WaitForCompletion(update_profile, "UpdateUserProfile");
+  user = auth_->current_user();
+  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.photo_url(), kPhotoUrl);
+  firebase::auth::User::UserProfile user_profile_null;
+  user_profile_null.display_name = kDisplayName;
+  user_profile_null.photo_url = null;
+  firebase::Future<void> update_profile_null = user.UpdateUserProfile(user_profile_null);
+  WaitForCompletion(user_profile_null, "UpdateUserProfileNull");
+  user = auth_->current_user();
+  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.photo_url(), null);
+  SignOut();
+  WaitForCompletion(
+      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      "SignInWithEmailAndPassword");
+  user = auth_->current_user();
+  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.photo_url(), null);
+  DeleteUser();
+}
+
+TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
+  std::string email = GenerateEmailAddress();
+  firebase::Future<firebase::auth::AuthResult> create_user =
+      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
+  WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
+  EXPECT_TRUE(auth_->current_user().is_valid());
+  // Set some user profile properties.
+  firebase::auth::User user = create_user.result()->user;
+  const char kDisplayName[] = "Hello World";
+  const char kPhotoUrl[] = "http://example.com/image.jpg";
+  firebase::auth::User::UserProfile user_profile;
+  user_profile.display_name = kDisplayName;
+  user_profile.photo_url = kPhotoUrl;
+  firebase::Future<void> update_profile = user.UpdateUserProfile(user_profile);
+  WaitForCompletion(update_profile, "UpdateUserProfile");
+  user = auth_->current_user();
+  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.photo_url(), kPhotoUrl);
+  firebase::auth::User::UserProfile user_profile_null;
+  user_profile_null.display_name = kDisplayName;
+  user_profile_null.photo_url = "";
+  firebase::Future<void> update_profile_null = user.UpdateUserProfile(user_profile_null);
+  WaitForCompletion(user_profile_null, "UpdateUserProfileEmpty");
+  user = auth_->current_user();
+  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.photo_url(), "");
+  SignOut();
+  WaitForCompletion(
+      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      "SignInWithEmailAndPassword");
+  user = auth_->current_user();
+  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.photo_url(), "");
+  DeleteUser();
+}
+
 TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
   std::string email = GenerateEmailAddress();
   WaitForCompletion(
