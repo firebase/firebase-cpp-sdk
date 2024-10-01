@@ -691,19 +691,19 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
   firebase::auth::User::UserProfile user_profile_null;
   user_profile_null.display_name = kDisplayName;
-  user_profile_null.photo_url = null;
+  user_profile_null.photo_url = nullptr;
   firebase::Future<void> update_profile_null = user.UpdateUserProfile(user_profile_null);
   WaitForCompletion(user_profile_null, "UpdateUserProfileNull");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
-  EXPECT_EQ(user.photo_url(), null);
+  EXPECT_EQ(user.photo_url(), nullptr);
   SignOut();
   WaitForCompletion(
       auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
-  EXPECT_EQ(user.photo_url(), null);
+  EXPECT_EQ(user.photo_url(), nullptr);
   DeleteUser();
 }
 
