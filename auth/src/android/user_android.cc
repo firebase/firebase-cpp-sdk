@@ -425,7 +425,10 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 
   // Extra painfully call UserProfileChangeRequest.Builder.setPhotoUri.
   if (error == kAuthErrorNone && profile.photo_url != nullptr) {
-    jobject j_uri = CharsToJniUri(env, profile.photo_url);
+    jobject j_uri = nullptr;
+    if (strlen(profile.photo_url) > 0) {
+      j_uri = CharsToJniUri(env, profile.photo_url);
+    }
     jobject j_builder_discard = env->CallObjectMethod(
         j_user_profile_builder,
         userprofilebuilder::GetMethodId(userprofilebuilder::kSetPhotoUri),
@@ -434,7 +437,9 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
     if (j_builder_discard) {
       env->DeleteLocalRef(j_builder_discard);
     }
-    env->DeleteLocalRef(j_uri);
+    if (j_uri) {
+      env->DeleteLocalRef(j_uri);
+    }
   }
 
   jobject j_user_profile_request = nullptr;

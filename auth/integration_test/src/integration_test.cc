@@ -689,21 +689,22 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
+  // Setting the entries to null should leave the old values
   firebase::auth::User::UserProfile user_profile_null;
-  user_profile_null.display_name = kDisplayName;
+  user_profile_null.display_name = nullptr;
   user_profile_null.photo_url = nullptr;
   firebase::Future<void> update_profile_null = user.UpdateUserProfile(user_profile_null);
   WaitForCompletion(update_profile_null, "UpdateUserProfileNull");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
-  EXPECT_EQ(user.photo_url(), "");
+  EXPECT_EQ(user.photo_url(), kPhotoUrl);
   SignOut();
   WaitForCompletion(
       auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
-  EXPECT_EQ(user.photo_url(), "");
+  EXPECT_EQ(user.photo_url(), kPhotoUrl);
   DeleteUser();
 }
 
@@ -725,20 +726,21 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
-  firebase::auth::User::UserProfile user_profile_null;
-  user_profile_null.display_name = kDisplayName;
-  user_profile_null.photo_url = "";
-  firebase::Future<void> update_profile_null = user.UpdateUserProfile(user_profile_null);
-  WaitForCompletion(update_profile_null, "UpdateUserProfileEmpty");
+  // Setting the fields to empty should clear it.
+  firebase::auth::User::UserProfile user_profile_empty;
+  user_profile_empty.display_name = "";
+  user_profile_empty.photo_url = "";
+  firebase::Future<void> update_profile_empty = user.UpdateUserProfile(user_profile_empty);
+  WaitForCompletion(update_profile_empty, "UpdateUserProfileEmpty");
   user = auth_->current_user();
-  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.display_name(), "");
   EXPECT_EQ(user.photo_url(), "");
   SignOut();
   WaitForCompletion(
       auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
   user = auth_->current_user();
-  EXPECT_EQ(user.display_name(), kDisplayName);
+  EXPECT_EQ(user.display_name(), "");
   EXPECT_EQ(user.photo_url(), "");
   DeleteUser();
 }
