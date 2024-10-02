@@ -696,14 +696,14 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   WaitForCompletion(update_profile_null, "UpdateUserProfileNull");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
-  EXPECT_EQ(user.photo_url(), nullptr);
+  EXPECT_EQ(user.photo_url(), "");
   SignOut();
   WaitForCompletion(
       auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
-  EXPECT_EQ(user.photo_url(), nullptr);
+  EXPECT_EQ(user.photo_url(), "");
   DeleteUser();
 }
 
