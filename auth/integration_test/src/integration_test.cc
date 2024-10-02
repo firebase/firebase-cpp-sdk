@@ -693,7 +693,8 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   firebase::auth::User::UserProfile user_profile_null;
   user_profile_null.display_name = nullptr;
   user_profile_null.photo_url = nullptr;
-  firebase::Future<void> update_profile_null = user.UpdateUserProfile(user_profile_null);
+  firebase::Future<void> update_profile_null =
+      user.UpdateUserProfile(user_profile_null);
   WaitForCompletion(update_profile_null, "UpdateUserProfileNull");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
@@ -730,7 +731,8 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
   firebase::auth::User::UserProfile user_profile_empty;
   user_profile_empty.display_name = "";
   user_profile_empty.photo_url = "";
-  firebase::Future<void> update_profile_empty = user.UpdateUserProfile(user_profile_empty);
+  firebase::Future<void> update_profile_empty =
+      user.UpdateUserProfile(user_profile_empty);
   WaitForCompletion(update_profile_empty, "UpdateUserProfileEmpty");
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), "");
