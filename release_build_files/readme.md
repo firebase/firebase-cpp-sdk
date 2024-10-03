@@ -631,10 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### Upcoming Release
 -   Changes
-    - Auth (Android): Setting photo_url to empty string clears the field,
-      making it consistent with the other platforms.
+    - Auth (Android): Setting photo_url to empty string with UpdateUserProfile
+      clears the field, making it consistent with the other platforms.
 
 ### 12.3.0
 -   Changes
