@@ -649,6 +649,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
   EXPECT_TRUE(auth_->current_user().is_valid());
+
   // Set some user profile properties.
   firebase::auth::User user = create_user.result()->user;
   const char kDisplayName[] = "Hello World";
@@ -661,6 +662,8 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
+
+  // Validate that the new properties are present after signing out and in.
   SignOut();
   WaitForCompletion(
       auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
@@ -677,6 +680,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
   EXPECT_TRUE(auth_->current_user().is_valid());
+
   // Set some user profile properties.
   firebase::auth::User user = create_user.result()->user;
   const char kDisplayName[] = "Hello World";
@@ -689,6 +693,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
+
   // Setting the entries to null should leave the old values
   firebase::auth::User::UserProfile user_profile_null;
   user_profile_null.display_name = nullptr;
@@ -699,6 +704,8 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
+
+  // Validate that the new properties are present after signing out and in.
   SignOut();
   WaitForCompletion(
       auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
@@ -715,6 +722,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
   EXPECT_TRUE(auth_->current_user().is_valid());
+
   // Set some user profile properties.
   firebase::auth::User user = create_user.result()->user;
   const char kDisplayName[] = "Hello World";
@@ -727,6 +735,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
+
   // Setting the fields to empty should clear it.
   firebase::auth::User::UserProfile user_profile_empty;
   user_profile_empty.display_name = "";
@@ -737,6 +746,8 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
   user = auth_->current_user();
   EXPECT_EQ(user.display_name(), "");
   EXPECT_EQ(user.photo_url(), "");
+
+  // Validate that the properties are cleared out after signing out and in.
   SignOut();
   WaitForCompletion(
       auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
