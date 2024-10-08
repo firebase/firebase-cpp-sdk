@@ -180,6 +180,7 @@ endif()
 # Set directories needed by the Firebase subprojects
 # Directory to store generated files.
 set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
+
 # Directory for any shared scripts.
 set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
@@ -227,20 +228,30 @@ set(FIRESTORE_INCLUDE_OBJC OFF CACHE BOOL "Disabled for the CPP SDK")
 set(RE2_BUILD_TESTING OFF CACHE BOOL "")
 
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
-  # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can
-  # match it in a regex.
-  # For example, '/path/with/+meta/char.acters' will become
-  # '/path/with/\+meta/char\.acters'.
-  string(REGEX REPLACE
-         "([][+.*()^])" "\\\\\\1"  # Yes, this many \'s is correct.
-         current_list_dir_regex
-         "${CMAKE_CURRENT_LIST_DIR}")
-  # Figure out where app's binary_dir was.
-  string(REGEX REPLACE
-    "${current_list_dir_regex}/[^/]+/(.*)"
-    "${CMAKE_CURRENT_LIST_DIR}/app/\\1"
-    APP_BINARY_DIR "${FIREBASE_BINARY_DIR}")
-
+  # Gradle now adds a random hash to each separate NDK cmake build.
+  # Scan the previously built directories to find the one containing app's header.
+  set(header_to_scan_for "generated/app/src/include/firebase/version.h")
+  set(prev_build_path "${CMAKE_BINARY_DIR}/../../../../../app/.cxx/${CMAKE_BUILD_TYPE}/*/${CMAKE_ANDROID_ARCH_ABI}")
+  file(GLOB possible_prev_build_dirs "${prev_build_path}")
+  # In case there are multiple matches, take the one with the newest timestamp.
+  set(newest_timestamp 0)
+  foreach(possible_prev_build_dir IN LISTS possible_prev_build_dirs)
+    if(IS_DIRECTORY ${possible_prev_build_dir})
+      if(EXISTS "${possible_prev_build_dir}/${header_to_scan_for}")
+        # Check if it's newer than any other files.
+        file(TIMESTAMP "${possible_prev_build_dir}/${header_to_scan_for}" timestamp "%s")
+        if(${timestamp} GREATER ${newest_timestamp})
+          set(APP_BINARY_DIR ${possible_prev_build_dir})
+          set(newest_timestamp ${timestamp})
+        endif()
+      endif()
+    endif()
+  endforeach()
+  if (IS_DIRECTORY "${APP_BINARY_DIR}")
+    message(STATUS "Found previous Firebase App build in ${APP_BINARY_DIR}")
+  else()
+    message(FATAL_ERROR "Could not find previous Firebase App build under ${prev_build_path}")
+  endif()
   set(FIRESTORE_SOURCE_DIR ${APP_BINARY_DIR}/external/src/firestore)
 else()
   # Run the CMake build logic that will download all the external dependencies.
@@ -579,6 +590,7 @@ if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
 else()
   # Add firebase_app as a target on the previously built app.
   add_library(firebase_app STATIC IMPORTED GLOBAL)
+
   file(MAKE_DIRECTORY "${APP_BINARY_DIR}/generated")
   file(MAKE_DIRECTORY "${FIREBASE_BINARY_DIR}/generated")
   set(app_include_dirs

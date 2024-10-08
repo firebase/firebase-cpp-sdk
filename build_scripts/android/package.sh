@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 # Copyright 2020 Google LLC
 
@@ -34,10 +34,12 @@ mkdir -p "${destpath}/libs/android"
 cd "${sourcepath}"
 # Make sure we only copy the libraries in product_list (specified in packaging.conf)
 for product in ${product_list[*]}; do
-    if [[ ! -d "${product}/build/intermediates/cmake/release/obj" ]]; then
+    if [[ ! -d "${product}/build/intermediates/cxx" ]]; then
 	continue
     fi
-    dir="${product}/build/intermediates/cmake/release/obj"
+    # Get the most recent matching intermediate files directory.
+    dir=$(ls -td "${product}"/build/intermediates/cxx/Rel*/*/obj | head -1)
+    echo "${dir}"
     for cpudir in "${dir}"/*; do
 	cpu=$(basename ${cpudir})
 	libsrc="${sourcepath}/${cpudir}/libfirebase_${product}.a"
@@ -49,7 +51,7 @@ for product in ${product_list[*]}; do
     cp -f "${sourcepath}/${product}/build/Release/${product}.pro" "${destpath}/libs/android/"
     # Copy the special messaging aar file, but only if messaging was built.
     if [[ "${product}" == "messaging" ]]; then
-        cp -f "${sourcepath}/messaging/messaging_java/build/outputs/aar/messaging_java"*.aar "${destpath}/libs/android/firebase_messaging_cpp.aar"
+        cp -f "${sourcepath}/messaging/messaging_java/build/outputs/aar/messaging_java-release"*.aar "${destpath}/libs/android/firebase_messaging_cpp.aar"
     fi
 done
 cd "${origpath}"

@@ -453,14 +453,6 @@ void LogEvent(const char* name, const char* parameter_name,
 /// @endif
 void LogEvent(const char* name);
 
-// clang-format off
-#ifdef SWIG
-// Modify the following overload with unsafe, so that we can do some pinning
-// in the C# code.
-%csmethodmodifiers LogEvent "public unsafe"
-#endif  // SWIG
-// clang-format on
-
 /// @brief Log an event with associated parameters.
 ///
 /// An Event is an important occurrence in your app that you want to

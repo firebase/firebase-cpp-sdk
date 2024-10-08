@@ -20,8 +20,8 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:4.2.1'
-    classpath 'com.google.gms:google-services:4.0.1'
+    classpath 'com.android.tools.build:gradle:7.4.2'
+    classpath 'com.google.gms:google-services:4.4.1'
   }
 }
 
@@ -37,12 +37,12 @@ apply plugin: 'com.android.application'
 
 android {
   compileOptions {
-    sourceCompatibility 1.8
-    targetCompatibility 1.8
+    sourceCompatibility JavaVersion.VERSION_11
+    targetCompatibility JavaVersion.VERSION_11
   }
   compileSdkVersion 34
   ndkPath System.getenv('ANDROID_NDK_HOME')
-  buildToolsVersion '30.0.2'
+  buildToolsVersion '32.0.0'
 
   sourceSets {
     main {
@@ -55,7 +55,7 @@ android {
 
   defaultConfig {
     applicationId 'com.google.firebase.cpp.database.testapp'
-    minSdkVersion 23
+    minSdkVersion 24
     targetSdkVersion 34
     versionCode 1
     versionName '1.0'

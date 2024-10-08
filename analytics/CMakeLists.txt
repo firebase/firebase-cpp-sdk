@@ -16,6 +16,7 @@
 
 # Analytics generates header files for default events, parameters, and
 # properties based on the iOS SDK, that are used across all platforms.
+
 set(analytics_generated_headers_dir
     "${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics")
 set(event_names_header "${analytics_generated_headers_dir}/event_names.h")

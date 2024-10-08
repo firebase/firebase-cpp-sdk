@@ -52,10 +52,6 @@ static_assert(FIRRemoteConfigSourceStatic == 2, "FIRRemoteConfigSourceStatic is 
 static NSString *true_pattern = @"^(1|true|t|yes|y|on)$";
 static NSString *false_pattern = @"^(0|false|f|no|n|off|)$";
 
-// If a fetch was throttled, this is set to the time when the throttling is
-// finished, in milliseconds since epoch.
-static NSNumber *g_throttled_end_time = @0;
-
 // Saved default keys.
 static std::vector<std::string> *g_default_keys = nullptr;
 
@@ -148,6 +144,11 @@ static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo 
   FIREBASE_DEV_ASSERT(out_info != nullptr);
   out_info->fetch_time = round(rc_instance.lastFetchTime.timeIntervalSince1970 *
                                ::firebase::internal::kMillisecondsPerSecond);
+  // The C++ throttled_end_time is a uint64_t, so if we are given a negative number,
+  // use 0 instead, to prevent getting a very large number.
+  if (throttled_end_time < 0) {
+    throttled_end_time = 0;
+  }
   out_info->throttled_end_time = throttled_end_time * ::firebase::internal::kMillisecondsPerSecond;
   switch (rc_instance.lastFetchStatus) {
     case FIRRemoteConfigFetchStatusNoFetchYet:
@@ -201,7 +202,7 @@ static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
 
 namespace internal {
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
-    : app_(app), future_impl_(kRemoteConfigFnCount) {
+    : app_(app), future_impl_(kRemoteConfigFnCount), throttled_end_time_in_sec_(0) {
   FIRApp *platform_app = app_.GetPlatformApp();
   impl_.reset(new FIRRemoteConfigPointer([FIRRemoteConfig remoteConfigWithApp:platform_app]));
 }

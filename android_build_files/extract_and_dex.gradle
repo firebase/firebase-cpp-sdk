@@ -58,15 +58,11 @@ def defineExtractionTasks(String resourceName, String buildType) {
       outputs.file "$outPro"
 
       // Convert the jar format using the dx tool.
-      String dex_path = "${sdk_dir}/build-tools/${buildToolsVersion}/dx"
-      if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
-        dex_path = "${dex_path}.bat"
-      }
-      
-      commandLine "${dex_path}",
-          '--dex',
-          "--output=$dexedJar",
-          "$buildDir/classes.jar"
+      String dex_path = "${sdk_dir}/build-tools/${buildToolsVersion}/lib/d8.jar"
+      commandLine "java", "-cp", "${dex_path}", "com.android.tools.r8.D8",
+          "$buildDir/classes.jar",
+          "--output",
+          "$dexedJar"
     }
 
     // Once the dexed jar has been made, generate a proguard file for it.
