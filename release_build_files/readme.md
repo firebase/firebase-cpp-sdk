@@ -631,6 +631,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Auth (Android): Setting photo_url to empty string with UpdateUserProfile
+      clears the field, making it consistent with the other platforms.
+
 ### 12.3.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.2.0.
