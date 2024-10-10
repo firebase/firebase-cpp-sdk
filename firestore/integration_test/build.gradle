@@ -21,6 +21,9 @@ buildscript {
   }
   dependencies {
     classpath 'com.android.tools.build:gradle:7.4.2'
+    // r8 on this version of the Android tools has a bug,
+    // so specify a different version to use.
+    classpath 'com.android.tools:r8:8.3.37'
     classpath 'com.google.gms:google-services:4.4.1'
   }
 }
@@ -55,7 +58,7 @@ android {
 
   defaultConfig {
     applicationId 'com.google.firebase.cpp.firestore.testapp'
-    minSdkVersion 24
+    minSdkVersion 23
     targetSdkVersion 34
     versionCode 1
     versionName '1.0'

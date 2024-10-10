@@ -633,6 +633,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General (Android): Reduced minSdkVersion back to 23.
     - Auth (Android): Setting photo_url to empty string with UpdateUserProfile
       clears the field, making it consistent with the other platforms.
 
