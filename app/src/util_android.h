@@ -498,7 +498,9 @@ METHOD_LOOKUP_DECLARATION(activity, ACTIVITY_METHODS)
     X(PutFloat, "putFloat", "(Ljava/lang/String;F)V"),                    \
     X(PutLong, "putLong", "(Ljava/lang/String;J)V"),                      \
     X(PutString, "putString", "(Ljava/lang/String;Ljava/lang/String;)V"), \
-    X(PutBundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V")
+    X(PutBundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V"),\
+    X(PutParcelableArrayList, "putParcelableArrayList",                   \
+      "(Ljava/lang/String;Ljava/util/ArrayList;)V")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(bundle, BUNDLE_METHODS)
 
