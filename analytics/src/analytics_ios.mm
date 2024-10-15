@@ -290,6 +290,7 @@ NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
                Variant::TypeName(value.type()), key);
     }
   }
+  return dict;
 }
 
 // Log an event with associated parameters.
