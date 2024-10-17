@@ -154,6 +154,10 @@ const char* kCppRuntimeOrStl = "libcpp";
 const char* kCpuArchitecture = "x86_64";
 #elif __i386__
 const char* kCpuArchitecture = "x86";
+#elif __aarch64__
+const char* kCpuArchitecture = "arm64";
+#elif __arm__
+const char* kCpuArchitecture = "arm32";
 #else
 #error Unknown Linux architecture.
 #endif  // Architecture
