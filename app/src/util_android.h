@@ -491,15 +491,15 @@ METHOD_LOOKUP_DECLARATION(activity, ACTIVITY_METHODS)
 // Used to setup the cache of Bundle class method IDs to reduce time spent
 // looking up methods by string.
 // clang-format off
-#define BUNDLE_METHODS(X)                                                 \
-    X(Constructor, "<init>", "()V"),                                      \
-    X(GetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;"),  \
-    X(KeySet, "keySet", "()Ljava/util/Set;"),                             \
-    X(PutFloat, "putFloat", "(Ljava/lang/String;F)V"),                    \
-    X(PutLong, "putLong", "(Ljava/lang/String;J)V"),                      \
-    X(PutString, "putString", "(Ljava/lang/String;Ljava/lang/String;)V"), \
-    X(PutBundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V"),\
-    X(PutParcelableArrayList, "putParcelableArrayList",                   \
+#define BUNDLE_METHODS(X)                                                  \
+    X(Constructor, "<init>", "()V"),                                       \
+    X(GetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;"),   \
+    X(KeySet, "keySet", "()Ljava/util/Set;"),                              \
+    X(PutFloat, "putFloat", "(Ljava/lang/String;F)V"),                     \
+    X(PutLong, "putLong", "(Ljava/lang/String;J)V"),                       \
+    X(PutString, "putString", "(Ljava/lang/String;Ljava/lang/String;)V"),  \
+    X(PutBundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V"), \
+    X(PutParcelableArrayList, "putParcelableArrayList",                    \
       "(Ljava/lang/String;Ljava/util/ArrayList;)V")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(bundle, BUNDLE_METHODS)
