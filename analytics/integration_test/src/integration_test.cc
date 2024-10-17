@@ -271,6 +271,32 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
       sizeof(kLevelUpParameters) / sizeof(kLevelUpParameters[0]));
 }
 
+TEST_F(FirebaseAnalyticsTest, TestLogEventWithComplexParameters) {
+  // Define the items that will go into the kParameterItems list.
+  firebase::Variant first_item = firebase::Variant::EmptyMap();
+  first_item.map()[firebase::analytics::kParameterItemID] = "SKU_12345";
+  first_item.map()[firebase::analytics::kParameterItemName] = "Horse Armor DLC";
+  firebase::Variant second_item = firebase::Variant::EmptyMap();
+  second_item.map()[firebase::analytics::kParameterItemID] = "SKU_67890";
+  second_item.map()[firebase::analytics::kParameterItemName] =
+      "Gold Horse Armor DLC";
+
+  // Define the parameters that are sent with the ViewCart event.
+  const firebase::analytics::Parameter kViewCartParameters[] = {
+      firebase::analytics::Parameter(firebase::analytics::kParameterCurrency,
+                                     "USD"),
+      firebase::analytics::Parameter(firebase::analytics::kParameterValue,
+                                     30.03),
+      firebase::analytics::Parameter(
+          firebase::analytics::kParameterItems,
+          std::vector<firebase::Variant>{first_item, second_item}),
+  };
+
+  firebase::analytics::LogEvent(
+      firebase::analytics::kEventViewCart, kViewCartParameters,
+      sizeof(kViewCartParameters) / sizeof(kViewCartParameters[0]));
+}
+
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   // On Android, this test must be performed at the end, after all the tests for
   // session ID and instance ID. This is because once you call SetConsent to

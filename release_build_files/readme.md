@@ -634,6 +634,8 @@ code.
 ### Upcoming Release
 -   Changes
     - General (Android): Reduced minSdkVersion back to 23.
+    - Analytics: Add support for Parameters of Lists of Dictionaries, needed
+      by some events such as ViewCart.
     - Auth (Android): Setting photo_url to empty string with UpdateUserProfile
       clears the field, making it consistent with the other platforms.
 

@@ -231,6 +231,69 @@ void LogEvent(const char* name) {
   [FIRAnalytics logEventWithName:@(name) parameters:@{}];
 }
 
+// Declared here so that it can be used, defined below.
+NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map);
+
+// Converts the given vector of Maps into an ObjC NSArray of ObjC NSDictionaries.
+NSArray* VectorOfMapsToArray(const std::vector<Variant>& vector) {
+  NSMutableArray* array = [NSMutableArray arrayWithCapacity:vector.size()];
+  for (const Variant& element : vector) {
+    if (element.is_map()) {
+      NSDictionary* dict = MapToDictionary(element.map());
+      [array addObject:dict];
+    } else {
+      LogError("VectorOfMapsToArray: Unsupported type (%s) within vector.",
+               Variant::TypeName(element.type()));
+    }
+  }
+  return array;
+}
+
+// Converts and adds the Variant to the given Dictionary.
+bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Variant& value) {
+  if (value.is_int64()) {
+    [dict setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
+  } else if (value.is_double()) {
+    [dict setObject:[NSNumber numberWithDouble:value.double_value()] forKey:key];
+  } else if (value.is_string()) {
+    [dict setObject:SafeString(value.string_value()) forKey:key];
+  } else if (value.is_bool()) {
+    // Just use integer 0 or 1.
+    [dict setObject:[NSNumber numberWithLongLong:value.bool_value() ? 1 : 0] forKey:key];
+  } else if (value.is_null()) {
+    // Just use integer 0 for null.
+    [dict setObject:[NSNumber numberWithLongLong:0] forKey:key];
+  } else if (value.is_vector()) {
+    NSArray* array = VectorOfMapsToArray(value.vector());
+    [dict setObject:array forKey:key];
+  } else if (value.is_map()) {
+    NSDictionary* inner_dict = MapToDictionary(value.map());
+    [dict setObject:inner_dict forKey:key];
+  } else {
+    // A Variant type that couldn't be handled was passed in.
+    return false;
+  }
+  return true;
+}
+
+// Converts the given map into an ObjC dictionary of ObjC objects.
+NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
+  NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:map.size()];
+  for (const auto& pair : map) {
+    // Only add elements that use a string key
+    if (!pair.first.is_string()) {
+      continue;
+    }
+    NSString* key = SafeString(pair.first.string_value());
+    const Variant& value = pair.second;
+    if (!AddVariantToDictionary(dict, key, value)) {
+      LogError("MapToDictionary: Unsupported type (%s) within map with key %s.",
+               Variant::TypeName(value.type()), key);
+    }
+  }
+  return dict;
+}
+
 // Log an event with associated parameters.
 void LogEvent(const char* name, const Parameter* parameters, size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
@@ -239,25 +302,10 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
   for (size_t i = 0; i < number_of_parameters; ++i) {
     const Parameter& parameter = parameters[i];
     NSString* parameter_name = SafeString(parameter.name);
-    if (parameter.value.is_int64()) {
-      [parameters_dict setObject:[NSNumber numberWithLongLong:parameter.value.int64_value()]
-                          forKey:parameter_name];
-    } else if (parameter.value.is_double()) {
-      [parameters_dict setObject:[NSNumber numberWithDouble:parameter.value.double_value()]
-                          forKey:parameter_name];
-    } else if (parameter.value.is_string()) {
-      [parameters_dict setObject:SafeString(parameter.value.string_value()) forKey:parameter_name];
-    } else if (parameter.value.is_bool()) {
-      // Just use integer 0 or 1.
-      [parameters_dict setObject:[NSNumber numberWithLongLong:parameter.value.bool_value() ? 1 : 0]
-                          forKey:parameter_name];
-    } else if (parameter.value.is_null()) {
-      // Just use integer 0 for null.
-      [parameters_dict setObject:[NSNumber numberWithLongLong:0] forKey:parameter_name];
-    } else {
-      // Vector or Map were passed in.
+    if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value)) {
+      // A Variant type that couldn't be handled was passed in.
       LogError("LogEvent(%s): %s is not a valid parameter value type. "
-               "Container types are not allowed. No event was logged.",
+               "No event was logged.",
                parameter.name, Variant::TypeName(parameter.value.type()));
     }
   }
