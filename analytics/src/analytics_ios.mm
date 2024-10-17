@@ -249,31 +249,28 @@ NSArray* VectorToArray(const std::vector<Variant>& vector) {
 
 bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Variant& value) {
   if (value.is_int64()) {
-      [dict setObject:[NSNumber numberWithLongLong:value.int64_value()]
-               forKey:key];
-    } else if (value.is_double()) {
-      [dict setObject:[NSNumber numberWithDouble:value.double_value()]
-               forKey:key];
-    } else if (value.is_string()) {
-      [dict setObject:SafeString(value.string_value()) forKey:key];
-    } else if (value.is_bool()) {
-      // Just use integer 0 or 1.
-      [dict setObject:[NSNumber numberWithLongLong:value.bool_value() ? 1 : 0]
-               forKey:key];
-    } else if (value.is_null()) {
-      // Just use integer 0 for null.
-      [dict setObject:[NSNumber numberWithLongLong:0] forKey:key];
-    } else if (value.is_vector()) {
-      NSArray* array = VectorToArray(value.vector());
-      [dict setObject:array forKey:key];
-    } else if (value.is_map()) {
-      NSDictionary* inner_dict = MapToDictionary(value.map());
-      [dict setObject:inner_dict forKey:key];
-    } else {
-      // A Variant type that couldn't be handled was passed in.
-      return false;
-    }
-    return true;
+    [dict setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
+  } else if (value.is_double()) {
+    [dict setObject:[NSNumber numberWithDouble:value.double_value()] forKey:key];
+  } else if (value.is_string()) {
+    [dict setObject:SafeString(value.string_value()) forKey:key];
+  } else if (value.is_bool()) {
+    // Just use integer 0 or 1.
+    [dict setObject:[NSNumber numberWithLongLong:value.bool_value() ? 1 : 0] forKey:key];
+  } else if (value.is_null()) {
+    // Just use integer 0 for null.
+    [dict setObject:[NSNumber numberWithLongLong:0] forKey:key];
+  } else if (value.is_vector()) {
+    NSArray* array = VectorToArray(value.vector());
+    [dict setObject:array forKey:key];
+  } else if (value.is_map()) {
+    NSDictionary* inner_dict = MapToDictionary(value.map());
+    [dict setObject:inner_dict forKey:key];
+  } else {
+    // A Variant type that couldn't be handled was passed in.
+    return false;
+  }
+  return true;
 }
 
 NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
@@ -301,7 +298,7 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
   for (size_t i = 0; i < number_of_parameters; ++i) {
     const Parameter& parameter = parameters[i];
     NSString* parameter_name = SafeString(parameter.name);
-    if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value)){
+    if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value)) {
       // A Variant type that couldn't be handled was passed in.
       LogError("LogEvent(%s): %s is not a valid parameter value type. "
                "No event was logged.",

@@ -355,17 +355,21 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key, int64_t value) {
   env->DeleteLocalRef(key_string);
 }
 
-void AddArrayListToBundle(JNIEnv* env, jobject bundle, const char* key, jobject arraylist) {
+void AddArrayListToBundle(JNIEnv* env, jobject bundle, const char* key,
+                          jobject arraylist) {
   jstring key_string = env->NewStringUTF(key);
-  env->CallVoidMethod(bundle, util::bundle::GetMethodId(util::bundle::kPutParcelableArrayList),
-                      key_string, arraylist);
+  env->CallVoidMethod(
+      bundle, util::bundle::GetMethodId(util::bundle::kPutParcelableArrayList),
+      key_string, arraylist);
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(key_string);
 }
 
-void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key, jobject inner_bundle) {
+void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
+                       jobject inner_bundle) {
   jstring key_string = env->NewStringUTF(key);
-  env->CallVoidMethod(bundle, util::bundle::GetMethodId(util::bundle::kPutBundle),
+  env->CallVoidMethod(bundle,
+                      util::bundle::GetMethodId(util::bundle::kPutBundle),
                       key_string, inner_bundle);
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(key_string);
@@ -374,15 +378,16 @@ void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key, jobject inn
 jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
 
 jobject VectorToArrayList(JNIEnv* env, const std::vector<Variant>& vector) {
-  jobject arraylist =
-      env->NewObject(util::array_list::GetClass(),
-                     util::array_list::GetMethodId(util::array_list::kConstructor));
+  jobject arraylist = env->NewObject(
+      util::array_list::GetClass(),
+      util::array_list::GetMethodId(util::array_list::kConstructor));
 
   for (const Variant& element : vector) {
     if (element.is_map()) {
       jobject bundle = MapToBundle(env, element.map());
-      env->CallBooleanMethod(arraylist, util::array_list::GetMethodId(util::array_list::kAdd),
-                             bundle);
+      env->CallBooleanMethod(
+          arraylist, util::array_list::GetMethodId(util::array_list::kAdd),
+          bundle);
       env->DeleteLocalRef(bundle);
     } else {
       LogError("VectorToArrayList: Unsupported type (%s) within vector.",
@@ -392,15 +397,14 @@ jobject VectorToArrayList(JNIEnv* env, const std::vector<Variant>& vector) {
   return arraylist;
 }
 
-bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key, const Variant& value) {
+bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
+                        const Variant& value) {
   if (value.is_int64()) {
     AddToBundle(env, bundle, key, value.int64_value());
   } else if (value.is_double()) {
-    AddToBundle(env, bundle, key,
-                value.double_value());
+    AddToBundle(env, bundle, key, value.double_value());
   } else if (value.is_string()) {
-    AddToBundle(env, bundle, key,
-                value.string_value());
+    AddToBundle(env, bundle, key, value.string_value());
   } else if (value.is_bool()) {
     // Just use integer 0 or 1.
     AddToBundle(env, bundle, key,
@@ -433,9 +437,11 @@ jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
     if (!pair.first.is_string()) {
       continue;
     }
-    if (!AddVariantToBundle(env, bundle, pair.first.string_value(), pair.second)) {
+    if (!AddVariantToBundle(env, bundle, pair.first.string_value(),
+                            pair.second)) {
       LogError("MapToBundle: Unsupported type (%s) within map with key %s.",
-               Variant::TypeName(pair.second.type()), pair.first.string_value());
+               Variant::TypeName(pair.second.type()),
+               pair.first.string_value());
     }
     util::CheckAndClearJniExceptions(env);
   }
