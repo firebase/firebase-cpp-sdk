@@ -382,7 +382,8 @@ jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
 
 // Converts the given vector into a Java ArrayList. It is up to the
 // caller to delete the local reference when done.
-jobject VectorToArrayList(JNIEnv* env, const std::vector<Variant>& vector) {
+jobject VectorOfMapsToArrayList(JNIEnv* env,
+                                const std::vector<Variant>& vector) {
   jobject arraylist = env->NewObject(
       util::array_list::GetClass(),
       util::array_list::GetMethodId(util::array_list::kConstructor));
@@ -396,7 +397,7 @@ jobject VectorToArrayList(JNIEnv* env, const std::vector<Variant>& vector) {
       util::CheckAndClearJniExceptions(env);
       env->DeleteLocalRef(bundle);
     } else {
-      LogError("VectorToArrayList: Unsupported type (%s) within vector.",
+      LogError("VectorOfMapsToArrayList: Unsupported type (%s) within vector.",
                Variant::TypeName(element.type()));
     }
   }
@@ -421,7 +422,7 @@ bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
     // Just use integer 0 for null.
     AddToBundle(env, bundle, key, static_cast<int64_t>(0L));
   } else if (value.is_vector()) {
-    jobject arraylist = VectorToArrayList(env, value.vector());
+    jobject arraylist = VectorOfMapsToArrayList(env, value.vector());
     AddArrayListToBundle(env, bundle, key, arraylist);
     env->DeleteLocalRef(arraylist);
   } else if (value.is_map()) {

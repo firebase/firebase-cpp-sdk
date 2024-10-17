@@ -234,15 +234,15 @@ void LogEvent(const char* name) {
 // Declared here so that it can be used, defined below.
 NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map);
 
-// Converts the given vector into an ObjC NSArray of ObjC objects.
-NSArray* VectorToArray(const std::vector<Variant>& vector) {
+// Converts the given vector of Maps into an ObjC NSArray of ObjC NSDictionaries.
+NSArray* VectorOfMapsToArray(const std::vector<Variant>& vector) {
   NSMutableArray* array = [NSMutableArray arrayWithCapacity:vector.size()];
   for (const Variant& element : vector) {
     if (element.is_map()) {
       NSDictionary* dict = MapToDictionary(element.map());
       [array addObject:dict];
     } else {
-      LogError("VectorToArray: Unsupported type (%s) within vector.",
+      LogError("VectorOfMapsToArray: Unsupported type (%s) within vector.",
                Variant::TypeName(element.type()));
     }
   }
@@ -264,7 +264,7 @@ bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Vari
     // Just use integer 0 for null.
     [dict setObject:[NSNumber numberWithLongLong:0] forKey:key];
   } else if (value.is_vector()) {
-    NSArray* array = VectorToArray(value.vector());
+    NSArray* array = VectorOfMapsToArray(value.vector());
     [dict setObject:array forKey:key];
   } else if (value.is_map()) {
     NSDictionary* inner_dict = MapToDictionary(value.map());
