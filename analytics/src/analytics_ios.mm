@@ -231,8 +231,10 @@ void LogEvent(const char* name) {
   [FIRAnalytics logEventWithName:@(name) parameters:@{}];
 }
 
+// Declared here so that it can be used, defined below.
 NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map);
 
+// Converts the given vector into an ObjC NSArray of ObjC objects.
 NSArray* VectorToArray(const std::vector<Variant>& vector) {
   NSMutableArray* array = [NSMutableArray arrayWithCapacity:vector.size()];
   for (const Variant& element : vector) {
@@ -247,6 +249,7 @@ NSArray* VectorToArray(const std::vector<Variant>& vector) {
   return array;
 }
 
+// Converts and adds the Variant to the given Dictionary.
 bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Variant& value) {
   if (value.is_int64()) {
     [dict setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
@@ -273,6 +276,7 @@ bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Vari
   return true;
 }
 
+// Converts the given map into an ObjC dictionary of ObjC objects.
 NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
   NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:map.size()];
   for (const auto& pair : map) {

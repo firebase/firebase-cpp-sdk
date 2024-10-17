@@ -355,6 +355,7 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key, int64_t value) {
   env->DeleteLocalRef(key_string);
 }
 
+// Add an ArrayList to the given Bundle.
 void AddArrayListToBundle(JNIEnv* env, jobject bundle, const char* key,
                           jobject arraylist) {
   jstring key_string = env->NewStringUTF(key);
@@ -365,6 +366,7 @@ void AddArrayListToBundle(JNIEnv* env, jobject bundle, const char* key,
   env->DeleteLocalRef(key_string);
 }
 
+// Add a Bundle to the given Bundle.
 void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
                        jobject inner_bundle) {
   jstring key_string = env->NewStringUTF(key);
@@ -375,8 +377,11 @@ void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
   env->DeleteLocalRef(key_string);
 }
 
+// Declared here so that it can be used, defined below.
 jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
 
+// Converts the given vector into a Java ArrayList. It is up to the
+// caller to delete the local reference when done.
 jobject VectorToArrayList(JNIEnv* env, const std::vector<Variant>& vector) {
   jobject arraylist = env->NewObject(
       util::array_list::GetClass(),
@@ -388,6 +393,7 @@ jobject VectorToArrayList(JNIEnv* env, const std::vector<Variant>& vector) {
       env->CallBooleanMethod(
           arraylist, util::array_list::GetMethodId(util::array_list::kAdd),
           bundle);
+      util::CheckAndClearJniExceptions(env);
       env->DeleteLocalRef(bundle);
     } else {
       LogError("VectorToArrayList: Unsupported type (%s) within vector.",
@@ -397,6 +403,7 @@ jobject VectorToArrayList(JNIEnv* env, const std::vector<Variant>& vector) {
   return arraylist;
 }
 
+// Converts and adds the Variant to the given Bundle.
 bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
                         const Variant& value) {
   if (value.is_int64()) {
@@ -428,6 +435,8 @@ bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
   return true;
 }
 
+// Converts the given map into a Java Bundle. It is up to the caller
+// to delete the local reference when done.
 jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
   jobject bundle =
       env->NewObject(util::bundle::GetClass(),
