@@ -355,6 +355,109 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key, int64_t value) {
   env->DeleteLocalRef(key_string);
 }
 
+// Add an ArrayList to the given Bundle.
+void AddArrayListToBundle(JNIEnv* env, jobject bundle, const char* key,
+                          jobject arraylist) {
+  jstring key_string = env->NewStringUTF(key);
+  env->CallVoidMethod(
+      bundle, util::bundle::GetMethodId(util::bundle::kPutParcelableArrayList),
+      key_string, arraylist);
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(key_string);
+}
+
+// Add a Bundle to the given Bundle.
+void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
+                       jobject inner_bundle) {
+  jstring key_string = env->NewStringUTF(key);
+  env->CallVoidMethod(bundle,
+                      util::bundle::GetMethodId(util::bundle::kPutBundle),
+                      key_string, inner_bundle);
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(key_string);
+}
+
+// Declared here so that it can be used, defined below.
+jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
+
+// Converts the given vector into a Java ArrayList. It is up to the
+// caller to delete the local reference when done.
+jobject VectorOfMapsToArrayList(JNIEnv* env,
+                                const std::vector<Variant>& vector) {
+  jobject arraylist = env->NewObject(
+      util::array_list::GetClass(),
+      util::array_list::GetMethodId(util::array_list::kConstructor));
+
+  for (const Variant& element : vector) {
+    if (element.is_map()) {
+      jobject bundle = MapToBundle(env, element.map());
+      env->CallBooleanMethod(
+          arraylist, util::array_list::GetMethodId(util::array_list::kAdd),
+          bundle);
+      util::CheckAndClearJniExceptions(env);
+      env->DeleteLocalRef(bundle);
+    } else {
+      LogError("VectorOfMapsToArrayList: Unsupported type (%s) within vector.",
+               Variant::TypeName(element.type()));
+    }
+  }
+  return arraylist;
+}
+
+// Converts and adds the Variant to the given Bundle.
+bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
+                        const Variant& value) {
+  if (value.is_int64()) {
+    AddToBundle(env, bundle, key, value.int64_value());
+  } else if (value.is_double()) {
+    AddToBundle(env, bundle, key, value.double_value());
+  } else if (value.is_string()) {
+    AddToBundle(env, bundle, key, value.string_value());
+  } else if (value.is_bool()) {
+    // Just use integer 0 or 1.
+    AddToBundle(env, bundle, key,
+                value.bool_value() ? static_cast<int64_t>(1L)
+                                   : static_cast<int64_t>(0L));
+  } else if (value.is_null()) {
+    // Just use integer 0 for null.
+    AddToBundle(env, bundle, key, static_cast<int64_t>(0L));
+  } else if (value.is_vector()) {
+    jobject arraylist = VectorOfMapsToArrayList(env, value.vector());
+    AddArrayListToBundle(env, bundle, key, arraylist);
+    env->DeleteLocalRef(arraylist);
+  } else if (value.is_map()) {
+    jobject inner_bundle = MapToBundle(env, value.map());
+    AddBundleToBundle(env, bundle, key, inner_bundle);
+    env->DeleteLocalRef(inner_bundle);
+  } else {
+    // A Variant type that couldn't be handled was passed in.
+    return false;
+  }
+  return true;
+}
+
+// Converts the given map into a Java Bundle. It is up to the caller
+// to delete the local reference when done.
+jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
+  jobject bundle =
+      env->NewObject(util::bundle::GetClass(),
+                     util::bundle::GetMethodId(util::bundle::kConstructor));
+  for (const auto& pair : map) {
+    // Only add elements that use a string key
+    if (!pair.first.is_string()) {
+      continue;
+    }
+    if (!AddVariantToBundle(env, bundle, pair.first.string_value(),
+                            pair.second)) {
+      LogError("MapToBundle: Unsupported type (%s) within map with key %s.",
+               Variant::TypeName(pair.second.type()),
+               pair.first.string_value());
+    }
+    util::CheckAndClearJniExceptions(env);
+  }
+  return bundle;
+}
+
 // Log an event with one string parameter.
 void LogEvent(const char* name, const char* parameter_name,
               const char* parameter_value) {
@@ -404,27 +507,11 @@ void LogEvent(const char* name, const Parameter* parameters,
   LogEvent(env, name, [env, parameters, number_of_parameters](jobject bundle) {
     for (size_t i = 0; i < number_of_parameters; ++i) {
       const Parameter& parameter = parameters[i];
-      if (parameter.value.is_int64()) {
-        AddToBundle(env, bundle, parameter.name, parameter.value.int64_value());
-      } else if (parameter.value.is_double()) {
-        AddToBundle(env, bundle, parameter.name,
-                    parameter.value.double_value());
-      } else if (parameter.value.is_string()) {
-        AddToBundle(env, bundle, parameter.name,
-                    parameter.value.string_value());
-      } else if (parameter.value.is_bool()) {
-        // Just use integer 0 or 1.
-        AddToBundle(env, bundle, parameter.name,
-                    parameter.value.bool_value() ? static_cast<int64_t>(1L)
-                                                 : static_cast<int64_t>(0L));
-      } else if (parameter.value.is_null()) {
-        // Just use integer 0 for null.
-        AddToBundle(env, bundle, parameter.name, static_cast<int64_t>(0L));
-      } else {
-        // Vector or Map were passed in.
+      if (!AddVariantToBundle(env, bundle, parameter.name, parameter.value)) {
+        // A Variant type that couldn't be handled was passed in.
         LogError(
             "LogEvent(%s): %s is not a valid parameter value type. "
-            "Container types are not allowed. No event was logged.",
+            "No event was logged.",
             parameter.name, Variant::TypeName(parameter.value.type()));
       }
     }
