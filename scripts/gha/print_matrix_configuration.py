@@ -25,7 +25,7 @@ Design Notes:
   Desktop and optionally override them.
 - There are 2 types of parameters - matrix and config. Matrix parameters are
   lists and generate jobs dynamically in Github workflows. Config parameters
-  represent the additonal fine tuning parameters that can be used in workflow
+  represent the additional fine tuning parameters that can be used in workflow
   dispatch. They are always treated as strings.
 
 Raises:
