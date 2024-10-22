@@ -631,8 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 12.4.0
 -   Changes
+    - General (iOS): Update to Firebase Cocoapods version 11.4.1.
+    - General (Android): Update to Firebase Android BoM version 33.5.0.
     - General (Android): Reduced minSdkVersion back to 23.
     - Analytics: Add support for Parameters of Lists of Dictionaries, needed
       by some events such as ViewCart.
