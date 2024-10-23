@@ -1,6 +1,6 @@
 // Copyright 2024 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 11.4.1.
+// Copied from Firebase Analytics iOS SDK 11.4.2.
 
 /// @file FIRUserPropertyNames.h
 ///
