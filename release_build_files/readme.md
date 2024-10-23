@@ -633,8 +633,8 @@ code.
 ## Release Notes
 ### 12.4.0
 -   Changes
-    - General (iOS): Update to Firebase Cocoapods version 11.4.1.
-    - General (Android): Update to Firebase Android BoM version 33.5.0.
+    - General (iOS): Update to Firebase Cocoapods version 11.4.2.
+    - General (Android): Update to Firebase Android BoM version 33.5.1.
     - General (Android): Reduced minSdkVersion back to 23.
     - Analytics: Add support for Parameters of Lists of Dictionaries, needed
       by some events such as ViewCart.
