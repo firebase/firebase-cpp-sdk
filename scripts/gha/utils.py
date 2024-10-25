@@ -38,7 +38,7 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
                          Output can be accessed as <return_object>.stdout
   cwd (str): Directory to execute the command from.
   check (bool): Raises a CalledProcessError if True and the command errored out
-  as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
+  as_root (bool): Run command as root user with admin privileges (supported on mac and linux).
   print_cmd (bool): Print the command we are running to stdout.
 
  Raises:
