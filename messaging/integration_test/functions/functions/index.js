@@ -15,7 +15,7 @@
  */
 
 // Import the Firebase SDK for Google Cloud Functions.
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 // Import and initialize the Firebase Admin SDK.
 const admin = require('firebase-admin');
 admin.initializeApp();
