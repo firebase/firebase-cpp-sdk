@@ -270,7 +270,7 @@ jobs:
           sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :
 
       - name: Archive crashes and binaries (linux)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
@@ -279,7 +279,7 @@ jobs:
             /tmp/bins/*
 
       - name: Archive crashes (mac)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.xcode_version }}
