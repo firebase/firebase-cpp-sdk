@@ -466,41 +466,50 @@ def main(argv):
           run['log_success'] = True
           run['log_results'] = ''
           artifacts = firebase_github.list_artifacts(FLAGS.token, run['id'])
-          if 'log-artifact' in [a['name'] for a in artifacts]:
-            artifact_id = [a['id'] for a in artifacts if a['name'] == 'log-artifact'][0]
-            artifact_contents = firebase_github.download_artifact(FLAGS.token, artifact_id)
-            if artifact_contents:
-              artifact_data = io.BytesIO(artifact_contents)
-              artifact_zip = zipfile.ZipFile(artifact_data)
-              with tempfile.TemporaryDirectory() as tmpdir:
-                artifact_zip.extractall(path=tmpdir)
-                (success, results) = summarize_test_results.summarize_logs(tmpdir, False, False, True)
-                run['log_success'] = success
-                run['log_results'] = results
-            else:
-              # Artifacts expire after some time, so if they are gone, we need
-              # to read the GitHub logs instead.  This is much slower, so we
-              # prefer to read artifacts instead whenever possible.
-              logging.info("Reading github logs for run %s instead", run['id'])
+          found_artifacts = False
+          # There are possibly multiple artifacts, so iterate through all of them,
+          # and extract the relevant ones into a temp folder, and then summarize them all.
+          with tempfile.TemporaryDirectory() as tmpdir:
+            for a in artifacts:
+              if 'log-artifact' in a['name']:
+                print("Checking this artifact:", a['name'], "\n")
+                artifact_contents = firebase_github.download_artifact(FLAGS.token, a['id'])
+                if artifact_contents:
+                  found_artifacts = True
+                  artifact_data = io.BytesIO(artifact_contents)
+                  artifact_zip = zipfile.ZipFile(artifact_data)
+                  artifact_zip.extractall(path=tmpdir)
+            if found_artifacts:
+              (success, results) = summarize_test_results.summarize_logs(tmpdir, False, False, True)
+              print("Results:", success, "    ", results, "\n")
+              run['log_success'] = success
+              run['log_results'] = results
 
-              logs_url = run['logs_url']
-              headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
-              with requests.get(logs_url, headers=headers, stream=True) as response:
-                if response.status_code == 200:
-                  logs_compressed_data = io.BytesIO(response.content)
-                  logs_zip = zipfile.ZipFile(logs_compressed_data)
-                  m = get_message_from_github_log(
-                    logs_zip,
-                    r'summarize-results/.*Summarize results into GitHub',
-                    r'\[error\]INTEGRATION TEST FAILURES\n—+\n(.*)$')
-                  if m:
-                    run['log_success'] = False
-                    m2 = re.match(r'(.*?)^' + day, m.group(1), re.MULTILINE | re.DOTALL)
-                    if m2:
-                      run['log_results'] = m2.group(1)
-                    else:
-                      run['log_results'] = m.group(1)
-                    logging.debug("Integration test results: %s", run['log_results'])
+          if not found_artifacts:
+            # Artifacts expire after some time, so if they are gone, we need
+            # to read the GitHub logs instead.  This is much slower, so we
+            # prefer to read artifacts instead whenever possible.
+            logging.info("Reading github logs for run %s instead", run['id'])
+
+            logs_url = run['logs_url']
+            headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
+            with requests.get(logs_url, headers=headers, stream=True) as response:
+              if response.status_code == 200:
+                logs_compressed_data = io.BytesIO(response.content)
+                logs_zip = zipfile.ZipFile(logs_compressed_data)
+                m = get_message_from_github_log(
+                  logs_zip,
+                  r'summarize-results/.*Summarize results into GitHub',
+                  r'\[error\]INTEGRATION TEST FAILURES\n—+\n(.*)$')
+                if m:
+                  run['log_success'] = False
+                  m2 = re.match(r'(.*?)^' + day, m.group(1), re.MULTILINE | re.DOTALL)
+                  if m2:
+                    run['log_results'] = m2.group(1)
+                  else:
+                    run['log_results'] = m.group(1)
+                  logging.debug("Integration test results: %s", run['log_results'])
+
           tests[day] = run
           bar.next()
 
