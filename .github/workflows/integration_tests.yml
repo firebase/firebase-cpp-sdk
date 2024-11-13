@@ -315,12 +315,12 @@ jobs:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
-          workflow: 'cpp-packaging.yml'
-          run_id: ${{ github.event.inputs.test_packaged_sdk }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
         shell: bash
         env:
@@ -358,7 +358,7 @@ jobs:
             --arch ${{ matrix.arch }} \
             ${additional_flags[*]}
       - name: Upload Desktop Cmake
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: cmake-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -373,25 +373,25 @@ jobs:
             echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop integration tests artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Desktop build results artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: log-artifact
+          name: log-artifact-build-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-build-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -450,12 +450,12 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Android
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
-          workflow: 'cpp-packaging.yml'
-          run_id: ${{ github.event.inputs.test_packaged_sdk }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
         shell: bash
         run: |
@@ -485,25 +485,25 @@ jobs:
             echo "__SUMMARY_MISSING__" > build-results-android-${{ matrix.os }}.log.json
           fi
       - name: Upload Android integration tests artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-android-${{ matrix.os }}
           path: testapps-android-${{ matrix.os }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Android build results artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: log-artifact
+          name: log-artifact-build-android-${{ matrix.os }}
           path: build-results-android-${{ matrix.os }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-build-android-${{ matrix.os }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -554,12 +554,12 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p iOS
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
-          workflow: 'cpp-packaging.yml'
-          run_id: ${{ github.event.inputs.test_packaged_sdk }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
         shell: bash
         run: |
@@ -590,25 +590,25 @@ jobs:
             echo "__SUMMARY_MISSING__" > build-results-ios-${{ matrix.os }}.log.json
           fi
       - name: Upload iOS integration tests artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-ios-${{ matrix.os }}
           path: testapps-ios-${{ matrix.os }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload iOS build results artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: log-artifact
+          name: log-artifact-build-ios-${{ matrix.os }}
           path: build-results-ios-${{ matrix.os }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-build-ios-${{ matrix.os }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -659,12 +659,12 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
-          workflow: 'cpp-packaging.yml'
-          run_id: ${{ github.event.inputs.test_packaged_sdk }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
         shell: bash
         run: |
@@ -694,25 +694,25 @@ jobs:
             echo "__SUMMARY_MISSING__" > build-results-tvos-${{ matrix.os }}.log.json
           fi
       - name: Upload tvOS integration tests artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-tvos-${{ matrix.os }}
           path: testapps-tvos-${{ matrix.os }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload tvOS build results artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: log-artifact
+          name: log-artifact-build-tvos-${{ matrix.os }}
           path: build-results-tvos-${{ matrix.os }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-build-tvos-${{ matrix.os }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -772,7 +772,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -834,17 +834,17 @@ jobs:
           fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: log-artifact
+          name: log-artifact-test-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-test-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -885,7 +885,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Android integration tests artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: testapps/testapps-android-${{ matrix.build_os }}
           name: testapps-android-${{ matrix.build_os }}
@@ -948,31 +948,31 @@ jobs:
           fi
       - name: Upload Android test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: log-artifact
+          name: log-artifact-test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Android test video artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: mobile-simulator-test-video-artifact
+          name: mobile-simulator-test-video-artifact-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/video-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Android test logcat artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: mobile-simulator-test-logcat-artifact
+          name: mobile-simulator-test-logcat-artifact-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/logcat-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.txt
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -1015,7 +1015,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download iOS integration tests artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: testapps/testapps-ios-${{ matrix.build_os }}
           name: testapps-ios-${{ matrix.build_os }}
@@ -1133,24 +1133,24 @@ jobs:
           security delete-keychain tmp-keychain || true
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: log-artifact
+          name: log-artifact-test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
           path: testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload iOS test video artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact
           path: testapps/video-*-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -1185,7 +1185,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download tvOS integration tests artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: testapps/testapps-tvos-${{ matrix.build_os }}
           name: testapps-tvos-${{ matrix.build_os }}
@@ -1273,24 +1273,24 @@ jobs:
           security delete-keychain tmp-keychain || true
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: log-artifact
+          name: log-artifact-test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
           path: testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload tvOS test video artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact
           path: testapps/video-*-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          name: log-artifact-test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
@@ -1326,10 +1326,11 @@ jobs:
       - name: Install python deps
         run: pip install -r scripts/gha/python_requirements.txt
       - name: Download log artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test_results
-          name: log-artifact
+          pattern: log-artifact-*
+          merge-multiple: true
       # Use a different token to remove the "in-progress" label,
       # to allow the removal to trigger the "Check Labels" workflow.
       - name: Generate token for GitHub API
