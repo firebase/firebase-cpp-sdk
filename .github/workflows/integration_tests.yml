@@ -1142,7 +1142,7 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-simulator-test-video-artifact
+          name: mobile-simulator-test-video-artifact-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
           path: testapps/video-*-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
@@ -1282,7 +1282,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-simulator-test-video-artifact
+          name: mobile-simulator-test-video-artifact-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
           path: testapps/video-*-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
