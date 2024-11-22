@@ -636,6 +636,8 @@ def _build_apple(
     logging.info("No entitlements found at %s.", entitlements_path)
   _run(xcode_patcher_args)
 
+  _run(["xcodebuild", "-resolvePackageDependencies", "-project", "integration_test.xcodeproj"])
+
   xcode_path = os.path.join(project_dir, "integration_test.xcworkspace")
   if _APPLE_SDK_SIMULATOR in apple_sdk:
     _run(
