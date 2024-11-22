@@ -206,6 +206,9 @@
 			dependencies = (
 			);
 			name = integration_test_tvos;
+			packageProductDependencies = (
+				2A42CF362CED4B60001D5F83 /* FirebaseAnalytics */,
+			);
 			productName = integration_test_tvos;
 			productReference = BC1D664C2668D109005DC2DA /* integration_test_tvos.app */;
 			productType = "com.apple.product-type.application";
