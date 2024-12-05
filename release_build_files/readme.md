@@ -86,7 +86,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.5.1)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.7.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -149,7 +149,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.13.1  (Maven package)
+|                          | androidx.core:core:1.15.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
