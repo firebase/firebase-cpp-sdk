@@ -17,5 +17,22 @@ post_install do |installer|
   # If this is running from inside the SDK directory, run the setup script.
   system("if [[ -r ../../setup_integration_tests.py ]]; then python3 ../../setup_integration_tests.py .; fi")
   system("python3 ./download_googletest.py")
+
+  swift_package = installer.pods_project.new Xcodeproj::Project::Object::XCRemoteSwiftPackageReference
+  swift_package.repositoryURL = "https://github.com/firebase/firebase-ios-sdk"
+  swift_package.requirement = {
+    "kind" => "upToNextMajorVersion",
+    "minimumVersion" => "11.5.0"
+  }
+
+  swift_package_product = installer.pods_project.new Xcodeproj::Project::Object::XCSwiftPackageProductDependency
+  swift_package_product.package = swift_package
+  swift_package_product.product_name = "FirebaseAnalytics"
+
+  installer.pods_project.root_object.package_references << swift_package
+  installer.pods_project.native_targets.each do |target|
+    target.package_product_dependencies << swift_package_product
+  end
+
 end
 
