@@ -178,7 +178,7 @@ jobs:
           tar -czhf ../packaging-tools.tgz .
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
@@ -236,7 +236,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-ios-tvos-package
           path: firebase-cpp-sdk-ios-tvos-package.tgz
@@ -248,6 +248,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: Force Java 11
+        shell: bash
+        run: echo "JAVA_HOME=${JAVA_HOME_11_X64}" >> $GITHUB_ENV
       - name: fetch SDK
         uses: actions/checkout@v3
         with:
@@ -293,7 +296,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-android-package
           path: firebase-cpp-sdk-android-package.tgz
@@ -447,7 +450,7 @@ jobs:
         continue-on-error: true
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
@@ -506,12 +509,17 @@ jobs:
         with:
           path: sdk-src
 
-      - name: download artifact
-        uses: actions/download-artifact@v3
+      - name: download packaging-tool artifacts
+        uses: actions/download-artifact@v4
         with:
-          # download-artifact doesn't support wildcards, but by default
-          # will download all artifacts. Sadly this is what we must do.
           path: artifacts
+          pattern: packaging-tools-*
+
+      - name: download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: firebase-cpp-sdk-*
 
       - name: Setup python
         uses: actions/setup-python@v4
@@ -583,7 +591,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
@@ -653,12 +661,12 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
       - name: fetch artifact from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
-          workflow: 'cpp-packaging.yml'
-          run_id: ${{ github.event.inputs.downloadPreviousRun }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.inputs.downloadPreviousRun }}
 
       - name: fetch public SDK package from web
         if: ${{ github.event.inputs.downloadPublicVersion != '' && github.event.inputs.downloadPreviousRun == '' }}
@@ -684,13 +692,13 @@ jobs:
           echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
 
       - name: upload hash
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -708,11 +716,10 @@ jobs:
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          # download-artifact doesn't support wildcards, but by default
-          # will download all artifacts. Sadly this is what we must do.
           path: artifacts
+          pattern: firebase-cpp-sdk-*-package
 
       - name: merge SDK packages
         shell: bash
@@ -747,13 +754,13 @@ jobs:
           find firebase_cpp_sdk -type f
 
       - name: upload hash
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -764,7 +771,7 @@ jobs:
     needs: [merge_packages]
     steps:
       - name: download SDK zip
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: firebase_cpp_sdk.zip
       - name: unzip SDK and remove non-Windows files
@@ -792,12 +799,12 @@ jobs:
           ${{ env.hashCommand }} --tag firebase_cpp_sdk_windows.zip > firebase_cpp_sdk_windows_hash.txt
           echo "::warning ::$(cat firebase_cpp_sdk_windows_hash.txt)"
       - name: upload Windows hash
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_windows_hash.txt
           path: firebase_cpp_sdk_windows_hash.txt
       - name: upload Windows SDK zip
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_windows.zip
           path: firebase_cpp_sdk_windows.zip

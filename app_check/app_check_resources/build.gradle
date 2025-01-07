@@ -18,8 +18,8 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:4.2.1'
-    classpath 'com.google.gms:google-services:4.2.0'
+    classpath 'com.android.tools.build:gradle:7.4.2'
+    classpath 'com.google.gms:google-services:4.4.1'
   }
 }
 allprojects {
@@ -33,10 +33,16 @@ apply plugin: 'com.android.library'
 
 android {
   compileOptions {
-    sourceCompatibility 1.8
-    targetCompatibility 1.8
+    sourceCompatibility JavaVersion.VERSION_11
+    targetCompatibility JavaVersion.VERSION_11
   }
   compileSdkVersion 34
+  buildToolsVersion '32.0.0'
+
+  defaultConfig {
+    minSdkVersion 23
+    targetSdkVersion 34
+  }
 
   sourceSets {
     main {
@@ -49,7 +55,7 @@ android {
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:33.0.0')
+  implementation platform('com.google.firebase:firebase-bom:33.7.0')
   implementation 'com.google.firebase:firebase-appcheck'
 }
 

@@ -69,21 +69,25 @@ class InterstitialAdInternal;
 ///   interstitial->Show();
 /// }
 /// @endcode
+///
+/// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
+/// https://developers.google.com/admob/cpp/reference/namespace/firebase/gma
+/// for more information.
 class InterstitialAd {
  public:
   /// Creates an uninitialized @ref InterstitialAd object.
   /// @ref Initialize must be called before the object is used.
-  InterstitialAd();
+  FIREBASE_DEPRECATED InterstitialAd();
 
   ~InterstitialAd();
 
   /// Initialize the @ref InterstitialAd object.
   /// @param[in] parent The platform-specific UI element that will host the ad.
-  Future<void> Initialize(AdParent parent);
+  FIREBASE_DEPRECATED Future<void> Initialize(AdParent parent);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Initialize.
-  Future<void> InitializeLastResult() const;
+  FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
   /// Begins an asynchronous request for an ad.
   ///

@@ -59,13 +59,11 @@ a configured value may look like on MacOS:
 
     JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-8-latest/Contents/Home
     ANDROID_HOME=/Users/user_name/Library/Android/sdk
-    ANDROID_SDK_HOME=/Users/user_name/Library/Android/sdk
     ANDROID_NDK_HOME=/Users/user_name/Library/Android/sdk/ndk-bundle
 
 Or on Linux:
     JAVA_HOME=/usr/local/buildtools/java/jdk/
     ANDROID_HOME=~/Android/Sdk
-    ANDROID_SDK_HOME=~/Android/Sdk
     ANDROID_NDK_HOME=~/Android/Sdk/ndk
 
 If using this tool frequently, you will likely find it convenient to
@@ -97,7 +95,6 @@ from integration_testing import xcodebuild
 # Environment variables
 _JAVA_HOME = "JAVA_HOME"
 _ANDROID_HOME = "ANDROID_HOME"
-_ANDROID_SDK_HOME = "ANDROID_SDK_HOME"
 _NDK_ROOT = "NDK_ROOT"
 _ANDROID_NDK_HOME = "ANDROID_NDK_HOME"
 
@@ -538,12 +535,8 @@ def _validate_android_environment_variables():
   android_home = os.environ.get(_ANDROID_HOME)
   if not os.environ.get(_JAVA_HOME):
     logging.warning("%s not set", _JAVA_HOME)
-  if not os.environ.get(_ANDROID_SDK_HOME):
-    if android_home:  # Use ANDROID_HOME as backup for ANDROID_SDK_HOME
-      os.environ[_ANDROID_SDK_HOME] = android_home
-      logging.info("%s not found, using %s", _ANDROID_SDK_HOME, _ANDROID_HOME)
-    else:
-      logging.warning("Missing: %s and %s", _ANDROID_SDK_HOME, _ANDROID_HOME)
+  if not android_home:
+    logging.warning("Missing ANDROID_HOME: %s", _ANDROID_HOME)
   # Different environments may have different NDK env vars specified. We look
   # for these, in this order, and set the others to the first found.
   # If none are set, we check the default location for the ndk.

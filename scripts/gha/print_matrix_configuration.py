@@ -75,7 +75,7 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-20.04", "macos-13"],
       "build_type": ["Release", "Debug"],
-      "architecture": ["x64", "x86", "arm64"],
+      "architecture": ["x64", "x86"],
       "msvc_runtime": ["static","dynamic"],
       "xcode_version": ["15.1"],
       "python_version": ["3.7"],
@@ -130,7 +130,7 @@ PARAMETERS = {
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
         "architecture_windows_linux": ["x64", "x86"],
-        "architecture_macos": ["x64", "arm64"],
+        "architecture_macos": ["x64"],
       }
     },
     "config": {

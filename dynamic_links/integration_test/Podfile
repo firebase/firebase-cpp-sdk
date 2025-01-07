@@ -5,7 +5,7 @@ use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '13.0'
-  pod 'Firebase/DynamicLinks', '10.25.0'
+  pod 'Firebase/DynamicLinks', '11.6.0'
 end
 
 post_install do |installer|

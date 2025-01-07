@@ -63,6 +63,10 @@ struct BoundingBox;
 ///   ad_view->LoadAd(your_ad_request);
 /// }
 /// @endcode
+///
+/// @deprecated The Google Mobile Ads C++ SDK is now deprecated. Please see
+/// https://developers.google.com/admob/cpp/reference/namespace/firebase/gma
+/// for more information.
 class AdView {
  public:
   /// The possible screen positions for a @ref AdView, configured via
@@ -86,7 +90,7 @@ class AdView {
 
   /// Creates an uninitialized @ref AdView object.
   /// @ref Initialize must be called before the object is used.
-  AdView();
+  FIREBASE_DEPRECATED AdView();
 
   ~AdView();
 
@@ -94,12 +98,13 @@ class AdView {
   /// @param[in] parent The platform-specific UI element that will host the ad.
   /// @param[in] ad_unit_id The ad unit ID to use when requesting ads.
   /// @param[in] size The desired ad size for the ad.
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id,
-                          const AdSize& size);
+  FIREBASE_DEPRECATED Future<void> Initialize(AdParent parent,
+                                              const char* ad_unit_id,
+                                              const AdSize& size);
 
   /// Returns a @ref Future that has the status of the last call to
   /// @ref Initialize.
-  Future<void> InitializeLastResult() const;
+  FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
   /// Begins an asynchronous request for an ad. If successful, the ad will
   /// automatically be displayed in the AdView.

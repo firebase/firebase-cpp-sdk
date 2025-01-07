@@ -18,13 +18,13 @@
 #define FIREBASE_AUTH_SRC_IOS_COMMON_IOS_H_
 
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
 #import "FIRAuth.h"
-#import "FIRAuthCredential.h"
-#import "FIROAuthProvider.h"
 #import "FIRUser.h"
-#import "FIRUserInfo.h"
-#import "FIRUserMetadata.h"
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
+// This needs to be after the FIRAuthInterop import
+#import "FirebaseAuth-Swift.h"
 
 #include "app/src/log.h"
 #include "app/src/util_ios.h"

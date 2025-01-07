@@ -17,10 +17,10 @@
 #include "firestore/src/main/create_credentials_provider.h"
 
 #import "FIRAppInternal.h"
-#import "FIRAuthInterop.h"
 #import "FIRComponent.h"
 #import "FIRComponentContainer.h"
 #import "FIRComponentType.h"
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
 #import "FirebaseCore.h"
 
 #include "Firestore/core/src/credentials/firebase_app_check_credentials_provider_apple.h"

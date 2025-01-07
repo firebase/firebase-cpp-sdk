@@ -18,8 +18,8 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:4.2.1'
-    classpath 'com.google.gms:google-services:4.2.0'
+    classpath 'com.android.tools.build:gradle:7.4.2'
+    classpath 'com.google.gms:google-services:4.4.1'
     // This uses Flatbuffers at 1.9 because the 1.10 version added a feature
     // that requires using a newer version of the JDK and at least Android N.
     // This has already been fixed at head, but a tagged release is not yet
@@ -38,12 +38,14 @@ apply plugin: 'com.android.library'
 
 android {
   compileOptions {
-    sourceCompatibility 1.8
-    targetCompatibility 1.8
+    sourceCompatibility JavaVersion.VERSION_11
+    targetCompatibility JavaVersion.VERSION_11
   }
   compileSdkVersion 34
+  buildToolsVersion '32.0.0'
 
   defaultConfig {
+    targetSdkVersion 34
     minSdkVersion 23
   }
 
@@ -59,7 +61,7 @@ android {
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:33.0.0')
+  implementation platform('com.google.firebase:firebase-bom:33.7.0')
   implementation 'com.google.firebase:firebase-analytics'
   implementation 'com.google.firebase:firebase-messaging'
   implementation 'com.google.flatbuffers:flatbuffers-java:1.12.0'
