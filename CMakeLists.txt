@@ -379,12 +379,6 @@ if(IOS OR ANDROID OR CMAKE_CROSSCOMPILING)
   set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 endif()
 
-if(ANDROID)
-  target_link_options(flatbuffers
-      PRIVATE
-          "-Wl,-z,max-page-size=16384")
-endif()
-
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   message(STATUS "flatbuffers is added with APP_BINARY_DIR ${APP_BINARY_DIR}")
   add_external_library(flatbuffers BINARY_DIR "${APP_BINARY_DIR}")
