@@ -95,6 +95,12 @@ add_library(firebase_analytics STATIC
 
 set_property(TARGET firebase_analytics PROPERTY FOLDER "Firebase Cpp")
 
+if(ANDROID)
+  target_link_options(firebase_analytics
+      PRIVATE
+          "-Wl,-z,max-page-size=16384")
+endif()
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_analytics
     PUBLIC firebase_app)
