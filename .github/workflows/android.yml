@@ -98,26 +98,26 @@ jobs:
         id: cache_ndk
         uses: actions/cache@v3
         with:
-          path: /tmp/android-ndk-r21e
-          key: android-ndk-${{ matrix.os }}-r21e
+          path: /tmp/android-ndk-r23c
+          key: android-ndk-${{ matrix.os }}-r23c
 
       - name: Check cached NDK
         shell: bash
         if: steps.cache_ndk.outputs.cache-hit != 'true'
         run: |
           # If the NDK failed to download from the cache, but there is a
-          # /tmp/android-ndk-r21e directory, it's incomplete, so remove it.
-          if [[ -d "/tmp/android-ndk-r21e" ]]; then
+          # /tmp/android-ndk-r23c directory, it's incomplete, so remove it.
+          if [[ -d "/tmp/android-ndk-r23c" ]]; then
             echo "Removing incomplete download of NDK"
-            rm -rf /tmp/android-ndk-r21e
+            rm -rf /tmp/android-ndk-r23c
           fi
 
       - name: Install prerequisites
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
-          echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
+          echo "NDK_ROOT=/tmp/android-ndk-r23c" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=/tmp/android-ndk-r23c" >> $GITHUB_ENV
 
       - name: Add strings.exe to PATH (Windows only)
         if: startsWith(matrix.os, 'windows')

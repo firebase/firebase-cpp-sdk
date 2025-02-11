@@ -267,8 +267,8 @@ jobs:
         id: cache_ndk
         uses: actions/cache@v3
         with:
-          path: /tmp/android-ndk-r21e
-          key: android-ndk-${{ runner.os }}-r21e
+          path: /tmp/android-ndk-r23c
+          key: android-ndk-${{ runner.os }}-r23c
 
       - name: install prerequisites
         run: sdk-src/build_scripts/android/install_prereqs.sh
