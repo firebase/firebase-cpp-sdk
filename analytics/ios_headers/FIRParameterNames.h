@@ -1,6 +1,6 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 11.6.0.
+// Copied from Firebase Analytics iOS SDK 11.8.1.
 
 /// @file FIRParameterNames.h
 ///
