@@ -631,6 +631,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Changes
+    - GGeneral (Android): Firebase C++ on Android is now built against NDK
+        version r23c.
+
 ### 12.6.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.8.1.
