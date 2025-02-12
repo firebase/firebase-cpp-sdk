@@ -74,8 +74,8 @@ fi
 
 if [[ "${TEST_ONLY}" == "" ]]; then
     if [[ "${PLATFORM}" == "Android" ]]; then
-        echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
-        echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
+        echo "NDK_ROOT=/tmp/android-ndk-r23c" >> $GITHUB_ENV
+        echo "ANDROID_NDK_HOME=/tmp/android-ndk-r23c" >> $GITHUB_ENV
         build_scripts/android/install_prereqs.sh
     elif [[ "${PLATFORM}" == "iOS" ]]; then
         build_scripts/ios/install_prereqs.sh
