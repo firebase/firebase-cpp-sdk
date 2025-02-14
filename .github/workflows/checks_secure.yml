@@ -12,7 +12,7 @@ concurrency:
 jobs:
   dismiss_stale_approvals:
     # Dismiss stale approvals for users without write access, or if this PR comes from a fork.
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # Only if another commit was added to the PR.
     steps:
       - name: Check user permission
