@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "Firestore/core/src/util/executor_libdispatch.h"
+#include "firebase/firestore/local_cache_settings.h"
 
 namespace firebase {
 namespace firestore {
@@ -36,7 +37,9 @@ using util::ExecutorLibdispatch;
 Settings::Settings()
     : host_(kDefaultHost),
       executor_(
-          Executor::CreateSerial("com.google.firebase.firestore.callback")) {}
+          Executor::CreateSerial("com.google.firebase.firestore.callback")),
+      local_cache_settings_(std::make_unique<PersistentCacheSettings>(
+          PersistentCacheSettings::Create())) {}
 
 std::unique_ptr<Executor> Settings::CreateExecutor() const {
   return std::make_unique<ExecutorLibdispatch>(dispatch_queue());
