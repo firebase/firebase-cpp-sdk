@@ -101,6 +101,12 @@ add_library(firebase_gma STATIC
 
 set_property(TARGET firebase_gma PROPERTY FOLDER "Firebase Cpp")
 
+if(ANDROID)
+  target_link_options(firebase_gma
+      PRIVATE
+          "-Wl,-z,max-page-size=16384")
+endif()
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_gma
     PUBLIC firebase_app)
