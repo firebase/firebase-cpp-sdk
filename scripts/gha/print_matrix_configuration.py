@@ -73,7 +73,7 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-20.04", "macos-13"],
+      "os": ["ubuntu-latest", "macos-13"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86"],
       "msvc_runtime": ["static","dynamic"],
@@ -81,7 +81,7 @@ PARAMETERS = {
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-20.04", "macos-13", "windows-latest"],
+        "os": ["ubuntu-latest", "macos-13", "windows-latest"],
         "xcode_version": ["15.1"],
       }
     }
@@ -89,19 +89,19 @@ PARAMETERS = {
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-20.04", "macos-13", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-13", "windows-latest"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-20.04", "macos-13", "windows-latest"]
+        "os": ["ubuntu-latest", "macos-13", "windows-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-20.04", "macos-13", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-13", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_ftl_target"],
@@ -119,7 +119,7 @@ PARAMETERS = {
       "build_tools_version": ["28.0.3"],
 
       MINIMAL_KEY: {
-        "os": ["ubuntu-20.04"],
+        "os": ["ubuntu-latest"],
         "platform": ["Desktop"],
         "apis": "firestore"
       },
@@ -299,9 +299,9 @@ def print_value(value):
   """ Print Json formatted string that can be consumed in Github workflow."""
   # Eg: for lists,
   # print(json.dumps) ->
-  # ["ubuntu-20.04", "macos-latest", "windows-latest"]
+  # ["ubuntu-latest", "macos-latest", "windows-latest"]
   # print(repr(json.dumps)) ->
-  # '["ubuntu-20.04", "macos-latest", "windows-latest"]'
+  # '["ubuntu-latest", "macos-latest", "windows-latest"]'
 
   # Eg: for strings
   # print(json.dumps) -> "flame"

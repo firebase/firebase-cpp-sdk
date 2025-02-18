@@ -42,7 +42,7 @@ env:
 jobs:
   log_inputs:
     name: log-inputs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: log run inputs
         run: |
@@ -79,9 +79,9 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-13]
+        os: [ubuntu-latest, macos-13]
         include:
-        - os: ubuntu-20.04
+        - os: ubuntu-latest
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
@@ -243,7 +243,7 @@ jobs:
 
   build_and_package_android:
     name: build-and-package-android
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
@@ -308,7 +308,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-20.04, macos-13]
+        os: [windows-latest, ubuntu-latest, macos-13]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
@@ -322,7 +322,7 @@ jobs:
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
           sdk_platform: "windows"
-        - os: ubuntu-20.04
+        - os: ubuntu-latest
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
           sdk_platform: "linux"
@@ -342,11 +342,11 @@ jobs:
           linux_abi: "c++11"
         - os: macos-13
           build_type: "Debug"
-        - os: ubuntu-20.04
+        - os: ubuntu-latest
           msvc_runtime: "dynamic"
-        - os: ubuntu-20.04
+        - os: ubuntu-latest
           build_type: "Debug"
-        - os: ubuntu-20.04
+        - os: ubuntu-latest
           architecture: "arm64"
         - os: windows-latest
           architecture: "arm64"
@@ -465,40 +465,40 @@ jobs:
       matrix:
         sdk_platform: [linux, darwin, windows]
         suffix: ['']
-        runs_on_platform: [ubuntu-20.04]
+        runs_on_platform: [ubuntu-latest]
         include:
         # Split windows packaging into multiple runners.
         - sdk_platform: windows
           suffix: '-x86-Release-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x86-Release-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Release-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Release-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x86-Debug-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x86-Debug-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Debug-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
         - sdk_platform: darwin
           runs_on_platform: macos-13
         exclude:
         - sdk_platform: windows
           suffix: ''
         - sdk_platform: darwin
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-latest
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -656,7 +656,7 @@ jobs:
 
   download_sdk_package:
     name: download-sdk-package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [log_inputs]
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
@@ -706,7 +706,7 @@ jobs:
 
   merge_packages:
     name: final-merge-packages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     needs: [build_and_package_ios_tvos, build_and_package_android, package_desktop, log_inputs]
     steps:
@@ -767,7 +767,7 @@ jobs:
 
   create_windows_only_package:
     name: create-windows-only-package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [merge_packages]
     steps:
       - name: download SDK zip
@@ -814,7 +814,7 @@ jobs:
     # Clean up intermediate artifacts from packaging step.
     # This can happen after the final package merge is finished.
     name: cleanup-packaging-artifacts
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [merge_packages]
     if: |
       (
@@ -835,7 +835,7 @@ jobs:
     # Trigger the integration_tests workflow.
     needs: [merge_packages, download_sdk_package, create_windows_only_package, cleanup_packaging_artifacts]
     if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled() && !failure()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
@@ -904,7 +904,7 @@ jobs:
   attempt_retry:
     name: "attempt-retry"
     needs: [trigger_integration_tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: ${{ failure() && !cancelled() && github.event_name == 'schedule' }}
     steps:
       - name: Checkout repo
