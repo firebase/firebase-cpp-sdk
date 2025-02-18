@@ -45,6 +45,14 @@ def main():
           # brew install protobuf
           utils.run_command(['brew', 'install', 'protobuf'])
 
+    if not utils.is_command_installed('libsecret-1'):
+      if utils.is_linux_os():
+          # sudo apt install protobuf-compiler
+          utils.run_command(['apt', 'install', '-y','libsecret-1-dev'], as_root=True)
+      elif utils.is_mac_os():
+          # brew install protobuf
+          utils.run_command(['brew', 'install', 'libsecret'])
+
     # Install go on linux/mac if its not installed already
     if not utils.is_command_installed('go'):
       if utils.is_linux_os():
