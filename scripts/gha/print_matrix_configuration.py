@@ -78,7 +78,7 @@ PARAMETERS = {
       "architecture": ["x64", "x86"],
       "msvc_runtime": ["static","dynamic"],
       "xcode_version": ["15.1"],
-      "python_version": ["3.13"],
+      "python_version": ["3.11"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-latest", "macos-13", "windows-latest"],
@@ -91,7 +91,7 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-latest", "macos-13", "windows-latest"],
       "architecture": ["x64"],
-      "python_version": ["3.13"],
+      "python_version": ["3.11"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-latest", "macos-13", "windows-latest"]
