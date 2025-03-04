@@ -21,6 +21,8 @@ on:
         description: 'optional comment to add to PR'
         default: ''
 
+permissions: write-all
+
 env:
   branchPrefix: "workflow/auto-update-deps-"
   triggerTestsLabel: "tests-requested: quick"
