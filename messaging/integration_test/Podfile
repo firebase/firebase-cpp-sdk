@@ -4,14 +4,14 @@ use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '13.0'
-  pod 'Firebase/Messaging', '11.8.1'
-  pod 'Firebase/Functions', '11.8.1'
+  pod 'Firebase/Messaging', '11.9.0'
+  pod 'Firebase/Functions', '11.9.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '13.0'
-  pod 'Firebase/Messaging', '11.8.1'
-  pod 'Firebase/Functions', '11.8.1'
+  pod 'Firebase/Messaging', '11.9.0'
+  pod 'Firebase/Functions', '11.9.0'
 end
 
 post_install do |installer|
