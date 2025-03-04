@@ -66,6 +66,7 @@ jobs:
 
       - name: Run update script
         run: |
+	set -x
           gma_flag=
           if [[ ${{ github.event.inputs.includeGMA }} -eq 1 ]]; then
             gma_flag="--include_gma"
