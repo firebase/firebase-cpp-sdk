@@ -77,6 +77,8 @@ jobs:
           # architecture excluees
           - os: macos-13
             architecture: "x86"
+          - os: ubuntu-22.04
+            architecture: "x86"
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-22.04
             xcode_version: "11.7"

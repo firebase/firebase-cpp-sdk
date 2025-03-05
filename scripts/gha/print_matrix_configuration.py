@@ -75,7 +75,7 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-22.04", "macos-13"],
       "build_type": ["Release", "Debug"],
-      "architecture": ["x64", "x86"],
+      "architecture": ["x64"],
       "msvc_runtime": ["static","dynamic"],
       "xcode_version": ["15.1"],
       "python_version": ["3.7"],
@@ -129,7 +129,7 @@ PARAMETERS = {
         "android_device": ["android_target", "android_latest", "emulator_ftl_target", "emulator_ftl_latest"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
-        "architecture_windows_linux": ["x64", "x86"],
+        "architecture_windows_linux": ["x64"],
         "architecture_macos": ["x64"],
       }
     },
