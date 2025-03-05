@@ -438,5 +438,22 @@ Future<int64_t> GetSessionIdLastResult() {
       internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetSessionId));
 }
 
+/// @brief Sets the default parameters to be sent with each event.
+///
+/// @param[in] parameters The parameters to send with each event.
+void SetDefaultEventParameters(const std::map<std::string, Variant>& parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  NSMutableDictionary* parameters_dict =
+      [[NSMutableDictionary alloc] initWithCapacity:parameters.size()];
+    for (const auto& pair : parameters) {
+      NSString* key = SafeString(pair.first.c_str());
+      if (!AddVariantToDictionary(parameters_dict, key, pair.second)) {
+          LogError("SetDefaultEventParameters: Unsupported type (%s) within map with key %s.",
+                   Variant::TypeName(pair.second.type()), key);
+      }
+    }
+    [FIRAnalytics setDefaultEventParameters:parameters_dict];
+}
+
 }  // namespace analytics
 }  // namespace firebase

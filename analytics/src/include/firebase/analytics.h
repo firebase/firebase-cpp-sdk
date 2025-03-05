@@ -591,6 +591,11 @@ Future<int64_t> GetSessionId();
 /// app session.
 Future<int64_t> GetSessionIdLastResult();
 
+/// @brief Sets the default parameters to be sent with each event.
+///
+/// @param[in] parameters The parameters to send with each event.
+void SetDefaultEventParameters(const std::map<std::string, Variant>& parameters);
+
 }  // namespace analytics
 }  // namespace firebase
 

@@ -296,5 +296,23 @@ TEST_F(AnalyticsTest, TestGetAnalyticsInstanceId) {
   EXPECT_EQ(std::string("FakeAnalyticsInstanceId0"), *result.result());
 }
 
+TEST_F(AnalyticsTest, TestSetDefaultEventParameters) {
+  std::map<std::string, firebase::Variant> parameters = {
+      {"key1", firebase::Variant("value1")},
+      {"key2", firebase::Variant(12345)},
+      {"key3", firebase::Variant(1.01)},
+      {"key4", firebase::Variant("my_value")},
+      {"key5", firebase::Variant(true)},
+      {"key6", firebase::Variant::EmptyMap()},
+  };
+
+  AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters",
+                      {"key1=value1,key2=12345,key3=1.01,key4=my_value,key5=1"});
+  AddExpectationApple("+[FIRAnalytics setDefaultEventParameters:]",
+                      {"key1=value1,key2=12345,key3=1.01,key4=my_value,key5=1"});
+
+  SetDefaultEventParameters(parameters);
+}
+
 }  // namespace analytics
 }  // namespace firebase

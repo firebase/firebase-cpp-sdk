@@ -631,6 +631,14 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Next Release (12.7.0)
+-   Changes
+    - Analytics: Added support for default parameters to be sent with each event.
+      This change lets you use `SetDefaultEventParameters` to set default
+      parameters to be sent with each event.
+    - General (iOS): Update to Firebase Cocoapods version 11.9.0.
+    - General (Android): Update to Firebase Android BoM version 33.10.0.
+
 ### 12.6.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.8.1.

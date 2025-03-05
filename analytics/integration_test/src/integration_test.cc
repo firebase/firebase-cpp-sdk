@@ -298,47 +298,58 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithComplexParameters) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
-  // On Android, this test must be performed at the end, after all the tests for
-  // session ID and instance ID. This is because once you call SetConsent to
-  // deny consent on Android, calling it again to grant consent may not take
-  // effect until the app restarts, thus breaking any of those tests that are
-  // run after this one.
-  //
-  // If this test does happen to run earlier (due to randomizing test order, for
-  // example), the tests that could fail will be skipped (on Android).
+    // On Android, this test must be performed at the end, after all the tests for
+    // session ID and instance ID. This is because once you call SetConsent to
+    // deny consent on Android, calling it again to grant consent may not take
+    // effect until the app restarts, thus breaking any of those tests that are
+    // run after this one.
+    //
+    // If this test does happen to run earlier (due to randomizing test order, for
+    // example), the tests that could fail will be skipped (on Android).
 
-  // Can't confirm that these do anything but just run them all to ensure the
-  // app doesn't crash.
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_allow = {
-          {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentStatusGranted},
-          {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentStatusGranted},
-          {firebase::analytics::kConsentTypeAdUserData,
-           firebase::analytics::kConsentStatusGranted},
-          {firebase::analytics::kConsentTypeAdPersonalization,
-           firebase::analytics::kConsentStatusGranted}};
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_deny = {
-          {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentStatusDenied},
-          {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentStatusDenied},
-          {firebase::analytics::kConsentTypeAdUserData,
-           firebase::analytics::kConsentStatusDenied},
-          {firebase::analytics::kConsentTypeAdPersonalization,
-           firebase::analytics::kConsentStatusDenied}};
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_empty;
-  firebase::analytics::SetConsent(consent_settings_empty);
-  ProcessEvents(1000);
-  firebase::analytics::SetConsent(consent_settings_deny);
-  ProcessEvents(1000);
-  firebase::analytics::SetConsent(consent_settings_allow);
-  ProcessEvents(1000);
+    // Can't confirm that these do anything but just run them all to ensure the
+    // app doesn't crash.
+    std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+        consent_settings_allow = {
+            {firebase::analytics::kConsentTypeAnalyticsStorage,
+             firebase::analytics::kConsentStatusGranted},
+            {firebase::analytics::kConsentTypeAdStorage,
+             firebase::analytics::kConsentStatusGranted},
+            {firebase::analytics::kConsentTypeAdUserData,
+             firebase::analytics::kConsentStatusGranted},
+            {firebase::analytics::kConsentTypeAdPersonalization,
+             firebase::analytics::kConsentStatusGranted}};
+    std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+        consent_settings_deny = {
+            {firebase::analytics::kConsentTypeAnalyticsStorage,
+             firebase::analytics::kConsentStatusDenied},
+            {firebase::analytics::kConsentTypeAdStorage,
+             firebase::analytics::kConsentStatusDenied},
+            {firebase::analytics::kConsentTypeAdUserData,
+             firebase::analytics::kConsentStatusDenied},
+            {firebase::analytics::kConsentTypeAdPersonalization,
+             firebase::analytics::kConsentStatusDenied}};
+    std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+        consent_settings_empty;
+    firebase::analytics::SetConsent(consent_settings_empty);
+    ProcessEvents(1000);
+    firebase::analytics::SetConsent(consent_settings_deny);
+    ProcessEvents(1000);
+    firebase::analytics::SetConsent(consent_settings_allow);
+    ProcessEvents(1000);
 
-  did_test_setconsent_ = true;
+    did_test_setconsent_ = true;
 }
 
+TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
+    std::map<std::string, firebase::Variant> default_params = {
+      {"key1", firebase::Variant("value1")},
+      {"key2", firebase::Variant(12345)},
+      {"key3", firebase::Variant(1.01)},
+      {"key4", firebase::Variant("my_value")},
+      {"key5", firebase::Variant(true)},
+      {"key6", firebase::Variant::EmptyMap()},
+  };
+    firebase::analytics::SetDefaultEventParameters(default_params);
+}
 }  // namespace firebase_testapp_automated
