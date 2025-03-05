@@ -756,19 +756,17 @@ void SetDefaultEventParameters(
     if (pair.second.is_int64()) {
       jni_value =
           env->NewObject(util::integer_class::GetClass(),
-                         util::bundle::GetMethodId(util::bundle::kConstructor),
+                         util::integer_class::GetMethodId(util::integer_class::kConstructor),
                          pair.second.int64_value());
     } else if (pair.second.is_double()) {
       jni_value =
           env->NewObject(util::double_class::GetClass(),
-                         util::bundle::GetMethodId(util::bundle::kConstructor),
+                         util::double_class::GetMethodId(util::double_class::kConstructor),
                          pair.second.double_value());
     } else if (pair.second.is_string()) {
-      jni_value =
-          env->NewObject(util::string::GetClass(),
-                         util::bundle::GetMethodId(util::bundle::kConstructor));
-    } else if (pair.second.is_map()) {
       jni_value = env->NewStringUTF(pair.second.string_value());
+    } else if (pair.second.is_map()) {
+      jni_value = MapToBundle(env, pair.second.map());
     } else {
       // A Variant type that couldn't be handled was passed in.
       LogError(
