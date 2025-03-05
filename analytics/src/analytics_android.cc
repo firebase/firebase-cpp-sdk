@@ -737,63 +737,64 @@ Future<int64_t> GetSessionIdLastResult() {
 }
 
 // Sets the default parameters to be sent with each event.
-void SetDefaultEventParameters(const std::map<std::string, Variant>& parameters) {
-    FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-    JNIEnv* env = g_app->GetJNIEnv();
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
 
-    jobject map =
-            env->NewObject(util::hash_map::GetClass(),
-                           util::hash_map::GetMethodId(util::hash_map::kConstructor));
-    util::CheckAndClearJniExceptions(env);
+  jobject map =
+      env->NewObject(util::hash_map::GetClass(),
+                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
+  util::CheckAndClearJniExceptions(env);
 
-    jmethodID put_method_id = util::map::GetMethodId(util::map::kPut);
+  jmethodID put_method_id = util::map::GetMethodId(util::map::kPut);
 
-    for (const auto& pair : parameters) {
-        jstring key_string = env->NewStringUTF(pair.first.c_str());
-        jobject jni_value;
-        if (pair.second.is_int64()) {
-            jni_value = env->NewObject(util::integer_java_class_type::GetClass(),
-                                          util::bundle::GetMethodId(util::bundle::kConstructor));
-        }
-        else if (pair.second.is_double()){
-             jni_value = env->NewObject(util::double_java_class_type::GetClass(),
-                                       util::bundle::GetMethodId(util::bundle::kConstructor));
-        }else if (pair.second.is_string()) {
-            jni_value = env->NewObject(util::string_java_class_type::GetClass(),
-                                                     util::bundle::GetMethodId(util::bundle::kConstructor));
-        }
-        else if(pair.second.is_map()){
-            jobject jni_bundle = MapToBundle(env,pair.second.map());
-            jobject previous_value = env->CallObjectMethod(
-                    bundle, put_method_id, env->NewStringUTF(key_string.c_str()), jni_bundle);
-            util::CheckAndClearJniExceptions(env);
-            if (previous_value) {
-                env->DeleteLocalRef(previous_value);
-            }
+  for (const auto& pair : parameters) {
+    jstring key_string = env->NewStringUTF(pair.first.c_str());
+    jobject jni_value;
+    if (pair.second.is_int64()) {
+      jni_value =
+          env->NewObject(util::integer_java_class_type::GetClass(),
+                         util::bundle::GetMethodId(util::bundle::kConstructor));
+    } else if (pair.second.is_double()) {
+      jni_value =
+          env->NewObject(util::double_java_class_type::GetClass(),
+                         util::bundle::GetMethodId(util::bundle::kConstructor));
+    } else if (pair.second.is_string()) {
+      jni_value =
+          env->NewObject(util::string_java_class_type::GetClass(),
+                         util::bundle::GetMethodId(util::bundle::kConstructor));
+    } else if (pair.second.is_map()) {
+      jobject jni_bundle = MapToBundle(env, pair.second.map());
+      jobject previous_value = env->CallObjectMethod(
+          bundle, put_method_id, env->NewStringUTF(key_string.c_str()),
+          jni_bundle);
+      util::CheckAndClearJniExceptions(env);
+      if (previous_value) {
+        env->DeleteLocalRef(previous_value);
+      }
 
-        }else {
-            // A Variant type that couldn't be handled was passed in.
-            LogError(
-                "LogEvent(%s): %s is not a valid parameter value type. "
-                "No event was logged.",
-                pair.first.c_str(), Variant::TypeName(pair.second.type()));
-            continue;
-        }
-        jobject previous_value = env->CallObjectMethod(
-                map, put_method_id, key_string, jni_value);
-        util::CheckAndClearJniExceptions(env);
-        env->DeleteLocalRef(jni_value);
-        env->DeleteLocalRef(key_string);
-
+    } else {
+      // A Variant type that couldn't be handled was passed in.
+      LogError(
+          "LogEvent(%s): %s is not a valid parameter value type. "
+          "No event was logged.",
+          pair.first.c_str(), Variant::TypeName(pair.second.type()));
+      continue;
     }
-
-    env->CallVoidMethod(g_analytics_class_instance,
-                        analytics::GetMethodId(analytics::kSetDefaultEventParameters),
-                        map);
-
+    jobject previous_value =
+        env->CallObjectMethod(map, put_method_id, key_string, jni_value);
     util::CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(map);
+    env->DeleteLocalRef(jni_value);
+    env->DeleteLocalRef(key_string);
+  }
 
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters), map);
+
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(map);
 }
 
 }  // namespace analytics

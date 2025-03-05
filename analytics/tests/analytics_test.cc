@@ -306,10 +306,12 @@ TEST_F(AnalyticsTest, TestSetDefaultEventParameters) {
       {"key6", firebase::Variant::EmptyMap()},
   };
 
-  AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters",
-                      {"key1=value1,key2=12345,key3=1.01,key4=my_value,key5=1"});
-  AddExpectationApple("+[FIRAnalytics setDefaultEventParameters:]",
-                      {"key1=value1,key2=12345,key3=1.01,key4=my_value,key5=1"});
+  AddExpectationAndroid(
+      "FirebaseAnalytics.setDefaultEventParameters",
+      {"key1=value1,key2=12345,key3=1.01,key4=my_value,key5=1"});
+  AddExpectationApple(
+      "+[FIRAnalytics setDefaultEventParameters:]",
+      {"key1=value1,key2=12345,key3=1.01,key4=my_value,key5=1"});
 
   SetDefaultEventParameters(parameters);
 }
