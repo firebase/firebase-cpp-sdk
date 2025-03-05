@@ -235,10 +235,9 @@ def install_x86_support_libraries(gha_build=False):
                downgrading Ubuntu packages).
   """
   if is_linux_os():
-    packages = ['gcc-10-multilib', 'g++-10-multilib', 'libglib2.0-dev:i386',
+    packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
-                'libssl-dev:i386', 'libsecret-1-0:i386', 'libgcc-s1:i386',
-                'gcc-10-base:i386']
+                'libssl-dev:i386', 'libsecret-1-0:i386']
     remove_packages = []
 
     # First check if these packages exist on the machine already
@@ -256,8 +255,8 @@ def install_x86_support_libraries(gha_build=False):
       if gha_build:
         # Remove libpcre to prevent package conflicts.
         # Only remove packages on GitHub runners.
-       remove_packages = ['libpcre2-16-0:amd64', 'libpcre2-32-0:amd64', 'libpcre2-8-0:amd64',
-                          'libpcre2-posix3:amd64', 'libpcre2-dev:amd64', 'pcre2-utils:amd64']
+        remove_packages = ['libpcre2-dev:amd64', 'libpcre2-32-0:amd64',
+                           'libpcre2-8-0:amd64', 'libpcre2-16-0:amd64']
       # Note: With aptitude, you can remove package 'xyz' by specifying 'xyz-'
       # in the package list.
       run_command(['aptitude', 'install', '-V', '-y'] + packages +
