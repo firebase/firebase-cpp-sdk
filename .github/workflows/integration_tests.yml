@@ -270,10 +270,8 @@ jobs:
           arch: arm64
         - os: ubuntu-22.04
           arch: arm64
-        # Do not attempt to use x86 on Mac or Linux.
+        # Do not attempt to use x86 on Mac.
         - os: macos-13
-          arch: x86
-        - os: ubuntu-22.04
           arch: x86
         # Until we support building openssl from source, we can't use the
         # system's openssl when cross-compiling, except on Linux. Builds all
@@ -754,10 +752,8 @@ jobs:
           arch: arm64
         - os: ubuntu-22.04
           arch: arm64
-        # Do not attempt to use x86 on Mac or Linux.
+        # Do not attempt to use x86 on Mac.
         - os: macos-13
-          arch: x86
-        - os: ubuntu-22.04
           arch: x86
         # Until we support building openssl from source, we can't use the
         # system's openssl when cross-compiling, except on Linux. Builds all

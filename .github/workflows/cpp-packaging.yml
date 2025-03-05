@@ -343,8 +343,6 @@ jobs:
         - os: macos-13
           build_type: "Debug"
         - os: ubuntu-22.04
-          architecture: "x86"
-        - os: ubuntu-22.04
           msvc_runtime: "dynamic"
         - os: ubuntu-22.04
           build_type: "Debug"
