@@ -58,6 +58,8 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetSessionId, "getSessionId",                                             \
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V"),			                              \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
     firebase::util::kMethodTypeStatic)
@@ -755,27 +757,27 @@ void SetDefaultEventParameters(
       jni_value =
           env->NewObject(util::integer_class::GetClass(),
                          util::bundle::GetMethodId(util::bundle::kConstructor),
-			 pair.second.int64_value());
+                         pair.second.int64_value());
     } else if (pair.second.is_double()) {
       jni_value =
           env->NewObject(util::double_class::GetClass(),
                          util::bundle::GetMethodId(util::bundle::kConstructor),
-			 pair.second.double_value());
+                         pair.second.double_value());
     } else if (pair.second.is_string()) {
       jni_value =
           env->NewObject(util::string::GetClass(),
                          util::bundle::GetMethodId(util::bundle::kConstructor));
     } else if (pair.second.is_map()) {
-      jni_value = env->NewStringUTF(pair.second.c_str());
+      jni_value = env->NewStringUTF(pair.second.string_value());
     } else {
       // A Variant type that couldn't be handled was passed in.
       LogError(
           "LogEvent(%s): %s is not a valid parameter value type. "
           "No event was logged.",
-          pair.first.c_str(), Variant::TypeName(pair.second.type()));
+          pair.first.string_value(), Variant::TypeName(pair.second.type()));
       continue;
     }
-    jstring key_string = env->NewStringUTF(pair.first.c_str());
+    jstring key_string = env->NewStringUTF(pair.first.string_value());
     jobject previous_value =
         env->CallObjectMethod(map, put_method_id, key_string, jni_value);
     util::CheckAndClearJniExceptions(env);
