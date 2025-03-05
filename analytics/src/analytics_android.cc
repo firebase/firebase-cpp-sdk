@@ -774,10 +774,10 @@ void SetDefaultEventParameters(
       LogError(
           "LogEvent(%s): %s is not a valid parameter value type. "
           "No event was logged.",
-          pair.first.string_value(), Variant::TypeName(pair.second.type()));
+          pair.first.c_str(), Variant::TypeName(pair.second.type()));
       continue;
     }
-    jstring key_string = env->NewStringUTF(pair.first.string_value());
+    jstring key_string = env->NewStringUTF(pair.first.c_str());
     jobject previous_value =
         env->CallObjectMethod(map, put_method_id, key_string, jni_value);
     util::CheckAndClearJniExceptions(env);
