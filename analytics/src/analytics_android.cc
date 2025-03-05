@@ -750,30 +750,23 @@ void SetDefaultEventParameters(
   jmethodID put_method_id = util::map::GetMethodId(util::map::kPut);
 
   for (const auto& pair : parameters) {
-    jstring key_string = env->NewStringUTF(pair.first.c_str());
     jobject jni_value;
     if (pair.second.is_int64()) {
       jni_value =
-          env->NewObject(util::integer_java_class_type::GetClass(),
-                         util::bundle::GetMethodId(util::bundle::kConstructor));
+          env->NewObject(util::integer_class::GetClass(),
+                         util::bundle::GetMethodId(util::bundle::kConstructor),
+			 pair.second.int64_value());
     } else if (pair.second.is_double()) {
       jni_value =
-          env->NewObject(util::double_java_class_type::GetClass(),
-                         util::bundle::GetMethodId(util::bundle::kConstructor));
+          env->NewObject(util::double_class::GetClass(),
+                         util::bundle::GetMethodId(util::bundle::kConstructor),
+			 pair.second.double_value());
     } else if (pair.second.is_string()) {
       jni_value =
-          env->NewObject(util::string_java_class_type::GetClass(),
+          env->NewObject(util::string::GetClass(),
                          util::bundle::GetMethodId(util::bundle::kConstructor));
     } else if (pair.second.is_map()) {
-      jobject jni_bundle = MapToBundle(env, pair.second.map());
-      jobject previous_value = env->CallObjectMethod(
-          bundle, put_method_id, env->NewStringUTF(key_string.c_str()),
-          jni_bundle);
-      util::CheckAndClearJniExceptions(env);
-      if (previous_value) {
-        env->DeleteLocalRef(previous_value);
-      }
-
+      jni_value = env->NewStringUTF(pair.second.c_str());
     } else {
       // A Variant type that couldn't be handled was passed in.
       LogError(
@@ -782,11 +775,13 @@ void SetDefaultEventParameters(
           pair.first.c_str(), Variant::TypeName(pair.second.type()));
       continue;
     }
+    jstring key_string = env->NewStringUTF(pair.first.c_str());
     jobject previous_value =
         env->CallObjectMethod(map, put_method_id, key_string, jni_value);
     util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(jni_value);
     env->DeleteLocalRef(key_string);
+    env->DeleteLocalRef(previous_value);
   }
 
   env->CallVoidMethod(
