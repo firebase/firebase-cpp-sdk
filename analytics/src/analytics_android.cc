@@ -754,15 +754,15 @@ void SetDefaultEventParameters(
   for (const auto& pair : parameters) {
     jobject jni_value;
     if (pair.second.is_int64()) {
-      jni_value =
-          env->NewObject(util::integer_class::GetClass(),
-                         util::integer_class::GetMethodId(util::integer_class::kConstructor),
-                         pair.second.int64_value());
+      jni_value = env->NewObject(
+          util::integer_class::GetClass(),
+          util::integer_class::GetMethodId(util::integer_class::kConstructor),
+          pair.second.int64_value());
     } else if (pair.second.is_double()) {
-      jni_value =
-          env->NewObject(util::double_class::GetClass(),
-                         util::double_class::GetMethodId(util::double_class::kConstructor),
-                         pair.second.double_value());
+      jni_value = env->NewObject(
+          util::double_class::GetClass(),
+          util::double_class::GetMethodId(util::double_class::kConstructor),
+          pair.second.double_value());
     } else if (pair.second.is_string()) {
       jni_value = env->NewStringUTF(pair.second.string_value());
     } else if (pair.second.is_map()) {
