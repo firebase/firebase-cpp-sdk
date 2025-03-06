@@ -42,6 +42,8 @@ on:
       firestore_dep_source:
         description: 'Optional: Where to get firestore iOS SDK from: "RELEASED", "TIP" or "<git-commit> from firestore-ios-sdk"'
 
+permissions: write-all
+
 env:
   triggerLabelPrefix: "tests-requested: "
   triggerLabelFull: "tests-requested: full"

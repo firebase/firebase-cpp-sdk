@@ -58,6 +58,8 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetSessionId, "getSessionId",                                             \
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V"),			                              \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
     firebase::util::kMethodTypeStatic)
@@ -734,6 +736,60 @@ Future<int64_t> GetSessionIdLastResult() {
   return static_cast<const Future<int64_t>&>(
       internal::FutureData::Get()->api()->LastResult(
           internal::kAnalyticsFnGetSessionId));
+}
+
+// Sets the default parameters to be sent with each event.
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+
+  jobject map =
+      env->NewObject(util::hash_map::GetClass(),
+                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
+  util::CheckAndClearJniExceptions(env);
+
+  jmethodID put_method_id = util::map::GetMethodId(util::map::kPut);
+
+  for (const auto& pair : parameters) {
+    jobject jni_value;
+    if (pair.second.is_int64()) {
+      jni_value = env->NewObject(
+          util::integer_class::GetClass(),
+          util::integer_class::GetMethodId(util::integer_class::kConstructor),
+          pair.second.int64_value());
+    } else if (pair.second.is_double()) {
+      jni_value = env->NewObject(
+          util::double_class::GetClass(),
+          util::double_class::GetMethodId(util::double_class::kConstructor),
+          pair.second.double_value());
+    } else if (pair.second.is_string()) {
+      jni_value = env->NewStringUTF(pair.second.string_value());
+    } else if (pair.second.is_map()) {
+      jni_value = MapToBundle(env, pair.second.map());
+    } else {
+      // A Variant type that couldn't be handled was passed in.
+      LogError(
+          "LogEvent(%s): %s is not a valid parameter value type. "
+          "No event was logged.",
+          pair.first.c_str(), Variant::TypeName(pair.second.type()));
+      continue;
+    }
+    jstring key_string = env->NewStringUTF(pair.first.c_str());
+    jobject previous_value =
+        env->CallObjectMethod(map, put_method_id, key_string, jni_value);
+    util::CheckAndClearJniExceptions(env);
+    env->DeleteLocalRef(jni_value);
+    env->DeleteLocalRef(key_string);
+    env->DeleteLocalRef(previous_value);
+  }
+
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters), map);
+
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(map);
 }
 
 }  // namespace analytics
