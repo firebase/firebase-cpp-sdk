@@ -21,7 +21,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-20.04,windows-latest,macos-13'
+        default: 'ubuntu-22.04,windows-latest,macos-13'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
@@ -60,7 +60,7 @@ env:
 
 jobs:
   check_and_prepare:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       trigger: ${{ steps.set_outputs.outputs.trigger }}
       github_ref: ${{ steps.set_outputs.outputs.github_ref }}
@@ -206,7 +206,7 @@ jobs:
           # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
           echo "::warning ::Running against Firestore tip-of-tree"
           matrix_platform="Desktop"
-          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-20.04,macos-13")
+          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-22.04,macos-13")
         else
           matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --apis ${apis} )
           matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")
@@ -270,7 +270,7 @@ jobs:
         # Do not attempt to use arm64 on Windows or Linux.
         - os: windows-latest
           arch: arm64
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
         - os: macos-13
@@ -752,7 +752,7 @@ jobs:
         # Do not attempt to use arm64 on Windows or Linux.
         - os: windows-latest
           arch: arm64
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
         - os: macos-13
@@ -869,7 +869,7 @@ jobs:
   test_android:
     name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_android]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Android') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -1315,7 +1315,7 @@ jobs:
   summarize_results:
     name: "summarize-results"
     needs: [check_and_prepare, test_desktop, test_android, test_ios, test_tvos]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v3
@@ -1383,7 +1383,7 @@ jobs:
   attempt_retry:
     name: "attempt-retry"
     needs: [check_and_prepare, summarize_results]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
     steps:
       - uses: actions/checkout@v3
