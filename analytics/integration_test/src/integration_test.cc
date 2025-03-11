@@ -341,4 +341,15 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   did_test_setconsent_ = true;
 }
 
+TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
+  std::map<std::string, firebase::Variant> default_params = {
+      {"key1", firebase::Variant("value1")},
+      {"key2", firebase::Variant(12345)},
+      {"key3", firebase::Variant(1.01)},
+      {"key4", firebase::Variant("my_value")},
+      {"key5", firebase::Variant(true)},
+      {"key6", firebase::Variant::EmptyMap()},
+  };
+  firebase::analytics::SetDefaultEventParameters(default_params);
+}
 }  // namespace firebase_testapp_automated
