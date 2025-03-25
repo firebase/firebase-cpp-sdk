@@ -4,12 +4,12 @@ use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '13.0'
-  pod 'Firebase/Auth', '11.9.0'
+  pod 'Firebase/Auth', '11.10.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '13.0'
-  pod 'Firebase/Auth', '11.9.0'
+  pod 'Firebase/Auth', '11.10.0'
 end
 
 post_install do |installer|
