@@ -128,6 +128,8 @@ if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
   set(FIREBASE_INCLUDE_GMA OFF)
 endif()
 
+
+
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
 # set it manually if ANDROID_NDK has been defined.
 if(DEFINED ANDROID_NDK)
@@ -627,12 +629,10 @@ endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
 endif()
-if (FIREBASE_INCLUDE_GMA)
-  add_subdirectory(gma)
-endif()
 if (FIREBASE_INCLUDE_INSTALLATIONS)
   add_subdirectory(installations)
 endif()
+
 if (FIREBASE_INCLUDE_MESSAGING)
   add_subdirectory(messaging)
 endif()

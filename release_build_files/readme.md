@@ -385,8 +385,6 @@ Google Mobile Ads (stub)        | libfirebase_gma.a
 |                               | libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a
 |                               | libfirebase_app.a
-Firebase Cloud Messaging (stub) | libfirebase_messaging.a
-|                               | libfirebase_app.a
 
 The provided libraries have been tested using GCC 4.8.0, GCC 7.2.0, and Clang
 5.0 on Ubuntu. When building C++ desktop apps on Linux, you will need to link
@@ -471,8 +469,6 @@ Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
 Google Mobile Ads (stub)        | firebase_gma.lib
 |                               | firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib
-|                               | firebase_app.lib
-Firebase Cloud Messaging (stub) | firebase_messaging.lib
 |                               | firebase_app.lib
 
 The provided libraries have been tested using Visual Studio 2019. When
@@ -591,7 +587,6 @@ Instance ID          | Required
 Google Mobile Ads    | Not required (usually; see below)
 Realtime Database    | Required
 Remote Config        | Required
-Storage              | Required
 
 #### A note on Google Mobile Ads and Google Play services
 
