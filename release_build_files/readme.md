@@ -631,6 +631,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Firestore: Added `Query::Sum()`, which fetches the sum of numeric fields
+      in query results.
 ### 12.7.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.10.0.
@@ -765,7 +769,7 @@ code.
       function to facilitate the [on-device conversion
       measurement](https://support.google.com/google-ads/answer/12119136) API.
     - Auth: Add Firebase Auth Emulator support. Set the environment variable
-      USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099) 
+      USE_AUTH_EMULATOR=yes (and optionally AUTH_EMULATOR_PORT, default 9099)
       to connect to the local Firebase Auth Emulator.
     - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.10.0.
     - GMA (Android): Updated dependency to play-services-ads version 22.3.0.
