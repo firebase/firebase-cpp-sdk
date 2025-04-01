@@ -72,6 +72,15 @@ class QueryInternal : public Wrapper {
   virtual AggregateQuery Count() const;
 
   /**
+   * @brief Returns a query that calculates the specified aggregation over the
+   * documents in the result set of this query.
+   *
+   * @param[in] aggregate_field The aggregation field.
+   * @return An aggregate query that performs the specified aggregation.
+   */
+  virtual AggregateQuery Aggregate(const AggregateField& aggregate_field) const;
+
+  /**
    * @brief Creates and returns a new Query with the additional filter.
    *
    * @param filter The new filter to apply to the existing query.
