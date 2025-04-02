@@ -53,6 +53,9 @@ jobs:
     # This check succeeds if Doxygen documentation generates without errors.
     runs-on: ubuntu-22.04
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           submodules: false
