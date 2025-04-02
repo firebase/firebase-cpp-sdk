@@ -13,6 +13,8 @@ on:
   schedule:
     - cron: "0 16 * * 1"  # Mondays, 4pm UTC = 9am PST / 10am PDT
 
+permissions: write-all
+
 env:
   defaultBranchPattern: "feature_branch/*"
   defaultMainBranch: "main"

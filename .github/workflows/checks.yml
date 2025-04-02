@@ -4,6 +4,8 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
 
+permissions: write-all
+
 env:
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
