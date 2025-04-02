@@ -530,15 +530,12 @@ jobject StringVariantMapToBundle(JNIEnv* env,
     // Bundle keys must be strings.
     const char* key = pair.first.c_str();
     const Variant& value = pair.second;
-    // A null variant clears the default parameter. The Android SDK uses a null
-    // value in the Bundle for this.
-    if (value.is_null()) {
-      // Add null string to clear the parameter.
-      AddToBundle(env, bundle, key, static_cast<const char*>(nullptr));
-    } else if (!AddVariantToBundle(env, bundle, key, value)) {
+    // AddVariantToBundle handles all Variant types, including null.
+    if (!AddVariantToBundle(env, bundle, key, value)) {
       LogError("SetDefaultEventParameters: Unsupported type (%s) for key %s.",
                Variant::TypeName(value.type()), key);
     }
+    // CheckAndClearJniExceptions is called within AddVariantToBundle.
   }
   return bundle;
 }
