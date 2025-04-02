@@ -312,6 +312,28 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
   [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
 }
 
+void SetDefaultEventParameters(const std::map<std::string, Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // Convert the std::map<std::string, Variant> to NSDictionary*
+  // The keys must be strings for FIRAnalytics.
+  NSMutableDictionary* parameters_dict =
+      [NSMutableDictionary dictionaryWithCapacity:default_parameters.size()];
+  for (const auto& pair : default_parameters) {
+    NSString* key = firebase::util::StringToNSString(pair.first);
+    // A null Variant indicates the default parameter should be cleared.
+    // In ObjC, setting a key to [NSNull null] in the dictionary achieves this.
+    id value = pair.second.is_null() ? [NSNull null] : firebase::util::VariantToId(pair.second);
+    if (value) {
+      [parameters_dict setObject:value forKey:key];
+    } else {
+      LogError("SetDefaultEventParameters: Failed to convert value for key %s.",
+               pair.first.c_str());
+    }
+  }
+
+  [FIRAnalytics setDefaultEventParameters:parameters_dict];
+}
+
 /// Initiates on-device conversion measurement given a user email address on iOS (no-op on
 /// Android). On iOS, requires dependency GoogleAppMeasurementOnDeviceConversion to be linked
 /// in, otherwise it is a no-op.

@@ -58,6 +58,8 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetSessionId, "getSessionId",                                             \
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V"),                                                \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
     firebase::util::kMethodTypeStatic)
@@ -516,6 +518,44 @@ void LogEvent(const char* name, const Parameter* parameters,
       }
     }
   });
+}
+
+// Convert std::map<std::string, Variant> to Bundle.
+jobject StringVariantMapToBundle(JNIEnv* env,
+                                 const std::map<std::string, Variant>& map) {
+  jobject bundle =
+      env->NewObject(util::bundle::GetClass(),
+                     util::bundle::GetMethodId(util::bundle::kConstructor));
+  for (const auto& pair : map) {
+    // Bundle keys must be strings.
+    const char* key = pair.first.c_str();
+    const Variant& value = pair.second;
+    // A null variant clears the default parameter. The Android SDK uses a null
+    // value in the Bundle for this.
+    if (value.is_null()) {
+      // Add null string to clear the parameter.
+      AddToBundle(env, bundle, key, static_cast<const char*>(nullptr));
+    } else if (!AddVariantToBundle(env, bundle, key, value)) {
+      LogError("SetDefaultEventParameters: Unsupported type (%s) for key %s.",
+               Variant::TypeName(value.type()), key);
+    }
+  }
+  return bundle;
+}
+
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+
+  jobject bundle = StringVariantMapToBundle(env, default_parameters);
+
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters), bundle);
+
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(bundle);
 }
 
 /// Initiates on-device conversion measurement given a user email address on iOS

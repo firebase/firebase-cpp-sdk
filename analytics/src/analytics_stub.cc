@@ -97,6 +97,12 @@ void LogEvent(const char* /*name*/, const Parameter* /*parameters*/,
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // No-op on stub.
+}
+
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
