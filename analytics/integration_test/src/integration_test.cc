@@ -387,7 +387,4 @@ TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
   LogInfo("SetDefaultEventParameters() tests completed.");
 }
 
-
-
-  
 }  // namespace firebase_testapp_automated
