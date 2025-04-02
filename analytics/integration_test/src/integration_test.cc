@@ -341,4 +341,50 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   did_test_setconsent_ = true;
 }
 
+// Test that it compiles and runs on all platforms.
+TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
+  LogDebug("Testing SetDefaultEventParameters().");
+
+  // Set some default parameters.
+  std::map<std::string, Variant> defaults;
+  defaults["default_int"] = 123;
+  defaults["default_string"] = "default_value";
+  firebase::analytics::SetDefaultEventParameters(defaults);
+
+  // Log an event - the defaults should be included automatically by the
+  // underlying SDK if logging immediately after setting is supported.
+  // Verification might need manual checking in the Analytics console or
+  // via platform-specific debug logs if possible.
+  firebase::analytics::LogEvent("event_with_defaults");
+  LogDebug("Logged event_with_defaults");
+
+  // Clear one default parameter by setting it to null.
+  defaults["default_int"] = Variant::Null();
+  firebase::analytics::SetDefaultEventParameters(defaults);
+
+  // Log another event.
+  firebase::analytics::LogEvent("event_with_one_default_cleared");
+  LogDebug("Logged event_with_one_default_cleared");
+
+  // Set only one parameter, clearing others implicitly if underlying SDK works
+  // like that
+  std::map<std::string, Variant> single_default;
+  single_default["only_this"] = 45.6;
+  firebase::analytics::SetDefaultEventParameters(single_default);
+  firebase::analytics::LogEvent("event_with_only_one_default");
+  LogDebug("Logged event_with_only_one_default");
+
+  // Clear all defaults by passing an empty map.
+  std::map<std::string, Variant> empty_defaults;
+  firebase::analytics::SetDefaultEventParameters(empty_defaults);
+
+  // Log an event with no defaults.
+  firebase::analytics::LogEvent("event_with_no_defaults");
+  LogDebug("Logged event_with_no_defaults");
+
+  // If we reach here without crashing, consider the basic test passed for the
+  // C++ layer. Deeper verification requires platform tools.
+  LogDebug("SetDefaultEventParameters() tests completed.");
+}
+
 }  // namespace firebase_testapp_automated
