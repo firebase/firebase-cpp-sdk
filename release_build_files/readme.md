@@ -631,6 +631,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Analytics: Add SetDefaultEventParams to set default parameters for
+      all LogEvent calls.
+
 ### 12.7.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.10.0.
