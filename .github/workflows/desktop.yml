@@ -95,6 +95,9 @@ jobs:
           - xcode_version: "11.7"
             architecture: "arm64"
     steps:                
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
@@ -296,6 +299,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
