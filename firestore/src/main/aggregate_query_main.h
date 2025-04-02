@@ -50,6 +50,7 @@ class AggregateQueryInternal {
   enum class AsyncApis {
     kGet,
     kCount,
+    kSum,
   };
 
   friend class AggregateQuerySnapshotTest;

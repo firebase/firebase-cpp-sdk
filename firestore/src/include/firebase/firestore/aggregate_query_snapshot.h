@@ -109,6 +109,14 @@ class AggregateQuerySnapshot {
   virtual int64_t count() const;
 
   /**
+   * @brief Returns the sum of the specified field across all documents in the
+   * result set of the underlying query.
+   *
+   * @return The sum of the specified field across all documents.
+   */
+  virtual double sum(const AggregateField& aggregate_field) const;
+
+  /**
    * @brief Returns true if this `AggregateQuerySnapshot` is valid, false if it
    * is not valid. An invalid `AggregateQuerySnapshot` could be the result of:
    *   - Creating a `AggregateQuerySnapshot` using the default constructor.

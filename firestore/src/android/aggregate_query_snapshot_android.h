@@ -34,6 +34,7 @@ class AggregateQuerySnapshotInternal : public Wrapper {
 
   AggregateQuery query() const;
   int64_t count() const;
+  double sum(const AggregateField& aggregate_field) const;
 
   std::size_t Hash() const;
 

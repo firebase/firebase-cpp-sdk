@@ -99,6 +99,11 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
 
 AggregateQuery QueryInternal::Count() { return MakePublic(query_.Count()); }
 
+AggregateQuery QueryInternal::Aggregate(const AggregateField& aggregate_field) {
+  // TODO: Implement Aggregate
+  // return MakePublic(aggregate_field);
+}
+
 Query QueryInternal::Where(const Filter& filter) const {
   SIMPLE_HARD_ASSERT(!filter.IsEmpty());
   core::Filter core_filter =

@@ -103,6 +103,11 @@ int64_t AggregateQuerySnapshot::count() const {
   return internal_->count();
 }
 
+double AggregateQuerySnapshot::sum(const AggregateField& aggregate_field) const {
+  if (!internal_) return 0;
+  return internal_->sum(aggregate_field);
+}
+
 bool operator==(const AggregateQuerySnapshot& lhs,
                 const AggregateQuerySnapshot& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
