@@ -286,6 +286,9 @@ jobs:
           ssl_variant: openssl
           arch: arm64
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -424,6 +427,9 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -535,6 +541,9 @@ jobs:
       matrix:
         os: [macos-13]
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -640,6 +649,9 @@ jobs:
       matrix:
         os: [macos-13]
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}

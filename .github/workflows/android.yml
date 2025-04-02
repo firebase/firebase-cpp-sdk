@@ -51,6 +51,9 @@ jobs:
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer

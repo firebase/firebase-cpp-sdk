@@ -90,6 +90,9 @@ jobs:
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
@@ -188,6 +191,9 @@ jobs:
     runs-on: macos-13
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
@@ -248,6 +254,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Force Java 11
         shell: bash
         run: echo "JAVA_HOME=${JAVA_HOME_11_X64}" >> $GITHUB_ENV
@@ -352,6 +361,9 @@ jobs:
           architecture: "arm64"
 
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
