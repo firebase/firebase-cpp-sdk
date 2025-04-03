@@ -483,9 +483,13 @@ void LogEvent(const char* name, const Parameter* parameters,
 /// The same limitations apply to these parameters as are documented for
 /// `LogEvent`.
 /// @param[in] default_parameters Map of default parameter names and values.
-/// Passing a null value for a parameter name clears the default parameter.
+/// Passing a null `Variant` value for a parameter name clears the default
+/// parameter for that key.
 void SetDefaultEventParameters(
     const std::map<std::string, Variant>& default_parameters);
+
+/// @brief Clears all default event parameters.
+void ClearDefaultEventParameters();
 
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// and tvOS (no-op on Android). On iOS and tvOS, this method requires the

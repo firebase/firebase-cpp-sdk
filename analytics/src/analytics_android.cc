@@ -530,12 +530,22 @@ jobject StringVariantMapToBundle(JNIEnv* env,
     // Bundle keys must be strings.
     const char* key = pair.first.c_str();
     const Variant& value = pair.second;
-    // AddVariantToBundle handles all Variant types, including null.
-    if (!AddVariantToBundle(env, bundle, key, value)) {
+    // A null variant clears the default parameter for that key.
+    // The Android SDK uses Bundle.putString(key, null) for this.
+    if (value.is_null()) {
+      jstring key_string = env->NewStringUTF(key);
+      // Call Bundle.putString(key, null)
+      env->CallVoidMethod(bundle,
+                          util::bundle::GetMethodId(util::bundle::kPutString),
+                          key_string, nullptr);
+      util::CheckAndClearJniExceptions(env);
+      env->DeleteLocalRef(key_string);
+    } else if (!AddVariantToBundle(env, bundle, key, value)) {
       LogError("SetDefaultEventParameters: Unsupported type (%s) for key %s.",
                Variant::TypeName(value.type()), key);
     }
-    // CheckAndClearJniExceptions is called within AddVariantToBundle.
+    // CheckAndClearJniExceptions is called within AddVariantToBundle or above
+    // for the null case.
   }
   return bundle;
 }
@@ -553,6 +563,19 @@ void SetDefaultEventParameters(
 
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(bundle);
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+
+  // Call FirebaseAnalytics.setDefaultEventParameters(null)
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters),
+      nullptr);  // Pass null Bundle to clear all parameters
+
+  util::CheckAndClearJniExceptions(env);
 }
 
 /// Initiates on-device conversion measurement given a user email address on iOS

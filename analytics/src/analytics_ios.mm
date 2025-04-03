@@ -322,16 +322,27 @@ void SetDefaultEventParameters(const std::map<std::string, Variant>& default_par
     NSString* key = firebase::util::StringToNSString(pair.first);
     // A null Variant indicates the default parameter should be cleared.
     // In ObjC, setting a key to [NSNull null] in the dictionary achieves this.
+    // A null Variant indicates the default parameter for that key should be
+    // cleared. In ObjC, setting a key to [NSNull null] in the dictionary
+    // achieves this.
     id value = pair.second.is_null() ? [NSNull null] : firebase::util::VariantToId(pair.second);
     if (value) {
       [parameters_dict setObject:value forKey:key];
     } else {
+      // VariantToId could return nil if the variant type is unsupported.
+      // Log an error but continue, as NSNull case is handled above.
       LogError("SetDefaultEventParameters: Failed to convert value for key %s.",
                pair.first.c_str());
     }
   }
 
   [FIRAnalytics setDefaultEventParameters:parameters_dict];
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // Passing nil to the underlying SDK method clears all parameters.
+  [FIRAnalytics setDefaultEventParameters:nil];
 }
 
 /// Initiates on-device conversion measurement given a user email address on iOS (no-op on

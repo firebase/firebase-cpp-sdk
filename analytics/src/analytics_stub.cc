@@ -103,6 +103,11 @@ void SetDefaultEventParameters(
   // No-op on stub.
 }
 
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // No-op on stub.
+}
+
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a

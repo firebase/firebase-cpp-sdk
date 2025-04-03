@@ -341,26 +341,32 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   did_test_setconsent_ = true;
 }
 
-// Test that it compiles and runs on all platforms.
 TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
   LogInfo("Testing SetDefaultEventParameters().");
 
-  // Set some default parameters.
+  // Set some default parameters with various types.
   std::map<std::string, firebase::Variant> defaults;
-  defaults["default_int"] = 123;
-  defaults["default_string"] = "default_value";
+  defaults["default_int"] = static_cast<int64_t>(123);  // int64_t
+  defaults["default_double"] = 45.67;                   // double
+  defaults["default_bool"] = true;                      // bool
+  defaults["default_string"] = "test_string_value";     // const char*
+  defaults["default_to_clear"] = "will_be_cleared";     // Another string
+
   firebase::analytics::SetDefaultEventParameters(defaults);
+  LogInfo("Set initial default parameters.");
 
   // Log an event - the defaults should be included automatically by the
   // underlying SDK if logging immediately after setting is supported.
   // Verification might need manual checking in the Analytics console or
   // via platform-specific debug logs if possible.
-  firebase::analytics::LogEvent("event_with_defaults");
-  LogInfo("Logged event_with_defaults");
+  firebase::analytics::LogEvent("event_with_mixed_defaults");
+  LogInfo("Logged event_with_mixed_defaults");
 
-  // Clear one default parameter by setting it to null.
-  defaults["default_int"] = firebase::Variant::Null();
+  // Clear one default parameter and update another.
+  defaults["default_to_clear"] = firebase::Variant::Null();  // Clear this one
+  defaults["default_int"] = static_cast<int64_t>(999);       // Update this one
   firebase::analytics::SetDefaultEventParameters(defaults);
+  LogInfo("Cleared one parameter and updated another.");
 
   // Log another event.
   firebase::analytics::LogEvent("event_with_one_default_cleared");
@@ -369,22 +375,36 @@ TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
   // Set only one parameter, clearing others implicitly if underlying SDK works
   // like that
   std::map<std::string, firebase::Variant> single_default;
-  single_default["only_this"] = 45.6;
+  single_default["only_this_double"] = 78.9;
   firebase::analytics::SetDefaultEventParameters(single_default);
-  firebase::analytics::LogEvent("event_with_only_one_default");
+  LogInfo("Set a single different default parameter.");
+  firebase::analytics::LogEvent(
+      "event_with_only_one_default");  // Changed log event name slightly
   LogInfo("Logged event_with_only_one_default");
-
-  // Clear all defaults by passing an empty map.
-  std::map<std::string, firebase::Variant> empty_defaults;
-  firebase::analytics::SetDefaultEventParameters(empty_defaults);
-
-  // Log an event with no defaults.
-  firebase::analytics::LogEvent("event_with_no_defaults");
-  LogInfo("Logged event_with_no_defaults");
 
   // If we reach here without crashing, consider the basic test passed for the
   // C++ layer. Deeper verification requires platform tools.
   LogInfo("SetDefaultEventParameters() tests completed.");
+}
+
+TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParameters) {
+  LogInfo("Testing ClearDefaultEventParameters().");
+
+  // Set some defaults first.
+  std::map<std::string, firebase::Variant> defaults;
+  defaults["temp_default"] = "will_be_cleared";
+  firebase::analytics::SetDefaultEventParameters(defaults);
+
+  // Now clear them all.
+  firebase::analytics::ClearDefaultEventParameters();
+
+  // Log an event - no defaults should be included.
+  firebase::analytics::LogEvent("event_after_clear_defaults");
+  LogInfo("Logged event_after_clear_defaults");
+
+  // If we reach here without crashing, consider the basic test passed for the
+  // C++ layer.
+  LogInfo("ClearDefaultEventParameters() test completed.");
 }
 
 }  // namespace firebase_testapp_automated
