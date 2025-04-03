@@ -320,8 +320,6 @@ void SetDefaultEventParameters(const std::map<std::string, Variant>& default_par
       [NSMutableDictionary dictionaryWithCapacity:default_parameters.size()];
   for (const auto& pair : default_parameters) {
     NSString* key = firebase::util::StringToNSString(pair.first);
-    // A null Variant indicates the default parameter should be cleared.
-    // In ObjC, setting a key to [NSNull null] in the dictionary achieves this.
     // A null Variant indicates the default parameter for that key should be
     // cleared. In ObjC, setting a key to [NSNull null] in the dictionary
     // achieves this.
