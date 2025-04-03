@@ -476,6 +476,21 @@ void LogEvent(const char* name);
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters);
 
+/// @brief Sets default event parameters for this app.
+///
+/// This specifies parameters to be included with every subsequent call to
+/// `LogEvent`, in addition to the parameters passed to `LogEvent`.
+/// The same limitations apply to these parameters as are documented for
+/// `LogEvent`.
+/// @param[in] default_parameters Map of default parameter names and values.
+/// Passing a null `Variant` value for a parameter name clears the default
+/// parameter for that key.
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& default_parameters);
+
+/// @brief Clears all default event parameters.
+void ClearDefaultEventParameters();
+
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// and tvOS (no-op on Android). On iOS and tvOS, this method requires the
 /// dependency GoogleAppMeasurementOnDeviceConversion to be linked in,
