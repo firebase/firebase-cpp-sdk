@@ -337,6 +337,21 @@ TEST_F(AggregateQueryTest, TestHashCode) {
             AggregateQueryHash(query1.Count()));
 }
 
+TEST_F(AggregateQueryTest, SumReturnsCorrectSum) {
+  CollectionReference collection =
+      Collection({{"a", {{"value", FieldValue::Integer(1)}}},
+                  {"b", {{"value", FieldValue::Integer(2)}}},
+                  {"c", {{"value", FieldValue::Integer(3)}}}});
+
+  AggregateQuery aggregate_query =
+      collection.Sum("value");
+  AggregateQuerySnapshot snapshot = ReadAggregate(aggregate_query);
+
+  EXPECT_EQ(6.0, snapshot.sum("value"));
+  EXPECT_EQ(aggregate_query, snapshot.query());
+}
+
+
 #if defined(__ANDROID__)
 TEST(QueryTestAndroidStub, Construction) {
   testutil::AssertWrapperConstructionContract<AggregateQuery>();

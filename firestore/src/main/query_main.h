@@ -60,6 +60,8 @@ class QueryInternal {
 
   AggregateQuery Count();
 
+  AggregateQuery Aggregate(const AggregateField& aggregate_field);
+
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener);
 

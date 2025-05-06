@@ -113,6 +113,12 @@ AggregateQuery Query::Count() const {
   return internal_->Count();
 }
 
+AggregateQuery Query::Aggregate(const AggregateField& aggregate_field) const {
+  if (!internal_) return {};
+  return internal_->Aggregate(aggregate_field);
+}
+
+
 Query Query::Where(const Filter& filter) const {
   if (!internal_) return {};
   if (filter.IsEmpty()) {

@@ -162,6 +162,13 @@ AggregateQuery QueryInternal::Count() const {
   return firestore_->NewAggregateQuery(env, aggregate_query);
 }
 
+AggregateQuery QueryInternal::Aggregate(const FieldPath& field) const {
+  Env env = GetEnv();
+  Local<Object> java_field = FieldPathConverter::Create(env, field);
+  Local<Object> aggregate_query = env.Call(obj_, kAggregate, java_field);
+  return firestore_->NewAggregateQuery(env, aggregate_query);
+}
+
 Query QueryInternal::Where(const firebase::firestore::Filter& filter) const {
   Env env = GetEnv();
   Local<Object> query = env.Call(obj_, kWhere, filter.internal_->ToJava());

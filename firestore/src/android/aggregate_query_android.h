@@ -33,7 +33,8 @@ class AggregateQueryInternal : public Wrapper {
   // Firestore Future manager.
   enum class AsyncFn {
     kGet = 0,
-    kCount,  // Must be the last enum value.
+    kCount,
+    kSum,  // Must be the last enum value.
   };
 
   static void Initialize(jni::Loader& loader);

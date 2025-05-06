@@ -35,15 +35,20 @@ class AggregateQuerySnapshotInternal {
  public:
   explicit AggregateQuerySnapshotInternal(api::AggregateQuery&& aggregate_query,
                                           int64_t count);
+                                          // TODO: Update with sum
+                                          // double sum);
 
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;
 
   AggregateQuery query() const;
   int64_t count() const;
+  double sum(const AggregateField& aggregate_field) const;
 
   std::size_t Hash() const {
     return util::Hash(aggregate_query_.query().Hash(), count_result_);
+    // TODO: Update with sum
+    // , sum_result_);
   }
 
   friend bool operator==(const AggregateQuerySnapshotInternal& lhs,
@@ -52,6 +57,7 @@ class AggregateQuerySnapshotInternal {
  private:
   api::AggregateQuery aggregate_query_;
   int64_t count_result_ = 0;
+  double sum_result_ = 0.0;
 };
 
 inline bool operator!=(const AggregateQuerySnapshotInternal& lhs,

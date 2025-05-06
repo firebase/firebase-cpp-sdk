@@ -24,9 +24,15 @@ namespace firebase {
 namespace firestore {
 
 AggregateQuerySnapshotInternal::AggregateQuerySnapshotInternal(
-    api::AggregateQuery&& aggregate_query, int64_t count_result)
+    api::AggregateQuery&& aggregate_query, int64_t count_result,
+    // TODO: Update with sum
+    // double sum_result,
+    )
     : aggregate_query_(std::move(aggregate_query)),
-      count_result_(count_result) {}
+      count_result_(count_result)
+      // TODO: Update with sum
+      // sum_result_(sum_result),
+      {}
 
 FirestoreInternal* AggregateQuerySnapshotInternal::firestore_internal() {
   return GetFirestoreInternal(&aggregate_query_.query());
@@ -43,10 +49,16 @@ AggregateQuery AggregateQuerySnapshotInternal::query() const {
 
 int64_t AggregateQuerySnapshotInternal::count() const { return count_result_; }
 
+double AggregateQuerySnapshotInternal::sum(const AggregateField& aggregate_field) const {
+  // TODO: implement
+}
+
 bool operator==(const AggregateQuerySnapshotInternal& lhs,
                 const AggregateQuerySnapshotInternal& rhs) {
   return lhs.aggregate_query_ == rhs.aggregate_query_ &&
          lhs.count_result_ == rhs.count_result_;
+         // TODO: Update with sum
+         // && lhs.sum_result == rhs.sum_result_;
 }
 
 }  // namespace firestore

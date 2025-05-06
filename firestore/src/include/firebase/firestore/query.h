@@ -161,6 +161,22 @@ class Query {
   virtual AggregateQuery Count() const;
 
   /**
+   * @brief Returns a query that calculates the specified aggregation over the
+   * documents in the result set of this query.
+   *
+   * The returned query, when executed, performs the specified aggregation
+   * without downloading the actual document data.
+   *
+   * Using the returned query to calculate aggregations is efficient because
+   * only the aggregation result, not the documents' data, is downloaded. This
+   * can be useful for aggregations over large result sets.
+   *
+   * @param aggregate_field The field to aggregate on.
+   * @return An aggregate query that performs the specified aggregation.
+   */
+  virtual AggregateQuery Aggregate(const AggregateField& aggregate_field) const;
+
+  /**
    * @brief Creates and returns a new Query with the additional filter.
    *
    * @param filter The new filter to apply to the existing query.
