@@ -312,6 +312,37 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
   [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
 }
 
+void SetDefaultEventParameters(const std::map<std::string, Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // Convert the std::map<std::string, Variant> to NSDictionary*
+  // The keys must be strings for FIRAnalytics.
+  NSMutableDictionary* parameters_dict =
+      [NSMutableDictionary dictionaryWithCapacity:default_parameters.size()];
+  for (const auto& pair : default_parameters) {
+    NSString* key = firebase::util::StringToNSString(pair.first);
+    // A null Variant indicates the default parameter for that key should be
+    // cleared. In ObjC, setting a key to [NSNull null] in the dictionary
+    // achieves this.
+    id value = pair.second.is_null() ? [NSNull null] : firebase::util::VariantToId(pair.second);
+    if (value) {
+      [parameters_dict setObject:value forKey:key];
+    } else {
+      // VariantToId could return nil if the variant type is unsupported.
+      // Log an error but continue, as NSNull case is handled above.
+      LogError("SetDefaultEventParameters: Failed to convert value for key %s.",
+               pair.first.c_str());
+    }
+  }
+
+  [FIRAnalytics setDefaultEventParameters:parameters_dict];
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // Passing nil to the underlying SDK method clears all parameters.
+  [FIRAnalytics setDefaultEventParameters:nil];
+}
+
 /// Initiates on-device conversion measurement given a user email address on iOS (no-op on
 /// Android). On iOS, requires dependency GoogleAppMeasurementOnDeviceConversion to be linked
 /// in, otherwise it is a no-op.
