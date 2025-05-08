@@ -29,8 +29,6 @@ def firebaseDependenciesMap = [
   'functions' : ['com.google.firebase:firebase-functions'],
   'gma' : ['com.google.android.gms:play-services-ads:23.0.0',
            'com.google.android.ump:user-messaging-platform:2.2.0'],
-  'ump' : ['com.google.android.gms:play-services-ads:23.0.0',
-           'com.google.android.ump:user-messaging-platform:2.2.0'],
   'installations' : ['com.google.firebase:firebase-installations'],
   'invites' : ['com.google.firebase:firebase-invites'],
   // Messaging has an additional local dependency to include.
@@ -41,7 +39,8 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf'],
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
-  'testlab' : []
+  'testlab' : [],
+  'ump' : ['com.google.android.ump:user-messaging-platform:2.2.0']
 ]
 
 // Handles adding the Firebase C++ dependencies as properties.
@@ -99,6 +98,9 @@ class Dependencies {
   }
   def getTestlab() {
     libSet.add('testlab')
+  }
+  def getUmp() {
+    libSet.add('ump')
   }
 }
 

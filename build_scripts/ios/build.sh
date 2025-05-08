@@ -27,7 +27,7 @@ readonly SUPPORTED_PLATFORMS=(device simulator)
 readonly SUPPORTED_ARCHITECTURES=(arm64 x86_64)
 readonly DEVICE_ARCHITECTURES=(arm64)
 readonly SIMULATOR_ARCHITECTURES=(arm64 x86_64)
-readonly SUPPORTED_TARGETS=(firebase_analytics firebase_auth firebase_app_check firebase_database firebase_dynamic_links firebase_firestore firebase_functions firebase_gma firebase_installations firebase_messaging firebase_remote_config firebase_storage)
+readonly SUPPORTED_TARGETS=(firebase_analytics firebase_auth firebase_app_check firebase_database firebase_dynamic_links firebase_firestore firebase_functions firebase_gma firebase_installations firebase_messaging firebase_remote_config firebase_storage firebase_ump)
 
 # build default value
 buildpath="ios_build"
