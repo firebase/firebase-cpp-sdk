@@ -1,12 +1,11 @@
 source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '13.0'
-# Firebase GMA test application.
+# Firebase UMP test application.
 use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '13.0'
   pod 'Firebase/CoreOnly', '11.10.0'
-  pod 'Google-Mobile-Ads-SDK', '11.2.0'
   pod 'GoogleUserMessagingPlatform', '2.3.0'
 end
 

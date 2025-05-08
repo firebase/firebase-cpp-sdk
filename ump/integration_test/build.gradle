@@ -84,7 +84,7 @@ android {
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
 firebaseCpp.dependencies {
-  gma
+  ump
 }
 
 apply plugin: 'com.google.gms.google-services'
