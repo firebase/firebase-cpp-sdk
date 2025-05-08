@@ -135,9 +135,7 @@ void FirebaseUmpTest::SetUp() {
   ASSERT_NE(consent_info_, nullptr);
 }
 
-void FirebaseUmpTest::TearDown() {
-  TerminateUmp();
-}
+void FirebaseUmpTest::TearDown() { TerminateUmp(); }
 
 // Tests for User Messaging Platform
 TEST_F(FirebaseUmpTest, TestUmpInitialization) {
@@ -750,9 +748,8 @@ TEST_F(FirebaseUmpTest, TestUmpMethodsReturnOperationInProgress) {
       consent_info_->RequestConsentInfoUpdate(params);
   firebase::Future<void> future_request_2 =
       consent_info_->RequestConsentInfoUpdate(params);
-  WaitForCompletion(
-      future_request_2, "RequestConsentInfoUpdate second",
-      firebase::ump::kConsentRequestErrorOperationInProgress);
+  WaitForCompletion(future_request_2, "RequestConsentInfoUpdate second",
+                    firebase::ump::kConsentRequestErrorOperationInProgress);
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first",
                     {firebase::ump::kConsentRequestSuccess,
                      firebase::ump::kConsentRequestErrorNetwork});
@@ -785,9 +782,8 @@ TEST_F(FirebaseUmpTest, TestUmpMethodsReturnOperationInProgressWithUI) {
       consent_info_->RequestConsentInfoUpdate(params);
   firebase::Future<void> future_request_2 =
       consent_info_->RequestConsentInfoUpdate(params);
-  WaitForCompletion(
-      future_request_2, "RequestConsentInfoUpdate second",
-      firebase::ump::kConsentRequestErrorOperationInProgress);
+  WaitForCompletion(future_request_2, "RequestConsentInfoUpdate second",
+                    firebase::ump::kConsentRequestErrorOperationInProgress);
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
 
   firebase::Future<void> future_load_1 = consent_info_->LoadConsentForm();

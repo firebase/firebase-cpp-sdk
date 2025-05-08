@@ -18,8 +18,8 @@
 
 #include "app/src/assert.h"
 #include "firebase/app.h"
-#include "firebase/ump.h"
 #include "firebase/internal/platform.h"
+#include "firebase/ump.h"
 #include "ump//src/common/consent_info_internal.h"
 
 namespace firebase {

@@ -658,7 +658,8 @@ code.
 -   Changes
     - UMP: Moved the User Messaging Platform SDK to its own top-level
       library and to the firebase::ump namespace. The version in the
-      GMA library (in firebase::gma::ump) will be deprecated soon.
+      GMA library (in firebase::gma::ump) has been deprecated and will
+      be removed soon.
 
 ### 12.7.0
 -   Changes

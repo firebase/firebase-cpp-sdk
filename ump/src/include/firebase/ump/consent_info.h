@@ -19,8 +19,8 @@
 
 #include "firebase/app.h"
 #include "firebase/future.h"
-#include "firebase/ump/types.h"
 #include "firebase/internal/platform.h"
+#include "firebase/ump/types.h"
 
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>

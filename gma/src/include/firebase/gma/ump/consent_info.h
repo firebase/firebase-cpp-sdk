@@ -32,6 +32,9 @@ namespace gma {
 ///
 /// The User Messaging Platform (UMP) SDK is Google’s option to handle user
 /// privacy and consent in mobile apps.
+///
+/// @deprecated The firebase::gma::ump namespace has been deprecated and
+/// renamed to firebase::ump.
 namespace ump {
 
 namespace internal {

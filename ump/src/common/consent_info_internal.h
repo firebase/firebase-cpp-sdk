@@ -20,9 +20,9 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/future.h"
+#include "firebase/internal/platform.h"
 #include "firebase/ump.h"
 #include "firebase/ump/types.h"
-#include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>

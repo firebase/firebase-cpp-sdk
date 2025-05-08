@@ -25,8 +25,8 @@
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
 #include "firebase/internal/common.h"
-#include "ump/ump_resources.h"
 #include "ump/src/android/ump_android.h"
+#include "ump/ump_resources.h"
 
 namespace firebase {
 namespace ump {
