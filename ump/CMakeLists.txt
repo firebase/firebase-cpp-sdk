@@ -16,9 +16,8 @@
 
 # Common source files used by all platforms
 set(common_SRCS
-    src/common/ump/consent_info.cc
-    src/common/ump/consent_info_internal.cc
-    src/common/gma_common.cc
+    src/common/consent_info.cc
+    src/common/consent_info_internal.cc
 )
 
 # Define the resource build needed for Android
@@ -32,19 +31,17 @@ binary_to_array("ump_resources"
 # Source files used by the Android implementation.
 set(android_SRCS
     ${ump_resources_source}
-    src/android/ump/consent_info_internal_android.cc
-    src/android/gma_android.cc
+    src/android/consent_info_internal_android.cc
 )
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/ios/ump/consent_info_internal_ios.mm
-    src/ios/gma_ios.mm
+    src/ios/consent_info_internal_ios.mm
 )
 
 # Source files used by the stub implementation.
 set(stub_SRCS
-    src/stub/ump/consent_info_internal_stub.cc
+    src/stub/consent_info_internal_stub.cc
 )
 
 if(ANDROID)
