@@ -566,6 +566,10 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/listener.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/metadata.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/storage_reference.h)
+  set(ump_HDRS
+    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump.h
+    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/consent_info.h
+    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/types.h)
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
@@ -580,7 +584,9 @@ if (IOS)
     ${installations_HDRS}
     ${messaging_HDRS}
     ${remote_config_HDRS}
-    ${storage_HDRS})
+    ${storage_HDRS}
+    ${ump_HDRS}
+    )
 
   # add framework header files to target
   target_sources(firebase_app PRIVATE ${framework_HDRS})

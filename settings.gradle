@@ -24,4 +24,4 @@ include ':app',
         ':storage',
         ':storage:storage_resources'
         ':ump',
-        ':ump:gma_resources',
+        ':ump:ump_resources',
