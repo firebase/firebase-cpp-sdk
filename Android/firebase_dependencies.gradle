@@ -54,8 +54,8 @@ def firebaseResourceDependenciesMap = [
   'firestore' : [':firestore:firestore_resources'],
   'gma' : [':gma:gma_resources'],
   'remote_config' : [':remote_config:remote_config_resources'],
-  'storage' : [':storage:storage_resources']
-  'ump' : [':ump:ump_resources'],
+  'storage' : [':storage:storage_resources'],
+  'ump' : [':ump:ump_resources']
 ]
 
 def setResourceDependencies(String subproject) {
