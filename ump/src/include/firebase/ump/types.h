@@ -33,7 +33,6 @@ extern "C" {
         // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
-namespace gma {
 namespace ump {
 
 /// Debug values for testing geography.
@@ -173,7 +172,6 @@ enum PrivacyOptionsRequirementStatus {
 };
 
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase
 
 #endif  // FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_TYPES_H_

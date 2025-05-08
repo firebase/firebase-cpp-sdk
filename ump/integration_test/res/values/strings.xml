@@ -16,5 +16,5 @@
 */
 -->
 <resources>
-  <string name="app_name" description="Integration Test app name" translatable="false">Firebase GMA Integration Test</string>
+  <string name="app_name" description="Integration Test app name" translatable="false">Firebase UMP Integration Test</string>
 </resources>
