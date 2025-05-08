@@ -50,6 +50,8 @@ option(FIREBASE_INCLUDE_FUNCTIONS
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_GMA "Include the GMA library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_UMP "Include the UMP library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTALLATIONS
        "Include the Firebase Installations library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -123,9 +125,10 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  #  GMA and FDL are not supported on tvOS.
+  #  GMA, UMP, and FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
   set(FIREBASE_INCLUDE_GMA OFF)
+  set(FIREBASE_INCLUDE_UMP OFF)
 endif()
 
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
@@ -628,6 +631,9 @@ if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
 endif()
 if (FIREBASE_INCLUDE_GMA)
+  add_subdirectory(gma)
+endif()
+if (FIREBASE_INCLUDE_UMP)
   add_subdirectory(gma)
 endif()
 if (FIREBASE_INCLUDE_INSTALLATIONS)
