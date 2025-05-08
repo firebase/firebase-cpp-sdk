@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_STUB_UMP_CONSENT_INFO_INTERNAL_STUB_H_
-#define FIREBASE_GMA_SRC_STUB_UMP_CONSENT_INFO_INTERNAL_STUB_H_
+#ifndef FIREBASE_UMP_SRC_STUB_CONSENT_INFO_INTERNAL_STUB_H_
+#define FIREBASE_UMP_SRC_STUB_CONSENT_INFO_INTERNAL_STUB_H_
 
-#include "gma/src/common/ump/consent_info_internal.h"
+#include "ump/src/common/consent_info_internal.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
 namespace internal {
 
@@ -80,7 +79,6 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_STUB_UMP_CONSENT_INFO_INTERNAL_STUB_H_
+#endif  // FIREBASE_SRC_STUB_CONSENT_INFO_INTERNAL_STUB_H_

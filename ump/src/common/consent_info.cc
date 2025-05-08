@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#include "firebase/gma/ump/consent_info.h"
+#include "firebase/ump/consent_info.h"
 
 #include "app/src/assert.h"
 #include "firebase/app.h"
-#include "firebase/gma/ump.h"
+#include "firebase/ump.h"
 #include "firebase/internal/platform.h"
-#include "gma/src/common/ump/consent_info_internal.h"
+#include "ump//src/common/consent_info_internal.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
 
 ConsentInfo* ConsentInfo::s_instance_ = nullptr;
@@ -180,5 +179,4 @@ void ConsentInfo::Reset() {
 }
 
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase

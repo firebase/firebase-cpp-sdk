@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_TYPES_H_
-#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_TYPES_H_
+#ifndef FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_TYPES_H_
+#define FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_TYPES_H_
 
 #include <string>
 #include <utility>
@@ -176,4 +176,4 @@ enum PrivacyOptionsRequirementStatus {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_TYPES_H_
+#endif  // FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_TYPES_H_

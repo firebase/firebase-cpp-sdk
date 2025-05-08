@@ -14,19 +14,43 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_ANDROID_UMP_CONSENT_INFO_INTERNAL_ANDROID_H_
-#define FIREBASE_GMA_SRC_ANDROID_UMP_CONSENT_INFO_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_UMP_SRC_ANDROID_CONSENT_INFO_INTERNAL_ANDROID_H_
+#define FIREBASE_UMP_SRC_ANDROID_CONSENT_INFO_INTERNAL_ANDROID_H_
 
 #include <jni.h>
 
 #include "app/src/util_android.h"
 #include "firebase/internal/mutex.h"
-#include "gma/src/common/ump/consent_info_internal.h"
+#include "ump/src/common/consent_info_internal.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
+
+// clang-format off
+#define UMP_INITIALIZATION_HELPER_METHODS(X)                                 \
+  X(InitializeUmp, "initializeUmp", "(Landroid/content/Context;)V",          \
+    util::kMethodTypeStatic)
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(ump_initialization_helper,
+                          UMP_INITIALIZATION_HELPER_METHODS);
+
+// Needed when UMP is initialized without Firebase.
+JNIEnv* GetJNI();
+
+// Retrieves the activity used to initialize UMP.
+jobject GetActivity();
+
+// Register the native callbacks needed by the Futures.
+bool RegisterNatives();
+
+// Release classes registered by this module.
+void ReleaseClasses(JNIEnv* env);
+
 namespace internal {
+extern ::firebase::Mutex g_cached_ump_embedded_files_mutex;
+extern std::vector<::firebase::internal::EmbeddedFile>*
+    g_cached_ump_embedded_files;
 
 class ConsentInfoInternalAndroid : public ConsentInfoInternal {
  public:
@@ -126,7 +150,6 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_ANDROID_UMP_CONSENT_INFO_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_UMP_SRC_ANDROID_CONSENT_INFO_INTERNAL_ANDROID_H_

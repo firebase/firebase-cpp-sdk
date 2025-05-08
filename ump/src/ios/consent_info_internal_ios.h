@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_IOS_UMP_CONSENT_INFO_INTERNAL_IOS_H_
-#define FIREBASE_GMA_SRC_IOS_UMP_CONSENT_INFO_INTERNAL_IOS_H_
+#ifndef FIREBASE_UMP_SRC_IOS_CONSENT_INFO_INTERNAL_IOS_H_
+#define FIREBASE_UMP_SRC_IOS_CONSENT_INFO_INTERNAL_IOS_H_
 
 #include <UserMessagingPlatform/UserMessagingPlatform.h>
 
 #include "firebase/internal/mutex.h"
-#include "gma/src/common/ump/consent_info_internal.h"
+#include "ump/src/common/consent_info_internal.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
 namespace internal {
 
@@ -63,7 +62,6 @@ class ConsentInfoInternalIos : public ConsentInfoInternal {
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_IOS_UMP_CONSENT_INFO_INTERNAL_IOS_H_
+#endif  // FIREBASE_UMP_SRC_IOS_CONSENT_INFO_INTERNAL_IOS_H_

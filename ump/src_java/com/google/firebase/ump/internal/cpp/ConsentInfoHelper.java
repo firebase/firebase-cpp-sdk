@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.firebase.gma.internal.cpp;
+package com.google.firebase.ump.internal.cpp;
 
 import android.app.Activity;
 import android.content.Context;
@@ -34,7 +34,7 @@ import com.google.android.ump.UserMessagingPlatform.OnConsentFormLoadSuccessList
 import java.util.ArrayList;
 
 /**
- * Helper class to make interactions between the GMA UMP C++ wrapper and the Android UMP API.
+ * Helper class to make interactions between the UMP C++ wrapper and the Android UMP API.
  */
 public class ConsentInfoHelper {
   // C++ nullptr for use with the callbacks.

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
-#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
+#ifndef FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_CONSENT_INFO_H_
+#define FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_CONSENT_INFO_H_
 
 #include "firebase/app.h"
 #include "firebase/future.h"
-#include "firebase/gma/ump/types.h"
+#include "firebase/ump/types.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -27,7 +27,6 @@
 #endif  // FIREBASE_PLATFORM_ANDROID
 
 namespace firebase {
-namespace gma {
 /// @brief API for User Messaging Platform.
 ///
 /// The User Messaging Platform (UMP) SDK is Google’s option to handle user
@@ -75,10 +74,10 @@ class ConsentInfo {
   /// do something like this:
   /// @code
   /// #if defined(__ANDROID__)
-  /// consent_info = firebase::gma::ump::ConsentInfo::GetInstance(jni_env,
+  /// consent_info = firebase::ump::ConsentInfo::GetInstance(jni_env,
   /// activity);
   /// #else
-  /// consent_info = firebase::gma::ump::GetInstance();
+  /// consent_info = firebase::ump::GetInstance();
   /// #endif
   /// @endcode
   ///
@@ -243,7 +242,6 @@ class ConsentInfo {
 };
 
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
+#endif  // FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_CONSENT_INFO_H_

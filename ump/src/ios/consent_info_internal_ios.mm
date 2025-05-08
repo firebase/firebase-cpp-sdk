@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-#include "gma/src/ios/ump/consent_info_internal_ios.h"
+#include "ump/src/ios/consent_info_internal_ios.h"
 
 #include "app/src/assert.h"
 #include "app/src/thread.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
 namespace internal {
 
@@ -58,7 +57,7 @@ static ConsentRequestError CppRequestErrorFromIosRequestError(NSInteger code) {
     case UMPRequestErrorCodeNetwork:
       return kConsentRequestErrorNetwork;
     default:
-      LogWarning("GMA: Unknown UMPRequestErrorCode returned by UMP iOS SDK: %d", (int)code);
+      LogWarning("UMP: Unknown UMPRequestErrorCode returned by UMP iOS SDK: %d", (int)code);
       return kConsentRequestErrorUnknown;
   }
 }
@@ -76,7 +75,7 @@ static ConsentFormError CppFormErrorFromIosFormError(NSInteger code) {
     case UMPFormErrorCodeInvalidViewController:
       return kConsentFormErrorInvalidOperation;
     default:
-      LogWarning("GMA: Unknown UMPFormErrorCode returned by UMP iOS SDK: %d", (int)code);
+      LogWarning("UMP: Unknown UMPFormErrorCode returned by UMP iOS SDK: %d", (int)code);
       return kConsentFormErrorUnknown;
   }
 }
@@ -161,7 +160,7 @@ ConsentStatus ConsentInfoInternalIos::GetConsentStatus() {
     case UMPConsentStatusUnknown:
       return kConsentStatusUnknown;
     default:
-      LogWarning("GMA: Unknown UMPConsentStatus returned by UMP iOS SDK: %d", (int)ios_status);
+      LogWarning("UMP: Unknown UMPConsentStatus returned by UMP iOS SDK: %d", (int)ios_status);
       return kConsentStatusUnknown;
   }
 }
@@ -176,7 +175,7 @@ ConsentFormStatus ConsentInfoInternalIos::GetConsentFormStatus() {
     case UMPFormStatusUnknown:
       return kConsentFormStatusUnknown;
     default:
-      LogWarning("GMA: Unknown UMPFormConsentStatus returned by UMP iOS SDK: %d", (int)ios_status);
+      LogWarning("UMP: Unknown UMPFormConsentStatus returned by UMP iOS SDK: %d", (int)ios_status);
       return kConsentFormStatusUnknown;
   }
 }
@@ -313,7 +312,7 @@ PrivacyOptionsRequirementStatus ConsentInfoInternalIos::GetPrivacyOptionsRequire
     case UMPPrivacyOptionsRequirementStatusUnknown:
       return kPrivacyOptionsRequirementStatusUnknown;
     default:
-      LogWarning("GMA: Unknown UMPPrivacyOptionsRequirementStatus returned by UMP iOS SDK: %d",
+      LogWarning("UMP: Unknown UMPPrivacyOptionsRequirementStatus returned by UMP iOS SDK: %d",
                  (int)ios_status);
       return kPrivacyOptionsRequirementStatusUnknown;
   }
@@ -365,5 +364,4 @@ void ConsentInfoInternalIos::Reset() { [UMPConsentInformation.sharedInstance res
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase

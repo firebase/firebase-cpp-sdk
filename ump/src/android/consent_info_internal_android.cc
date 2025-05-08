@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gma/src/android/ump/consent_info_internal_android.h"
+#include "ump/src/android/consent_info_internal_android.h"
 
 #include <jni.h>
 
@@ -25,16 +25,12 @@
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
 #include "firebase/internal/common.h"
-#include "gma/gma_resources.h"
-#include "gma/src/android/gma_android.h"
+#include "ump/ump_resources.h"
+#include "ump/src/android/ump_android.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
 namespace internal {
-
-ConsentInfoInternalAndroid* ConsentInfoInternalAndroid::s_instance = nullptr;
-firebase::Mutex ConsentInfoInternalAndroid::s_instance_mutex;
 
 // clang-format off
 #define CONSENTINFOHELPER_METHODS(X)                                            \
@@ -83,7 +79,7 @@ METHOD_LOOKUP_DECLARATION(consent_info_helper, CONSENTINFOHELPER_METHODS,
 
 METHOD_LOOKUP_DEFINITION(
     consent_info_helper,
-    "com/google/firebase/gma/internal/cpp/ConsentInfoHelper",
+    "com/google/firebase/ump/internal/cpp/ConsentInfoHelper",
     CONSENTINFOHELPER_METHODS, CONSENTINFOHELPER_FIELDS);
 
 // clang-format off
@@ -263,23 +259,23 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   util::Initialize(env, activity);
   env->GetJavaVM(&java_vm_);
 
-  // Between this and GMA, we only want to load these files once.
+  // Ensure we only load these files once.
   {
     MutexLock lock(
-        ::firebase::gma::internal::g_cached_gma_embedded_files_mutex);
-    if (::firebase::gma::internal::g_cached_gma_embedded_files == nullptr) {
-      ::firebase::gma::internal::g_cached_gma_embedded_files =
+        ::firebase::ump::internal::g_cached_ump_embedded_files_mutex);
+    if (::firebase::ump::internal::g_cached_ump_embedded_files == nullptr) {
+      ::firebase::ump::internal::g_cached_ump_embedded_files =
           new std::vector<firebase::internal::EmbeddedFile>();
-      *::firebase::gma::internal::g_cached_gma_embedded_files =
+      *::firebase::ump::internal::g_cached_ump_embedded_files =
           util::CacheEmbeddedFiles(env, activity,
                                    firebase::internal::EmbeddedFile::ToVector(
-                                       firebase_gma::gma_resources_filename,
-                                       firebase_gma::gma_resources_data,
-                                       firebase_gma::gma_resources_size));
+                                       firebase_ump::ump_resources_filename,
+                                       firebase_ump::ump_resources_data,
+                                       firebase_ump::ump_resources_size));
     }
   }
   const std::vector<firebase::internal::EmbeddedFile>& embedded_files =
-      *::firebase::gma::internal::g_cached_gma_embedded_files;
+      *::firebase::ump::internal::g_cached_ump_embedded_files;
 
   if (!(consent_info_helper::CacheClassFromFiles(env, activity,
                                                  &embedded_files) != nullptr &&
@@ -335,7 +331,7 @@ ConsentStatus ConsentInfoInternalAndroid::CppConsentStatusFromAndroid(
   if (status == enums().consentstatus_not_required)
     return kConsentStatusNotRequired;
   if (status == enums().consentstatus_obtained) return kConsentStatusObtained;
-  LogWarning("GMA: Unknown ConsentStatus returned by UMP Android SDK: %d",
+  LogWarning("UMP: Unknown ConsentStatus returned by UMP Android SDK: %d",
              (int)status);
   return kConsentStatusUnknown;
 }
@@ -350,7 +346,7 @@ ConsentInfoInternalAndroid::CppPrivacyOptionsRequirementStatusFromAndroid(
   if (status == enums().privacy_options_requirement_not_required)
     return kPrivacyOptionsRequirementStatusNotRequired;
   LogWarning(
-      "GMA: Unknown PrivacyOptionsRequirementStatus returned by UMP Android "
+      "UMP: Unknown PrivacyOptionsRequirementStatus returned by UMP Android "
       "SDK: %d",
       (int)status);
   return kPrivacyOptionsRequirementStatusUnknown;
@@ -387,7 +383,7 @@ ConsentInfoInternalAndroid::CppConsentRequestErrorFromAndroidFormError(
     else
       return kConsentRequestErrorInvalidOperation;
   }
-  LogWarning("GMA: Unknown RequestError returned by UMP Android SDK: %d (%s)",
+  LogWarning("UMP: Unknown RequestError returned by UMP Android SDK: %d (%s)",
              (int)error, message ? message : "");
   return kConsentRequestErrorUnknown;
 }
@@ -410,7 +406,7 @@ ConsentInfoInternalAndroid::CppConsentFormErrorFromAndroidFormError(
     else
       return kConsentFormErrorInvalidOperation;
   }
-  LogWarning("GMA: Unknown RequestError returned by UMP Android SDK: %d (%s)",
+  LogWarning("UMP: Unknown RequestError returned by UMP Android SDK: %d (%s)",
              (int)error, message ? message : "");
   return kConsentFormErrorUnknown;
 }
@@ -664,5 +660,4 @@ void ConsentInfoInternalAndroid::CompleteFutureFromJniCallback(
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase

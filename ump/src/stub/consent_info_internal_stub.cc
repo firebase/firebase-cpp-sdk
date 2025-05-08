@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#include "gma/src/stub/ump/consent_info_internal_stub.h"
+#include "ump/src/stub/consent_info_internal_stub.h"
 
 #include "app/src/thread.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
 namespace internal {
 
@@ -163,5 +162,4 @@ void ConsentInfoInternalStub::Reset() {
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase

@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#include "gma/src/common/ump/consent_info_internal.h"
+#include "ump/src/common/consent_info_internal.h"
 
 #include "app/src/include/firebase/internal/platform.h"
 
 namespace firebase {
-namespace gma {
 namespace ump {
 namespace internal {
 
@@ -86,5 +85,4 @@ const char* ConsentInfoInternal::GetConsentFormErrorMessage(
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase

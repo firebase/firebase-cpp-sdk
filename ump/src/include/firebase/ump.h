@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_H_
-#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_H_
+#ifndef FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_H_
+#define FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_H_
 
-#include "firebase/gma/ump/consent_info.h"
-#include "firebase/gma/ump/types.h"
+#include "firebase/ump/consent_info.h"
+#include "firebase/ump/types.h"
 
-#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_H_
+#endif  // FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_H_

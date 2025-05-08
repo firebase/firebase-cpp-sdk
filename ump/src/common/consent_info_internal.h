@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_COMMON_UMP_CONSENT_INFO_INTERNAL_H_
-#define FIREBASE_GMA_SRC_COMMON_UMP_CONSENT_INFO_INTERNAL_H_
+#ifndef FIREBASE_UMP_SRC_COMMON_CONSENT_INFO_INTERNAL_H_
+#define FIREBASE_UMP_SRC_COMMON_CONSENT_INFO_INTERNAL_H_
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/future.h"
-#include "firebase/gma/ump.h"
-#include "firebase/gma/ump/types.h"
+#include "firebase/ump.h"
+#include "firebase/ump/types.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -29,7 +29,6 @@
 #endif
 
 namespace firebase {
-namespace gma {
 namespace ump {
 namespace internal {
 
@@ -136,7 +135,6 @@ class ConsentInfoInternal {
 
 }  // namespace internal
 }  // namespace ump
-}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_COMMON_UMP_CONSENT_INFO_INTERNAL_H_
+#endif  // FIREBASE_UMP_SRC_COMMON_CONSENT_INFO_INTERNAL_H_
