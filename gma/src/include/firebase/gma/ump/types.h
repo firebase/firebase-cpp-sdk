@@ -100,7 +100,7 @@ typedef void* FormParent;
 
 /// Consent status values.
 /// 
-/// @deprecated This struct has been moved to the firebase::ump namespace.
+/// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentStatus {
   /// Unknown status, e.g. prior to calling Request, or if the request fails.
   kConsentStatusUnknown = 0,
@@ -114,7 +114,7 @@ enum ConsentStatus {
 
 /// Errors that can occur during a RequestConsentInfoUpdate operation.
 /// 
-/// @deprecated This struct has been moved to the firebase::ump namespace.
+/// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentRequestError {
   /// The operation succeeded.
   kConsentRequestSuccess = 0,
@@ -138,7 +138,7 @@ enum ConsentRequestError {
 
 /// Status of the consent form, whether it is available to show or not.
 /// 
-/// @deprecated This struct has been moved to the firebase::ump namespace.
+/// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentFormStatus {
   /// Status is unknown. Call `ConsentInfo::RequestConsentInfoUpdate()` to
   /// update this.
@@ -153,7 +153,7 @@ enum ConsentFormStatus {
 
 /// Errors when loading or showing the consent form.
 /// 
-/// @deprecated This struct has been moved to the firebase::ump namespace.
+/// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentFormError {
   /// The operation succeeded.
   kConsentFormSuccess = 0,
@@ -177,7 +177,7 @@ enum ConsentFormError {
 
 /// Whether the privacy options need to be displayed.
 /// 
-/// @deprecated This struct has been moved to the firebase::ump namespace.
+/// @deprecated This enum has been moved to the firebase::ump namespace.
 enum PrivacyOptionsRequirementStatus {
   /// Privacy options requirement status is unknown. Call
   /// `ConsentInfo::RequestConsentInfoUpdate()` to update.
