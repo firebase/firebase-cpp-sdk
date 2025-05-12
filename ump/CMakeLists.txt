@@ -96,7 +96,6 @@ elseif(IOS)
   setup_pod_headers(
     firebase_ump
     POD_NAMES
-      Google-Mobile-Ads-SDK
       GoogleUserMessagingPlatform
   )
 
