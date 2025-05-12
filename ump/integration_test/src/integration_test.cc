@@ -80,6 +80,9 @@ class FirebaseUmpTest : public FirebaseTest {
   void InitializeUmp(ResetOption reset = kReset);
   void TerminateUmp(ResetOption reset = kReset);
 
+  static void SetUpTestSuite();
+  static void TearDownTestSuite();
+  
   void SetUp() override;
   void TearDown() override;
 
