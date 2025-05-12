@@ -91,6 +91,8 @@ class FirebaseUmpTest : public FirebaseTest {
   firebase::ump::ConsentInfo* consent_info_;
 };
 
+firebase::App* FirebaseUmpTest::shared_app_ = nullptr;
+
 void FirebaseUmpTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
 
