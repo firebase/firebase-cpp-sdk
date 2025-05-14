@@ -10,7 +10,7 @@ on *iOS* and *Android*:
 *   Firebase Dynamic Links (deprecated SDK)
 *   Cloud Firestore
 *   Firebase Functions
-*   Google Mobile Ads
+*   Google Mobile Ads (deprecated SDK)
 *   Firebase Installations
 *   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
