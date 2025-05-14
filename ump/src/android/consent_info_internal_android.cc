@@ -31,6 +31,13 @@ namespace firebase {
 namespace ump {
 namespace internal {
 
+ConsentInfoInternalAndroid* ConsentInfoInternalAndroid::s_instance = nullptr;
+firebase::Mutex ConsentInfoInternalAndroid::s_instance_mutex;
+
+::firebase::Mutex g_cached_ump_embedded_files_mutex;
+std::vector<::firebase::internal::EmbeddedFile>* g_cached_ump_embedded_files =
+    nullptr;
+
 // clang-format off
 #define CONSENTINFOHELPER_METHODS(X)                                            \
   X(Constructor, "<init>", "(JLandroid/app/Activity;)V"),                       \
