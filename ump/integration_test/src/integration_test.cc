@@ -82,7 +82,7 @@ class FirebaseUmpTest : public FirebaseTest {
 
   static void SetUpTestSuite();
   static void TearDownTestSuite();
-  
+
   void SetUp() override;
   void TearDown() override;
 

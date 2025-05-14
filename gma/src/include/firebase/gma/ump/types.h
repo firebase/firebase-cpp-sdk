@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-#include "firebase/internal/platform.h"
 #include "firebase/internal/common.h"
+#include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
@@ -38,7 +38,7 @@ namespace gma {
 namespace ump {
 
 /// Debug values for testing geography.
-/// 
+///
 /// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentDebugGeography {
   /// Disable geography debugging.
@@ -52,7 +52,7 @@ enum ConsentDebugGeography {
 /// Debug settings for `ConsentInfo::RequestConsentInfoUpdate()`. These let you
 /// force a specific geographic location. Be sure to include debug device IDs to
 /// enable this on hardware. Debug features are always enabled for simulators.
-/// 
+///
 /// @deprecated This struct has been moved to the firebase::ump namespace.
 struct ConsentDebugSettings {
   /// Create a default debug setting, with debugging disabled.
@@ -66,7 +66,7 @@ struct ConsentDebugSettings {
 };
 
 /// Parameters for the `ConsentInfo::RequestConsentInfoUpdate()` operation.
-/// 
+///
 /// @deprecated This struct has been moved to the firebase::ump namespace.
 struct ConsentRequestParameters {
   ConsentRequestParameters() : tag_for_under_age_of_consent(false) {}
@@ -99,7 +99,7 @@ typedef void* FormParent;
         // FIREBASE_PLATFORM_TVOS
 
 /// Consent status values.
-/// 
+///
 /// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentStatus {
   /// Unknown status, e.g. prior to calling Request, or if the request fails.
@@ -113,7 +113,7 @@ enum ConsentStatus {
 };
 
 /// Errors that can occur during a RequestConsentInfoUpdate operation.
-/// 
+///
 /// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentRequestError {
   /// The operation succeeded.
@@ -137,7 +137,7 @@ enum ConsentRequestError {
 };
 
 /// Status of the consent form, whether it is available to show or not.
-/// 
+///
 /// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentFormStatus {
   /// Status is unknown. Call `ConsentInfo::RequestConsentInfoUpdate()` to
@@ -152,7 +152,7 @@ enum ConsentFormStatus {
 };
 
 /// Errors when loading or showing the consent form.
-/// 
+///
 /// @deprecated This enum has been moved to the firebase::ump namespace.
 enum ConsentFormError {
   /// The operation succeeded.
@@ -176,7 +176,7 @@ enum ConsentFormError {
 };
 
 /// Whether the privacy options need to be displayed.
-/// 
+///
 /// @deprecated This enum has been moved to the firebase::ump namespace.
 enum PrivacyOptionsRequirementStatus {
   /// Privacy options requirement status is unknown. Call
