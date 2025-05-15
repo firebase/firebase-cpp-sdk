@@ -353,7 +353,7 @@ jobs:
           elif [[ "${{ github.event.inputs.firestore_dep_source }}" ]]; then
             additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=${{ github.event.inputs.firestore_dep_source }})
           fi
-          python scripts/gha/build_testapps.py --p Desktop \
+          VERBOSE=1 python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" \
