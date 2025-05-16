@@ -435,11 +435,11 @@ jobs:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Force Java 11
-        if: !startsWith(matrix.os, 'macos')
+        if: ${{ runner.os != 'macOS' }}
         shell: bash
         run: echo "JAVA_HOME=${JAVA_HOME_11_X64}" >> $GITHUB_ENV
       - name: Force Java 11 (mac)
-        if: startsWith(matrix.os, 'macos')
+        if: ${{ runner.os == 'macOS' }}
         shell: bash
         run: echo "JAVA_HOME=${JAVA_HOME_11_arm64}" >> $GITHUB_ENV
       - name: Add msbuild to PATH (Windows)
