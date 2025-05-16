@@ -30,7 +30,7 @@ env:
 jobs:
   update_dependencies:
     name: update-deps
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
       - name: Get token for firebase-workflow-trigger
         uses: tibdex/github-app-token@v1

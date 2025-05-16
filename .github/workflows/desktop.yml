@@ -72,10 +72,10 @@ jobs:
           # msvc_runtime excludes
           - os: ubuntu-22.04
             msvc_runtime: "dynamic"
-          - os: macos-13
+          - os: macos-14
             msvc_runtime: "dynamic"
           # architecture excluees
-          - os: macos-13
+          - os: macos-14
             architecture: "x86"
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-22.04
