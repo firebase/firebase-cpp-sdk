@@ -656,6 +656,8 @@ code.
 ## Release Notes
 ### 12.8.0
 -   Changes
+    - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
+      using Xcode 16.2.
     - UMP: Moved the User Messaging Platform SDK to its own top-level
       library and to the firebase::ump namespace. The version in the
       GMA library (in firebase::gma::ump) has been deprecated and will
