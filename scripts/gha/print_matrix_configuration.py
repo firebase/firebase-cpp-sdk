@@ -73,7 +73,7 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-13"],
+      "os": ["ubuntu-22.04", "macos-14"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86"],
       "msvc_runtime": ["static","dynamic"],
@@ -81,7 +81,7 @@ PARAMETERS = {
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-13", "windows-latest"],
+        "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
         "xcode_version": ["16.2"],
       }
     }
@@ -89,19 +89,19 @@ PARAMETERS = {
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-13", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-13", "windows-latest"]
+        "os": ["ubuntu-22.04", "macos-14", "windows-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-13", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_ftl_target"],
