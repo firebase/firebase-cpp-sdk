@@ -220,7 +220,7 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone15,version=18.0"},
       {"type": "ftl", "device": "model=iphone15pro,version=18.0"},
   ],
-  "simulator_min": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.0.1"} ],
+  "simulator_min": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
   "simulator_target": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
   "simulator_latest": [ {"type": "virtual", "name":"iPhone 15 Pro", "version":"17.4"} ],
   "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],

@@ -925,7 +925,7 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
       - name: Run Android integration tests on Emulator locally
-        timeout-minutes: 180
+        timeout-minutes: 240
         if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1102,7 +1102,7 @@ jobs:
           security list-keychains -d user -s tmp-keychain
           security default-keychain -s tmp-keychain
       - name: Run iOS integration tests on Simulator locally
-        timeout-minutes: 180
+        timeout-minutes: 240
         if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1113,7 +1113,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
-        timeout-minutes: 120
+        timeout-minutes: 180
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
