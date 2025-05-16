@@ -39,7 +39,8 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf'],
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
-  'testlab' : []
+  'testlab' : [],
+  'ump' : ['com.google.android.ump:user-messaging-platform:2.2.0']
 ]
 
 // A map of library to the gradle resources that they depend upon.
@@ -53,7 +54,8 @@ def firebaseResourceDependenciesMap = [
   'firestore' : [':firestore:firestore_resources'],
   'gma' : [':gma:gma_resources'],
   'remote_config' : [':remote_config:remote_config_resources'],
-  'storage' : [':storage:storage_resources']
+  'storage' : [':storage:storage_resources'],
+  'ump' : [':ump:ump_resources']
 ]
 
 def setResourceDependencies(String subproject) {
@@ -115,6 +117,9 @@ class Dependencies {
   }
   def getStorage() {
     libSet.add('storage')
+  }
+  def getUmp() {
+    libSet.add('ump')
   }
 }
 

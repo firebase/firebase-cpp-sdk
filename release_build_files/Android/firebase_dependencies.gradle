@@ -39,7 +39,8 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf'],
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
-  'testlab' : []
+  'testlab' : [],
+  'ump' : ['com.google.android.ump:user-messaging-platform:2.2.0']
 ]
 
 // Handles adding the Firebase C++ dependencies as properties.
@@ -97,6 +98,9 @@ class Dependencies {
   }
   def getTestlab() {
     libSet.add('testlab')
+  }
+  def getUmp() {
+    libSet.add('ump')
   }
 }
 

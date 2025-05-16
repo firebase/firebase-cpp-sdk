@@ -10,12 +10,13 @@ on *iOS* and *Android*:
 *   Firebase Dynamic Links (deprecated SDK)
 *   Cloud Firestore
 *   Firebase Functions
-*   Google Mobile Ads (with User Messaging Platform)
+*   Google Mobile Ads (deprecated SDK)
 *   Firebase Installations
 *   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
 *   Firebase Remote Config
 *   Firebase Storage
+*   User Messaging Platform
 
 ## Desktop Workflow Implementations
 
@@ -174,6 +175,12 @@ Firebase Storage           | libfirebase_storage.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
+User Messaging Platform    | libfirebase_ump.a
+|                          | libfirebase_app.a
+|                          | com.google.firebase:firebase-analytics
+|                          | (Maven package)
+|                          | com.google.android.ump:user-messaging-platform:2.2.0
+|                          | (Maven package)
 Google Play services module| com.google.android.gms:play-services-base:18.6.0
 |                          | (Maven package)
 
@@ -206,6 +213,7 @@ firebaseCpp.dependencies {
   messaging
   remoteConfig
   storage
+  ump
 }
 ```
 
@@ -274,6 +282,10 @@ Firebase Storage           | firebase_storage.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Storage Cocoapod (11.10.0)
 |                          | Firebase/Auth Cocoapod (11.10.0)
+User Messaging Platform    | firebase_ump.xcframework
+|                          | firebase.xcframework
+|                          | Firebase/CoreOnly Cocoapod (11.10.0)
+|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -337,6 +349,10 @@ Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_auth.a
 |                          | Firebase/Storage Cocoapod (11.10.0)
 |                          | Firebase/Auth Cocoapod (11.10.0)
+User Messaging Platform    | libfirebase_ump.a
+|                          | libfirebase_app.a
+|                          | Firebase/CoreOnly Cocoapod (11.10.0)
+|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -387,6 +403,8 @@ Firebase Installations (stub)   | libfirebase_installations.a
 |                               | libfirebase_app.a
 Firebase Cloud Messaging (stub) | libfirebase_messaging.a
 |                               | libfirebase_app.a
+User Messaging Platform (stub)  | libfirebase_ump.a
+|                               | libfirebase_app.a
 
 The provided libraries have been tested using GCC 4.8.0, GCC 7.2.0, and Clang
 5.0 on Ubuntu. When building C++ desktop apps on Linux, you will need to link
@@ -430,6 +448,8 @@ Firebase Installations (stub)   | firebase_installations.framework
 |                               | firebase.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
 |                               | firebase.framework
+User Messaging Platform (stub)  | libfirebase_ump.a
+|                               | libfirebase_app.a
 
 The provided libraries have been tested using Xcode 16.2. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
@@ -473,6 +493,8 @@ Google Mobile Ads (stub)        | firebase_gma.lib
 Firebase Installations (stub)   | firebase_installations.lib
 |                               | firebase_app.lib
 Firebase Cloud Messaging (stub) | firebase_messaging.lib
+|                               | firebase_app.lib
+User Messaging Platform (stub)  | firebase_ump.lib
 |                               | firebase_app.lib
 
 The provided libraries have been tested using Visual Studio 2019. When
@@ -577,21 +599,22 @@ initialization status. These can be used without Google Play services. The table
 below summarizes whether Google Play services is required by each Firebase C++
 library.
 
-Firebase C++ Library | Google Play services required?
--------------------- | ---------------------------------
-Analytics            | Not required
-App Check            | Not required
-Cloud Messaging      | Required
-Auth                 | Required
-Dynamic Links        | Required
-Firestore            | Required
-Functions            | Required
-Installations        | Not Required
-Instance ID          | Required
-Google Mobile Ads    | Not required (usually; see below)
-Realtime Database    | Required
-Remote Config        | Required
-Storage              | Required
+Firebase C++ Library     | Google Play services required?
+------------------------ | ---------------------------------
+Analytics                | Not required
+App Check                | Not required
+Cloud Messaging          | Required
+Auth                     | Required
+Dynamic Links            | Required
+Firestore                | Required
+Functions                | Required
+Installations            | Not Required
+Instance ID              | Required
+Google Mobile Ads        | Not required (usually; see below)
+Realtime Database        | Required
+Remote Config            | Required
+Storage                  | Required
+User Messaging Platform  | Not required
 
 #### A note on Google Mobile Ads and Google Play services
 
@@ -631,6 +654,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### 12.8.0
+-   Changes
+    - UMP: Moved the User Messaging Platform SDK to its own top-level
+      library and to the firebase::ump namespace. The version in the
+      GMA library (in firebase::gma::ump) has been deprecated and will
+      be removed soon.
+
 ### 12.7.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.10.0.
