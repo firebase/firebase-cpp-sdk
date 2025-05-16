@@ -20,6 +20,7 @@
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/gma/ump/types.h"
+#include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -32,6 +33,9 @@ namespace gma {
 ///
 /// The User Messaging Platform (UMP) SDK is Google’s option to handle user
 /// privacy and consent in mobile apps.
+///
+/// @deprecated The firebase::gma::ump namespace has been deprecated and
+/// renamed to firebase::ump.
 namespace ump {
 
 namespace internal {
@@ -46,6 +50,8 @@ class ConsentInfoInternal;
 ///
 /// This class contains all of the methods necessary for obtaining
 /// consent from the user.
+///
+/// @deprecated This class has been moved to the firebase::ump namespace.
 class ConsentInfo {
  public:
   /// Shut down the User Messaging Platform Consent SDK.
@@ -64,6 +70,9 @@ class ConsentInfo {
   /// initialized, nullptr otherwise. Each call to GetInstance() will return the
   /// same pointer; when you are finished using the SDK, you can delete the
   /// pointer and the UMP SDK will shut down.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   static ConsentInfo* GetInstance(const ::firebase::App& app,
                                   InitResult* init_result_out = nullptr);
 
@@ -93,6 +102,7 @@ class ConsentInfo {
   /// initialized, nullptr otherwise. Each call to GetInstance() will return the
   /// same pointer; when you are finished using the SDK, you can delete the
   /// pointer and the UMP SDK will shut down.
+  FIREBASE_DEPRECATED
   static ConsentInfo* GetInstance(JNIEnv* jni_env, jobject activity,
                                   InitResult* init_result_out = nullptr);
 
@@ -101,6 +111,7 @@ class ConsentInfo {
   // existing ConsentInfo instance after it's first initialized. Returns nullptr
   // if no instance has been created yet; make sure you have called
   // GetInstance(JNIEnv*, jobject) first.
+  FIREBASE_DEPRECATED
   static ConsentInfo* GetInstance();
 #endif  // defined(DOXYGEN)
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -120,12 +131,18 @@ class ConsentInfo {
   ///
   /// @note Once any overload of ConsentInfo::GetInstance has been called, you
   /// can use this method to obtain the same instance again.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
   /// The user’s consent status. This value defaults to kConsentStatusUnknown
   /// until RequestConsentInfoUpdate() is called, and defaults to the previous
   /// session’s value until RequestConsentInfoUpdate() completes.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   ConsentStatus GetConsentStatus();
 
   /// Requests consent information update. Must be called in every app session
@@ -134,20 +151,35 @@ class ConsentInfo {
   /// updated immediately to hold the consent state from the previous app
   /// session, if one exists. GetConsentStatus() and CanRequestAds() may be
   /// updated again immediately before the returned future is completed.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> RequestConsentInfoUpdate(const ConsentRequestParameters& params);
 
   /// Get the Future from the most recent call to RequestConsentInfoUpdate().
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> RequestConsentInfoUpdateLastResult();
 
   /// Consent form status. This value defaults to kConsentFormStatusUnknown and
   /// requires a call to RequestConsentInfoUpdate() to update.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   ConsentFormStatus GetConsentFormStatus();
 
   /// Loads a consent form. Returns an error if the consent form is unavailable
   /// or cannot be loaded.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> LoadConsentForm();
 
   /// Get the Future from the most recent call to LoadConsentForm().
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> LoadConsentFormLastResult();
 
   /// Presents the full screen consent form using the given FormParent, which is
@@ -163,9 +195,15 @@ class ConsentInfo {
   ///
   /// @note You must call LoadConsentForm() and wait for it to complete before
   /// calling this method.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> ShowConsentForm(FormParent parent);
 
   /// Get the Future from the most recent call to ShowConsentForm().
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> ShowConsentFormLastResult();
 
   /// Loads a consent form and immediately presents it using the given
@@ -180,14 +218,23 @@ class ConsentInfo {
   ///
   /// @param[in] parent A FormParent, which is an Activity object on Android and
   /// a UIViewController object on iOS.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> LoadAndShowConsentFormIfRequired(FormParent parent);
 
   /// Get the Future from the most recent call to
   /// LoadAndShowConsentFormIfRequired().
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> LoadAndShowConsentFormIfRequiredLastResult();
 
   /// Check whether the privacy options form needs to be displayed.
   /// This is updated by RequestConsentInfoUpdate().
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus();
 
   /// If GetPrivacyOptionsRequirementStatus() is
@@ -206,19 +253,31 @@ class ConsentInfo {
   ///
   /// @param[in] parent A FormParent, which is an Activity object on Android and
   /// a UIViewController object on iOS.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> ShowPrivacyOptionsForm(FormParent parent);
 
   /// Get the Future from the most recent call to ShowPrivacyOptionsForm().
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   Future<void> ShowPrivacyOptionsFormLastResult();
 
   /// Indicates whether the app has completed the necessary steps for gathering
   /// updated user consent. Returns true if RequestConsentInfoUpdate() has been
   /// called and GetConsentStatus returns either kConsentStatusNotRequired or
   /// kConsentStatusObtained.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   bool CanRequestAds();
 
   /// Clears all consent state from persistent storage. This can be used in
   /// development to simulate a new installation.
+  ///
+  /// @deprecated This class has been moved to the firebase::ump namespace.
+  FIREBASE_DEPRECATED
   void Reset();
 
  private:
