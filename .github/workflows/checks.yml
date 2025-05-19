@@ -27,7 +27,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: 3.8
       - name: Install prerequisites
         run: python scripts/gha/install_prereqs_desktop.py
       - name: log clang format version
@@ -62,7 +62,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: 3.8
       - name: Install prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py

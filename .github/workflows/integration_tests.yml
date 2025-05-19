@@ -48,7 +48,7 @@ env:
   triggerLabelPrefix: "tests-requested: "
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
-  pythonVersion: '3.11'
+  pythonVersion: '3.8'
   xcodeVersion: '16.2'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
