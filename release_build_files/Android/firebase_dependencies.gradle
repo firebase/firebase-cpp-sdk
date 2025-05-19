@@ -20,7 +20,7 @@ def firebaseDependenciesMap = [
   'app_check' : ['com.google.firebase:firebase-appcheck',
                  'com.google.firebase:firebase-appcheck-debug',
                  'com.google.firebase:firebase-appcheck-playintegrity'],
-  'play_services' : ['com.google.android.gms:play-services-base:18.7.0'],
+  'play_services' : ['com.google.android.gms:play-services-base:18.6.0'],
   'analytics' : ['com.google.firebase:firebase-analytics'],
   'auth' : ['com.google.firebase:firebase-auth'],
   'database' : ['com.google.firebase:firebase-database'],
@@ -136,7 +136,7 @@ project.afterEvaluate {
 
       // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:33.13.0')
+      implementation platform('com.google.firebase:firebase-bom:33.11.0')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Messaging includes an aar, which to be depended on properly requires
