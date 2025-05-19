@@ -100,7 +100,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.11
 
       - name: Fetch and build binutils
         run: |
@@ -213,7 +213,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.11
 
       - name: install prerequisites
         run: sdk-src/build_scripts/ios/install_prereqs.sh
@@ -322,7 +322,7 @@ jobs:
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
         linux_abi: ["legacy", "c++11"]
-        python_version: [3.8]
+        python_version: [3.11]
         include:
         - os: windows-latest
           vcpkg_triplet_suffix: "windows-static"
@@ -535,7 +535,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.11
 
       - name: Install prerequisites
         run: |
@@ -854,7 +854,7 @@ jobs:
     - name: Setup python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.8'
+        python-version: '3.11'
     - name: Use expanded matrix
       if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
       run: |
@@ -923,7 +923,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.11
       - name: Install python deps
         run: pip install -r scripts/gha/python_requirements.txt
       # The default token can't run workflows, so get an alternate token.
