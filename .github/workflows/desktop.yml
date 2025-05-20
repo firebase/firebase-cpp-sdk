@@ -170,6 +170,14 @@ jobs:
 
       - name: Setup python
         uses: actions/setup-python@v4
+        if: startsWith(matrix.os, 'ubuntu')
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: x64
+
+      - name: Setup python (Mac)
+        uses: actions/setup-python@v4
+        if: startsWith(matrix.os, 'macos')
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
