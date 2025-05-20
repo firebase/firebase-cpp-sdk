@@ -50,6 +50,15 @@ jobs:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
+        exclude:
+        # Do not attempt to use arm64 on Windows or Linux.
+        - os: windows-latest
+          arch: arm64
+        - os: ubuntu-22.04
+          arch: arm64
+        # Do not attempt to use x64 on Mac.
+        - os: macos-14
+          arch: x64
     steps:
       - uses: lukka/get-cmake@latest
         with:

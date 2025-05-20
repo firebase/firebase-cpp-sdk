@@ -75,7 +75,7 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-22.04", "macos-14"],
       "build_type": ["Release", "Debug"],
-      "architecture": ["x64", "x86"],
+      "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
       "xcode_version": ["16.2"],
       "python_version": ["3.8"],
@@ -90,7 +90,7 @@ PARAMETERS = {
   "android": {
     "matrix": {
       "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
-      "architecture": ["x64"],
+      "architecture": ["x64, arm64"],
       "python_version": ["3.8"],
 
       EXPANDED_KEY: {
