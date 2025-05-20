@@ -172,7 +172,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
-          architecture: 'x64'
+          architecture: ${{ matrix.architecture }}
 
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
