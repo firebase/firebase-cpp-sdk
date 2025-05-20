@@ -53,12 +53,12 @@ jobs:
         exclude:
         # Do not attempt to use arm64 on Windows or Linux.
         - os: windows-latest
-          arch: arm64
+          architecture: arm64
         - os: ubuntu-22.04
-          arch: arm64
+          architecture: arm64
         # Do not attempt to use x64 on Mac.
         - os: macos-14
-          arch: x64
+          architecture: x64
     steps:
       - uses: lukka/get-cmake@latest
         with:
