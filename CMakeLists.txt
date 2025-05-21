@@ -157,6 +157,11 @@ if(APPLE)
   # build output for our Objective-C++ files much too verbose.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nullability-completeness")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nullability-completeness")
+  if(DESKTOP)
+    # Mac desktop Firestore build requires -Wno-deprecated-declarations
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+  endif()
 endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
