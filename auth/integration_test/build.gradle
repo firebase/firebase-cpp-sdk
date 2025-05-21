@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
-import com.android.build.gradle.internal.tasks.CheckAarMetadataTask
+
 
 buildscript {
   repositories {
@@ -104,7 +104,7 @@ task copyIntegrationTestFiles(type:Exec) {
 build.dependsOn(copyIntegrationTestFiles)
 
 project.afterEvaluate {
-  project.tasks.withType(CheckAarMetadataTask::class.java).configureEach {
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
     enabled = false
   }
 }

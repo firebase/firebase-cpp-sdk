@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import com.android.build.gradle.internal.tasks.CheckAarMetadataTask
+
 
 buildscript {
   repositories {
@@ -64,7 +64,7 @@ dependencies {
 
 afterEvaluate {
   generateReleaseBuildConfig.enabled = false
-  project.tasks.withType(CheckAarMetadataTask::class.java).configureEach {
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
     enabled = false
   }
 }

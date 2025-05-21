@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import com.android.build.gradle.internal.tasks.CheckAarMetadataTask
+
 
 buildscript {
   repositories {
@@ -87,7 +87,7 @@ apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('installations')
   preBuild.dependsOn(':app:build')
-  project.tasks.withType(CheckAarMetadataTask::class.java).configureEach {
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
     enabled = false
   }
 }
