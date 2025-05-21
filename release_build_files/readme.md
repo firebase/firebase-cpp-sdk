@@ -656,6 +656,7 @@ code.
 ## Release Notes
 ### 12.8.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 33.14.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 16.2.
     - UMP: Moved the User Messaging Platform SDK to its own top-level
