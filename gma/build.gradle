@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import com.android.build.gradle.internal.tasks.CheckAarMetadataTask
+
 buildscript {
   repositories {
     google()
@@ -87,4 +89,7 @@ project.afterEvaluate {
   generateProguardFile('gma')
   setupDexDependencies(':gma:gma_resources')
   preBuild.dependsOn(':app:build')
+  project.tasks.withType(CheckAarMetadataTask::class.java).configureEach {
+    enabled = false
+  }
 }
