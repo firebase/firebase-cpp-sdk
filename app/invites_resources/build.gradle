@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import com.android.build.gradle.internal.tasks.CheckAarMetadataTask
+
 buildscript {
   repositories {
     google()
@@ -63,6 +65,9 @@ dependencies {
 
 afterEvaluate {
   generateReleaseBuildConfig.enabled = false
+  project.tasks.withType(CheckAarMetadataTask::class.java).configureEach {
+    enabled = false
+  }
 }
 
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
