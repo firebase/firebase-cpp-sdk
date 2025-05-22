@@ -87,7 +87,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.11.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.14.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -150,7 +150,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.15.0  (Maven package)
+|                          | androidx.core:core:1.16.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -181,7 +181,7 @@ User Messaging Platform    | libfirebase_ump.a
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:2.2.0
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.6.0
+Google Play services module| com.google.android.gms:play-services-base:18.7.0
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
@@ -657,6 +657,7 @@ code.
 ### 12.8.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.13.0.
+    - General (Android): Update to Firebase Android BoM version 33.14.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 16.2.
     - UMP: Moved the User Messaging Platform SDK to its own top-level

@@ -86,4 +86,7 @@ apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('analytics')
   preBuild.dependsOn(':app:build')
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }

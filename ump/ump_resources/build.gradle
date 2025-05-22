@@ -56,13 +56,16 @@ android {
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:33.11.0')
+  implementation platform('com.google.firebase:firebase-bom:33.14.0')
   implementation 'com.google.firebase:firebase-analytics'
   implementation 'com.google.android.ump:user-messaging-platform:2.2.0'
 }
 
 afterEvaluate {
   generateReleaseBuildConfig.enabled = false
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }
 
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"

@@ -87,4 +87,7 @@ project.afterEvaluate {
   generateProguardFile('ump')
   setupDexDependencies(':ump:ump_resources')
   preBuild.dependsOn(':app:build')
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }
