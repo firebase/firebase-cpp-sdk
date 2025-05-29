@@ -341,4 +341,61 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   did_test_setconsent_ = true;
 }
 
+TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
+  LogInfo("Testing SetDefaultEventParameters with initial values, then updating with Null.");
+
+  std::map<std::string, firebase::analytics::Variant> initial_defaults;
+  initial_defaults["initial_key"] = "initial_value";
+  initial_defaults["key_to_be_nulled"] = "text_before_null";
+  initial_defaults["numeric_default"] = 12345LL;
+
+  LogInfo("Setting initial default event parameters.");
+  firebase::analytics::SetDefaultEventParameters(initial_defaults);
+  // Log an event that would pick up these defaults.
+  firebase::analytics::LogEvent("event_with_initial_defaults");
+  LogInfo("Logged event_with_initial_defaults.");
+  ProcessEvents(500); // Short pause for event logging, if it matters for backend.
+
+  std::map<std::string, firebase::analytics::Variant> updated_defaults;
+  updated_defaults["key_to_be_nulled"] = firebase::analytics::Variant::Null();
+  updated_defaults["another_key"] = "another_value";
+  // "initial_key" should persist if not overwritten.
+  // "numeric_default" should persist.
+
+  LogInfo("Updating default event parameters, setting key_to_be_nulled to Null.");
+  firebase::analytics::SetDefaultEventParameters(updated_defaults);
+  // Log an event that would pick up the updated defaults.
+  firebase::analytics::LogEvent("event_after_nulling_and_adding");
+  LogInfo("Logged event_after_nulling_and_adding.");
+  ProcessEvents(500);
+
+  // For this C++ SDK integration test, we primarily ensure API calls complete.
+  // Actual parameter presence on logged events would be verified by backend/native tests.
+  LogInfo("TestDefaultEventParametersUsage completed. Calls were made successfully.");
+}
+
+TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParametersFunctionality) {
+  LogInfo("Testing ClearDefaultEventParameters.");
+
+  std::map<std::string, firebase::analytics::Variant> defaults_to_clear;
+  defaults_to_clear["default_one"] = "will_be_cleared";
+  defaults_to_clear["default_two"] = 9876LL;
+
+  LogInfo("Setting default parameters before clearing.");
+  firebase::analytics::SetDefaultEventParameters(defaults_to_clear);
+  // Log an event that would pick up these defaults.
+  firebase::analytics::LogEvent("event_before_global_clear");
+  LogInfo("Logged event_before_global_clear.");
+  ProcessEvents(500);
+
+  LogInfo("Calling ClearDefaultEventParameters.");
+  firebase::analytics::ClearDefaultEventParameters();
+  // Log an event that should not have the previous defaults.
+  firebase::analytics::LogEvent("event_after_global_clear");
+  LogInfo("Logged event_after_global_clear.");
+  ProcessEvents(500);
+
+  LogInfo("TestClearDefaultEventParametersFunctionality completed. Call was made successfully.");
+}
+
 }  // namespace firebase_testapp_automated

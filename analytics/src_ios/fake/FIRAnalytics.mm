@@ -21,6 +21,9 @@
 @implementation FIRAnalytics
 
 + (NSString *)stringForValue:(id)value {
+  if (value == [NSNull null]) {
+    return @"<NSNull>";
+  }
   return [NSString stringWithFormat:@"%@", value];
 }
 
@@ -92,6 +95,16 @@
 
 + (void)resetAnalyticsData {
   FakeReporter->AddReport("+[FIRAnalytics resetAnalyticsData]", {});
+}
+
++ (void)setDefaultEventParameters:(nullable NSDictionary<NSString *, id> *)parameters {
+  if (parameters == nil) {
+    FakeReporter->AddReport("+[FIRAnalytics setDefaultEventParameters:]", {"nil"});
+  } else {
+    NSString *parameterString = [self stringForParameters:parameters];
+    FakeReporter->AddReport("+[FIRAnalytics setDefaultEventParameters:]",
+                            { [parameterString UTF8String] });
+  }
 }
 
 @end

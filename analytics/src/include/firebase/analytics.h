@@ -558,6 +558,23 @@ void SetSessionTimeoutDuration(int64_t milliseconds);
 /// instance id.
 void ResetAnalyticsData();
 
+/// @brief Sets the default event parameters.
+///
+/// These parameters will be automatically logged with all calls to `LogEvent`.
+/// Default parameters are overridden by parameters supplied to the `LogEvent`
+/// method.
+///
+/// When a value in the `default_parameters` map is
+/// `firebase::Variant::Null()`, it signifies that the default parameter for
+/// that specific key should be cleared.
+///
+/// @param[in] default_parameters A map of parameter names to Variant values.
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& default_parameters);
+
+/// @brief Clears all default event parameters.
+void ClearDefaultEventParameters();
+
 /// Get the instance ID from the analytics service.
 ///
 /// @note This is *not* the same ID as the ID returned by

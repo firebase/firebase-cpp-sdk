@@ -142,6 +142,17 @@ void SetSessionTimeoutDuration(int64_t /*milliseconds*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& /*default_parameters*/) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // This is a stub implementation. No operation needed.
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // This is a stub implementation. No operation needed.
+}
+
 void ResetAnalyticsData() {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   g_fake_instance_id++;

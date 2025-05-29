@@ -373,6 +373,42 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
       setSessionTimeoutInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
 }
 
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  NSMutableDictionary* ns_default_parameters =
+      [[NSMutableDictionary alloc] initWithCapacity:default_parameters.size()];
+  for (const auto& pair : default_parameters) {
+    NSString* key = SafeString(pair.first.c_str());
+    const Variant& value = pair.second;
+
+    if (value.is_null()) {
+      [ns_default_parameters setObject:[NSNull null] forKey:key];
+    } else if (value.is_int64()) {
+      [ns_default_parameters setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
+    } else if (value.is_double()) {
+      [ns_default_parameters setObject:[NSNumber numberWithDouble:value.double_value()] forKey:key];
+    } else if (value.is_string()) {
+      [ns_default_parameters setObject:SafeString(value.string_value()) forKey:key];
+    } else if (value.is_bool()) {
+      [ns_default_parameters setObject:[NSNumber numberWithBool:value.bool_value()] forKey:key];
+    } else {
+      // Log an error for unsupported types.
+      // Note: FIRAnalytics.setDefaultEventParameters only supports NSNumber, NSString, NSNull.
+      // It does not support nested collections (NSArray, NSDictionary) unlike LogEvent.
+      LogError("SetDefaultEventParameters: Unsupported Variant type (%s) for key %s. "
+               "Only Int64, Double, String, Bool, and Null are supported for default event parameters.",
+               Variant::TypeName(value.type()), pair.first.c_str());
+    }
+  }
+  [FIRAnalytics setDefaultEventParameters:ns_default_parameters];
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  [FIRAnalytics setDefaultEventParameters:nil];
+}
+
 void ResetAnalyticsData() {
   MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());

@@ -58,6 +58,8 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetSessionId, "getSessionId",                                             \
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V", util::kMethodTypeInstance),                     \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
     firebase::util::kMethodTypeStatic)
@@ -607,6 +609,72 @@ void ResetAnalyticsData() {
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kResetAnalyticsData));
   util::CheckAndClearJniExceptions(env);
+}
+
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+  if (!env) return;
+
+  jobject bundle =
+      env->NewObject(util::bundle::GetClass(),
+                     util::bundle::GetMethodId(util::bundle::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+    LogError("Failed to create Bundle for SetDefaultEventParameters.");
+    if (bundle) env->DeleteLocalRef(bundle);
+    return;
+  }
+
+  for (const auto& pair : default_parameters) {
+    jstring key_jstring = env->NewStringUTF(pair.first.c_str());
+    if (util::CheckAndClearJniExceptions(env) || !key_jstring) {
+      LogError("Failed to create jstring for key: %s", pair.first.c_str());
+      if (key_jstring) env->DeleteLocalRef(key_jstring);
+      continue;
+    }
+
+    if (pair.second.is_null()) {
+      // Equivalent to Bundle.putString(String key, String value) with value as null.
+      env->CallVoidMethod(bundle, util::bundle::GetMethodId(util::bundle::kPutString),
+                          key_jstring, nullptr);
+      if (util::CheckAndClearJniExceptions(env)) {
+          LogError("Failed to put null string for key: %s", pair.first.c_str());
+      }
+    } else {
+      if (!AddVariantToBundle(env, bundle, pair.first.c_str(), pair.second)) {
+        // AddVariantToBundle already logs errors for unsupported types.
+      }
+    }
+    env->DeleteLocalRef(key_jstring);
+  }
+
+  env->CallVoidMethod(g_analytics_class_instance,
+                      analytics::GetMethodId(analytics::kSetDefaultEventParameters),
+                      bundle);
+  if (util::CheckAndClearJniExceptions(env)) {
+    LogError("Failed to call setDefaultEventParameters on Java instance.");
+  }
+
+  env->DeleteLocalRef(bundle);
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+  if (!env) return;
+
+  // Calling with nullptr bundle should clear the parameters.
+  env->CallVoidMethod(g_analytics_class_instance,
+                      analytics::GetMethodId(analytics::kSetDefaultEventParameters),
+                      nullptr);
+  if (util::CheckAndClearJniExceptions(env)) {
+    // This might happen if the method isn't available on older SDKs,
+    // or if some other JNI error occurs.
+    LogError("Failed to call setDefaultEventParameters(null) on Java instance. "
+             "This may indicate the method is not available on this Android SDK version "
+             "or another JNI error occurred.");
+  }
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
