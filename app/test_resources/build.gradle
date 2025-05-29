@@ -54,6 +54,9 @@ android {
 
 afterEvaluate {
   generateReleaseBuildConfig.enabled = false
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }
 
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"

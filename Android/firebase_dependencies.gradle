@@ -20,7 +20,7 @@ def firebaseDependenciesMap = [
   'app_check' : ['com.google.firebase:firebase-appcheck',
                  'com.google.firebase:firebase-appcheck-debug',
                  'com.google.firebase:firebase-appcheck-playintegrity'],
-  'play_services' : ['com.google.android.gms:play-services-base:18.6.0'],
+  'play_services' : ['com.google.android.gms:play-services-base:18.7.0'],
   'analytics' : ['com.google.firebase:firebase-analytics'],
   'auth' : ['com.google.firebase:firebase-auth'],
   'database' : ['com.google.firebase:firebase-database'],
@@ -39,7 +39,8 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf'],
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
-  'testlab' : []
+  'testlab' : [],
+  'ump' : ['com.google.android.ump:user-messaging-platform:2.2.0']
 ]
 
 // A map of library to the gradle resources that they depend upon.
@@ -53,7 +54,8 @@ def firebaseResourceDependenciesMap = [
   'firestore' : [':firestore:firestore_resources'],
   'gma' : [':gma:gma_resources'],
   'remote_config' : [':remote_config:remote_config_resources'],
-  'storage' : [':storage:storage_resources']
+  'storage' : [':storage:storage_resources'],
+  'ump' : [':ump:ump_resources']
 ]
 
 def setResourceDependencies(String subproject) {
@@ -116,6 +118,9 @@ class Dependencies {
   def getStorage() {
     libSet.add('storage')
   }
+  def getUmp() {
+    libSet.add('ump')
+  }
 }
 
 // Extension to handle which Firebase C++ dependencies are being added to the
@@ -159,7 +164,7 @@ project.afterEvaluate {
 
     // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:33.11.0')
+      implementation platform('com.google.firebase:firebase-bom:33.14.0')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Generate and include the proguard file

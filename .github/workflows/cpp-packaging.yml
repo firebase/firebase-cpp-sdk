@@ -32,9 +32,9 @@ env:
   demumbleVer: "df938e45c2b0e064fb5323d88b692d03b451d271"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 15.1 is the version we build the SDK with.
+  # Xcode version 16.2 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "15.1"
+  xcodeVersion: "16.2"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
   GITHUB_TOKEN: ${{ github.token }}
@@ -79,13 +79,13 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13]
+        os: [ubuntu-22.04, macos-14]
         include:
         - os: ubuntu-22.04
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
-        - os: macos-13
+        - os: macos-14
           tools_platform: darwin
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
@@ -188,7 +188,7 @@ jobs:
 
   build_and_package_ios_tvos:
     name: build-and-package-ios-tvos
-    runs-on: macos-13
+    runs-on: macos-14
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
       - uses: lukka/get-cmake@latest
@@ -317,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04, macos-13]
+        os: [windows-latest, ubuntu-22.04, macos-14]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
@@ -335,7 +335,7 @@ jobs:
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
           sdk_platform: "linux"
-        - os: macos-13
+        - os: macos-14
           vcpkg_triplet_suffix: "osx"
           additional_build_flags: "--target_format libraries"
           sdk_platform: "darwin"
@@ -343,13 +343,13 @@ jobs:
         exclude:
         - os: windows-latest
           linux_abi: "c++11"
-        - os: macos-13
+        - os: macos-14
           architecture: "x86"
-        - os: macos-13
+        - os: macos-14
           msvc_runtime: "dynamic"
-        - os: macos-13
+        - os: macos-14
           linux_abi: "c++11"
-        - os: macos-13
+        - os: macos-14
           build_type: "Debug"
         - os: ubuntu-22.04
           msvc_runtime: "dynamic"
@@ -504,7 +504,7 @@ jobs:
           suffix: '-x64-Debug-dynamic'
           runs_on_platform: ubuntu-22.04
         - sdk_platform: darwin
-          runs_on_platform: macos-13
+          runs_on_platform: macos-14
         exclude:
         - sdk_platform: windows
           suffix: ''

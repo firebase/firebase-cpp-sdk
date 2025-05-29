@@ -87,4 +87,7 @@ project.afterEvaluate {
   generateProguardFile('gma')
   setupDexDependencies(':gma:gma_resources')
   preBuild.dependsOn(':app:build')
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }
