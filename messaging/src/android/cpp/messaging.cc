@@ -874,7 +874,7 @@ static const char kErrorMessageNoRegistrationToken[] =
     "to false.";
 
 static const char kErrorMessageSubscriptionUnknown[] =
-"Cannot update subscription for unknown reason.";
+    "Cannot update subscription for unknown reason.";
 
 Future<void> Subscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
@@ -891,8 +891,9 @@ Future<void> Subscribe(const char* topic) {
   } else if (g_pending_subscriptions) {
     g_pending_subscriptions->push_back(PendingTopic(topic, handle));
   } else {
-    // This shouldn't happen, since g_pending_subscriptions should be valid if here,
-    // but handle it to prevent abandoning the Future in case something happens.
+    // This shouldn't happen, since g_pending_subscriptions should be valid if
+    // here, but handle it to prevent abandoning the Future in case something
+    // happens.
     api->Complete(handle, kErrorUnknown, kErrorMessageSubscriptionUnknown);
   }
   return MakeFuture(api, handle);
@@ -920,8 +921,9 @@ Future<void> Unsubscribe(const char* topic) {
   } else if (g_pending_unsubscriptions) {
     g_pending_unsubscriptions->push_back(PendingTopic(topic, handle));
   } else {
-    // This shouldn't happen, since g_pending_unsubscriptions should be valid if here,
-    // but handle it to prevent abandoning the Future in case something happens.
+    // This shouldn't happen, since g_pending_unsubscriptions should be valid if
+    // here, but handle it to prevent abandoning the Future in case something
+    // happens.
     api->Complete(handle, kErrorUnknown, kErrorMessageSubscriptionUnknown);
   }
   return MakeFuture(api, handle);
