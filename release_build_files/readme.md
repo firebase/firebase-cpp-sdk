@@ -664,6 +664,8 @@ code.
       library and to the firebase::ump namespace. The version in the
       GMA library (in firebase::gma::ump) has been deprecated and will
       be removed soon.
+    - Messaging (Android): Fix issue with the Subscribe Future not completing
+      when a cached token is available.
 
 ### 12.7.0
 -   Changes
