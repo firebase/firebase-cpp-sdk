@@ -232,25 +232,25 @@ void LogEvent(const char* name) {
 }
 
 // Declared here so that it can be used, defined below.
-NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map);
+NSDictionary* MapToDictionary(const std::map<firebase::Variant, firebase::Variant>& map);
 
 // Converts the given vector of Maps into an ObjC NSArray of ObjC NSDictionaries.
-NSArray* VectorOfMapsToArray(const std::vector<Variant>& vector) {
+NSArray* VectorOfMapsToArray(const std::vector<firebase::Variant>& vector) {
   NSMutableArray* array = [NSMutableArray arrayWithCapacity:vector.size()];
-  for (const Variant& element : vector) {
+  for (const firebase::Variant& element : vector) {
     if (element.is_map()) {
       NSDictionary* dict = MapToDictionary(element.map());
       [array addObject:dict];
     } else {
       LogError("VectorOfMapsToArray: Unsupported type (%s) within vector.",
-               Variant::TypeName(element.type()));
+               firebase::Variant::TypeName(element.type()));
     }
   }
   return array;
 }
 
 // Converts and adds the Variant to the given Dictionary.
-bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Variant& value) {
+bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const firebase::Variant& value) {
   if (value.is_int64()) {
     [dict setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
   } else if (value.is_double()) {
@@ -277,7 +277,7 @@ bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Vari
 }
 
 // Converts the given map into an ObjC dictionary of ObjC objects.
-NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
+NSDictionary* MapToDictionary(const std::map<firebase::Variant, firebase::Variant>& map) {
   NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:map.size()];
   for (const auto& pair : map) {
     // Only add elements that use a string key
@@ -285,10 +285,10 @@ NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
       continue;
     }
     NSString* key = SafeString(pair.first.string_value());
-    const Variant& value = pair.second;
+    const firebase::Variant& value = pair.second;
     if (!AddVariantToDictionary(dict, key, value)) {
       LogError("MapToDictionary: Unsupported type (%s) within map with key %s.",
-               Variant::TypeName(value.type()), key);
+               firebase::Variant::TypeName(value.type()), key);
     }
   }
   return dict;
@@ -306,7 +306,7 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
       // A Variant type that couldn't be handled was passed in.
       LogError("LogEvent(%s): %s is not a valid parameter value type. "
                "No event was logged.",
-               parameter.name, Variant::TypeName(parameter.value.type()));
+               parameter.name, firebase::Variant::TypeName(parameter.value.type()));
     }
   }
   [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
@@ -374,13 +374,13 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 }
 
 void SetDefaultEventParameters(
-    const std::map<std::string, Variant>& default_parameters) {
+    const std::map<std::string, firebase::Variant>& default_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary* ns_default_parameters =
       [[NSMutableDictionary alloc] initWithCapacity:default_parameters.size()];
   for (const auto& pair : default_parameters) {
     NSString* key = SafeString(pair.first.c_str());
-    const Variant& value = pair.second;
+    const firebase::Variant& value = pair.second;
 
     if (value.is_null()) {
       [ns_default_parameters setObject:[NSNull null] forKey:key];
@@ -398,7 +398,7 @@ void SetDefaultEventParameters(
       // It does not support nested collections (NSArray, NSDictionary) unlike LogEvent.
       LogError("SetDefaultEventParameters: Unsupported Variant type (%s) for key %s. "
                "Only Int64, Double, String, Bool, and Null are supported for default event parameters.",
-               Variant::TypeName(value.type()), pair.first.c_str());
+               firebase::Variant::TypeName(value.type()), pair.first.c_str());
     }
   }
   [FIRAnalytics setDefaultEventParameters:ns_default_parameters];

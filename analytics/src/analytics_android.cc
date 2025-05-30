@@ -380,17 +380,17 @@ void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
 }
 
 // Declared here so that it can be used, defined below.
-jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
+jobject MapToBundle(JNIEnv* env, const std::map<firebase::Variant, firebase::Variant>& map);
 
 // Converts the given vector into a Java ArrayList. It is up to the
 // caller to delete the local reference when done.
 jobject VectorOfMapsToArrayList(JNIEnv* env,
-                                const std::vector<Variant>& vector) {
+                                const std::vector<firebase::Variant>& vector) {
   jobject arraylist = env->NewObject(
       util::array_list::GetClass(),
       util::array_list::GetMethodId(util::array_list::kConstructor));
 
-  for (const Variant& element : vector) {
+  for (const firebase::Variant& element : vector) {
     if (element.is_map()) {
       jobject bundle = MapToBundle(env, element.map());
       env->CallBooleanMethod(
@@ -400,7 +400,7 @@ jobject VectorOfMapsToArrayList(JNIEnv* env,
       env->DeleteLocalRef(bundle);
     } else {
       LogError("VectorOfMapsToArrayList: Unsupported type (%s) within vector.",
-               Variant::TypeName(element.type()));
+               firebase::Variant::TypeName(element.type()));
     }
   }
   return arraylist;
@@ -408,7 +408,7 @@ jobject VectorOfMapsToArrayList(JNIEnv* env,
 
 // Converts and adds the Variant to the given Bundle.
 bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
-                        const Variant& value) {
+                        const firebase::Variant& value) {
   if (value.is_int64()) {
     AddToBundle(env, bundle, key, value.int64_value());
   } else if (value.is_double()) {
@@ -440,7 +440,7 @@ bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
 
 // Converts the given map into a Java Bundle. It is up to the caller
 // to delete the local reference when done.
-jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
+jobject MapToBundle(JNIEnv* env, const std::map<firebase::Variant, firebase::Variant>& map) {
   jobject bundle =
       env->NewObject(util::bundle::GetClass(),
                      util::bundle::GetMethodId(util::bundle::kConstructor));
@@ -452,7 +452,7 @@ jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
     if (!AddVariantToBundle(env, bundle, pair.first.string_value(),
                             pair.second)) {
       LogError("MapToBundle: Unsupported type (%s) within map with key %s.",
-               Variant::TypeName(pair.second.type()),
+               firebase::Variant::TypeName(pair.second.type()),
                pair.first.string_value());
     }
     util::CheckAndClearJniExceptions(env);
@@ -514,7 +514,7 @@ void LogEvent(const char* name, const Parameter* parameters,
         LogError(
             "LogEvent(%s): %s is not a valid parameter value type. "
             "No event was logged.",
-            parameter.name, Variant::TypeName(parameter.value.type()));
+            parameter.name, firebase::Variant::TypeName(parameter.value.type()));
       }
     }
   });
@@ -612,7 +612,7 @@ void ResetAnalyticsData() {
 }
 
 void SetDefaultEventParameters(
-    const std::map<std::string, Variant>& default_parameters) {
+    const std::map<std::string, firebase::Variant>& default_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
   if (!env) return;

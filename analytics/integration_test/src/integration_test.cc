@@ -344,7 +344,7 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
 TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
   LogInfo("Testing SetDefaultEventParameters with initial values, then updating with Null.");
 
-  std::map<std::string, firebase::analytics::Variant> initial_defaults;
+  std::map<std::string, firebase::Variant> initial_defaults;
   initial_defaults["initial_key"] = "initial_value";
   initial_defaults["key_to_be_nulled"] = "text_before_null";
   initial_defaults["numeric_default"] = 12345LL;
@@ -356,8 +356,8 @@ TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
   LogInfo("Logged event_with_initial_defaults.");
   ProcessEvents(500); // Short pause for event logging, if it matters for backend.
 
-  std::map<std::string, firebase::analytics::Variant> updated_defaults;
-  updated_defaults["key_to_be_nulled"] = firebase::analytics::Variant::Null();
+  std::map<std::string, firebase::Variant> updated_defaults;
+  updated_defaults["key_to_be_nulled"] = firebase::Variant::Null();
   updated_defaults["another_key"] = "another_value";
   // "initial_key" should persist if not overwritten.
   // "numeric_default" should persist.
@@ -377,7 +377,7 @@ TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
 TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParametersFunctionality) {
   LogInfo("Testing ClearDefaultEventParameters.");
 
-  std::map<std::string, firebase::analytics::Variant> defaults_to_clear;
+  std::map<std::string, firebase::Variant> defaults_to_clear;
   defaults_to_clear["default_one"] = "will_be_cleared";
   defaults_to_clear["default_two"] = 9876LL;
 
