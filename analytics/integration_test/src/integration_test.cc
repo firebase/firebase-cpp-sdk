@@ -347,7 +347,7 @@ TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
   std::map<std::string, firebase::Variant> initial_defaults;
   initial_defaults["initial_key"] = "initial_value";
   initial_defaults["key_to_be_nulled"] = "text_before_null";
-  initial_defaults["numeric_default"] = 12345LL;
+  initial_defaults["numeric_default"] = 12345;
 
   LogInfo("Setting initial default event parameters.");
   firebase::analytics::SetDefaultEventParameters(initial_defaults);
@@ -379,7 +379,7 @@ TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParametersFunctionality) {
 
   std::map<std::string, firebase::Variant> defaults_to_clear;
   defaults_to_clear["default_one"] = "will_be_cleared";
-  defaults_to_clear["default_two"] = 9876LL;
+  defaults_to_clear["default_two"] = 9876;
 
   LogInfo("Setting default parameters before clearing.");
   firebase::analytics::SetDefaultEventParameters(defaults_to_clear);
