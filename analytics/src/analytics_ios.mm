@@ -392,13 +392,12 @@ void SetDefaultEventParameters(
       [ns_default_parameters setObject:SafeString(value.string_value()) forKey:key];
     } else if (value.is_bool()) {
       [ns_default_parameters setObject:[NSNumber numberWithBool:value.bool_value()] forKey:key];
+    } else if (value.is_vector() || value.is_map()) {
+        LogError("SetDefaultEventParameters: Value for key '%s' has type '%s' which is not supported for default event parameters. Only string, int64, double, bool, and null are supported. Skipping.",
+                 pair.first.c_str(), firebase::Variant::TypeName(value.type()));
     } else {
-      // Log an error for unsupported types.
-      // Note: FIRAnalytics.setDefaultEventParameters only supports NSNumber, NSString, NSNull.
-      // It does not support nested collections (NSArray, NSDictionary) unlike LogEvent.
-      LogError("SetDefaultEventParameters: Unsupported Variant type (%s) for key %s. "
-               "Only Int64, Double, String, Bool, and Null are supported for default event parameters.",
-               firebase::Variant::TypeName(value.type()), pair.first.c_str());
+        LogError("SetDefaultEventParameters: Value for key '%s' has an unexpected type '%s' which is not supported. Skipping.",
+                 pair.first.c_str(), firebase::Variant::TypeName(value.type()));
     }
   }
   [FIRAnalytics setDefaultEventParameters:ns_default_parameters];

@@ -627,26 +627,39 @@ void SetDefaultEventParameters(
   }
 
   for (const auto& pair : default_parameters) {
-    jstring key_jstring = env->NewStringUTF(pair.first.c_str());
-    if (util::CheckAndClearJniExceptions(env) || !key_jstring) {
-      LogError("Failed to create jstring for key: %s", pair.first.c_str());
-      if (key_jstring) env->DeleteLocalRef(key_jstring);
-      continue;
-    }
+    const firebase::Variant& value = pair.second;
+    const char* key_cstr = pair.first.c_str();
 
-    if (pair.second.is_null()) {
-      // Equivalent to Bundle.putString(String key, String value) with value as null.
-      env->CallVoidMethod(bundle, util::bundle::GetMethodId(util::bundle::kPutString),
-                          key_jstring, nullptr);
-      if (util::CheckAndClearJniExceptions(env)) {
-          LogError("Failed to put null string for key: %s", pair.first.c_str());
-      }
+    if (value.is_null()) {
+        jstring key_jstring = env->NewStringUTF(key_cstr);
+        if (util::CheckAndClearJniExceptions(env) || !key_jstring) {
+            LogError("SetDefaultEventParameters: Failed to create jstring for null value key: %s", key_cstr);
+            if (key_jstring) env->DeleteLocalRef(key_jstring);
+            continue;
+        }
+        env->CallVoidMethod(bundle, util::bundle::GetMethodId(util::bundle::kPutString),
+                            key_jstring, nullptr);
+        if (util::CheckAndClearJniExceptions(env)) {
+            LogError("SetDefaultEventParameters: Failed to put null string for key: %s", key_cstr);
+        }
+        env->DeleteLocalRef(key_jstring);
+    } else if (value.is_string() || value.is_int64() || value.is_double() || value.is_bool()) {
+        // AddVariantToBundle handles these types and their JNI conversions.
+        // It also logs if an individual AddToBundle within it fails or if a type is unsupported by it.
+        if (!AddVariantToBundle(env, bundle, key_cstr, value)) {
+            // This specific log gives context that the failure happened during SetDefaultEventParameters
+            // for a type that was expected to be supported by AddVariantToBundle.
+            LogError("SetDefaultEventParameters: Failed to add parameter for key '%s' with supported type '%s'. This might indicate a JNI issue during conversion.",
+                     key_cstr, firebase::Variant::TypeName(value.type()));
+        }
+    } else if (value.is_vector() || value.is_map()) {
+        LogError("SetDefaultEventParameters: Value for key '%s' has type '%s' which is not supported for default event parameters. Only string, int64, double, bool, and null are supported. Skipping.",
+                 key_cstr, firebase::Variant::TypeName(value.type()));
     } else {
-      if (!AddVariantToBundle(env, bundle, pair.first.c_str(), pair.second)) {
-        // AddVariantToBundle already logs errors for unsupported types.
-      }
+        // This case handles other fundamental Variant types that are not scalars and not vector/map.
+        LogError("SetDefaultEventParameters: Value for key '%s' has an unexpected and unsupported type '%s'. Skipping.",
+                 key_cstr, firebase::Variant::TypeName(value.type()));
     }
-    env->DeleteLocalRef(key_jstring);
   }
 
   env->CallVoidMethod(g_analytics_class_instance,
