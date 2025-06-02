@@ -666,8 +666,8 @@ code.
       be removed soon.
     - Messaging (Android): Fix issue with the Subscribe Future not completing
       when a cached token is available.
-    - Analytics (C++): Added `SetDefaultEventParameters` and
-      `ClearDefaultEventParameters` to the Analytics SDK.
+    - Analytics: Added `SetDefaultEventParameters` and
+      `ClearDefaultEventParameters`.
 
 ### 12.7.0
 -   Changes
