@@ -82,27 +82,28 @@ public final class FirebaseAnalytics {
 
   public void setDefaultEventParameters(Bundle bundle) {
     if (bundle == null) {
-        FakeReporter.addReport("FirebaseAnalytics.setDefaultEventParameters", "null");
+      FakeReporter.addReport("FirebaseAnalytics.setDefaultEventParameters", "null");
     } else {
-        StringBuilder paramsString = new StringBuilder();
-        // Sort keys for predictable ordering.
-        for (String key : new TreeSet<>(bundle.keySet())) {
-            paramsString.append(key);
-            paramsString.append("=");
-            Object value = bundle.get(key); // Get as Object first
-            if (value == null) {
-                // This case handles when bundle.putString(key, null) was called.
-                paramsString.append("<null_string_value>");
-            } else {
-                paramsString.append(value.toString());
-            }
-            paramsString.append(",");
+      StringBuilder paramsString = new StringBuilder();
+      // Sort keys for predictable ordering.
+      for (String key : new TreeSet<>(bundle.keySet())) {
+        paramsString.append(key);
+        paramsString.append("=");
+        Object value = bundle.get(key); // Get as Object first
+        if (value == null) {
+          // This case handles when bundle.putString(key, null) was called.
+          paramsString.append("<null_string_value>");
+        } else {
+          paramsString.append(value.toString());
         }
-        // Remove trailing comma if paramsString is not empty
-        if (paramsString.length() > 0) {
-            paramsString.setLength(paramsString.length() - 1);
-        }
-        FakeReporter.addReport("FirebaseAnalytics.setDefaultEventParameters", paramsString.toString());
+        paramsString.append(",");
+      }
+      // Remove trailing comma if paramsString is not empty
+      if (paramsString.length() > 0) {
+        paramsString.setLength(paramsString.length() - 1);
+      }
+      FakeReporter.addReport(
+          "FirebaseAnalytics.setDefaultEventParameters", paramsString.toString());
     }
   }
 }

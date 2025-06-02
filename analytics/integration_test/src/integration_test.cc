@@ -342,7 +342,9 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
-  LogInfo("Testing SetDefaultEventParameters with initial values, then updating with Null.");
+  LogInfo(
+      "Testing SetDefaultEventParameters with initial values, then updating "
+      "with Null.");
 
   std::map<std::string, firebase::Variant> initial_defaults;
   initial_defaults["initial_key"] = "initial_value";
@@ -354,7 +356,8 @@ TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
   // Log an event that would pick up these defaults.
   firebase::analytics::LogEvent("event_with_initial_defaults");
   LogInfo("Logged event_with_initial_defaults.");
-  ProcessEvents(500); // Short pause for event logging, if it matters for backend.
+  ProcessEvents(
+      500);  // Short pause for event logging, if it matters for backend.
 
   std::map<std::string, firebase::Variant> updated_defaults;
   updated_defaults["key_to_be_nulled"] = firebase::Variant::Null();
@@ -362,7 +365,8 @@ TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
   // "initial_key" should persist if not overwritten.
   // "numeric_default" should persist.
 
-  LogInfo("Updating default event parameters, setting key_to_be_nulled to Null.");
+  LogInfo(
+      "Updating default event parameters, setting key_to_be_nulled to Null.");
   firebase::analytics::SetDefaultEventParameters(updated_defaults);
   // Log an event that would pick up the updated defaults.
   firebase::analytics::LogEvent("event_after_nulling_and_adding");
@@ -370,8 +374,11 @@ TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
   ProcessEvents(500);
 
   // For this C++ SDK integration test, we primarily ensure API calls complete.
-  // Actual parameter presence on logged events would be verified by backend/native tests.
-  LogInfo("TestDefaultEventParametersUsage completed. Calls were made successfully.");
+  // Actual parameter presence on logged events would be verified by
+  // backend/native tests.
+  LogInfo(
+      "TestDefaultEventParametersUsage completed. Calls were made "
+      "successfully.");
 }
 
 TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParametersFunctionality) {
@@ -395,7 +402,9 @@ TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParametersFunctionality) {
   LogInfo("Logged event_after_global_clear.");
   ProcessEvents(500);
 
-  LogInfo("TestClearDefaultEventParametersFunctionality completed. Call was made successfully.");
+  LogInfo(
+      "TestClearDefaultEventParametersFunctionality completed. Call was made "
+      "successfully.");
 }
 
 }  // namespace firebase_testapp_automated

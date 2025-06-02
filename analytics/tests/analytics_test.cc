@@ -299,21 +299,27 @@ TEST_F(AnalyticsTest, TestGetAnalyticsInstanceId) {
 TEST_F(AnalyticsTest, TestSetDefaultEventParameters) {
   // Android part is not tested here as it's about iOS fakes.
   // This test focuses on the iOS fake reporting.
-  // Android: AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters", {"my_param_bool=true,my_param_double=3.14,my_param_int=123,my_param_string=hello"});
+  // Android:
+  // AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters",
+  // {"my_param_bool=true,my_param_double=3.14,my_param_int=123,my_param_string=hello"});
   AddExpectationApple("+[FIRAnalytics setDefaultEventParameters:]",
-                      {"my_param_bool=1,my_param_double=3.14,my_param_int=123,my_param_string=hello"});
+                      {"my_param_bool=1,my_param_double=3.14,my_param_int=123,"
+                       "my_param_string=hello"});
 
   std::map<std::string, Variant> default_params;
   default_params["my_param_string"] = "hello";
   default_params["my_param_double"] = 3.14;
   default_params["my_param_int"] = 123;
-  default_params["my_param_bool"] = true; // Note: [NSNumber numberWithBool:YES] stringifies to 1
+  default_params["my_param_bool"] =
+      true;  // Note: [NSNumber numberWithBool:YES] stringifies to 1
 
   SetDefaultEventParameters(default_params);
 }
 
 TEST_F(AnalyticsTest, TestSetDefaultEventParametersWithNull) {
-  // Android: AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters", {"key_to_clear=null,other_key=value"});
+  // Android:
+  // AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters",
+  // {"key_to_clear=null,other_key=value"});
   AddExpectationApple("+[FIRAnalytics setDefaultEventParameters:]",
                       {"key_to_clear=<NSNull>,other_key=value"});
 
@@ -325,7 +331,9 @@ TEST_F(AnalyticsTest, TestSetDefaultEventParametersWithNull) {
 }
 
 TEST_F(AnalyticsTest, TestSetDefaultEventParametersEmpty) {
-  // Android: AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters", {""}); // Or however an empty bundle is represented
+  // Android:
+  // AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters", {""});
+  // // Or however an empty bundle is represented
   AddExpectationApple("+[FIRAnalytics setDefaultEventParameters:]", {""});
 
   std::map<std::string, Variant> default_params;
@@ -333,15 +341,18 @@ TEST_F(AnalyticsTest, TestSetDefaultEventParametersEmpty) {
 }
 
 TEST_F(AnalyticsTest, TestClearDefaultEventParameters) {
-  // Android: AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters", {"null"}); // Passing null bundle
+  // Android:
+  // AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters",
+  // {"null"}); // Passing null bundle
   AddExpectationApple("+[FIRAnalytics setDefaultEventParameters:]", {"nil"});
 
   ClearDefaultEventParameters();
 }
 
 TEST_F(AnalyticsTest, TestSetDefaultEventParametersAndroid) {
-  AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters",
-                        {"my_bool=true,my_double=3.14,my_int=123,my_string=hello"});
+  AddExpectationAndroid(
+      "FirebaseAnalytics.setDefaultEventParameters",
+      {"my_bool=true,my_double=3.14,my_int=123,my_string=hello"});
 
   std::map<std::string, Variant> default_params;
   default_params["my_string"] = "hello";
@@ -374,7 +385,8 @@ TEST_F(AnalyticsTest, TestSetDefaultEventParametersEmptyAndroid) {
 }
 
 TEST_F(AnalyticsTest, TestClearDefaultEventParametersAndroid) {
-  AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters", {"null"});
+  AddExpectationAndroid("FirebaseAnalytics.setDefaultEventParameters",
+                        {"null"});
 
   ClearDefaultEventParameters();
   WaitForMainThreadTask();

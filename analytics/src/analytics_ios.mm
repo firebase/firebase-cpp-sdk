@@ -250,7 +250,8 @@ NSArray* VectorOfMapsToArray(const std::vector<firebase::Variant>& vector) {
 }
 
 // Converts and adds the Variant to the given Dictionary.
-bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const firebase::Variant& value) {
+bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key,
+                            const firebase::Variant& value) {
   if (value.is_int64()) {
     [dict setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
   } else if (value.is_double()) {
@@ -373,8 +374,7 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
       setSessionTimeoutInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
 }
 
-void SetDefaultEventParameters(
-    const std::map<std::string, firebase::Variant>& default_parameters) {
+void SetDefaultEventParameters(const std::map<std::string, firebase::Variant>& default_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary* ns_default_parameters =
       [[NSMutableDictionary alloc] initWithCapacity:default_parameters.size()];
@@ -385,7 +385,8 @@ void SetDefaultEventParameters(
     if (value.is_null()) {
       [ns_default_parameters setObject:[NSNull null] forKey:key];
     } else if (value.is_int64()) {
-      [ns_default_parameters setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
+      [ns_default_parameters setObject:[NSNumber numberWithLongLong:value.int64_value()]
+                                forKey:key];
     } else if (value.is_double()) {
       [ns_default_parameters setObject:[NSNumber numberWithDouble:value.double_value()] forKey:key];
     } else if (value.is_string()) {
@@ -393,11 +394,14 @@ void SetDefaultEventParameters(
     } else if (value.is_bool()) {
       [ns_default_parameters setObject:[NSNumber numberWithBool:value.bool_value()] forKey:key];
     } else if (value.is_vector() || value.is_map()) {
-        LogError("SetDefaultEventParameters: Value for key '%s' has type '%s' which is not supported for default event parameters. Only string, int64, double, bool, and null are supported. Skipping.",
-                 pair.first.c_str(), firebase::Variant::TypeName(value.type()));
+      LogError("SetDefaultEventParameters: Value for key '%s' has type '%s' which is not supported "
+               "for default event parameters. Only string, int64, double, bool, and null are "
+               "supported. Skipping.",
+               pair.first.c_str(), firebase::Variant::TypeName(value.type()));
     } else {
-        LogError("SetDefaultEventParameters: Value for key '%s' has an unexpected type '%s' which is not supported. Skipping.",
-                 pair.first.c_str(), firebase::Variant::TypeName(value.type()));
+      LogError("SetDefaultEventParameters: Value for key '%s' has an unexpected type '%s' which is "
+               "not supported. Skipping.",
+               pair.first.c_str(), firebase::Variant::TypeName(value.type()));
     }
   }
   [FIRAnalytics setDefaultEventParameters:ns_default_parameters];
