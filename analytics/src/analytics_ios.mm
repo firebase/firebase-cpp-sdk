@@ -232,26 +232,25 @@ void LogEvent(const char* name) {
 }
 
 // Declared here so that it can be used, defined below.
-NSDictionary* MapToDictionary(const std::map<firebase::Variant, firebase::Variant>& map);
+NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map);
 
 // Converts the given vector of Maps into an ObjC NSArray of ObjC NSDictionaries.
-NSArray* VectorOfMapsToArray(const std::vector<firebase::Variant>& vector) {
+NSArray* VectorOfMapsToArray(const std::vector<Variant>& vector) {
   NSMutableArray* array = [NSMutableArray arrayWithCapacity:vector.size()];
-  for (const firebase::Variant& element : vector) {
+  for (const Variant& element : vector) {
     if (element.is_map()) {
       NSDictionary* dict = MapToDictionary(element.map());
       [array addObject:dict];
     } else {
       LogError("VectorOfMapsToArray: Unsupported type (%s) within vector.",
-               firebase::Variant::TypeName(element.type()));
+               Variant::TypeName(element.type()));
     }
   }
   return array;
 }
 
 // Converts and adds the Variant to the given Dictionary.
-bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key,
-                            const firebase::Variant& value) {
+bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Variant& value) {
   if (value.is_int64()) {
     [dict setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
   } else if (value.is_double()) {
@@ -278,7 +277,7 @@ bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key,
 }
 
 // Converts the given map into an ObjC dictionary of ObjC objects.
-NSDictionary* MapToDictionary(const std::map<firebase::Variant, firebase::Variant>& map) {
+NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
   NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:map.size()];
   for (const auto& pair : map) {
     // Only add elements that use a string key
@@ -286,10 +285,10 @@ NSDictionary* MapToDictionary(const std::map<firebase::Variant, firebase::Varian
       continue;
     }
     NSString* key = SafeString(pair.first.string_value());
-    const firebase::Variant& value = pair.second;
+    const Variant& value = pair.second;
     if (!AddVariantToDictionary(dict, key, value)) {
       LogError("MapToDictionary: Unsupported type (%s) within map with key %s.",
-               firebase::Variant::TypeName(value.type()), key);
+               Variant::TypeName(value.type()), key);
     }
   }
   return dict;
@@ -380,7 +379,7 @@ void SetDefaultEventParameters(const std::map<std::string, firebase::Variant>& d
       [[NSMutableDictionary alloc] initWithCapacity:default_parameters.size()];
   for (const auto& pair : default_parameters) {
     NSString* key = SafeString(pair.first.c_str());
-    const firebase::Variant& value = pair.second;
+    const Variant& value = pair.second;
 
     if (value.is_null()) {
       [ns_default_parameters setObject:[NSNull null] forKey:key];
@@ -397,11 +396,11 @@ void SetDefaultEventParameters(const std::map<std::string, firebase::Variant>& d
       LogError("SetDefaultEventParameters: Value for key '%s' has type '%s' which is not supported "
                "for default event parameters. Only string, int64, double, bool, and null are "
                "supported. Skipping.",
-               pair.first.c_str(), firebase::Variant::TypeName(value.type()));
+               pair.first.c_str(), Variant::TypeName(value.type()));
     } else {
       LogError("SetDefaultEventParameters: Value for key '%s' has an unexpected type '%s' which is "
                "not supported. Skipping.",
-               pair.first.c_str(), firebase::Variant::TypeName(value.type()));
+               pair.first.c_str(), Variant::TypeName(value.type()));
     }
   }
   [FIRAnalytics setDefaultEventParameters:ns_default_parameters];

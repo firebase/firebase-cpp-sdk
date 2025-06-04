@@ -143,7 +143,7 @@ void SetSessionTimeoutDuration(int64_t /*milliseconds*/) {
 }
 
 void SetDefaultEventParameters(
-    const std::map<std::string, Variant>& /*default_parameters*/) {
+    const std::map<std::string, firebase::Variant>& /*default_parameters*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   // This is a stub implementation. No operation needed.
 }

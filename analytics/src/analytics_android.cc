@@ -380,18 +380,17 @@ void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
 }
 
 // Declared here so that it can be used, defined below.
-jobject MapToBundle(JNIEnv* env,
-                    const std::map<firebase::Variant, firebase::Variant>& map);
+jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
 
 // Converts the given vector into a Java ArrayList. It is up to the
 // caller to delete the local reference when done.
 jobject VectorOfMapsToArrayList(JNIEnv* env,
-                                const std::vector<firebase::Variant>& vector) {
+                                const std::vector<Variant>& vector) {
   jobject arraylist = env->NewObject(
       util::array_list::GetClass(),
       util::array_list::GetMethodId(util::array_list::kConstructor));
 
-  for (const firebase::Variant& element : vector) {
+  for (const Variant& element : vector) {
     if (element.is_map()) {
       jobject bundle = MapToBundle(env, element.map());
       env->CallBooleanMethod(
@@ -401,7 +400,7 @@ jobject VectorOfMapsToArrayList(JNIEnv* env,
       env->DeleteLocalRef(bundle);
     } else {
       LogError("VectorOfMapsToArrayList: Unsupported type (%s) within vector.",
-               firebase::Variant::TypeName(element.type()));
+               Variant::TypeName(element.type()));
     }
   }
   return arraylist;
@@ -409,7 +408,7 @@ jobject VectorOfMapsToArrayList(JNIEnv* env,
 
 // Converts and adds the Variant to the given Bundle.
 bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
-                        const firebase::Variant& value) {
+                        const Variant& value) {
   if (value.is_int64()) {
     AddToBundle(env, bundle, key, value.int64_value());
   } else if (value.is_double()) {
@@ -441,8 +440,7 @@ bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
 
 // Converts the given map into a Java Bundle. It is up to the caller
 // to delete the local reference when done.
-jobject MapToBundle(JNIEnv* env,
-                    const std::map<firebase::Variant, firebase::Variant>& map) {
+jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
   jobject bundle =
       env->NewObject(util::bundle::GetClass(),
                      util::bundle::GetMethodId(util::bundle::kConstructor));
@@ -454,7 +452,7 @@ jobject MapToBundle(JNIEnv* env,
     if (!AddVariantToBundle(env, bundle, pair.first.string_value(),
                             pair.second)) {
       LogError("MapToBundle: Unsupported type (%s) within map with key %s.",
-               firebase::Variant::TypeName(pair.second.type()),
+               Variant::TypeName(pair.second.type()),
                pair.first.string_value());
     }
     util::CheckAndClearJniExceptions(env);
@@ -630,7 +628,7 @@ void SetDefaultEventParameters(
   }
 
   for (const auto& pair : default_parameters) {
-    const firebase::Variant& value = pair.second;
+    const Variant& value = pair.second;
     const char* key_cstr = pair.first.c_str();
 
     if (value.is_null()) {
@@ -665,21 +663,21 @@ void SetDefaultEventParameters(
             "SetDefaultEventParameters: Failed to add parameter for key '%s' "
             "with supported type '%s'. This might indicate a JNI issue during "
             "conversion.",
-            key_cstr, firebase::Variant::TypeName(value.type()));
+            key_cstr, Variant::TypeName(value.type()));
       }
     } else if (value.is_vector() || value.is_map()) {
       LogError(
           "SetDefaultEventParameters: Value for key '%s' has type '%s' which "
           "is not supported for default event parameters. Only string, int64, "
           "double, bool, and null are supported. Skipping.",
-          key_cstr, firebase::Variant::TypeName(value.type()));
+          key_cstr, Variant::TypeName(value.type()));
     } else {
       // This case handles other fundamental Variant types that are not scalars
       // and not vector/map.
       LogError(
           "SetDefaultEventParameters: Value for key '%s' has an unexpected and "
           "unsupported type '%s'. Skipping.",
-          key_cstr, firebase::Variant::TypeName(value.type()));
+          key_cstr, Variant::TypeName(value.type()));
     }
   }
 
