@@ -19,6 +19,9 @@ import argparse
 import os
 import sys
 import firebase_github # Assumes firebase_github.py is in the same directory or python path
+import datetime
+from datetime import timezone, timedelta
+
 
 # Attempt to configure logging for firebase_github if absl is available
 try:
@@ -33,7 +36,7 @@ def main():
     default_repo = firebase_github.REPO
 
     parser = argparse.ArgumentParser(
-        description="Fetch review comments from a GitHub PR and format for use with Jules.",
+        description="Fetch review comments from a GitHub PR and format into a simple text output.",
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
@@ -63,7 +66,7 @@ def main():
     parser.add_argument(
         "--context-lines",
         type=int,
-        default=10, # Default to 10 lines, 0 means full hunk.
+        default=10,
         help="Number of context lines from the diff hunk. Use 0 for the full hunk. "
              "If > 0, shows the last N lines of the hunk. Default: 10."
     )
@@ -76,7 +79,7 @@ def main():
     parser.add_argument(
         "--skip-outdated",
         action="store_true",
-        help="If set, outdated comments will not be printed."
+        help="If set, comments marked [OUTDATED] or [FULLY_OUTDATED] will not be printed."
     )
 
     args = parser.parse_args()
@@ -90,13 +93,13 @@ def main():
         if not firebase_github.set_repo_url(repo_url):
             sys.stderr.write(f"Error: Invalid repo URL: {args.owner}/{args.repo}. Expected https://github.com/owner/repo\n")
             sys.exit(1)
-        print(f"Targeting repository: {firebase_github.OWNER}/{firebase_github.REPO}", file=sys.stderr)
+        sys.stderr.write(f"Targeting repository: {firebase_github.OWNER}/{firebase_github.REPO}\n")
 
-    print(f"Fetching comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...", file=sys.stderr)
+    sys.stderr.write(f"Fetching comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...\n")
     if args.since:
-        print(f"Filtering comments created since: {args.since}", file=sys.stderr)
+        sys.stderr.write(f"Filtering comments created since: {args.since}\n")
     if args.skip_outdated:
-        print("Skipping outdated comments.", file=sys.stderr)
+        sys.stderr.write("Skipping outdated comments based on status.\n")
 
 
     comments = firebase_github.get_pull_request_review_comments(
@@ -106,41 +109,71 @@ def main():
     )
 
     if not comments:
-        print(f"No review comments found for PR #{args.pull_number} (or matching filters), or an error occurred.", file=sys.stderr)
+        sys.stderr.write(f"No review comments found for PR #{args.pull_number} (or matching filters), or an error occurred.\n")
         return
 
+    latest_created_at_obj = None
     print("\n--- Review Comments ---")
     for comment in comments:
-        # Determine outdated status and effective line for display
-        is_outdated = comment.get("position") is None
+        created_at_str = comment.get("created_at")
 
-        if args.skip_outdated and is_outdated:
+        current_pos = comment.get("position")
+        current_line = comment.get("line")
+        original_line = comment.get("original_line")
+
+        status_text = ""
+        line_to_display = None
+        is_effectively_outdated = False
+
+        if current_pos is None: # Comment's specific diff context is gone
+            status_text = "[FULLY_OUTDATED]"
+            line_to_display = original_line # Show original line if available
+            is_effectively_outdated = True
+        elif original_line is not None and current_line != original_line: # Comment on a line that changed
+            status_text = "[OUTDATED]"
+            line_to_display = current_line # Show where the comment is now in the diff
+            is_effectively_outdated = True
+        else: # Comment is current or a file-level comment (original_line is None but current_pos exists)
+            status_text = "[CURRENT]"
+            line_to_display = current_line # For line comments, or None for file comments (handled by fallback)
+            is_effectively_outdated = False
+
+        if line_to_display is None:
+            line_to_display = "N/A"
+
+        if args.skip_outdated and is_effectively_outdated:
             continue
 
-        line_to_display = comment.get("original_line") if is_outdated else comment.get("line")
-        # Ensure line_to_display has a fallback if None from both
-        if line_to_display is None: line_to_display = "N/A"
-
+        # Update latest timestamp (only for comments that will be printed)
+        if created_at_str:
+            try:
+                # GitHub ISO format "YYYY-MM-DDTHH:MM:SSZ"
+                # Python <3.11 fromisoformat needs "+00:00" not "Z"
+                if sys.version_info < (3, 11):
+                    dt_str = created_at_str.replace("Z", "+00:00")
+                else:
+                    dt_str = created_at_str
+                current_comment_dt = datetime.datetime.fromisoformat(dt_str)
+                if latest_created_at_obj is None or current_comment_dt > latest_created_at_obj:
+                    latest_created_at_obj = current_comment_dt
+            except ValueError:
+                sys.stderr.write(f"Warning: Could not parse timestamp: {created_at_str}\n")
 
         user = comment.get("user", {}).get("login", "Unknown user")
         path = comment.get("path", "N/A")
-
         body = comment.get("body", "").strip()
-        if not body: # Skip comments with no actual text body
+
+        if not body:
             continue
 
         diff_hunk = comment.get("diff_hunk")
         html_url = comment.get("html_url", "N/A")
         comment_id = comment.get("id")
         in_reply_to_id = comment.get("in_reply_to_id")
-        created_at = comment.get("created_at")
 
-        status_text = "[OUTDATED]" if is_outdated else "[CURRENT]"
-
-        # Start printing comment details
         print(f"Comment by: {user} (ID: {comment_id}){f' (In Reply To: {in_reply_to_id})' if in_reply_to_id else ''}")
-        if created_at:
-            print(f"Timestamp: {created_at}")
+        if created_at_str:
+            print(f"Timestamp: {created_at_str}")
 
         print(f"Status: {status_text}")
         print(f"File: {path}")
@@ -148,6 +181,7 @@ def main():
         print(f"URL: {html_url}")
 
         print("--- Diff Hunk Context ---")
+        print("```") # Start of Markdown code block
         if diff_hunk and diff_hunk.strip():
             hunk_lines = diff_hunk.split('\n')
             if args.context_lines == 0: # User wants the full hunk
@@ -157,14 +191,36 @@ def main():
                 actual_lines_to_print = hunk_lines[-lines_to_print_count:]
                 for line_content in actual_lines_to_print:
                     print(line_content)
-            # If context_lines < 0, argparse should ideally prevent this or it's handled by default type int.
-            # No explicit handling here means it might behave unexpectedly or error if not positive/zero.
         else:
             print("(No diff hunk available for this comment)")
+        print("```") # End of Markdown code block
 
         print("--- Comment ---")
         print(body)
         print("----------------------------------------\n")
+
+    if latest_created_at_obj:
+        try:
+            # Ensure it's UTC before adding timedelta, then format
+            next_since_dt = latest_created_at_obj.astimezone(timezone.utc) + timedelta(seconds=1)
+            next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+            new_cmd_args = [sys.argv[0]]
+            skip_next_arg = False
+            for i in range(1, len(sys.argv)):
+                if skip_next_arg:
+                    skip_next_arg = False
+                    continue
+                if sys.argv[i] == "--since":
+                    skip_next_arg = True
+                    continue
+                new_cmd_args.append(sys.argv[i])
+
+            new_cmd_args.extend(["--since", next_since_str])
+            suggested_cmd = " ".join(new_cmd_args)
+            sys.stderr.write(f"\nTo get comments created after the last one in this batch, try:\n{suggested_cmd}\n")
+        except Exception as e:
+            sys.stderr.write(f"\nWarning: Could not generate next command suggestion: {e}\n")
 
 if __name__ == "__main__":
     main()
