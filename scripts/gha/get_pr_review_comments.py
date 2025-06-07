@@ -77,9 +77,16 @@ def main():
         help="Only show comments created at or after this ISO 8601 timestamp (e.g., YYYY-MM-DDTHH:MM:SSZ)."
     )
     parser.add_argument(
-        "--skip-outdated",
+        "--exclude-old",
         action="store_true",
-        help="If set, comments marked [OUTDATED] or [FULLY_OUTDATED] will not be printed."
+        default=False,
+        help="Exclude comments marked [OLD] (where line number has changed due to code updates but position is still valid)."
+    )
+    parser.add_argument(
+        "--include-irrelevant",
+        action="store_true",
+        default=False,
+        help="Include comments marked [IRRELEVANT] (where GitHub can no longer anchor the comment to the diff, i.e., position is null)."
     )
 
     args = parser.parse_args()
@@ -98,8 +105,7 @@ def main():
     sys.stderr.write(f"Fetching comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...\n")
     if args.since:
         sys.stderr.write(f"Filtering comments created since: {args.since}\n")
-    if args.skip_outdated:
-        sys.stderr.write("Skipping outdated comments based on status.\n")
+    # Removed skip_outdated message block
 
 
     comments = firebase_github.get_pull_request_review_comments(
@@ -115,6 +121,7 @@ def main():
     latest_created_at_obj = None
     print("# Review Comments\n\n")
     for comment in comments:
+        # This replaces the previous status/skip logic for each comment
         created_at_str = comment.get("created_at")
 
         current_pos = comment.get("position")
@@ -123,25 +130,25 @@ def main():
 
         status_text = ""
         line_to_display = None
-        is_effectively_outdated = False
+        # is_effectively_outdated is no longer needed with the new distinct flags
 
-        if current_pos is None: # Comment's specific diff context is gone
-            status_text = "[FULLY_OUTDATED]"
-            line_to_display = original_line # Show original line if available
-            is_effectively_outdated = True
-        elif original_line is not None and current_line != original_line: # Comment on a line that changed
-            status_text = "[OUTDATED]"
-            line_to_display = current_line # Show where the comment is now in the diff
-            is_effectively_outdated = True
-        else: # Comment is current or a file-level comment (original_line is None but current_pos exists)
+        if current_pos is None:
+            status_text = "[IRRELEVANT]"
+            line_to_display = original_line
+        elif original_line is not None and current_line != original_line:
+            status_text = "[OLD]"
+            line_to_display = current_line
+        else:
             status_text = "[CURRENT]"
-            line_to_display = current_line # For line comments, or None for file comments (handled by fallback)
-            is_effectively_outdated = False
+            line_to_display = current_line
 
         if line_to_display is None:
             line_to_display = "N/A"
 
-        if args.skip_outdated and is_effectively_outdated:
+        # New filtering logic
+        if status_text == "[IRRELEVANT]" and not args.include_irrelevant:
+            continue
+        if status_text == "[OLD]" and args.exclude_old:
             continue
 
         # Update latest timestamp (only for comments that will be printed)
@@ -159,6 +166,7 @@ def main():
             except ValueError:
                 sys.stderr.write(f"Warning: Could not parse timestamp: {created_at_str}\n")
 
+        # Get other comment details
         user = comment.get("user", {}).get("login", "Unknown user")
         path = comment.get("path", "N/A")
         body = comment.get("body", "").strip()
