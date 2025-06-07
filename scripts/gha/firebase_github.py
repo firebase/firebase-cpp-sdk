@@ -225,33 +225,45 @@ def get_reviews(token, pull_number):
   return results
 
 
-def get_pull_request_review_comments(token, pull_number):
+def get_pull_request_review_comments(token, pull_number, since=None): # Added since=None
   """https://docs.github.com/en/rest/pulls/comments#list-review-comments-on-a-pull-request"""
   url = f'{GITHUB_API_URL}/pulls/{pull_number}/comments'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+
   page = 1
   per_page = 100
   results = []
-  keep_going = True
-  while keep_going:
-    params = {'per_page': per_page, 'page': page}
-    page = page + 1
-    keep_going = False
-    # Use a try-except block to catch potential errors during the API request
+
+  # Base parameters for the API request
+  base_params = {'per_page': per_page}
+  if since:
+    base_params['since'] = since
+
+  while True: # Loop indefinitely until explicitly broken
+    current_page_params = base_params.copy()
+    current_page_params['page'] = page
+
     try:
-      with requests_retry_session().get(url, headers=headers, params=params,
+      with requests_retry_session().get(url, headers=headers, params=current_page_params,
                         stream=True, timeout=TIMEOUT) as response:
-        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
-        logging.info("get_pull_request_review_comments: %s page %s response: %s", url, params.get('page'), response)
+        response.raise_for_status()
+        # Log which page and if 'since' was used for clarity
+        logging.info("get_pull_request_review_comments: %s params %s response: %s", url, current_page_params, response)
+
         current_page_results = response.json()
-        if not current_page_results: # No more results
-            break
+        if not current_page_results: # No more results on this page
+            break # Exit loop, no more comments to fetch
+
         results.extend(current_page_results)
-        # If exactly per_page results were retrieved, there might be more.
-        keep_going = (len(current_page_results) == per_page)
+
+        # If fewer results than per_page were returned, it's the last page
+        if len(current_page_results) < per_page:
+            break # Exit loop, this was the last page
+
+        page += 1 # Increment page for the next iteration
+
     except requests.exceptions.RequestException as e:
-      logging.error(f"Error fetching review comments page {params.get('page')-1} for PR {pull_number}: {e}")
-      # Optionally, re-raise the exception or handle it by returning partial results or an empty list
+      logging.error(f"Error fetching review comments (page {page}, params: {current_page_params}) for PR {pull_number}: {e}")
       break # Stop trying if there's an error
   return results
 
