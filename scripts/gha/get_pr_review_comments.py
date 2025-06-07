@@ -122,6 +122,7 @@ def main():
         return
 
     latest_created_at_obj = None
+    processed_comments_count = 0
     print("# Review Comments\n\n")
     for comment in comments:
         # This replaces the previous status/skip logic for each comment
@@ -176,6 +177,8 @@ def main():
         if not body:
             continue
 
+        processed_comments_count += 1
+
         diff_hunk = comment.get("diff_hunk")
         html_url = comment.get("html_url", "N/A")
         comment_id = comment.get("id")
@@ -196,20 +199,16 @@ def main():
                 print(diff_hunk)
             else: # User wants N lines of context (args.context_lines > 0)
                 hunk_lines = diff_hunk.split('\n')
-                header_printed_this_time = False
                 if hunk_lines and hunk_lines[0].startswith("@@ "):
                     print(hunk_lines[0])
-                    hunk_lines = hunk_lines[1:] # Operate on the rest of the hunk
-                    header_printed_this_time = True # Flag that header was output
+                    hunk_lines = hunk_lines[1:] # Modify list in place for remaining operations
 
-                if hunk_lines: # If there are lines left after potentially removing header
-                    lines_to_print_count = args.context_lines
-                    actual_trailing_lines = hunk_lines[-lines_to_print_count:]
-                    for line_content in actual_trailing_lines:
-                        print(line_content)
-                elif not header_printed_this_time :
-                    pass # Hunk was empty or only a header, already handled by outer 'else' or header print
-
+                # Proceed with the (potentially modified) hunk_lines
+                if hunk_lines: # Check if there's anything left to print
+                    # args.context_lines is > 0 here
+                    actual_trailing_lines = hunk_lines[-args.context_lines:]
+                    print("\n".join(actual_trailing_lines))
+                # If hunk_lines is empty here (e.g. only contained a header that was removed), nothing more is printed.
         else: # diff_hunk was None or empty
             print("(No diff hunk available for this comment)")
         print("```") # End of Markdown code block
@@ -217,6 +216,8 @@ def main():
         print("\n### Comment:")
         print(body)
         print("\n---")
+
+    sys.stderr.write(f"\nPrinted {processed_comments_count} comments to stdout.\n")
 
     if latest_created_at_obj:
         try:
