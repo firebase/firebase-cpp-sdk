@@ -28,44 +28,6 @@ try:
 except ImportError:
     pass # firebase_github.py uses absl.logging.info, so this won't redirect.
 
-
-def print_contextual_diff_hunk(diff_hunk, comment_position, context_lines_count):
-    if not diff_hunk or not diff_hunk.strip():
-        print("(No diff hunk available or content is empty)")
-        return
-
-    hunk_lines = diff_hunk.split('\n') # Note: Python's split('\n') is generally fine.
-
-    # Case 1: User explicitly wants the full hunk
-    if context_lines_count == 0:
-        print(diff_hunk)
-        return
-
-    # Case 2: Contextual display is requested (context_lines_count > 0),
-    # but comment is not on a specific line or position is invalid for contextual display.
-    if comment_position is None or comment_position < 1 or comment_position > len(hunk_lines):
-        print("(Comment is not on a specific line in the diff, or position is invalid; full hunk context suppressed by --context-lines setting)")
-        # As an alternative to the above message, if the hunk is small, one might choose to print it.
-        # However, sticking to the user's feedback of not wanting full hunks when context is specified:
-        # print(diff_hunk) # This would be the old behavior for this case.
-        return
-
-    # Case 3: Contextual display is possible and requested
-    comment_line_index = comment_position - 1 # Convert to 0-indexed
-
-    start_index = max(0, comment_line_index - context_lines_count)
-    end_index = min(len(hunk_lines), comment_line_index + context_lines_count + 1)
-
-    # The following line was identified as redundant and is removed:
-    # start_index = min(start_index, comment_line_index if comment_line_index >=0 else 0)
-
-    for i in range(start_index, end_index):
-        # Robust check, though start/end logic should prevent out-of-bounds
-        if i >= 0 and i < len(hunk_lines):
-            prefix = "> " if i == comment_line_index else "  "
-            print(f"{prefix}{hunk_lines[i]}")
-
-
 def main():
     default_owner = firebase_github.OWNER
     default_repo = firebase_github.REPO
@@ -101,14 +63,20 @@ def main():
     parser.add_argument(
         "--context-lines",
         type=int,
-        default=10,
-        help="Number of context lines around the commented line from the diff hunk. Use 0 for the full hunk. Default: 10."
+        default=10, # Default to 10 lines, 0 means full hunk.
+        help="Number of context lines from the diff hunk. Use 0 for the full hunk. "
+             "If > 0, shows the last N lines of the hunk. Default: 10."
     )
     parser.add_argument(
         "--since",
         type=str,
         default=None,
         help="Only show comments created at or after this ISO 8601 timestamp (e.g., YYYY-MM-DDTHH:MM:SSZ)."
+    )
+    parser.add_argument(
+        "--skip-outdated",
+        action="store_true",
+        help="If set, outdated comments will not be printed."
     )
 
     args = parser.parse_args()
@@ -127,11 +95,14 @@ def main():
     print(f"Fetching comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...", file=sys.stderr)
     if args.since:
         print(f"Filtering comments created since: {args.since}", file=sys.stderr)
+    if args.skip_outdated:
+        print("Skipping outdated comments.", file=sys.stderr)
+
 
     comments = firebase_github.get_pull_request_review_comments(
         args.token,
         args.pull_number,
-        since=args.since # Pass the 'since' argument
+        since=args.since
     )
 
     if not comments:
@@ -140,39 +111,56 @@ def main():
 
     print("\n--- Review Comments ---")
     for comment in comments:
+        # Determine outdated status and effective line for display
+        is_outdated = comment.get("position") is None
+
+        if args.skip_outdated and is_outdated:
+            continue
+
+        line_to_display = comment.get("original_line") if is_outdated else comment.get("line")
+        # Ensure line_to_display has a fallback if None from both
+        if line_to_display is None: line_to_display = "N/A"
+
+
         user = comment.get("user", {}).get("login", "Unknown user")
         path = comment.get("path", "N/A")
-        file_line = comment.get("line", "N/A")
-        hunk_position = comment.get("position") # This is the 1-indexed position in the hunk
 
         body = comment.get("body", "").strip()
-        diff_hunk = comment.get("diff_hunk") # Can be None or empty
-        html_url = comment.get("html_url", "N/A")
+        if not body: # Skip comments with no actual text body
+            continue
 
+        diff_hunk = comment.get("diff_hunk")
+        html_url = comment.get("html_url", "N/A")
         comment_id = comment.get("id")
         in_reply_to_id = comment.get("in_reply_to_id")
         created_at = comment.get("created_at")
 
-        if not body:
-            continue
+        status_text = "[OUTDATED]" if is_outdated else "[CURRENT]"
 
+        # Start printing comment details
         print(f"Comment by: {user} (ID: {comment_id}){f' (In Reply To: {in_reply_to_id})' if in_reply_to_id else ''}")
         if created_at:
             print(f"Timestamp: {created_at}")
 
-        if diff_hunk: # Only show status if it's a diff-related comment
-            status_text = "[OUTDATED]" if hunk_position is None else "[CURRENT]"
-            print(f"Status: {status_text}")
-
+        print(f"Status: {status_text}")
         print(f"File: {path}")
-        print(f"Line in File Diff: {file_line}")
+        print(f"Line in File Diff: {line_to_display}")
         print(f"URL: {html_url}")
 
         print("--- Diff Hunk Context ---")
-        if diff_hunk:
-            print_contextual_diff_hunk(diff_hunk, hunk_position, args.context_lines)
+        if diff_hunk and diff_hunk.strip():
+            hunk_lines = diff_hunk.split('\n')
+            if args.context_lines == 0: # User wants the full hunk
+                print(diff_hunk)
+            elif args.context_lines > 0: # User wants N lines of context (last N lines)
+                lines_to_print_count = args.context_lines
+                actual_lines_to_print = hunk_lines[-lines_to_print_count:]
+                for line_content in actual_lines_to_print:
+                    print(line_content)
+            # If context_lines < 0, argparse should ideally prevent this or it's handled by default type int.
+            # No explicit handling here means it might behave unexpectedly or error if not positive/zero.
         else:
-            print("(Comment not associated with a specific diff hunk)")
+            print("(No diff hunk available for this comment)")
 
         print("--- Comment ---")
         print(body)
