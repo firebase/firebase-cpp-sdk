@@ -18,7 +18,7 @@
 import argparse
 import os
 import sys
-import firebase_github # Assumes firebase_github.py is in the same directory or python path
+import firebase_github
 import datetime
 from datetime import timezone, timedelta
 
@@ -36,7 +36,7 @@ def main():
     default_repo = firebase_github.REPO
 
     parser = argparse.ArgumentParser(
-        description="Fetch review comments from a GitHub PR and format into a simple text output.",
+        description="Fetch review comments from a GitHub PR and format into simple text output.",
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
