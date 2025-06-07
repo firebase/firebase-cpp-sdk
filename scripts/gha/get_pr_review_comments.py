@@ -171,16 +171,15 @@ def main():
         comment_id = comment.get("id")
         in_reply_to_id = comment.get("in_reply_to_id")
 
-        print(f"Comment by: {user} (ID: {comment_id}){f' (In Reply To: {in_reply_to_id})' if in_reply_to_id else ''}")
+        print(f"### Comment by: **{user}** (ID: `{comment_id}`){f' (In Reply To: `{in_reply_to_id}`)' if in_reply_to_id else ''}\n")
         if created_at_str:
-            print(f"Timestamp: {created_at_str}")
+            print(f"*   **Timestamp**: `{created_at_str}`")
+        print(f"*   **Status**: `{status_text}`")
+        print(f"*   **File**: `{path}`")
+        print(f"*   **Line**: `{line_to_display}`") # Label changed from "Line in File Diff"
+        print(f"*   **URL**: <{html_url}>\n")
 
-        print(f"Status: {status_text}")
-        print(f"File: {path}")
-        print(f"Line in File Diff: {line_to_display}")
-        print(f"URL: {html_url}")
-
-        print("--- Diff Hunk Context ---")
+        print("#### Diff Hunk Context:")
         print("```") # Start of Markdown code block
         if diff_hunk and diff_hunk.strip():
             hunk_lines = diff_hunk.split('\n')
@@ -195,9 +194,9 @@ def main():
             print("(No diff hunk available for this comment)")
         print("```") # End of Markdown code block
 
-        print("--- Comment ---")
+        print("#### Comment Body:")
         print(body)
-        print("----------------------------------------\n")
+        print("\n---")
 
     if latest_created_at_obj:
         try:
