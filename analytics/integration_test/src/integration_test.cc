@@ -341,7 +341,7 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   did_test_setconsent_ = true;
 }
 
-TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
+TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
   LogInfo(
       "Testing SetDefaultEventParameters with initial values, then updating "
       "with Null.");
@@ -377,11 +377,11 @@ TEST_F(FirebaseAnalyticsTest, TestDefaultEventParametersUsage) {
   // Actual parameter presence on logged events would be verified by
   // backend/native tests.
   LogInfo(
-      "TestDefaultEventParametersUsage completed. Calls were made "
+      "TestSetDefaultEventParameters completed. Calls were made "
       "successfully.");
 }
 
-TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParametersFunctionality) {
+TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParameters) {
   LogInfo("Testing ClearDefaultEventParameters.");
 
   std::map<std::string, firebase::Variant> defaults_to_clear;
@@ -403,7 +403,7 @@ TEST_F(FirebaseAnalyticsTest, TestClearDefaultEventParametersFunctionality) {
   ProcessEvents(500);
 
   LogInfo(
-      "TestClearDefaultEventParametersFunctionality completed. Call was made "
+      "TestClearDefaultEventParameters completed. Call was made "
       "successfully.");
 }
 
