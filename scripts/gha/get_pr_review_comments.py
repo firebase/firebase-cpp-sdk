@@ -32,6 +32,10 @@ except ImportError:
     pass # firebase_github.py uses absl.logging.info, so this won't redirect.
 
 def main():
+    STATUS_IRRELEVANT = "[IRRELEVANT]"
+    STATUS_OLD = "[OLD]"
+    STATUS_CURRENT = "[CURRENT]"
+
     default_owner = firebase_github.OWNER
     default_repo = firebase_github.REPO
 
@@ -66,9 +70,8 @@ def main():
     parser.add_argument(
         "--context-lines",
         type=int,
-        default=0,
-        help="Number of context lines from the diff hunk. Use 0 for the full hunk. "
-             "If > 0, shows the last N lines of the hunk. Default: 0."
+        default=10,
+        help="Number of context lines from the diff hunk. 0 for full hunk. If > 0, shows header (if any) and last N lines of the remaining hunk. Default: 10."
     )
     parser.add_argument(
         "--since",
@@ -133,22 +136,21 @@ def main():
         # is_effectively_outdated is no longer needed with the new distinct flags
 
         if current_pos is None:
-            status_text = "[IRRELEVANT]"
+            status_text = STATUS_IRRELEVANT
             line_to_display = original_line
         elif original_line is not None and current_line != original_line:
-            status_text = "[OLD]"
+            status_text = STATUS_OLD
             line_to_display = current_line
         else:
-            status_text = "[CURRENT]"
+            status_text = STATUS_CURRENT
             line_to_display = current_line
 
         if line_to_display is None:
             line_to_display = "N/A"
 
-        # New filtering logic
-        if status_text == "[IRRELEVANT]" and not args.include_irrelevant:
+        if status_text == STATUS_IRRELEVANT and not args.include_irrelevant:
             continue
-        if status_text == "[OLD]" and args.exclude_old:
+        if status_text == STATUS_OLD and args.exclude_old:
             continue
 
         # Update latest timestamp (only for comments that will be printed)
@@ -190,15 +192,25 @@ def main():
         print("\n### Context:")
         print("```") # Start of Markdown code block
         if diff_hunk and diff_hunk.strip():
-            hunk_lines = diff_hunk.split('\n')
             if args.context_lines == 0: # User wants the full hunk
                 print(diff_hunk)
-            elif args.context_lines > 0: # User wants N lines of context (last N lines)
-                lines_to_print_count = args.context_lines
-                actual_lines_to_print = hunk_lines[-lines_to_print_count:]
-                for line_content in actual_lines_to_print:
-                    print(line_content)
-        else:
+            else: # User wants N lines of context (args.context_lines > 0)
+                hunk_lines = diff_hunk.split('\n')
+                header_printed_this_time = False
+                if hunk_lines and hunk_lines[0].startswith("@@ "):
+                    print(hunk_lines[0])
+                    hunk_lines = hunk_lines[1:] # Operate on the rest of the hunk
+                    header_printed_this_time = True # Flag that header was output
+
+                if hunk_lines: # If there are lines left after potentially removing header
+                    lines_to_print_count = args.context_lines
+                    actual_trailing_lines = hunk_lines[-lines_to_print_count:]
+                    for line_content in actual_trailing_lines:
+                        print(line_content)
+                elif not header_printed_this_time :
+                    pass # Hunk was empty or only a header, already handled by outer 'else' or header print
+
+        else: # diff_hunk was None or empty
             print("(No diff hunk available for this comment)")
         print("```") # End of Markdown code block
 
@@ -212,16 +224,14 @@ def main():
             next_since_dt = latest_created_at_obj.astimezone(timezone.utc) + timedelta(seconds=2)
             next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-            new_cmd_args = [sys.argv[0]]
-            skip_next_arg = False
-            for i in range(1, len(sys.argv)):
-                if skip_next_arg:
-                    skip_next_arg = False
-                    continue
+            new_cmd_args = [sys.executable, sys.argv[0]] # Start with interpreter and script path
+            i = 1 # Start checking from actual arguments in sys.argv
+            while i < len(sys.argv):
                 if sys.argv[i] == "--since":
-                    skip_next_arg = True
+                    i += 2 # Skip --since and its value
                     continue
                 new_cmd_args.append(sys.argv[i])
+                i += 1
 
             new_cmd_args.extend(["--since", next_since_str])
             suggested_cmd = " ".join(new_cmd_args)
