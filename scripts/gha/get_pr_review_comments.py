@@ -66,9 +66,9 @@ def main():
     parser.add_argument(
         "--context-lines",
         type=int,
-        default=10,
+        default=0,
         help="Number of context lines from the diff hunk. Use 0 for the full hunk. "
-             "If > 0, shows the last N lines of the hunk. Default: 10."
+             "If > 0, shows the last N lines of the hunk. Default: 0."
     )
     parser.add_argument(
         "--since",
@@ -113,7 +113,7 @@ def main():
         return
 
     latest_created_at_obj = None
-    print("# Review Comments\n")
+    print("# Review Comments\n\n")
     for comment in comments:
         created_at_str = comment.get("created_at")
 
@@ -179,7 +179,7 @@ def main():
         print(f"*   **Line**: `{line_to_display}`") # Label changed from "Line in File Diff"
         print(f"*   **URL**: <{html_url}>\n")
 
-        print("### Context:")
+        print("\n### Context:")
         print("```") # Start of Markdown code block
         if diff_hunk and diff_hunk.strip():
             hunk_lines = diff_hunk.split('\n')
@@ -194,7 +194,7 @@ def main():
             print("(No diff hunk available for this comment)")
         print("```") # End of Markdown code block
 
-        print("### Comment:")
+        print("\n### Comment:")
         print(body)
         print("\n---")
 
