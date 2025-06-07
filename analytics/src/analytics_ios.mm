@@ -373,7 +373,7 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
       setSessionTimeoutInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
 }
 
-void SetDefaultEventParameters(const std::map<std::string, firebase::Variant>& default_parameters) {
+void SetDefaultEventParameters(const std::map<std::string, Variant>& default_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary* ns_default_parameters =
       [[NSMutableDictionary alloc] initWithCapacity:default_parameters.size()];

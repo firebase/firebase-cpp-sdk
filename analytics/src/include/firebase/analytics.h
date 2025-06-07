@@ -142,7 +142,7 @@ struct Parameter {
   /// @param parameter_name Name of the parameter (see Parameter::name).
   /// @param parameter_value Value for the parameter. Variants can
   /// hold numbers and strings.
-  Parameter(const char* parameter_name, firebase::Variant parameter_value)
+  Parameter(const char* parameter_name, Variant parameter_value)
       : name(parameter_name) {
     value = parameter_value;
   }
@@ -245,7 +245,7 @@ struct Parameter {
   ///
   /// See firebase::Variant for usage information.
   /// @note String values can be up to 100 characters long.
-  firebase::Variant value;
+  Variant value;
 #endif  // SWIG
 };
 
@@ -570,7 +570,7 @@ void ResetAnalyticsData();
 ///
 /// @param[in] default_parameters A map of parameter names to Variant values.
 void SetDefaultEventParameters(
-    const std::map<std::string, firebase::Variant>& default_parameters);
+    const std::map<std::string, Variant>& default_parameters);
 
 /// @brief Clears all default event parameters.
 void ClearDefaultEventParameters();
