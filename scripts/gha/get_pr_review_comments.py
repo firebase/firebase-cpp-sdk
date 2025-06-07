@@ -202,7 +202,7 @@ def main():
     if latest_created_at_obj:
         try:
             # Ensure it's UTC before adding timedelta, then format
-            next_since_dt = latest_created_at_obj.astimezone(timezone.utc) + timedelta(seconds=1)
+            next_since_dt = latest_created_at_obj.astimezone(timezone.utc) + timedelta(seconds=2)
             next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
             new_cmd_args = [sys.argv[0]]
