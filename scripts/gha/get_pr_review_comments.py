@@ -205,11 +205,10 @@ def main():
                     hunk_lines = hunk_lines[1:] # Modify list in place for remaining operations
 
                 # Proceed with the (potentially modified) hunk_lines
-                if hunk_lines: # Check if there's anything left to print
-                    # args.context_lines is > 0 here
-                    actual_trailing_lines = hunk_lines[-args.context_lines:]
-                    print("\n".join(actual_trailing_lines))
-                # If hunk_lines is empty here (e.g. only contained a header that was removed), nothing more is printed.
+                # If hunk_lines is empty here (e.g. original hunk was only a header that was removed),
+                # hunk_lines[-args.context_lines:] will be [], and "\n".join([]) is "",
+                # so print("") will effectively print a newline. This is acceptable.
+                print("\n".join(hunk_lines[-args.context_lines:]))
         else: # diff_hunk was None or empty
             print("(No diff hunk available for this comment)")
         print("```") # End of Markdown code block
