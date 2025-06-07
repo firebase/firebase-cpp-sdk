@@ -77,7 +77,7 @@ def main():
         "--since",
         type=str,
         default=None,
-        help="Only show comments created at or after this ISO 8601 timestamp (e.g., YYYY-MM-DDTHH:MM:SSZ)."
+        help="Only show comments updated at or after this ISO 8601 timestamp (e.g., YYYY-MM-DDTHH:MM:SSZ)."
     )
     parser.add_argument(
         "--exclude-old",
@@ -107,7 +107,7 @@ def main():
 
     sys.stderr.write(f"Fetching comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...\n")
     if args.since:
-        sys.stderr.write(f"Filtering comments created since: {args.since}\n")
+        sys.stderr.write(f"Filtering comments updated since: {args.since}\n")
     # Removed skip_outdated message block
 
 
@@ -121,7 +121,7 @@ def main():
         sys.stderr.write(f"No review comments found for PR #{args.pull_number} (or matching filters), or an error occurred.\n")
         return
 
-    latest_created_at_obj = None
+    latest_activity_timestamp_obj = None
     processed_comments_count = 0
     print("# Review Comments\n\n")
     for comment in comments:
@@ -154,22 +154,23 @@ def main():
         if status_text == STATUS_OLD and args.exclude_old:
             continue
 
-        # Update latest timestamp (only for comments that will be printed)
-        if created_at_str:
+        # Update latest activity timestamp (only for comments that will be printed)
+        # This will be based on updated_at for suggesting the next --since value.
+        # created_at_str is still used for display.
+        updated_at_str = comment.get("updated_at")
+        if updated_at_str: # Check if updated_at_str is not None and not empty
             try:
-                # GitHub ISO format "YYYY-MM-DDTHH:MM:SSZ"
-                # Python <3.11 fromisoformat needs "+00:00" not "Z"
                 if sys.version_info < (3, 11):
-                    dt_str = created_at_str.replace("Z", "+00:00")
+                    dt_str_updated = updated_at_str.replace("Z", "+00:00")
                 else:
-                    dt_str = created_at_str
-                current_comment_dt = datetime.datetime.fromisoformat(dt_str)
-                if latest_created_at_obj is None or current_comment_dt > latest_created_at_obj:
-                    latest_created_at_obj = current_comment_dt
+                    dt_str_updated = updated_at_str
+                current_comment_activity_dt = datetime.datetime.fromisoformat(dt_str_updated)
+                if latest_activity_timestamp_obj is None or current_comment_activity_dt > latest_activity_timestamp_obj:
+                    latest_activity_timestamp_obj = current_comment_activity_dt
             except ValueError:
-                sys.stderr.write(f"Warning: Could not parse timestamp: {created_at_str}\n")
+                sys.stderr.write(f"Warning: Could not parse updated_at timestamp: {updated_at_str}\n")
 
-        # Get other comment details
+        # Get other comment details (user is already fetched if needed for other logic)
         user = comment.get("user", {}).get("login", "Unknown user")
         path = comment.get("path", "N/A")
         body = comment.get("body", "").strip()
@@ -219,10 +220,10 @@ def main():
 
     sys.stderr.write(f"\nPrinted {processed_comments_count} comments to stdout.\n")
 
-    if latest_created_at_obj:
+    if latest_activity_timestamp_obj:
         try:
             # Ensure it's UTC before adding timedelta, then format
-            next_since_dt = latest_created_at_obj.astimezone(timezone.utc) + timedelta(seconds=2)
+            next_since_dt = latest_activity_timestamp_obj.astimezone(timezone.utc) + timedelta(seconds=2)
             next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
             new_cmd_args = [sys.executable, sys.argv[0]] # Start with interpreter and script path
