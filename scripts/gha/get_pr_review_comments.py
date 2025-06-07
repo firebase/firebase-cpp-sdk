@@ -170,8 +170,7 @@ def main():
 
         print("--- Comment ---")
         print(body)
-        print("----------------------------------------\n") # Use
- for newline
+        print("----------------------------------------\n")
 
 if __name__ == "__main__":
     main()
