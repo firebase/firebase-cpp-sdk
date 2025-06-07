@@ -113,7 +113,7 @@ def main():
         return
 
     latest_created_at_obj = None
-    print("\n--- Review Comments ---")
+    print("# Review Comments\n")
     for comment in comments:
         created_at_str = comment.get("created_at")
 
@@ -171,7 +171,7 @@ def main():
         comment_id = comment.get("id")
         in_reply_to_id = comment.get("in_reply_to_id")
 
-        print(f"### Comment by: **{user}** (ID: `{comment_id}`){f' (In Reply To: `{in_reply_to_id}`)' if in_reply_to_id else ''}\n")
+        print(f"## Comment by: **{user}** (ID: `{comment_id}`){f' (In Reply To: `{in_reply_to_id}`)' if in_reply_to_id else ''}\n")
         if created_at_str:
             print(f"*   **Timestamp**: `{created_at_str}`")
         print(f"*   **Status**: `{status_text}`")
@@ -179,7 +179,7 @@ def main():
         print(f"*   **Line**: `{line_to_display}`") # Label changed from "Line in File Diff"
         print(f"*   **URL**: <{html_url}>\n")
 
-        print("#### Diff Hunk Context:")
+        print("### Context:")
         print("```") # Start of Markdown code block
         if diff_hunk and diff_hunk.strip():
             hunk_lines = diff_hunk.split('\n')
@@ -194,7 +194,7 @@ def main():
             print("(No diff hunk available for this comment)")
         print("```") # End of Markdown code block
 
-        print("#### Comment Body:")
+        print("### Comment:")
         print(body)
         print("\n---")
 
