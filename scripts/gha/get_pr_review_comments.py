@@ -30,34 +30,40 @@ except ImportError:
 
 
 def print_contextual_diff_hunk(diff_hunk, comment_position, context_lines_count):
-    if not diff_hunk or not diff_hunk.strip(): # Handle empty or whitespace-only diff_hunk
+    if not diff_hunk or not diff_hunk.strip():
         print("(No diff hunk available or content is empty)")
         return
 
-    hunk_lines = diff_hunk.split('\n')
+    hunk_lines = diff_hunk.split('\n') # Note: Python's split('\n') is generally fine.
 
-    # comment_position is 1-indexed from GitHub API. If None, or context is 0, print full hunk.
-    if context_lines_count == 0 or comment_position is None or comment_position < 1 or comment_position > len(hunk_lines):
+    # Case 1: User explicitly wants the full hunk
+    if context_lines_count == 0:
         print(diff_hunk)
         return
 
-    comment_line_index = comment_position - 1 # Convert to 0-indexed for list access
+    # Case 2: Contextual display is requested (context_lines_count > 0),
+    # but comment is not on a specific line or position is invalid for contextual display.
+    if comment_position is None or comment_position < 1 or comment_position > len(hunk_lines):
+        print("(Comment is not on a specific line in the diff, or position is invalid; full hunk context suppressed by --context-lines setting)")
+        # As an alternative to the above message, if the hunk is small, one might choose to print it.
+        # However, sticking to the user's feedback of not wanting full hunks when context is specified:
+        # print(diff_hunk) # This would be the old behavior for this case.
+        return
+
+    # Case 3: Contextual display is possible and requested
+    comment_line_index = comment_position - 1 # Convert to 0-indexed
 
     start_index = max(0, comment_line_index - context_lines_count)
     end_index = min(len(hunk_lines), comment_line_index + context_lines_count + 1)
 
-    # Ensure start_index is not greater than comment_line_index, in case of small hunks
-    # This also means that if comment_line_index is valid, start_index will be <= comment_line_index
-    start_index = min(start_index, comment_line_index if comment_line_index >=0 else 0)
-
+    # The following line was identified as redundant and is removed:
+    # start_index = min(start_index, comment_line_index if comment_line_index >=0 else 0)
 
     for i in range(start_index, end_index):
-        # Basic safety for i, though start/end logic should make this robust
+        # Robust check, though start/end logic should prevent out-of-bounds
         if i >= 0 and i < len(hunk_lines):
             prefix = "> " if i == comment_line_index else "  "
             print(f"{prefix}{hunk_lines[i]}")
-        # else: # This case should ideally not be reached with correct boundary conditions
-            # print(f"  Error: Skipped line index {i} in hunk processing due to boundary issue.")
 
 
 def main():
