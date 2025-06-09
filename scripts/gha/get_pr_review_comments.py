@@ -100,7 +100,6 @@ def main():
     sys.stderr.write(f"Fetching comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...\n")
     if args.since:
         sys.stderr.write(f"Filtering comments updated since: {args.since}\n")
-    # Removed skip_outdated message block
 
 
     comments = firebase_github.get_pull_request_review_comments(
@@ -125,7 +124,6 @@ def main():
 
         status_text = ""
         line_to_display = None
-        # is_effectively_outdated is no longer needed with the new distinct flags
 
         if current_pos is None:
             status_text = STATUS_IRRELEVANT
