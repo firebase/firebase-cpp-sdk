@@ -20,7 +20,7 @@
 #include <cstring>
 #include <ctime>
 #include <thread>  // NOLINT
-#include <vector> // For std::vector in list tests
+#include <vector>  // For std::vector in list tests
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -84,7 +84,6 @@ using testing::ElementsAreArray;
 using testing::IsEmpty;
 using testing::UnorderedElementsAreArray;
 
-
 class FirebaseStorageTest : public FirebaseTest {
  public:
   FirebaseStorageTest();
@@ -122,16 +121,15 @@ class FirebaseStorageTest : public FirebaseTest {
   firebase::storage::StorageReference CreateFolder();
 
   // Uploads a string as a file to the given StorageReference.
-  void UploadStringAsFile(
-      firebase::storage::StorageReference& ref, const std::string& content,
-      const char* content_type = nullptr);
+  void UploadStringAsFile(firebase::storage::StorageReference& ref,
+                          const std::string& content,
+                          const char* content_type = nullptr);
 
   // Verifies the contents of a ListResult.
   void VerifyListResultContains(
       const firebase::storage::ListResult& list_result,
       const std::vector<std::string>& expected_item_names,
       const std::vector<std::string>& expected_prefix_names);
-
 
   static firebase::App* shared_app_;
   static firebase::auth::Auth* shared_auth_;
@@ -339,15 +337,16 @@ void FirebaseStorageTest::UploadStringAsFile(
     metadata.set_content_type(content_type);
   }
   firebase::Future<firebase::storage::Metadata> future =
-      RunWithRetry<firebase::storage::Metadata>(
-          [&]() { return ref.PutBytes(content.c_str(), content.length(), metadata); });
+      RunWithRetry<firebase::storage::Metadata>([&]() {
+        return ref.PutBytes(content.c_str(), content.length(), metadata);
+      });
   WaitForCompletion(future, "UploadStringAsFile");
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
       << "Failed to upload to " << ref.full_path() << ": "
       << future.error_message();
   ASSERT_NE(future.result(), nullptr);
-  // On some platforms (iOS), size_bytes might not be immediately available or might be 0
-  // if the upload was very fast and metadata propagation is slow.
+  // On some platforms (iOS), size_bytes might not be immediately available or
+  // might be 0 if the upload was very fast and metadata propagation is slow.
   // For small files, this is less critical than the content being there.
   // For larger files in other tests, size_bytes is asserted.
   // ASSERT_EQ(future.result()->size_bytes(), content.length());
@@ -366,11 +365,12 @@ void FirebaseStorageTest::VerifyListResultContains(
   }
   std::sort(actual_item_names.begin(), actual_item_names.end());
   std::vector<std::string> sorted_expected_item_names = expected_item_names;
-  std::sort(sorted_expected_item_names.begin(), sorted_expected_item_names.end());
+  std::sort(sorted_expected_item_names.begin(),
+            sorted_expected_item_names.end());
 
-  EXPECT_THAT(actual_item_names, ::testing::ContainerEq(sorted_expected_item_names))
+  EXPECT_THAT(actual_item_names,
+              ::testing::ContainerEq(sorted_expected_item_names))
       << "Item names do not match expected.";
-
 
   std::vector<std::string> actual_prefix_names;
   for (const auto& prefix_ref : list_result.prefixes()) {
@@ -378,12 +378,13 @@ void FirebaseStorageTest::VerifyListResultContains(
   }
   std::sort(actual_prefix_names.begin(), actual_prefix_names.end());
   std::vector<std::string> sorted_expected_prefix_names = expected_prefix_names;
-  std::sort(sorted_expected_prefix_names.begin(), sorted_expected_prefix_names.end());
+  std::sort(sorted_expected_prefix_names.begin(),
+            sorted_expected_prefix_names.end());
 
-  EXPECT_THAT(actual_prefix_names, ::testing::ContainerEq(sorted_expected_prefix_names))
+  EXPECT_THAT(actual_prefix_names,
+              ::testing::ContainerEq(sorted_expected_prefix_names))
       << "Prefix names do not match expected.";
 }
-
 
 firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
   // Generate a folder for the test data based on the time in milliseconds.
@@ -1697,19 +1698,21 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
 TEST_F(FirebaseStorageTest, ListAllBasic) {
   // SKIP_TEST_ON_ANDROID_EMULATOR; // Removed
   SignIn();
-  firebase::storage::StorageReference test_root = CreateFolder().Child("list_all_basic_root");
-  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListAllBasic is not valid.";
-
+  firebase::storage::StorageReference test_root =
+      CreateFolder().Child("list_all_basic_root");
+  ASSERT_TRUE(test_root.is_valid())
+      << "Test root for ListAllBasic is not valid.";
 
   UploadStringAsFile(test_root.Child("file_a.txt"), "content_a");
   UploadStringAsFile(test_root.Child("file_b.txt"), "content_b");
-  UploadStringAsFile(test_root.Child("prefix1/file_c.txt"), "content_c_in_prefix1");
-  UploadStringAsFile(test_root.Child("prefix2/file_e.txt"), "content_e_in_prefix2");
+  UploadStringAsFile(test_root.Child("prefix1/file_c.txt"),
+                     "content_c_in_prefix1");
+  UploadStringAsFile(test_root.Child("prefix2/file_e.txt"),
+                     "content_e_in_prefix2");
 
   LogDebug("Calling ListAll() on gs://%s%s", test_root.bucket().c_str(),
            test_root.full_path().c_str());
-  firebase::Future<firebase::storage::ListResult> future =
-      test_root.ListAll();
+  firebase::Future<firebase::storage::ListResult> future = test_root.ListAll();
   WaitForCompletion(future, "ListAllBasic");
 
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
@@ -1718,34 +1721,39 @@ TEST_F(FirebaseStorageTest, ListAllBasic) {
   const firebase::storage::ListResult* result = future.result();
 
   VerifyListResultContains(*result, {"file_a.txt", "file_b.txt"},
-                             {"prefix1/", "prefix2/"});
-  EXPECT_TRUE(result->page_token().empty()) << "Page token should be empty for ListAll.";
+                           {"prefix1/", "prefix2/"});
+  EXPECT_TRUE(result->page_token().empty())
+      << "Page token should be empty for ListAll.";
 }
 
 TEST_F(FirebaseStorageTest, ListPaginated) {
   // SKIP_TEST_ON_ANDROID_EMULATOR; // Removed
   SignIn();
-  firebase::storage::StorageReference test_root = CreateFolder().Child("list_paginated_root");
-  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListPaginated is not valid.";
+  firebase::storage::StorageReference test_root =
+      CreateFolder().Child("list_paginated_root");
+  ASSERT_TRUE(test_root.is_valid())
+      << "Test root for ListPaginated is not valid.";
 
-
-  // Expected total entries: file_aa.txt, file_bb.txt, file_ee.txt, prefix_x/, prefix_y/ (5 entries)
+  // Expected total entries: file_aa.txt, file_bb.txt, file_ee.txt, prefix_x/,
+  // prefix_y/ (5 entries)
   UploadStringAsFile(test_root.Child("file_aa.txt"), "content_aa");
-  UploadStringAsFile(test_root.Child("prefix_x/file_cc.txt"), "content_cc_in_prefix_x");
+  UploadStringAsFile(test_root.Child("prefix_x/file_cc.txt"),
+                     "content_cc_in_prefix_x");
   UploadStringAsFile(test_root.Child("file_bb.txt"), "content_bb");
-  UploadStringAsFile(test_root.Child("prefix_y/file_dd.txt"), "content_dd_in_prefix_y");
+  UploadStringAsFile(test_root.Child("prefix_y/file_dd.txt"),
+                     "content_dd_in_prefix_y");
   UploadStringAsFile(test_root.Child("file_ee.txt"), "content_ee");
-
 
   std::vector<std::string> all_item_names_collected;
   std::vector<std::string> all_prefix_names_collected;
   std::string page_token = "";
   const int page_size = 2;
   int page_count = 0;
-  const int max_pages = 5; // Safety break for loop
+  const int max_pages = 5;  // Safety break for loop
 
   LogDebug("Starting paginated List() on gs://%s%s with page_size %d",
-           test_root.bucket().c_str(), test_root.full_path().c_str(), page_size);
+           test_root.bucket().c_str(), test_root.full_path().c_str(),
+           page_size);
 
   do {
     page_count++;
@@ -1753,14 +1761,17 @@ TEST_F(FirebaseStorageTest, ListPaginated) {
     firebase::Future<firebase::storage::ListResult> future =
         page_token.empty() ? test_root.List(page_size)
                            : test_root.List(page_size, page_token.c_str());
-    WaitForCompletion(future, "ListPaginated - Page " + std::to_string(page_count));
+    WaitForCompletion(future,
+                      "ListPaginated - Page " + std::to_string(page_count));
 
-    ASSERT_EQ(future.error(), firebase::storage::kErrorNone) << future.error_message();
+    ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
+        << future.error_message();
     ASSERT_NE(future.result(), nullptr);
     const firebase::storage::ListResult* result = future.result();
     ASSERT_TRUE(result->is_valid());
 
-    LogDebug("Page %d items: %zu, prefixes: %zu", page_count, result->items().size(), result->prefixes().size());
+    LogDebug("Page %d items: %zu, prefixes: %zu", page_count,
+             result->items().size(), result->prefixes().size());
     for (const auto& item : result->items()) {
       all_item_names_collected.push_back(item.name());
       LogDebug("  Item: %s", item.name().c_str());
@@ -1775,49 +1786,56 @@ TEST_F(FirebaseStorageTest, ListPaginated) {
     size_t entries_on_page = result->items().size() + result->prefixes().size();
 
     if (!page_token.empty()) {
-        EXPECT_EQ(entries_on_page, page_size) << "A non-last page should have full page_size entries.";
+      EXPECT_EQ(entries_on_page, page_size)
+          << "A non-last page should have full page_size entries.";
     } else {
-        // This is the last page
-        size_t total_entries = 5;
-        size_t expected_entries_on_last_page = total_entries % page_size;
-        if (expected_entries_on_last_page == 0 && total_entries > 0) { // if total is a multiple of page_size
-            expected_entries_on_last_page = page_size;
-        }
-        EXPECT_EQ(entries_on_page, expected_entries_on_last_page);
+      // This is the last page
+      size_t total_entries = 5;
+      size_t expected_entries_on_last_page = total_entries % page_size;
+      if (expected_entries_on_last_page == 0 &&
+          total_entries > 0) {  // if total is a multiple of page_size
+        expected_entries_on_last_page = page_size;
+      }
+      EXPECT_EQ(entries_on_page, expected_entries_on_last_page);
     }
   } while (!page_token.empty() && page_count < max_pages);
 
-  EXPECT_LT(page_count, max_pages) << "Exceeded max_pages, possible infinite loop.";
-  EXPECT_EQ(page_count, (5 + page_size -1) / page_size) << "Unexpected number of pages.";
+  EXPECT_LT(page_count, max_pages)
+      << "Exceeded max_pages, possible infinite loop.";
+  EXPECT_EQ(page_count, (5 + page_size - 1) / page_size)
+      << "Unexpected number of pages.";
 
-
-  std::vector<std::string> expected_final_items = {"file_aa.txt", "file_bb.txt", "file_ee.txt"};
+  std::vector<std::string> expected_final_items = {"file_aa.txt", "file_bb.txt",
+                                                   "file_ee.txt"};
   std::vector<std::string> expected_final_prefixes = {"prefix_x/", "prefix_y/"};
 
-  // VerifyListResultContains needs a ListResult object. We can't directly use it with collected names.
-  // Instead, we sort and compare the collected names.
+  // VerifyListResultContains needs a ListResult object. We can't directly use
+  // it with collected names. Instead, we sort and compare the collected names.
   std::sort(all_item_names_collected.begin(), all_item_names_collected.end());
-  std::sort(all_prefix_names_collected.begin(), all_prefix_names_collected.end());
+  std::sort(all_prefix_names_collected.begin(),
+            all_prefix_names_collected.end());
   std::sort(expected_final_items.begin(), expected_final_items.end());
   std::sort(expected_final_prefixes.begin(), expected_final_prefixes.end());
 
-  EXPECT_THAT(all_item_names_collected, ::testing::ContainerEq(expected_final_items));
-  EXPECT_THAT(all_prefix_names_collected, ::testing::ContainerEq(expected_final_prefixes));
+  EXPECT_THAT(all_item_names_collected,
+              ::testing::ContainerEq(expected_final_items));
+  EXPECT_THAT(all_prefix_names_collected,
+              ::testing::ContainerEq(expected_final_prefixes));
 }
 
-
 TEST_F(FirebaseStorageTest, ListEmpty) {
-  // SKIP_TEST_ON_ANDROID_EMULATOR; // No skip needed as it's a lightweight test.
+  // SKIP_TEST_ON_ANDROID_EMULATOR; // No skip needed as it's a lightweight
+  // test.
   SignIn();
-  firebase::storage::StorageReference test_root = CreateFolder().Child("list_empty_root");
+  firebase::storage::StorageReference test_root =
+      CreateFolder().Child("list_empty_root");
   ASSERT_TRUE(test_root.is_valid()) << "Test root for ListEmpty is not valid.";
 
   // Do not upload anything to test_root.
 
   LogDebug("Calling ListAll() on empty folder: gs://%s%s",
            test_root.bucket().c_str(), test_root.full_path().c_str());
-  firebase::Future<firebase::storage::ListResult> future =
-      test_root.ListAll();
+  firebase::Future<firebase::storage::ListResult> future = test_root.ListAll();
   WaitForCompletion(future, "ListEmpty");
 
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
@@ -1832,18 +1850,19 @@ TEST_F(FirebaseStorageTest, ListEmpty) {
 TEST_F(FirebaseStorageTest, ListWithMaxResultsGreaterThanActual) {
   // SKIP_TEST_ON_ANDROID_EMULATOR; // No skip needed.
   SignIn();
-  firebase::storage::StorageReference test_root = CreateFolder().Child("list_max_greater_root");
-  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListWithMaxResultsGreaterThanActual is not valid.";
-
+  firebase::storage::StorageReference test_root =
+      CreateFolder().Child("list_max_greater_root");
+  ASSERT_TRUE(test_root.is_valid())
+      << "Test root for ListWithMaxResultsGreaterThanActual is not valid.";
 
   UploadStringAsFile(test_root.Child("only_file.txt"), "content_only");
-  UploadStringAsFile(test_root.Child("only_prefix/another.txt"), "content_another_in_prefix");
+  UploadStringAsFile(test_root.Child("only_prefix/another.txt"),
+                     "content_another_in_prefix");
 
-  LogDebug("Calling List(10) on gs://%s%s",
-           test_root.bucket().c_str(),
+  LogDebug("Calling List(10) on gs://%s%s", test_root.bucket().c_str(),
            test_root.full_path().c_str());
   firebase::Future<firebase::storage::ListResult> future =
-      test_root.List(10); // Max results (10) > actual (1 file + 1 prefix = 2)
+      test_root.List(10);  // Max results (10) > actual (1 file + 1 prefix = 2)
   WaitForCompletion(future, "ListWithMaxResultsGreaterThanActual");
 
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
@@ -1858,8 +1877,10 @@ TEST_F(FirebaseStorageTest, ListWithMaxResultsGreaterThanActual) {
 TEST_F(FirebaseStorageTest, ListNonExistentPath) {
   // SKIP_TEST_ON_ANDROID_EMULATOR; // No skip needed.
   SignIn();
-  firebase::storage::StorageReference test_root = CreateFolder().Child("list_non_existent_parent_root");
-  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListNonExistentPath is not valid.";
+  firebase::storage::StorageReference test_root =
+      CreateFolder().Child("list_non_existent_parent_root");
+  ASSERT_TRUE(test_root.is_valid())
+      << "Test root for ListNonExistentPath is not valid.";
 
   firebase::storage::StorageReference non_existent_ref =
       test_root.Child("this_folder_truly_does_not_exist");
@@ -1872,7 +1893,8 @@ TEST_F(FirebaseStorageTest, ListNonExistentPath) {
       non_existent_ref.ListAll();
   WaitForCompletion(future, "ListNonExistentPath");
 
-  // Listing a non-existent path should not be an error, it's just an empty list.
+  // Listing a non-existent path should not be an error, it's just an empty
+  // list.
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
       << future.error_message();
   ASSERT_NE(future.result(), nullptr);
@@ -1881,6 +1903,5 @@ TEST_F(FirebaseStorageTest, ListNonExistentPath) {
   VerifyListResultContains(*result, {}, {});
   EXPECT_TRUE(result->page_token().empty());
 }
-
 
 }  // namespace firebase_testapp_automated

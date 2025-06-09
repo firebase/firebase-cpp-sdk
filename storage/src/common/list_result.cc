@@ -17,12 +17,11 @@
 #include <assert.h>
 
 // #include "storage/src/common/list_result_internal_common.h" // Removed
-#include "storage/src/common/storage_internal.h" // Required for StorageInternal, CleanupNotifier
-#include "storage/src/common/storage_reference_internal.h" // For StorageReference constructor from internal
-#include "app/src/include/firebase/app.h" // For App, LogDebug
-#include "app/src/util.h" // For LogDebug
-#include "app/src/cleanup_notifier.h" // For CleanupNotifier
-
+#include "app/src/cleanup_notifier.h"      // For CleanupNotifier
+#include "app/src/include/firebase/app.h"  // For App, LogDebug
+#include "app/src/util.h"                  // For LogDebug
+#include "storage/src/common/storage_internal.h"  // Required for StorageInternal, CleanupNotifier
+#include "storage/src/common/storage_reference_internal.h"  // For StorageReference constructor from internal
 
 // Platform specific ListResultInternal definitions
 #if FIREBASE_PLATFORM_ANDROID
@@ -31,7 +30,8 @@
 #include "storage/src/ios/list_result_ios.h"
 #elif FIREBASE_PLATFORM_DESKTOP
 #include "storage/src/desktop/list_result_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_DESKTOP
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_DESKTOP
 
 namespace firebase {
 namespace storage {
@@ -40,8 +40,8 @@ using internal::ListResultInternal;
 // using internal::ListResultInternalCommon; // Removed
 
 // Global function to be called by CleanupNotifier
-// This function is responsible for cleaning up the internal state of a ListResult
-// object when the App is being shut down.
+// This function is responsible for cleaning up the internal state of a
+// ListResult object when the App is being shut down.
 static void GlobalCleanupListResult(void* list_result_void) {
   if (list_result_void) {
     ListResult* list_result = static_cast<ListResult*>(list_result_void);
@@ -167,8 +167,9 @@ ListResult::~ListResult() {
 
 void ListResult::ClearInternalForCleanup() {
   // This method is called by GlobalCleanupListResult.
-  // The object is already unregistered from the CleanupNotifier by the notifier itself
-  // before this callback is invoked. So, no need to call UnregisterObject here.
+  // The object is already unregistered from the CleanupNotifier by the notifier
+  // itself before this callback is invoked. So, no need to call
+  // UnregisterObject here.
   delete internal_;
   internal_ = nullptr;
 }

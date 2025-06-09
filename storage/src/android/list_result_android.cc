@@ -31,8 +31,7 @@ namespace internal {
   X(GetPageToken, "getPageToken", "()Ljava/lang/String;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(list_result, LIST_RESULT_METHODS)
-METHOD_LOOKUP_DEFINITION(list_result,
-                         "com/google/firebase/storage/ListResult",
+METHOD_LOOKUP_DEFINITION(list_result, "com/google/firebase/storage/ListResult",
                          LIST_RESULT_METHODS)
 
 // clang-format off
@@ -78,9 +77,9 @@ ListResultInternal::ListResultInternal(StorageInternal* storage_internal,
 ListResultInternal::ListResultInternal(const ListResultInternal& other)
     : storage_internal_(other.storage_internal_),
       list_result_java_ref_(nullptr),
-      items_cache_(other.items_cache_),       // Copy cache
-      prefixes_cache_(other.prefixes_cache_), // Copy cache
-      page_token_cache_(other.page_token_cache_), // Copy cache
+      items_cache_(other.items_cache_),            // Copy cache
+      prefixes_cache_(other.prefixes_cache_),      // Copy cache
+      page_token_cache_(other.page_token_cache_),  // Copy cache
       items_converted_(other.items_converted_),
       prefixes_converted_(other.prefixes_converted_),
       page_token_converted_(other.page_token_converted_) {
@@ -96,7 +95,8 @@ ListResultInternal& ListResultInternal::operator=(
   if (&other == this) {
     return *this;
   }
-  storage_internal_ = other.storage_internal_;  // This is a raw pointer, just copy.
+  storage_internal_ =
+      other.storage_internal_;  // This is a raw pointer, just copy.
   FIREBASE_ASSERT(storage_internal_ != nullptr);
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   if (list_result_java_ref_ != nullptr) {
@@ -132,7 +132,8 @@ std::vector<StorageReference> ListResultInternal::ProcessJavaReferenceList(
   }
 
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
-  jint size = env->CallIntMethod(java_list_ref, java_list::GetMethodId(java_list::kSize));
+  jint size = env->CallIntMethod(java_list_ref,
+                                 java_list::GetMethodId(java_list::kSize));
   if (env->ExceptionCheck()) {
     env->ExceptionClear();
     LogError("Failed to get size of Java List in ListResultInternal");
@@ -140,16 +141,19 @@ std::vector<StorageReference> ListResultInternal::ProcessJavaReferenceList(
   }
 
   for (jint i = 0; i < size; ++i) {
-    jobject java_storage_ref =
-        env->CallObjectMethod(java_list_ref, java_list::GetMethodId(java_list::kGet), i);
+    jobject java_storage_ref = env->CallObjectMethod(
+        java_list_ref, java_list::GetMethodId(java_list::kGet), i);
     if (env->ExceptionCheck() || java_storage_ref == nullptr) {
       env->ExceptionClear();
-      LogError("Failed to get StorageReference object from Java List at index %d", i);
+      LogError(
+          "Failed to get StorageReference object from Java List at index %d",
+          i);
       if (java_storage_ref) env->DeleteLocalRef(java_storage_ref);
       continue;
     }
     // Create a C++ StorageReferenceInternal from the Java StorageReference.
-    // StorageReferenceInternal constructor will create a global ref for the java obj.
+    // StorageReferenceInternal constructor will create a global ref for the
+    // java obj.
     StorageReferenceInternal* sfr_internal =
         new StorageReferenceInternal(storage_internal_, java_storage_ref);
     cpp_references.push_back(StorageReference(sfr_internal));
@@ -159,7 +163,7 @@ std::vector<StorageReference> ListResultInternal::ProcessJavaReferenceList(
 }
 
 std::vector<StorageReference> ListResultInternal::items() const {
-  if (!list_result_java_ref_) return items_cache_; // Return empty if no ref
+  if (!list_result_java_ref_) return items_cache_;  // Return empty if no ref
   if (items_converted_) {
     return items_cache_;
   }
@@ -191,7 +195,8 @@ std::vector<StorageReference> ListResultInternal::prefixes() const {
 
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   jobject java_prefixes_list = env->CallObjectMethod(
-      list_result_java_ref_, list_result::GetMethodId(list_result::kGetPrefixes));
+      list_result_java_ref_,
+      list_result::GetMethodId(list_result::kGetPrefixes));
   if (env->ExceptionCheck() || java_prefixes_list == nullptr) {
     env->ExceptionClear();
     LogError("Failed to call getPrefixes() on Java ListResult");
@@ -214,20 +219,21 @@ std::string ListResultInternal::page_token() const {
 
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   jstring page_token_jstring = static_cast<jstring>(env->CallObjectMethod(
-      list_result_java_ref_, list_result::GetMethodId(list_result::kGetPageToken)));
+      list_result_java_ref_,
+      list_result::GetMethodId(list_result::kGetPageToken)));
   if (env->ExceptionCheck()) {
     env->ExceptionClear();
     LogError("Failed to call getPageToken() on Java ListResult");
     if (page_token_jstring) env->DeleteLocalRef(page_token_jstring);
     page_token_converted_ = true;
-    return page_token_cache_; // Return empty if error
+    return page_token_cache_;  // Return empty if error
   }
 
   if (page_token_jstring != nullptr) {
     page_token_cache_ = util::JniStringToString(env, page_token_jstring);
     env->DeleteLocalRef(page_token_jstring);
   } else {
-    page_token_cache_ = ""; // Explicitly set to empty if Java string is null
+    page_token_cache_ = "";  // Explicitly set to empty if Java string is null
   }
 
   page_token_converted_ = true;

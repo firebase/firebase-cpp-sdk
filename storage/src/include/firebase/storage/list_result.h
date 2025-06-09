@@ -58,10 +58,10 @@ class ListResult {
   ~ListResult();
 
   /// @brief Returns the items (files) in this result.
-  std::vector<StorageReference> items() const;
+  std::vector<firebase::storage::StorageReference> items() const;
 
   /// @brief Returns the prefixes (folders) in this result.
-  std::vector<StorageReference> prefixes() const;
+  std::vector<firebase::storage::StorageReference> prefixes() const;
 
   /// @brief If set, there are more results to retrieve.
   ///

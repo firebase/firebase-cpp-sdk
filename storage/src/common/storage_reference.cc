@@ -15,8 +15,8 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #include "app/src/assert.h"
-#include "firebase/storage/list_result.h" // Required for ListResult
-#include "storage/src/include/firebase/storage/future_details.h" // Required for Future<ListResult>
+#include "firebase/storage/list_result.h"  // Required for ListResult
+#include "storage/src/include/firebase/storage/future_details.h"  // Required for Future<ListResult>
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"

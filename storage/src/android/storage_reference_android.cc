@@ -111,7 +111,7 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
-  kStorageReferenceFnList, // New enum value for List operations
+  kStorageReferenceFnList,  // New enum value for List operations
   kStorageReferenceFnCount,
 };
 
@@ -122,7 +122,7 @@ bool StorageReferenceInternal::Initialize(App* app) {
     return false;
   }
   if (!ListResultInternal::Initialize(app)) {
-    storage_reference::ReleaseClass(env); // Release what was cached
+    storage_reference::ReleaseClass(env);  // Release what was cached
     return false;
   }
   return true;
@@ -331,7 +331,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     jobject result_ref = env->NewLocalRef(result);
     ListResultInternal* list_result_internal_ptr =
         new ListResultInternal(data->storage, result_ref);
-    env->DeleteLocalRef(result_ref); // ListResultInternal made a global ref.
+    env->DeleteLocalRef(result_ref);  // ListResultInternal made a global ref.
 
     data->impl->Complete<ListResult>(
         data->handle, kErrorNone, status_message,
@@ -345,11 +345,15 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     // This case might need adjustment if List operations that fail end up here
     // without a specific exception being caught by result_code check.
     if (data->func == kStorageReferenceFnList) {
-         // If it was a list operation but didn't result in a ListResult object (e.g. error not caught as exception)
-         // complete with an error and an invalid ListResult.
-        data->impl->CompleteWithResult(data->handle, kErrorUnknown, "List operation failed to produce a valid ListResult.", ListResult(nullptr));
+      // If it was a list operation but didn't result in a ListResult object
+      // (e.g. error not caught as exception) complete with an error and an
+      // invalid ListResult.
+      data->impl->CompleteWithResult(
+          data->handle, kErrorUnknown,
+          "List operation failed to produce a valid ListResult.",
+          ListResult(nullptr));
     } else {
-        data->impl->Complete(data->handle, kErrorNone, status_message);
+      data->impl->Complete(data->handle, kErrorNone, status_message);
     }
   }
   if (data->listener != nullptr) {

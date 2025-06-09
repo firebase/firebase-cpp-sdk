@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #include "storage/src/desktop/list_result_desktop.h"
-#include "storage/src/desktop/storage_desktop.h" // For StorageInternal
+
+#include "storage/src/desktop/storage_desktop.h"  // For StorageInternal
 
 namespace firebase {
 namespace storage {
@@ -28,10 +29,9 @@ ListResultInternal::ListResultInternal(
     const std::vector<StorageReference>& prefixes,
     const std::string& page_token)
     : storage_internal_(storage_internal),
-      items_stub_(items),       // Will be empty for stubs
-      prefixes_stub_(prefixes), // Will be empty for stubs
-      page_token_stub_(page_token) {} // Will be empty for stubs
-
+      items_stub_(items),              // Will be empty for stubs
+      prefixes_stub_(prefixes),        // Will be empty for stubs
+      page_token_stub_(page_token) {}  // Will be empty for stubs
 
 ListResultInternal::ListResultInternal(const ListResultInternal& other)
     : storage_internal_(other.storage_internal_),
@@ -44,7 +44,7 @@ ListResultInternal& ListResultInternal::operator=(
   if (&other == this) {
     return *this;
   }
-  storage_internal_ = other.storage_internal_; // Pointer copy
+  storage_internal_ = other.storage_internal_;  // Pointer copy
   items_stub_ = other.items_stub_;
   prefixes_stub_ = other.prefixes_stub_;
   page_token_stub_ = other.page_token_stub_;

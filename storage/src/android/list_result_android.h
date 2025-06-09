@@ -24,9 +24,9 @@
 #include "firebase/app.h"
 #include "firebase/storage/storage_reference.h"
 #include "storage/src/common/storage_internal.h"
-// It's okay for platform specific internal headers to include common internal headers.
+// It's okay for platform specific internal headers to include common internal
+// headers.
 #include "storage/src/common/list_result_internal_common.h"
-
 
 namespace firebase {
 namespace storage {
@@ -36,7 +36,8 @@ class ListResult;
 
 namespace internal {
 
-// Declare ListResultInternal a friend of ListResultInternalCommon for construction.
+// Declare ListResultInternal a friend of ListResultInternalCommon for
+// construction.
 class ListResultInternalCommon;
 
 // Contains the Android-specific implementation of ListResultInternal.

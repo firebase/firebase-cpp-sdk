@@ -20,9 +20,9 @@
 
 #include "firebase/storage/storage_reference.h"
 #include "storage/src/common/storage_internal.h"
-// It's okay for platform specific internal headers to include common internal headers.
+// It's okay for platform specific internal headers to include common internal
+// headers.
 #include "storage/src/common/list_result_internal_common.h"
-
 
 namespace firebase {
 namespace storage {
@@ -32,7 +32,8 @@ class ListResult;
 
 namespace internal {
 
-// Declare ListResultInternal a friend of ListResultInternalCommon for construction.
+// Declare ListResultInternal a friend of ListResultInternalCommon for
+// construction.
 class ListResultInternalCommon;
 
 // Contains the Desktop-specific implementation of ListResultInternal (stubs).
@@ -47,7 +48,6 @@ class ListResultInternal {
                      const std::vector<StorageReference>& prefixes,
                      const std::string& page_token);
 
-
   // Destructor (default is fine).
   ~ListResultInternal() = default;
 
@@ -56,7 +56,6 @@ class ListResultInternal {
 
   // Copy assignment operator.
   ListResultInternal& operator=(const ListResultInternal& other);
-
 
   // Gets the items (files) in this result (stub).
   std::vector<StorageReference> items() const {
@@ -80,7 +79,7 @@ class ListResultInternal {
   // storage_internal().
   friend class ListResultInternalCommon;
 
-  StorageInternal* storage_internal_; // Not owned.
+  StorageInternal* storage_internal_;  // Not owned.
   // Desktop stubs don't actually store these, but defined to match constructor.
   std::vector<StorageReference> items_stub_;
   std::vector<StorageReference> prefixes_stub_;

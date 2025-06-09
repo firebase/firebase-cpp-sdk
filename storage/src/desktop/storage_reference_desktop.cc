@@ -28,14 +28,14 @@
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
+#include "firebase/storage/list_result.h"  // Added for ListResult
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
+#include "storage/src/desktop/list_result_desktop.h"  // Added for ListResultInternal
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
-#include "firebase/storage/list_result.h" // Added for ListResult
-#include "storage/src/desktop/list_result_desktop.h" // Added for ListResultInternal
 
 namespace firebase {
 namespace storage {
@@ -704,9 +704,9 @@ Future<ListResult> StorageReferenceInternal::List(int32_t max_results) {
   ReferenceCountedFutureImpl* future_api = future();
   SafeFutureHandle<ListResult> handle =
       future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
-  future_api->CompleteWithResult(
-      handle, kErrorUnimplemented,
-      "List operation is not supported on desktop.", ListResult(nullptr));
+  future_api->CompleteWithResult(handle, kErrorUnimplemented,
+                                 "List operation is not supported on desktop.",
+                                 ListResult(nullptr));
   return ListLastResult();
 }
 
@@ -715,9 +715,9 @@ Future<ListResult> StorageReferenceInternal::List(int32_t max_results,
   ReferenceCountedFutureImpl* future_api = future();
   SafeFutureHandle<ListResult> handle =
       future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
-  future_api->CompleteWithResult(
-      handle, kErrorUnimplemented,
-      "List operation is not supported on desktop.", ListResult(nullptr));
+  future_api->CompleteWithResult(handle, kErrorUnimplemented,
+                                 "List operation is not supported on desktop.",
+                                 ListResult(nullptr));
   return ListLastResult();
 }
 
