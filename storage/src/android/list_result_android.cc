@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"
-#include "storage/src/android/storage_reference_android.h"  // For StorageReferenceInternal constructor
-#include "storage/src/common/common_android.h"              // For METHOD_LOOKUP_DECLARATION/DEFINITION
+#include "storage/src/android/storage_reference_android.h"
+#include "storage/src/common/common_android.h"
 
 namespace firebase {
 namespace storage {
@@ -64,7 +64,11 @@ void ListResultInternal::Terminate(App* app) {
 
 ListResultInternal::ListResultInternal(StorageInternal* storage_internal,
                                        jobject java_list_result)
-    : storage_internal_(storage_internal), list_result_java_ref_(nullptr) {
+    : storage_internal_(storage_internal),
+      list_result_java_ref_(nullptr),
+      items_converted_(false),
+      prefixes_converted_(false),
+      page_token_converted_(false) {
   FIREBASE_ASSERT(storage_internal != nullptr);
   FIREBASE_ASSERT(java_list_result != nullptr);
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
@@ -73,7 +77,13 @@ ListResultInternal::ListResultInternal(StorageInternal* storage_internal,
 
 ListResultInternal::ListResultInternal(const ListResultInternal& other)
     : storage_internal_(other.storage_internal_),
-      list_result_java_ref_(nullptr) {
+      list_result_java_ref_(nullptr),
+      items_cache_(other.items_cache_),       // Copy cache
+      prefixes_cache_(other.prefixes_cache_), // Copy cache
+      page_token_cache_(other.page_token_cache_), // Copy cache
+      items_converted_(other.items_converted_),
+      prefixes_converted_(other.prefixes_converted_),
+      page_token_converted_(other.page_token_converted_) {
   FIREBASE_ASSERT(storage_internal_ != nullptr);
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   if (other.list_result_java_ref_ != nullptr) {
@@ -96,6 +106,13 @@ ListResultInternal& ListResultInternal::operator=(
   if (other.list_result_java_ref_ != nullptr) {
     list_result_java_ref_ = env->NewGlobalRef(other.list_result_java_ref_);
   }
+  // Copy cache state
+  items_cache_ = other.items_cache_;
+  prefixes_cache_ = other.prefixes_cache_;
+  page_token_cache_ = other.page_token_cache_;
+  items_converted_ = other.items_converted_;
+  prefixes_converted_ = other.prefixes_converted_;
+  page_token_converted_ = other.page_token_converted_;
   return *this;
 }
 
@@ -142,7 +159,10 @@ std::vector<StorageReference> ListResultInternal::ProcessJavaReferenceList(
 }
 
 std::vector<StorageReference> ListResultInternal::items() const {
-  if (!list_result_java_ref_) return {};
+  if (!list_result_java_ref_) return items_cache_; // Return empty if no ref
+  if (items_converted_) {
+    return items_cache_;
+  }
 
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   jobject java_items_list = env->CallObjectMethod(
@@ -151,17 +171,23 @@ std::vector<StorageReference> ListResultInternal::items() const {
     env->ExceptionClear();
     LogError("Failed to call getItems() on Java ListResult");
     if (java_items_list) env->DeleteLocalRef(java_items_list);
-    return {};
+    // In case of error, still mark as "converted" to avoid retrying JNI call,
+    // return whatever might be in cache (empty at this point).
+    items_converted_ = true;
+    return items_cache_;
   }
 
-  std::vector<StorageReference> items_vector =
-      ProcessJavaReferenceList(java_items_list);
+  items_cache_ = ProcessJavaReferenceList(java_items_list);
   env->DeleteLocalRef(java_items_list);
-  return items_vector;
+  items_converted_ = true;
+  return items_cache_;
 }
 
 std::vector<StorageReference> ListResultInternal::prefixes() const {
-  if (!list_result_java_ref_) return {};
+  if (!list_result_java_ref_) return prefixes_cache_;
+  if (prefixes_converted_) {
+    return prefixes_cache_;
+  }
 
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   jobject java_prefixes_list = env->CallObjectMethod(
@@ -170,17 +196,21 @@ std::vector<StorageReference> ListResultInternal::prefixes() const {
     env->ExceptionClear();
     LogError("Failed to call getPrefixes() on Java ListResult");
     if (java_prefixes_list) env->DeleteLocalRef(java_prefixes_list);
-    return {};
+    prefixes_converted_ = true;
+    return prefixes_cache_;
   }
 
-  std::vector<StorageReference> prefixes_vector =
-      ProcessJavaReferenceList(java_prefixes_list);
+  prefixes_cache_ = ProcessJavaReferenceList(java_prefixes_list);
   env->DeleteLocalRef(java_prefixes_list);
-  return prefixes_vector;
+  prefixes_converted_ = true;
+  return prefixes_cache_;
 }
 
 std::string ListResultInternal::page_token() const {
-  if (!list_result_java_ref_) return "";
+  if (!list_result_java_ref_) return page_token_cache_;
+  if (page_token_converted_) {
+    return page_token_cache_;
+  }
 
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   jstring page_token_jstring = static_cast<jstring>(env->CallObjectMethod(
@@ -189,12 +219,19 @@ std::string ListResultInternal::page_token() const {
     env->ExceptionClear();
     LogError("Failed to call getPageToken() on Java ListResult");
     if (page_token_jstring) env->DeleteLocalRef(page_token_jstring);
-    return "";
+    page_token_converted_ = true;
+    return page_token_cache_; // Return empty if error
   }
 
-  std::string page_token_std_string = util::JniStringToString(env, page_token_jstring);
-  if (page_token_jstring) env->DeleteLocalRef(page_token_jstring);
-  return page_token_std_string;
+  if (page_token_jstring != nullptr) {
+    page_token_cache_ = util::JniStringToString(env, page_token_jstring);
+    env->DeleteLocalRef(page_token_jstring);
+  } else {
+    page_token_cache_ = ""; // Explicitly set to empty if Java string is null
+  }
+
+  page_token_converted_ = true;
+  return page_token_cache_;
 }
 
 }  // namespace internal

@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -92,6 +92,14 @@ class ListResultInternal {
   StorageInternal* storage_internal_;  // Not owned.
   // Global reference to Java com.google.firebase.storage.ListResult object.
   jobject list_result_java_ref_;
+
+  // Caches for converted data
+  mutable std::vector<StorageReference> items_cache_;
+  mutable std::vector<StorageReference> prefixes_cache_;
+  mutable std::string page_token_cache_;
+  mutable bool items_converted_;
+  mutable bool prefixes_converted_;
+  mutable bool page_token_converted_;
 };
 
 }  // namespace internal

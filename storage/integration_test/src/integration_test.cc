@@ -101,9 +101,6 @@ class FirebaseStorageTest : public FirebaseTest {
   void TearDown() override;
 
  protected:
-  // Root reference for list tests.
-  firebase::storage::StorageReference list_test_root_;
-
   // Initialize Firebase App and Firebase Auth.
   static void InitializeAppAndAuth();
   // Shut down Firebase App and Firebase Auth.
@@ -230,16 +227,7 @@ void FirebaseStorageTest::TerminateAppAndAuth() {
 void FirebaseStorageTest::SetUp() {
   FirebaseTest::SetUp();
   InitializeStorage();
-  if (storage_ != nullptr && storage_->GetReference().is_valid()) {
-    list_test_root_ = CreateFolder().Child("list_tests_root");
-    // list_test_root_ itself doesn't need to be in cleanup_files_ if its parent from CreateFolder() is.
-    // However, specific files/folders created under list_test_root_ for each test *will* be added
-    // via UploadStringAsFile or by explicitly adding the parent of a set of files for that test.
-  } else {
-    // Handle cases where storage might not be initialized (e.g. if InitializeStorage fails)
-    // by providing a default, invalid reference.
-    list_test_root_ = firebase::storage::StorageReference();
-  }
+  // list_test_root_ removed from SetUp
 }
 
 void FirebaseStorageTest::TearDown() {
@@ -1707,23 +1695,21 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
 }
 
 TEST_F(FirebaseStorageTest, ListAllBasic) {
-  SKIP_TEST_ON_ANDROID_EMULATOR; // List tests can be slow on emulators or have quota issues.
+  // SKIP_TEST_ON_ANDROID_EMULATOR; // Removed
   SignIn();
-  ASSERT_TRUE(list_test_root_.is_valid()) << "List test root is not valid.";
+  firebase::storage::StorageReference test_root = CreateFolder().Child("list_all_basic_root");
+  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListAllBasic is not valid.";
 
-  firebase::storage::StorageReference list_all_base =
-      list_test_root_.Child("list_all_basic_test");
-  // cleanup_files_.push_back(list_all_base); // Not a file, its contents are files.
 
-  UploadStringAsFile(list_all_base.Child("file_a.txt"), "content_a");
-  UploadStringAsFile(list_all_base.Child("file_b.txt"), "content_b");
-  UploadStringAsFile(list_all_base.Child("prefix1/file_c.txt"), "content_c_in_prefix1");
-  UploadStringAsFile(list_all_base.Child("prefix2/file_e.txt"), "content_e_in_prefix2");
+  UploadStringAsFile(test_root.Child("file_a.txt"), "content_a");
+  UploadStringAsFile(test_root.Child("file_b.txt"), "content_b");
+  UploadStringAsFile(test_root.Child("prefix1/file_c.txt"), "content_c_in_prefix1");
+  UploadStringAsFile(test_root.Child("prefix2/file_e.txt"), "content_e_in_prefix2");
 
-  LogDebug("Calling ListAll() on gs://%s%s", list_all_base.bucket().c_str(),
-           list_all_base.full_path().c_str());
+  LogDebug("Calling ListAll() on gs://%s%s", test_root.bucket().c_str(),
+           test_root.full_path().c_str());
   firebase::Future<firebase::storage::ListResult> future =
-      list_all_base.ListAll();
+      test_root.ListAll();
   WaitForCompletion(future, "ListAllBasic");
 
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
@@ -1737,20 +1723,18 @@ TEST_F(FirebaseStorageTest, ListAllBasic) {
 }
 
 TEST_F(FirebaseStorageTest, ListPaginated) {
-  SKIP_TEST_ON_ANDROID_EMULATOR;
+  // SKIP_TEST_ON_ANDROID_EMULATOR; // Removed
   SignIn();
-  ASSERT_TRUE(list_test_root_.is_valid()) << "List test root is not valid.";
+  firebase::storage::StorageReference test_root = CreateFolder().Child("list_paginated_root");
+  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListPaginated is not valid.";
 
-  firebase::storage::StorageReference list_paginated_base =
-      list_test_root_.Child("list_paginated_test");
-  // cleanup_files_.push_back(list_paginated_base);
 
   // Expected total entries: file_aa.txt, file_bb.txt, file_ee.txt, prefix_x/, prefix_y/ (5 entries)
-  UploadStringAsFile(list_paginated_base.Child("file_aa.txt"), "content_aa");
-  UploadStringAsFile(list_paginated_base.Child("prefix_x/file_cc.txt"), "content_cc_in_prefix_x");
-  UploadStringAsFile(list_paginated_base.Child("file_bb.txt"), "content_bb");
-  UploadStringAsFile(list_paginated_base.Child("prefix_y/file_dd.txt"), "content_dd_in_prefix_y");
-  UploadStringAsFile(list_paginated_base.Child("file_ee.txt"), "content_ee");
+  UploadStringAsFile(test_root.Child("file_aa.txt"), "content_aa");
+  UploadStringAsFile(test_root.Child("prefix_x/file_cc.txt"), "content_cc_in_prefix_x");
+  UploadStringAsFile(test_root.Child("file_bb.txt"), "content_bb");
+  UploadStringAsFile(test_root.Child("prefix_y/file_dd.txt"), "content_dd_in_prefix_y");
+  UploadStringAsFile(test_root.Child("file_ee.txt"), "content_ee");
 
 
   std::vector<std::string> all_item_names_collected;
@@ -1761,14 +1745,14 @@ TEST_F(FirebaseStorageTest, ListPaginated) {
   const int max_pages = 5; // Safety break for loop
 
   LogDebug("Starting paginated List() on gs://%s%s with page_size %d",
-           list_paginated_base.bucket().c_str(), list_paginated_base.full_path().c_str(), page_size);
+           test_root.bucket().c_str(), test_root.full_path().c_str(), page_size);
 
   do {
     page_count++;
     LogDebug("Fetching page %d, token: '%s'", page_count, page_token.c_str());
     firebase::Future<firebase::storage::ListResult> future =
-        page_token.empty() ? list_paginated_base.List(page_size)
-                           : list_paginated_base.List(page_size, page_token.c_str());
+        page_token.empty() ? test_root.List(page_size)
+                           : test_root.List(page_size, page_token.c_str());
     WaitForCompletion(future, "ListPaginated - Page " + std::to_string(page_count));
 
     ASSERT_EQ(future.error(), firebase::storage::kErrorNone) << future.error_message();
@@ -1823,19 +1807,17 @@ TEST_F(FirebaseStorageTest, ListPaginated) {
 
 
 TEST_F(FirebaseStorageTest, ListEmpty) {
-  SKIP_TEST_ON_ANDROID_EMULATOR;
+  // SKIP_TEST_ON_ANDROID_EMULATOR; // No skip needed as it's a lightweight test.
   SignIn();
-  ASSERT_TRUE(list_test_root_.is_valid()) << "List test root is not valid.";
+  firebase::storage::StorageReference test_root = CreateFolder().Child("list_empty_root");
+  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListEmpty is not valid.";
 
-  firebase::storage::StorageReference list_empty_ref =
-      list_test_root_.Child("list_empty_folder_test");
-  // Do not upload anything to this reference.
-  // cleanup_files_.push_back(list_empty_ref); // Not a file
+  // Do not upload anything to test_root.
 
   LogDebug("Calling ListAll() on empty folder: gs://%s%s",
-           list_empty_ref.bucket().c_str(), list_empty_ref.full_path().c_str());
+           test_root.bucket().c_str(), test_root.full_path().c_str());
   firebase::Future<firebase::storage::ListResult> future =
-      list_empty_ref.ListAll();
+      test_root.ListAll();
   WaitForCompletion(future, "ListEmpty");
 
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
@@ -1848,22 +1830,20 @@ TEST_F(FirebaseStorageTest, ListEmpty) {
 }
 
 TEST_F(FirebaseStorageTest, ListWithMaxResultsGreaterThanActual) {
-  SKIP_TEST_ON_ANDROID_EMULATOR;
+  // SKIP_TEST_ON_ANDROID_EMULATOR; // No skip needed.
   SignIn();
-  ASSERT_TRUE(list_test_root_.is_valid()) << "List test root is not valid.";
+  firebase::storage::StorageReference test_root = CreateFolder().Child("list_max_greater_root");
+  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListWithMaxResultsGreaterThanActual is not valid.";
 
-  firebase::storage::StorageReference list_max_greater_base =
-      list_test_root_.Child("list_max_greater_test");
-  // cleanup_files_.push_back(list_max_greater_base);
 
-  UploadStringAsFile(list_max_greater_base.Child("only_file.txt"), "content_only");
-  UploadStringAsFile(list_max_greater_base.Child("only_prefix/another.txt"), "content_another_in_prefix");
+  UploadStringAsFile(test_root.Child("only_file.txt"), "content_only");
+  UploadStringAsFile(test_root.Child("only_prefix/another.txt"), "content_another_in_prefix");
 
   LogDebug("Calling List(10) on gs://%s%s",
-           list_max_greater_base.bucket().c_str(),
-           list_max_greater_base.full_path().c_str());
+           test_root.bucket().c_str(),
+           test_root.full_path().c_str());
   firebase::Future<firebase::storage::ListResult> future =
-      list_max_greater_base.List(10); // Max results (10) > actual (1 file + 1 prefix = 2)
+      test_root.List(10); // Max results (10) > actual (1 file + 1 prefix = 2)
   WaitForCompletion(future, "ListWithMaxResultsGreaterThanActual");
 
   ASSERT_EQ(future.error(), firebase::storage::kErrorNone)
@@ -1876,19 +1856,20 @@ TEST_F(FirebaseStorageTest, ListWithMaxResultsGreaterThanActual) {
 }
 
 TEST_F(FirebaseStorageTest, ListNonExistentPath) {
-  SKIP_TEST_ON_ANDROID_EMULATOR;
+  // SKIP_TEST_ON_ANDROID_EMULATOR; // No skip needed.
   SignIn();
-  ASSERT_TRUE(list_test_root_.is_valid()) << "List test root is not valid.";
+  firebase::storage::StorageReference test_root = CreateFolder().Child("list_non_existent_parent_root");
+  ASSERT_TRUE(test_root.is_valid()) << "Test root for ListNonExistentPath is not valid.";
 
-  firebase::storage::StorageReference list_non_existent_ref =
-      list_test_root_.Child("this_folder_does_not_exist_for_list_test");
+  firebase::storage::StorageReference non_existent_ref =
+      test_root.Child("this_folder_truly_does_not_exist");
   // No cleanup needed as nothing is created.
 
   LogDebug("Calling ListAll() on non-existent path: gs://%s%s",
-           list_non_existent_ref.bucket().c_str(),
-           list_non_existent_ref.full_path().c_str());
+           non_existent_ref.bucket().c_str(),
+           non_existent_ref.full_path().c_str());
   firebase::Future<firebase::storage::ListResult> future =
-      list_non_existent_ref.ListAll();
+      non_existent_ref.ListAll();
   WaitForCompletion(future, "ListNonExistentPath");
 
   // Listing a non-existent path should not be an error, it's just an empty list.

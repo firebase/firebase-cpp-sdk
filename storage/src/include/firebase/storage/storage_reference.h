@@ -340,7 +340,6 @@ class StorageReference {
   /// StorageReference is invalid.
   bool is_valid() const;
 
-  // These methods are placeholders and will be implemented in subsequent steps.
   /// @brief Asynchronously lists objects and common prefixes under this
   /// StorageReference.
   ///
