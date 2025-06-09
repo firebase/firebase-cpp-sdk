@@ -129,6 +129,16 @@ class StorageReferenceInternal {
   // Returns the result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
 
+  // Asynchronously lists objects and common prefixes under this reference.
+  Future<ListResult> List(int32_t max_results);
+  Future<ListResult> List(int32_t max_results, const char* page_token);
+
+  // Asynchronously lists all objects and common prefixes under this reference.
+  Future<ListResult> ListAll();
+
+  // Returns the result of the most recent List operation.
+  Future<ListResult> ListLastResult();
+
   // Initialize JNI bindings for this class.
   static bool Initialize(App* app);
   static void Terminate(App* app);

@@ -42,6 +42,7 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
+  kStorageReferenceFnList, // Added for List operations
   kStorageReferenceFnCount,
 };
 
@@ -436,6 +437,93 @@ Future<Metadata> StorageReferenceInternal::PutFile(
 
 Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
   return static_cast<const Future<Metadata>&>(future()->LastResult(kStorageReferenceFnPutFile));
+}
+
+Future<ListResult> StorageReferenceInternal::List(int32_t max_results) {
+  ReferenceCountedFutureImpl* future_impl = future();
+  SafeFutureHandle<ListResult> handle =
+      future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  StorageInternal* storage_internal = storage_; // Capture for block
+
+  FIRStorageVoidListResultError completion_block =
+      ^(FIRStorageListResult* _Nullable list_result_objc, NSError* _Nullable error) {
+        Error error_code = NSErrorToErrorCode(error);
+        const char* error_message = GetErrorMessage(error_code);
+        if (list_result_objc != nil) {
+          auto list_internal = new ListResultInternal(
+              storage_internal,
+              std::make_unique<FIRStorageListResultPointer>(list_result_objc));
+          future_impl->CompleteWithResult(handle, error_code, error_message,
+                                          ListResult(list_internal));
+        } else {
+          future_impl->CompleteWithResult(handle, error_code, error_message,
+                                          ListResult(nullptr));
+        }
+      };
+
+  [impl() listWithMaxResults:max_results completion:completion_block];
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::List(int32_t max_results,
+                                                  const char* page_token) {
+  ReferenceCountedFutureImpl* future_impl = future();
+  SafeFutureHandle<ListResult> handle =
+      future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  StorageInternal* storage_internal = storage_; // Capture for block
+
+  NSString* page_token_objc = page_token ? @(page_token) : nil;
+
+  FIRStorageVoidListResultError completion_block =
+      ^(FIRStorageListResult* _Nullable list_result_objc, NSError* _Nullable error) {
+        Error error_code = NSErrorToErrorCode(error);
+        const char* error_message = GetErrorMessage(error_code);
+        if (list_result_objc != nil) {
+          auto list_internal = new ListResultInternal(
+              storage_internal,
+              std::make_unique<FIRStorageListResultPointer>(list_result_objc));
+          future_impl->CompleteWithResult(handle, error_code, error_message,
+                                          ListResult(list_internal));
+        } else {
+          future_impl->CompleteWithResult(handle, error_code, error_message,
+                                          ListResult(nullptr));
+        }
+      };
+
+  [impl() listWithMaxResults:max_results
+                   pageToken:page_token_objc
+                  completion:completion_block];
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListAll() {
+  ReferenceCountedFutureImpl* future_impl = future();
+  SafeFutureHandle<ListResult> handle =
+      future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  StorageInternal* storage_internal = storage_; // Capture for block
+
+  FIRStorageVoidListResultError completion_block =
+      ^(FIRStorageListResult* _Nullable list_result_objc, NSError* _Nullable error) {
+        Error error_code = NSErrorToErrorCode(error);
+        const char* error_message = GetErrorMessage(error_code);
+        if (list_result_objc != nil) {
+          auto list_internal = new ListResultInternal(
+              storage_internal,
+              std::make_unique<FIRStorageListResultPointer>(list_result_objc));
+          future_impl->CompleteWithResult(handle, error_code, error_message,
+                                          ListResult(list_internal));
+        } else {
+          future_impl->CompleteWithResult(handle, error_code, error_message,
+                                          ListResult(nullptr));
+        }
+      };
+  [impl() listAllWithCompletion:completion_block];
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
 }
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
