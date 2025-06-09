@@ -656,8 +656,8 @@ code.
 ## Release Notes
 ### 12.8.0
 -   Changes
-    - General (iOS): Update to Firebase Cocoapods version 11.13.0.
-    - General (Android): Update to Firebase Android BoM version 33.14.0.
+    - General (iOS): Update to Firebase Cocoapods version 11.14.0.
+    - General (Android): Update to Firebase Android BoM version 33.15.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 16.2.
     - UMP: Moved the User Messaging Platform SDK to its own top-level
