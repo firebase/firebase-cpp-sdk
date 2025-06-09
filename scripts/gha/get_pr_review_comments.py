@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Fetches and formats review comments from a GitHub Pull Request."""
+"""Fetches and formats review comments from a GitHub Pull Request,
+displaying top-level review summaries with their associated line comments
+nested underneath."""
 
 import argparse
 import os
@@ -22,6 +24,17 @@ import firebase_github
 import datetime
 from datetime import timezone, timedelta
 
+def parse_iso_timestamp(timestamp_str):
+    """Parses an ISO 8601 timestamp string, handling 'Z' for UTC."""
+    if not timestamp_str:
+        return None
+    try:
+        if sys.version_info < (3, 11) and timestamp_str.endswith("Z"):
+            timestamp_str = timestamp_str[:-1] + "+00:00"
+        return datetime.datetime.fromisoformat(timestamp_str)
+    except ValueError:
+        sys.stderr.write(f"Warning: Could not parse timestamp: {timestamp_str}\n")
+        return None
 
 def main():
     STATUS_IRRELEVANT = "[IRRELEVANT]"
@@ -32,57 +45,17 @@ def main():
     default_repo = firebase_github.REPO
 
     parser = argparse.ArgumentParser(
-        description="Fetch review comments from a GitHub PR and format into simple text output.",
+        description="Fetch review comments from a GitHub PR and format into simple text output, nesting line comments under review summaries.",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument(
-        "--pull_number",
-        type=int,
-        required=True,
-        help="Pull request number."
-    )
-    parser.add_argument(
-        "--owner",
-        type=str,
-        default=default_owner,
-        help=f"Repository owner. Defaults to '{default_owner}'."
-    )
-    parser.add_argument(
-        "--repo",
-        type=str,
-        default=default_repo,
-        help=f"Repository name. Defaults to '{default_repo}'."
-    )
-    parser.add_argument(
-        "--token",
-        type=str,
-        default=os.environ.get("GITHUB_TOKEN"),
-        help="GitHub token. Can also be set via GITHUB_TOKEN env var."
-    )
-    parser.add_argument(
-        "--context-lines",
-        type=int,
-        default=10,
-        help="Number of context lines from the diff hunk. 0 for full hunk. If > 0, shows header (if any) and last N lines of the remaining hunk. Default: 10."
-    )
-    parser.add_argument(
-        "--since",
-        type=str,
-        default=None,
-        help="Only show comments updated at or after this ISO 8601 timestamp (e.g., YYYY-MM-DDTHH:MM:SSZ)."
-    )
-    parser.add_argument(
-        "--exclude-old",
-        action="store_true",
-        default=False,
-        help="Exclude comments marked [OLD] (where line number has changed due to code updates but position is still valid)."
-    )
-    parser.add_argument(
-        "--include-irrelevant",
-        action="store_true",
-        default=False,
-        help="Include comments marked [IRRELEVANT] (where GitHub can no longer anchor the comment to the diff, i.e., position is null)."
-    )
+    parser.add_argument("--pull_number", type=int, required=True, help="Pull request number.")
+    parser.add_argument("--owner", type=str, default=default_owner, help=f"Repository owner. Defaults to '{default_owner}'.")
+    parser.add_argument("--repo", type=str, default=default_repo, help=f"Repository name. Defaults to '{default_repo}'.")
+    parser.add_argument("--token", type=str, default=os.environ.get("GITHUB_TOKEN"), help="GitHub token. Can also be set via GITHUB_TOKEN env var.")
+    parser.add_argument("--context-lines", type=int, default=10, help="Number of context lines from the diff hunk. 0 for full hunk. If > 0, shows header (if any) and last N lines of the remaining hunk. Default: 10.")
+    parser.add_argument("--since", type=str, default=None, help="Only show reviews and comments updated/submitted at or after this ISO 8601 timestamp (e.g., YYYY-MM-DDTHH:MM:SSZ). Applies to review submission time and line comment update time.")
+    parser.add_argument("--exclude-old", action="store_true", default=False, help="Exclude line comments marked [OLD] (where line number has changed due to code updates but position is still valid).")
+    parser.add_argument("--include-irrelevant", action="store_true", default=False, help="Include line comments marked [IRRELEVANT] (where GitHub can no longer anchor the comment to the diff, i.e., position is null).")
 
     args = parser.parse_args()
 
@@ -97,133 +70,171 @@ def main():
             sys.exit(1)
         sys.stderr.write(f"Targeting repository: {firebase_github.OWNER}/{firebase_github.REPO}\n")
 
-    sys.stderr.write(f"Fetching comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...\n")
-    if args.since:
-        sys.stderr.write(f"Filtering comments updated since: {args.since}\n")
+    sys.stderr.write(f"Fetching reviews and comments for PR #{args.pull_number} from {firebase_github.OWNER}/{firebase_github.REPO}...\n")
 
+    reviews_all = firebase_github.get_reviews(args.token, args.pull_number)
+    line_comments_all = firebase_github.get_pull_request_review_comments(args.token, args.pull_number) # Fetches all, not using 'since' here
 
-    comments = firebase_github.get_pull_request_review_comments(
-        args.token,
-        args.pull_number,
-        since=args.since
-    )
-
-    if not comments:
-        sys.stderr.write(f"No review comments found for PR #{args.pull_number} (or matching filters), or an error occurred.\n")
+    if not reviews_all and not line_comments_all:
+        sys.stderr.write(f"No reviews or line comments found for PR #{args.pull_number}.\n")
         return
 
-    latest_activity_timestamp_obj = None
+    # Sort reviews by submission time
+    reviews_all.sort(key=lambda r: r.get("submitted_at", ""))
+
+    since_dt = None
+    if args.since:
+        since_dt = parse_iso_timestamp(args.since)
+        if since_dt:
+            sys.stderr.write(f"Filtering reviews and comments submitted/updated since: {args.since}\n")
+        else:
+            sys.stderr.write(f"Warning: Could not parse --since timestamp: {args.since}. Fetching all.\n")
+
+
+    latest_overall_timestamp_obj = None
     processed_comments_count = 0
     print("# Review Comments\n\n")
-    for comment in comments:
-        created_at_str = comment.get("created_at")
 
-        current_pos = comment.get("position")
-        current_line = comment.get("line")
-        original_line = comment.get("original_line")
+    for review in reviews_all:
+        review_id = review.get("id")
+        review_user = review.get("user", {}).get("login", "Unknown user")
+        review_state = review.get("state", "N/A")
+        review_body = review.get("body", "").strip()
+        review_html_url = review.get("html_url", "N/A")
+        review_submitted_at_str = review.get("submitted_at")
+        review_submitted_dt = parse_iso_timestamp(review_submitted_at_str)
 
-        status_text = ""
-        line_to_display = None
-
-        if current_pos is None:
-            status_text = STATUS_IRRELEVANT
-            line_to_display = original_line
-        elif original_line is not None and current_line != original_line:
-            status_text = STATUS_OLD
-            line_to_display = current_line
-        else:
-            status_text = STATUS_CURRENT
-            line_to_display = current_line
-
-        if line_to_display is None:
-            line_to_display = "N/A"
-
-        if status_text == STATUS_IRRELEVANT and not args.include_irrelevant:
-            continue
-        if status_text == STATUS_OLD and args.exclude_old:
+        # Filter review itself by --since (based on submission time)
+        if since_dt and review_submitted_dt and review_submitted_dt < since_dt:
+            # If review is too old, also skip its line comments for this primary filter pass
+            # (individual line comments might still be filtered if they are older than review's submission)
             continue
 
-        # Track latest 'updated_at' for '--since' suggestion; 'created_at' is for display.
-        updated_at_str = comment.get("updated_at")
-        if updated_at_str: # Check if updated_at_str is not None and not empty
-            try:
-                if sys.version_info < (3, 11):
-                    dt_str_updated = updated_at_str.replace("Z", "+00:00")
+        review_content_printed_for_this_block = False
+
+        # Print Review Summary (if body exists)
+        if review_body:
+            print(f"## Review by: **{review_user}** (State: `{review_state}`, ID: `{review_id}`)\n")
+            if review_submitted_at_str:
+                print(f"*   **Submitted At**: `{review_submitted_at_str}`")
+            print(f"*   **URL**: <{review_html_url}>\n")
+            print("\n### Summary Comment:")
+            print(review_body)
+
+            if review_submitted_dt and (latest_overall_timestamp_obj is None or review_submitted_dt > latest_overall_timestamp_obj):
+                latest_overall_timestamp_obj = review_submitted_dt
+            processed_comments_count += 1
+            review_content_printed_for_this_block = True
+
+        # Process Nested Line Comments for this review
+        current_review_line_comments = [lc for lc in line_comments_all if lc.get("pull_request_review_id") == review_id]
+        current_review_line_comments.sort(key=lambda lc: lc.get("created_at", "")) # or 'id'
+
+        for line_comment in current_review_line_comments:
+            line_comment_created_at_str = line_comment.get("created_at")
+            # Individual line comment filtering by --since (based on its own created_at or updated_at)
+            # For simplicity with GitHub's `since` behavior, we'll use updated_at for filtering line comments.
+            line_comment_updated_at_str = line_comment.get("updated_at")
+            line_comment_updated_dt = parse_iso_timestamp(line_comment_updated_at_str)
+
+            if since_dt and line_comment_updated_dt and line_comment_updated_dt < since_dt:
+                continue
+
+            current_pos = line_comment.get("position")
+            current_line = line_comment.get("line")
+            original_line = line_comment.get("original_line")
+            status_text = ""
+            line_to_display = None
+
+            if current_pos is None:
+                status_text = STATUS_IRRELEVANT
+                line_to_display = original_line
+            elif original_line is not None and current_line != original_line:
+                status_text = STATUS_OLD
+                line_to_display = current_line
+            else:
+                status_text = STATUS_CURRENT
+                line_to_display = current_line
+
+            if line_to_display is None:
+                line_to_display = "N/A"
+
+            if status_text == STATUS_IRRELEVANT and not args.include_irrelevant:
+                continue
+            if status_text == STATUS_OLD and args.exclude_old:
+                continue
+
+            line_comment_user = line_comment.get("user", {}).get("login", "Unknown user")
+            path = line_comment.get("path", "N/A")
+            body = line_comment.get("body", "").strip()
+            diff_hunk = line_comment.get("diff_hunk")
+            line_html_url = line_comment.get("html_url", "N/A")
+            line_comment_id = line_comment.get("id")
+
+            if not body:
+                continue
+
+            if not review_content_printed_for_this_block: # First visible item for this review block
+                print(f"## Comments from Review by: **{review_user}** (State: `{review_state}`, ID: `{review_id}`)\n")
+                if review_submitted_at_str:
+                     print(f"*   **Review Submitted At**: `{review_submitted_at_str}`")
+                print(f"*   **Review URL**: <{review_html_url}>\n")
+
+            print(f"\n### Comment by: **{line_comment_user}** (ID: `{line_comment_id}`, Part of Review ID: `{review_id}`)\n")
+            if line_comment_created_at_str: # Display created_at for line comment itself
+                print(f"*   **Timestamp**: `{line_comment_created_at_str}`")
+            print(f"*   **Status**: `{status_text}`")
+            print(f"*   **File**: `{path}`")
+            print(f"*   **Line**: `{line_to_display}`")
+            print(f"*   **URL**: <{line_html_url}>\n")
+
+            print("\n### Context:")
+            print("```")
+            if diff_hunk and diff_hunk.strip():
+                if args.context_lines == 0:
+                    print(diff_hunk)
                 else:
-                    dt_str_updated = updated_at_str
-                current_comment_activity_dt = datetime.datetime.fromisoformat(dt_str_updated)
-                if latest_activity_timestamp_obj is None or current_comment_activity_dt > latest_activity_timestamp_obj:
-                    latest_activity_timestamp_obj = current_comment_activity_dt
-            except ValueError:
-                sys.stderr.write(f"Warning: Could not parse updated_at timestamp: {updated_at_str}\n")
+                    hunk_lines = diff_hunk.split('\n')
+                    if hunk_lines and hunk_lines[0].startswith("@@ "):
+                        print(hunk_lines[0])
+                        hunk_lines = hunk_lines[1:]
+                    print("\n".join(hunk_lines[-args.context_lines:]))
+            else:
+                print("(No diff hunk available for this comment)")
+            print("```")
 
-        # Get other comment details
-        user = comment.get("user", {}).get("login", "Unknown user")
-        path = comment.get("path", "N/A")
-        body = comment.get("body", "").strip()
+            print("\n### Comment:")
+            print(body)
 
-        if not body:
-            continue
+            if line_comment_updated_dt and (latest_overall_timestamp_obj is None or line_comment_updated_dt > latest_overall_timestamp_obj):
+                latest_overall_timestamp_obj = line_comment_updated_dt
+            processed_comments_count += 1
+            review_content_printed_for_this_block = True
 
-        processed_comments_count += 1
+        if review_content_printed_for_this_block:
+            print("\n---") # Separator after each review block that had content
 
-        diff_hunk = comment.get("diff_hunk")
-        html_url = comment.get("html_url", "N/A")
-        comment_id = comment.get("id")
-        in_reply_to_id = comment.get("in_reply_to_id")
+    # Handle orphaned line comments (not associated with any fetched review - rare, but possible if reviews were deleted)
+    # For now, this simplified model assumes line comments are primarily viewed in context of their review.
+    # A separate loop here could process line_comments_all where pull_request_review_id is None or not in any review_id from reviews_all.
 
-        print(f"## Comment by: **{user}** (ID: `{comment_id}`){f' (In Reply To: `{in_reply_to_id}`)' if in_reply_to_id else ''}\n")
-        if created_at_str:
-            print(f"*   **Timestamp**: `{created_at_str}`")
-        print(f"*   **Status**: `{status_text}`")
-        print(f"*   **File**: `{path}`")
-        print(f"*   **Line**: `{line_to_display}`")
-        print(f"*   **URL**: <{html_url}>\n")
+    sys.stderr.write(f"\nPrinted {processed_comments_count} review summaries/comments to stdout.\n")
 
-        print("\n### Context:")
-        print("```") # Start of Markdown code block
-        if diff_hunk and diff_hunk.strip():
-            if args.context_lines == 0: # User wants the full hunk
-                print(diff_hunk)
-            else: # User wants N lines of context (args.context_lines > 0)
-                hunk_lines = diff_hunk.split('\n')
-                if hunk_lines and hunk_lines[0].startswith("@@ "):
-                    print(hunk_lines[0])
-                    hunk_lines = hunk_lines[1:] # Modify list in place for remaining operations
-
-                # Proceed with the (potentially modified) hunk_lines
-                # If hunk_lines is empty here (e.g. original hunk was only a header that was removed),
-                # hunk_lines[-args.context_lines:] will be [], and "\n".join([]) is "",
-                # so print("") will effectively print a newline. This is acceptable.
-                print("\n".join(hunk_lines[-args.context_lines:]))
-        else: # diff_hunk was None or empty
-            print("(No diff hunk available for this comment)")
-        print("```") # End of Markdown code block
-
-        print("\n### Comment:")
-        print(body)
-        print("\n---")
-
-    sys.stderr.write(f"\nPrinted {processed_comments_count} comments to stdout.\n")
-
-    if latest_activity_timestamp_obj:
+    if latest_overall_timestamp_obj:
         try:
-            # Ensure it's UTC before adding timedelta, then format
-            next_since_dt = latest_activity_timestamp_obj.astimezone(timezone.utc) + timedelta(seconds=2)
+            next_since_dt = latest_overall_timestamp_obj.astimezone(timezone.utc) + timedelta(seconds=2) # Use 2 seconds as previously established
             next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-            new_cmd_args = [sys.executable, sys.argv[0]] # Start with interpreter and script path
-            i = 1 # Start checking from actual arguments in sys.argv
+            new_cmd_args = [sys.executable, sys.argv[0]]
+            i = 1
             while i < len(sys.argv):
                 if sys.argv[i] == "--since":
-                    i += 2 # Skip --since and its value
+                    i += 2
                     continue
                 new_cmd_args.append(sys.argv[i])
                 i += 1
-
             new_cmd_args.extend(["--since", next_since_str])
             suggested_cmd = " ".join(new_cmd_args)
-            sys.stderr.write(f"\nTo get comments created after the last one in this batch, try:\n{suggested_cmd}\n")
+            sys.stderr.write(f"\nTo get comments created/updated after the last one in this batch, try:\n{suggested_cmd}\n")
         except Exception as e:
             sys.stderr.write(f"\nWarning: Could not generate next command suggestion: {e}\n")
 
