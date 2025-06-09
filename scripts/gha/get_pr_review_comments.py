@@ -23,14 +23,6 @@ import datetime
 from datetime import timezone, timedelta
 
 
-# Attempt to configure logging for firebase_github if absl is available
-try:
-    from absl import logging as absl_logging
-    # Set verbosity for absl logging if you want to see logs from firebase_github
-    # absl_logging.set_verbosity(absl_logging.INFO)
-except ImportError:
-    pass # firebase_github.py uses absl.logging.info, so this won't redirect.
-
 def main():
     STATUS_IRRELEVANT = "[IRRELEVANT]"
     STATUS_OLD = "[OLD]"
@@ -125,7 +117,6 @@ def main():
     processed_comments_count = 0
     print("# Review Comments\n\n")
     for comment in comments:
-        # This replaces the previous status/skip logic for each comment
         created_at_str = comment.get("created_at")
 
         current_pos = comment.get("position")
@@ -154,9 +145,7 @@ def main():
         if status_text == STATUS_OLD and args.exclude_old:
             continue
 
-        # Update latest activity timestamp (only for comments that will be printed)
-        # This will be based on updated_at for suggesting the next --since value.
-        # created_at_str is still used for display.
+        # Track latest 'updated_at' for '--since' suggestion; 'created_at' is for display.
         updated_at_str = comment.get("updated_at")
         if updated_at_str: # Check if updated_at_str is not None and not empty
             try:
@@ -170,7 +159,7 @@ def main():
             except ValueError:
                 sys.stderr.write(f"Warning: Could not parse updated_at timestamp: {updated_at_str}\n")
 
-        # Get other comment details (user is already fetched if needed for other logic)
+        # Get other comment details
         user = comment.get("user", {}).get("login", "Unknown user")
         path = comment.get("path", "N/A")
         body = comment.get("body", "").strip()
@@ -190,7 +179,7 @@ def main():
             print(f"*   **Timestamp**: `{created_at_str}`")
         print(f"*   **Status**: `{status_text}`")
         print(f"*   **File**: `{path}`")
-        print(f"*   **Line**: `{line_to_display}`") # Label changed from "Line in File Diff"
+        print(f"*   **Line**: `{line_to_display}`")
         print(f"*   **URL**: <{html_url}>\n")
 
         print("\n### Context:")

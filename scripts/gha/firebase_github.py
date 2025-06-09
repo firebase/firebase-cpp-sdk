@@ -225,7 +225,7 @@ def get_reviews(token, pull_number):
   return results
 
 
-def get_pull_request_review_comments(token, pull_number, since=None): # Added since=None
+def get_pull_request_review_comments(token, pull_number, since=None):
   """https://docs.github.com/en/rest/pulls/comments#list-review-comments-on-a-pull-request"""
   url = f'{GITHUB_API_URL}/pulls/{pull_number}/comments'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
