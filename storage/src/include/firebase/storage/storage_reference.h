@@ -20,15 +20,17 @@
 
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
-#include "firebase/storage/list_result.h"
+// #include "firebase/storage/list_result.h" // Removed
 #include "firebase/storage/metadata.h"
 
 namespace firebase {
 namespace storage {
 
+// Forward declarations
 class Controller;
 class Listener;
 class Storage;
+class ListResult;  // Added forward declaration
 
 /// @cond FIREBASE_APP_INTERNAL
 namespace internal {
