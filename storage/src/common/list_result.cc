@@ -20,16 +20,19 @@
 #include "app/src/cleanup_notifier.h"      // For CleanupNotifier
 #include "app/src/include/firebase/app.h"  // For App, LogDebug
 #include "app/src/util.h"                  // For LogDebug
-#include "storage/src/common/storage_internal.h"  // Required for StorageInternal, CleanupNotifier
+// #include "storage/src/common/storage_internal.h" // Removed
 #include "storage/src/common/storage_reference_internal.h"  // For StorageReference constructor from internal
 
 // Platform specific ListResultInternal definitions
 #if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/android/list_result_android.h"
+#include "storage/src/android/storage_android.h"  // Added for StorageInternal
 #elif FIREBASE_PLATFORM_IOS
 #include "storage/src/ios/list_result_ios.h"
+#include "storage/src/ios/storage_ios.h"  // Added for StorageInternal
 #elif FIREBASE_PLATFORM_DESKTOP
 #include "storage/src/desktop/list_result_desktop.h"
+#include "storage/src/desktop/storage_desktop.h"  // Added for StorageInternal
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_DESKTOP
 
