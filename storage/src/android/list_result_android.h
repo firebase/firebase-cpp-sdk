@@ -23,10 +23,9 @@
 #include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/common/storage_internal.h"
-// It's okay for platform specific internal headers to include common internal
-// headers.
-#include "storage/src/common/list_result_internal_common.h"
+// #include "storage/src/common/storage_internal.h" // Removed
+#include "storage/src/android/storage_android.h"  // Added for Android StorageInternal
+// #include "storage/src/common/list_result_internal_common.h" // Removed
 
 namespace firebase {
 namespace storage {
@@ -36,9 +35,8 @@ class ListResult;
 
 namespace internal {
 
-// Declare ListResultInternal a friend of ListResultInternalCommon for
 // construction.
-class ListResultInternalCommon;
+// class ListResultInternalCommon; // Removed
 
 // Contains the Android-specific implementation of ListResultInternal.
 class ListResultInternal {
@@ -83,7 +81,7 @@ class ListResultInternal {
   friend class firebase::storage::ListResult;
   // For ListResultInternalCommon's constructor and access to app_ via
   // storage_internal().
-  friend class ListResultInternalCommon;
+  // friend class ListResultInternalCommon; // Removed as class is removed
 
   // Converts a Java List of Java StorageReference objects to a C++ vector of
   // C++ StorageReference objects.

@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,10 +19,9 @@
 #include <vector>
 
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/common/storage_internal.h"
-// It's okay for platform specific internal headers to include common internal
-// headers.
-#include "storage/src/common/list_result_internal_common.h"
+// #include "storage/src/common/storage_internal.h" // Removed
+#include "storage/src/desktop/storage_desktop.h"  // Added for Desktop StorageInternal
+// #include "storage/src/common/list_result_internal_common.h" // Removed
 
 namespace firebase {
 namespace storage {
@@ -34,7 +33,7 @@ namespace internal {
 
 // Declare ListResultInternal a friend of ListResultInternalCommon for
 // construction.
-class ListResultInternalCommon;
+// class ListResultInternalCommon; // Removed
 
 // Contains the Desktop-specific implementation of ListResultInternal (stubs).
 class ListResultInternal {
@@ -77,7 +76,7 @@ class ListResultInternal {
   friend class firebase::storage::ListResult;
   // For ListResultInternalCommon's constructor and access to app_ via
   // storage_internal().
-  friend class ListResultInternalCommon;
+  // friend class ListResultInternalCommon; // Removed
 
   StorageInternal* storage_internal_;  // Not owned.
   // Desktop stubs don't actually store these, but defined to match constructor.

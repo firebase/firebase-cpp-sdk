@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@
 #include <memory> // For std::unique_ptr
 
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/common/storage_internal.h"
-// It's okay for platform specific internal headers to include common internal headers.
-#include "storage/src/common/list_result_internal_common.h"
+// #include "storage/src/common/storage_internal.h" // Removed
+#include "storage/src/ios/storage_ios.h" // Added for iOS StorageInternal
+// #include "storage/src/common/list_result_internal_common.h" // Removed
 #include "storage/src/ios/fir_storage_list_result_pointer.h" // For FIRStorageListResultPointer
 
 // Forward declare Obj-C types
@@ -44,7 +44,7 @@ class ListResult;
 namespace internal {
 
 // Declare ListResultInternal a friend of ListResultInternalCommon for construction.
-class ListResultInternalCommon;
+// class ListResultInternalCommon; // Removed
 
 // Contains the iOS-specific implementation of ListResultInternal.
 class ListResultInternal {
@@ -83,7 +83,7 @@ class ListResultInternal {
   friend class firebase::storage::ListResult;
   // For ListResultInternalCommon's constructor and access to app_ via
   // storage_internal().
-  friend class ListResultInternalCommon;
+  // friend class ListResultInternalCommon; // Removed
 
   // Converts an NSArray of FIRStorageReference objects to a C++ vector of
   // C++ StorageReference objects.
