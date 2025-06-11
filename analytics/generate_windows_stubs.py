@@ -116,8 +116,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
     header_guard = f"{HEADER_GUARD_PREFIX}{os.path.basename(output_h_path).upper().replace('.', '_')}_"
     with open(output_h_path, 'w', encoding='utf-8') as f:
         f.write(f"{COPYRIGHT_NOTICE}")
-        f.write(f"// Generated from {os.path.basename(header_file_path)}\n")
-        f.write(f"// This is a self-contained header file.\n\n")
+        f.write(f"// Generated from {os.path.basename(header_file_path)} by {os.path.basename(sys.argv[0])}\n\n")
         f.write(f"#ifndef {header_guard}\n")
         f.write(f"#define {header_guard}\n\n")
 
@@ -150,7 +149,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
     # --- Write the Source File (.c) ---
     with open(output_c_path, 'w', encoding='utf-8') as f:
         f.write(f"{COPYRIGHT_NOTICE}")
-        f.write(f"// Generated from {os.path.basename(header_file_path)}\n\n")
+        f.write(f"// Generated from {os.path.basename(header_file_path)} by {os.path.basename(sys.argv[0])}\n\n")
         f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(output_h_path)}"\n')
         f.write('#include <stddef.h> // For NULL\n\n')
         f.write("// --- Stub Function Definitions ---\n")

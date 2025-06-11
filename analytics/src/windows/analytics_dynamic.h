@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Generated from analytics.h
-// This is a self-contained header file.
+// Generated from analytics.h by generate_windows_stubs.py
 
 #ifndef FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DYNAMIC_H_
 #define FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DYNAMIC_H_

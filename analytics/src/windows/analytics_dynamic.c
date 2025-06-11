@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Generated from analytics.h
+// Generated from analytics.h by generate_windows_stubs.py
 
 #include "analytics/src/windows/analytics_dynamic.h"
 
