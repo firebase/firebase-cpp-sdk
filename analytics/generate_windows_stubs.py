@@ -129,7 +129,9 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write('extern "C" {\n')
         f.write("#endif\n\n")
         f.write("// --- Function Pointer Declarations ---\n")
+        f.write("// clang-format off\n")
         f.write("\n".join(extern_declarations))
+        f.write("\n// clang-format on\n")
         f.write("\n\n// --- Dynamic Loader Declaration for Windows ---\n")
         f.write("#if defined(_WIN32)\n")
         f.write('#include <windows.h> // For HMODULE\n')
@@ -151,7 +153,8 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write(f"{COPYRIGHT_NOTICE}")
         f.write(f"// Generated from {os.path.basename(header_file_path)} by {os.path.basename(sys.argv[0])}\n\n")
         f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(output_h_path)}"\n')
-        f.write('#include <stddef.h> // For NULL\n\n')
+        f.write('#include <stddef.h>\n\n')
+        f.write("// clang-format off\n\n")
         f.write("// --- Stub Function Definitions ---\n")
         f.write("\n\n".join(stub_functions))
         f.write("\n\n\n// --- Function Pointer Initializations ---\n")
@@ -183,6 +186,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         loader_lines.append('}\n')
         loader_lines.append('#endif // defined(_WIN32)\n')
         f.write('\n'.join(loader_lines))
+        f.write("// clang-format on\n")
 
     print(f"Successfully generated C source file: {output_c_path}")
 
