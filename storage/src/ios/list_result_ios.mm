@@ -19,10 +19,10 @@
 #import <Foundation/Foundation.h>
 
 #include "app/src/assert.h"
-#include "app/src/ios/c_string_manager.h" // For CStringManager
-#include "storage/src/ios/converter_ios.h" // For NSStringToStdString
-#include "storage/src/ios/storage_ios.h"   // For StorageInternal
-#include "storage/src/ios/storage_reference_ios.h" // For StorageReferenceInternal and FIRStorageReferencePointer
+#include "app/src/ios/c_string_manager.h"
+#include "storage/src/ios/converter_ios.h"
+#include "storage/src/ios/storage_ios.h"
+#include "storage/src/ios/storage_reference_ios.h"
 
 namespace firebase {
 namespace storage {

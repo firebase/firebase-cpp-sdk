@@ -77,9 +77,9 @@ ListResultInternal::ListResultInternal(StorageInternal* storage_internal,
 ListResultInternal::ListResultInternal(const ListResultInternal& other)
     : storage_internal_(other.storage_internal_),
       list_result_java_ref_(nullptr),
-      items_cache_(other.items_cache_),            // Copy cache
-      prefixes_cache_(other.prefixes_cache_),      // Copy cache
-      page_token_cache_(other.page_token_cache_),  // Copy cache
+      items_cache_(other.items_cache_),
+      prefixes_cache_(other.prefixes_cache_),
+      page_token_cache_(other.page_token_cache_),
       items_converted_(other.items_converted_),
       prefixes_converted_(other.prefixes_converted_),
       page_token_converted_(other.page_token_converted_) {
@@ -95,8 +95,7 @@ ListResultInternal& ListResultInternal::operator=(
   if (&other == this) {
     return *this;
   }
-  storage_internal_ =
-      other.storage_internal_;  // This is a raw pointer, just copy.
+  storage_internal_ = other.storage_internal_;
   FIREBASE_ASSERT(storage_internal_ != nullptr);
   JNIEnv* env = storage_internal_->app()->GetJNIEnv();
   if (list_result_java_ref_ != nullptr) {
@@ -106,7 +105,6 @@ ListResultInternal& ListResultInternal::operator=(
   if (other.list_result_java_ref_ != nullptr) {
     list_result_java_ref_ = env->NewGlobalRef(other.list_result_java_ref_);
   }
-  // Copy cache state
   items_cache_ = other.items_cache_;
   prefixes_cache_ = other.prefixes_cache_;
   page_token_cache_ = other.page_token_cache_;

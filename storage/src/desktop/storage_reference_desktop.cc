@@ -28,10 +28,10 @@
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
-#include "firebase/storage/list_result.h"  // Added for ListResult
+#include "firebase/storage/list_result.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
-#include "storage/src/desktop/list_result_desktop.h"  // Added for ListResultInternal
+#include "storage/src/desktop/list_result_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"

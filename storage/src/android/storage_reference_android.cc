@@ -111,7 +111,7 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
-  kStorageReferenceFnList,  // New enum value for List operations
+  kStorageReferenceFnList,
   kStorageReferenceFnCount,
 };
 
@@ -122,7 +122,7 @@ bool StorageReferenceInternal::Initialize(App* app) {
     return false;
   }
   if (!ListResultInternal::Initialize(app)) {
-    storage_reference::ReleaseClass(env);  // Release what was cached
+    storage_reference::ReleaseClass(env);
     return false;
   }
   return true;

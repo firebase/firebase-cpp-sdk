@@ -32,7 +32,6 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-// Should reads and writes share thier futures?
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
   kStorageReferenceFnGetBytes,
@@ -42,7 +41,7 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
-  kStorageReferenceFnList, // Added for List operations
+  kStorageReferenceFnList,
   kStorageReferenceFnCount,
 };
 
@@ -443,7 +442,7 @@ Future<ListResult> StorageReferenceInternal::List(int32_t max_results) {
   ReferenceCountedFutureImpl* future_impl = future();
   SafeFutureHandle<ListResult> handle =
       future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
-  StorageInternal* storage_internal = storage_; // Capture for block
+  StorageInternal* storage_internal = storage_;
 
   FIRStorageVoidListResultError completion_block =
       ^(FIRStorageListResult* _Nullable list_result_objc, NSError* _Nullable error) {
@@ -470,7 +469,7 @@ Future<ListResult> StorageReferenceInternal::List(int32_t max_results,
   ReferenceCountedFutureImpl* future_impl = future();
   SafeFutureHandle<ListResult> handle =
       future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
-  StorageInternal* storage_internal = storage_; // Capture for block
+  StorageInternal* storage_internal = storage_;
 
   NSString* page_token_objc = page_token ? @(page_token) : nil;
 
@@ -500,7 +499,7 @@ Future<ListResult> StorageReferenceInternal::ListAll() {
   ReferenceCountedFutureImpl* future_impl = future();
   SafeFutureHandle<ListResult> handle =
       future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
-  StorageInternal* storage_internal = storage_; // Capture for block
+  StorageInternal* storage_internal = storage_;
 
   FIRStorageVoidListResultError completion_block =
       ^(FIRStorageListResult* _Nullable list_result_objc, NSError* _Nullable error) {

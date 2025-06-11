@@ -15,8 +15,8 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #include "app/src/assert.h"
-#include "firebase/storage/list_result.h"  // Required for ListResult
-#include "storage/src/include/firebase/storage/future_details.h"  // Required for Future<ListResult>
+#include "firebase/storage/list_result.h"
+#include "storage/src/include/firebase/storage/future_details.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -270,10 +270,6 @@ Future<ListResult> StorageReference::ListAll() {
 
 Future<ListResult> StorageReference::ListLastResult() {
   if (!internal_) return Future<ListResult>();
-  // Assuming kStorageReferenceFnList will be defined in platform-specific
-  // internal headers and accessible here.
-  // This also assumes internal_->future() correctly provides access to the
-  // FutureManager for ListResult.
   return static_cast<const Future<ListResult>&>(
       internal_->future()->LastResult(kStorageReferenceFnList));
 }

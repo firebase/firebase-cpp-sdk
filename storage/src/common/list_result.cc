@@ -16,23 +16,21 @@
 
 #include <assert.h>
 
-// #include "storage/src/common/list_result_internal_common.h" // Removed
-#include "app/src/cleanup_notifier.h"      // For CleanupNotifier
-#include "app/src/include/firebase/app.h"  // For App, LogDebug
-#include "app/src/util.h"                  // For LogDebug
-// #include "storage/src/common/storage_internal.h" // Removed
-#include "storage/src/common/storage_reference_internal.h"  // For StorageReference constructor from internal
+#include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/app.h"
+#include "app/src/util.h"
+#include "storage/src/common/storage_reference_internal.h"
 
 // Platform specific ListResultInternal definitions
 #if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/android/list_result_android.h"
-#include "storage/src/android/storage_android.h"  // Added for StorageInternal
+#include "storage/src/android/storage_android.h"
 #elif FIREBASE_PLATFORM_IOS
 #include "storage/src/ios/list_result_ios.h"
-#include "storage/src/ios/storage_ios.h"  // Added for StorageInternal
+#include "storage/src/ios/storage_ios.h"
 #elif FIREBASE_PLATFORM_DESKTOP
 #include "storage/src/desktop/list_result_desktop.h"
-#include "storage/src/desktop/storage_desktop.h"  // Added for StorageInternal
+#include "storage/src/desktop/storage_desktop.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_DESKTOP
 
@@ -40,7 +38,6 @@ namespace firebase {
 namespace storage {
 
 using internal::ListResultInternal;
-// using internal::ListResultInternalCommon; // Removed
 
 // Global function to be called by CleanupNotifier
 // This function is responsible for cleaning up the internal state of a

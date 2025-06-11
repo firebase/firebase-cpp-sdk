@@ -17,13 +17,11 @@
 
 #include <string>
 #include <vector>
-#include <memory> // For std::unique_ptr
+#include <memory>
 
 #include "firebase/storage/storage_reference.h"
-// #include "storage/src/common/storage_internal.h" // Removed
-#include "storage/src/ios/storage_ios.h" // Added for iOS StorageInternal
-// #include "storage/src/common/list_result_internal_common.h" // Removed
-#include "storage/src/ios/fir_storage_list_result_pointer.h" // For FIRStorageListResultPointer
+#include "storage/src/ios/storage_ios.h"
+#include "storage/src/ios/fir_storage_list_result_pointer.h"
 
 // Forward declare Obj-C types
 #ifdef __OBJC__
@@ -42,9 +40,6 @@ namespace storage {
 class ListResult;
 
 namespace internal {
-
-// Declare ListResultInternal a friend of ListResultInternalCommon for construction.
-// class ListResultInternalCommon; // Removed
 
 // Contains the iOS-specific implementation of ListResultInternal.
 class ListResultInternal {
@@ -81,9 +76,6 @@ class ListResultInternal {
 
  private:
   friend class firebase::storage::ListResult;
-  // For ListResultInternalCommon's constructor and access to app_ via
-  // storage_internal().
-  // friend class ListResultInternalCommon; // Removed
 
   // Converts an NSArray of FIRStorageReference objects to a C++ vector of
   // C++ StorageReference objects.

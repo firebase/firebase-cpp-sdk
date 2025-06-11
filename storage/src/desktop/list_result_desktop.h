@@ -19,9 +19,7 @@
 #include <vector>
 
 #include "firebase/storage/storage_reference.h"
-// #include "storage/src/common/storage_internal.h" // Removed
-#include "storage/src/desktop/storage_desktop.h"  // Added for Desktop StorageInternal
-// #include "storage/src/common/list_result_internal_common.h" // Removed
+#include "storage/src/desktop/storage_desktop.h"
 
 namespace firebase {
 namespace storage {
@@ -30,10 +28,6 @@ namespace storage {
 class ListResult;
 
 namespace internal {
-
-// Declare ListResultInternal a friend of ListResultInternalCommon for
-// construction.
-// class ListResultInternalCommon; // Removed
 
 // Contains the Desktop-specific implementation of ListResultInternal (stubs).
 class ListResultInternal {
@@ -74,9 +68,6 @@ class ListResultInternal {
 
  private:
   friend class firebase::storage::ListResult;
-  // For ListResultInternalCommon's constructor and access to app_ via
-  // storage_internal().
-  // friend class ListResultInternalCommon; // Removed
 
   StorageInternal* storage_internal_;  // Not owned.
   // Desktop stubs don't actually store these, but defined to match constructor.
