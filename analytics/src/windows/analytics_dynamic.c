@@ -188,9 +188,11 @@ void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled) =
 
 // --- Dynamic Loader Function for Windows ---
 #if defined(_WIN32)
-void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
+int FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
+  int count = 0;
+
   if (!dll_handle) {
-    return;
+    return count;
   }
 
   FARPROC proc_GoogleAnalytics_Item_Create =
@@ -198,6 +200,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
   if (proc_GoogleAnalytics_Item_Create) {
     ptr_GoogleAnalytics_Item_Create =
         (GoogleAnalytics_Item * (*)()) proc_GoogleAnalytics_Item_Create;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_Item_InsertInt =
       GetProcAddress(dll_handle, "GoogleAnalytics_Item_InsertInt");
@@ -205,6 +208,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_Item_InsertInt =
         (void (*)(GoogleAnalytics_Item* item, const char* key,
                   int64_t value))proc_GoogleAnalytics_Item_InsertInt;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_Item_InsertDouble =
       GetProcAddress(dll_handle, "GoogleAnalytics_Item_InsertDouble");
@@ -212,6 +216,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_Item_InsertDouble =
         (void (*)(GoogleAnalytics_Item* item, const char* key,
                   double value))proc_GoogleAnalytics_Item_InsertDouble;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_Item_InsertString =
       GetProcAddress(dll_handle, "GoogleAnalytics_Item_InsertString");
@@ -219,18 +224,21 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_Item_InsertString =
         (void (*)(GoogleAnalytics_Item* item, const char* key,
                   const char* value))proc_GoogleAnalytics_Item_InsertString;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_Item_Destroy =
       GetProcAddress(dll_handle, "GoogleAnalytics_Item_Destroy");
   if (proc_GoogleAnalytics_Item_Destroy) {
     ptr_GoogleAnalytics_Item_Destroy =
         (void (*)(GoogleAnalytics_Item* item))proc_GoogleAnalytics_Item_Destroy;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_ItemVector_Create =
       GetProcAddress(dll_handle, "GoogleAnalytics_ItemVector_Create");
   if (proc_GoogleAnalytics_ItemVector_Create) {
     ptr_GoogleAnalytics_ItemVector_Create = (GoogleAnalytics_ItemVector * (*)())
         proc_GoogleAnalytics_ItemVector_Create;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_ItemVector_InsertItem =
       GetProcAddress(dll_handle, "GoogleAnalytics_ItemVector_InsertItem");
@@ -238,6 +246,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_ItemVector_InsertItem = (void (*)(
         GoogleAnalytics_ItemVector* item_vector,
         GoogleAnalytics_Item* item))proc_GoogleAnalytics_ItemVector_InsertItem;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_ItemVector_Destroy =
       GetProcAddress(dll_handle, "GoogleAnalytics_ItemVector_Destroy");
@@ -245,6 +254,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_ItemVector_Destroy =
         (void (*)(GoogleAnalytics_ItemVector* item_vector))
             proc_GoogleAnalytics_ItemVector_Destroy;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_EventParameters_Create =
       GetProcAddress(dll_handle, "GoogleAnalytics_EventParameters_Create");
@@ -252,6 +262,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_EventParameters_Create =
         (GoogleAnalytics_EventParameters * (*)())
             proc_GoogleAnalytics_EventParameters_Create;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_EventParameters_InsertInt =
       GetProcAddress(dll_handle, "GoogleAnalytics_EventParameters_InsertInt");
@@ -259,6 +270,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_EventParameters_InsertInt = (void (*)(
         GoogleAnalytics_EventParameters* event_parameter_map, const char* key,
         int64_t value))proc_GoogleAnalytics_EventParameters_InsertInt;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_EventParameters_InsertDouble = GetProcAddress(
       dll_handle, "GoogleAnalytics_EventParameters_InsertDouble");
@@ -266,6 +278,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_EventParameters_InsertDouble = (void (*)(
         GoogleAnalytics_EventParameters* event_parameter_map, const char* key,
         double value))proc_GoogleAnalytics_EventParameters_InsertDouble;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_EventParameters_InsertString = GetProcAddress(
       dll_handle, "GoogleAnalytics_EventParameters_InsertString");
@@ -273,6 +286,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_EventParameters_InsertString = (void (*)(
         GoogleAnalytics_EventParameters* event_parameter_map, const char* key,
         const char* value))proc_GoogleAnalytics_EventParameters_InsertString;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_EventParameters_InsertItemVector =
       GetProcAddress(dll_handle,
@@ -282,6 +296,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
         (void (*)(GoogleAnalytics_EventParameters* event_parameter_map,
                   const char* key, GoogleAnalytics_ItemVector* value))
             proc_GoogleAnalytics_EventParameters_InsertItemVector;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_EventParameters_Destroy =
       GetProcAddress(dll_handle, "GoogleAnalytics_EventParameters_Destroy");
@@ -289,6 +304,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_EventParameters_Destroy =
         (void (*)(GoogleAnalytics_EventParameters* event_parameter_map))
             proc_GoogleAnalytics_EventParameters_Destroy;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_LogEvent =
       GetProcAddress(dll_handle, "GoogleAnalytics_LogEvent");
@@ -296,6 +312,7 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_LogEvent = (void (*)(
         const char* name, GoogleAnalytics_EventParameters* parameters))
         proc_GoogleAnalytics_LogEvent;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_SetUserProperty =
       GetProcAddress(dll_handle, "GoogleAnalytics_SetUserProperty");
@@ -303,24 +320,66 @@ void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     ptr_GoogleAnalytics_SetUserProperty =
         (void (*)(const char* name,
                   const char* value))proc_GoogleAnalytics_SetUserProperty;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_SetUserId =
       GetProcAddress(dll_handle, "GoogleAnalytics_SetUserId");
   if (proc_GoogleAnalytics_SetUserId) {
     ptr_GoogleAnalytics_SetUserId =
         (void (*)(const char* user_id))proc_GoogleAnalytics_SetUserId;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_ResetAnalyticsData =
       GetProcAddress(dll_handle, "GoogleAnalytics_ResetAnalyticsData");
   if (proc_GoogleAnalytics_ResetAnalyticsData) {
     ptr_GoogleAnalytics_ResetAnalyticsData =
         (void (*)())proc_GoogleAnalytics_ResetAnalyticsData;
+    count++;
   }
   FARPROC proc_GoogleAnalytics_SetAnalyticsCollectionEnabled = GetProcAddress(
       dll_handle, "GoogleAnalytics_SetAnalyticsCollectionEnabled");
   if (proc_GoogleAnalytics_SetAnalyticsCollectionEnabled) {
     ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled = (void (*)(
         bool enabled))proc_GoogleAnalytics_SetAnalyticsCollectionEnabled;
+    count++;
   }
+
+  return count;
 }
+
+void FirebaseAnalytics_UnloadAnalyticsFunctions(void) {
+  ptr_GoogleAnalytics_Item_Create = &Stub_GoogleAnalytics_Item_Create;
+  ptr_GoogleAnalytics_Item_InsertInt = &Stub_GoogleAnalytics_Item_InsertInt;
+  ptr_GoogleAnalytics_Item_InsertDouble =
+      &Stub_GoogleAnalytics_Item_InsertDouble;
+  ptr_GoogleAnalytics_Item_InsertString =
+      &Stub_GoogleAnalytics_Item_InsertString;
+  ptr_GoogleAnalytics_Item_Destroy = &Stub_GoogleAnalytics_Item_Destroy;
+  ptr_GoogleAnalytics_ItemVector_Create =
+      &Stub_GoogleAnalytics_ItemVector_Create;
+  ptr_GoogleAnalytics_ItemVector_InsertItem =
+      &Stub_GoogleAnalytics_ItemVector_InsertItem;
+  ptr_GoogleAnalytics_ItemVector_Destroy =
+      &Stub_GoogleAnalytics_ItemVector_Destroy;
+  ptr_GoogleAnalytics_EventParameters_Create =
+      &Stub_GoogleAnalytics_EventParameters_Create;
+  ptr_GoogleAnalytics_EventParameters_InsertInt =
+      &Stub_GoogleAnalytics_EventParameters_InsertInt;
+  ptr_GoogleAnalytics_EventParameters_InsertDouble =
+      &Stub_GoogleAnalytics_EventParameters_InsertDouble;
+  ptr_GoogleAnalytics_EventParameters_InsertString =
+      &Stub_GoogleAnalytics_EventParameters_InsertString;
+  ptr_GoogleAnalytics_EventParameters_InsertItemVector =
+      &Stub_GoogleAnalytics_EventParameters_InsertItemVector;
+  ptr_GoogleAnalytics_EventParameters_Destroy =
+      &Stub_GoogleAnalytics_EventParameters_Destroy;
+  ptr_GoogleAnalytics_LogEvent = &Stub_GoogleAnalytics_LogEvent;
+  ptr_GoogleAnalytics_SetUserProperty = &Stub_GoogleAnalytics_SetUserProperty;
+  ptr_GoogleAnalytics_SetUserId = &Stub_GoogleAnalytics_SetUserId;
+  ptr_GoogleAnalytics_ResetAnalyticsData =
+      &Stub_GoogleAnalytics_ResetAnalyticsData;
+  ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled =
+      &Stub_GoogleAnalytics_SetAnalyticsCollectionEnabled;
+}
+
 #endif  // defined(_WIN32)

@@ -112,7 +112,13 @@ extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 // --- Dynamic Loader Declaration for Windows ---
 #if defined(_WIN32)
 #include <windows.h>  // For HMODULE
-void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle);
+// Load Google Analytics functions from the given DLL handle into function
+// pointers. Returns the number of functions successfully loaded (out of 19).
+int FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle);
+
+// Reset all function pointers back to stubs.
+void FirebaseAnalytics_UnloadAnalyticsFunctions(void);
+
 #endif  // defined(_WIN32)
 
 #ifdef __cplusplus

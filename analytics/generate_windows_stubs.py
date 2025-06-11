@@ -134,7 +134,11 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write("\n\n// --- Dynamic Loader Declaration for Windows ---\n")
         f.write("#if defined(_WIN32)\n")
         f.write('#include <windows.h> // For HMODULE\n')
-        f.write("void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle);\n")
+        f.write('// Load Google Analytics functions from the given DLL handle into function pointers.\n')
+        f.write(f'// Returns the number of functions successfully loaded (out of {len(function_details_for_loader)}).\n')
+        f.write("int FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle);\n\n")
+        f.write('// Reset all function pointers back to stubs.\n')
+        f.write("void FirebaseAnalytics_UnloadAnalyticsFunctions(void);\n\n")
         f.write("#endif // defined(_WIN32)\n")
         f.write("\n#ifdef __cplusplus\n")
         f.write("}\n")
@@ -156,9 +160,10 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write("\n\n// --- Dynamic Loader Function for Windows ---\n")
         loader_lines = [
             '#if defined(_WIN32)',
-            'void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {',
+            'int FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {',
+            '    int count = 0;\n',
             '    if (!dll_handle) {',
-            '        return;',
+            '        return count;',
             '    }\n'
         ]
         for name, ret_type, params in function_details_for_loader:
@@ -167,10 +172,16 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
                 f'    FARPROC proc_{name} = GetProcAddress(dll_handle, "{name}");',
                 f'    if (proc_{name}) {{',
                 f'        ptr_{name} = {pointer_type_cast}proc_{name};',
+                f'        count++;',
                 f'    }}'
             ]
             loader_lines.extend(proc_check)
-        loader_lines.append('\n}')
+        loader_lines.append('\n    return count;')
+        loader_lines.append('}\n')
+        loader_lines.append('void FirebaseAnalytics_UnloadAnalyticsFunctions(void) {')
+        for name, ret_type, params in function_details_for_loader:
+            loader_lines.append(f'    ptr_{name} = &Stub_{name};');
+        loader_lines.append('}\n')
         loader_lines.append('#endif // defined(_WIN32)\n')
         f.write('\n'.join(loader_lines))
 
