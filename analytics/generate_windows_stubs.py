@@ -5,15 +5,15 @@ import os
 import re
 import sys
 
-HEADER_GUARD_PREFIX = "FIREBASE_ANALYTICS_"
+HEADER_GUARD_PREFIX = "FIREBASE_ANALYTICS_SRC_WINDOWS_"
 INCLUDE_PATH = "src/windows"
 INCLUDE_PREFIX = "analytics/" + INCLUDE_PATH
 
 def generate_function_pointers(header_file_path, output_h_path, output_c_path):
     """
-    Parses a C header file to generate a header with extern function pointer
-    declarations and a source file with stub functions, initialized pointers,
-    and a dynamic loading function for Windows.
+    Parses a C header file to generate a self-contained header with typedefs,
+    extern function pointer declarations, and a source file with stub functions,
+    initialized pointers, and a dynamic loading function for Windows.
 
     Args:
         header_file_path (str): The path to the input C header file.
@@ -28,11 +28,19 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         print(f"Error: Header file not found at '{header_file_path}'")
         return
 
+    # --- Extract necessary definitions from the original header ---
+
+    # Find all standard includes (e.g., <stdint.h>)
+    includes = re.findall(r"#include\s+<.*?>", header_content)
+
+    # Find all typedefs, including their documentation comments
+    typedefs = re.findall(r"/\*\*(?:[\s\S]*?)\*/\s*typedef[\s\S]*?;\s*", header_content)
+
+    # --- Extract function prototypes ---
     function_pattern = re.compile(
         r"ANALYTICS_API\s+([\w\s\*]+?)\s+(\w+)\s*\((.*?)\);",
         re.DOTALL
     )
-
     matches = function_pattern.finditer(header_content)
 
     extern_declarations = []
@@ -45,18 +53,15 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         function_name = match.group(2).strip()
         params_str = match.group(3).strip()
         
-        # Clean up newlines and extra spaces for declarations
         cleaned_params_for_decl = re.sub(r'\s+', ' ', params_str) if params_str else ""
-
-        # --- Prepare for Stub and Pointer Initialization ---
         stub_name = f"Stub_{function_name}"
 
-        # Generate the return statement for the stub
+        # Generate return statement for the stub
         if "void" in return_type:
             return_statement = "    // No return value."
         elif "*" in return_type:
             return_statement = "    return NULL;"
-        else:
+        else: # bool, int64_t, etc.
             return_statement = "    return 0;"
             
         stub_function = (
@@ -67,26 +72,29 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         )
         stub_functions.append(stub_function)
 
-        # Create the extern declaration for the header file
         declaration = f"extern {return_type} (*ptr_{function_name})({cleaned_params_for_decl});"
         extern_declarations.append(declaration)
 
-        # Create the initialized pointer definition for the source file
         pointer_init = f"{return_type} (*ptr_{function_name})({cleaned_params_for_decl}) = &{stub_name};"
         pointer_initializations.append(pointer_init)
         
-        # Collect details for the dynamic loader function
         function_details_for_loader.append((function_name, return_type, cleaned_params_for_decl))
 
     print(f"Found {len(pointer_initializations)} functions. Generating output files...")
 
-    # --- Write the Header File (.h) ---
-    header_guard = HEADER_GUARD_PREFIX + f"{os.path.basename(output_h_path).upper().replace('.', '_')}_"
+    # --- Write the self-contained Header File (.h) ---
+    header_guard = f"{HEADER_GUARD_PREFIX}{os.path.basename(output_h_path).upper().replace('.', '_')}_"
     with open(output_h_path, 'w', encoding='utf-8') as f:
-        f.write(f"// Generated from {os.path.basename(header_file_path)}\n\n")
+        f.write(f"// Generated from {os.path.basename(header_file_path)}\n")
+        f.write(f"// This is a self-contained header file.\n\n")
         f.write(f"#ifndef {header_guard}\n")
         f.write(f"#define {header_guard}\n\n")
-        f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(header_file_path)}"\n\n')
+
+        f.write("// --- Copied from original header ---\n")
+        f.write("\n".join(includes) + "\n\n")
+        f.write("".join(typedefs))
+        f.write("// --- End of copied section ---\n\n")
+        
         f.write("#ifdef __cplusplus\n")
         f.write('extern "C" {\n')
         f.write("#endif\n\n")
@@ -108,7 +116,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
     with open(output_c_path, 'w', encoding='utf-8') as f:
         f.write(f"// Generated from {os.path.basename(header_file_path)}\n\n")
         f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(output_h_path)}"\n')
-        f.write('#include <stddef.h>\n\n')
+        f.write('#include <stddef.h> // For NULL\n\n')
         f.write("// --- Stub Function Definitions ---\n")
         f.write("\n\n".join(stub_functions))
         f.write("\n\n\n// --- Function Pointer Initializations ---\n")

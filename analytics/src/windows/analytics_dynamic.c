@@ -1,7 +1,7 @@
 // Generated from analytics_windows.h
 
 #include "analytics/src/windowsanalytics_dynamic.h"
-#include <stddef.h>
+#include <stddef.h> // For NULL
 
 // --- Stub Function Definitions ---
 // Stub for GoogleAnalytics_Item_Create

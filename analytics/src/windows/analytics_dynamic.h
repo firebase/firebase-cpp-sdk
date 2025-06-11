@@ -1,9 +1,54 @@
 // Generated from analytics_windows.h
+// This is a self-contained header file.
 
-#ifndef FIREBASE_ANALYTICS_ANALYTICS_DYNAMIC_H_
-#define FIREBASE_ANALYTICS_ANALYTICS_DYNAMIC_H_
+#ifndef FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DYNAMIC_H_
+#define FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DYNAMIC_H_
 
-#include "analytics/src/windowsanalytics_windows.h"
+// --- Copied from original header ---
+#include <stdint.h>
+
+/**
+ * @brief Opaque type for an item.
+ *
+ * This type is an opaque object that represents an item in an item vector.
+ *
+ * The caller is responsible for creating the item using the
+ * GoogleAnalytics_Item_Create() function, and destroying it using the
+ * GoogleAnalytics_Item_Destroy() function, unless it has been added to an
+ * item vector, in which case it will be destroyed at that time.
+ */
+typedef struct GoogleAnalytics_Item_Opaque GoogleAnalytics_Item;
+
+/**
+ * @brief Opaque type for an item vector.
+ *
+ * This type is an opaque object that represents a list of items. It is
+ * used to pass item vectors to the
+ * GoogleAnalytics_EventParameters_InsertItemVector() function.
+ *
+ * The caller is responsible for creating the item vector using the
+ * GoogleAnalytics_ItemVector_Create() function, and destroying it using the
+ * GoogleAnalytics_ItemVector_Destroy() function, unless it has been added
+ * to an event parameter map, in which case it will be destroyed at that time.
+ */
+typedef struct GoogleAnalytics_ItemVector_Opaque GoogleAnalytics_ItemVector;
+
+/**
+ * @brief Opaque type for an event parameter map.
+ *
+ * This type is an opaque object that represents a dictionary of event
+ * parameters. It is used to pass event parameters to the
+ * GoogleAnalytics_LogEvent() function.
+ *
+ * The caller is responsible for creating the event parameter map using the
+ * GoogleAnalytics_EventParameters_Create() function, and destroying it using
+ * the GoogleAnalytics_EventParameters_Destroy() function, unless it has been
+ * logged, in which case it will be destroyed automatically.
+ */
+typedef struct GoogleAnalytics_EventParameters_Opaque
+    GoogleAnalytics_EventParameters;
+
+// --- End of copied section ---
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,4 +85,4 @@ void LoadAnalyticsFunctions(HMODULE dll_handle);
 }
 #endif
 
-#endif  // FIREBASE_ANALYTICS_ANALYTICS_DYNAMIC_H_
+#endif  // FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DYNAMIC_H_
