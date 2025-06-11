@@ -103,7 +103,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write("\n\n// --- Dynamic Loader Declaration for Windows ---\n")
         f.write("#if defined(_WIN32)\n")
         f.write('#include <windows.h> // For HMODULE\n')
-        f.write("void LoadAnalyticsFunctions(HMODULE dll_handle);\n")
+        f.write("void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle);\n")
         f.write("#endif // defined(_WIN32)\n")
         f.write("\n#ifdef __cplusplus\n")
         f.write("}\n")
@@ -124,7 +124,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write("\n\n// --- Dynamic Loader Function for Windows ---\n")
         loader_lines = [
             '#if defined(_WIN32)',
-            'void LoadAnalyticsFunctions(HMODULE dll_handle) {',
+            'void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {',
             '    if (!dll_handle) {',
             '        return;',
             '    }\n'

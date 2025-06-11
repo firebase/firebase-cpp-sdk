@@ -78,7 +78,7 @@ extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 // --- Dynamic Loader Declaration for Windows ---
 #if defined(_WIN32)
 #include <windows.h> // For HMODULE
-void LoadAnalyticsFunctions(HMODULE dll_handle);
+void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle);
 #endif // defined(_WIN32)
 
 #ifdef __cplusplus

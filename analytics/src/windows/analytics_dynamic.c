@@ -134,7 +134,7 @@ void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled) = &Stub_
 
 // --- Dynamic Loader Function for Windows ---
 #if defined(_WIN32)
-void LoadAnalyticsFunctions(HMODULE dll_handle) {
+void FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     if (!dll_handle) {
         return;
     }
