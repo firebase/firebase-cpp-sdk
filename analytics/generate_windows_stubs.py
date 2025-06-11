@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Generate stubs and function pointers for Windows SDK"""
 
 import argparse
 import os
@@ -6,8 +21,23 @@ import re
 import sys
 
 HEADER_GUARD_PREFIX = "FIREBASE_ANALYTICS_SRC_WINDOWS_"
-INCLUDE_PATH = "src/windows"
+INCLUDE_PATH = "src/windows/"
 INCLUDE_PREFIX = "analytics/" + INCLUDE_PATH
+COPYRIGHT_NOTICE = """// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+"""
 
 def generate_function_pointers(header_file_path, output_h_path, output_c_path):
     """
@@ -85,6 +115,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
     # --- Write the self-contained Header File (.h) ---
     header_guard = f"{HEADER_GUARD_PREFIX}{os.path.basename(output_h_path).upper().replace('.', '_')}_"
     with open(output_h_path, 'w', encoding='utf-8') as f:
+        f.write(f"{COPYRIGHT_NOTICE}")
         f.write(f"// Generated from {os.path.basename(header_file_path)}\n")
         f.write(f"// This is a self-contained header file.\n\n")
         f.write(f"#ifndef {header_guard}\n")
@@ -114,6 +145,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
 
     # --- Write the Source File (.c) ---
     with open(output_c_path, 'w', encoding='utf-8') as f:
+        f.write(f"{COPYRIGHT_NOTICE}")
         f.write(f"// Generated from {os.path.basename(header_file_path)}\n\n")
         f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(output_h_path)}"\n')
         f.write('#include <stddef.h> // For NULL\n\n')
