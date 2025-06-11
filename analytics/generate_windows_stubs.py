@@ -151,7 +151,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--windows_header",
-        default = os.path.join(os.path.dirname(sys.argv[0]), INCLUDE_PATH, "analytics_windows.h"),
+        default = os.path.join(os.path.dirname(sys.argv[0]), "windows/include/public/c/analytics.h"),
         #required=True,
         help="Path to the input C header file."
     )

@@ -1,4 +1,4 @@
-// Generated from analytics_windows.h
+// Generated from analytics.h
 // This is a self-contained header file.
 
 #ifndef FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DYNAMIC_H_

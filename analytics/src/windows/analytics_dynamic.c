@@ -1,4 +1,4 @@
-// Generated from analytics_windows.h
+// Generated from analytics.h
 
 #include "analytics/src/windowsanalytics_dynamic.h"
 #include <stddef.h> // For NULL
