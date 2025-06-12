@@ -15,6 +15,7 @@
 #include "analytics/src/windows/analytics_windows.h"
 #include "app/src/include/firebase/app.h"
 #include "analytics/src/include/firebase/analytics.h" // Path confirmed to remain as is
+#include "analytics/src/common/analytics_common.h"
 #include "common/src/include/firebase/variant.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/log.h"
@@ -24,20 +25,18 @@
 #include <string>
 #include <map>
 
-// Error code for Analytics features not supported on this platform. (Will be removed)
-// const int kAnalyticsErrorNotSupportedOnPlatform = 1; // Or a more specific range
-
 namespace firebase {
 namespace analytics {
 
-namespace internal { // Or directly in firebase::analytics if that's the pattern
-// Functions that return a Future.
-enum AnalyticsFn {
-  kAnalyticsFn_GetAnalyticsInstanceId = 0,
-  kAnalyticsFn_GetSessionId,
-  kAnalyticsFnCount // Must be the last enum value.
-};
-} // namespace internal
+// (Local AnalyticsFn enum removed, assuming it's now provided by analytics_common.h)
+// namespace internal {
+// // Functions that return a Future.
+// enum AnalyticsFn {
+//   kAnalyticsFn_GetAnalyticsInstanceId = 0,
+//   kAnalyticsFn_GetSessionId,
+//   kAnalyticsFnCount // Must be the last enum value.
+// };
+// } // namespace internal
 
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
@@ -103,12 +102,8 @@ static void ConvertParametersToGAParams(
       GoogleAnalytics_EventParameters_InsertString(
           c_event_params, param.name, param.value.string_value());
     } else if (param.value.is_vector()) {
-      // Vector types for top-level event parameters are not directly supported for conversion
-      // to GoogleAnalytics_EventParameters on Desktop.
-      // The previous implementation attempted to interpret a vector of maps as an "Item Array",
-      // but the standard way to log an array of Items is via a single parameter (e.g., "items")
-      // whose value is a vector of firebase::analytics::Item objects (which are maps).
-      // For direct parameters, vector is an unsupported type.
+      // Vector types for top-level event parameters are not supported on Desktop.
+      // Only specific complex types (like a map processed into an ItemVector) are handled.
       LogError("Analytics: Parameter '%s' has type Vector, which is unsupported for event parameters on Desktop. Skipping.", param.name);
       continue; // Skip this parameter
     } else if (param.value.is_map()) {
@@ -143,32 +138,28 @@ static void ConvertParametersToGAParams(
           continue; // Skip this key-value pair, try next one in map
         }
 
-        // Store the original map's key as the "name" of this item property
-        GoogleAnalytics_Item_InsertString(c_item, "name", key_from_map.c_str());
+        // Removed: GoogleAnalytics_Item_InsertString(c_item, "name", key_from_map.c_str());
 
-        bool value_property_set = false;
+        bool item_had_valid_property = false;
         if (value_from_map.is_int64()) {
-          GoogleAnalytics_Item_InsertInt(c_item, "int_value", value_from_map.int64_value());
-          value_property_set = true;
+          GoogleAnalytics_Item_InsertInt(c_item, key_from_map.c_str(), value_from_map.int64_value());
+          item_had_valid_property = true;
         } else if (value_from_map.is_double()) {
-          GoogleAnalytics_Item_InsertDouble(c_item, "double_value", value_from_map.double_value());
-          value_property_set = true;
+          GoogleAnalytics_Item_InsertDouble(c_item, key_from_map.c_str(), value_from_map.double_value());
+          item_had_valid_property = true;
         } else if (value_from_map.is_string()) {
-          GoogleAnalytics_Item_InsertString(c_item, "string_value", value_from_map.string_value());
-          value_property_set = true;
+          GoogleAnalytics_Item_InsertString(c_item, key_from_map.c_str(), value_from_map.string_value());
+          item_had_valid_property = true;
         } else {
           LogWarning("Analytics: Value for key '%s' in map parameter '%s' has an unsupported Variant type. This key-value pair will be skipped.", key_from_map.c_str(), param.name);
-          // As "name" was set, but no value, this item is incomplete.
         }
 
-        if (value_property_set) {
+        if (item_had_valid_property) {
           GoogleAnalytics_ItemVector_InsertItem(c_item_vector, c_item);
           // c_item is now owned by c_item_vector
           item_vector_populated = true;
         } else {
-          // If value wasn't set (e.g. unsupported type), or c_item creation failed.
-          // (c_item creation failure is handled by 'continue' above, so this 'else'
-          // is mainly for when value_property_set is false due to unsupported type)
+          // If no valid property was set for this c_item (e.g., value type was unsupported)
           GoogleAnalytics_Item_Destroy(c_item);
         }
       }
