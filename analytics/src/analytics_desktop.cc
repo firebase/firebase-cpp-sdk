@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "analytics/src/windows/analytics_windows.h"
+#include "analytics/src/windows/analytics_dynamic.h"
 #include "app/src/include/firebase/app.h"
 #include "analytics/src/include/firebase/analytics.h"
-#include "analytics/src/common/analytics_common.h"
-#include "common/src/include/firebase/variant.h"
+#include "analytics/src/analytics_common.h"
+#include "app/src/include/firebase/variant.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/log.h"
 #include "app/src/future_manager.h" // For FutureData
@@ -24,13 +24,36 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <sstream>
+
+#if defined(_WIN32)
+#include <windows.h>
+#endif  // defined(_WIN32)
 
 namespace firebase {
 namespace analytics {
 
+#if defined(_WIN32)
+#define ANALYTICS_DLL_DEFAULT_FILENAME "analytics_win.dll"
+const char *g_analytics_dll_filename = nullptr;
+static HMODULE g_analytics_dll = 0;
+
+void SetAnalyticsLibraryPath(const char* path) {
+  if (g_analytics_dll_filename) {
+    delete g_analytics_dll_filename;
+    g_analytics_dll_filename = nullptr;
+  }
+  if (path) {
+    g_analytics_dll_filename = new char[strlen(path)+1];
+    strcpy(g_analytics_dll_filename, path);
+  }
+}
+#endif
+
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
-static FutureData* g_future_data = nullptr;
+static bool g_initialized = false;
+static int g_fake_instance_id = 0;
 
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
@@ -40,22 +63,48 @@ void Initialize(const App& app) {
   // with other Firebase platforms.
   (void)app;
 
-  if (g_future_data) {
-    LogWarning("Analytics: Initialize() called when already initialized.");
-  } else {
-    g_future_data = new FutureData(internal::kAnalyticsFnCount);
+  g_initialized = true;
+  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::FutureData::Create();
+  g_fake_instance_id = 0;
+
+#if defined(_WIN32)
+  if (!g_analytics_dll) {
+    const char* dll_filename = g_analytics_dll_filename;
+    if (!dll_filename) dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
+    auto wFilename = toUtf16(dll_filename);
+    g_analytics_dll = LoadLibraryW(wFilename);
+    if (g_analytics_dll) {
+      LogInfo("Successfully loaded Analytics DLL %s", g_analytics_dll_filename);
+    } else {
+      LogError("Failed to load Analytics DLL %s", g_analytics_dll_filename);
+    }
   }
+  FirebaseAnalytics_LoadAnalyticsFunctions(g_analytics_dll);
+#endif
 }
+
+namespace internal {
+
+// Determine whether the analytics module is initialized.
+bool IsInitialized() { return g_initialized; }
+
+}  // namespace internal
 
 // Terminates the Analytics desktop API.
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
-  if (g_future_data) {
-    delete g_future_data;
-    g_future_data = nullptr;
-  } else {
-    LogWarning("Analytics: Terminate() called when not initialized or already terminated.");
+#if defined(_WIN32)
+  FirebaseAnalytics_UnloadAnalyticsFunctions();
+  if (g_analytics_dll) {
+    FreeLibrary(g_analytics_dll);
+    g_analytics_dll = 0;
   }
+#endif
+
+  internal::FutureData::Destroy();
+  internal::UnregisterTerminateOnDefaultAppDestroy();
+  g_initialized = false;
 }
 
 static void ConvertParametersToGAParams(
@@ -95,8 +144,8 @@ static void ConvertParametersToGAParams(
       // is set as the property's value.
       // All these GoogleAnalytics_Items are then bundled into a single
       // GoogleAnalytics_ItemVector, which is associated with the original parameter's name.
-      const std::map<std::string, firebase::Variant>& user_map =
-          param.value.map_value();
+      const std::map<firebase::Variant, firebase::Variant>& user_map =
+          param.value.map();
       if (user_map.empty()) {
         LogWarning("Analytics: Parameter '%s' is an empty map. Skipping.", param.name);
         continue; // Skip this parameter
@@ -111,7 +160,12 @@ static void ConvertParametersToGAParams(
 
       bool item_vector_populated = false;
       for (const auto& entry : user_map) {
-        const std::string& key_from_map = entry.first;
+        const firebase::Variant& key_variant = entry.first;
+	if (!key_variant.is_string()) {
+	  LogError("Analytics: Non-string map key found. Skipping.");
+	  continue;
+	}
+        const std::string& key_from_map = key_variant.mutable_string();
         const firebase::Variant& value_from_map = entry.second;
 
         GoogleAnalytics_Item* c_item = GoogleAnalytics_Item_Create();
@@ -164,6 +218,8 @@ static void ConvertParametersToGAParams(
 void LogEvent(const char* name,
               const Parameter* parameters,
               size_t number_of_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
   if (name == nullptr || name[0] == '\0') {
     LogError("Analytics: Event name cannot be null or empty.");
     return;
@@ -196,6 +252,8 @@ void LogEvent(const char* name,
 // characters long. Setting the value to `nullptr` or an empty string will
 // clear the user property. Must be UTF-8 encoded if not nullptr.
 void SetUserProperty(const char* name, const char* property) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
   if (name == nullptr || name[0] == '\0') {
     LogError("Analytics: User property name cannot be null or empty.");
     return;
@@ -216,6 +274,7 @@ void SetUserProperty(const char* name, const char* property) {
 // characters long, and UTF-8 encoded. Setting user_id to `nullptr` removes
 // the user ID.
 void SetUserId(const char* user_id) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   // The C API GoogleAnalytics_SetUserId allows user_id to be nullptr to clear the user ID.
   // The C API documentation also mentions: "The user ID must be non-empty and
   // no more than 256 characters long".
@@ -235,18 +294,24 @@ void SetUserId(const char* user_id) {
 //
 // @param[in] enabled A flag that enables or disables Analytics collection.
 void SetAnalyticsCollectionEnabled(bool enabled) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
   GoogleAnalytics_SetAnalyticsCollectionEnabled(enabled);
 }
 
 // Clears all analytics data for this app from the device and resets the app
 // instance ID.
 void ResetAnalyticsData() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
   GoogleAnalytics_ResetAnalyticsData();
 }
 
 // --- Stub Implementations for Unsupported Features ---
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
   // Not supported by the Windows C API.
   (void)consent_settings; // Mark as unused
   LogWarning("Analytics: SetConsent() is not supported and has no effect on Desktop.");
@@ -298,75 +363,79 @@ void LogEvent(const char* name, const char* parameter_name,
 
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)email_address;
   LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is not supported and has no effect on Desktop.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)phone_number;
   LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is not supported and has no effect on Desktop.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email_address) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_email_address;
   LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not supported and has no effect on Desktop.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone_number) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_phone_number;
   LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() is not supported and has no effect on Desktop.");
 }
 
 void SetSessionTimeoutDuration(int64_t milliseconds) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)milliseconds;
   LogWarning("Analytics: SetSessionTimeoutDuration() is not supported and has no effect on Desktop.");
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
-  LogWarning("Analytics: GetAnalyticsInstanceId() is not supported on Desktop.");
-  if (!g_future_data) {
-    LogError("Analytics: API not initialized; call Initialize() first.");
-    static firebase::Future<std::string> invalid_future; // Default invalid
-    if (!g_future_data) return invalid_future; // Or some other error future
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  auto* api = internal::FutureData::Get()->api();
+  const auto future_handle =
+      api->SafeAlloc<std::string>(internal::kAnalyticsFnGetAnalyticsInstanceId);
+  std::string instance_id = std::string("FakeAnalyticsInstanceId");
+  {
+    std::stringstream ss;
+    ss << g_fake_instance_id;
+    instance_id += ss.str();
   }
-  const auto handle =
-      g_future_data->CreateFuture(internal::kAnalyticsFn_GetAnalyticsInstanceId, nullptr);
-  g_future_data->CompleteFuture(handle, 0 /* error_code */, nullptr /* error_message_string */);
-  return g_future_data->GetFuture<std::string>(handle);
+  api->CompleteWithResult(future_handle, 0, "", instance_id);
+  LogWarning("Analytics: GetAnalyticsInstanceId() is not supported on Desktop.");
+  return Future<std::string>(api, future_handle.get());
 }
 
 Future<std::string> GetAnalyticsInstanceIdLastResult() {
-  if (!g_future_data) {
-    LogError("Analytics: API not initialized; call Initialize() first.");
-    static firebase::Future<std::string> invalid_future;
-    return invalid_future;
-  }
-  return g_future_data->LastResult<std::string>(internal::kAnalyticsFn_GetAnalyticsInstanceId);
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  LogWarning("Analytics: GetAnalyticsInstanceIdLastResult() is not supported on Desktop.");
+  return static_cast<const Future<std::string>&>(
+      internal::FutureData::Get()->api()->LastResult(
+          internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
 Future<int64_t> GetSessionId() {
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  auto* api = internal::FutureData::Get()->api();
+  const auto future_handle =
+      api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
+  int64_t session_id = 0x5E5510171D570BL;  // "SESSIONIDSTUB", kinda
+  api->CompleteWithResult(future_handle, 0, "", session_id);
   LogWarning("Analytics: GetSessionId() is not supported on Desktop.");
-  if (!g_future_data) {
-    LogError("Analytics: API not initialized; call Initialize() first.");
-    static firebase::Future<int64_t> invalid_future;
-    return invalid_future;
-  }
-  const auto handle =
-      g_future_data->CreateFuture(internal::kAnalyticsFn_GetSessionId, nullptr);
-  g_future_data->CompleteFuture(handle, 0 /* error_code */, nullptr /* error_message_string */);
-  return g_future_data->GetFuture<int64_t>(handle);
+  return Future<int64_t>(api, future_handle.get());
 }
 
 Future<int64_t> GetSessionIdLastResult() {
-  if (!g_future_data) {
-    LogError("Analytics: API not initialized; call Initialize() first.");
-    static firebase::Future<int64_t> invalid_future;
-    return invalid_future;
-  }
-  return g_future_data->LastResult<int64_t>(internal::kAnalyticsFn_GetSessionId);
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  LogWarning("Analytics: GetSessionIdLastResult() is not supported on Desktop.");
+  return static_cast<const Future<int64_t>&>(
+      internal::FutureData::Get()->api()->LastResult(
+          internal::kAnalyticsFnGetSessionId));
 }
 
 }  // namespace analytics

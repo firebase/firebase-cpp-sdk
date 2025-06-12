@@ -78,6 +78,11 @@ set(ios_SRCS
 set(stub_SRCS
     src/analytics_stub.cc)
 
+# Source files used by the stub implementation.
+set(desktop_SRCS
+    src/analytics_desktop.cc
+    src/windows/analytics_dynamic.c)
+
 if(ANDROID)
   set(analytics_platform_SRCS
       "${android_SRCS}")
@@ -86,7 +91,7 @@ elseif(IOS)
       "${ios_SRCS}")
 else()
   set(analytics_platform_SRCS
-      "${stub_SRCS}")
+      "${desktop_SRCS}")
 endif()
 
 add_library(firebase_analytics STATIC
