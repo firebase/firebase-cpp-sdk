@@ -34,18 +34,69 @@ namespace firebase {
 namespace analytics {
 
 #if defined(_WIN32)
-#define ANALYTICS_DLL_DEFAULT_FILENAME "analytics_win.dll"
-const char *g_analytics_dll_filename = nullptr;
+#define ANALYTICS_DLL_DEFAULT_FILENAME L"analytics_win.dll"
+std::wstring g_analytics_dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
 static HMODULE g_analytics_dll = 0;
 
+// Function to convert a UTF-8 string to a wide character (UTF-16) string.
+std::wstring Utf8ToWide(const std::string& utf8String) {
+    if (utf8String.empty()) {
+        return std::wstring();
+    }
+
+    // First, determine the required buffer size.
+    int wideCharCount = MultiByteToWideChar(
+        CP_UTF8,       // Source code page (UTF-8)
+        0,             // Flags
+        utf8String.c_str(), // Source UTF-8 string
+        -1,            // -1 indicates the string is null-terminated
+        nullptr,       // No buffer provided, we're calculating the size
+        0              // Requesting the buffer size
+    );
+
+    if (wideCharCount == 0) {
+        // Handle error: GetLastError() can provide more details.
+      LogError("Error determining buffer size for UTF-8 to wide char conversion.");
+        return std::wstring();
+    }
+
+    // Allocate the wide character string.
+    std::wstring wideString(wideCharCount, 0);
+
+    // Second, perform the actual conversion.
+    int result = MultiByteToWideChar(
+        CP_UTF8,       // Source code page (UTF-8)
+        0,             // Flags
+        utf8String.c_str(), // Source UTF-8 string
+        -1,            // -1 indicates the string is null-terminated
+        &wideString[0], // Pointer to the destination buffer
+        wideCharCount  // The size of the destination buffer
+    );
+
+    if (result == 0) {
+        // Handle error: GetLastError() can provide more details.
+      LogError("Error converting UTF-8 to wide char.");
+        return std::wstring();
+    }
+    
+    // The returned wideString from MultiByteToWideChar will be null-terminated, 
+    // but std::wstring handles its own length. We might need to resize it
+    // to remove the extra null character included in the count if we passed -1.
+    size_t pos = wideString.find(L'\0');
+    if (pos != std::wstring::npos) {
+        wideString.resize(pos);
+    }
+
+
+    return wideString;
+}
+
+  
 void SetAnalyticsLibraryPath(const char* path) {
-  if (g_analytics_dll_filename) {
-    delete g_analytics_dll_filename;
-    g_analytics_dll_filename = nullptr;
-  }
   if (path) {
-    g_analytics_dll_filename = new char[strlen(path)+1];
-    strcpy(g_analytics_dll_filename, path);
+    g_analytics_dll_filename = Utf8ToWide(path);
+  } else {
+    g_analytics_dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
   }
 }
 #endif
@@ -70,14 +121,11 @@ void Initialize(const App& app) {
 
 #if defined(_WIN32)
   if (!g_analytics_dll) {
-    const char* dll_filename = g_analytics_dll_filename;
-    if (!dll_filename) dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
-    auto wFilename = toUtf16(dll_filename);
-    g_analytics_dll = LoadLibraryW(wFilename);
+    g_analytics_dll = LoadLibraryW(g_analytics_dll_filename.c_str());
     if (g_analytics_dll) {
-      LogInfo("Successfully loaded Analytics DLL %s", g_analytics_dll_filename);
+      LogInfo("Successfully loaded Analytics DLL %ls", g_analytics_dll_filename);
     } else {
-      LogError("Failed to load Analytics DLL %s", g_analytics_dll_filename);
+      LogError("Failed to load Analytics DLL %ls", g_analytics_dll_filename);
     }
   }
   FirebaseAnalytics_LoadAnalyticsFunctions(g_analytics_dll);
@@ -305,6 +353,7 @@ void ResetAnalyticsData() {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 
   GoogleAnalytics_ResetAnalyticsData();
+  g_fake_instance_id++;
 }
 
 // --- Stub Implementations for Unsupported Features ---
@@ -318,13 +367,13 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
 }
 
 void LogEvent(const char* name) {
-  LogEvent(name, nullptr, 0);
+  LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
 }
 
 void LogEvent(const char* name, const char* parameter_name,
               const char* parameter_value) {
   if (parameter_name == nullptr) {
-    LogEvent(name, nullptr, 0);
+    LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }
   Parameter param(parameter_name, parameter_value);
@@ -334,7 +383,7 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const double parameter_value) {
   if (parameter_name == nullptr) {
-    LogEvent(name, nullptr, 0);
+    LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }
   Parameter param(parameter_name, parameter_value);
@@ -344,7 +393,7 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const int64_t parameter_value) {
   if (parameter_name == nullptr) {
-    LogEvent(name, nullptr, 0);
+    LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }
   Parameter param(parameter_name, parameter_value);
@@ -354,7 +403,7 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const int parameter_value) {
   if (parameter_name == nullptr) {
-    LogEvent(name, nullptr, 0);
+    LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }
   Parameter param(parameter_name, static_cast<int64_t>(parameter_value));
