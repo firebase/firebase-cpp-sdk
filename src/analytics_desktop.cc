@@ -28,16 +28,6 @@
 namespace firebase {
 namespace analytics {
 
-// (Local AnalyticsFn enum removed, assuming it's now provided by analytics_common.h)
-// namespace internal {
-// // Functions that return a Future.
-// enum AnalyticsFn {
-//   kAnalyticsFn_GetAnalyticsInstanceId = 0,
-//   kAnalyticsFn_GetSessionId,
-//   kAnalyticsFnCount // Must be the last enum value.
-// };
-// } // namespace internal
-
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
 static FutureData* g_future_data = nullptr;
@@ -48,12 +38,8 @@ void Initialize(const App& app) {
   // The 'app' parameter is not directly used by the underlying Google Analytics C API
   // for Windows for global initialization. It's included for API consistency
   // with other Firebase platforms.
-  (void)app; // Mark as unused if applicable by style guides.
+  (void)app;
 
-  // The underlying Google Analytics C API for Windows does not have an explicit
-  // global initialization function.
-  // This function is provided for API consistency with other Firebase platforms
-  // and for any future global initialization needs for the desktop wrapper.
   if (g_future_data) {
     LogWarning("Analytics: Initialize() called when already initialized.");
   } else {
@@ -78,7 +64,7 @@ void Terminate() {
 }
 
 static void ConvertParametersToGAParams(
-    const Parameter* parameters, // firebase::analytics::Parameter
+    const Parameter* parameters,
     size_t number_of_parameters,
     GoogleAnalytics_EventParameters* c_event_params) {
   if (!parameters || number_of_parameters == 0 || !c_event_params) {
@@ -140,26 +126,27 @@ static void ConvertParametersToGAParams(
 
         // Removed: GoogleAnalytics_Item_InsertString(c_item, "name", key_from_map.c_str());
 
-        bool item_had_valid_property = false;
+        bool successfully_set_property = false;
         if (value_from_map.is_int64()) {
           GoogleAnalytics_Item_InsertInt(c_item, key_from_map.c_str(), value_from_map.int64_value());
-          item_had_valid_property = true;
+          successfully_set_property = true;
         } else if (value_from_map.is_double()) {
           GoogleAnalytics_Item_InsertDouble(c_item, key_from_map.c_str(), value_from_map.double_value());
-          item_had_valid_property = true;
+          successfully_set_property = true;
         } else if (value_from_map.is_string()) {
           GoogleAnalytics_Item_InsertString(c_item, key_from_map.c_str(), value_from_map.string_value());
-          item_had_valid_property = true;
+          successfully_set_property = true;
         } else {
           LogWarning("Analytics: Value for key '%s' in map parameter '%s' has an unsupported Variant type. This key-value pair will be skipped.", key_from_map.c_str(), param.name);
+          // successfully_set_property remains false
         }
 
-        if (item_had_valid_property) {
+        if (successfully_set_property) {
           GoogleAnalytics_ItemVector_InsertItem(c_item_vector, c_item);
           // c_item is now owned by c_item_vector
-          item_vector_populated = true;
+          item_vector_populated = true; // Mark that the vector has at least one item
         } else {
-          // If no valid property was set for this c_item (e.g., value type was unsupported)
+          // If no property was set (e.g., value type was unsupported), destroy the created c_item.
           GoogleAnalytics_Item_Destroy(c_item);
         }
       }
@@ -199,20 +186,7 @@ void LogEvent(const char* name,
   }
 
   GoogleAnalytics_LogEvent(name, c_event_params);
-  // c_event_params is consumed by GoogleAnalytics_LogEvent, so no explicit destroy if passed.
-  // However, if we created it but didn't pass it (e.g. error), it should be destroyed.
-  // The C API doc says: "Automatically destroyed when it is logged."
-  // "The caller is responsible for destroying the event parameter map using the
-  // GoogleAnalytics_EventParameters_Destroy() function, unless it has been
-  // logged, in which case it will be destroyed automatically when it is logged."
-  // So, if GoogleAnalytics_LogEvent is called with c_event_params, it's handled.
-  // If there was an error before that, and c_event_params was allocated, it would leak.
-  // For robustness, a unique_ptr or similar RAII wrapper would be better for c_event_params
-  // if not for the C API's ownership transfer.
-  // Given the current structure, if c_event_params is created, it's always passed or should be.
-  // If `name` is invalid, we return early, c_event_params is not created.
-  // If `c_event_params` creation fails, we return, nothing to destroy.
-  // If a parameter is bad, we `continue`, `c_event_params` is still valid and eventually logged.
+  // GoogleAnalytics_LogEvent is expected to handle the lifecycle of c_event_params if non-null.
 }
 
 // Sets a user property to the given value.
