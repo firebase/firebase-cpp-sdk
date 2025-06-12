@@ -87,7 +87,6 @@ std::wstring Utf8ToWide(const std::string& utf8String) {
         wideString.resize(pos);
     }
 
-
     return wideString;
 }
 
@@ -131,12 +130,12 @@ void Initialize(const App& app) {
   if (!g_analytics_dll) {
     g_analytics_dll = LoadLibraryW(g_analytics_dll_filename.c_str());
     if (g_analytics_dll) {
-      LogInfo("Successfully loaded Analytics DLL %ls", g_analytics_dll_filename);
+      LogInfo("Loaded Google Analytics DLL");
+      FirebaseAnalytics_LoadAnalyticsFunctions(g_analytics_dll);
     } else {
-      LogError("Failed to load Analytics DLL %ls", g_analytics_dll_filename);
+      // Silently fail and continue in stub mode.
     }
   }
-  FirebaseAnalytics_LoadAnalyticsFunctions(g_analytics_dll);
 #endif
 }
 
