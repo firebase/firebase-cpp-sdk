@@ -14,7 +14,7 @@
 
 #include "analytics/src/windows/analytics_windows.h"
 #include "app/src/include/firebase/app.h"
-#include "analytics/src/include/firebase/analytics.h" // Path confirmed to remain as is
+#include "analytics/src/include/firebase/analytics.h"
 #include "analytics/src/common/analytics_common.h"
 #include "common/src/include/firebase/variant.h"
 #include "app/src/include/firebase/future.h"
@@ -50,11 +50,6 @@ void Initialize(const App& app) {
 // Terminates the Analytics desktop API.
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
-  // The underlying Google Analytics C API for Windows does not have an explicit
-  // global termination or shutdown function. Resources like event parameter maps
-  // are managed at the point of their use (e.g., destroyed after logging).
-  // This function is provided for API consistency with other Firebase platforms
-  // and for any future global cleanup needs for the desktop wrapper.
   if (g_future_data) {
     delete g_future_data;
     g_future_data = nullptr;
@@ -94,11 +89,12 @@ static void ConvertParametersToGAParams(
       continue; // Skip this parameter
     } else if (param.value.is_map()) {
       // This block handles parameters that are maps.
-      // Each key-value pair in the map is converted into a GoogleAnalytics_Item,
-      // and all such items are bundled into a GoogleAnalytics_ItemVector,
-      // which is then inserted into the event parameters.
-      // The original map's key becomes the "name" property of the GA_Item,
-      // and the map's value becomes one of "int_value", "double_value", or "string_value".
+      // Each key-value pair from the input map is converted into a distinct GoogleAnalytics_Item.
+      // In each such GoogleAnalytics_Item, the original key from the map is used directly
+      // as the property key, and the original value (which must be a primitive)
+      // is set as the property's value.
+      // All these GoogleAnalytics_Items are then bundled into a single
+      // GoogleAnalytics_ItemVector, which is associated with the original parameter's name.
       const std::map<std::string, firebase::Variant>& user_map =
           param.value.map_value();
       if (user_map.empty()) {
@@ -123,8 +119,6 @@ static void ConvertParametersToGAParams(
           LogError("Analytics: Failed to create Item for key '%s' in map parameter '%s'.", key_from_map.c_str(), param.name);
           continue; // Skip this key-value pair, try next one in map
         }
-
-        // Removed: GoogleAnalytics_Item_InsertString(c_item, "name", key_from_map.c_str());
 
         bool successfully_set_property = false;
         if (value_from_map.is_int64()) {
@@ -168,7 +162,7 @@ static void ConvertParametersToGAParams(
 
 // Logs an event with the given name and parameters.
 void LogEvent(const char* name,
-              const Parameter* parameters, // firebase::analytics::Parameter
+              const Parameter* parameters,
               size_t number_of_parameters) {
   if (name == nullptr || name[0] == '\0') {
     LogError("Analytics: Event name cannot be null or empty.");
