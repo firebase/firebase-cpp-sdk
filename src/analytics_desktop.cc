@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "analytics/windows/include/public/c/analytics.h" // C API
-#include "firebase/app.h"                                  // For firebase::App
-#include "firebase/analytics.h"                            // For common Parameter, LogEvent, etc.
-#include "firebase/variant.h"                              // For firebase::Variant (used by Item and LogEvent)
-#include "firebase/future.h"                               // For firebase::Future
+#include "analytics/src/windows/analytics_windows.h"
+#include "firebase/app.h"
+#include "firebase/analytics.h"
+#include "firebase/variant.h"
+#include "firebase/future.h"
+#include "firebase/log.h" // <-- New include
 
 #include <vector>
 #include <string>
-#include <map> // Will likely need this for Item or Parameter conversion
+#include <map>
 
 // Error code for Analytics features not supported on this platform.
 const int kAnalyticsErrorNotSupportedOnPlatform = 1; // Or a more specific range
@@ -52,13 +53,108 @@ void Terminate() {
   // and for any future global cleanup needs for the desktop wrapper.
 }
 
+static void ConvertParametersToGAParams(
+    const Parameter* parameters, // firebase::analytics::Parameter
+    size_t number_of_parameters,
+    GoogleAnalytics_EventParameters* c_event_params) {
+  if (!parameters || number_of_parameters == 0 || !c_event_params) {
+    return;
+  }
+
+  for (size_t i = 0; i < number_of_parameters; ++i) {
+    const Parameter& param = parameters[i];
+    if (param.name == nullptr || param.name[0] == '\0') {
+      LogError("Analytics: Parameter name cannot be null or empty.");
+      continue;
+    }
+
+    if (param.value.is_int64()) {
+      GoogleAnalytics_EventParameters_InsertInt(c_event_params, param.name,
+                                                param.value.int64_value());
+    } else if (param.value.is_double()) {
+      GoogleAnalytics_EventParameters_InsertDouble(c_event_params, param.name,
+                                                   param.value.double_value());
+    } else if (param.value.is_string()) {
+      GoogleAnalytics_EventParameters_InsertString(
+          c_event_params, param.name, param.value.string_value());
+    } else if (param.value.is_vector()) {
+      // This block handles parameters that are vectors of items (e.g., kParameterItems).
+      // The 'param.value' is expected to be a firebase::Variant of type kTypeVector.
+      // Each element in this outer vector (item_variants) is itself a firebase::Variant,
+      // which must be of type kTypeMap, representing a single item's properties.
+      const std::vector<firebase::Variant>& item_variants =
+          param.value.vector_value();
+
+      GoogleAnalytics_ItemVector* c_item_vector =
+          GoogleAnalytics_ItemVector_Create();
+      if (!c_item_vector) {
+        LogError("Analytics: Failed to create ItemVector for parameter '%s'.", param.name);
+        continue; // Skip this parameter
+      }
+
+      bool item_vector_populated = false;
+      for (const firebase::Variant& item_variant : item_variants) {
+        if (item_variant.is_map()) {
+          const std::map<std::string, firebase::Variant>& item_map =
+              item_variant.map_value();
+
+          GoogleAnalytics_Item* c_item = GoogleAnalytics_Item_Create();
+          if (!c_item) {
+            LogError("Analytics: Failed to create Item for an item in vector parameter '%s'.", param.name);
+            continue;
+          }
+
+          bool item_populated = false;
+          for (const auto& entry : item_map) {
+            const std::string& item_key = entry.first;
+            const firebase::Variant& item_val = entry.second;
+
+            if (item_val.is_int64()) {
+              GoogleAnalytics_Item_InsertInt(c_item, item_key.c_str(),
+                                             item_val.int64_value());
+              item_populated = true;
+            } else if (item_val.is_double()) {
+              GoogleAnalytics_Item_InsertDouble(c_item, item_key.c_str(),
+                                                item_val.double_value());
+              item_populated = true;
+            } else if (item_val.is_string()) {
+              GoogleAnalytics_Item_InsertString(c_item, item_key.c_str(),
+                                                item_val.string_value());
+              item_populated = true;
+            } else {
+                LogWarning("Analytics: Unsupported variant type in Item map for key '%s' in vector parameter '%s'.", item_key.c_str(), param.name);
+            }
+          }
+
+          if (item_populated) {
+            GoogleAnalytics_ItemVector_InsertItem(c_item_vector, c_item);
+            item_vector_populated = true;
+          } else {
+            GoogleAnalytics_Item_Destroy(c_item);
+          }
+        } else {
+          LogWarning("Analytics: Expected a map (Item) in vector parameter '%s', but found a different Variant type.", param.name);
+        }
+      }
+
+      if (item_vector_populated) {
+        GoogleAnalytics_EventParameters_InsertItemVector(
+            c_event_params, param.name, c_item_vector);
+      } else {
+        GoogleAnalytics_ItemVector_Destroy(c_item_vector);
+      }
+    } else {
+      LogWarning("Analytics: Unsupported variant type for parameter '%s'.", param.name);
+    }
+  }
+}
+
 // Logs an event with the given name and parameters.
 void LogEvent(const char* name,
-              const Parameter* parameters,
+              const Parameter* parameters, // firebase::analytics::Parameter
               size_t number_of_parameters) {
   if (name == nullptr || name[0] == '\0') {
-    // Log an error: event name cannot be null or empty.
-    // Consider adding a logging mechanism if available, e.g., via firebase::App.
+    LogError("Analytics: Event name cannot be null or empty.");
     return;
   }
 
@@ -66,99 +162,10 @@ void LogEvent(const char* name,
   if (parameters != nullptr && number_of_parameters > 0) {
     c_event_params = GoogleAnalytics_EventParameters_Create();
     if (!c_event_params) {
-      // Log an error: Failed to create event parameters map.
+      LogError("Analytics: Failed to create event parameters map for event '%s'.", name);
       return;
     }
-
-    for (size_t i = 0; i < number_of_parameters; ++i) {
-      const Parameter& param = parameters[i];
-      if (param.name == nullptr || param.name[0] == '\0') {
-        // Log an error: parameter name cannot be null or empty.
-        continue;
-      }
-
-      if (param.value.is_int64()) {
-        GoogleAnalytics_EventParameters_InsertInt(c_event_params, param.name,
-                                                  param.value.int64_value());
-      } else if (param.value.is_double()) {
-        GoogleAnalytics_EventParameters_InsertDouble(c_event_params, param.name,
-                                                   param.value.double_value());
-      } else if (param.value.is_string()) {
-        GoogleAnalytics_EventParameters_InsertString(
-            c_event_params, param.name, param.value.string_value());
-      } else if (param.value.is_vector()) {
-        // This parameter is expected to be a vector of Item objects.
-        // Each Item in the vector is represented as a Variant map.
-        const std::vector<firebase::Variant>& item_variants =
-            param.value.vector_value();
-
-        GoogleAnalytics_ItemVector* c_item_vector =
-            GoogleAnalytics_ItemVector_Create();
-        if (!c_item_vector) {
-          // Log error: Failed to create ItemVector
-          continue; // Skip this parameter
-        }
-
-        bool item_vector_populated = false;
-        for (const firebase::Variant& item_variant : item_variants) {
-          if (item_variant.is_map()) {
-            const std::map<std::string, firebase::Variant>& item_map =
-                item_variant.map_value();
-
-            GoogleAnalytics_Item* c_item = GoogleAnalytics_Item_Create();
-            if (!c_item) {
-              // Log error: Failed to create Item
-              // This item won't be added, but continue with other items.
-              continue;
-            }
-
-            bool item_populated = false;
-            for (const auto& entry : item_map) {
-              const std::string& item_key = entry.first;
-              const firebase::Variant& item_val = entry.second;
-
-              if (item_val.is_int64()) {
-                GoogleAnalytics_Item_InsertInt(c_item, item_key.c_str(),
-                                               item_val.int64_value());
-                item_populated = true;
-              } else if (item_val.is_double()) {
-                GoogleAnalytics_Item_InsertDouble(c_item, item_key.c_str(),
-                                                  item_val.double_value());
-                item_populated = true;
-              } else if (item_val.is_string()) {
-                GoogleAnalytics_Item_InsertString(c_item, item_key.c_str(),
-                                                  item_val.string_value());
-                item_populated = true;
-              } else {
-                // Log warning: Unsupported variant type in Item map for key item_key
-              }
-            }
-
-            if (item_populated) {
-              GoogleAnalytics_ItemVector_InsertItem(c_item_vector, c_item);
-              // c_item is now owned by c_item_vector
-              item_vector_populated = true;
-            } else {
-              // If item had no valid properties or failed to create, destroy it.
-              GoogleAnalytics_Item_Destroy(c_item);
-            }
-          } else {
-            // Log warning: Expected a map (Item) in the item_variants vector, got something else.
-          }
-        }
-
-        if (item_vector_populated) {
-          GoogleAnalytics_EventParameters_InsertItemVector(
-              c_event_params, param.name, c_item_vector);
-          // c_item_vector is now owned by c_event_params
-        } else {
-          // If no items were successfully added to the vector, destroy the empty vector.
-          GoogleAnalytics_ItemVector_Destroy(c_item_vector);
-        }
-      } else {
-        // Log an error or warning: unsupported variant type for parameter.
-      }
-    }
+    ConvertParametersToGAParams(parameters, number_of_parameters, c_event_params);
   }
 
   GoogleAnalytics_LogEvent(name, c_event_params);
@@ -192,7 +199,7 @@ void LogEvent(const char* name,
 // clear the user property. Must be UTF-8 encoded if not nullptr.
 void SetUserProperty(const char* name, const char* property) {
   if (name == nullptr || name[0] == '\0') {
-    // Log an error: User property name cannot be null or empty.
+    LogError("Analytics: User property name cannot be null or empty.");
     return;
   }
   // The C API GoogleAnalytics_SetUserProperty allows value to be nullptr to remove the property.
@@ -244,7 +251,7 @@ void ResetAnalyticsData() {
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   // Not supported by the Windows C API.
   (void)consent_settings; // Mark as unused
-  // Consider logging a warning if a logging utility is available.
+  LogWarning("Analytics: SetConsent() is not supported and has no effect on Windows.");
 }
 
 void LogEvent(const char* name) {
@@ -293,31 +300,31 @@ void LogEvent(const char* name, const char* parameter_name,
 
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address) {
-  // Not supported by the Windows C API.
   (void)email_address;
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is not supported and has no effect on Windows.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number) {
-  // Not supported by the Windows C API.
   (void)phone_number;
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is not supported and has no effect on Windows.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email_address) {
-  // Not supported by the Windows C API.
   (void)hashed_email_address;
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not supported and has no effect on Windows.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone_number) {
-  // Not supported by the Windows C API.
   (void)hashed_phone_number;
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() is not supported and has no effect on Windows.");
 }
 
 void SetSessionTimeoutDuration(int64_t milliseconds) {
-  // Not supported by the Windows C API.
   (void)milliseconds;
+  LogWarning("Analytics: SetSessionTimeoutDuration() is not supported and has no effect on Windows.");
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
