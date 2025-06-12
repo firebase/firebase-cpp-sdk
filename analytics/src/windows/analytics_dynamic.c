@@ -15,15 +15,16 @@
 // Generated from analytics.h by generate_windows_stubs.py
 
 #include "analytics/src/windows/analytics_dynamic.h"
-
 #include <stddef.h>
 
 // clang-format off
 
+static void* g_stub_memory = NULL;
+
 // --- Stub Function Definitions ---
 // Stub for GoogleAnalytics_Item_Create
 static GoogleAnalytics_Item* Stub_GoogleAnalytics_Item_Create() {
-    return NULL;
+    return (GoogleAnalytics_Item*)(&g_stub_memory);
 }
 
 // Stub for GoogleAnalytics_Item_InsertInt
@@ -54,7 +55,7 @@ static void Stub_GoogleAnalytics_Item_Destroy(GoogleAnalytics_Item* item) {
 
 // Stub for GoogleAnalytics_ItemVector_Create
 static GoogleAnalytics_ItemVector* Stub_GoogleAnalytics_ItemVector_Create() {
-    return NULL;
+    return (GoogleAnalytics_ItemVector*)(&g_stub_memory);
 }
 
 // Stub for GoogleAnalytics_ItemVector_InsertItem
@@ -69,7 +70,7 @@ static void Stub_GoogleAnalytics_ItemVector_Destroy(GoogleAnalytics_ItemVector* 
 
 // Stub for GoogleAnalytics_EventParameters_Create
 static GoogleAnalytics_EventParameters* Stub_GoogleAnalytics_EventParameters_Create() {
-    return NULL;
+    return (GoogleAnalytics_EventParameters*)(&g_stub_memory);
 }
 
 // Stub for GoogleAnalytics_EventParameters_InsertInt
