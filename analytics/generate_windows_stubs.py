@@ -21,7 +21,7 @@ import re
 import sys
 
 HEADER_GUARD_PREFIX = "FIREBASE_ANALYTICS_SRC_WINDOWS_"
-INCLUDE_PATH = "src/windows/"
+INCLUDE_PATH = "src/"
 INCLUDE_PREFIX = "analytics/" + INCLUDE_PATH
 COPYRIGHT_NOTICE = """// Copyright 2025 Google LLC
 //
@@ -211,13 +211,13 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--output_header",
-        default = os.path.join(os.path.dirname(sys.argv[0]), INCLUDE_PATH, "analytics_dynamic.h"),
+        default = os.path.join(os.path.dirname(sys.argv[0]), INCLUDE_PATH, "analytics_desktop_dynamic.h"),
         #required=True,
         help="Path for the generated output header file."
     )
     parser.add_argument(
         "--output_source",
-        default = os.path.join(os.path.dirname(sys.argv[0]), INCLUDE_PATH, "analytics_dynamic.c"),
+        default = os.path.join(os.path.dirname(sys.argv[0]), INCLUDE_PATH, "analytics_desktop_dynamic.c"),
         #required=True,
         help="Path for the generated output source file."
     )

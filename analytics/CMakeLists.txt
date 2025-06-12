@@ -74,14 +74,10 @@ set(android_SRCS
 set(ios_SRCS
     src/analytics_ios.mm)
 
-# Source files used by the stub implementation.
-set(stub_SRCS
-    src/analytics_stub.cc)
-
-# Source files used by the stub implementation.
+# Source files used by the desktop / stub implementation.
 set(desktop_SRCS
     src/analytics_desktop.cc
-    src/windows/analytics_dynamic.c)
+    src/analytics_desktop_dynamic.c)
 
 if(ANDROID)
   set(analytics_platform_SRCS
