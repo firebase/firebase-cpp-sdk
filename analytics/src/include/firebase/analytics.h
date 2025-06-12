@@ -591,6 +591,22 @@ Future<int64_t> GetSessionId();
 /// app session.
 Future<int64_t> GetSessionIdLastResult();
 
+
+#ifdef INTERNAL_EXPERIMENTAL
+#if defined(_WIN32) || defined(DOXYGEN)
+/// Windows only: Specify the path to the Google Analytics Windows DLL.
+///
+/// @param path Path to the DLL, including filename, in UTF-8 format.
+void SetAnalyticsLibraryPath(const char* path);
+
+/// Windows only: Specify the path to the Google Analytics Windows DLL.
+///
+/// @param path Path to the DLL, including filename, in UTF-16 format.
+void SetAnalyticsLibraryPath(const wchar_t* path);
+#endif
+#endif
+
+  
 }  // namespace analytics
 }  // namespace firebase
 

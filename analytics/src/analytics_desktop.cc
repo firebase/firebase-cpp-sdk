@@ -99,6 +99,14 @@ void SetAnalyticsLibraryPath(const char* path) {
     g_analytics_dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
   }
 }
+
+void SetAnalyticsLibraryPath(const wchar_t* path) {
+  if (path) {
+    g_analytics_dll_filename = path;
+  } else {
+    g_analytics_dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
+  }
+}
 #endif
 
 // Future data for analytics.
