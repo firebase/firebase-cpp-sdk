@@ -13,21 +13,35 @@
 // limitations under the License.
 
 #include "analytics/src/windows/analytics_windows.h"
-#include "firebase/app.h"
-#include "firebase/analytics.h"
-#include "firebase/variant.h"
-#include "firebase/future.h"
-#include "firebase/log.h" // <-- New include
+#include "app/src/include/firebase/app.h"
+#include "analytics/src/include/firebase/analytics.h" // Path confirmed to remain as is
+#include "common/src/include/firebase/variant.h"
+#include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/log.h"
+#include "app/src/future_manager.h" // For FutureData
 
 #include <vector>
 #include <string>
 #include <map>
 
-// Error code for Analytics features not supported on this platform.
-const int kAnalyticsErrorNotSupportedOnPlatform = 1; // Or a more specific range
+// Error code for Analytics features not supported on this platform. (Will be removed)
+// const int kAnalyticsErrorNotSupportedOnPlatform = 1; // Or a more specific range
 
 namespace firebase {
 namespace analytics {
+
+namespace internal { // Or directly in firebase::analytics if that's the pattern
+// Functions that return a Future.
+enum AnalyticsFn {
+  kAnalyticsFn_GetAnalyticsInstanceId = 0,
+  kAnalyticsFn_GetSessionId,
+  kAnalyticsFnCount // Must be the last enum value.
+};
+} // namespace internal
+
+// Future data for analytics.
+// This is initialized in `Initialize()` and cleaned up in `Terminate()`.
+static FutureData* g_future_data = nullptr;
 
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
@@ -35,12 +49,17 @@ void Initialize(const App& app) {
   // The 'app' parameter is not directly used by the underlying Google Analytics C API
   // for Windows for global initialization. It's included for API consistency
   // with other Firebase platforms.
-  // (void)app; // Mark as unused if applicable by style guides.
+  (void)app; // Mark as unused if applicable by style guides.
 
   // The underlying Google Analytics C API for Windows does not have an explicit
   // global initialization function.
   // This function is provided for API consistency with other Firebase platforms
   // and for any future global initialization needs for the desktop wrapper.
+  if (g_future_data) {
+    LogWarning("Analytics: Initialize() called when already initialized.");
+  } else {
+    g_future_data = new FutureData(internal::kAnalyticsFnCount);
+  }
 }
 
 // Terminates the Analytics desktop API.
@@ -51,6 +70,12 @@ void Terminate() {
   // are managed at the point of their use (e.g., destroyed after logging).
   // This function is provided for API consistency with other Firebase platforms
   // and for any future global cleanup needs for the desktop wrapper.
+  if (g_future_data) {
+    delete g_future_data;
+    g_future_data = nullptr;
+  } else {
+    LogWarning("Analytics: Terminate() called when not initialized or already terminated.");
+  }
 }
 
 static void ConvertParametersToGAParams(
@@ -342,37 +367,47 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
-  // Not supported by the Windows C API.
-  // Return a Future that is already completed with an error.
-  firebase::FutureHandle handle; // Dummy handle for error
-  // TODO(jules): Ensure g_future_api_table is appropriate or replace with direct Future creation.
-  auto future = MakeFuture<std::string>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetAnalyticsInstanceId is not supported on Desktop.");
-  return future;
+  LogWarning("Analytics: GetAnalyticsInstanceId() is not supported on Desktop.");
+  if (!g_future_data) {
+    LogError("Analytics: API not initialized; call Initialize() first.");
+    static firebase::Future<std::string> invalid_future; // Default invalid
+    if (!g_future_data) return invalid_future; // Or some other error future
+  }
+  const auto handle =
+      g_future_data->CreateFuture(internal::kAnalyticsFn_GetAnalyticsInstanceId, nullptr);
+  g_future_data->CompleteFuture(handle, 0 /* error_code */, nullptr /* error_message_string */);
+  return g_future_data->GetFuture<std::string>(handle);
 }
 
 Future<std::string> GetAnalyticsInstanceIdLastResult() {
-  // This typically returns the last result of the async call.
-  // Since GetAnalyticsInstanceId is not supported, this also returns a failed future.
-  firebase::FutureHandle handle;
-  auto future = MakeFuture<std::string>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetAnalyticsInstanceId (and thus LastResult) is not supported on Desktop.");
-  return future;
+  if (!g_future_data) {
+    LogError("Analytics: API not initialized; call Initialize() first.");
+    static firebase::Future<std::string> invalid_future;
+    return invalid_future;
+  }
+  return g_future_data->LastResult<std::string>(internal::kAnalyticsFn_GetAnalyticsInstanceId);
 }
 
 Future<int64_t> GetSessionId() {
-  // Not supported by the Windows C API.
-  firebase::FutureHandle handle;
-  auto future = MakeFuture<int64_t>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetSessionId is not supported on Desktop.");
-  return future;
+  LogWarning("Analytics: GetSessionId() is not supported on Desktop.");
+  if (!g_future_data) {
+    LogError("Analytics: API not initialized; call Initialize() first.");
+    static firebase::Future<int64_t> invalid_future;
+    return invalid_future;
+  }
+  const auto handle =
+      g_future_data->CreateFuture(internal::kAnalyticsFn_GetSessionId, nullptr);
+  g_future_data->CompleteFuture(handle, 0 /* error_code */, nullptr /* error_message_string */);
+  return g_future_data->GetFuture<int64_t>(handle);
 }
 
 Future<int64_t> GetSessionIdLastResult() {
-  firebase::FutureHandle handle;
-  auto future = MakeFuture<int64_t>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetSessionId (and thus LastResult) is not supported on Desktop.");
-  return future;
+  if (!g_future_data) {
+    LogError("Analytics: API not initialized; call Initialize() first.");
+    static firebase::Future<int64_t> invalid_future;
+    return invalid_future;
+  }
+  return g_future_data->LastResult<int64_t>(internal::kAnalyticsFn_GetSessionId);
 }
 
 }  // namespace analytics
