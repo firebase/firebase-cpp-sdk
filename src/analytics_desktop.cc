@@ -78,70 +78,84 @@ static void ConvertParametersToGAParams(
       GoogleAnalytics_EventParameters_InsertString(
           c_event_params, param.name, param.value.string_value());
     } else if (param.value.is_vector()) {
-      // This block handles parameters that are vectors of items (e.g., kParameterItems).
-      // The 'param.value' is expected to be a firebase::Variant of type kTypeVector.
-      // Each element in this outer vector (item_variants) is itself a firebase::Variant,
-      // which must be of type kTypeMap, representing a single item's properties.
-      const std::vector<firebase::Variant>& item_variants =
-          param.value.vector_value();
+      // Vector types for top-level event parameters are not directly supported for conversion
+      // to GoogleAnalytics_EventParameters on Desktop.
+      // The previous implementation attempted to interpret a vector of maps as an "Item Array",
+      // but the standard way to log an array of Items is via a single parameter (e.g., "items")
+      // whose value is a vector of firebase::analytics::Item objects (which are maps).
+      // For direct parameters, vector is an unsupported type.
+      LogError("Analytics: Parameter '%s' has type Vector, which is unsupported for event parameters on Desktop. Skipping.", param.name);
+      continue; // Skip this parameter
+    } else if (param.value.is_map()) {
+      // This block handles parameters that are maps.
+      // Each key-value pair in the map is converted into a GoogleAnalytics_Item,
+      // and all such items are bundled into a GoogleAnalytics_ItemVector,
+      // which is then inserted into the event parameters.
+      // The original map's key becomes the "name" property of the GA_Item,
+      // and the map's value becomes one of "int_value", "double_value", or "string_value".
+      const std::map<std::string, firebase::Variant>& user_map =
+          param.value.map_value();
+      if (user_map.empty()) {
+        LogWarning("Analytics: Parameter '%s' is an empty map. Skipping.", param.name);
+        continue; // Skip this parameter
+      }
 
       GoogleAnalytics_ItemVector* c_item_vector =
           GoogleAnalytics_ItemVector_Create();
       if (!c_item_vector) {
-        LogError("Analytics: Failed to create ItemVector for parameter '%s'.", param.name);
+        LogError("Analytics: Failed to create ItemVector for map parameter '%s'.", param.name);
         continue; // Skip this parameter
       }
 
       bool item_vector_populated = false;
-      for (const firebase::Variant& item_variant : item_variants) {
-        if (item_variant.is_map()) {
-          const std::map<std::string, firebase::Variant>& item_map =
-              item_variant.map_value();
+      for (const auto& entry : user_map) {
+        const std::string& key_from_map = entry.first;
+        const firebase::Variant& value_from_map = entry.second;
 
-          GoogleAnalytics_Item* c_item = GoogleAnalytics_Item_Create();
-          if (!c_item) {
-            LogError("Analytics: Failed to create Item for an item in vector parameter '%s'.", param.name);
-            continue;
-          }
+        GoogleAnalytics_Item* c_item = GoogleAnalytics_Item_Create();
+        if (!c_item) {
+          LogError("Analytics: Failed to create Item for key '%s' in map parameter '%s'.", key_from_map.c_str(), param.name);
+          continue; // Skip this key-value pair, try next one in map
+        }
 
-          bool item_populated = false;
-          for (const auto& entry : item_map) {
-            const std::string& item_key = entry.first;
-            const firebase::Variant& item_val = entry.second;
+        // Store the original map's key as the "name" of this item property
+        GoogleAnalytics_Item_InsertString(c_item, "name", key_from_map.c_str());
 
-            if (item_val.is_int64()) {
-              GoogleAnalytics_Item_InsertInt(c_item, item_key.c_str(),
-                                             item_val.int64_value());
-              item_populated = true;
-            } else if (item_val.is_double()) {
-              GoogleAnalytics_Item_InsertDouble(c_item, item_key.c_str(),
-                                                item_val.double_value());
-              item_populated = true;
-            } else if (item_val.is_string()) {
-              GoogleAnalytics_Item_InsertString(c_item, item_key.c_str(),
-                                                item_val.string_value());
-              item_populated = true;
-            } else {
-                LogWarning("Analytics: Unsupported variant type in Item map for key '%s' in vector parameter '%s'.", item_key.c_str(), param.name);
-            }
-          }
-
-          if (item_populated) {
-            GoogleAnalytics_ItemVector_InsertItem(c_item_vector, c_item);
-            item_vector_populated = true;
-          } else {
-            GoogleAnalytics_Item_Destroy(c_item);
-          }
+        bool value_property_set = false;
+        if (value_from_map.is_int64()) {
+          GoogleAnalytics_Item_InsertInt(c_item, "int_value", value_from_map.int64_value());
+          value_property_set = true;
+        } else if (value_from_map.is_double()) {
+          GoogleAnalytics_Item_InsertDouble(c_item, "double_value", value_from_map.double_value());
+          value_property_set = true;
+        } else if (value_from_map.is_string()) {
+          GoogleAnalytics_Item_InsertString(c_item, "string_value", value_from_map.string_value());
+          value_property_set = true;
         } else {
-          LogWarning("Analytics: Expected a map (Item) in vector parameter '%s', but found a different Variant type.", param.name);
+          LogWarning("Analytics: Value for key '%s' in map parameter '%s' has an unsupported Variant type. This key-value pair will be skipped.", key_from_map.c_str(), param.name);
+          // As "name" was set, but no value, this item is incomplete.
+        }
+
+        if (value_property_set) {
+          GoogleAnalytics_ItemVector_InsertItem(c_item_vector, c_item);
+          // c_item is now owned by c_item_vector
+          item_vector_populated = true;
+        } else {
+          // If value wasn't set (e.g. unsupported type), or c_item creation failed.
+          // (c_item creation failure is handled by 'continue' above, so this 'else'
+          // is mainly for when value_property_set is false due to unsupported type)
+          GoogleAnalytics_Item_Destroy(c_item);
         }
       }
 
       if (item_vector_populated) {
         GoogleAnalytics_EventParameters_InsertItemVector(
             c_event_params, param.name, c_item_vector);
+        // c_item_vector is now owned by c_event_params
       } else {
+        // If no items were successfully created and added (e.g., all values in map were unsupported types)
         GoogleAnalytics_ItemVector_Destroy(c_item_vector);
+        LogWarning("Analytics: Map parameter '%s' resulted in an empty ItemVector; no valid key-value pairs found or all values had unsupported types. This map parameter was skipped.", param.name);
       }
     } else {
       LogWarning("Analytics: Unsupported variant type for parameter '%s'.", param.name);
@@ -251,7 +265,7 @@ void ResetAnalyticsData() {
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   // Not supported by the Windows C API.
   (void)consent_settings; // Mark as unused
-  LogWarning("Analytics: SetConsent() is not supported and has no effect on Windows.");
+  LogWarning("Analytics: SetConsent() is not supported and has no effect on Desktop.");
 }
 
 void LogEvent(const char* name) {
@@ -301,30 +315,30 @@ void LogEvent(const char* name, const char* parameter_name,
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address) {
   (void)email_address;
-  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is not supported and has no effect on Windows.");
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is not supported and has no effect on Desktop.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number) {
   (void)phone_number;
-  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is not supported and has no effect on Windows.");
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is not supported and has no effect on Desktop.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email_address) {
   (void)hashed_email_address;
-  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not supported and has no effect on Windows.");
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not supported and has no effect on Desktop.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone_number) {
   (void)hashed_phone_number;
-  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() is not supported and has no effect on Windows.");
+  LogWarning("Analytics: InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() is not supported and has no effect on Desktop.");
 }
 
 void SetSessionTimeoutDuration(int64_t milliseconds) {
   (void)milliseconds;
-  LogWarning("Analytics: SetSessionTimeoutDuration() is not supported and has no effect on Windows.");
+  LogWarning("Analytics: SetSessionTimeoutDuration() is not supported and has no effect on Desktop.");
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
@@ -333,7 +347,7 @@ Future<std::string> GetAnalyticsInstanceId() {
   firebase::FutureHandle handle; // Dummy handle for error
   // TODO(jules): Ensure g_future_api_table is appropriate or replace with direct Future creation.
   auto future = MakeFuture<std::string>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetAnalyticsInstanceId is not supported on Windows.");
+  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetAnalyticsInstanceId is not supported on Desktop.");
   return future;
 }
 
@@ -342,7 +356,7 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
   // Since GetAnalyticsInstanceId is not supported, this also returns a failed future.
   firebase::FutureHandle handle;
   auto future = MakeFuture<std::string>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetAnalyticsInstanceId is not supported on Windows.");
+  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetAnalyticsInstanceId (and thus LastResult) is not supported on Desktop.");
   return future;
 }
 
@@ -350,14 +364,14 @@ Future<int64_t> GetSessionId() {
   // Not supported by the Windows C API.
   firebase::FutureHandle handle;
   auto future = MakeFuture<int64_t>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetSessionId is not supported on Windows.");
+  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetSessionId is not supported on Desktop.");
   return future;
 }
 
 Future<int64_t> GetSessionIdLastResult() {
   firebase::FutureHandle handle;
   auto future = MakeFuture<int64_t>(&firebase::g_future_api_table, handle);
-  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetSessionId is not supported on Windows.");
+  future.Complete(handle, kAnalyticsErrorNotSupportedOnPlatform, "GetSessionId (and thus LastResult) is not supported on Desktop.");
   return future;
 }
 
