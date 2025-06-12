@@ -74,6 +74,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
     matches = function_pattern.finditer(header_content)
 
     extern_declarations = []
+    macro_definitions = []
     stub_functions = []
     pointer_initializations = []
     function_details_for_loader = []
@@ -90,9 +91,9 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         if "void" in return_type:
             return_statement = "    // No return value."
         elif "*" in return_type:
-            return_statement = "    return NULL;"
+            return_statement = f'    return ({return_type})(&g_stub_memory);'
         else: # bool, int64_t, etc.
-            return_statement = "    return 0;"
+            return_statement = "    return 1;"
             
         stub_function = (
             f"// Stub for {function_name}\n"
@@ -104,6 +105,9 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
 
         declaration = f"extern {return_type} (*ptr_{function_name})({cleaned_params_for_decl});"
         extern_declarations.append(declaration)
+
+        macro = f'#define {function_name} ptr_{function_name}'
+        macro_definitions.append(macro)
 
         pointer_init = f"{return_type} (*ptr_{function_name})({cleaned_params_for_decl}) = &{stub_name};"
         pointer_initializations.append(pointer_init)
@@ -119,7 +123,8 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write(f"// Generated from {os.path.basename(header_file_path)} by {os.path.basename(sys.argv[0])}\n\n")
         f.write(f"#ifndef {header_guard}\n")
         f.write(f"#define {header_guard}\n\n")
-
+        f.write("#include <stdbool.h>  // needed for bool type in pure C\n\n")
+        
         f.write("// --- Copied from original header ---\n")
         f.write("\n".join(includes) + "\n\n")
         f.write("".join(typedefs))
@@ -131,6 +136,8 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write("// --- Function Pointer Declarations ---\n")
         f.write("// clang-format off\n")
         f.write("\n".join(extern_declarations))
+        f.write("\n\n")
+        f.write("\n".join(macro_definitions))
         f.write("\n// clang-format on\n")
         f.write("\n\n// --- Dynamic Loader Declaration for Windows ---\n")
         f.write("#if defined(_WIN32)\n")
@@ -155,6 +162,7 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(output_h_path)}"\n')
         f.write('#include <stddef.h>\n\n')
         f.write("// clang-format off\n\n")
+        f.write("static void* g_stub_memory = NULL;\n\n")
         f.write("// --- Stub Function Definitions ---\n")
         f.write("\n\n".join(stub_functions))
         f.write("\n\n\n// --- Function Pointer Initializations ---\n")
