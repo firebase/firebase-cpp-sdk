@@ -66,14 +66,18 @@ void Initialize(const App& app) {
             sizeof(FirebaseAnalytics_WindowsDllHash));
 
     if (g_analytics_module) {
-      LogInfo("Loaded Google Analytics module.");
       int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(
           g_analytics_module);  // Ensure g_analytics_module is used
       if (num_loaded < FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT) {
         LogWarning(
-            "Only loaded %d out of %d expected functions from the Google "
-            "Analytics module.",
+            "Analytics: Failed to load functions from Google Analytics "
+            "module (%d out of %d loaded), reverting to stubs.",
             num_loaded, FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT);
+        FirebaseAnalytics_UnloadDynamicFunctions();
+        FreeLibrary(g_analytics_module);
+        g_analytics_module = 0;
+      } else {
+        LogInfo("Analytics: Loaded Google Analytics module.");
       }
     }
   }
