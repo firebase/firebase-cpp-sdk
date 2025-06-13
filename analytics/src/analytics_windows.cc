@@ -6,7 +6,7 @@
 #include <string> // Required for std::wstring
 #include <cstdlib> // Required for _wpgmptr
 #include <cstring> // For memcmp
-#include "app/src/include/firebase/log.h" //NOLINT
+#include "app/src/log.h" //NOLINT
 
 namespace firebase {
 namespace analytics {
@@ -145,48 +145,18 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
         return nullptr;
     }
 
-    // Get full path to the executable.
-    std::wstring executable_path_str;
-    wchar_t* wpgmptr_val = nullptr;
-
-    // Prefer _get_wpgmptr()
-    errno_t err_w = _get_wpgmptr(&wpgmptr_val);
-    if (err_w == 0 && wpgmptr_val != nullptr && wpgmptr_val[0] != L'\0') {
-        executable_path_str = wpgmptr_val;
-    } else {
-        // Fallback to _get_pgmptr() and convert to wide string
-        char* pgmptr_val = nullptr;
-        errno_t err_c = _get_pgmptr(&pgmptr_val);
-        if (err_c == 0 && pgmptr_val != nullptr && pgmptr_val[0] != '\0') {
-            // Convert narrow string to wide string using CP_ACP (system default ANSI code page)
-            int wide_char_count = MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, NULL, 0);
-            if (wide_char_count == 0) { // Failure if count is 0
-                DWORD conversion_error = GetLastError();
-                LogError("VerifyAndLoadAnalyticsLibrary: MultiByteToWideChar failed to calculate size for _get_pgmptr path. Error: %u", conversion_error);
-                return nullptr;
-            }
-
-            std::vector<wchar_t> wide_path_buffer(wide_char_count);
-            if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, wide_path_buffer.data(), wide_char_count) == 0) {
-                DWORD conversion_error = GetLastError();
-                LogError("VerifyAndLoadAnalyticsLibrary: MultiByteToWideChar failed to convert _get_pgmptr path. Error: %u", conversion_error);
-                return nullptr;
-            }
-            executable_path_str = wide_path_buffer.data();
-        } else {
-            // Both _get_wpgmptr and _get_pgmptr failed or returned empty/null
-            LogError("VerifyAndLoadAnalyticsLibrary: Failed to retrieve executable path using both _get_wpgmptr (err: %d) and _get_pgmptr (err: %d).", err_w, err_c);
-            return nullptr;
-        }
-    }
+    std::wstring executable_path_str = GetExecutablePath();
 
     if (executable_path_str.empty()) {
-        LogError("VerifyAndLoadAnalyticsLibrary: Executable path resolved to an empty string.");
+        // GetExecutablePath() is expected to log specific errors.
+        // This log indicates the failure to proceed within this function.
+        LogError("VerifyAndLoadAnalyticsLibrary: Failed to determine executable path via GetExecutablePath(), cannot proceed.");
         return nullptr;
     }
 
     size_t last_slash_pos = executable_path_str.find_last_of(L"\\");
     if (last_slash_pos == std::wstring::npos) {
+        // Log message updated to avoid using %ls for executable_path_str
         LogError("VerifyAndLoadAnalyticsLibrary: Could not determine executable directory from retrieved path (no backslash found).");
         return nullptr;
     }

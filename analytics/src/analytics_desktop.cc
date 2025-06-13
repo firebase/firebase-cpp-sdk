@@ -24,7 +24,7 @@
 #include "app/src/future_manager.h"  // For FutureData
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
-#include "app/src/include/firebase/log.h"
+#include "app/src/log.h"
 #include "app/src/include/firebase/variant.h"
 
 #if defined(_WIN32)
