@@ -212,7 +212,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
     // logging an error. For other errors (e.g., access denied on an existing
     // file), log them as it's an unexpected issue.
     if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND) {
-      LogError(OG_TAG "Failed to open Analytics DLL. Error: %u", dwError);
+      LogError(LOG_TAG "Failed to open Analytics DLL. Error: %u", dwError);
     }
     return nullptr;  // In all CreateFileW failure cases, return nullptr to fall
                      // back to stub mode.
