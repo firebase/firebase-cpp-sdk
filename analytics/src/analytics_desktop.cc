@@ -95,24 +95,8 @@ bool IsInitialized() { return g_initialized; }
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
 #if defined(_WIN32)
-  // FirebaseAnalytics_UnloadDynamicFunctions(); // This should be called by the
-  // dynamic functions manager if needed or handled by the loaded module itself
-  // upon unload. If FirebaseAnalytics_UnloadDynamicFunctions clears function
-  // pointers, it's okay, but typically not called directly before FreeLibrary
-  // unless it's managing internal state that needs reset.
-  // For now, assuming FreeLibrary is sufficient for module cleanup.
   if (g_analytics_module) {
-    // Before freeing the library, ensure any dynamic functions are cleared if
-    // necessary, though FirebaseAnalytics_LoadDynamicFunctions is usually
-    // paired with an unload at a higher level or the dynamic function pointers
-    // are simply nulled out. FirebaseAnalytics_UnloadDynamicFunctions(); //
-    // Re-evaluating placement, typically called if functions are globally
-    // stored. If they are member of a class, destructor handles it. Given it's
-    // C-style, it might clear global pointers. This is generally okay to call
-    // before FreeLibrary.
-    FirebaseAnalytics_UnloadDynamicFunctions();  // Explicitly clear function
-                                                 // pointers from dynamic
-                                                 // loading.
+    FirebaseAnalytics_UnloadDynamicFunctions();
     FreeLibrary(g_analytics_module);
     g_analytics_module = 0;
   }
