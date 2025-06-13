@@ -220,8 +220,6 @@ else()
         COMMAND ${CMAKE_COMMAND} -E copy
 	  "${ANALYTICS_WINDOWS_DLL}"
           $<TARGET_FILE_DIR:${integration_test_target_name}>)
-    else()
-      message(WARNING "Couldn't find ${ANALYTICS_WINDOWS_DLL}. Analytics will run in stub mode.")
     endif()
   else()
     set(ADDITIONAL_LIBS pthread)
