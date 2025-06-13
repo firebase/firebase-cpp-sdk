@@ -336,16 +336,7 @@ void ResetAnalyticsData() {
   g_fake_instance_id++;
 }
 
-// --- Stub Implementations for Unsupported Features ---
-
-void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-
-  // Not supported by the Windows C API.
-  (void)consent_settings;  // Mark as unused
-  LogWarning(
-      "Analytics: SetConsent() is not supported and has no effect on Desktop.");
-}
+// Overloaded versions of LogEvent for convenience.
 
 void LogEvent(const char* name) {
   LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
@@ -389,6 +380,17 @@ void LogEvent(const char* name, const char* parameter_name,
   }
   Parameter param(parameter_name, static_cast<int64_t>(parameter_value));
   LogEvent(name, &param, 1);
+}
+
+// --- Stub Implementations for Unsupported Features ---
+
+void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
+  // Not supported by the Windows C API.
+  (void)consent_settings;  // Mark as unused
+  LogWarning(
+      "Analytics: SetConsent() is not supported and has no effect on Desktop.");
 }
 
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
