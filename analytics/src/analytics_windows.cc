@@ -19,6 +19,7 @@
 
 #include <cstdlib>
 #include <cstring>
+// #include <limits> // No longer needed
 #include <string>
 #include <vector>
 
@@ -33,46 +34,89 @@ namespace internal {
 // Helper function to retrieve the full path of the current executable.
 // Returns an empty string on failure.
 static std::wstring GetExecutablePath() {
-  std::wstring executable_path_str;
-  wchar_t* wpgmptr_val = nullptr;
+  std::vector<wchar_t> buffer;
+  const size_t kInitialBufferSize = MAX_PATH + 1;
 
-  // Prefer _get_wpgmptr()
-  errno_t err_w = _get_wpgmptr(&wpgmptr_val);
-  if (err_w == 0 && wpgmptr_val != nullptr && wpgmptr_val[0] != L'\0') {
-    executable_path_str = wpgmptr_val;
-  } else {
-    // Fallback to _get_pgmptr() and convert to wide string
-    char* pgmptr_val = nullptr;
-    errno_t err_c = _get_pgmptr(&pgmptr_val);
-    if (err_c == 0 && pgmptr_val != nullptr && pgmptr_val[0] != '\0') {
-      // Convert narrow string to wide string using CP_ACP (system default ANSI
-      // code page)
-      int wide_char_count = MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS,
-                                                pgmptr_val, -1, NULL, 0);
-      if (wide_char_count == 0) {  // Failure if count is 0
-        DWORD conversion_error = GetLastError();
-        LogError(LOG_TAG "Invalid executable path. Error: %u",
-                 conversion_error);
-        return L"";
+  // First attempt with MAX_PATH + 1
+  // Note: std::vector::resize can throw std::bad_alloc if allocation fails.
+  // Per requirements, no try/catch here.
+  buffer.reserve(kInitialBufferSize);
+  buffer.resize(kInitialBufferSize);
+
+  DWORD length = GetModuleFileNameW(NULL, buffer.data(),
+                                  static_cast<DWORD>(buffer.size()));
+
+  if (length == 0) {
+    DWORD error_code = GetLastError();
+    LogError(LOG_TAG "GetModuleFileNameW (initial) failed. Error: %u",
+             error_code);
+    return std::wstring();
+  }
+
+  if (length < buffer.size()) {
+    return std::wstring(buffer.data(), length);
+  }
+
+  // If length == buffer.size(), check if it was due to insufficient buffer.
+  if (length == buffer.size()) { // Could also be length >= buffer.size()
+    DWORD error_code = GetLastError();
+    if (error_code == ERROR_INSUFFICIENT_BUFFER) {
+      // Buffer was too small, try a larger one.
+      const size_t kMaxExecutablePathSize = 65536;
+
+      // If initial buffer was already this big or bigger, no point retrying.
+      if (kInitialBufferSize >= kMaxExecutablePathSize) {
+        LogError(
+            LOG_TAG
+            "Initial buffer attempt failed due to insufficient size, but "
+            "initial size (%zu) >= kMaxExecutablePathSize (%zu).",
+            kInitialBufferSize, kMaxExecutablePathSize);
+        return std::wstring();
       }
 
-      std::vector<wchar_t> wide_path_buffer(wide_char_count);
-      if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1,
-                              wide_path_buffer.data(), wide_char_count) == 0) {
-        DWORD conversion_error = GetLastError();
-        LogError(LOG_TAG "Invalid executable path. Error: %u",
-                 conversion_error);
-        return L"";
+      buffer.clear(); // Optional: clear contents before large resize
+      // Note: std::vector::resize can throw std::bad_alloc.
+      buffer.reserve(kMaxExecutablePathSize);
+      buffer.resize(kMaxExecutablePathSize);
+
+      DWORD length_large = GetModuleFileNameW(
+          NULL, buffer.data(), static_cast<DWORD>(buffer.size()));
+
+      if (length_large == 0) {
+        DWORD error_code_large = GetLastError();
+        LogError(LOG_TAG "GetModuleFileNameW (large buffer) failed. Error: %u",
+                 error_code_large);
+        return std::wstring();
       }
-      executable_path_str = wide_path_buffer.data();
+
+      if (length_large < buffer.size()) {
+        return std::wstring(buffer.data(), length_large);
+      }
+
+      // If length_large is still equal to or greater than buffer size,
+      // the path is too long even for the large buffer, or truncated.
+      LogError(
+          LOG_TAG
+          "GetModuleFileNameW (large buffer) result too long or truncated. "
+          "Length: %u, Buffer Size: %zu",
+          length_large, buffer.size());
+      return std::wstring();
+
     } else {
-      // Both _get_wpgmptr and _get_pgmptr failed or returned empty/null
-      LogError(LOG_TAG "Can't determine executable directory. Errors: %d, %d",
-               err_w, err_c);
-      return L"";
+      // length == buffer.size() but not ERROR_INSUFFICIENT_BUFFER.
+      LogError(
+          LOG_TAG
+          "GetModuleFileNameW (initial) returned full buffer but error is not "
+          "ERROR_INSUFFICIENT_BUFFER. Error: %u",
+          error_code);
+      return std::wstring();
     }
   }
-  return executable_path_str;
+
+  // Should not be reached if logic is correct, but as a fallback.
+  // This case implies length > buffer.size() initially, which is unexpected.
+  LogError(LOG_TAG "GetModuleFileNameW (initial) unexpected state. Length: %u", length);
+  return std::wstring();
 }
 
 // Helper function to calculate SHA256 hash of a file.
