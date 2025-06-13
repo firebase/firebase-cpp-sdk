@@ -80,11 +80,9 @@ static std::wstring GetExecutablePath() {
                  error_code_large);
         return std::wstring();
       }
-    }
-    else {
+    } else {
       // length >= buffer.size() but not ERROR_INSUFFICIENT_BUFFER.
-      LogError(LOG_TAG "Failed to get executable path. Error: %u",
-	       error_code);
+      LogError(LOG_TAG "Failed to get executable path. Error: %u", error_code);
       return std::wstring();
     }
   }
@@ -194,8 +192,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
   }
   if (expected_hash == nullptr || expected_hash_size == 0) {
     // Don't check the hash, just load the library.
-    return LoadLibraryExW(library_filename, NULL,
-                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    return LoadLibraryW(library_filename);
   }
 
   std::wstring executable_path_str = GetExecutablePath();
@@ -262,14 +259,9 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
                       expected_hash_size) != 0) {
       LogError(LOG_TAG "Hash mismatch for Analytics DLL.");
     } else {
-      // Load the library. LOAD_LIBRARY_SEARCH_APPLICATION_DIR is a security
-      // measure to help ensure that the DLL is loaded from the application's
-      // installation directory, mitigating risks of DLL preloading attacks
-      // from other locations. Crucially, LoadLibraryExW with this flag needs
-      // the DLL *filename only* (library_filename), not the full path we
-      // constructed for CreateFileW.
-      hModule = LoadLibraryExW(library_filename, NULL,
-                               LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+      // Load the library. When loading with a full path string, other
+      // directories are not searched.
+      hModule = LoadLibraryW(full_dll_path_str);
       if (hModule == NULL) {
         DWORD dwError = GetLastError();
         LogError(LOG_TAG "Library load failed for Analytics DLL. Error: %u",
