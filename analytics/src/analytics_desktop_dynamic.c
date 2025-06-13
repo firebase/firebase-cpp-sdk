@@ -15,6 +15,7 @@
 // Generated from analytics.h by generate_windows_stubs.py
 
 #include "analytics/src/analytics_desktop_dynamic.h"
+
 #include <stddef.h>
 
 // clang-format off
@@ -152,7 +153,7 @@ void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled) = &Stub_
 
 // --- Dynamic Loader Function for Windows ---
 #if defined(_WIN32)
-int FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
+int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
     int count = 0;
 
     if (!dll_handle) {
@@ -258,7 +259,7 @@ int FirebaseAnalytics_LoadAnalyticsFunctions(HMODULE dll_handle) {
     return count;
 }
 
-void FirebaseAnalytics_UnloadAnalyticsFunctions(void) {
+void FirebaseAnalytics_UnloadDynamicFunctions(void) {
     ptr_GoogleAnalytics_Item_Create = &Stub_GoogleAnalytics_Item_Create;
     ptr_GoogleAnalytics_Item_InsertInt = &Stub_GoogleAnalytics_Item_InsertInt;
     ptr_GoogleAnalytics_Item_InsertDouble = &Stub_GoogleAnalytics_Item_InsertDouble;

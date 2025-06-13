@@ -131,7 +131,11 @@ void Initialize(const App& app) {
     g_analytics_dll = LoadLibraryW(g_analytics_dll_filename.c_str());
     if (g_analytics_dll) {
       LogInfo("Loaded Google Analytics DLL");
-      FirebaseAnalytics_LoadAnalyticsFunctions(g_analytics_dll);
+      int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(g_analytics_dll);
+      if (num_loaded < FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT) {
+        LogWarning("Only loaded %d out of %d expected functions from DLL.",
+                   num_loaded, FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT);
+      }
     } else {
       // Silently fail and continue in stub mode.
     }
@@ -150,7 +154,7 @@ bool IsInitialized() { return g_initialized; }
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
 #if defined(_WIN32)
-  FirebaseAnalytics_UnloadAnalyticsFunctions();
+  FirebaseAnalytics_UnloadDynamicFunctions();
   if (g_analytics_dll) {
     FreeLibrary(g_analytics_dll);
     g_analytics_dll = 0;
