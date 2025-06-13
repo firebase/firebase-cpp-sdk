@@ -25,6 +25,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -45,6 +46,8 @@ static HMODULE g_analytics_module = 0;
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
 static bool g_initialized = false;
 static int g_fake_instance_id = 0;
+static std::map<std::string, firebase::Variant> g_default_event_parameters;
+static firebase::Mutex g_default_event_parameters_mutex;
 
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
@@ -249,8 +252,35 @@ void LogEvent(const char* name, const Parameter* parameters,
     return;
   }
 
-  GoogleAnalytics_EventParameters* c_event_params = nullptr;
+  std::map<std::string, firebase::Variant> final_parameters_map;
+
+  {
+    firebase::MutexLock lock(g_default_event_parameters_mutex);
+    for (const auto& pair : g_default_event_parameters) {
+      final_parameters_map[pair.first] = pair.second;
+    }
+  }
+
   if (parameters != nullptr && number_of_parameters > 0) {
+    for (size_t i = 0; i < number_of_parameters; ++i) {
+      if (parameters[i].name != nullptr && parameters[i].name[0] != '\0') {
+        final_parameters_map[parameters[i].name] = parameters[i].value;
+      } else {
+        LogWarning("Analytics: Explicit parameter with null or empty name skipped for event '%s'.", name);
+      }
+    }
+  }
+
+  std::vector<Parameter> final_parameters_vector;
+  if (!final_parameters_map.empty()) {
+    final_parameters_vector.reserve(final_parameters_map.size());
+    for (const auto& pair : final_parameters_map) {
+      final_parameters_vector.push_back(Parameter(pair.first.c_str(), pair.second));
+    }
+  }
+
+  GoogleAnalytics_EventParameters* c_event_params = nullptr;
+  if (!final_parameters_vector.empty()) {
     c_event_params = GoogleAnalytics_EventParameters_Create();
     if (!c_event_params) {
       LogError(
@@ -258,13 +288,12 @@ void LogEvent(const char* name, const Parameter* parameters,
           name);
       return;
     }
-    ConvertParametersToGAParams(parameters, number_of_parameters,
+    ConvertParametersToGAParams(final_parameters_vector.data(),
+                                final_parameters_vector.size(),
                                 c_event_params);
   }
 
   GoogleAnalytics_LogEvent(name, c_event_params);
-  // GoogleAnalytics_LogEvent is expected to handle the lifecycle of
-  // c_event_params if non-null.
 }
 
 // Sets a user property to the given value.
@@ -439,14 +468,23 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 }
 
 void SetDefaultEventParameters(
-    const std::map<std::string, Variant>& /*default_parameters*/) {
+    const std::map<std::string, firebase::Variant>& default_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  // This is not yet implemented.
+  firebase::MutexLock lock(g_default_event_parameters_mutex);
+
+  for (const auto& param_pair : default_parameters) {
+    if (param_pair.second.is_null()) {
+      g_default_event_parameters.erase(param_pair.first);
+    } else {
+      g_default_event_parameters[param_pair.first] = param_pair.second;
+    }
+  }
 }
 
 void ClearDefaultEventParameters() {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  // This is not yet implemented.
+  firebase::MutexLock lock(g_default_event_parameters_mutex);
+  g_default_event_parameters.clear();
 }
 
 
