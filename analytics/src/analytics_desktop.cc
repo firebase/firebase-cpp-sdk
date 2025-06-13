@@ -19,7 +19,6 @@
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/analytics_desktop_dynamic.h"
-#include "analytics/src/analytics_windows.h"  // Added for VerifyAndLoadAnalyticsLibrary
 #include "analytics/src/include/firebase/analytics.h"
 #include "app/src/future_manager.h"  // For FutureData
 #include "app/src/include/firebase/app.h"
@@ -29,6 +28,8 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+
+#include "analytics/src/analytics_windows.h"
 #endif  // defined(_WIN32)
 
 namespace firebase {

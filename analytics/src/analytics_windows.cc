@@ -105,10 +105,14 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
     const wchar_t* library_filename,  // This is expected to be just the DLL
                                       // filename e.g. "analytics_win.dll"
     const unsigned char* expected_hash, size_t expected_hash_size) {
-  if (library_filename == nullptr || library_filename[0] == L'\0' ||
-      expected_hash == nullptr || expected_hash_size == 0) {
+  if (library_filename == nullptr || library_filename[0] == L'\0') {
     LogError("VerifyAndLoadAnalyticsLibrary: Invalid arguments.");
     return nullptr;
+  }
+  if (expected_hash == nullptr || expected_hash_size == 0) {
+    // Don't check the hash, just load the library.
+    return LoadLibraryExW(library_filename, NULL,
+                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
   }
 
   // Get full path to the executable using _wpgmptr.
