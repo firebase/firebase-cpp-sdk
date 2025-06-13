@@ -142,7 +142,7 @@ struct Parameter {
   /// @param parameter_name Name of the parameter (see Parameter::name).
   /// @param parameter_value Value for the parameter. Variants can
   /// hold numbers and strings.
-  Parameter(const char* parameter_name, Variant parameter_value)
+  Parameter(const char* parameter_name, firebase::Variant parameter_value)
       : name(parameter_name) {
     value = parameter_value;
   }
@@ -245,7 +245,7 @@ struct Parameter {
   ///
   /// See firebase::Variant for usage information.
   /// @note String values can be up to 100 characters long.
-  Variant value;
+  firebase::Variant value;
 #endif  // SWIG
 };
 
@@ -557,6 +557,23 @@ void SetSessionTimeoutDuration(int64_t milliseconds);
 /// Clears all analytics data for this app from the device and resets the app
 /// instance id.
 void ResetAnalyticsData();
+
+/// @brief Sets the default event parameters.
+///
+/// These parameters will be automatically logged with all calls to `LogEvent`.
+/// Default parameters are overridden by parameters supplied to the `LogEvent`
+/// method.
+///
+/// When a value in the `default_parameters` map is
+/// `firebase::Variant::Null()`, it signifies that the default parameter for
+/// that specific key should be cleared.
+///
+/// @param[in] default_parameters A map of parameter names to Variant values.
+void SetDefaultEventParameters(
+    const std::map<std::string, firebase::Variant>& default_parameters);
+
+/// @brief Clears all default event parameters.
+void ClearDefaultEventParameters();
 
 /// Get the instance ID from the analytics service.
 ///

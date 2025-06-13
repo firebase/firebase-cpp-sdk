@@ -438,6 +438,18 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
       "effect on Desktop.");
 }
 
+void SetDefaultEventParameters(
+    const std::map<std::string, Variant>& /*default_parameters*/) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // This is not yet implemented.
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // This is not yet implemented.
+}
+
+
 Future<std::string> GetAnalyticsInstanceId() {
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();

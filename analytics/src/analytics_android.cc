@@ -58,6 +58,8 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetSessionId, "getSessionId",                                             \
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V", util::kMethodTypeInstance),                     \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
     firebase::util::kMethodTypeStatic)
@@ -378,17 +380,17 @@ void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
 }
 
 // Declared here so that it can be used, defined below.
-jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
+jobject MapToBundle(JNIEnv* env, const std::map<firebase::Variant, firebase::Variant>& map);
 
 // Converts the given vector into a Java ArrayList. It is up to the
 // caller to delete the local reference when done.
 jobject VectorOfMapsToArrayList(JNIEnv* env,
-                                const std::vector<Variant>& vector) {
+                                const std::vector<firebase::Variant>& vector) {
   jobject arraylist = env->NewObject(
       util::array_list::GetClass(),
       util::array_list::GetMethodId(util::array_list::kConstructor));
 
-  for (const Variant& element : vector) {
+  for (const firebase::Variant& element : vector) {
     if (element.is_map()) {
       jobject bundle = MapToBundle(env, element.map());
       env->CallBooleanMethod(
@@ -398,7 +400,7 @@ jobject VectorOfMapsToArrayList(JNIEnv* env,
       env->DeleteLocalRef(bundle);
     } else {
       LogError("VectorOfMapsToArrayList: Unsupported type (%s) within vector.",
-               Variant::TypeName(element.type()));
+               firebase::Variant::TypeName(element.type()));
     }
   }
   return arraylist;
@@ -406,7 +408,7 @@ jobject VectorOfMapsToArrayList(JNIEnv* env,
 
 // Converts and adds the Variant to the given Bundle.
 bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
-                        const Variant& value) {
+                        const firebase::Variant& value) {
   if (value.is_int64()) {
     AddToBundle(env, bundle, key, value.int64_value());
   } else if (value.is_double()) {
@@ -438,7 +440,7 @@ bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
 
 // Converts the given map into a Java Bundle. It is up to the caller
 // to delete the local reference when done.
-jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
+jobject MapToBundle(JNIEnv* env, const std::map<firebase::Variant, firebase::Variant>& map) {
   jobject bundle =
       env->NewObject(util::bundle::GetClass(),
                      util::bundle::GetMethodId(util::bundle::kConstructor));
@@ -450,7 +452,7 @@ jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
     if (!AddVariantToBundle(env, bundle, pair.first.string_value(),
                             pair.second)) {
       LogError("MapToBundle: Unsupported type (%s) within map with key %s.",
-               Variant::TypeName(pair.second.type()),
+               firebase::Variant::TypeName(pair.second.type()),
                pair.first.string_value());
     }
     util::CheckAndClearJniExceptions(env);
@@ -512,7 +514,7 @@ void LogEvent(const char* name, const Parameter* parameters,
         LogError(
             "LogEvent(%s): %s is not a valid parameter value type. "
             "No event was logged.",
-            parameter.name, Variant::TypeName(parameter.value.type()));
+            parameter.name, firebase::Variant::TypeName(parameter.value.type()));
       }
     }
   });
@@ -607,6 +609,72 @@ void ResetAnalyticsData() {
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kResetAnalyticsData));
   util::CheckAndClearJniExceptions(env);
+}
+
+void SetDefaultEventParameters(
+    const std::map<std::string, firebase::Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+  if (!env) return;
+
+  jobject bundle =
+      env->NewObject(util::bundle::GetClass(),
+                     util::bundle::GetMethodId(util::bundle::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+    LogError("Failed to create Bundle for SetDefaultEventParameters.");
+    if (bundle) env->DeleteLocalRef(bundle);
+    return;
+  }
+
+  for (const auto& pair : default_parameters) {
+    jstring key_jstring = env->NewStringUTF(pair.first.c_str());
+    if (util::CheckAndClearJniExceptions(env) || !key_jstring) {
+      LogError("Failed to create jstring for key: %s", pair.first.c_str());
+      if (key_jstring) env->DeleteLocalRef(key_jstring);
+      continue;
+    }
+
+    if (pair.second.is_null()) {
+      // Equivalent to Bundle.putString(String key, String value) with value as null.
+      env->CallVoidMethod(bundle, util::bundle::GetMethodId(util::bundle::kPutString),
+                          key_jstring, nullptr);
+      if (util::CheckAndClearJniExceptions(env)) {
+          LogError("Failed to put null string for key: %s", pair.first.c_str());
+      }
+    } else {
+      if (!AddVariantToBundle(env, bundle, pair.first.c_str(), pair.second)) {
+        // AddVariantToBundle already logs errors for unsupported types.
+      }
+    }
+    env->DeleteLocalRef(key_jstring);
+  }
+
+  env->CallVoidMethod(g_analytics_class_instance,
+                      analytics::GetMethodId(analytics::kSetDefaultEventParameters),
+                      bundle);
+  if (util::CheckAndClearJniExceptions(env)) {
+    LogError("Failed to call setDefaultEventParameters on Java instance.");
+  }
+
+  env->DeleteLocalRef(bundle);
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+  if (!env) return;
+
+  // Calling with nullptr bundle should clear the parameters.
+  env->CallVoidMethod(g_analytics_class_instance,
+                      analytics::GetMethodId(analytics::kSetDefaultEventParameters),
+                      nullptr);
+  if (util::CheckAndClearJniExceptions(env)) {
+    // This might happen if the method isn't available on older SDKs,
+    // or if some other JNI error occurs.
+    LogError("Failed to call setDefaultEventParameters(null) on Java instance. "
+             "This may indicate the method is not available on this Android SDK version "
+             "or another JNI error occurred.");
+  }
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
