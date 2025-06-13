@@ -37,7 +37,7 @@ namespace analytics {
 #define ANALYTICS_DLL_FILENAME L"analytics_win.dll"
 
 static HMODULE g_analytics_module = 0;
-#endif   // defined(_WIN32)
+#endif  // defined(_WIN32)
 
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.

@@ -112,10 +112,9 @@ extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 #define GoogleAnalytics_SetAnalyticsCollectionEnabled ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled
 // clang-format on
 
-
 // --- Dynamic Loader Declaration for Windows ---
 #if defined(_WIN32)
-#include <windows.h> // For HMODULE
+#include <windows.h>
 
 // Google Analytics Windows DLL SHA256 hash, to be verified on load.
 extern const unsigned char FirebaseAnalytics_WindowsDllHash[32];
@@ -123,14 +122,15 @@ extern const unsigned char FirebaseAnalytics_WindowsDllHash[32];
 // Number of Google Analytics functions expected to be loaded from the DLL.
 #define FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT 19
 
-// Load Google Analytics functions from the given DLL handle into function pointers.
-// Returns the number of functions successfully loaded (out of FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT).
+// Load Analytics functions from the given DLL handle into function pointers.
+// Returns the number of functions successfully loaded (out of
+FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT).
 int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle);
 
 // Reset all function pointers back to stubs.
 void FirebaseAnalytics_UnloadDynamicFunctions(void);
 
-#endif // defined(_WIN32)
+#endif  // defined(_WIN32)
 
 #ifdef __cplusplus
 }
