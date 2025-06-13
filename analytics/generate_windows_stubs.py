@@ -46,7 +46,7 @@ def hash_file(filename):
     with open(filename, "rb") as file:
         while chunk := file.read(4096):
             sha256_hash.update(chunk)
-    return sha256_hash.hexdigest()
+    return sha256_hash.digest()
 
 def generate_function_pointers(dll_file_path, header_file_path, output_h_path, output_c_path):
     """
@@ -62,7 +62,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
     """
     print(f"Reading DLL file: {dll_file_path}")
     dll_hash = hash_file(dll_file_path)
-    
+
     print(f"Reading header file: {header_file_path}")
     try:
         with open(header_file_path, 'r', encoding='utf-8') as f:
@@ -96,7 +96,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         return_type = match.group(1).strip()
         function_name = match.group(2).strip()
         params_str = match.group(3).strip()
-        
+
         cleaned_params_for_decl = re.sub(r'\s+', ' ', params_str) if params_str else ""
         stub_name = f"Stub_{function_name}"
 
@@ -107,7 +107,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
             return_statement = f'    return ({return_type})(&g_stub_memory);'
         else: # bool, int64_t, etc.
             return_statement = "    return 1;"
-            
+
         stub_function = (
             f"// Stub for {function_name}\n"
             f"static {return_type} {stub_name}({params_str}) {{\n"
@@ -124,7 +124,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
 
         pointer_init = f"{return_type} (*ptr_{function_name})({cleaned_params_for_decl}) = &{stub_name};"
         pointer_initializations.append(pointer_init)
-        
+
         function_details_for_loader.append((function_name, return_type, cleaned_params_for_decl))
 
     print(f"Found {len(pointer_initializations)} functions. Generating output files...")
@@ -137,12 +137,12 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         f.write(f"#ifndef {header_guard}\n")
         f.write(f"#define {header_guard}\n\n")
         f.write("#include <stdbool.h>  // needed for bool type in pure C\n\n")
-        
+
         f.write("// --- Copied from original header ---\n")
         f.write("\n".join(includes) + "\n\n")
         f.write("".join(typedefs))
         f.write("// --- End of copied section ---\n\n")
-        
+
         f.write("#ifdef __cplusplus\n")
         f.write('extern "C" {\n')
         f.write("#endif\n\n")
@@ -156,7 +156,8 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         f.write("#if defined(_WIN32)\n")
         f.write('#include <windows.h> // For HMODULE\n')
         f.write(f'\n// Google Analytics Windows DLL SHA256 hash, to be verified on load.')
-        f.write(f'\n#define FIREBASE_ANALYTICS_DYNAMIC_LIBRARY_HASH "{dll_hash}"\n')
+        f.write(f'\nextern const unsigned char FirebaseAnalytics_WindowsDllHash[{len(dll_hash)}];\n');
+
         f.write(f'\n// Number of Google Analytics functions expected to be loaded from the DLL.')
         f.write(f'\n#define FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT {len(function_details_for_loader)}\n\n')
         f.write('// Load Google Analytics functions from the given DLL handle into function pointers.\n')
@@ -178,6 +179,10 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         f.write(f"// Generated from {os.path.basename(header_file_path)} by {os.path.basename(sys.argv[0])}\n\n")
         f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(output_h_path)}"\n')
         f.write('#include <stddef.h>\n\n')
+        f.write('// Google Analytics Windows DLL SHA256 hash, to be verified on load.\n')
+        f.write('const unsigned char FirebaseAnalytics_WindowsDllHash[] = {')
+        f.write(','.join(["0x%02x" % s for s in dll_hash]))
+        f.write('};\n\n')
         f.write("// clang-format off\n\n")
         f.write("static void* g_stub_memory = NULL;\n\n")
         f.write("// --- Stub Function Definitions ---\n")
@@ -245,10 +250,10 @@ if __name__ == '__main__':
         help="Path for the generated output source file."
     )
     args = parser.parse_args()
-    
+
     generate_function_pointers(
         args.windows_dll,
-        args.windows_header, 
-        args.output_header, 
+        args.windows_header,
+        args.output_header,
         args.output_source
     )
