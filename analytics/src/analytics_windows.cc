@@ -192,7 +192,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
   }
   if (expected_hash == nullptr || expected_hash_size == 0) {
     // Don't check the hash, just load the library.
-    LogWarning(LOG_TAG "No hash provided, using unverified Analytics DLL.")
+    LogWarning(LOG_TAG "No hash provided, using unverified Analytics DLL.");
     return LoadLibraryW(library_filename);
   }
 
