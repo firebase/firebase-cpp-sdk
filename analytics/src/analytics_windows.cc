@@ -260,7 +260,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
                       expected_hash_size) != 0) {
       LogError(LOG_TAG "Hash mismatch for Analytics DLL.");
     } else {
-      LogInfo(LOG_TAG "Successfully verified Analytics DLL.");
+      LogDebug(LOG_TAG "Successfully verified Analytics DLL.");
       // Load the library. When loading with a full path string, other
       // directories are not searched.
       hModule = LoadLibraryW(full_dll_path_str.c_str());
