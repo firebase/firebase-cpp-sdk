@@ -79,6 +79,11 @@ set(desktop_SRCS
     src/analytics_desktop.cc
     src/analytics_desktop_dynamic.c)
 
+if(WIN32)
+  # Add Windows-specific sources for desktop builds.
+  list(APPEND desktop_SRCS src/analytics_windows.cc)
+endif()
+
 if(ANDROID)
   set(analytics_platform_SRCS
       "${android_SRCS}")

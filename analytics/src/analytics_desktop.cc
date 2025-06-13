@@ -19,6 +19,7 @@
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/analytics_desktop_dynamic.h"
+#include "analytics/src/analytics_windows.h"  // Added for VerifyAndLoadAnalyticsLibrary
 #include "analytics/src/include/firebase/analytics.h"
 #include "app/src/future_manager.h"  // For FutureData
 #include "app/src/include/firebase/app.h"
@@ -59,12 +60,14 @@ void Initialize(const App& app) {
 
 #if defined(_WIN32)
   if (!g_analytics_module) {
-    // Only allow the DLL to be loaded from the application directory.
-    g_analytics_module = LoadLibraryExW(ANALYTICS_DLL_FILENAME, NULL,
-                                        LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    g_analytics_module = firebase::analytics::internal::VerifyAndLoadAnalyticsLibrary(
+        ANALYTICS_DLL_FILENAME,
+        FirebaseAnalytics_WindowsDllHash,
+        sizeof(FirebaseAnalytics_WindowsDllHash));
+
     if (g_analytics_module) {
-      LogInfo("Loaded Google Analytics module");
-      int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(g_analytics_dll);
+      LogInfo("Loaded Google Analytics module securely.");
+      int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(g_analytics_module); // Ensure g_analytics_module is used
       if (num_loaded < FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT) {
         LogWarning(
             "Only loaded %d out of %d expected functions from the Google "
@@ -72,7 +75,7 @@ void Initialize(const App& app) {
             num_loaded, FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT);
       }
     } else {
-      // Silently fail and continue in stub mode.
+      LogError("Failed to load Google Analytics module securely. Operating in stub mode.");
     }
   }
 #endif
@@ -89,8 +92,21 @@ bool IsInitialized() { return g_initialized; }
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
 #if defined(_WIN32)
-  FirebaseAnalytics_UnloadDynamicFunctions();
+  // FirebaseAnalytics_UnloadDynamicFunctions(); // This should be called by the dynamic functions manager if needed
+                                              // or handled by the loaded module itself upon unload.
+                                              // If FirebaseAnalytics_UnloadDynamicFunctions clears function pointers,
+                                              // it's okay, but typically not called directly before FreeLibrary
+                                              // unless it's managing internal state that needs reset.
+                                              // For now, assuming FreeLibrary is sufficient for module cleanup.
   if (g_analytics_module) {
+    // Before freeing the library, ensure any dynamic functions are cleared if necessary,
+    // though FirebaseAnalytics_LoadDynamicFunctions is usually paired with an unload at a higher level
+    // or the dynamic function pointers are simply nulled out.
+    // FirebaseAnalytics_UnloadDynamicFunctions(); // Re-evaluating placement, typically called if functions are globally stored.
+                                                // If they are member of a class, destructor handles it.
+                                                // Given it's C-style, it might clear global pointers.
+                                                // This is generally okay to call before FreeLibrary.
+    FirebaseAnalytics_UnloadDynamicFunctions(); // Explicitly clear function pointers from dynamic loading.
     FreeLibrary(g_analytics_module);
     g_analytics_module = 0;
   }
