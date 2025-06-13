@@ -80,12 +80,12 @@ static std::wstring GetExecutablePath() {
                  error_code_large);
         return std::wstring();
       }
-      else {
-        // length >= buffer.size() but not ERROR_INSUFFICIENT_BUFFER.
-        LogError(LOG_TAG "Failed to get executable path. Error: %u",
-                 error_code);
-        return std::wstring();
-      }
+    }
+    else {
+      // length >= buffer.size() but not ERROR_INSUFFICIENT_BUFFER.
+      LogError(LOG_TAG "Failed to get executable path. Error: %u",
+	       error_code);
+      return std::wstring();
     }
   }
 }
