@@ -24,6 +24,8 @@
 
 #include "app/src/log.h"
 
+#define LOG_TAG "VerifyAndLoadAnalyticsLibrary: "
+
 namespace firebase {
 namespace analytics {
 namespace internal {
@@ -49,9 +51,7 @@ static std::wstring GetExecutablePath() {
                                                 pgmptr_val, -1, NULL, 0);
       if (wide_char_count == 0) {  // Failure if count is 0
         DWORD conversion_error = GetLastError();
-        LogError(
-            "VerifyAndLoadAnalyticsLibrary: Invalid executable path. Error: %u",
-            conversion_error);
+        LogError(LOG_TAG "Invalid executable path. Error: %u", conversion_error);
         return L"";
       }
 
@@ -59,18 +59,13 @@ static std::wstring GetExecutablePath() {
       if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1,
                               wide_path_buffer.data(), wide_char_count) == 0) {
         DWORD conversion_error = GetLastError();
-        LogError(
-            "VerifyAndLoadAnalyticsLibrary: Invalid executable path. Error: %u",
-            conversion_error);
+        LogError(LOG_TAG "Invalid executable path. Error: %u", conversion_error);
         return L"";
       }
       executable_path_str = wide_path_buffer.data();
     } else {
       // Both _get_wpgmptr and _get_pgmptr failed or returned empty/null
-      LogError(
-          "VerifyAndLoadAnalyticsLibrary: Can't determine executable "
-          "directory. Errors: %d, %d",
-          err_w, err_c);
+      LogError(LOG_TAG "Can't determine executable directory. Errors: %d, %d", err_w, err_c);
       return L"";
     }
   }
@@ -85,10 +80,7 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
 
   if (SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
     DWORD dwError = GetLastError();
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.SetFilePointer "
-        "failed. Error: %u",
-        dwError);
+    LogError(LOG_TAG "CalculateFileSha256.SetFilePointer failed. Error: %u", dwError);
     return result_hash_value;
   }
 
@@ -98,19 +90,13 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
   if (!CryptAcquireContextW(&hProv, NULL, NULL, PROV_RSA_AES,
                             CRYPT_VERIFYCONTEXT)) {
     DWORD dwError = GetLastError();
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: "
-        "CalculateFileSha256.CryptAcquireContextW failed. Error: %u",
-        dwError);
+    LogError(LOG_TAG "CalculateFileSha256.CryptAcquireContextW failed. Error: %u", dwError);
     return result_hash_value;
   }
 
   if (!CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
     DWORD dwError = GetLastError();
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptCreateHash "
-        "failed. Error: %u",
-        dwError);
+    LogError(LOG_TAG "CalculateFileSha256.CryptCreateHash failed. Error: %u", dwError);
     CryptReleaseContext(hProv, 0);
     return result_hash_value;
   }
@@ -123,10 +109,7 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
     bReadSuccessLoop = ReadFile(hFile, rgbFile, sizeof(rgbFile), &cbRead, NULL);
     if (!bReadSuccessLoop) {
       DWORD dwError = GetLastError();
-      LogError(
-          "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.ReadFile failed. "
-          "Error: %u",
-          dwError);
+      LogError(LOG_TAG "CalculateFileSha256.ReadFile failed. Error: %u", dwError);
       CryptDestroyHash(hHash);
       CryptReleaseContext(hProv, 0);
       return result_hash_value;
@@ -136,10 +119,7 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
     }
     if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
       DWORD dwError = GetLastError();
-      LogError(
-          "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptHashData "
-          "failed. Error: %u",
-          dwError);
+      LogError(LOG_TAG "CalculateFileSha256.CryptHashData failed. Error: %u", dwError);
       CryptDestroyHash(hHash);
       CryptReleaseContext(hProv, 0);
       return result_hash_value;
@@ -152,7 +132,7 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
                          0)) {
     DWORD dwError = GetLastError();
     LogError(
-        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptGetHashParam "
+        LOG_TAG "CalculateFileSha256.CryptGetHashParam "
         "(HP_HASHSIZE) failed. Error: "
         "%u",
         dwError);
@@ -165,10 +145,7 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
   if (!CryptGetHashParam(hHash, HP_HASHVAL, result_hash_value.data(),
                          &cbHashValue, 0)) {
     DWORD dwError = GetLastError();
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptGetHashParam "
-        "(HP_HASHVAL) failed. Error: %u",
-        dwError);
+    LogError(LOG_TAG "CalculateFileSha256.CryptGetHashParam (HP_HASHVAL) failed. Error: %u", dwError);
     result_hash_value.clear();
     CryptDestroyHash(hHash);
     CryptReleaseContext(hProv, 0);
@@ -185,7 +162,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
                                       // filename e.g. "analytics_win.dll"
     const unsigned char* expected_hash, size_t expected_hash_size) {
   if (library_filename == nullptr || library_filename[0] == L'\0') {
-    LogError("VerifyAndLoadAnalyticsLibrary: Invalid arguments.");
+    LogError(LOG_TAG "Invalid arguments.");
     return nullptr;
   }
   if (expected_hash == nullptr || expected_hash_size == 0) {
@@ -194,32 +171,19 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
                           LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
   }
 
-  std::wstring executable_path_str(_wpgmptr);
-
-  size_t last_slash_pos = executable_path_str.find_last_of(L"\\");
-  if (last_slash_pos == std::wstring::npos) {
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: Can't determine executable directory.");
-    return nullptr;
-  }
-
   std::wstring executable_path_str = GetExecutablePath();
 
   if (executable_path_str.empty()) {
     // GetExecutablePath() is expected to log specific errors.
     // This log indicates the failure to proceed within this function.
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: Failed to determine executable path "
-        "via GetExecutablePath(), cannot proceed.");
+    LogError(LOG_TAG "Can't determine executable path.");
     return nullptr;
   }
 
   size_t last_slash_pos = executable_path_str.find_last_of(L"\\");
   if (last_slash_pos == std::wstring::npos) {
     // Log message updated to avoid using %ls for executable_path_str
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: Could not determine executable "
-        "directory from retrieved path (no backslash found).");
+    LogError(LOG_TAG "Could not determine executable directory.");
     return nullptr;
   }
 
@@ -236,10 +200,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
     // logging an error. For other errors (e.g., access denied on an existing
     // file), log them as it's an unexpected issue.
     if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND) {
-      LogError(
-          "VerifyAndLoadAnalyticsLibrary: Failed to open Analytics DLL. Error: "
-          "%u",
-          dwError);
+      LogError(OG_TAG "Failed to open Analytics DLL. Error: %u", dwError);
     }
     return nullptr;  // In all CreateFileW failure cases, return nullptr to fall
                      // back to stub mode.
@@ -253,10 +214,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
                                 0xFFFFFFFF, &overlapped);
   if (!bFileLocked) {
     DWORD dwError = GetLastError();
-    LogError(
-        "VerifyAndLoadAnalyticsLibrary: Failed to lock Analytics DLL. Error: "
-        "%u",
-        dwError);
+    LogError(LOG_TAG "Failed to lock Analytics DLL. Error: %u", dwError);
     CloseHandle(hFile);
     return nullptr;
   }
@@ -266,17 +224,15 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
   std::vector<BYTE> calculated_hash = CalculateFileSha256(hFile);
 
   if (calculated_hash.empty()) {
-    LogError("VerifyAndLoadAnalyticsLibrary: Hash failed for Analytics DLL.");
+    LogError(LOG_TAG "Hash failed for Analytics DLL.");
   } else {
     if (calculated_hash.size() != expected_hash_size) {
       LogError(
-          "VerifyAndLoadAnalyticsLibrary: Hash size mismatch for Analytics "
-          "DLL. Expected: %zu, Calculated: %zu.",
-          expected_hash_size, calculated_hash.size());
+          LOG_TAG "Hash size mismatch for Analytics DLL. Expected: %zu, Calculated: %zu.", expected_hash_size, calculated_hash.size());
     } else if (memcmp(calculated_hash.data(), expected_hash,
                       expected_hash_size) != 0) {
       LogError(
-          "VerifyAndLoadAnalyticsLibrary: Hash mismatch for Analytics DLL.");
+          LOG_TAG "Hash mismatch for Analytics DLL.");
     } else {
       // Load the library. LOAD_LIBRARY_SEARCH_APPLICATION_DIR is a security
       // measure to help ensure that the DLL is loaded from the application's
@@ -288,10 +244,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
                                LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
       if (hModule == NULL) {
         DWORD dwError = GetLastError();
-        LogError(
-            "VerifyAndLoadAnalyticsLibrary: Library load failed for Analytics "
-            "DLL. Error: %u",
-            dwError);
+        LogError(LOG_TAG "Library load failed for Analytics DLL. Error: %u", dwError);
       }
     }
   }
@@ -299,20 +252,14 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
   if (bFileLocked) {
     if (!UnlockFileEx(hFile, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped)) {
       DWORD dwError = GetLastError();
-      LogError(
-          "VerifyAndLoadAnalyticsLibrary: Failed to unlock Analytics DLL. "
-          "Error: %u",
-          dwError);
+      LogError(LOG_TAG "Failed to unlock Analytics DLL. Error: %u", dwError);
     }
   }
 
   if (hFile != INVALID_HANDLE_VALUE) {
     if (!CloseHandle(hFile)) {
       DWORD dwError = GetLastError();
-      LogError(
-          "VerifyAndLoadAnalyticsLibrary: Failed to close Analytics DLL. "
-          "Error: %u",
-          dwError);
+      LogError(LOG_TAG "Failed to close Analytics DLL. Error: %u", dwError);
     }
   }
   return hModule;
