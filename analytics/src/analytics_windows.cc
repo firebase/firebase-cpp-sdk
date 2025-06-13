@@ -17,14 +17,12 @@
 #include <wincrypt.h>
 #include <windows.h>
 
-#include <cstdlib>  // Required for _wpgmptr
-#include <cstring>  // For memcmp
-#include <string>   // Required for std::wstring
+#include <cstdlib>
+#include <cstring>
+#include <string>
 #include <vector>
-#include <string> // Required for std::wstring
-#include <cstdlib> // Required for _wpgmptr
-#include <cstring> // For memcmp
-#include "app/src/log.h" //NOLINT
+
+#include "app/src/log.h"
 
 namespace firebase {
 namespace analytics {
@@ -33,46 +31,50 @@ namespace internal {
 // Helper function to retrieve the full path of the current executable.
 // Returns an empty string on failure.
 static std::wstring GetExecutablePath() {
-    std::wstring executable_path_str;
-    wchar_t* wpgmptr_val = nullptr;
+  std::wstring executable_path_str;
+  wchar_t* wpgmptr_val = nullptr;
 
-    // Prefer _get_wpgmptr()
-    errno_t err_w = _get_wpgmptr(&wpgmptr_val);
-    if (err_w == 0 && wpgmptr_val != nullptr && wpgmptr_val[0] != L'\0') {
-        executable_path_str = wpgmptr_val;
-    } else {
-        // Fallback to _get_pgmptr() and convert to wide string
-        char* pgmptr_val = nullptr;
-        errno_t err_c = _get_pgmptr(&pgmptr_val);
-        if (err_c == 0 && pgmptr_val != nullptr && pgmptr_val[0] != '\0') {
-            // Convert narrow string to wide string using CP_ACP (system default ANSI code page)
-            int wide_char_count = MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, NULL, 0);
-            if (wide_char_count == 0) { // Failure if count is 0
-                DWORD conversion_error = GetLastError();
-                LogError("GetExecutablePath: MultiByteToWideChar failed to calculate size for _get_pgmptr path. Error: %u", conversion_error);
-                return L"";
-            }
-
-            std::vector<wchar_t> wide_path_buffer(wide_char_count);
-            if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, wide_path_buffer.data(), wide_char_count) == 0) {
-                DWORD conversion_error = GetLastError();
-                LogError("GetExecutablePath: MultiByteToWideChar failed to convert _get_pgmptr path. Error: %u", conversion_error);
-                return L"";
-            }
-            executable_path_str = wide_path_buffer.data();
-        } else {
-            // Both _get_wpgmptr and _get_pgmptr failed or returned empty/null
-            LogError("GetExecutablePath: Failed to retrieve executable path using both _get_wpgmptr (err: %d) and _get_pgmptr (err: %d).", err_w, err_c);
-            return L"";
-        }
-    }
-
-    // Safeguard if path somehow resolved to empty despite initial checks.
-    if (executable_path_str.empty()) {
-        LogError("GetExecutablePath: Executable path resolved to an empty string.");
+  // Prefer _get_wpgmptr()
+  errno_t err_w = _get_wpgmptr(&wpgmptr_val);
+  if (err_w == 0 && wpgmptr_val != nullptr && wpgmptr_val[0] != L'\0') {
+    executable_path_str = wpgmptr_val;
+  } else {
+    // Fallback to _get_pgmptr() and convert to wide string
+    char* pgmptr_val = nullptr;
+    errno_t err_c = _get_pgmptr(&pgmptr_val);
+    if (err_c == 0 && pgmptr_val != nullptr && pgmptr_val[0] != '\0') {
+      // Convert narrow string to wide string using CP_ACP (system default ANSI
+      // code page)
+      int wide_char_count = MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS,
+                                                pgmptr_val, -1, NULL, 0);
+      if (wide_char_count == 0) {  // Failure if count is 0
+        DWORD conversion_error = GetLastError();
+        LogError(
+            "VerifyAndLoadAnalyticsLibrary: Invalid executable path. Error: %u",
+            conversion_error);
         return L"";
+      }
+
+      std::vector<wchar_t> wide_path_buffer(wide_char_count);
+      if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1,
+                              wide_path_buffer.data(), wide_char_count) == 0) {
+        DWORD conversion_error = GetLastError();
+        LogError(
+            "VerifyAndLoadAnalyticsLibrary: Invalid executable path. Error: %u",
+            conversion_error);
+        return L"";
+      }
+      executable_path_str = wide_path_buffer.data();
+    } else {
+      // Both _get_wpgmptr and _get_pgmptr failed or returned empty/null
+      LogError(
+          "VerifyAndLoadAnalyticsLibrary: Can't determine executable "
+          "directory. Errors: %d, %d",
+          err_w, err_c);
+      return L"";
     }
-    return executable_path_str;
+  }
+  return executable_path_str;
 }
 
 // Helper function to calculate SHA256 hash of a file.
@@ -83,7 +85,10 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
 
   if (SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
     DWORD dwError = GetLastError();
-    LogError("CalculateFileSha256: SetFilePointer failed. Error: %u", dwError);
+    LogError(
+        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.SetFilePointer "
+        "failed. Error: %u",
+        dwError);
     return result_hash_value;
   }
 
@@ -93,14 +98,19 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
   if (!CryptAcquireContextW(&hProv, NULL, NULL, PROV_RSA_AES,
                             CRYPT_VERIFYCONTEXT)) {
     DWORD dwError = GetLastError();
-    LogError("CalculateFileSha256: CryptAcquireContextW failed. Error: %u",
-             dwError);
+    LogError(
+        "VerifyAndLoadAnalyticsLibrary: "
+        "CalculateFileSha256.CryptAcquireContextW failed. Error: %u",
+        dwError);
     return result_hash_value;
   }
 
   if (!CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
     DWORD dwError = GetLastError();
-    LogError("CalculateFileSha256: CryptCreateHash failed. Error: %u", dwError);
+    LogError(
+        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptCreateHash "
+        "failed. Error: %u",
+        dwError);
     CryptReleaseContext(hProv, 0);
     return result_hash_value;
   }
@@ -113,7 +123,10 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
     bReadSuccessLoop = ReadFile(hFile, rgbFile, sizeof(rgbFile), &cbRead, NULL);
     if (!bReadSuccessLoop) {
       DWORD dwError = GetLastError();
-      LogError("CalculateFileSha256: ReadFile failed. Error: %u", dwError);
+      LogError(
+          "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.ReadFile failed. "
+          "Error: %u",
+          dwError);
       CryptDestroyHash(hHash);
       CryptReleaseContext(hProv, 0);
       return result_hash_value;
@@ -123,7 +136,10 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
     }
     if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
       DWORD dwError = GetLastError();
-      LogError("CalculateFileSha256: CryptHashData failed. Error: %u", dwError);
+      LogError(
+          "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptHashData "
+          "failed. Error: %u",
+          dwError);
       CryptDestroyHash(hHash);
       CryptReleaseContext(hProv, 0);
       return result_hash_value;
@@ -136,7 +152,8 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
                          0)) {
     DWORD dwError = GetLastError();
     LogError(
-        "CalculateFileSha256: CryptGetHashParam (HP_HASHSIZE) failed. Error: "
+        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptGetHashParam "
+        "(HP_HASHSIZE) failed. Error: "
         "%u",
         dwError);
     CryptDestroyHash(hHash);
@@ -149,7 +166,8 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
                          &cbHashValue, 0)) {
     DWORD dwError = GetLastError();
     LogError(
-        "CalculateFileSha256: CryptGetHashParam (HP_HASHVAL) failed. Error: %u",
+        "VerifyAndLoadAnalyticsLibrary: CalculateFileSha256.CryptGetHashParam "
+        "(HP_HASHVAL) failed. Error: %u",
         dwError);
     result_hash_value.clear();
     CryptDestroyHash(hHash);
@@ -185,23 +203,27 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
     return nullptr;
   }
 
-    std::wstring executable_path_str = GetExecutablePath();
+  std::wstring executable_path_str = GetExecutablePath();
 
-    if (executable_path_str.empty()) {
-        // GetExecutablePath() is expected to log specific errors.
-        // This log indicates the failure to proceed within this function.
-        LogError("VerifyAndLoadAnalyticsLibrary: Failed to determine executable path via GetExecutablePath(), cannot proceed.");
-        return nullptr;
-    }
+  if (executable_path_str.empty()) {
+    // GetExecutablePath() is expected to log specific errors.
+    // This log indicates the failure to proceed within this function.
+    LogError(
+        "VerifyAndLoadAnalyticsLibrary: Failed to determine executable path "
+        "via GetExecutablePath(), cannot proceed.");
+    return nullptr;
+  }
 
-    size_t last_slash_pos = executable_path_str.find_last_of(L"\\");
-    if (last_slash_pos == std::wstring::npos) {
-        // Log message updated to avoid using %ls for executable_path_str
-        LogError("VerifyAndLoadAnalyticsLibrary: Could not determine executable directory from retrieved path (no backslash found).");
-        return nullptr;
-    }
+  size_t last_slash_pos = executable_path_str.find_last_of(L"\\");
+  if (last_slash_pos == std::wstring::npos) {
+    // Log message updated to avoid using %ls for executable_path_str
+    LogError(
+        "VerifyAndLoadAnalyticsLibrary: Could not determine executable "
+        "directory from retrieved path (no backslash found).");
+    return nullptr;
+  }
 
-    std::wstring full_dll_path_str =
+  std::wstring full_dll_path_str =
       executable_path_str.substr(0, last_slash_pos + 1);
   full_dll_path_str += library_filename;  // library_filename is the filename
 
