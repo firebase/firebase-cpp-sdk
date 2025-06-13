@@ -261,7 +261,7 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
     } else {
       // Load the library. When loading with a full path string, other
       // directories are not searched.
-      hModule = LoadLibraryW(full_dll_path_str);
+      hModule = LoadLibraryW(full_dll_path_str.c_str());
       if (hModule == NULL) {
         DWORD dwError = GetLastError();
         LogError(LOG_TAG "Library load failed for Analytics DLL. Error: %u",
