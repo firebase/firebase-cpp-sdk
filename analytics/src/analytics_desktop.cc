@@ -69,11 +69,11 @@ void Initialize(const App& app) {
     if (g_analytics_module) {
       int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(
           g_analytics_module);  // Ensure g_analytics_module is used
-      if (num_loaded < FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT) {
+      if (num_loaded < FirebaseAnalytics_DynamicFunctionCount) {
         LogWarning(
             "Analytics: Failed to load functions from Google Analytics "
             "module (%d out of %d loaded), reverting to stubs.",
-            num_loaded, FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT);
+            num_loaded, FirebaseAnalytics_DynamicFunctionCount);
         FirebaseAnalytics_UnloadDynamicFunctions();
         FreeLibrary(g_analytics_module);
         g_analytics_module = 0;

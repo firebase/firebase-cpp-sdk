@@ -22,10 +22,15 @@ static void* g_stub_memory = NULL;
 
 // clang-format off
 
+// Number of Google Analytics functions expected to be loaded from the DLL.
+const int FirebaseAnalytics_DynamicFunctionCount = 19;
+
+#if defined(_WIN32)
 // Google Analytics Windows DLL SHA256 hash, to be verified on load.
 const unsigned char FirebaseAnalytics_WindowsDllHash[] = {
     0xc1, 0xb9, 0xff, 0x6e, 0x91, 0x19, 0xc3, 0x0b, 0xbe, 0xb7, 0x47, 0x23, 0x26, 0xdc, 0xde, 0x41, 0x8f, 0x45, 0x68, 0x2e, 0x6b, 0x82, 0x2e, 0x25, 0xee, 0xd9, 0x22, 0xfe, 0x6e, 0x3c, 0xc6, 0x98
 };
+#endif  // defined(_WIN32)
 
 // --- Stub Function Definitions ---
 // Stub for GoogleAnalytics_Item_Create
