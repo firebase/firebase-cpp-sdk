@@ -22,7 +22,7 @@
 #include <string>   // Required for std::wstring
 #include <vector>
 
-#include "app/src/include/firebase/log.h"  //NOLINT
+#include "app/src/log.h"
 
 namespace firebase {
 namespace analytics {
