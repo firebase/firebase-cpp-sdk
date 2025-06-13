@@ -35,88 +35,56 @@ namespace internal {
 // Returns an empty string on failure.
 static std::wstring GetExecutablePath() {
   std::vector<wchar_t> buffer;
-  const size_t kInitialBufferSize = MAX_PATH + 1;
-
   // First attempt with MAX_PATH + 1
-  // Note: std::vector::resize can throw std::bad_alloc if allocation fails.
-  // Per requirements, no try/catch here.
-  buffer.reserve(kInitialBufferSize);
-  buffer.resize(kInitialBufferSize);
+  buffer.reserve(MAX_PATH+1);
+  buffer.resize(MAX_PATH+1);
 
   DWORD length = GetModuleFileNameW(NULL, buffer.data(),
                                   static_cast<DWORD>(buffer.size()));
 
   if (length == 0) {
     DWORD error_code = GetLastError();
-    LogError(LOG_TAG "GetModuleFileNameW (initial) failed. Error: %u",
-             error_code);
+    LogError(LOG_TAG "Failed to get executable path. Error: %u", error_code);
     return std::wstring();
   }
 
   if (length < buffer.size()) {
+    // Executable path fit in our buffer, return it.
     return std::wstring(buffer.data(), length);
-  }
-
-  // If length == buffer.size(), check if it was due to insufficient buffer.
-  if (length == buffer.size()) { // Could also be length >= buffer.size()
+  } else {
     DWORD error_code = GetLastError();
     if (error_code == ERROR_INSUFFICIENT_BUFFER) {
       // Buffer was too small, try a larger one.
-      const size_t kMaxExecutablePathSize = 65536;
+      const size_t kLongPathMax = 65536+1;
 
-      // If initial buffer was already this big or bigger, no point retrying.
-      if (kInitialBufferSize >= kMaxExecutablePathSize) {
-        LogError(
-            LOG_TAG
-            "Initial buffer attempt failed due to insufficient size, but "
-            "initial size (%zu) >= kMaxExecutablePathSize (%zu).",
-            kInitialBufferSize, kMaxExecutablePathSize);
-        return std::wstring();
-      }
-
-      buffer.clear(); // Optional: clear contents before large resize
-      // Note: std::vector::resize can throw std::bad_alloc.
-      buffer.reserve(kMaxExecutablePathSize);
-      buffer.resize(kMaxExecutablePathSize);
+      buffer.clear();
+      buffer.reserve(kLongPathMax);
+      buffer.resize(kLongPathMax);
 
       DWORD length_large = GetModuleFileNameW(
           NULL, buffer.data(), static_cast<DWORD>(buffer.size()));
 
       if (length_large == 0) {
         DWORD error_code_large = GetLastError();
-        LogError(LOG_TAG "GetModuleFileNameW (large buffer) failed. Error: %u",
-                 error_code_large);
+        LogError(LOG_TAG "Failed to get executable long path. Error: %u", error_code_large);
         return std::wstring();
       }
 
       if (length_large < buffer.size()) {
         return std::wstring(buffer.data(), length_large);
-      }
-
-      // If length_large is still equal to or greater than buffer size,
-      // the path is too long even for the large buffer, or truncated.
-      LogError(
-          LOG_TAG
-          "GetModuleFileNameW (large buffer) result too long or truncated. "
-          "Length: %u, Buffer Size: %zu",
-          length_large, buffer.size());
+      } else {
+      // If length_large is still equal to or greater than buffer size, regardless of error,
+      // the path is too long for even the large buffer.
+      DWORD error_code_large = GetLastError();
+      LogError(LOG_TAG "Executable path too long. Error: %u", error_code_large);
       return std::wstring();
 
     } else {
-      // length == buffer.size() but not ERROR_INSUFFICIENT_BUFFER.
-      LogError(
-          LOG_TAG
-          "GetModuleFileNameW (initial) returned full buffer but error is not "
-          "ERROR_INSUFFICIENT_BUFFER. Error: %u",
-          error_code);
+      // length >= buffer.size() but not ERROR_INSUFFICIENT_BUFFER.
+      LogError(LOG_TAG "Failed to get executable path. Error: %u", error_code);
       return std::wstring();
     }
   }
-
-  // Should not be reached if logic is correct, but as a fallback.
-  // This case implies length > buffer.size() initially, which is unexpected.
-  LogError(LOG_TAG "GetModuleFileNameW (initial) unexpected state. Length: %u", length);
-  return std::wstring();
 }
 
 // Helper function to calculate SHA256 hash of a file.
