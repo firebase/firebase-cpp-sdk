@@ -12,6 +12,51 @@ namespace firebase {
 namespace analytics {
 namespace internal {
 
+// Helper function to retrieve the full path of the current executable.
+// Returns an empty string on failure.
+static std::wstring GetExecutablePath() {
+    std::wstring executable_path_str;
+    wchar_t* wpgmptr_val = nullptr;
+
+    // Prefer _get_wpgmptr()
+    errno_t err_w = _get_wpgmptr(&wpgmptr_val);
+    if (err_w == 0 && wpgmptr_val != nullptr && wpgmptr_val[0] != L'\0') {
+        executable_path_str = wpgmptr_val;
+    } else {
+        // Fallback to _get_pgmptr() and convert to wide string
+        char* pgmptr_val = nullptr;
+        errno_t err_c = _get_pgmptr(&pgmptr_val);
+        if (err_c == 0 && pgmptr_val != nullptr && pgmptr_val[0] != '\0') {
+            // Convert narrow string to wide string using CP_ACP (system default ANSI code page)
+            int wide_char_count = MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, NULL, 0);
+            if (wide_char_count == 0) { // Failure if count is 0
+                DWORD conversion_error = GetLastError();
+                LogError("GetExecutablePath: MultiByteToWideChar failed to calculate size for _get_pgmptr path. Error: %u", conversion_error);
+                return L"";
+            }
+
+            std::vector<wchar_t> wide_path_buffer(wide_char_count);
+            if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, wide_path_buffer.data(), wide_char_count) == 0) {
+                DWORD conversion_error = GetLastError();
+                LogError("GetExecutablePath: MultiByteToWideChar failed to convert _get_pgmptr path. Error: %u", conversion_error);
+                return L"";
+            }
+            executable_path_str = wide_path_buffer.data();
+        } else {
+            // Both _get_wpgmptr and _get_pgmptr failed or returned empty/null
+            LogError("GetExecutablePath: Failed to retrieve executable path using both _get_wpgmptr (err: %d) and _get_pgmptr (err: %d).", err_w, err_c);
+            return L"";
+        }
+    }
+
+    // Safeguard if path somehow resolved to empty despite initial checks.
+    if (executable_path_str.empty()) {
+        LogError("GetExecutablePath: Executable path resolved to an empty string.");
+        return L"";
+    }
+    return executable_path_str;
+}
+
 // Helper function to calculate SHA256 hash of a file.
 static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
     HCRYPTPROV hProv = 0;
@@ -100,17 +145,49 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
         return nullptr;
     }
 
-    // Get full path to the executable using _wpgmptr.
-    // This global variable is provided by the CRT and is expected to be available on Windows.
-    if (_wpgmptr == nullptr || _wpgmptr[0] == L'\0') {
-        LogError("VerifyAndLoadAnalyticsLibrary: _wpgmptr is null or empty, cannot determine executable path.");
+    // Get full path to the executable.
+    std::wstring executable_path_str;
+    wchar_t* wpgmptr_val = nullptr;
+
+    // Prefer _get_wpgmptr()
+    errno_t err_w = _get_wpgmptr(&wpgmptr_val);
+    if (err_w == 0 && wpgmptr_val != nullptr && wpgmptr_val[0] != L'\0') {
+        executable_path_str = wpgmptr_val;
+    } else {
+        // Fallback to _get_pgmptr() and convert to wide string
+        char* pgmptr_val = nullptr;
+        errno_t err_c = _get_pgmptr(&pgmptr_val);
+        if (err_c == 0 && pgmptr_val != nullptr && pgmptr_val[0] != '\0') {
+            // Convert narrow string to wide string using CP_ACP (system default ANSI code page)
+            int wide_char_count = MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, NULL, 0);
+            if (wide_char_count == 0) { // Failure if count is 0
+                DWORD conversion_error = GetLastError();
+                LogError("VerifyAndLoadAnalyticsLibrary: MultiByteToWideChar failed to calculate size for _get_pgmptr path. Error: %u", conversion_error);
+                return nullptr;
+            }
+
+            std::vector<wchar_t> wide_path_buffer(wide_char_count);
+            if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, pgmptr_val, -1, wide_path_buffer.data(), wide_char_count) == 0) {
+                DWORD conversion_error = GetLastError();
+                LogError("VerifyAndLoadAnalyticsLibrary: MultiByteToWideChar failed to convert _get_pgmptr path. Error: %u", conversion_error);
+                return nullptr;
+            }
+            executable_path_str = wide_path_buffer.data();
+        } else {
+            // Both _get_wpgmptr and _get_pgmptr failed or returned empty/null
+            LogError("VerifyAndLoadAnalyticsLibrary: Failed to retrieve executable path using both _get_wpgmptr (err: %d) and _get_pgmptr (err: %d).", err_w, err_c);
+            return nullptr;
+        }
+    }
+
+    if (executable_path_str.empty()) {
+        LogError("VerifyAndLoadAnalyticsLibrary: Executable path resolved to an empty string.");
         return nullptr;
     }
-    std::wstring executable_path_str(_wpgmptr);
 
     size_t last_slash_pos = executable_path_str.find_last_of(L"\\");
     if (last_slash_pos == std::wstring::npos) {
-        LogError("VerifyAndLoadAnalyticsLibrary: Could not determine executable directory from _wpgmptr (no backslash found).");
+        LogError("VerifyAndLoadAnalyticsLibrary: Could not determine executable directory from retrieved path (no backslash found).");
         return nullptr;
     }
 
