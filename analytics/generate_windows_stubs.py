@@ -161,7 +161,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         f.write(f'\n// Number of Google Analytics functions expected to be loaded from the DLL.')
         f.write(f'\n#define FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT {len(function_details_for_loader)}\n\n')
         f.write('// Load Analytics functions from the given DLL handle into function pointers.\n')
-        f.write(f'// Returns the number of functions successfully loaded (out of\nFIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT).\n')
+        f.write(f'// Returns the number of functions successfully loaded (out of\n// FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT).\n')
         f.write("int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle);\n\n")
         f.write('// Reset all function pointers back to stubs.\n')
         f.write("void FirebaseAnalytics_UnloadDynamicFunctions(void);\n\n")

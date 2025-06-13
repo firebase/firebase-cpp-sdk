@@ -124,7 +124,7 @@ extern const unsigned char FirebaseAnalytics_WindowsDllHash[32];
 
 // Load Analytics functions from the given DLL handle into function pointers.
 // Returns the number of functions successfully loaded (out of
-FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT).
+// FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT).
 int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle);
 
 // Reset all function pointers back to stubs.
