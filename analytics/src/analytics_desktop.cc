@@ -34,79 +34,9 @@ namespace firebase {
 namespace analytics {
 
 #if defined(_WIN32)
-#define ANALYTICS_DLL_DEFAULT_FILENAME L"analytics_win.dll"
-std::wstring g_analytics_dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
-static HMODULE g_analytics_dll = 0;
+#define ANALYTICS_DLL_FILENAME L"analytics_win.dll"
 
-// Function to convert a UTF-8 string to a wide character (UTF-16) string.
-std::wstring Utf8ToWide(const std::string& utf8String) {
-  if (utf8String.empty()) {
-    return std::wstring();
-  }
-
-  // First, determine the required buffer size.
-  int wideCharCount = MultiByteToWideChar(
-      CP_UTF8,             // Source code page (UTF-8)
-      0,                   // Flags
-      utf8String.c_str(),  // Source UTF-8 string
-      -1,                  // -1 indicates the string is null-terminated
-      nullptr,             // No buffer provided, we're calculating the size
-      0                    // Requesting the buffer size
-  );
-
-  if (wideCharCount == 0) {
-    // Handle error: GetLastError() can provide more details.
-    LogError(
-        "Error determining buffer size for UTF-8 to wide char conversion.");
-    return std::wstring();
-  }
-
-  // Allocate the wide character string.
-  std::wstring wideString(wideCharCount, 0);
-
-  // Second, perform the actual conversion.
-  int result =
-      MultiByteToWideChar(CP_UTF8,             // Source code page (UTF-8)
-                          0,                   // Flags
-                          utf8String.c_str(),  // Source UTF-8 string
-                          -1,  // -1 indicates the string is null-terminated
-                          &wideString[0],  // Pointer to the destination buffer
-                          wideCharCount    // The size of the destination buffer
-      );
-
-  if (result == 0) {
-    // Handle error: GetLastError() can provide more details.
-    LogError("Error converting UTF-8 to wide char.");
-    return std::wstring();
-  }
-
-  // The returned wideString from MultiByteToWideChar will be null-terminated,
-  // but std::wstring handles its own length. We might need to resize it
-  // to remove the extra null character included in the count if we passed -1.
-  size_t pos = wideString.find(L'\0');
-  if (pos != std::wstring::npos) {
-    wideString.resize(pos);
-  }
-
-  return wideString;
-}
-
-void SetAnalyticsLibraryPath(const char* path) {
-  if (path) {
-    g_analytics_dll_filename = Utf8ToWide(path);
-  } else {
-    g_analytics_dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
-  }
-}
-
-void SetAnalyticsLibraryPath(const wchar_t* path) {
-  if (path) {
-    g_analytics_dll_filename = path;
-  } else {
-    g_analytics_dll_filename = ANALYTICS_DLL_DEFAULT_FILENAME;
-  }
-}
-#endif
+static HMODULE g_analytics_module = 0;
 
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
@@ -127,14 +57,18 @@ void Initialize(const App& app) {
   g_fake_instance_id = 0;
 
 #if defined(_WIN32)
-  if (!g_analytics_dll) {
-    g_analytics_dll = LoadLibraryW(g_analytics_dll_filename.c_str());
-    if (g_analytics_dll) {
-      LogInfo("Loaded Google Analytics DLL");
+  if (!g_analytics_module) {
+    // Only allow the DLL to be loaded from the application directory.
+    g_analytics_module = LoadLibraryExW(ANALYTICS_DLL_FILENAME, NULL,
+                                        LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    if (g_analytics_module) {
+      LogInfo("Loaded Google Analytics module");
       int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(g_analytics_dll);
       if (num_loaded < FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT) {
-        LogWarning("Only loaded %d out of %d expected functions from DLL.",
-                   num_loaded, FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT);
+        LogWarning(
+            "Only loaded %d out of %d expected functions from the Google "
+            "Analytics module.",
+            num_loaded, FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT);
       }
     } else {
       // Silently fail and continue in stub mode.
@@ -155,9 +89,9 @@ bool IsInitialized() { return g_initialized; }
 void Terminate() {
 #if defined(_WIN32)
   FirebaseAnalytics_UnloadDynamicFunctions();
-  if (g_analytics_dll) {
-    FreeLibrary(g_analytics_dll);
-    g_analytics_dll = 0;
+  if (g_analytics_module) {
+    FreeLibrary(g_analytics_module);
+    g_analytics_module = 0;
   }
 #endif
 

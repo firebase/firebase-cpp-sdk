@@ -116,6 +116,10 @@ extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 #if defined(_WIN32)
 #include <windows.h>  // For HMODULE
 
+// Google Analytics Windows DLL SHA256 hash, to be verified on load.
+#define FIREBASE_ANALYTICS_DYNAMIC_LIBRARY_HASH \
+  "c1b9ff6e9119c30bbeb7472326dcde418f45682e6b822e25eed922fe6e3cc698"
+
 // Number of Google Analytics functions expected to be loaded from the DLL.
 #define FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT 19
 

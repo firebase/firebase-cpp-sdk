@@ -16,6 +16,7 @@
 """Generate stubs and function pointers for Windows SDK"""
 
 import argparse
+import hashlib
 import os
 import re
 import sys
@@ -39,17 +40,29 @@ COPYRIGHT_NOTICE = """// Copyright 2025 Google LLC
 
 """
 
-def generate_function_pointers(header_file_path, output_h_path, output_c_path):
+
+def hash_file(filename):
+    sha256_hash = hashlib.sha256()
+    with open(filename, "rb") as file:
+        while chunk := file.read(4096):
+            sha256_hash.update(chunk)
+    return sha256_hash.hexdigest()
+
+def generate_function_pointers(dll_file_path, header_file_path, output_h_path, output_c_path):
     """
     Parses a C header file to generate a self-contained header with typedefs,
     extern function pointer declarations, and a source file with stub functions,
     initialized pointers, and a dynamic loading function for Windows.
 
     Args:
+        header_file_path (str): The path to the DLL file.
         header_file_path (str): The path to the input C header file.
         output_h_path (str): The path for the generated C header output file.
         output_c_path (str): The path for the generated C source output file.
     """
+    print(f"Reading DLL file: {dll_file_path}")
+    dll_hash = hash_file(dll_file_path)
+    
     print(f"Reading header file: {header_file_path}")
     try:
         with open(header_file_path, 'r', encoding='utf-8') as f:
@@ -142,6 +155,8 @@ def generate_function_pointers(header_file_path, output_h_path, output_c_path):
         f.write("\n\n// --- Dynamic Loader Declaration for Windows ---\n")
         f.write("#if defined(_WIN32)\n")
         f.write('#include <windows.h> // For HMODULE\n')
+        f.write(f'\n// Google Analytics Windows DLL SHA256 hash, to be verified on load.')
+        f.write(f'\n#define FIREBASE_ANALYTICS_DYNAMIC_LIBRARY_HASH "{dll_hash}"\n')
         f.write(f'\n// Number of Google Analytics functions expected to be loaded from the DLL.')
         f.write(f'\n#define FIREBASE_ANALYTICS_DYNAMIC_FUNCTION_COUNT {len(function_details_for_loader)}\n\n')
         f.write('// Load Google Analytics functions from the given DLL handle into function pointers.\n')
@@ -206,6 +221,12 @@ if __name__ == '__main__':
         description="Generate C stubs and function pointers from a header file."
     )
     parser.add_argument(
+        "--windows_dll",
+        default = os.path.join(os.path.dirname(sys.argv[0]), "windows/analytics_win.dll"),
+        #required=True,
+        help="Path to the DLL file to calculate a hash."
+    )
+    parser.add_argument(
         "--windows_header",
         default = os.path.join(os.path.dirname(sys.argv[0]), "windows/include/public/c/analytics.h"),
         #required=True,
@@ -223,10 +244,10 @@ if __name__ == '__main__':
         #required=True,
         help="Path for the generated output source file."
     )
-    
     args = parser.parse_args()
     
     generate_function_pointers(
+        args.windows_dll,
         args.windows_header, 
         args.output_header, 
         args.output_source
