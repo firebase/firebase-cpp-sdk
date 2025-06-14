@@ -64,7 +64,8 @@ void Initialize(const App& app) {
     std::vector<std::vector<unsigned char>> allowed_hashes;
     std::vector<unsigned char> current_hash;
     current_hash.assign(FirebaseAnalytics_WindowsDllHash,
-                        FirebaseAnalytics_WindowsDllHash + sizeof(FirebaseAnalytics_WindowsDllHash));
+                        FirebaseAnalytics_WindowsDllHash +
+                            sizeof(FirebaseAnalytics_WindowsDllHash));
     allowed_hashes.push_back(current_hash);
 
     g_analytics_module =
