@@ -21,7 +21,12 @@
 #include <cstddef>
 #include <string>
 
+#ifdef FIREBASE_INTEGRATION_TEST
+#include "app_framework.h"
+#else  // Normal unit test, use absl
 #include "absl/flags/flag.h"
+#endif  // FIREBASE_INTEGRATION_TEST
+
 #include "app/rest/tests/request_test.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -33,9 +38,15 @@ namespace test {
 class RequestFileTest : public ::testing::Test {
  public:
   RequestFileTest()
-      : filename_(absl::GetFlag(FLAGS_test_tmpdir) + "/a_file.txt"),
+      :
+#ifdef FIREBASE_INTEGRATION_TEST
+        filename_(app_framework::PathForResource()),
+#else   // Normal unit test, use absl
+        filename_(absl::GetFlag(FLAGS_test_tmpdir) + "/a_file.txt"),
+#endif  // FIREBASE_INTEGRATION_TEST
         file_(nullptr),
-        file_size_(0) {}
+        file_size_(0) {
+  }
 
   void SetUp() override;
   void TearDown() override;
