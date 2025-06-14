@@ -438,6 +438,89 @@ Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
   return static_cast<const Future<Metadata>&>(future()->LastResult(kStorageReferenceFnPutFile));
 }
 
+Future<ListResult> StorageReferenceInternalIOS::List(
+    int max_results, const char* page_token_c_str) {
+  ReferenceCountedFutureImpl* future_impl = future();
+  FutureHandle handle =
+      future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
+
+  NSString* page_token_nsstring =
+      page_token_c_str ? [NSString stringWithUTF8String:page_token_c_str]
+                       : nil;
+
+  // The FIRStorageReferencePointer's get() method returns the ObjC object.
+  [impl_->get() listWithMaxResults:static_cast<int64_t>(max_results)
+                       pageToken:page_token_nsstring
+                      completion:^(FIRStorageListResult* _Nullable list_result_objc,
+                                   NSError* _Nullable error_objc) {
+                        ListResult cpp_list_result(nullptr);
+                        Error error_code = kErrorNone;
+                        std::string error_msg_str;
+
+                        if (error_objc) {
+                          error_code = ErrorFromNSError(error_objc);
+                          error_msg_str = DescribeNSError(error_objc);
+                        } else if (list_result_objc) {
+                          // Create C++ ListResult from FIRStorageListResult
+                          // The ListResult constructor takes ownership of the internal object.
+                          cpp_list_result = ListResult(new ListResultInternalIOS(
+                              storage_, list_result_objc));
+                          if (!cpp_list_result.is_valid()) {
+                            error_code = kErrorUnknown;
+                            error_msg_str = "Failed to create C++ ListResult from FIRStorageListResult.";
+                          }
+                        } else {
+                          // Should not happen if error_objc is nil.
+                          error_code = kErrorUnknown;
+                          error_msg_str = "List operation returned no error and no result.";
+                        }
+                        future_impl->CompleteWithResult(handle, error_code,
+                                                        error_msg_str.c_str(),
+                                                        cpp_list_result);
+                      }];
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternalIOS::ListLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
+}
+
+Future<ListResult> StorageReferenceInternalIOS::ListAll() {
+  ReferenceCountedFutureImpl* future_impl = future();
+  FutureHandle handle =
+      future_impl->SafeAlloc<ListResult>(kStorageReferenceFnListAll);
+
+  [impl_->get() listAllWithCompletion:^(FIRStorageListResult* _Nullable list_result_objc,
+                                        NSError* _Nullable error_objc) {
+    ListResult cpp_list_result(nullptr);
+    Error error_code = kErrorNone;
+    std::string error_msg_str;
+
+    if (error_objc) {
+      error_code = ErrorFromNSError(error_objc);
+      error_msg_str = DescribeNSError(error_objc);
+    } else if (list_result_objc) {
+      cpp_list_result =
+          ListResult(new ListResultInternalIOS(storage_, list_result_objc));
+      if (!cpp_list_result.is_valid()) {
+        error_code = kErrorUnknown;
+        error_msg_str = "Failed to create C++ ListResult from FIRStorageListResult (ListAll).";
+      }
+    } else {
+      error_code = kErrorUnknown;
+      error_msg_str = "ListAll operation returned no error and no result.";
+    }
+    future_impl->CompleteWithResult(handle, error_code, error_msg_str.c_str(),
+                                    cpp_list_result);
+  }];
+  return ListAllLastResult();
+}
+
+Future<ListResult> StorageReferenceInternalIOS::ListAllLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnListAll));
+}
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
   return storage_->future_manager().GetFutureApi(this);
 }

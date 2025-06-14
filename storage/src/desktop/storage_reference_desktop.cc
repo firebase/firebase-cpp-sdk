@@ -683,6 +683,44 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrlLastResult() {
       future()->LastResult(kStorageReferenceFnGetDownloadUrl));
 }
 
+Future<ListResult> StorageReferenceInternal::List(int max_results,
+                                                  const char* page_token) {
+  ReferenceCountedFutureImpl* future_impl = future();
+  SafeFutureHandle<ListResult> handle =
+      future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
+
+  // Create a valid ListResultInternalDesktop instance, even for a failed future.
+  // The ListResult constructor takes ownership.
+  ListResult result_obj(new ListResultInternalDesktop());
+
+  future_impl->CompleteWithResult(
+      handle, kErrorUnimplemented,
+      "List operation is not implemented on desktop.", result_obj);
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
+}
+
+Future<ListResult> StorageReferenceInternal::ListAll() {
+  ReferenceCountedFutureImpl* future_impl = future();
+  SafeFutureHandle<ListResult> handle =
+      future_impl->SafeAlloc<ListResult>(kStorageReferenceFnListAll);
+
+  ListResult result_obj(new ListResultInternalDesktop());
+
+  future_impl->CompleteWithResult(
+      handle, kErrorUnimplemented,
+      "ListAll operation is not implemented on desktop.", result_obj);
+  return ListAllLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListAllLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnListAll));
+}
 // Returns the short name of this object.
 std::string StorageReferenceInternal::name() {
   return storageUri_.GetPath().GetBaseName();

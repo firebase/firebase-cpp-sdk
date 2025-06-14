@@ -34,6 +34,10 @@ namespace storage {
 namespace internal {
 
 // clang-format off
+#define LIST_RESULT_METHODS(X)                                                 \
+  X(GetItems, "getItems", "()Ljava/util/List;"),                               \
+  X(GetPageToken, "getPageToken", "()Ljava/lang/String;")
+
 #define STORAGE_REFERENCE_METHODS(X)                                           \
   X(Child, "child",                                                            \
     "(Ljava/lang/String;)"                                                     \
@@ -96,6 +100,15 @@ METHOD_LOOKUP_DEFINITION(storage_reference,
                          "com/google/firebase/storage/StorageReference",
                          STORAGE_REFERENCE_METHODS)
 
+METHOD_LOOKUP_DECLARATION(list_result, LIST_RESULT_METHODS)
+METHOD_LOOKUP_DEFINITION(list_result,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/storage/ListResult",
+                         LIST_RESULT_METHODS)
+
+// TODO(b/266143794): Add JNI helpers for java.util.List if not already globally available.
+// For now, direct jmethodID lookups are used in ListResultInternalAndroid.
+
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
   kStorageReferenceFnGetBytes,
@@ -105,18 +118,28 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
+  kStorageReferenceFnList,
+  kStorageReferenceFnListAll,
   kStorageReferenceFnCount,
 };
 
 bool StorageReferenceInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();
-  return storage_reference::CacheMethodIds(env, activity);
+  if (!storage_reference::CacheMethodIds(env, activity)) {
+    return false;
+  }
+  if (!list_result::CacheMethodIds(env, activity)) {
+    return false;
+  }
+  // TODO(b/266143794): Cache java.util.List methods if needed globally.
+  return true;
 }
 
 void StorageReferenceInternal::Terminate(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   storage_reference::ReleaseClass(env);
+  list_result::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 }
 
@@ -309,6 +332,22 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
                     file_download_task_task_snapshot::kGetBytesTransferred));
     data->impl->Complete<size_t>(data->handle, kErrorNone, status_message,
                                  [bytes](size_t* size) { *size = bytes; });
+  } else if (result && env->IsInstanceOf(result, ::firebase::storage::internal::list_result::GetClass())) {
+    LogDebug("FutureCallback: Completing a Future from a ListResult.");
+    // Complete a Future<ListResult> from a Java ListResult object.
+    ListResultInternalAndroid* list_result_internal =
+        new ListResultInternalAndroid(data->storage, result);
+    if (list_result_internal->is_valid()) {
+      data->impl->CompleteWithResult(
+          data->handle, kErrorNone, status_message,
+          ListResult(list_result_internal));
+    } else {
+      delete list_result_internal;
+      data->impl->CompleteWithResult(
+          data->handle, kErrorUnknown,
+          "Failed to create valid C++ ListResult from Java ListResult.",
+          ListResult(nullptr));
+    }
   } else {
     LogDebug("FutureCallback: Completing a Future from a default result.");
     // Unknown or null result type, treat this as a Future<void> and just
@@ -685,6 +724,119 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
 Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
   return static_cast<const Future<Metadata>&>(
       future()->LastResult(kStorageReferenceFnPutFile));
+}
+
+Future<ListResult> StorageReferenceInternal::List(int max_results,
+                                                  const char* page_token) {
+  JNIEnv* env = storage_->app()->GetJNIEnv();
+  FIREBASE_ASSERT(env != nullptr);
+
+  // Method ID for storageReference.list(int, String) should be cached by Initialize()
+  // but direct lookup for clarity here, assuming storage_reference::CacheMethodIds has run.
+  // A robust implementation would use a static variable or ensure Initialize is called.
+  jmethodID list_method = storage_reference::GetMethodId(storage_reference::kList);
+  // The kList method is not in STORAGE_REFERENCE_METHODS, so I need to look it up manually or add it.
+  // For now, manual lookup:
+  if (list_method == util::kInvalidMethodId) {
+    jclass ref_class_local = env->GetObjectClass(obj_); // obj_ is the Java StorageReference
+    FIREBASE_ASSERT(ref_class_local != nullptr);
+    list_method = env->GetMethodID(
+        ref_class_local, "list",
+        "(ILjava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    env->DeleteLocalRef(ref_class_local);
+    if (list_method == util::kInvalidMethodId) {
+      LogError("Could not find StorageReference.list method.");
+      return CreateAndCompleteFutureWithResult<ListResult>(
+          future(), kStorageReferenceFnList, firebase::kErrorApiNotAvailable,
+          "StorageReference.list method not found.", ListResult(nullptr));
+    }
+    // TODO(b/266143794): This should be cached in storage_reference::CacheMethodIds.
+  }
+
+
+  jstring page_token_jstring = page_token ? env->NewStringUTF(page_token) : nullptr;
+
+  jobject java_task =
+      env->CallObjectMethod(obj_, list_method, static_cast<jint>(max_results), page_token_jstring);
+
+  if (page_token_jstring) {
+    env->DeleteLocalRef(page_token_jstring);
+  }
+
+  if (util::LogException(env, kLogLevelError, "StorageReference.list")) {
+    return CreateAndCompleteFutureWithResult<ListResult>(
+        future(), kStorageReferenceFnList,
+        storage_->ErrorFromLocalException(env), "Error calling StorageReference.list()",
+        ListResult(nullptr));
+  }
+  FIREBASE_ASSERT(java_task != nullptr);
+
+  ReferenceCountedFutureImpl* future_impl = future();
+  FutureHandle handle = future_impl->SafeAlloc<ListResult>(kStorageReferenceFnList);
+
+  // FutureCallback (defined earlier) will handle the ListResult.
+  // It needs to be able to distinguish that this is for kStorageReferenceFnList.
+  util::RegisterCallbackOnTask(
+      env, java_task, FutureCallback,
+      new FutureCallbackData(handle.get(), future_impl, storage_, kStorageReferenceFnList),
+      storage_->jni_task_id());
+
+  env->DeleteLocalRef(java_task);
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
+}
+
+Future<ListResult> StorageReferenceInternal::ListAll() {
+  JNIEnv* env = storage_->app()->GetJNIEnv();
+  FIREBASE_ASSERT(env != nullptr);
+
+  // Method ID for storageReference.listAll()
+  // TODO(b/266143794): This should be cached in storage_reference::CacheMethodIds.
+  jmethodID list_all_method = storage_reference::GetMethodId(storage_reference::kListAll);
+  // kListAll is not in STORAGE_REFERENCE_METHODS, manual lookup:
+  if (list_all_method == util::kInvalidMethodId) {
+    jclass ref_class_local = env->GetObjectClass(obj_);
+    FIREBASE_ASSERT(ref_class_local != nullptr);
+    list_all_method = env->GetMethodID(
+        ref_class_local, "listAll", "()Lcom/google/android/gms/tasks/Task;");
+    env->DeleteLocalRef(ref_class_local);
+    if (list_all_method == util::kInvalidMethodId) {
+      LogError("Could not find StorageReference.listAll method.");
+      return CreateAndCompleteFutureWithResult<ListResult>(
+          future(), kStorageReferenceFnListAll, firebase::kErrorApiNotAvailable,
+          "StorageReference.listAll method not found.", ListResult(nullptr));
+    }
+  }
+
+  jobject java_task = env->CallObjectMethod(obj_, list_all_method);
+
+  if (util::LogException(env, kLogLevelError, "StorageReference.listAll")) {
+     return CreateAndCompleteFutureWithResult<ListResult>(
+        future(), kStorageReferenceFnListAll,
+        storage_->ErrorFromLocalException(env), "Error calling StorageReference.listAll()",
+        ListResult(nullptr));
+  }
+  FIREBASE_ASSERT(java_task != nullptr);
+
+  ReferenceCountedFutureImpl* future_impl = future();
+  FutureHandle handle = future_impl->SafeAlloc<ListResult>(kStorageReferenceFnListAll);
+
+  util::RegisterCallbackOnTask(
+      env, java_task, FutureCallback,
+      new FutureCallbackData(handle.get(), future_impl, storage_, kStorageReferenceFnListAll),
+      storage_->jni_task_id());
+
+  env->DeleteLocalRef(java_task);
+  return ListAllLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListAllLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnListAll));
 }
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {

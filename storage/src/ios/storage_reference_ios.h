@@ -33,6 +33,23 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
+// Enum for LastResult tracking
+// Matching the one in Android/Desktop for consistency in Future management if applicable,
+// though it's an internal detail per platform.
+enum StorageReferenceFn {
+  kStorageReferenceFnDelete,
+  kStorageReferenceFnGetFile,
+  kStorageReferenceFnGetBytes,
+  kStorageReferenceFnGetDownloadUrl,
+  kStorageReferenceFnGetMetadata,
+  kStorageReferenceFnUpdateMetadata,
+  kStorageReferenceFnPutBytes,
+  kStorageReferenceFnPutFile,
+  kStorageReferenceFnList,
+  kStorageReferenceFnListAll,
+  kStorageReferenceFnCount, // Represents the total number of functions
+};
+
 // This defines the class FIRStorageReferencePointer, which is a C++-compatible
 // wrapper around the FIRStorageReference Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRStorageReference);
@@ -159,6 +176,18 @@ class StorageReferenceInternal {
 
   // Returns the result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
+
+  // Lists the items and prefixes under this StorageReference.
+  Future<ListResult> List(int max_results, const char* _Nullable page_token);
+
+  // Get the result of the most recent call to List().
+  Future<ListResult> ListLastResult();
+
+  // Lists all items and prefixes under this StorageReference.
+  Future<ListResult> ListAll();
+
+  // Get the result of the most recent call to ListAll().
+  Future<ListResult> ListAllLastResult();
 
   // StorageInternal instance we are associated with.
   StorageInternal* _Nullable storage_internal() const { return storage_; }

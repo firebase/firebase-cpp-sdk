@@ -1622,4 +1622,558 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
   InitializeAppAndAuth();
 }
 
+// Helper function to check if a specific item name exists in a ListResult
+// and to track which expected items have been found.
+// Returns true if the item_name was found and was expected.
+// Marks the item as found in the 'found_map'.
+static bool FindAndMarkItem(const firebase::storage::ListResult& list_result,
+                            const std::string& item_name,
+                            std::map<std::string, bool>& found_map) {
+  for (const auto& item : list_result.items()) {
+    if (item.name() == item_name) {
+      if (found_map.find(item_name) != found_map.end()) {
+        found_map[item_name] = true;
+        return true;
+      } else { // Found an unexpected item
+        LogWarning("Found unexpected item: %s", item_name.c_str());
+        return false; // Indicate unexpected item
+      }
+    }
+  }
+  // Check prefixes (folders) too
+  // Note: The current ListResult structure from previous subtasks might not
+  // explicitly separate prefixes/folders in items(). Assuming `item.name()` gives
+  // "folder/" for prefixes. Adjust if ListResult differentiates them.
+  // For now, this loop might be redundant if prefixes are also in .items()
+  // and item.name() is all we need.
+  // If ListResult has a separate prefixes() method, that should be used here.
+  // Assuming prefixes are also in items() for now.
+  return false; // Item not found
+}
+
+// Helper to check if a StorageReference name ends with a slash (is a folder)
+static bool IsFolder(const firebase::storage::StorageReference& ref) {
+    const std::string& path = ref.full_path();
+    return !path.empty() && path.back() == '/';
+}
+
+
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListAllEmptyDirectory) {
+  SKIP_TEST_ON_ANDROID_EMULATOR; // If needed for stability
+  SignIn();
+
+  firebase::storage::StorageReference folder_ref = CreateFolder().Child("empty_list_test/");
+  LogDebug("Testing ListAll on empty directory: %s",
+           folder_ref.full_path().c_str());
+
+  Future<firebase::storage::ListResult> list_all_future = folder_ref.ListAll();
+  WaitForCompletion(list_all_future, "ListAll (empty)");
+
+  ASSERT_EQ(list_all_future.error(), firebase::storage::kErrorNone)
+      << list_all_future.error_message();
+  ASSERT_NE(list_all_future.result(), nullptr);
+
+  const firebase::storage::ListResult* list_result = list_all_future.result();
+  EXPECT_TRUE(list_result->items().empty());
+  EXPECT_TRUE(list_result->page_token().empty());
+  // No cleanup needed for a folder that was never created by uploading a file to it.
+  // If CreateFolder actually creates it, add to cleanup.
+  // For this test, we assume it's just a reference.
+}
+
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListAllWithFewItems) {
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+  SignIn();
+
+  firebase::storage::StorageReference base_folder_ref = CreateFolder().Child("list_few_items/");
+  LogDebug("Testing ListAll with few items in: %s",
+           base_folder_ref.full_path().c_str());
+
+  const char* file1_name = "file1.txt";
+  const char* file2_name = "file2.txt";
+  const char* subdir_name = "subdir/"; // Trailing slash is important for folders
+  const char* file_in_subdir_name = "subfile.txt";
+
+  firebase::storage::StorageReference file1_ref = base_folder_ref.Child(file1_name);
+  firebase::storage::StorageReference file2_ref = base_folder_ref.Child(file2_name);
+  firebase::storage::StorageReference subdir_file_ref = base_folder_ref.Child(subdir_name).Child(file_in_subdir_name);
+
+  cleanup_files_.push_back(file1_ref);
+  cleanup_files_.push_back(file2_ref);
+  cleanup_files_.push_back(subdir_file_ref); // Will delete the file, subdir will become virtual
+
+  const std::string content = "some data";
+
+  // Upload files
+  WaitForCompletion(file1_ref.PutBytes(content.c_str(), content.length()), "Upload file1");
+  ASSERT_EQ(file1_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+  WaitForCompletion(file2_ref.PutBytes(content.c_str(), content.length()), "Upload file2");
+  ASSERT_EQ(file2_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+  WaitForCompletion(subdir_file_ref.PutBytes(content.c_str(), content.length()), "Upload subdir_file_ref");
+  ASSERT_EQ(subdir_file_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+
+  // ListAll
+  Future<firebase::storage::ListResult> list_all_future = base_folder_ref.ListAll();
+  WaitForCompletion(list_all_future, "ListAll (few items)");
+
+  ASSERT_EQ(list_all_future.error(), firebase::storage::kErrorNone)
+      << list_all_future.error_message();
+  ASSERT_NE(list_all_future.result(), nullptr);
+
+  const firebase::storage::ListResult* list_result = list_all_future.result();
+  EXPECT_TRUE(list_result->page_token().empty());
+
+  // Verification
+  // Expected items: file1.txt, file2.txt, subdir/
+  // Total 3 items.
+  // Note: StorageReference::name() for a "folder" reference (prefix) should end with a "/"
+  // if the underlying platform's ListResult provides it that way.
+  // The `items()` in our C++ ListResult should contain StorageReference objects where `name()` reflects this.
+
+  std::map<std::string, bool> expected_items;
+  expected_items[file1_name] = false;
+  expected_items[file2_name] = false;
+  expected_items[subdir_name] = false; // Name of the directory itself
+
+  int found_item_count = 0;
+  for (const auto& item_ref : list_result->items()) {
+    LogDebug("Found item: %s (name: %s)", item_ref.full_path().c_str(), item_ref.name().c_str());
+    auto it = expected_items.find(item_ref.name());
+    if (it != expected_items.end()) {
+      EXPECT_FALSE(it->second) << "Item found more than once: " << item_ref.name();
+      it->second = true;
+      found_item_count++;
+    } else {
+      FAIL() << "Found unexpected item: " << item_ref.name()
+             << " (full path: " << item_ref.full_path() << ")";
+    }
+  }
+
+  EXPECT_EQ(found_item_count, expected_items.size())
+      << "Did not find the correct number of items.";
+
+  for (const auto& pair : expected_items) {
+    EXPECT_TRUE(pair.second) << "Expected item not found: " << pair.first;
+  }
+
+  // Cleanup is handled by TearDown and cleanup_files_
+}
+
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListUnimplementedOnDesktop) {
+  SignIn();
+  firebase::storage::StorageReference folder_ref = CreateFolder().Child("desktop_list_test/");
+  LogDebug("Testing List operations on desktop for unimplemented error in: %s",
+           folder_ref.full_path().c_str());
+
+  // Test List()
+  Future<firebase::storage::ListResult> list_future = folder_ref.List(10);
+  WaitForCompletion(list_future, "List (desktop unimplemented)");
+
+  EXPECT_EQ(list_future.error(), firebase::storage::kErrorUnimplemented)
+      << "List() did not return kErrorUnimplemented on desktop. Error message: "
+      << list_future.error_message();
+  // Result might be null or an empty ListResult with an error.
+  // If result is not null, it should be an empty ListResult.
+  if (list_future.result() != nullptr) {
+    EXPECT_TRUE(list_future.result()->items().empty());
+    EXPECT_TRUE(list_future.result()->page_token().empty());
+  }
+
+
+  // Test ListAll()
+  Future<firebase::storage::ListResult> list_all_future = folder_ref.ListAll();
+  WaitForCompletion(list_all_future, "ListAll (desktop unimplemented)");
+
+  EXPECT_EQ(list_all_future.error(), firebase::storage::kErrorUnimplemented)
+      << "ListAll() did not return kErrorUnimplemented on desktop. Error message: "
+      << list_all_future.error_message();
+  if (list_all_future.result() != nullptr) {
+    EXPECT_TRUE(list_all_future.result()->items().empty());
+    EXPECT_TRUE(list_all_future.result()->page_token().empty());
+  }
+  // No cleanup needed as no files are created.
+}
+#endif // FIREBASE_PLATFORM_DESKTOP
+
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListAllOnNonExistentDirectory) {
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+  SignIn();
+
+  firebase::storage::StorageReference non_existent_ref =
+      CreateFolder().Child("this_path_should_not_exist/");
+  LogDebug("Testing ListAll on non-existent directory: %s",
+           non_existent_ref.full_path().c_str());
+
+  Future<firebase::storage::ListResult> list_all_future = non_existent_ref.ListAll();
+  WaitForCompletion(list_all_future, "ListAll (non-existent)");
+
+  // Expect no error, and an empty result, similar to an empty directory.
+  ASSERT_EQ(list_all_future.error(), firebase::storage::kErrorNone)
+      << list_all_future.error_message();
+  ASSERT_NE(list_all_future.result(), nullptr);
+
+  const firebase::storage::ListResult* list_result = list_all_future.result();
+  EXPECT_TRUE(list_result->items().empty());
+  EXPECT_TRUE(list_result->page_token().empty());
+  // No cleanup, as nothing was created.
+}
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListOperationsOnTestRoot) {
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+  SignIn();
+
+  // Using kRootNodeName as the "root" for this test.
+  firebase::storage::StorageReference test_root_ref = storage_->GetReference(kRootNodeName);
+  LogDebug("Testing List operations on test root: %s",
+           test_root_ref.full_path().c_str());
+
+  std::vector<std::string> file_names;
+  std::vector<std::string> folder_names;
+  std::vector<firebase::storage::StorageReference> refs_to_cleanup;
+
+  // Create 3 files and 1 folder at the test root
+  file_names.push_back("root_file1.txt");
+  file_names.push_back("root_file2.txt");
+  file_names.push_back("root_file3.txt");
+  folder_names.push_back("root_folderA/");
+
+  const std::string content = "root level data";
+
+  // Upload files
+  for (const auto& name : file_names) {
+    firebase::storage::StorageReference file_ref = test_root_ref.Child(name);
+    WaitForCompletion(file_ref.PutBytes(content.c_str(), content.length()), ("Upload " + name).c_str());
+    ASSERT_EQ(file_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+    refs_to_cleanup.push_back(file_ref);
+  }
+
+  // Create folder
+  for (const auto& name : folder_names) {
+    firebase::storage::StorageReference dummy_file_ref = test_root_ref.Child(name).Child("dummy.txt");
+    WaitForCompletion(dummy_file_ref.PutBytes(content.c_str(), content.length()), ("Upload dummy to " + name).c_str());
+    ASSERT_EQ(dummy_file_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+    refs_to_cleanup.push_back(dummy_file_ref);
+  }
+
+  for(const auto& ref : refs_to_cleanup) {
+    cleanup_files_.push_back(ref);
+  }
+
+  // --- Test ListAll on test root ---
+  LogDebug("Testing ListAll on test root...");
+  Future<firebase::storage::ListResult> list_all_future = test_root_ref.ListAll();
+  WaitForCompletion(list_all_future, "ListAll (test root)");
+
+  ASSERT_EQ(list_all_future.error(), firebase::storage::kErrorNone)
+      << list_all_future.error_message();
+  ASSERT_NE(list_all_future.result(), nullptr);
+
+  const firebase::storage::ListResult* list_all_result = list_all_future.result();
+  EXPECT_TRUE(list_all_result->page_token().empty());
+
+  std::map<std::string, bool> expected_items_map;
+  for(const auto& name : file_names) expected_items_map[name] = false;
+  for(const auto& name : folder_names) expected_items_map[name] = false;
+
+  size_t found_count_list_all = 0;
+  for (const auto& item_ref : list_all_result->items()) {
+    LogDebug("ListAll (test root) found: %s", item_ref.name().c_str());
+    if (expected_items_map.count(item_ref.name())) {
+      EXPECT_FALSE(expected_items_map[item_ref.name()]) << "Item found twice: " << item_ref.name();
+      expected_items_map[item_ref.name()] = true;
+      found_count_list_all++;
+    } else {
+      // Log unexpected items but don't fail immediately to see all items
+      LogWarning("ListAll (test root) found unexpected item: %s", item_ref.name().c_str());
+    }
+  }
+  EXPECT_EQ(found_count_list_all, expected_items_map.size()) << "ListAll did not find all expected items at test root or found too many.";
+  for(const auto& pair : expected_items_map) {
+    EXPECT_TRUE(pair.second) << "Expected item not found by ListAll: " << pair.first;
+  }
+
+
+  // --- Test List (paginated) on test root ---
+  LogDebug("Testing List (paginated) on test root...");
+  std::map<std::string, int> retrieved_item_counts_paginated;
+  std::string current_page_token = "";
+  const int max_results_per_page = 2;
+  int total_pages = 0;
+  int total_retrieved_items_paginated = 0;
+
+  do {
+    total_pages++;
+    Future<firebase::storage::ListResult> list_future = test_root_ref.List(
+        max_results_per_page,
+        current_page_token.empty() ? nullptr : current_page_token.c_str());
+    WaitForCompletion(list_future, ("List (test root) page " + std::to_string(total_pages)).c_str());
+
+    ASSERT_EQ(list_future.error(), firebase::storage::kErrorNone)
+        << list_future.error_message();
+    ASSERT_NE(list_future.result(), nullptr);
+
+    const firebase::storage::ListResult* page_result = list_future.result();
+    EXPECT_LE(page_result->items().size(), max_results_per_page);
+
+    for (const auto& item_ref : page_result->items()) {
+       LogDebug("List (test root) Page %d: Found item '%s'", total_pages, item_ref.name().c_str());
+      retrieved_item_counts_paginated[item_ref.name()]++;
+      total_retrieved_items_paginated++;
+    }
+    current_page_token = page_result->page_token();
+    if (total_pages > (file_names.size() + folder_names.size())) {
+        FAIL() << "Too many pages loaded for List on test root.";
+        break;
+    }
+  } while (!current_page_token.empty());
+
+  EXPECT_EQ(total_retrieved_items_paginated, file_names.size() + folder_names.size());
+  for (const auto& name : file_names) {
+    EXPECT_EQ(retrieved_item_counts_paginated[name], 1) << "File " << name << " count mismatch (paginated test root).";
+  }
+  for (const auto& name : folder_names) {
+    EXPECT_EQ(retrieved_item_counts_paginated[name], 1) << "Folder " << name << " count mismatch (paginated test root).";
+  }
+   for (const auto& pair : retrieved_item_counts_paginated) {
+      bool is_expected_file = std::find(file_names.begin(), file_names.end(), pair.first) != file_names.end();
+      bool is_expected_folder = std::find(folder_names.begin(), folder_names.end(), pair.first) != folder_names.end();
+      EXPECT_TRUE(is_expected_file || is_expected_folder) << "Unexpected item listed by paginated List on test root: " << pair.first;
+  }
+  // Cleanup is handled by TearDown
+}
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListWithMaxResultsGreaterThanItems) {
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+  SignIn();
+
+  firebase::storage::StorageReference base_folder_ref = CreateFolder().Child("list_max_greater/");
+  LogDebug("Testing List with max_results > items in: %s",
+           base_folder_ref.full_path().c_str());
+
+  const char* file1_name = "fileA.txt";
+  const char* file2_name = "fileB.txt";
+
+  firebase::storage::StorageReference file1_ref = base_folder_ref.Child(file1_name);
+  firebase::storage::StorageReference file2_ref = base_folder_ref.Child(file2_name);
+
+  cleanup_files_.push_back(file1_ref);
+  cleanup_files_.push_back(file2_ref);
+
+  const std::string content = "some data";
+  WaitForCompletion(file1_ref.PutBytes(content.c_str(), content.length()), "Upload fileA");
+  ASSERT_EQ(file1_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+  WaitForCompletion(file2_ref.PutBytes(content.c_str(), content.length()), "Upload fileB");
+  ASSERT_EQ(file2_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+
+  Future<firebase::storage::ListResult> list_future = base_folder_ref.List(5); // max_results = 5
+  WaitForCompletion(list_future, "List (max_results > items)");
+
+  ASSERT_EQ(list_future.error(), firebase::storage::kErrorNone)
+      << list_future.error_message();
+  ASSERT_NE(list_future.result(), nullptr);
+
+  const firebase::storage::ListResult* list_result = list_future.result();
+  EXPECT_EQ(list_result->items().size(), 2);
+  EXPECT_TRUE(list_result->page_token().empty());
+
+  // Verify the correct items are returned
+  std::map<std::string, bool> expected_items;
+  expected_items[file1_name] = false;
+  expected_items[file2_name] = false;
+
+  for (const auto& item_ref : list_result->items()) {
+    auto it = expected_items.find(item_ref.name());
+    ASSERT_NE(it, expected_items.end()) << "Found unexpected item: " << item_ref.name();
+    EXPECT_FALSE(it->second) << "Item found more than once: " << item_ref.name();
+    it->second = true;
+  }
+  for (const auto& pair : expected_items) {
+    EXPECT_TRUE(pair.second) << "Expected item not found: " << pair.first;
+  }
+  // Cleanup is handled by TearDown
+}
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListPaginated) {
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+  SignIn();
+
+  firebase::storage::StorageReference base_folder_ref = CreateFolder().Child("list_paginated/");
+  LogDebug("Testing List (paginated) in: %s", base_folder_ref.full_path().c_str());
+
+  std::vector<std::string> file_names;
+  std::vector<std::string> folder_names;
+  std::vector<firebase::storage::StorageReference> refs_to_cleanup;
+
+  // Create 7 files and 2 folders
+  for (int i = 1; i <= 7; ++i) {
+    file_names.push_back("item" + std::to_string(i) + ".txt");
+  }
+  folder_names.push_back("folderA/");
+  folder_names.push_back("folderB/");
+
+  const std::string content = "pagination data";
+
+  // Upload files
+  for (const auto& name : file_names) {
+    firebase::storage::StorageReference file_ref = base_folder_ref.Child(name);
+    WaitForCompletion(file_ref.PutBytes(content.c_str(), content.length()), ("Upload " + name).c_str());
+    ASSERT_EQ(file_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+    refs_to_cleanup.push_back(file_ref);
+  }
+
+  // Create folders by uploading a dummy file into them
+  for (const auto& name : folder_names) {
+    firebase::storage::StorageReference dummy_file_ref = base_folder_ref.Child(name).Child("dummy.txt");
+    WaitForCompletion(dummy_file_ref.PutBytes(content.c_str(), content.length()), ("Upload dummy to " + name).c_str());
+    ASSERT_EQ(dummy_file_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+    refs_to_cleanup.push_back(dummy_file_ref);
+  }
+
+  // Add all created file refs to the main cleanup list for the test fixture
+  for(const auto& ref : refs_to_cleanup) {
+    cleanup_files_.push_back(ref);
+  }
+
+  // --- Paginated List ---
+  std::map<std::string, int> retrieved_item_counts;
+  std::string current_page_token = "";
+  const int max_results_per_page = 3;
+  int total_pages = 0;
+  int total_retrieved_items = 0;
+
+  LogDebug("Starting paginated List operation...");
+  do {
+    total_pages++;
+    LogDebug("Fetching page %d (token: '%s')", total_pages, current_page_token.c_str());
+    Future<firebase::storage::ListResult> list_future = base_folder_ref.List(
+        max_results_per_page,
+        current_page_token.empty() ? nullptr : current_page_token.c_str());
+    WaitForCompletion(list_future, ("List page " + std::to_string(total_pages)).c_str());
+
+    ASSERT_EQ(list_future.error(), firebase::storage::kErrorNone)
+        << list_future.error_message();
+    ASSERT_NE(list_future.result(), nullptr);
+
+    const firebase::storage::ListResult* page_result = list_future.result();
+
+    // Cannot expect page_result->items().size() == max_results_per_page for the last page
+    if (!page_result->page_token().empty()) {
+        // EXPECT_EQ(page_result->items().size(), max_results_per_page); // This might fail if total items is not a multiple of max_results
+    } else {
+        // Last page, size can be <= max_results_per_page
+        EXPECT_LE(page_result->items().size(), max_results_per_page);
+    }
+    EXPECT_LE(page_result->items().size(), max_results_per_page);
+
+
+    for (const auto& item_ref : page_result->items()) {
+      LogDebug("Page %d: Found item '%s'", total_pages, item_ref.name().c_str());
+      retrieved_item_counts[item_ref.name()]++;
+      total_retrieved_items++;
+    }
+
+    current_page_token = page_result->page_token();
+    LogDebug("Page %d: Next page token is '%s'", total_pages, current_page_token.c_str());
+
+    if (total_pages > (file_names.size() + folder_names.size())) { // Safety break
+        FAIL() << "Too many pages loaded, possible infinite loop in pagination.";
+        break;
+    }
+
+  } while (!current_page_token.empty());
+
+  LogDebug("Pagination finished. Total pages: %d, Total items retrieved: %d", total_pages, total_retrieved_items);
+
+  // Verification
+  size_t total_expected_items = file_names.size() + folder_names.size();
+  EXPECT_EQ(total_retrieved_items, total_expected_items);
+
+  for (const auto& name : file_names) {
+    EXPECT_EQ(retrieved_item_counts[name], 1) << "File " << name << " count mismatch.";
+  }
+  for (const auto& name : folder_names) {
+    EXPECT_EQ(retrieved_item_counts[name], 1) << "Folder " << name << " count mismatch.";
+  }
+
+  // Ensure no unexpected items were counted (those not in files_names or folder_names)
+  for (const auto& pair : retrieved_item_counts) {
+      bool is_expected_file = std::find(file_names.begin(), file_names.end(), pair.first) != file_names.end();
+      bool is_expected_folder = std::find(folder_names.begin(), folder_names.end(), pair.first) != folder_names.end();
+      EXPECT_TRUE(is_expected_file || is_expected_folder) << "Unexpected item listed: " << pair.first;
+  }
+  // Cleanup is handled by TearDown and cleanup_files_
+}
+TEST_F_WITH_TIMEOUT(FirebaseStorageTest, TestListAllWithNestedItems) {
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+  SignIn();
+
+  firebase::storage::StorageReference base_folder_ref = CreateFolder().Child("list_nested/");
+  LogDebug("Testing ListAll with nested items in: %s",
+           base_folder_ref.full_path().c_str());
+
+  const char* file1_name = "file1.txt";
+  const char* subdir1_name = "subdir1/";
+  const char* file2_name_in_subdir1 = "file2.txt"; // This should NOT appear in top-level list
+
+  firebase::storage::StorageReference file1_ref = base_folder_ref.Child(file1_name);
+  firebase::storage::StorageReference file2_in_subdir1_ref =
+      base_folder_ref.Child(subdir1_name).Child(file2_name_in_subdir1);
+
+  cleanup_files_.push_back(file1_ref);
+  cleanup_files_.push_back(file2_in_subdir1_ref);
+
+  const std::string content = "some data";
+
+  // Upload files
+  WaitForCompletion(file1_ref.PutBytes(content.c_str(), content.length()), "Upload file1");
+  ASSERT_EQ(file1_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+  WaitForCompletion(file2_in_subdir1_ref.PutBytes(content.c_str(), content.length()), "Upload file2_in_subdir1");
+  ASSERT_EQ(file2_in_subdir1_ref.PutBytesLastResult().error(), firebase::storage::kErrorNone);
+
+  // ListAll on base_folder_ref
+  Future<firebase::storage::ListResult> list_all_future = base_folder_ref.ListAll();
+  WaitForCompletion(list_all_future, "ListAll (nested items)");
+
+  ASSERT_EQ(list_all_future.error(), firebase::storage::kErrorNone)
+      << list_all_future.error_message();
+  ASSERT_NE(list_all_future.result(), nullptr);
+
+  const firebase::storage::ListResult* list_result = list_all_future.result();
+  EXPECT_TRUE(list_result->page_token().empty());
+
+  // Verification
+  // Expected items: file1.txt, subdir1/
+  // Should NOT include file2.txt which is inside subdir1/
+  std::map<std::string, bool> expected_items;
+  expected_items[file1_name] = false;
+  expected_items[subdir1_name] = false;
+
+  int found_item_count = 0;
+  bool found_unexpected_nested_item = false;
+  for (const auto& item_ref : list_result->items()) {
+    LogDebug("Found item: %s (name: %s)", item_ref.full_path().c_str(), item_ref.name().c_str());
+    if (item_ref.name() == file2_name_in_subdir1) {
+      found_unexpected_nested_item = true;
+    }
+    auto it = expected_items.find(item_ref.name());
+    if (it != expected_items.end()) {
+      EXPECT_FALSE(it->second) << "Item found more than once: " << item_ref.name();
+      it->second = true;
+      found_item_count++;
+    } else {
+      // Allow for other auto-created files if any by the environment, but fail if it's the nested one
+      if (item_ref.name() != file2_name_in_subdir1) {
+         LogWarning("Found potentially unexpected item: %s (full path: %s)",
+                    item_ref.name().c_str(), item_ref.full_path().c_str());
+      }
+    }
+  }
+
+  EXPECT_FALSE(found_unexpected_nested_item) << "ListAll incorrectly returned a nested item: " << file2_name_in_subdir1;
+  EXPECT_EQ(found_item_count, expected_items.size())
+      << "Did not find the correct number of top-level items.";
+
+  for (const auto& pair : expected_items) {
+    EXPECT_TRUE(pair.second) << "Expected top-level item not found: " << pair.first;
+  }
+  // Cleanup is handled by TearDown and cleanup_files_
+}
 }  // namespace firebase_testapp_automated

@@ -145,6 +145,18 @@ class StorageReferenceInternal {
   // Returns the result of the most recent call to Write();
   Future<Metadata> PutFileLastResult();
 
+  // Lists the items and prefixes under this StorageReference.
+  Future<ListResult> List(int max_results, const char* page_token);
+
+  // Get the result of the most recent call to List().
+  Future<ListResult> ListLastResult();
+
+  // Lists all items and prefixes under this StorageReference.
+  Future<ListResult> ListAll();
+
+  // Get the result of the most recent call to ListAll().
+  Future<ListResult> ListAllLastResult();
+
   // Pointer to the StorageInternal instance we are a part of.
   StorageInternal* storage_internal() const { return storage_; }
 

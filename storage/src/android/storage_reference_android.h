@@ -29,6 +29,21 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
+// Enum for LastResult tracking
+enum StorageReferenceFn {
+  kStorageReferenceFnDelete,
+  kStorageReferenceFnGetFile,
+  kStorageReferenceFnGetBytes,
+  kStorageReferenceFnGetDownloadUrl,
+  kStorageReferenceFnGetMetadata,
+  kStorageReferenceFnUpdateMetadata,
+  kStorageReferenceFnPutBytes,
+  kStorageReferenceFnPutFile,
+  kStorageReferenceFnList,
+  kStorageReferenceFnListAll,
+  kStorageReferenceFnCount,
+};
+
 class StorageReferenceInternal {
  public:
   // StorageReferenceInternal will create its own global reference to ref_obj,
@@ -128,6 +143,18 @@ class StorageReferenceInternal {
 
   // Returns the result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
+
+  // Lists the items and prefixes under this StorageReference.
+  Future<ListResult> List(int max_results, const char* page_token);
+
+  // Get the result of the most recent call to List().
+  Future<ListResult> ListLastResult();
+
+  // Lists all items and prefixes under this StorageReference.
+  Future<ListResult> ListAll();
+
+  // Get the result of the most recent call to ListAll().
+  Future<ListResult> ListAllLastResult();
 
   // Initialize JNI bindings for this class.
   static bool Initialize(App* app);

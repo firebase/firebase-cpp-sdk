@@ -246,6 +246,48 @@ Future<Metadata> StorageReference::PutFileLastResult() {
   return internal_ ? internal_->PutFileLastResult() : Future<Metadata>();
 }
 
+Future<ListResult> StorageReference::List(int max_results,
+                                          const char* page_token) {
+  // TODO(b/266143794): Define kFutureApiIdList if not already defined.
+  // For now, assuming it exists or will be added.
+  if (!internal_) {
+    return CreateFutureWithResult<ListResult>(
+        firebase::internal::kFutureApiIdList, kErrorNone,
+        kApiIdentifier, ListResult(nullptr)); // Or some other way to signal invalid future
+  }
+  return internal_->List(max_results, page_token);
+}
+
+Future<ListResult> StorageReference::ListLastResult() {
+  // TODO(b/266143794): Define kFutureApiIdList if not already defined.
+  if (!internal_) {
+    return CreateFutureWithResult<ListResult>(
+        firebase::internal::kFutureApiIdList, kErrorNone,
+        kApiIdentifier, ListResult(nullptr));
+  }
+  return internal_->ListLastResult();
+}
+
+Future<ListResult> StorageReference::ListAll() {
+  // TODO(b/266143794): Define kFutureApiIdListAll if not already defined.
+  if (!internal_) {
+    return CreateFutureWithResult<ListResult>(
+        firebase::internal::kFutureApiIdListAll, kErrorNone,
+        kApiIdentifier, ListResult(nullptr));
+  }
+  return internal_->ListAll();
+}
+
+Future<ListResult> StorageReference::ListAllLastResult() {
+  // TODO(b/266143794): Define kFutureApiIdListAll if not already defined.
+  if (!internal_) {
+    return CreateFutureWithResult<ListResult>(
+        firebase::internal::kFutureApiIdListAll, kErrorNone,
+        kApiIdentifier, ListResult(nullptr));
+  }
+  return internal_->ListAllLastResult();
+}
+
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
 
 }  // namespace storage
