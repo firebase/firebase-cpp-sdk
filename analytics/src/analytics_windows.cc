@@ -253,10 +253,10 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
     bool hash_matched = false;
     for (const auto& expected_hash : allowed_hashes) {
       if (calculated_hash.size() != expected_hash.size()) {
-        LogVerbose(LOG_TAG
-                   "Hash size mismatch for Analytics DLL. Expected: %zu, "
-                   "Calculated: %zu. Trying next allowed hash.",
-                   expected_hash.size(), calculated_hash.size());
+        LogDebug(LOG_TAG
+                 "Hash size mismatch for Analytics DLL. Expected: %zu, "
+                 "Calculated: %zu. Trying next allowed hash.",
+                 expected_hash.size(), calculated_hash.size());
         continue;
       }
       if (memcmp(calculated_hash.data(), expected_hash.data(),
