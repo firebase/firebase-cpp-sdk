@@ -26,6 +26,7 @@
 #include "firebase/auth.h"
 #include "firebase/internal/platform.h"
 #include "firebase/storage.h"
+#include "firebase/storage/list_result.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -1620,6 +1621,77 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
   TerminateAppAndAuth();
   // Reinitialize App and Auth.
   InitializeAppAndAuth();
+}
+
+// Test the StorageReference::ListAll() method.
+// This test currently only verifies that the stubbed method returns an empty result.
+TEST_F(FirebaseStorageTest, TestListAll) {
+  if (skip_tests_) return;
+
+  firebase::storage::Storage* storage = storage_; // Use the member variable
+  firebase::storage::StorageReference reference = storage->GetReference();
+
+  firebase::Future<firebase::storage::ListResult> future = reference.ListAll();
+  WaitForCompletion(future, "ListAll");
+
+  ASSERT_EQ(future.status(), firebase::kFutureStatusComplete);
+  ASSERT_EQ(future.error(), firebase::storage::kErrorNone);
+
+  const firebase::storage::ListResult* result = future.result();
+  ASSERT_NE(result, nullptr);
+  if (result != nullptr) {
+    EXPECT_TRUE(result->items.empty());
+    EXPECT_TRUE(result->prefixes.empty());
+    EXPECT_TRUE(result->page_token.empty());
+  }
+}
+
+// Test the StorageReference::List() method with no page token.
+// This test currently only verifies that the stubbed method returns an empty result.
+TEST_F(FirebaseStorageTest, TestListNoPageToken) {
+  if (skip_tests_) return;
+
+  firebase::storage::Storage* storage = storage_; // Use the member variable
+  firebase::storage::StorageReference reference = storage->GetReference();
+
+  firebase::Future<firebase::storage::ListResult> future = reference.List();
+  WaitForCompletion(future, "List (no page token)");
+
+  ASSERT_EQ(future.status(), firebase::kFutureStatusComplete);
+  ASSERT_EQ(future.error(), firebase::storage::kErrorNone);
+
+  const firebase::storage::ListResult* result = future.result();
+  ASSERT_NE(result, nullptr);
+  if (result != nullptr) {
+    EXPECT_TRUE(result->items.empty());
+    EXPECT_TRUE(result->prefixes.empty());
+    EXPECT_TRUE(result->page_token.empty());
+  }
+}
+
+// Test the StorageReference::List() method with a page token.
+// This test currently only verifies that the stubbed method returns an empty result
+// and that the page token is passed (though not used by the stub).
+TEST_F(FirebaseStorageTest, TestListWithPageToken) {
+  if (skip_tests_) return;
+
+  firebase::storage::Storage* storage = storage_; // Use the member variable
+  firebase::storage::StorageReference reference = storage->GetReference();
+  const char* page_token = "test_page_token";
+
+  firebase::Future<firebase::storage::ListResult> future = reference.List(page_token);
+  WaitForCompletion(future, "List (with page token)");
+
+  ASSERT_EQ(future.status(), firebase::kFutureStatusComplete);
+  ASSERT_EQ(future.error(), firebase::storage::kErrorNone);
+
+  const firebase::storage::ListResult* result = future.result();
+  ASSERT_NE(result, nullptr);
+  if (result != nullptr) {
+    EXPECT_TRUE(result->items.empty());
+    EXPECT_TRUE(result->prefixes.empty());
+    EXPECT_TRUE(result->page_token.empty());
+  }
 }
 
 }  // namespace firebase_testapp_automated

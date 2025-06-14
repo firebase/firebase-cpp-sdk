@@ -248,5 +248,41 @@ Future<Metadata> StorageReference::PutFileLastResult() {
 
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
 
+Future<ListResult> StorageReference::ListAll() {
+  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
+  // Create a promise and a future for the ListResult.
+  ReferenceCountedFutureImpl* ref_future = internal_->future_manager().Alloc<ListResult>(kStorageReferenceFnCount);
+  Future<ListResult> future = MakeFuture(ref_future);
+
+  // Create an empty ListResult.
+  ListResult result;
+
+  // Resolve the future with the empty result.
+  ref_future->Complete(this->AsHandle(), kErrorNone, "", result);
+
+  return future;
+}
+
+Future<ListResult> StorageReference::List(const char* page_token) {
+  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
+  // Create a promise and a future for the ListResult.
+  ReferenceCountedFutureImpl* ref_future = internal_->future_manager().Alloc<ListResult>(kStorageReferenceFnCount);
+  Future<ListResult> future = MakeFuture(ref_future);
+
+  // Create an empty ListResult.
+  ListResult result;
+  // page_token is ignored in the stub
+
+  // Resolve the future with the empty result.
+  ref_future->Complete(this->AsHandle(), kErrorNone, "", result);
+
+  return future;
+}
+
+Future<ListResult> StorageReference::List() {
+  // Simply call the List method that takes a page_token, with a nullptr.
+  return List(nullptr);
+}
+
 }  // namespace storage
 }  // namespace firebase
