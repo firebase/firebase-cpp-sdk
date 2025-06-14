@@ -183,14 +183,13 @@ static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
 }
 
 HMODULE VerifyAndLoadAnalyticsLibrary(
-    const wchar_t* library_filename,  // This is expected to be just the DLL
-                                      // filename e.g. "analytics_win.dll"
-    const unsigned char* expected_hash, size_t expected_hash_size) {
+    const wchar_t* library_filename,
+    const std::vector<std::vector<unsigned char>>& allowed_hashes) {
   if (library_filename == nullptr || library_filename[0] == L'\0') {
     LogError(LOG_TAG "Invalid arguments.");
     return nullptr;
   }
-  if (expected_hash == nullptr || expected_hash_size == 0) {
+  if (allowed_hashes.empty()) {
     // Don't check the hash, just load the library.
     LogWarning(LOG_TAG "No hash provided, using unverified Analytics DLL.");
     return LoadLibraryW(library_filename);
@@ -251,15 +250,23 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
   if (calculated_hash.empty()) {
     LogError(LOG_TAG "Hash failed for Analytics DLL.");
   } else {
-    if (calculated_hash.size() != expected_hash_size) {
-      LogError(LOG_TAG
-               "Hash size mismatch for Analytics DLL. Expected: %zu, "
-               "Calculated: %zu.",
-               expected_hash_size, calculated_hash.size());
-    } else if (memcmp(calculated_hash.data(), expected_hash,
-                      expected_hash_size) != 0) {
-      LogError(LOG_TAG "Hash mismatch for Analytics DLL.");
-    } else {
+    bool hash_matched = false;
+    for (const auto& expected_hash : allowed_hashes) {
+      if (calculated_hash.size() != expected_hash.size()) {
+        LogVerbose(LOG_TAG
+                   "Hash size mismatch for Analytics DLL. Expected: %zu, "
+                   "Calculated: %zu. Trying next allowed hash.",
+                   expected_hash.size(), calculated_hash.size());
+        continue;
+      }
+      if (memcmp(calculated_hash.data(), expected_hash.data(),
+                 expected_hash.size()) == 0) {
+        hash_matched = true;
+        break;
+      }
+    }
+
+    if (hash_matched) {
       LogDebug(LOG_TAG "Successfully verified Analytics DLL.");
       // Load the library. When loading with a full path string, other
       // directories are not searched.
@@ -269,6 +276,8 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
         LogError(LOG_TAG "Library load failed for Analytics DLL. Error: %u",
                  dwError);
       }
+    } else {
+      LogError(LOG_TAG "Hash mismatch for Analytics DLL.");
     }
   }
 

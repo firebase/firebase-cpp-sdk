@@ -61,10 +61,15 @@ void Initialize(const App& app) {
 
 #if defined(_WIN32)
   if (!g_analytics_module) {
+    std::vector<std::vector<unsigned char>> allowed_hashes;
+    std::vector<unsigned char> current_hash;
+    current_hash.assign(FirebaseAnalytics_WindowsDllHash,
+                        FirebaseAnalytics_WindowsDllHash + sizeof(FirebaseAnalytics_WindowsDllHash));
+    allowed_hashes.push_back(current_hash);
+
     g_analytics_module =
         firebase::analytics::internal::VerifyAndLoadAnalyticsLibrary(
-            ANALYTICS_DLL_FILENAME, FirebaseAnalytics_WindowsDllHash,
-            sizeof(FirebaseAnalytics_WindowsDllHash));
+            ANALYTICS_DLL_FILENAME, allowed_hashes);
 
     if (g_analytics_module) {
       int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(
