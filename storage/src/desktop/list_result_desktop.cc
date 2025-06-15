@@ -7,11 +7,9 @@ namespace internal {
 ListResultInternalDesktop::ListResultInternalDesktop()
     : items_stub_(), page_token_stub_() {}
 
-// Copy constructor
 ListResultInternalDesktop::ListResultInternalDesktop(const ListResultInternalDesktop& other)
     : items_stub_(other.items_stub_), page_token_stub_(other.page_token_stub_) {}
 
-// Copy assignment
 ListResultInternalDesktop& ListResultInternalDesktop::operator=(
     const ListResultInternalDesktop& other) {
   if (this == &other) {
@@ -22,12 +20,10 @@ ListResultInternalDesktop& ListResultInternalDesktop::operator=(
   return *this;
 }
 
-// Move constructor
 ListResultInternalDesktop::ListResultInternalDesktop(ListResultInternalDesktop&& other) noexcept
     : items_stub_(std::move(other.items_stub_)),
       page_token_stub_(std::move(other.page_token_stub_)) {}
 
-// Move assignment
 ListResultInternalDesktop& ListResultInternalDesktop::operator=(
     ListResultInternalDesktop&& other) noexcept {
   if (this == &other) {

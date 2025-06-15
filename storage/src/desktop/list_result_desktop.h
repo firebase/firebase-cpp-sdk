@@ -2,24 +2,20 @@
 #define FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_LIST_RESULT_DESKTOP_H_
 
 #include <string>
-#include <vector>
+#include <vector> // Included once at the top
 
 #include "firebase/storage/storage_reference.h"
+#include "firebase/storage/list_result.h" // For ListResultInternal and StorageReference
 
 namespace firebase {
 namespace storage {
 namespace internal {
 
-#include <string>
-#include <vector>
-#include "firebase/storage/list_result.h" // For ListResultInternal and StorageReference
-
-// Forward declaration (if not already via ListResultInternal)
-// namespace firebase { namespace storage { class StorageReference; } }
+// firebase::storage::StorageReference is included via firebase/storage/list_result.h -> firebase/storage/storage_reference.h
 
 class ListResultInternalDesktop : public ListResultInternal {
  public:
-  ListResultInternalDesktop(); // Default constructor
+  ListResultInternalDesktop();
   ~ListResultInternalDesktop() override = default;
 
   // Copy constructor and assignment

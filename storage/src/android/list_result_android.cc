@@ -60,7 +60,7 @@ ListResultInternalAndroid::ListResultInternalAndroid(
   JNIEnv* env = GetJNI();
   if (env && java_list_result) {
     java_list_result_global_ref_ = env->NewGlobalRef(java_list_result);
-    CacheListResultMethodIds(env); // Ensure method IDs are cached
+    CacheListResultMethodIds(env);
   }
 }
 
@@ -76,7 +76,7 @@ const std::vector<StorageReference>& ListResultInternalAndroid::items() const {
   if (!items_converted_ && java_list_result_global_ref_) {
     JNIEnv* env = GetJNI();
     FIREBASE_ASSERT(env != nullptr);
-    CacheListResultMethodIds(env); // Ensure method IDs are available
+    CacheListResultMethodIds(env);
 
     jobject java_items_list = env->CallObjectMethod(java_list_result_global_ref_, kListResultGetItems);
     if (::firebase::LogIfError(env, "ListResult.getItems()")) {
@@ -114,7 +114,7 @@ const std::string& ListResultInternalAndroid::page_token() const {
   if (!page_token_converted_ && java_list_result_global_ref_) {
     JNIEnv* env = GetJNI();
     FIREBASE_ASSERT(env != nullptr);
-    CacheListResultMethodIds(env); // Ensure method IDs are available
+    CacheListResultMethodIds(env);
 
     jstring java_page_token = (jstring)env->CallObjectMethod(
         java_list_result_global_ref_, kListResultGetPageToken);

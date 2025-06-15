@@ -16,12 +16,7 @@ namespace internal {
 #include "firebase/storage/list_result.h"
 #include "storage/src/android/storage_android.h" // For StorageInternal
 
-// Forward declaration
-namespace firebase {
-namespace storage {
-class StorageReference;
-}
-}
+// firebase::storage::StorageReference is included via firebase/storage/list_result.h -> firebase/storage/storage_reference.h
 
 class ListResultInternalAndroid : public ListResultInternal {
  public:

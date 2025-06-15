@@ -10,7 +10,6 @@
 namespace firebase {
 namespace storage {
 
-// Forward declaration for internal class.
 namespace internal {
 class ListResultInternal;
 }  // namespace internal

@@ -15,12 +15,7 @@ namespace internal {
 #include "storage/src/ios/storage_ios.h"   // For StorageInternal
 #include "app/src/util_ios.h"      // For OBJ_C_PTR_WRAPPER if needed for FIRStorageListResult
 
-// Forward declaration
-namespace firebase {
-namespace storage {
-class StorageReference;
-}
-}
+// firebase::storage::StorageReference is included via firebase/storage/list_result.h -> firebase/storage/storage_reference.h
 
 // Forward declare Obj-C class
 #ifdef __OBJC__
