@@ -152,6 +152,8 @@ class StorageReferenceInternal {
   // Exposed for testing.
   StorageReference AsStorageReference() const;
 
+  virtual ::firebase::storage::internal::ListResultInternal* CreateListResultInternal();
+
  private:
   // Function type that sends a Rest Request and returns the BlockingResponse.
   typedef std::function<BlockingResponse*()> SendRequestFunct;

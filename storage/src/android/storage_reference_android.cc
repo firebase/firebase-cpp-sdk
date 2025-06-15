@@ -23,6 +23,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
+#include "storage/src/android/list_result_android.h" // For ListResultAndroid
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage.h"
@@ -732,6 +733,12 @@ jint StorageReferenceInternal::CppByteUploaderReadBytes(
          data_read);
   env->ReleaseByteArrayElements(bytes_array_object, bytes_array, 0);
   return data_read;
+}
+
+::firebase::storage::internal::ListResultInternal* StorageReferenceInternal::CreateListResultInternal() {
+  // Create and return an instance of the Android-specific ListResultInternal.
+  // 'this' is the current StorageReferenceInternal (Android version)
+  return new ::firebase::storage::internal::ListResultAndroid(this);
 }
 
 }  // namespace internal

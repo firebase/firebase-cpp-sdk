@@ -15,6 +15,7 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #include "app/src/assert.h"
+// Removed: #include "storage/src/desktop/list_result_desktop.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -250,32 +251,32 @@ bool StorageReference::is_valid() const { return internal_ != nullptr; }
 
 Future<ListResult> StorageReference::ListAll() {
   FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
-  // Create a promise and a future for the ListResult.
-  ReferenceCountedFutureImpl* ref_future = internal_->future_manager().Alloc<ListResult>(kStorageReferenceFnCount);
+  ReferenceCountedFutureImpl* ref_future =
+      internal_->future_manager().Alloc<ListResult>(
+          internal::kStorageReferenceFnCount);
   Future<ListResult> future = MakeFuture(ref_future);
 
-  // Create an empty ListResult.
-  ListResult result;
+  internal::ListResultInternal* list_result_internal = internal_->CreateListResultInternal();
 
-  // Resolve the future with the empty result.
-  ref_future->Complete(this->AsHandle(), kErrorNone, "", result);
+  ListResult result(list_result_internal);
 
+  ref_future->Complete(this->AsHandle(), kErrorNone, /* error_msg= */ "", result);
   return future;
 }
 
 Future<ListResult> StorageReference::List(const char* page_token) {
   FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
-  // Create a promise and a future for the ListResult.
-  ReferenceCountedFutureImpl* ref_future = internal_->future_manager().Alloc<ListResult>(kStorageReferenceFnCount);
+  ReferenceCountedFutureImpl* ref_future =
+      internal_->future_manager().Alloc<ListResult>(
+          internal::kStorageReferenceFnCount);
   Future<ListResult> future = MakeFuture(ref_future);
 
-  // Create an empty ListResult.
-  ListResult result;
-  // page_token is ignored in the stub
+  // page_token is currently ignored in the stub.
+  internal::ListResultInternal* list_result_internal = internal_->CreateListResultInternal();
 
-  // Resolve the future with the empty result.
-  ref_future->Complete(this->AsHandle(), kErrorNone, "", result);
+  ListResult result(list_result_internal);
 
+  ref_future->Complete(this->AsHandle(), kErrorNone, /* error_msg= */ "", result);
   return future;
 }
 
