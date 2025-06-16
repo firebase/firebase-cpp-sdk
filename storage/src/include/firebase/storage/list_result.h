@@ -5,71 +5,99 @@
 #include <string>
 #include <vector>
 
-#include "firebase/internal/common.h" // For FIREBASE_DEPRECATED_MSG, SWIG_STORAGE_EXPORT etc.
-#include "firebase/storage/common.h"  // For SWIG_STORAGE_EXPORT (if not from internal/common.h)
+#include "firebase/internal/common.h"
+#include "firebase/storage/common.h"
 
-// Forward declaration for the PIMPL class.
-// The actual definition comes from platform-specific headers.
 namespace firebase {
 namespace storage {
+
+// Forward declarations for internal classes.
 namespace internal {
 class ListResultInternal;
-class ListResultInternalCommon; // For friend declaration
-class StorageReferenceInternal; // For the private constructor from StorageReference
+class ListResultInternalCommon;
+class StorageReferenceInternal;
 }  // namespace internal
 
 class StorageReference; // Forward declaration
 
-/// @brief Results from a list operation.
+/// @brief Holds the results of a list operation from StorageReference::List()
+/// or StorageReference::ListAll().
+///
+/// This class provides access to the items (files) and prefixes (directories)
+/// found under a given StorageReference, as well as a page token for pagination
+/// if the results are not complete.
 class SWIG_STORAGE_EXPORT ListResult {
  public:
-  /// @brief Default constructor. Creates an empty, invalid ListResult.
-  /// To get a valid ListResult, call methods like StorageReference::ListAll().
+  /// @brief Default constructor. Creates an empty and invalid ListResult.
+  ///
+  /// A valid ListResult is typically obtained from the Future returned by
+  /// StorageReference::List() or StorageReference::ListAll().
   ListResult();
 
   /// @brief Copy constructor.
-  /// @param[in] other ListResult to copy from.
+  /// @param[in] other ListResult to copy the contents from.
   ListResult(const ListResult& other);
 
   /// @brief Copy assignment operator.
-  /// @param[in] other ListResult to copy from.
+  /// @param[in] other ListResult to copy the contents from.
   /// @return Reference to this ListResult.
   ListResult& operator=(const ListResult& other);
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor.
-  /// @param[in] other ListResult to move from.
+  /// @param[in] other ListResult to move the contents from. `other` is left in
+  /// a valid but unspecified state.
   ListResult(ListResult&& other);
 
   /// @brief Move assignment operator.
-  /// @param[in] other ListResult to move from.
+  /// @param[in] other ListResult to move the contents from. `other` is left in
+  /// a valid but unspecified state.
   /// @return Reference to this ListResult.
   ListResult& operator=(ListResult&& other);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
+  /// @brief Destructor.
   ~ListResult();
 
+  /// @brief Gets the list of items (files) found by the list operation.
+  /// @return A const reference to a vector of StorageReferences representing
+  ///         the items. Returns an empty vector if the ListResult is invalid
+  ///         or no items were found.
   const std::vector<StorageReference>& items() const;
+
+  /// @brief Gets the list of prefixes (directories) found by the list
+  /// operation.
+  /// These can be used to further navigate the storage hierarchy.
+  /// @return A const reference to a vector of StorageReferences representing
+  ///         the prefixes. Returns an empty vector if the ListResult is invalid
+  ///         or no prefixes were found.
   const std::vector<StorageReference>& prefixes() const;
+
+  /// @brief Gets the page token for the next page of results.
+  /// If the string is empty, it indicates that there are no more results
+  /// (i.e., this is the last page).
+  /// @return A const reference to the page token string. Returns an empty
+  ///         string if the ListResult is invalid or if there are no more results.
   const std::string& page_token() const;
+
+  /// @brief Returns true if this ListResult object is valid and contains data,
+  /// false otherwise. An invalid ListResult is one that has not been
+  /// initialized by a successful list operation, or has been moved from.
+  /// @return true if the ListResult is valid, false otherwise.
   bool is_valid() const;
 
  private:
-  // Allow StorageReference (and its internal part) to construct ListResults
-  // with an actual PIMPL object.
   friend class StorageReference;
   friend class internal::StorageReferenceInternal;
-
-  // Allow ListResultInternalCommon to access internal_ for lifecycle management.
-  friend class internal::ListResultInternalCommon;
+  friend class internal::ListResultInternalCommon; // Manages lifecycle of internal_
 
   // Private constructor for creating a ListResult with an existing PIMPL object.
   // Takes ownership of the provided internal_pimpl.
   explicit ListResult(internal::ListResultInternal* internal_pimpl);
 
-  internal::ListResultInternal* internal_; // Raw pointer to PIMPL
+  internal::ListResultInternal* internal_; // Pointer to the internal implementation.
 
-  // Static empty results to return for invalid ListResult objects
+  // Static empty results to return for invalid ListResult objects.
   static const std::vector<StorageReference> s_empty_items_;
   static const std::vector<StorageReference> s_empty_prefixes_;
   static const std::string s_empty_page_token_;

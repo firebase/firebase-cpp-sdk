@@ -15,13 +15,12 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #include "firebase/storage/list_result.h"     // Public header for ListResult
-// storage/src/common/storage_reference_internal.h is included by platform specific storage_reference_*.h
+// storage/src/common/storage_reference_internal.h is generally included by platform-specific storage_reference_*.h
 #include "app/src/assert.h"                   // For FIREBASE_ASSERT_RETURN
 #include "app/src/future_manager.h"           // For ReferenceCountedFutureImpl
 #include "app/src/include/firebase/internal/platform.h" // For FIREBASE_PLATFORM defines
 
-// This include brings in the definition of internal::ListResultInternal
-// based on the platform being compiled.
+// Platform-specific ListResultInternal definition.
 #if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/android/list_result_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
@@ -32,10 +31,10 @@
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
-// Platform-specific StorageReferenceInternal is included below based on platform
+// Platform-specific StorageReferenceInternal is included below.
 #endif  // __APPLE__
 
-// StorageReference is defined in these 3 files, one implementation for each OS.
+// Platform-specific StorageReferenceInternal implementations.
 #if defined(__ANDROID__)
 #include "storage/src/android/storage_android.h"
 #include "storage/src/android/storage_reference_android.h"
@@ -270,17 +269,11 @@ Future<ListResult> StorageReference::ListAll() {
           internal::kStorageReferenceFnCount);
   Future<ListResult> future = MakeFuture(ref_future);
 
-  // Create the platform-specific PIMPL object.
-  // this->internal_ is the StorageReferenceInternal* for the current StorageReference.
-  // The second argument 'nullptr' means it's not a copy from another ListResultInternal.
   internal::ListResultInternal* list_pimpl =
       new internal::ListResultInternal(this->internal_, nullptr);
-
-  // Create the public ListResult object, passing the PIMPL object to the private constructor.
-  // ListResult will take ownership and manage its cleanup.
   ListResult result_to_complete(list_pimpl);
 
-  ref_future->Complete(this->AsHandle(), kErrorNone, /* error_msg= */ "", result);
+  ref_future->Complete(this->AsHandle(), kErrorNone, /* error_msg= */ "", result_to_complete);
   return future;
 }
 
@@ -293,11 +286,8 @@ Future<ListResult> StorageReference::List(const char* page_token) {
 
   // page_token is currently ignored in the stub.
 
-  // Create the platform-specific PIMPL object.
   internal::ListResultInternal* list_pimpl =
       new internal::ListResultInternal(this->internal_, nullptr);
-
-  // Create the public ListResult object.
   ListResult result_to_complete(list_pimpl);
 
   ref_future->Complete(this->AsHandle(), kErrorNone, /* error_msg= */ "", result_to_complete);
