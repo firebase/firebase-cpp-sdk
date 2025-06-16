@@ -23,7 +23,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"
-#include "storage/src/common/list_result_internal.h" // Added for ListResultInternal
+// Removed: #include "storage/src/common/list_result_internal.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 namespace firebase {
@@ -153,10 +153,6 @@ class StorageReferenceInternal {
 
   // StorageInternal instance we are associated with.
   StorageInternal* storage_internal() const { return storage_; }
-
-  // Creates a new platform-specific ListResultInternal object.
-  // Caller takes ownership.
-  virtual ::firebase::storage::internal::ListResultInternal* CreateListResultInternal();
 
  private:
   static void FutureCallback(JNIEnv* env, jobject result,

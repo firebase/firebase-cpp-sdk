@@ -1,7 +1,5 @@
-// File: storage/src/ios/list_result_ios.mm
-#import "storage/src/ios/list_result_ios.h"
-
-// Other necessary Objective-C or C++ includes for iOS if any.
+// File: storage/src/android/list_result_android.cc
+#include "storage/src/android/list_result_android.h"
 
 namespace firebase {
 namespace storage {

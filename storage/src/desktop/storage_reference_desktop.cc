@@ -698,10 +698,6 @@ ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
   return storage_->future_manager().GetFutureApi(this);
 }
 
-::firebase::storage::internal::ListResultInternal* StorageReferenceInternal::CreateListResultInternal() {
-  return new ::firebase::storage::internal::ListResultDesktop(this);
-}
-
 }  // namespace internal
 }  // namespace storage
 }  // namespace firebase

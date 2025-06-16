@@ -27,7 +27,7 @@
 #include "storage/src/ios/metadata_ios.h"
 #include "storage/src/ios/storage_ios.h"
 #include "storage/src/ios/util_ios.h"
-#import "storage/src/ios/list_result_ios.h" // For ListResultIOS
+//#import "storage/src/ios/list_result_ios.h" // For ListResultIOS // Renamed to list_result_internal.h
 
 namespace firebase {
 namespace storage {
@@ -441,12 +441,6 @@ Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
   return storage_->future_manager().GetFutureApi(this);
-}
-
-::firebase::storage::internal::ListResultInternal* StorageReferenceInternal::CreateListResultInternal() {
-  // Create and return an instance of the iOS-specific ListResultInternal.
-  // 'this' is the current StorageReferenceInternal (iOS version)
-  return new ::firebase::storage::internal::ListResultIOS(this);
 }
 
 }  // namespace internal

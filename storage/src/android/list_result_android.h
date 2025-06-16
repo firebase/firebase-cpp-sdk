@@ -1,13 +1,13 @@
-// File: storage/src/ios/list_result_ios.h
-#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_IOS_LIST_RESULT_IOS_H_
-#define FIREBASE_STORAGE_CLIENT_CPP_SRC_IOS_LIST_RESULT_IOS_H_
+// File: storage/src/android/list_result_android.h
+#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_ANDROID_LIST_RESULT_ANDROID_H_
+#define FIREBASE_STORAGE_CLIENT_CPP_SRC_ANDROID_LIST_RESULT_ANDROID_H_
 
 #include <string>
 #include <vector>
 
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/ios/storage_reference_ios.h" // Defines firebase::storage::internal::StorageReferenceInternal for ios
-#include "storage/src/ios/storage_internal_ios.h"   // Defines firebase::storage::internal::StorageInternal for ios
+#include "storage/src/android/storage_reference_android.h" // Defines firebase::storage::internal::StorageReferenceInternal for android
+#include "storage/src/android/storage_internal_android.h"   // Defines firebase::storage::internal::StorageInternal for android
 
 namespace firebase {
 namespace storage {
@@ -43,4 +43,4 @@ class ListResultInternal {
 }  // namespace storage
 }  // namespace firebase
 
-#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_IOS_LIST_RESULT_IOS_H_
+#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_ANDROID_LIST_RESULT_ANDROID_H_
