@@ -88,103 +88,134 @@ static std::wstring GetExecutablePath() {
   }
 }
 
-// Helper function to calculate SHA256 hash of a file.
-static std::vector<BYTE> CalculateFileSha256(HANDLE hFile) {
+// Helper function to calculate the SHA256 hash of a file and return it as a hex
+// string (upper-case).
+static std::string CalculateFileSha256(HANDLE hFile) {
   HCRYPTPROV hProv = 0;
   HCRYPTHASH hHash = 0;
-  std::vector<BYTE> result_hash_value;
 
+  // Ensure the file pointer is at the beginning of the file.
   if (SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG "CalculateFileSha256.SetFilePointer failed. Error: %u",
              dwError);
-    return result_hash_value;
+    return ""; // Return empty string on failure
   }
 
   // Acquire Crypto Provider.
-  // Using CRYPT_VERIFYCONTEXT for operations that don't require private key
-  // access.
+  // Using CRYPT_VERIFYCONTEXT for operations that don't require private key access.
   if (!CryptAcquireContextW(&hProv, NULL, NULL, PROV_RSA_AES,
                             CRYPT_VERIFYCONTEXT)) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG
              "CalculateFileSha256.CryptAcquireContextW failed. Error: %u",
              dwError);
-    return result_hash_value;
+    return "";
   }
 
+  // Create a hash object.
   if (!CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG "CalculateFileSha256.CryptCreateHash failed. Error: %u",
              dwError);
     CryptReleaseContext(hProv, 0);
-    return result_hash_value;
+    return "";
   }
 
+  // Read the file in chunks and hash the data.
   BYTE rgbFile[1024];
   DWORD cbRead = 0;
-  BOOL bReadSuccessLoop = TRUE;
-
   while (true) {
-    bReadSuccessLoop = ReadFile(hFile, rgbFile, sizeof(rgbFile), &cbRead, NULL);
-    if (!bReadSuccessLoop) {
+    if (!ReadFile(hFile, rgbFile, sizeof(rgbFile), &cbRead, NULL)) {
       DWORD dwError = GetLastError();
       LogError(LOG_TAG "CalculateFileSha256.ReadFile failed. Error: %u",
                dwError);
       CryptDestroyHash(hHash);
       CryptReleaseContext(hProv, 0);
-      return result_hash_value;
+      return "";
     }
+    // End of file
     if (cbRead == 0) {
       break;
     }
+    // Add the chunk to the hash object.
     if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
       DWORD dwError = GetLastError();
       LogError(LOG_TAG "CalculateFileSha256.CryptHashData failed. Error: %u",
                dwError);
       CryptDestroyHash(hHash);
       CryptReleaseContext(hProv, 0);
-      return result_hash_value;
+      return "";
     }
   }
 
+  // --- Get the binary hash value ---
   DWORD cbHashValue = 0;
   DWORD dwCount = sizeof(DWORD);
-  if (!CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE*)&cbHashValue, &dwCount,
-                         0)) {
+  if (!CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE*)&cbHashValue, &dwCount, 0)) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG
-             "CalculateFileSha256.CryptGetHashParam "
-             "(HP_HASHSIZE) failed. Error: "
-             "%u",
+             "CalculateFileSha256.CryptGetHashParam (HP_HASHSIZE) failed. "
+             "Error: %u",
              dwError);
     CryptDestroyHash(hHash);
     CryptReleaseContext(hProv, 0);
-    return result_hash_value;
+    return "";
   }
 
-  result_hash_value.resize(cbHashValue);
-  if (!CryptGetHashParam(hHash, HP_HASHVAL, result_hash_value.data(),
+  std::vector<BYTE> binary_hash_value(cbHashValue);
+  if (!CryptGetHashParam(hHash, HP_HASHVAL, binary_hash_value.data(),
                          &cbHashValue, 0)) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG
              "CalculateFileSha256.CryptGetHashParam (HP_HASHVAL) failed. "
              "Error: %u",
              dwError);
-    result_hash_value.clear();
     CryptDestroyHash(hHash);
     CryptReleaseContext(hProv, 0);
-    return result_hash_value;
+    return "";
   }
 
+  // --- Convert the binary hash to a hex string ---
+  DWORD hex_string_size = 0;
+  if (!CryptBinaryToStringA(binary_hash_value.data(), binary_hash_value.size(),
+                            CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF,
+                            NULL, &hex_string_size)) {
+    DWORD dwError = GetLastError();
+    LogError(LOG_TAG
+             "CalculateFileSha256.CryptBinaryToStringA (size) failed. Error: %u",
+             dwError);
+    CryptDestroyHash(hHash);
+    CryptReleaseContext(hProv, 0);
+    return "";
+  }
+
+  std::string hex_hash_string(hex_string_size, '\0');
+  if (!CryptBinaryToStringA(binary_hash_value.data(), binary_hash_value.size(),
+                            CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF,
+                            &hex_hash_string[0], &hex_string_size)) {
+    DWORD dwError = GetLastError();
+    LogError(LOG_TAG
+             "CalculateFileSha256.CryptBinaryToStringA (conversion) failed. Error: %u",
+             dwError);
+    CryptDestroyHash(hHash);
+    CryptReleaseContext(hProv, 0);
+    return "";
+  }
+
+  // Remove the null terminator from the string.
+  hex_hash_string.resize(hex_string_size - 1);
+
+  // --- Final Cleanup ---
   CryptDestroyHash(hHash);
   CryptReleaseContext(hProv, 0);
-  return result_hash_value;
+
+  return hex_hash_string;
 }
 
 HMODULE VerifyAndLoadAnalyticsLibrary(
     const wchar_t* library_filename,
-    const std::vector<std::vector<unsigned char>>& allowed_hashes) {
+    const std::vector<std::string>& allowed_hashes) {
   if (library_filename == nullptr || library_filename[0] == L'\0') {
     LogError(LOG_TAG "Invalid arguments.");
     return nullptr;
@@ -245,22 +276,14 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
 
   HMODULE hModule = nullptr;
 
-  std::vector<BYTE> calculated_hash = CalculateFileSha256(hFile);
+  std::string calculated_hash = CalculateFileSha256(hFile);
 
-  if (calculated_hash.empty()) {
+  if (calculated_hash.length() == 0) {
     LogError(LOG_TAG "Hash failed for Analytics DLL.");
   } else {
     bool hash_matched = false;
     for (const auto& expected_hash : allowed_hashes) {
-      if (calculated_hash.size() != expected_hash.size()) {
-        LogDebug(LOG_TAG
-                 "Hash size mismatch for Analytics DLL. Expected: %zu, "
-                 "Calculated: %zu. Trying next allowed hash.",
-                 expected_hash.size(), calculated_hash.size());
-        continue;
-      }
-      if (memcmp(calculated_hash.data(), expected_hash.data(),
-                 expected_hash.size()) == 0) {
+      if (calculated_hash == expected_hash) {
         hash_matched = true;
         break;
       }
