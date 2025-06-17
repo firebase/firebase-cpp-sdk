@@ -227,6 +227,44 @@ class StorageReference {
   /// @returns The result of the most recent call to UpdateMetadata();
   Future<Metadata> UpdateMetadataLastResult();
 
+  // Lists the items and prefixes under this StorageReference.
+  /// @brief Lists all items (files) and prefixes (directories) under this
+  /// StorageReference.
+  ///
+  /// This is a helper method for calling List() repeatedly until there are
+  /// no more results. Consistency of the result is not guaranteed if objects
+  /// are updated while this operation is running. All results are buffered in
+  /// memory.
+  ///
+  /// @return A Future that will be resolved with a ListResult containing all
+  /// items and prefixes under the current StorageReference. For stubs, this
+  /// will be an empty ListResult.
+  Future<ListResult> ListAll();
+
+  /// @brief Lists items (files) and prefixes (directories) under this
+  /// StorageReference.
+  ///
+  /// This method allows for pagination.
+  ///
+  /// @param[in] page_token A token indicating the page of results to return.
+  /// If nullptr or an empty string, the first page of results will be returned.
+  /// The token is obtained from a previous ListResult::page_token().
+  ///
+  /// @return A Future that will be resolved with a ListResult containing
+  /// items and prefixes for the specified page. For stubs, this will be an
+  /// empty ListResult.
+  Future<ListResult> List(const char* page_token);
+
+  /// @brief Lists the first page of items (files) and prefixes (directories)
+  /// under this StorageReference.
+  ///
+  /// This is an overload of List() that omits the page_token, effectively
+  /// requesting the first page of results.
+  ///
+  /// @return A Future that will be resolved with a ListResult. For stubs,
+  /// this will be an empty ListResult.
+  Future<ListResult> List();
+
   /// @brief Returns the short name of this object.
   ///
   /// @returns the short name of this object.
