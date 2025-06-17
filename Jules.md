@@ -5,6 +5,16 @@ making changes to the Firebase C++ SDK repository. It covers essential
 information about the repository's structure, setup, testing procedures, API
 surface, best practices, and common coding patterns.
 
+For a detailed view of which Firebase products are supported on each C++
+platform (Android, iOS, tvOS, macOS, Windows, Linux), refer to the official
+[Firebase library support by platform table](https://firebase.google.com/docs/cpp/learn-more#library-support-by-platform).
+
+The Firebase C++ SDKs for desktop platforms (Windows, Linux, macOS) are
+entirely open source and hosted in the main `firebase/firebase-cpp-sdk` GitHub
+repository. The C++ SDKs for mobile platforms (iOS, tvOS, Android) are built
+on top of the respective native open-source Firebase SDKs (Firebase iOS SDK and
+Firebase Android SDK).
+
 The goal is to enable agents to understand the existing conventions and
 contribute effectively to the codebase.
 
@@ -38,6 +48,9 @@ The SDK uses CMake for C++ compilation and Gradle for Android-specific parts.
 2.  Run CMake to configure: `cmake ..`
     *   For iOS:
         `cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake ..`
+        Note: iOS setup typically requires both including Firebase pods (via
+        `Podfile`) and linking the `.framework` files from the C++ SDK
+        distribution.
     *   For tvOS:
         `cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/apple.toolchain.cmake -DPLATFORM=TVOS ..`
 3.  Build specific targets: `cmake --build . --target firebase_analytics`
@@ -58,6 +71,26 @@ Each Firebase C++ library is a Gradle subproject. To build a specific library
 This command should be run from the root of the repository. Proguard files are
 generated in each library's build directory (e.g.,
 `analytics/build/analytics.pro`).
+
+### Desktop Platform Setup Details
+
+When setting up for desktop, if you are using an iOS `GoogleService-Info.plist`
+file, convert it to the required `google-services-desktop.json` using the
+script: `python generate_xml_from_google_services_json.py --plist -i GoogleService-Info.plist`
+(run this from the script's directory, ensuring the plist file is accessible).
+
+The desktop SDK searches for configuration files in the current working
+directory, first for `google-services-desktop.json`, then for
+`google-services.json`.
+
+Common system library dependencies for desktop:
+*   **Windows**: Common dependencies include `advapi32.lib`, `ws2_32.lib`,
+    `crypt32.lib`. Specific products might need others (e.g., Firestore:
+    `rpcrt4.lib`, `ole32.lib`, `shell32.lib`).
+*   **macOS**: Common dependencies include `pthread` (system library) and
+    frameworks like `CoreFoundation`, `Foundation`, and `Security`.
+*   **Linux**: Common dependencies include `pthread` (system library). When
+    using GCC 5+, define `-D_GLIBCXX_USE_CXX11_ABI=0`.
 
 ## Including the SDK in Projects
 
@@ -179,6 +212,12 @@ illustrate common API patterns:
 *   **`firebase::auth::Auth`**: The main entry point for Firebase
     Authentication.
     *   Used to manage users, sign in/out, etc.
+    *   Successful authentication operations (like
+        `SignInWithEmailAndPassword()`) return a
+        `Future<firebase::auth::AuthResult>`. The `firebase::auth::User`
+        object can then be obtained from this `AuthResult` (e.g.,
+        `auth_result.result()->user()` after `result()` is confirmed
+        successful and the pointer is checked).
     *   Example: `firebase::auth::User* current_user = auth->current_user();`
     *   Methods for user creation/authentication:
         `CreateUserWithEmailAndPassword()`, `SignInWithEmailAndPassword()`,
@@ -318,6 +357,21 @@ API documentation.
     `#if FIREBASE_PLATFORM_IOS`) to conditionally compile platform-specific
     sections when necessary, but prefer separate implementation files where
     possible for better organization.
+
+## Platform-Specific Considerations
+
+*   **Realtime Database (Desktop)**: The C++ SDK for Realtime Database on
+    desktop platforms (Windows, macOS, Linux) uses a REST-based
+    implementation. This means that any queries involving
+    `Query::OrderByChild()` require corresponding indexes to be defined in your
+    Firebase project's Realtime Database rules. Without these indexes, queries
+    may fail or not return expected results.
+*   **iOS Method Swizzling**: Be aware that some Firebase products on iOS
+    (e.g., Dynamic Links, Cloud Messaging) use method swizzling to
+    automatically attach handlers to your `AppDelegate`. While this simplifies
+    integration, it can occasionally be a factor to consider when debugging app
+    delegate behavior or integrating with other libraries that also perform
+    swizzling.
 
 ## Class and File Structure
 
