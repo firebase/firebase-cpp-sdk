@@ -26,7 +26,7 @@ class StorageReference; // Forward declaration
 /// This class provides access to the items (files) and prefixes (directories)
 /// found under a given StorageReference, as well as a page token for pagination
 /// if the results are not complete.
-class SWIG_STORAGE_EXPORT ListResult {
+class ListResult {
  public:
   /// @brief Default constructor. Creates an empty and invalid ListResult.
   ///
