@@ -14,11 +14,10 @@
 
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-#include "firebase/storage/list_result.h"     // Public header for ListResult
-// storage/src/common/storage_reference_internal.h is generally included by platform-specific storage_reference_*.h
-#include "app/src/assert.h"                   // For FIREBASE_ASSERT_RETURN
-#include "app/src/future_manager.h"           // For ReferenceCountedFutureImpl
-#include "app/src/include/firebase/internal/platform.h" // For FIREBASE_PLATFORM defines
+#include "firebase/storage/list_result.h"
+#include "app/src/assert.h"
+#include "app/src/future_manager.h"
+#include "app/src/include/firebase/internal/platform.h"
 
 // Platform-specific ListResultInternal definition.
 #if FIREBASE_PLATFORM_ANDROID

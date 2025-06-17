@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/ios/storage_reference_ios.h" // Defines firebase::storage::internal::StorageReferenceInternal for ios
-#include "storage/src/ios/storage_internal_ios.h"   // Defines firebase::storage::internal::StorageInternal for ios
+#include "storage/src/ios/storage_reference_ios.h"
+#include "storage/src/ios/storage_internal_ios.h"
 
 namespace firebase {
 namespace storage {

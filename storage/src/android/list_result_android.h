@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/android/storage_reference_android.h" // Defines firebase::storage::internal::StorageReferenceInternal for android
-#include "storage/src/android/storage_internal_android.h"   // Defines firebase::storage::internal::StorageInternal for android
+#include "storage/src/android/storage_reference_android.h"
+#include "storage/src/android/storage_internal_android.h"
 
 namespace firebase {
 namespace storage {

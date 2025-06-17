@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "firebase/storage/storage_reference.h" // For firebase::storage::StorageReference
-#include "storage/src/desktop/storage_reference_desktop.h" // Defines firebase::storage::internal::StorageReferenceInternal for desktop
-#include "storage/src/desktop/storage_internal_desktop.h"   // Defines firebase::storage::internal::StorageInternal for desktop
+#include "firebase/storage/storage_reference.h"
+#include "storage/src/desktop/storage_reference_desktop.h"
+#include "storage/src/desktop/storage_internal_desktop.h"
 
 namespace firebase {
 namespace storage {

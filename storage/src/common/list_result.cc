@@ -1,10 +1,10 @@
 // File: storage/src/common/list_result.cc
 
-#include "firebase/storage/list_result.h"       // For ListResult public class
-#include "app/src/include/firebase/internal/platform.h" // For FIREBASE_PLATFORM defines
-#include "app/src/cleanup_notifier.h"           // For CleanupNotifier
-#include "app/src/log.h"                        // For LogDebug, LogWarning
-#include "firebase/storage/storage_reference.h" // For StorageReference (used by ListResult members)
+#include "firebase/storage/list_result.h"
+#include "app/src/include/firebase/internal/platform.h"
+#include "app/src/cleanup_notifier.h"
+#include "app/src/log.h"
+#include "firebase/storage/storage_reference.h"
 
 // Platform-specific headers that define internal::ListResultInternal (the PIMPL class)
 // and internal::StorageInternal (for CleanupNotifier context).
