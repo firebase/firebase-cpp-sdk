@@ -24,7 +24,7 @@
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
-#include "firebase/storage/list_result.h" // Added for ListResult return type
+#include "firebase/storage/list_result.h"
 
 namespace firebase {
 namespace storage {

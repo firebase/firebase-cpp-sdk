@@ -26,8 +26,6 @@
 #include "storage/src/android/list_result_android.h" // Defines the android internal::ListResultInternal
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
-// firebase/storage/storage_reference.h is included via storage_reference_android.h
-// app/src/future_manager.h is included via storage_reference_android.h -> reference_counted_future_impl.h
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/storage_resources.h"

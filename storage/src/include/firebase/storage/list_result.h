@@ -59,25 +59,28 @@ class SWIG_STORAGE_EXPORT ListResult {
   /// @brief Destructor.
   ~ListResult();
 
-  /// @brief Gets the list of items (files) found by the list operation.
-  /// @return A const reference to a vector of StorageReferences representing
-  ///         the items. Returns an empty vector if the ListResult is invalid
-  ///         or no items were found.
+  /// @brief Gets the individual items (files) found in this result.
+  ///
+  /// @return Vector of StorageReferences to the items. Will be an empty
+  /// vector if no items are found or if the ListResult is invalid.
   const std::vector<StorageReference>& items() const;
 
-  /// @brief Gets the list of prefixes (directories) found by the list
-  /// operation.
-  /// These can be used to further navigate the storage hierarchy.
-  /// @return A const reference to a vector of StorageReferences representing
-  ///         the prefixes. Returns an empty vector if the ListResult is invalid
-  ///         or no prefixes were found.
+  /// @brief Gets the prefixes (directories) found in this result.
+  /// These can be used to further "navigate" the storage hierarchy by calling
+  /// List or ListAll on them.
+  ///
+  /// @return Vector of StorageReferences to the prefixes. Will be an empty
+  /// vector if no prefixes are found or if the ListResult is invalid.
   const std::vector<StorageReference>& prefixes() const;
 
   /// @brief Gets the page token for the next page of results.
+  ///
   /// If the string is empty, it indicates that there are no more results
-  /// (i.e., this is the last page).
-  /// @return A const reference to the page token string. Returns an empty
-  ///         string if the ListResult is invalid or if there are no more results.
+  /// for the current list operation. This token can be passed to
+  /// StorageReference::List() to retrieve the next page.
+  ///
+  /// @return Page token string. Empty if no more results or if the
+  /// ListResult is invalid.
   const std::string& page_token() const;
 
   /// @brief Returns true if this ListResult object is valid, false otherwise.
