@@ -23,7 +23,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
-#include "storage/src/android/list_result_android.h" // Defines the android internal::ListResultInternal
+#include "storage/src/android/list_result_android.h"  // Defines the android internal::ListResultInternal
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage.h"
@@ -736,13 +736,13 @@ jint StorageReferenceInternal::CppByteUploaderReadBytes(
 }
 
 Future<ListResult> StorageReferenceInternal::ListAll() {
-  StorageReference self(this); // Public self for future context
+  StorageReference self(this);  // Public self for future context
   ReferenceCountedFutureImpl* ref_future =
       future()->Alloc<ListResult>(kStorageReferenceFnCount);
   Future<ListResult> future = MakeFuture(ref_future, self);
 
-  internal::ListResultInternal* list_pimpl =
-      new internal::ListResultInternal(this, nullptr); // 'this' is StorageReferenceInternal* (Android)
+  internal::ListResultInternal* list_pimpl = new internal::ListResultInternal(
+      this, nullptr);  // 'this' is StorageReferenceInternal* (Android)
 
   ListResult result_to_complete(list_pimpl);
 
@@ -751,7 +751,7 @@ Future<ListResult> StorageReferenceInternal::ListAll() {
 }
 
 Future<ListResult> StorageReferenceInternal::List(const char* page_token) {
-  StorageReference self(this); // Public self for future context
+  StorageReference self(this);  // Public self for future context
   ReferenceCountedFutureImpl* ref_future =
       future()->Alloc<ListResult>(kStorageReferenceFnCount);
   Future<ListResult> future = MakeFuture(ref_future, self);

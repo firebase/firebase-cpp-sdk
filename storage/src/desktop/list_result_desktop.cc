@@ -15,14 +15,16 @@ ListResultInternal::ListResultInternal(
     prefixes_ = other_to_copy_from->prefixes_;
     page_token_ = other_to_copy_from->page_token_;
   }
-  // If other_to_copy_from is null, members are default-initialized (empty for stub).
+  // If other_to_copy_from is null, members are default-initialized (empty for
+  // stub).
 }
 
 // Destructor is default. Members are cleaned up automatically.
 // Lifecycle of this PIMPL object is managed by the public ListResult class
 // via ListResultInternalCommon static helpers.
 
-// Accessor methods (items(), prefixes(), page_token()) are inline in the header.
+// Accessor methods (items(), prefixes(), page_token()) are inline in the
+// header.
 
 }  // namespace internal
 }  // namespace storage

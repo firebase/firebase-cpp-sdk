@@ -6,20 +6,22 @@
 #include <vector>
 
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/desktop/storage_reference_desktop.h"
 #include "storage/src/desktop/storage_internal_desktop.h"
+#include "storage/src/desktop/storage_reference_desktop.h"
 
 namespace firebase {
 namespace storage {
 namespace internal {
 
 /// Desktop platform's internal implementation for ListResult.
-/// This class holds the data for a list operation specific to the desktop platform.
-/// Its lifecycle is managed by the public ListResult class via static helpers.
+/// This class holds the data for a list operation specific to the desktop
+/// platform. Its lifecycle is managed by the public ListResult class via static
+/// helpers.
 class ListResultInternal {
  public:
   /// Constructor.
-  /// @param[in] platform_sri The desktop StorageReferenceInternal this list result
+  /// @param[in] platform_sri The desktop StorageReferenceInternal this list
+  /// result
   ///                         is associated with; used for context.
   /// @param[in] other_to_copy_from If not null, initializes this instance by
   ///                               copying data from other_to_copy_from.
@@ -27,18 +29,21 @@ class ListResultInternal {
       StorageReferenceInternal* platform_sri,
       const ListResultInternal* other_to_copy_from = nullptr);
 
-  // Destructor is default as members clean themselves up and lifecycle is external.
+  // Destructor is default as members clean themselves up and lifecycle is
+  // external.
 
   const std::vector<StorageReference>& items() const { return items_; }
   const std::vector<StorageReference>& prefixes() const { return prefixes_; }
   const std::string& page_token() const { return page_token_; }
 
-  /// Provides access to the StorageReferenceInternal this object is associated with.
+  /// Provides access to the StorageReferenceInternal this object is associated
+  /// with.
   StorageReferenceInternal* storage_reference_internal() const {
     return platform_sri_;
   }
 
-  /// Provides access to the StorageInternal context, typically for cleanup registration.
+  /// Provides access to the StorageInternal context, typically for cleanup
+  /// registration.
   StorageInternal* associated_storage_internal() const {
     return platform_sri_ ? platform_sri_->storage_internal() : nullptr;
   }
@@ -47,7 +52,8 @@ class ListResultInternal {
   // Disallow copy assignment; copy construction is handled via the constructor.
   ListResultInternal& operator=(const ListResultInternal&);
 
-  StorageReferenceInternal* platform_sri_; // Associated StorageReference, not owned.
+  StorageReferenceInternal*
+      platform_sri_;  // Associated StorageReference, not owned.
 
   // Data for list results (stubs are empty).
   std::vector<StorageReference> items_;

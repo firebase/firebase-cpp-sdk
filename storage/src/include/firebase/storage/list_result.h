@@ -18,7 +18,7 @@ class ListResultInternalCommon;
 class StorageReferenceInternal;
 }  // namespace internal
 
-class StorageReference; // Forward declaration
+class StorageReference;  // Forward declaration
 
 /// @brief Holds the results of a list operation from StorageReference::List()
 /// or StorageReference::ListAll().
@@ -97,13 +97,15 @@ class ListResult {
  private:
   friend class StorageReference;
   friend class internal::StorageReferenceInternal;
-  friend class internal::ListResultInternalCommon; // Manages lifecycle of internal_
+  friend class internal::ListResultInternalCommon;  // Manages lifecycle of
+                                                    // internal_
 
-  // Private constructor for creating a ListResult with an existing PIMPL object.
-  // Takes ownership of the provided internal_pimpl.
+  // Private constructor for creating a ListResult with an existing PIMPL
+  // object. Takes ownership of the provided internal_pimpl.
   explicit ListResult(internal::ListResultInternal* internal_pimpl);
 
-  internal::ListResultInternal* internal_; // Pointer to the internal implementation.
+  internal::ListResultInternal*
+      internal_;  // Pointer to the internal implementation.
 
   // Static empty results to return for invalid ListResult objects.
   static const std::vector<StorageReference> s_empty_items_;

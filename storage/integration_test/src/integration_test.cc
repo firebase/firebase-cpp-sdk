@@ -1624,11 +1624,12 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
 }
 
 // Test the StorageReference::ListAll() method.
-// This test currently only verifies that the stubbed method returns an empty result.
+// This test currently only verifies that the stubbed method returns an empty
+// result.
 TEST_F(FirebaseStorageTest, TestListAll) {
   if (skip_tests_) return;
 
-  firebase::storage::Storage* storage = storage_; // Use the member variable
+  firebase::storage::Storage* storage = storage_;  // Use the member variable
   firebase::storage::StorageReference reference = storage->GetReference();
 
   firebase::Future<firebase::storage::ListResult> future = reference.ListAll();
@@ -1647,11 +1648,12 @@ TEST_F(FirebaseStorageTest, TestListAll) {
 }
 
 // Test the StorageReference::List() method with no page token.
-// This test currently only verifies that the stubbed method returns an empty result.
+// This test currently only verifies that the stubbed method returns an empty
+// result.
 TEST_F(FirebaseStorageTest, TestListNoPageToken) {
   if (skip_tests_) return;
 
-  firebase::storage::Storage* storage = storage_; // Use the member variable
+  firebase::storage::Storage* storage = storage_;  // Use the member variable
   firebase::storage::StorageReference reference = storage->GetReference();
 
   firebase::Future<firebase::storage::ListResult> future = reference.List();
@@ -1670,16 +1672,17 @@ TEST_F(FirebaseStorageTest, TestListNoPageToken) {
 }
 
 // Test the StorageReference::List() method with a page token.
-// This test currently only verifies that the stubbed method returns an empty result
-// and that the page token is passed (though not used by the stub).
+// This test currently only verifies that the stubbed method returns an empty
+// result and that the page token is passed (though not used by the stub).
 TEST_F(FirebaseStorageTest, TestListWithPageToken) {
   if (skip_tests_) return;
 
-  firebase::storage::Storage* storage = storage_; // Use the member variable
+  firebase::storage::Storage* storage = storage_;  // Use the member variable
   firebase::storage::StorageReference reference = storage->GetReference();
   const char* page_token = "test_page_token";
 
-  firebase::Future<firebase::storage::ListResult> future = reference.List(page_token);
+  firebase::Future<firebase::storage::ListResult> future =
+      reference.List(page_token);
   WaitForCompletion(future, "List (with page token)");
 
   ASSERT_EQ(future.status(), firebase::kFutureStatusComplete);

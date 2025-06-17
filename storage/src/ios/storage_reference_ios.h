@@ -21,7 +21,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "storage/src/ios/storage_ios.h"
-#include "firebase/storage/list_result.h" // Added for ListResult return type
+#include "firebase/storage/list_result.h"
 
 #ifdef __OBJC__
 #import "FirebaseStorage-Swift.h"
