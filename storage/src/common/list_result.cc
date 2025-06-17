@@ -53,7 +53,7 @@ class ListResultInternalCommon {
     ListResult* public_obj = reinterpret_cast<ListResult*>(public_obj_void);
     if (public_obj) {
         LogDebug("CleanupNotifier: Cleaning up ListResult %p.", public_obj);
-        DeleteInternalPimpl(public_obj);
+        DeleteInternal(public_obj);
     } else {
         LogWarning("CleanupNotifier: CleanupPublicListResultObject called with null object.");
     }
@@ -89,7 +89,7 @@ class ListResultInternalCommon {
   }
 
   // Deletes the PIMPL object, unregisters from cleanup, and nulls the pointer in public_obj.
-  static void DeleteInternalPimpl(ListResult* public_obj) {
+  static void DeleteInternal(ListResult* public_obj) {
     FIREBASE_ASSERT(public_obj != nullptr);
     if (!public_obj->internal_) return;
 
@@ -119,7 +119,7 @@ ListResult::ListResult(internal::ListResultInternal* internal_pimpl)
 }
 
 ListResult::~ListResult() {
-  internal::ListResultInternalCommon::DeleteInternalPimpl(this);
+  internal::ListResultInternalCommon::DeleteInternal(this);
 }
 
 ListResult::ListResult(const ListResult& other) : internal_(nullptr) {
@@ -135,7 +135,7 @@ ListResult& ListResult::operator=(const ListResult& other) {
   if (this == &other) {
     return *this;
   }
-  internal::ListResultInternalCommon::DeleteInternalPimpl(this); // Clean up current
+  internal::ListResultInternalCommon::DeleteInternal(this); // Clean up current
 
   if (other.internal_) {
     internal::StorageReferenceInternal* sri_context =
@@ -160,7 +160,7 @@ ListResult& ListResult::operator=(ListResult&& other) {
   if (this == &other) {
     return *this;
   }
-  internal::ListResultInternalCommon::DeleteInternalPimpl(this); // Clean up current
+  internal::ListResultInternalCommon::DeleteInternal(this); // Clean up current
 
   internal_ = other.internal_;
   other.internal_ = nullptr;

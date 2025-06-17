@@ -80,10 +80,15 @@ class SWIG_STORAGE_EXPORT ListResult {
   ///         string if the ListResult is invalid or if there are no more results.
   const std::string& page_token() const;
 
-  /// @brief Returns true if this ListResult object is valid and contains data,
-  /// false otherwise. An invalid ListResult is one that has not been
-  /// initialized by a successful list operation, or has been moved from.
-  /// @return true if the ListResult is valid, false otherwise.
+  /// @brief Returns true if this ListResult object is valid, false otherwise.
+  ///
+  /// An invalid ListResult is typically one that was default-constructed
+  /// and not subsequently assigned a valid result from a list operation,
+  /// or one that has been moved from. Operations on an invalid ListResult
+  /// will typically return default values (e.g., empty vectors or strings).
+  ///
+  /// @return true if this ListResult is valid and represents a result from
+  /// a list operation (even if that result is empty); false otherwise.
   bool is_valid() const;
 
  private:

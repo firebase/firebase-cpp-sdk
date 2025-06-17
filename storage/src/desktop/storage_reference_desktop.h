@@ -152,6 +152,9 @@ class StorageReferenceInternal {
   // Exposed for testing.
   StorageReference AsStorageReference() const;
 
+  virtual Future<ListResult> ListAll();
+  virtual Future<ListResult> List(const char* page_token);
+
  private:
   // Function type that sends a Rest Request and returns the BlockingResponse.
   typedef std::function<BlockingResponse*()> SendRequestFunct;

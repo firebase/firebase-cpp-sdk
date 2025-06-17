@@ -20,8 +20,8 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
-// Removed: #include "storage/src/common/list_result_internal.h"
 #include "storage/src/ios/storage_ios.h"
+#include "firebase/storage/list_result.h" // Added for ListResult return type
 
 #ifdef __OBJC__
 #import "FirebaseStorage-Swift.h"
@@ -163,6 +163,9 @@ class StorageReferenceInternal {
 
   // StorageInternal instance we are associated with.
   StorageInternal* _Nullable storage_internal() const { return storage_; }
+
+  virtual Future<ListResult> ListAll();
+  virtual Future<ListResult> List(const char* page_token);
 
  private:
 #ifdef __OBJC__

@@ -27,7 +27,9 @@
 #include "storage/src/ios/metadata_ios.h"
 #include "storage/src/ios/storage_ios.h"
 #include "storage/src/ios/util_ios.h"
-//#import "storage/src/ios/list_result_ios.h" // For ListResultIOS // Renamed to list_result_internal.h
+#import "storage/src/ios/list_result_ios.h" // Defines the ios internal::ListResultInternal
+// firebase/storage/storage_reference.h is included via storage_reference_ios.h
+// app/src/future_manager.h is included via storage_reference_ios.h -> reference_counted_future_impl.h
 
 namespace firebase {
 namespace storage {
@@ -441,6 +443,37 @@ Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
   return storage_->future_manager().GetFutureApi(this);
+}
+
+Future<ListResult> StorageReferenceInternal::ListAll() {
+  StorageReference self(this); // Public self for future context
+  ReferenceCountedFutureImpl* ref_future =
+      future()->Alloc<ListResult>(kStorageReferenceFnCount);
+  Future<ListResult> future = MakeFuture(ref_future, self);
+
+  internal::ListResultInternal* list_pimpl =
+      new internal::ListResultInternal(this, nullptr); // 'this' is StorageReferenceInternal* (iOS)
+
+  ListResult result_to_complete(list_pimpl);
+
+  ref_future->Complete(self.AsHandle(), kErrorNone, "", result_to_complete);
+  return future;
+}
+
+Future<ListResult> StorageReferenceInternal::List(const char* page_token) {
+  StorageReference self(this); // Public self for future context
+  ReferenceCountedFutureImpl* ref_future =
+      future()->Alloc<ListResult>(kStorageReferenceFnCount);
+  Future<ListResult> future = MakeFuture(ref_future, self);
+
+  // page_token is ignored for stub.
+  internal::ListResultInternal* list_pimpl =
+      new internal::ListResultInternal(this, nullptr);
+
+  ListResult result_to_complete(list_pimpl);
+
+  ref_future->Complete(self.AsHandle(), kErrorNone, "", result_to_complete);
+  return future;
 }
 
 }  // namespace internal

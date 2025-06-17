@@ -23,9 +23,11 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
-// Removed: #include "storage/src/android/list_result_android.h"
+#include "storage/src/android/list_result_android.h" // Defines the android internal::ListResultInternal
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
+// firebase/storage/storage_reference.h is included via storage_reference_android.h
+// app/src/future_manager.h is included via storage_reference_android.h -> reference_counted_future_impl.h
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/storage_resources.h"
@@ -733,6 +735,37 @@ jint StorageReferenceInternal::CppByteUploaderReadBytes(
          data_read);
   env->ReleaseByteArrayElements(bytes_array_object, bytes_array, 0);
   return data_read;
+}
+
+Future<ListResult> StorageReferenceInternal::ListAll() {
+  StorageReference self(this); // Public self for future context
+  ReferenceCountedFutureImpl* ref_future =
+      future()->Alloc<ListResult>(kStorageReferenceFnCount);
+  Future<ListResult> future = MakeFuture(ref_future, self);
+
+  internal::ListResultInternal* list_pimpl =
+      new internal::ListResultInternal(this, nullptr); // 'this' is StorageReferenceInternal* (Android)
+
+  ListResult result_to_complete(list_pimpl);
+
+  ref_future->Complete(self.AsHandle(), kErrorNone, "", result_to_complete);
+  return future;
+}
+
+Future<ListResult> StorageReferenceInternal::List(const char* page_token) {
+  StorageReference self(this); // Public self for future context
+  ReferenceCountedFutureImpl* ref_future =
+      future()->Alloc<ListResult>(kStorageReferenceFnCount);
+  Future<ListResult> future = MakeFuture(ref_future, self);
+
+  // page_token is ignored for stub.
+  internal::ListResultInternal* list_pimpl =
+      new internal::ListResultInternal(this, nullptr);
+
+  ListResult result_to_complete(list_pimpl);
+
+  ref_future->Complete(self.AsHandle(), kErrorNone, "", result_to_complete);
+  return future;
 }
 
 }  // namespace internal

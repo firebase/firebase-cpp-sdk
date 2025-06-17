@@ -19,21 +19,21 @@
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/internal/platform.h"
 
-// Platform-specific ListResultInternal definition.
-#if FIREBASE_PLATFORM_ANDROID
-#include "storage/src/android/list_result_android.h"
-#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-#include "storage/src/ios/list_result_ios.h"
-#else // Desktop
-#include "storage/src/desktop/list_result_desktop.h"
-#endif
+// Platform-specific ListResultInternal definition is no longer needed here.
+// #if FIREBASE_PLATFORM_ANDROID
+// #include "storage/src/android/list_result_android.h"
+// #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+// #include "storage/src/ios/list_result_ios.h"
+// #else // Desktop
+// #include "storage/src/desktop/list_result_desktop.h"
+// #endif
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
 // Platform-specific StorageReferenceInternal is included below.
 #endif  // __APPLE__
 
-// Platform-specific StorageReferenceInternal implementations.
+// StorageReference is defined in these 3 files, one implementation for each OS.
 #if defined(__ANDROID__)
 #include "storage/src/android/storage_android.h"
 #include "storage/src/android/storage_reference_android.h"
@@ -266,31 +266,13 @@ Future<ListResult> StorageReference::ListAll() {
   ReferenceCountedFutureImpl* ref_future =
       internal_->future_manager().Alloc<ListResult>(
           internal::kStorageReferenceFnCount);
-  Future<ListResult> future = MakeFuture(ref_future);
-
-  internal::ListResultInternal* list_pimpl =
-      new internal::ListResultInternal(this->internal_, nullptr);
-  ListResult result_to_complete(list_pimpl);
-
-  ref_future->Complete(this->AsHandle(), kErrorNone, /* error_msg= */ "", result_to_complete);
-  return future;
+  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
+  return internal_->ListAll();
 }
 
 Future<ListResult> StorageReference::List(const char* page_token) {
   FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
-  ReferenceCountedFutureImpl* ref_future =
-      internal_->future_manager().Alloc<ListResult>(
-          internal::kStorageReferenceFnCount);
-  Future<ListResult> future = MakeFuture(ref_future);
-
-  // page_token is currently ignored in the stub.
-
-  internal::ListResultInternal* list_pimpl =
-      new internal::ListResultInternal(this->internal_, nullptr);
-  ListResult result_to_complete(list_pimpl);
-
-  ref_future->Complete(this->AsHandle(), kErrorNone, /* error_msg= */ "", result_to_complete);
-  return future;
+  return internal_->List(page_token);
 }
 
 Future<ListResult> StorageReference::List() {
