@@ -30,17 +30,11 @@
 #include "app/src/thread.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
-#include "storage/src/desktop/list_result_desktop.h"  // Defines the desktop internal::ListResultInternal
+#include "storage/src/desktop/list_result_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
-#include "storage/src/include/firebase/storage/list_result.h"
-
-// Note: app/src/future_manager.h is indirectly included via
-// storage_reference_desktop.h -> reference_counted_future_impl.h Note:
-// app/src/include/firebase/app.h is indirectly included via
-// storage_reference_desktop.h
 
 namespace firebase {
 namespace storage {
@@ -706,7 +700,7 @@ ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
 }
 
 Future<ListResult> StorageReferenceInternal::ListAll() {
-  StorageReference self(this);  // Create public object from internal 'this'
+  StorageReference self(this);
   ReferenceCountedFutureImpl* ref_future =
       future()->Alloc<ListResult>(kStorageReferenceFnCount);
   Future<ListResult> future = MakeFuture(ref_future, self);
@@ -721,7 +715,7 @@ Future<ListResult> StorageReferenceInternal::ListAll() {
 }
 
 Future<ListResult> StorageReferenceInternal::List(const char* page_token) {
-  StorageReference self(this);  // Create public object from internal 'this'
+  StorageReference self(this);
   ReferenceCountedFutureImpl* ref_future =
       future()->Alloc<ListResult>(kStorageReferenceFnCount);
   Future<ListResult> future = MakeFuture(ref_future, self);

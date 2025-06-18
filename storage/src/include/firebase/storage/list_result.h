@@ -20,8 +20,8 @@ class StorageReferenceInternal;
 
 class StorageReference;  // Forward declaration
 
-/// @brief Holds the results of a list operation from StorageReference::List()
-/// or StorageReference::ListAll().
+/// @brief Holds the results of a list operation, such as
+/// StorageReference::List() or StorageReference::ListAll().
 ///
 /// This class provides access to the items (files) and prefixes (directories)
 /// found under a given StorageReference, as well as a page token for pagination
@@ -62,24 +62,24 @@ class ListResult {
   /// @brief Gets the individual items (files) found in this result.
   ///
   /// @return Vector of StorageReferences to the items. Will be an empty
-  /// vector if no items are found or if the ListResult is invalid.
+  /// vector if no items are found or if this ListResult is invalid.
   const std::vector<StorageReference>& items() const;
 
   /// @brief Gets the prefixes (directories) found in this result.
   /// These can be used to further "navigate" the storage hierarchy by calling
-  /// List or ListAll on them.
+  /// List() or ListAll() on them.
   ///
   /// @return Vector of StorageReferences to the prefixes. Will be an empty
-  /// vector if no prefixes are found or if the ListResult is invalid.
+  /// vector if no prefixes are found or if this ListResult is invalid.
   const std::vector<StorageReference>& prefixes() const;
 
   /// @brief Gets the page token for the next page of results.
   ///
   /// If the string is empty, it indicates that there are no more results
-  /// for the current list operation. This token can be passed to
-  /// StorageReference::List() to retrieve the next page.
+  /// for the current list operation (i.e., this is the last page). This token
+  /// can be passed to StorageReference::List() to retrieve the next page.
   ///
-  /// @return Page token string. Empty if no more results or if the
+  /// @return Page token string. Empty if no more results or if this
   /// ListResult is invalid.
   const std::string& page_token() const;
 
@@ -97,17 +97,17 @@ class ListResult {
  private:
   friend class StorageReference;
   friend class internal::StorageReferenceInternal;
-  friend class internal::ListResultInternalCommon;  // Manages lifecycle of
-                                                    // internal_
+  // Allows ListResultInternalCommon to manage the lifecycle of internal_.
+  friend class internal::ListResultInternalCommon;
 
-  // Private constructor for creating a ListResult with an existing PIMPL
-  // object. Takes ownership of the provided internal_pimpl.
+  // Private constructor for creating a ListResult with an PIMPL object.
+  // Takes ownership of the provided internal_pimpl.
   explicit ListResult(internal::ListResultInternal* internal_pimpl);
 
   internal::ListResultInternal*
       internal_;  // Pointer to the internal implementation.
 
-  // Static empty results to return for invalid ListResult objects.
+  // Static empty results for returning from an invalid ListResult.
   static const std::vector<StorageReference> s_empty_items_;
   static const std::vector<StorageReference> s_empty_prefixes_;
   static const std::string s_empty_page_token_;

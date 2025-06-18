@@ -29,9 +29,6 @@ class ListResultInternal {
       StorageReferenceInternal* platform_sri,
       const ListResultInternal* other_to_copy_from = nullptr);
 
-  // Destructor is default as members clean themselves up and lifecycle is
-  // external.
-
   const std::vector<StorageReference>& items() const { return items_; }
   const std::vector<StorageReference>& prefixes() const { return prefixes_; }
   const std::string& page_token() const { return page_token_; }

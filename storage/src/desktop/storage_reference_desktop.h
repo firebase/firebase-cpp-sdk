@@ -152,7 +152,15 @@ class StorageReferenceInternal {
   // Exposed for testing.
   StorageReference AsStorageReference() const;
 
+  /// @brief Lists all items and prefixes under this reference (Desktop
+  /// implementation).
+  /// @return A Future that will be resolved with a ListResult.
   virtual Future<ListResult> ListAll();
+
+  /// @brief Lists items and prefixes under this reference, with pagination
+  /// (Desktop implementation).
+  /// @param[in] page_token Token for the page of results to return.
+  /// @return A Future that will be resolved with a ListResult.
   virtual Future<ListResult> List(const char* page_token);
 
  private:

@@ -19,14 +19,9 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "firebase/storage/list_result.h"
 
-// Platform-specific ListResultInternal definition is no longer needed here.
-// #if FIREBASE_PLATFORM_ANDROID
-// #include "storage/src/android/list_result_android.h"
-// #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-// #include "storage/src/ios/list_result_ios.h"
-// #else // Desktop
-// #include "storage/src/desktop/list_result_desktop.h"
-// #endif
+// Platform-specific ListResultInternal definition is no longer needed here,
+// as StorageReferenceInternal (platform-specific) now handles ListResult
+// creation.
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -262,10 +257,6 @@ Future<Metadata> StorageReference::PutFileLastResult() {
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
 
 Future<ListResult> StorageReference::ListAll() {
-  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
-  ReferenceCountedFutureImpl* ref_future =
-      internal_->future_manager().Alloc<ListResult>(
-          internal::kStorageReferenceFnCount);
   FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
   return internal_->ListAll();
 }

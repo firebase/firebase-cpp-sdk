@@ -27,9 +27,7 @@
 #include "storage/src/ios/metadata_ios.h"
 #include "storage/src/ios/storage_ios.h"
 #include "storage/src/ios/util_ios.h"
-#import "storage/src/ios/list_result_ios.h" // Defines the ios internal::ListResultInternal
-// firebase/storage/storage_reference.h is included via storage_reference_ios.h
-// app/src/future_manager.h is included via storage_reference_ios.h -> reference_counted_future_impl.h
+#import "storage/src/ios/list_result_ios.h"
 
 namespace firebase {
 namespace storage {

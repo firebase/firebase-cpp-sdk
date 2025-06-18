@@ -23,7 +23,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
-#include "storage/src/android/list_result_android.h"  // Defines the android internal::ListResultInternal
+#include "storage/src/android/list_result_android.h"
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage.h"
