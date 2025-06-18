@@ -25,9 +25,12 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
+#define MAX_PENDING_APP_DELEGATE_BLOCKS 8
+
 static IMP g_original_setDelegate_imp = NULL;
 static Class g_app_delegate_class = nil;
-static void (^g_pending_app_delegate_block)(Class) = nil;
+static void (^g_pending_app_delegate_blocks[MAX_PENDING_APP_DELEGATE_BLOCKS])(Class) = {nil};
+static int g_pending_block_count = 0;
 
 // Swizzled implementation of setDelegate:
 static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> delegate) {
@@ -40,17 +43,31 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
     NSLog(@"Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
   }
 
-  if (g_pending_app_delegate_block && g_app_delegate_class) {
-    NSLog(@"Firebase: Firebase_setDelegate executing pending block with delegate class: %s.",
-                       class_getName(g_app_delegate_class));
-    g_pending_app_delegate_block(g_app_delegate_class);
-    g_pending_app_delegate_block = nil; // Clear the block after execution (ARC handles release)
-  } else if (g_pending_app_delegate_block && !g_app_delegate_class) {
-    // This case: setDelegate was called with nil, but a block was pending.
-    // The pending block expects a Class. We don't have one.
-    // So, we should clear the pending block as it can no longer be satisfied.
-    NSLog(@"Firebase: Firebase_setDelegate called with nil delegate, clearing pending block as it cannot be executed.");
-    g_pending_app_delegate_block = nil;
+  // Check and execute/clear g_pending_app_delegate_blocks
+  if (g_app_delegate_class) { // Delegate is valid, execute pending blocks
+    if (g_pending_block_count > 0) {
+      NSLog(@"Firebase: Firebase_setDelegate executing %d pending block(s) with delegate class: %s.",
+            g_pending_block_count, class_getName(g_app_delegate_class));
+      for (int i = 0; i < g_pending_block_count; i++) {
+        if (g_pending_app_delegate_blocks[i]) {
+          g_pending_app_delegate_blocks[i](g_app_delegate_class);
+          g_pending_app_delegate_blocks[i] = nil; // Release the block
+        }
+      }
+      // All pending blocks processed, reset count.
+      g_pending_block_count = 0;
+    }
+  } else { // Delegate is nil, clear any pending blocks
+    if (g_pending_block_count > 0) {
+      NSLog(@"Firebase: Firebase_setDelegate called with nil delegate, clearing %d pending block(s).", g_pending_block_count);
+      for (int i = 0; i < g_pending_block_count; i++) {
+        if (g_pending_app_delegate_blocks[i]) {
+          g_pending_app_delegate_blocks[i] = nil; // Release the block
+        }
+      }
+      // All pending blocks cleared, reset count.
+      g_pending_block_count = 0;
+    }
   }
 
   if (g_original_setDelegate_imp) {
@@ -141,17 +158,21 @@ namespace util {
 void ForEachAppDelegateClass(void (^block)(Class)) {
   if (g_app_delegate_class) {
     NSLog(@"Firebase: ForEachAppDelegateClass executing with stored delegate class: %s.",
-                       class_getName(g_app_delegate_class));
+          class_getName(g_app_delegate_class));
     block(g_app_delegate_class);
-    // Clear any pending block as we've now executed with a known delegate.
-    if (g_pending_app_delegate_block) {
-      g_pending_app_delegate_block = nil; // ARC handles release
-    }
+    // If the delegate is already known and we execute immediately,
+    // any previously pending blocks should have been cleared by Firebase_setDelegate.
+    // No need to touch g_pending_app_delegate_blocks here as they are for pre-setDelegate calls.
   } else {
-    NSLog(@"Firebase: ForEachAppDelegateClass - delegate class not yet known. Saving block for later execution.");
-    // If a block is already pending, the new one replaces it. ARC handles the old one.
-    // Make sure to copy the block to move it to the heap.
-    g_pending_app_delegate_block = [block copy];
+    // Delegate class not yet known, try to queue the block.
+    if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
+      g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
+      g_pending_block_count++;
+      NSLog(@"Firebase: ForEachAppDelegateClass - delegate class not yet known. Saved block for later execution (pending count: %d).", g_pending_block_count);
+    } else {
+      NSLog(@"Firebase Error: ForEachAppDelegateClass - pending block queue is full (max %d). Discarding new block.", MAX_PENDING_APP_DELEGATE_BLOCKS);
+      // Block is discarded.
+    }
   }
 }
 
