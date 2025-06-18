@@ -80,37 +80,63 @@ namespace firebase {
 namespace util {
 
 void ForEachAppDelegateClass(void (^block)(Class)) {
-  unsigned int number_of_classes;
-  Class *classes = objc_copyRealizedClassList(&number_of_classes);
-  for (unsigned int i = 0; i < number_of_classes; i++) {
-    Class clazz = classes[i];
-    if (class_conformsToProtocol(clazz, @protocol(UIApplicationDelegate))) {
-      const char *class_name = class_getName(clazz);
-      bool blacklisted = false;
-      static const char *kClassNameBlacklist[] = {
-          // Declared in Firebase Analytics:
-          // //googlemac/iPhone/Firebase/Analytics/Sources/ApplicationDelegate/
-          // FIRAAppDelegateProxy.m
-          "FIRAAppDelegate",
-          // Declared here.
-          "FIRSAMAppDelegate"};
-      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
-        if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
-          blacklisted = true;
-          break;
-        }
-      }
-      if (!blacklisted) {
-        if (GetLogLevel() <= kLogLevelDebug) {
-          // Call NSLog directly because we may be in a +load method,
-          // and C++ classes may not be constructed yet.
-          NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
-        }
-        block(clazz);
+  static const char *kClassNameBlacklist[] = {
+    // Declared in Firebase Analytics:
+    // //googlemac/iPhone/Firebase/Analytics/Sources/ApplicationDelegate/
+    // FIRAAppDelegateProxy.m
+    "FIRAAppDelegate",
+    // Declared here.
+    "FIRSAMAppDelegate"};
+  if (@available(iOS 16, *)) {
+    // Use objc_enumerateClasses on iOS 16 and later
+    objc_enumerateClasses(/* image = */ NULL,
+			  /* namePrefix = */ NULL,
+			  /* conformingTo = */ @protocol(UIApplicationDelegate),
+			  /* subclassing = */ NULL,
+			  /* block = */  ^(Class clazz, BOOL * /* stop */) {
+			    const char *class_name = class_getName(clazz);
+			    bool blacklisted = false;
+			    for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
+			      if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
+				blacklisted = true;
+				break;
+			      }
+			    }
+			    if (!blacklisted) {
+			      if (GetLogLevel() <= kLogLevelDebug) {
+				// Call NSLog directly because we may be in a +load method,
+				// and C++ classes may not be constructed yet.
+				NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
+			      }
+			      block(clazz);
+			    }
+			  });
+  } else { // iOS 15 or earlier
+    unsigned int number_of_classes;
+    Class *classes = objc_copyClassList(&number_of_classes);
+    for (unsigned int i = 0; i < number_of_classes; i++) {
+      Class clazz = classes[i];
+      if (class_conformsToProtocol(clazz, @protocol(UIApplicationDelegate))) {
+	const char *class_name = class_getName(clazz);
+	bool blacklisted = false;
+	for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
+	  if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
+	    blacklisted = true;
+	    break;
+	  }
+	}
+	if (!blacklisted) {
+	  if (GetLogLevel() <= kLogLevelDebug) {
+	    // Call NSLog directly because we may be in a +load method,
+	    // and C++ classes may not be constructed yet.
+	    NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
+	  }
+	  block(clazz);
+	}
       }
     }
+    free(classes);
   }
-  free(classes);
 }
 
 NSDictionary *StringMapToNSDictionary(const std::map<std::string, std::string> &string_map) {
