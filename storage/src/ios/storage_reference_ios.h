@@ -21,6 +21,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "storage/src/ios/storage_ios.h"
+#include "firebase/storage/list_result.h"
 
 #ifdef __OBJC__
 #import "FirebaseStorage-Swift.h"
@@ -162,6 +163,15 @@ class StorageReferenceInternal {
 
   // StorageInternal instance we are associated with.
   StorageInternal* _Nullable storage_internal() const { return storage_; }
+
+  /// @brief Lists all items and prefixes under this reference (iOS implementation).
+  /// @return A Future that will be resolved with a ListResult.
+  virtual Future<ListResult> ListAll();
+
+  /// @brief Lists items and prefixes under this reference, with pagination (iOS implementation).
+  /// @param[in] page_token Token for the page of results to return.
+  /// @return A Future that will be resolved with a ListResult.
+  virtual Future<ListResult> List(const char* page_token);
 
  private:
 #ifdef __OBJC__
