@@ -17,8 +17,6 @@
 #include "app/src/util_ios.h"
 
 #include "app/src/assert.h"
-#include "app/src/include/firebase/internal/common.h"
-#include "app/src/log.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -29,24 +27,21 @@
 
 static IMP g_original_setDelegate_imp = NULL;
 static Class g_app_delegate_class = nil;
-static void (^g_pending_app_delegate_block)(Class) = nil; // New
-
-#include "app/src/log.h" // For LogDebug
+static void (^g_pending_app_delegate_block)(Class) = nil;
 
 // Swizzled implementation of setDelegate:
 static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> delegate) {
   if (delegate) {
     g_app_delegate_class = [delegate class];
-    firebase::LogDebug("Firebase: UIApplication setDelegate: called with class %s (Swizzled)",
+    NSLog(@"Firebase: UIApplication setDelegate: called with class %s (Swizzled)",
                        class_getName(g_app_delegate_class));
   } else {
     g_app_delegate_class = nil;
-    firebase::LogDebug("Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
+    NSLog(@"Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
   }
 
-  // New part to add:
   if (g_pending_app_delegate_block && g_app_delegate_class) {
-    firebase::LogDebug("Firebase: Firebase_setDelegate executing pending block with delegate class: %s.",
+    NSLog(@"Firebase: Firebase_setDelegate executing pending block with delegate class: %s.",
                        class_getName(g_app_delegate_class));
     g_pending_app_delegate_block(g_app_delegate_class);
     g_pending_app_delegate_block = nil; // Clear the block after execution (ARC handles release)
@@ -54,14 +49,14 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
     // This case: setDelegate was called with nil, but a block was pending.
     // The pending block expects a Class. We don't have one.
     // So, we should clear the pending block as it can no longer be satisfied.
-    firebase::LogDebug("Firebase: Firebase_setDelegate called with nil delegate, clearing pending block as it cannot be executed.");
+    NSLog(@"Firebase: Firebase_setDelegate called with nil delegate, clearing pending block as it cannot be executed.");
     g_pending_app_delegate_block = nil;
   }
 
   if (g_original_setDelegate_imp) {
     ((void (*)(id, SEL, id<UIApplicationDelegate>))g_original_setDelegate_imp)(self, _cmd, delegate);
   } else {
-    firebase::LogError("Firebase: Original setDelegate: IMP not found, cannot call original method.");
+    NSLog(@"Firebase Error: Original setDelegate: IMP not found, cannot call original method.");
   }
 }
 
@@ -75,16 +70,16 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
     Method originalMethod = class_getInstanceMethod(uiApplicationClass, originalSelector);
 
     if (!originalMethod) {
-      firebase::LogError("Firebase: Original [UIApplication setDelegate:] method not found for swizzling.");
+      NSLog(@"Firebase Error: Original [UIApplication setDelegate:] method not found for swizzling.");
       return;
     }
 
     IMP previousImp = method_setImplementation(originalMethod, (IMP)Firebase_setDelegate);
     if (previousImp) {
         g_original_setDelegate_imp = previousImp;
-        firebase::LogDebug("Firebase: Successfully swizzled [UIApplication setDelegate:] and stored original IMP.");
+        NSLog(@"Firebase: Successfully swizzled [UIApplication setDelegate:] and stored original IMP.");
     } else {
-        firebase::LogError("Firebase: Swizzled [UIApplication setDelegate:], but original IMP was NULL (or method_setImplementation failed).");
+        NSLog(@"Firebase Error: Swizzled [UIApplication setDelegate:], but original IMP was NULL (or method_setImplementation failed).");
     }
   });
 }
@@ -145,7 +140,7 @@ namespace util {
 
 void ForEachAppDelegateClass(void (^block)(Class)) {
   if (g_app_delegate_class) {
-    firebase::LogDebug("Firebase: ForEachAppDelegateClass executing with stored delegate class: %s.",
+    NSLog(@"Firebase: ForEachAppDelegateClass executing with stored delegate class: %s.",
                        class_getName(g_app_delegate_class));
     block(g_app_delegate_class);
     // Clear any pending block as we've now executed with a known delegate.
@@ -153,7 +148,7 @@ void ForEachAppDelegateClass(void (^block)(Class)) {
       g_pending_app_delegate_block = nil; // ARC handles release
     }
   } else {
-    firebase::LogDebug("Firebase: ForEachAppDelegateClass - delegate class not yet known. Saving block for later execution.");
+    NSLog(@"Firebase: ForEachAppDelegateClass - delegate class not yet known. Saving block for later execution.");
     // If a block is already pending, the new one replaces it. ARC handles the old one.
     // Make sure to copy the block to move it to the heap.
     g_pending_app_delegate_block = [block copy];
