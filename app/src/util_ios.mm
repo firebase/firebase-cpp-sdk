@@ -80,37 +80,48 @@ namespace firebase {
 namespace util {
 
 void ForEachAppDelegateClass(void (^block)(Class)) {
-  unsigned int number_of_classes;
-  Class *classes = objc_copyClassList(&number_of_classes);
-  for (unsigned int i = 0; i < number_of_classes; i++) {
-    Class clazz = classes[i];
-    if (class_conformsToProtocol(clazz, @protocol(UIApplicationDelegate))) {
-      const char *class_name = class_getName(clazz);
-      bool blacklisted = false;
-      static const char *kClassNameBlacklist[] = {
-          // Declared in Firebase Analytics:
-          // //googlemac/iPhone/Firebase/Analytics/Sources/ApplicationDelegate/
-          // FIRAAppDelegateProxy.m
-          "FIRAAppDelegate",
-          // Declared here.
-          "FIRSAMAppDelegate"};
-      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
-        if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
-          blacklisted = true;
-          break;
-        }
-      }
-      if (!blacklisted) {
-        if (GetLogLevel() <= kLogLevelDebug) {
-          // Call NSLog directly because we may be in a +load method,
-          // and C++ classes may not be constructed yet.
-          NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
-        }
-        block(clazz);
-      }
+  // Get the application delegate class directly.
+  // This assumes that the application has a single app delegate, which is the
+  // standard practice for iOS/tvOS apps.
+  // This needs to be called at or after +load time, when the application delegate is set.
+  Class appDelegateClass = nil;
+  UIApplication *sharedApplication = [UIApplication sharedApplication];
+  if (sharedApplication) {
+    id<UIApplicationDelegate> appDelegate = sharedApplication.delegate;
+    if (appDelegate) {
+      appDelegateClass = [appDelegate class];
     }
   }
-  free(classes);
+
+  if (appDelegateClass && class_conformsToProtocol(appDelegateClass, @protocol(UIApplicationDelegate))) {
+    const char *class_name = class_getName(appDelegateClass);
+    bool blacklisted = false;
+    static const char *kClassNameBlacklist[] = {
+        // Declared in Firebase Analytics:
+        // //googlemac/iPhone/Firebase/Analytics/Sources/ApplicationDelegate/
+        // FIRAAppDelegateProxy.m
+        "FIRAAppDelegate",
+        // Declared here.
+        "FIRSAMAppDelegate"};
+    for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
+      if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
+        blacklisted = true;
+        break;
+      }
+    }
+    if (!blacklisted) {
+      if (GetLogLevel() <= kLogLevelDebug) {
+        // Call NSLog directly because we may be in a +load method,
+        // and C++ classes may not be constructed yet.
+        NSLog(@"Firebase: Using UIApplicationDelegate class %s", class_name);
+      }
+      block(appDelegateClass);
+    }
+  } else {
+    if (GetLogLevel() <= kLogLevelWarning) {
+      NSLog(@"Firebase: Could not find a valid UIApplicationDelegate class.");
+    }
+  }
 }
 
 NSDictionary *StringMapToNSDictionary(const std::map<std::string, std::string> &string_map) {
