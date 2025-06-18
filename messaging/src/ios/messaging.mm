@@ -870,7 +870,7 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
 + (void)load {
   // C++ constructors may not be called yet so call NSLog rather than LogInfo.
   NSLog(@"FCM: Loading UIApplication FIRFCM category");
-  ::firebase::util::RunOnAppDelegate(^(Class clazz) { // Renamed here
+  ::firebase::util::RunOnAppDelegateClasses(^(Class clazz) {
     FirebaseMessagingHookAppDelegate(clazz);
   });
 }

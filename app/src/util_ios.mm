@@ -29,7 +29,6 @@
 #define MAX_SEEN_DELEGATE_CLASSES 32
 
 static IMP g_original_setDelegate_imp = NULL;
-// static Class g_app_delegate_class = nil; // Removed
 static void (^g_pending_app_delegate_blocks[MAX_PENDING_APP_DELEGATE_BLOCKS])(Class) = {nil};
 static int g_pending_block_count = 0;
 
@@ -169,9 +168,9 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
 namespace firebase {
 namespace util {
 
-void RunOnAppDelegate(void (^block)(Class)) {
+void RunOnAppDelegateClasses(void (^block)(Class)) {
   if (g_seen_delegate_classes_count > 0) {
-    NSLog(@"Firebase: RunOnAppDelegate executing block for %d already seen delegate class(es).",
+    NSLog(@"Firebase: RunOnAppDelegateClasses executing block for %d already seen delegate class(es).",
           g_seen_delegate_classes_count);
     for (int i = 0; i < g_seen_delegate_classes_count; i++) {
       // Assuming classes in g_seen_delegate_classes up to count are non-nil
@@ -180,7 +179,7 @@ void RunOnAppDelegate(void (^block)(Class)) {
       }
     }
   } else {
-    NSLog(@"Firebase: RunOnAppDelegate - no delegate classes seen yet. Block will be queued for future delegates.");
+    NSLog(@"Firebase: RunOnAppDelegateClasses - no delegate classes seen yet. Block will be queued for future delegates.");
   }
 
   // Always try to queue the block for any future new delegate classes.
@@ -188,9 +187,9 @@ void RunOnAppDelegate(void (^block)(Class)) {
   if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
     g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
     g_pending_block_count++;
-    NSLog(@"Firebase: RunOnAppDelegate - added block to pending list (total pending: %d). This block will run on future new delegate classes.", g_pending_block_count);
+    NSLog(@"Firebase: RunOnAppDelegateClasses - added block to pending list (total pending: %d). This block will run on future new delegate classes.", g_pending_block_count);
   } else {
-    NSLog(@"Firebase Error: RunOnAppDelegate - pending block queue is full (max %d). Cannot add new block for future execution. Discarding block.", MAX_PENDING_APP_DELEGATE_BLOCKS);
+    NSLog(@"Firebase Error: RunOnAppDelegateClasses - pending block queue is full (max %d). Cannot add new block for future execution. Discarding block.", MAX_PENDING_APP_DELEGATE_BLOCKS);
     // Block is discarded for future execution.
   }
 }

@@ -185,10 +185,12 @@ typedef BOOL (
     id self, SEL selector_value, UIApplication *application,
     NSUserActivity *user_activity, void (^restoration_handler)(NSArray *));
 
-// Call the given block once for every Objective-C class that exists that
-// implements the UIApplicationDelegate protocol (except for those in a
-// blacklist we keep).
-void RunOnAppDelegate(void (^block)(Class));
+// Calls the given block for each unique Objective-C class that has been
+// previously passed to [UIApplication setDelegate:]. The block is executed
+// immediately for all currently known unique delegate classes.
+// Additionally, the block is queued to be executed if any new, unique
+// Objective-C class is passed to [UIApplication setDelegate:] in the future.
+void RunOnAppDelegateClasses(void (^block)(Class));
 
 // Convert a string array into an NSMutableArray.
 NSMutableArray *StringVectorToNSMutableArray(
