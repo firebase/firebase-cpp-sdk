@@ -81,7 +81,7 @@ namespace util {
 
 void ForEachAppDelegateClass(void (^block)(Class)) {
   unsigned int number_of_classes;
-  Class *classes = objc_copyClassList(&number_of_classes);
+  Class *classes = objc_copyRealizedClassList(&number_of_classes);
   for (unsigned int i = 0; i < number_of_classes; i++) {
     Class clazz = classes[i];
     if (class_conformsToProtocol(clazz, @protocol(UIApplicationDelegate))) {
