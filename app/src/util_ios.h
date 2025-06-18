@@ -188,7 +188,7 @@ typedef BOOL (
 // Call the given block once for every Objective-C class that exists that
 // implements the UIApplicationDelegate protocol (except for those in a
 // blacklist we keep).
-void ForEachAppDelegateClass(void (^block)(Class));
+void RunOnAppDelegate(void (^block)(Class));
 
 // Convert a string array into an NSMutableArray.
 NSMutableArray *StringVectorToNSMutableArray(
