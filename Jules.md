@@ -174,14 +174,26 @@ Database).
     *   `firebase::AppOptions` can be used to configure the app with specific
         parameters if not relying on a `google-services.json` or
         `GoogleService-Info.plist` file.
-2.  **Service Instances**: Once `firebase::App` is initialized, you obtain
-    instances of specific Firebase services.
-    *   Examples:
+2.  **Service Instances**: Once `firebase::App` is initialized, you generally
+    obtain instances of specific Firebase services using a static `GetInstance()`
+    method on the service's class, passing the `firebase::App` object.
+    *   Examples for services like Auth, Database, Storage, Firestore:
         *   `firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app, &init_result);`
         *   `firebase::database::Database* database = firebase::database::Database::GetInstance(app, &init_result);`
+        *   `firebase::storage::Storage* storage = firebase::storage::Storage::GetInstance(app, &init_result);`
     *   Always check the `init_result` (an `InitResult` enum, often
-        `firebase::kInitResultSuccess` on success) to ensure the service was
-        initialized successfully.
+        `firebase::kInitResultSuccess` on success) to ensure these services
+        were initialized successfully.
+    *   **Note on Analytics**: Some products, like Firebase Analytics, have a
+        different pattern. Analytics is typically initialized with
+        `firebase::analytics::Initialize(const firebase::App& app)` (often
+        handled automatically for the default `App` instance). After this,
+        Analytics functions (e.g., `firebase::analytics::LogEvent(...)`) are
+        called as global functions within the `firebase::analytics` namespace,
+        rather than on an instance object obtained via `GetInstance()`.
+        Refer to the specific product's header file for its exact
+        initialization mechanism if it deviates from the common `GetInstance(app, ...)`
+        pattern.
 
 ### Asynchronous Operations: `firebase::Future<T>`
 
@@ -337,6 +349,19 @@ API documentation.
 *   **Pointers**: Standard C++ smart pointers (`std::unique_ptr`,
     `std::shared_ptr`) should be used where appropriate for managing
     dynamically allocated memory.
+*   **`Future` Lifecycle**: Ensure `Future` objects returned from API calls are
+    properly managed. While `Future`s handle their own internal memory for the
+    result, the asynchronous operations they represent need to complete to
+    reliably free all associated operational resources or to ensure actions
+    (like writes to a database) are definitely finalized. Abandoning a `Future`
+    (letting it go out of scope without checking its result, attaching an
+    `OnCompletion` callback, or explicitly `Wait()`ing for it) can sometimes
+    lead to operations not completing as expected or resources not being
+    cleaned up promptly by the underlying services, especially if the `Future`
+    is the only handle to that operation. Prefer using `OnCompletion` or
+    otherwise ensuring the `Future` completes its course, particularly for
+    operations with side effects or those that allocate significant backend
+    resources.
 
 ## Immutability
 
