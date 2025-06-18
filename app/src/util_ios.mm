@@ -27,6 +27,70 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
+static IMP g_original_setDelegate_imp = NULL;
+static Class g_app_delegate_class = nil;
+static void (^g_pending_app_delegate_block)(Class) = nil; // New
+
+#include "app/src/log.h" // For LogDebug
+
+// Swizzled implementation of setDelegate:
+static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> delegate) {
+  if (delegate) {
+    g_app_delegate_class = [delegate class];
+    firebase::LogDebug("Firebase: UIApplication setDelegate: called with class %s (Swizzled)",
+                       class_getName(g_app_delegate_class));
+  } else {
+    g_app_delegate_class = nil;
+    firebase::LogDebug("Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
+  }
+
+  // New part to add:
+  if (g_pending_app_delegate_block && g_app_delegate_class) {
+    firebase::LogDebug("Firebase: Firebase_setDelegate executing pending block with delegate class: %s.",
+                       class_getName(g_app_delegate_class));
+    g_pending_app_delegate_block(g_app_delegate_class);
+    g_pending_app_delegate_block = nil; // Clear the block after execution (ARC handles release)
+  } else if (g_pending_app_delegate_block && !g_app_delegate_class) {
+    // This case: setDelegate was called with nil, but a block was pending.
+    // The pending block expects a Class. We don't have one.
+    // So, we should clear the pending block as it can no longer be satisfied.
+    firebase::LogDebug("Firebase: Firebase_setDelegate called with nil delegate, clearing pending block as it cannot be executed.");
+    g_pending_app_delegate_block = nil;
+  }
+
+  if (g_original_setDelegate_imp) {
+    ((void (*)(id, SEL, id<UIApplicationDelegate>))g_original_setDelegate_imp)(self, _cmd, delegate);
+  } else {
+    firebase::LogError("Firebase: Original setDelegate: IMP not found, cannot call original method.");
+  }
+}
+
+@implementation UIApplication (FirebaseAppDelegateSwizzling)
+
++ (void)load {
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    Class uiApplicationClass = [UIApplication class];
+    SEL originalSelector = @selector(setDelegate:);
+    Method originalMethod = class_getInstanceMethod(uiApplicationClass, originalSelector);
+
+    if (!originalMethod) {
+      firebase::LogError("Firebase: Original [UIApplication setDelegate:] method not found for swizzling.");
+      return;
+    }
+
+    IMP previousImp = method_setImplementation(originalMethod, (IMP)Firebase_setDelegate);
+    if (previousImp) {
+        g_original_setDelegate_imp = previousImp;
+        firebase::LogDebug("Firebase: Successfully swizzled [UIApplication setDelegate:] and stored original IMP.");
+    } else {
+        firebase::LogError("Firebase: Swizzled [UIApplication setDelegate:], but original IMP was NULL (or method_setImplementation failed).");
+    }
+  });
+}
+
+@end
+
 @implementation FIRSAMAppDelegate
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
@@ -80,37 +144,20 @@ namespace firebase {
 namespace util {
 
 void ForEachAppDelegateClass(void (^block)(Class)) {
-  unsigned int number_of_classes;
-  Class *classes = objc_copyClassList(&number_of_classes);
-  for (unsigned int i = 0; i < number_of_classes; i++) {
-    Class clazz = classes[i];
-    if (class_conformsToProtocol(clazz, @protocol(UIApplicationDelegate))) {
-      const char *class_name = class_getName(clazz);
-      bool blacklisted = false;
-      static const char *kClassNameBlacklist[] = {
-          // Declared in Firebase Analytics:
-          // //googlemac/iPhone/Firebase/Analytics/Sources/ApplicationDelegate/
-          // FIRAAppDelegateProxy.m
-          "FIRAAppDelegate",
-          // Declared here.
-          "FIRSAMAppDelegate"};
-      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
-        if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
-          blacklisted = true;
-          break;
-        }
-      }
-      if (!blacklisted) {
-        if (GetLogLevel() <= kLogLevelDebug) {
-          // Call NSLog directly because we may be in a +load method,
-          // and C++ classes may not be constructed yet.
-          NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
-        }
-        block(clazz);
-      }
+  if (g_app_delegate_class) {
+    firebase::LogDebug("Firebase: ForEachAppDelegateClass executing with stored delegate class: %s.",
+                       class_getName(g_app_delegate_class));
+    block(g_app_delegate_class);
+    // Clear any pending block as we've now executed with a known delegate.
+    if (g_pending_app_delegate_block) {
+      g_pending_app_delegate_block = nil; // ARC handles release
     }
+  } else {
+    firebase::LogDebug("Firebase: ForEachAppDelegateClass - delegate class not yet known. Saving block for later execution.");
+    // If a block is already pending, the new one replaces it. ARC handles the old one.
+    // Make sure to copy the block to move it to the heap.
+    g_pending_app_delegate_block = [block copy];
   }
-  free(classes);
 }
 
 NSDictionary *StringMapToNSDictionary(const std::map<std::string, std::string> &string_map) {
