@@ -435,8 +435,23 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   const char *class_name = class_getName(clazz);
   Method method = class_getInstanceMethod(clazz, name);
   NSString *selector_name_nsstring = NSStringFromSelector(name);
-  const char *selector_name = selector_name_nsstring.UTF8String;
-  IMP original_method_implementation = method ? method_getImplementation(method) : nil;
+  const char *selector_name = selector_name_nsstring.UTF8String; // Used for logging later
+
+  IMP current_actual_imp = method ? method_getImplementation(method) : nil;
+
+  // === Begin new idempotency check ===
+  if (current_actual_imp == imp) {
+    if (GetLogLevel() <= kLogLevelDebug) { // Assuming GetLogLevel() and kLogLevelDebug are accessible
+      NSLog(@"Firebase Cache: Method %s on class %s is already swizzled with the target IMP. Skipping re-swizzle.",
+            selector_name, class_name);
+    }
+    return; // Already swizzled to the desired implementation
+  }
+  // === End new idempotency check ===
+
+  // If we reach here, current_actual_imp is different from imp, or the method didn't exist.
+  // We now assign original_method_implementation to be current_actual_imp for the rest of the function.
+  IMP original_method_implementation = current_actual_imp;
 
   // Get the type encoding of the selector from a type_encoding_class (which is a class which
   // implements a stub for the method).
@@ -445,8 +460,13 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   assert(type_encoding);
 
   NSString *new_method_name_nsstring = nil;
+  // The GetLogLevel() check here is fine, but the NSLog should use class_name and selector_name
+  // which are already defined.
   if (GetLogLevel() <= kLogLevelDebug) {
-    NSLog(@"Registering method for %s selector %s", class_name, selector_name);
+    // Original: NSLog(@"Registering method for %s selector %s", class_name, selector_name);
+    // This log can be more specific now, e.g., "Attempting to swizzle/add method..."
+    // For now, let's keep it or refine it if needed, but ensure it uses defined vars.
+     NSLog(@"Firebase Cache: Attempting to register method for %s selector %s", class_name, selector_name);
   }
   if (original_method_implementation) {
     // Try adding a method with randomized prefix on the name.
