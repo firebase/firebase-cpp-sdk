@@ -204,7 +204,7 @@ static std::string CalculateFileSha256(HANDLE hFile) {
   }
 
   // Remove the null terminator from the string.
-  hex_hash_string.resize(hex_string_size - 1);
+  hex_hash_string.resize(hex_string_size);
 
   // --- Final Cleanup ---
   CryptDestroyHash(hHash);
@@ -286,6 +286,9 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
       if (calculated_hash == expected_hash) {
         hash_matched = true;
         break;
+      }
+      else {
+	LogDebug(LOG_TAG "Hash mismatch: got %s expected %s", calculated_hash.c_str(), expected_hash.c_str());
       }
     }
 

@@ -63,7 +63,7 @@ void Initialize(const App& app) {
   if (!g_analytics_module) {
     std::vector<std::string> allowed_hashes;
     for (int i=0; i < FirebaseAnalytics_KnownWindowsDllHashCount; i++) {
-      allowed_hashes.push_back(FirebaseAnalytics_KnownWindowsDllHash[i]);
+      allowed_hashes.push_back(std::string(FirebaseAnalytics_KnownWindowsDllHashes[i]));
     }
 
     g_analytics_module =
