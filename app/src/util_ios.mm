@@ -17,6 +17,8 @@
 #include "app/src/util_ios.h"
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/log.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -31,11 +33,9 @@
 static IMP g_original_setDelegate_imp = NULL;
 static void (^g_pending_app_delegate_blocks[MAX_PENDING_APP_DELEGATE_BLOCKS])(Class) = {nil};
 static int g_pending_block_count = 0;
-
 static Class g_seen_delegate_classes[MAX_SEEN_DELEGATE_CLASSES] = {nil};
 static int g_seen_delegate_classes_count = 0;
 
-// Swizzled implementation of setDelegate:
 static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> delegate) {
   Class new_class = nil;
   if (delegate) {
@@ -44,9 +44,6 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
           class_getName(new_class));
   } else {
     NSLog(@"Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
-    // If delegate is nil, new_class remains nil.
-    // The original implementation will be called later.
-    // No class processing or block execution needed.
   }
 
   if (new_class) {
@@ -92,6 +89,7 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
             for (int i = 0; i < g_pending_block_count; i++) {
               if (g_pending_app_delegate_blocks[i]) {
                 g_pending_app_delegate_blocks[i](new_class);
+                // Pending blocks persist to run for future new delegate classes.
               }
             }
           }
@@ -110,32 +108,6 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
     NSLog(@"Firebase Error: Original setDelegate: IMP not found, cannot call original method.");
   }
 }
-
-@implementation UIApplication (FirebaseAppDelegateSwizzling)
-
-+ (void)load {
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    Class uiApplicationClass = [UIApplication class];
-    SEL originalSelector = @selector(setDelegate:);
-    Method originalMethod = class_getInstanceMethod(uiApplicationClass, originalSelector);
-
-    if (!originalMethod) {
-      NSLog(@"Firebase Error: Original [UIApplication setDelegate:] method not found for swizzling.");
-      return;
-    }
-
-    IMP previousImp = method_setImplementation(originalMethod, (IMP)Firebase_setDelegate);
-    if (previousImp) {
-        g_original_setDelegate_imp = previousImp;
-        NSLog(@"Firebase: Successfully swizzled [UIApplication setDelegate:] and stored original IMP.");
-    } else {
-        NSLog(@"Firebase Error: Swizzled [UIApplication setDelegate:], but original IMP was NULL (or method_setImplementation failed).");
-    }
-  });
-}
-
-@end
 
 @implementation FIRSAMAppDelegate
 - (BOOL)application:(UIApplication *)application
@@ -194,8 +166,7 @@ void RunOnAppDelegateClasses(void (^block)(Class)) {
     NSLog(@"Firebase: RunOnAppDelegateClasses executing block for %d already seen delegate class(es).",
           g_seen_delegate_classes_count);
     for (int i = 0; i < g_seen_delegate_classes_count; i++) {
-      // Assuming classes in g_seen_delegate_classes up to count are non-nil
-      if (g_seen_delegate_classes[i]) { // Additional safety check
+      if (g_seen_delegate_classes[i]) { // Safety check
         block(g_seen_delegate_classes[i]);
       }
     }
@@ -204,14 +175,12 @@ void RunOnAppDelegateClasses(void (^block)(Class)) {
   }
 
   // Always try to queue the block for any future new delegate classes.
-  // This block will be executed by Firebase_setDelegate if a new delegate class is set.
   if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
     g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
     g_pending_block_count++;
     NSLog(@"Firebase: RunOnAppDelegateClasses - added block to pending list (total pending: %d). This block will run on future new delegate classes.", g_pending_block_count);
   } else {
     NSLog(@"Firebase Error: RunOnAppDelegateClasses - pending block queue is full (max %d). Cannot add new block for future execution. Discarding block.", MAX_PENDING_APP_DELEGATE_BLOCKS);
-    // Block is discarded for future execution.
   }
 }
 
@@ -457,7 +426,7 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   Method method = class_getInstanceMethod(clazz, name);
   NSString *selector_name_nsstring = NSStringFromSelector(name);
   const char *selector_name = selector_name_nsstring.UTF8String;
-  IMP original_method_implementation = method ? method_getImplementation(method) : nil; // Directly initialized
+  IMP original_method_implementation = method ? method_getImplementation(method) : nil;
 
   // Get the type encoding of the selector from a type_encoding_class (which is a class which
   // implements a stub for the method).
@@ -467,13 +436,7 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
 
   NSString *new_method_name_nsstring = nil;
   if (GetLogLevel() <= kLogLevelDebug) {
-    // This log might have been just "Registering method..." or similar.
-    // Let's revert to a more basic version if it was changed, or ensure it's reasonable.
-    // For the purpose of this revert, keeping the "Firebase Cache: Attempting to register..."
-    // or reverting to a simpler "Registering method..." is acceptable if the exact prior state
-    // of this specific log line is not critical, the main point is the logic revert.
-    // Let's assume it was:
-    NSLog(@"Firebase Cache: Registering method for %s selector %s", class_name, selector_name);
+    NSLog(@"Registering method for %s selector %s", class_name, selector_name);
   }
   if (original_method_implementation) {
     // Try adding a method with randomized prefix on the name.

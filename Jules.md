@@ -305,6 +305,7 @@ API documentation.
     as mentioned in `CONTRIBUTING.md`.
 *   **Formatting**: Use `python3 scripts/format_code.py -git_diff -verbose` to
     format your code before committing.
+*   **Naming Precision for Dynamic Systems**: Function names should precisely reflect their behavior, especially in systems with dynamic or asynchronous interactions. For example, a function that processes a list of items should be named differently from one that operates on a single, specific item captured asynchronously. Regularly re-evaluate function names as requirements evolve to maintain clarity.
 
 ## Comments
 
@@ -362,6 +363,7 @@ API documentation.
     otherwise ensuring the `Future` completes its course, particularly for
     operations with side effects or those that allocate significant backend
     resources.
+*   **Lifecycle of Queued Callbacks/Blocks**: If blocks or callbacks are queued to be run upon an asynchronous event (e.g., an App Delegate class being set or a Future completing), clearly define and document their lifecycle. Determine if they are one-shot (cleared after first execution) or persistent (intended to run for multiple or future events). This impacts how associated data and the blocks themselves are stored and cleared, preventing memory leaks or unexpected multiple executions.
 
 ## Immutability
 
@@ -397,6 +399,10 @@ API documentation.
     integration, it can occasionally be a factor to consider when debugging app
     delegate behavior or integrating with other libraries that also perform
     swizzling.
+    When implementing or interacting with swizzling, especially for App Delegate methods like `[UIApplication setDelegate:]`:
+        *   Be highly aware that `setDelegate:` can be called multiple times with different delegate class instances, including proxy classes from other libraries (e.g., GUL - Google Utilities). Swizzling logic must be robust against being invoked multiple times for the same effective method on the same class or on classes in a hierarchy. An idempotency check (i.e., if the method's current IMP is already the target swizzled IMP, do nothing more for that specific swizzle attempt) in any swizzling utility can prevent issues like recursion.
+        *   When tracking unique App Delegate classes (e.g., for applying hooks or callbacks via swizzling), consider the class hierarchy. If a superclass has already been processed, processing a subclass for the same inherited methods might be redundant or problematic. A strategy to check if a newly set delegate is a subclass of an already processed delegate can prevent such issues.
+        *   For code that runs very early in the application lifecycle on iOS/macOS (e.g., `+load` methods, static initializers involved in swizzling), prefer using `NSLog` directly over custom logging frameworks if there's any uncertainty about whether the custom framework is fully initialized, to avoid crashes during logging itself.
 
 ## Class and File Structure
 
@@ -576,3 +582,4 @@ practices detailed in `Jules.md`.
     tests as described in the 'Testing' section of `Jules.md`.
 *   **Commit Messages**: Follow standard commit message guidelines. A brief
     summary line, followed by a more detailed explanation if necessary.
+*   **Tool Limitations & Path Specificity**: If codebase search tools (like `grep` or recursive `ls`) are limited or unavailable, and initial attempts to locate files/modules based on common directory structures are unsuccessful, explicitly ask for more specific paths rather than assuming a module doesn't exist or contains no relevant code.
