@@ -120,8 +120,10 @@ extern const int FirebaseAnalytics_DynamicFunctionCount;
 
 #include <windows.h>
 
-// Google Analytics Windows DLL SHA256 hash, to be verified before loading.
-extern const unsigned char FirebaseAnalytics_WindowsDllHash[32];
+// Array of known Google Analytics Windows DLL SHA256 hashes (hex strings).
+extern const char* FirebaseAnalytics_KnownWindowsDllHashes[];
+// Count of known Google Analytics Windows DLL SHA256 hashes.
+extern const int FirebaseAnalytics_KnownWindowsDllHashCount;
 
 // Load Analytics functions from the given DLL handle into function pointers.
 // Returns the number of functions successfully loaded.
