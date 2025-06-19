@@ -44,6 +44,7 @@ enum StorageReferenceFn {
   kStorageReferenceFnPutBytesInternal,
   kStorageReferenceFnPutFile,
   kStorageReferenceFnPutFileInternal,
+  kStorageReferenceFnList,  // Added for List operations
   kStorageReferenceFnCount,
 };
 
@@ -144,6 +145,18 @@ class StorageReferenceInternal {
 
   // Returns the result of the most recent call to Write();
   Future<Metadata> PutFileLastResult();
+
+  // Asynchronously lists objects and common prefixes under this reference
+  // (stub).
+  Future<ListResult> List(int32_t max_results);
+  Future<ListResult> List(int32_t max_results, const char* page_token);
+
+  // Asynchronously lists all objects and common prefixes under this reference
+  // (stub).
+  Future<ListResult> ListAll();
+
+  // Returns the result of the most recent List operation (stub).
+  Future<ListResult> ListLastResult();
 
   // Pointer to the StorageInternal instance we are a part of.
   StorageInternal* storage_internal() const { return storage_; }
