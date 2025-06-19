@@ -27,6 +27,88 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
+#define MAX_PENDING_APP_DELEGATE_BLOCKS 8
+#define MAX_SEEN_DELEGATE_CLASSES 32
+
+static IMP g_original_setDelegate_imp = NULL;
+static void (^g_pending_app_delegate_blocks[MAX_PENDING_APP_DELEGATE_BLOCKS])(Class) = {nil};
+static int g_pending_block_count = 0;
+static Class g_seen_delegate_classes[MAX_SEEN_DELEGATE_CLASSES] = {nil};
+static int g_seen_delegate_classes_count = 0;
+
+static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> delegate) {
+  Class new_class = nil;
+  if (delegate) {
+    new_class = [delegate class];
+    NSLog(@"Firebase: UIApplication setDelegate: called with class %s (Swizzled)",
+          class_getName(new_class));
+  } else {
+    NSLog(@"Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
+  }
+
+  if (new_class) {
+    // 1. Superclass Check
+    bool superclass_already_seen = false;
+    Class current_super = class_getSuperclass(new_class);
+    while (current_super) {
+      for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+        if (g_seen_delegate_classes[i] == current_super) {
+          superclass_already_seen = true;
+          NSLog(@"Firebase: Delegate class %s has superclass %s which was already seen. Skipping processing for %s.",
+                class_getName(new_class), class_getName(current_super), class_getName(new_class));
+          break;
+        }
+      }
+      if (superclass_already_seen) break;
+      current_super = class_getSuperclass(current_super);
+    }
+
+    if (!superclass_already_seen) {
+      // 2. Direct Class Check (if no superclass was seen)
+      bool direct_class_already_seen = false;
+      for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+        if (g_seen_delegate_classes[i] == new_class) {
+          direct_class_already_seen = true;
+          NSLog(@"Firebase: Delegate class %s already seen directly. Skipping processing.",
+                class_getName(new_class));
+          break;
+        }
+      }
+
+      if (!direct_class_already_seen) {
+        // 3. Process as New Class
+        if (g_seen_delegate_classes_count < MAX_SEEN_DELEGATE_CLASSES) {
+          g_seen_delegate_classes[g_seen_delegate_classes_count] = new_class;
+          g_seen_delegate_classes_count++;
+          NSLog(@"Firebase: Added new delegate class %s to seen list (total seen: %d).",
+                class_getName(new_class), g_seen_delegate_classes_count);
+
+          if (g_pending_block_count > 0) {
+            NSLog(@"Firebase: Executing %d pending block(s) for new delegate class: %s.",
+                  g_pending_block_count, class_getName(new_class));
+            for (int i = 0; i < g_pending_block_count; i++) {
+              if (g_pending_app_delegate_blocks[i]) {
+                g_pending_app_delegate_blocks[i](new_class);
+                // Pending blocks persist to run for future new delegate classes.
+              }
+            }
+          }
+        } else {
+          NSLog(@"Firebase Error: Exceeded MAX_SEEN_DELEGATE_CLASSES (%d). Cannot add new delegate class %s or run pending blocks for it.",
+                MAX_SEEN_DELEGATE_CLASSES, class_getName(new_class));
+        }
+      }
+    }
+  }
+
+  // Call the original setDelegate: implementation
+  if (g_original_setDelegate_imp) {
+    ((void (*)(id, SEL, id<UIApplicationDelegate>))g_original_setDelegate_imp)(self, _cmd, delegate);
+  } else {
+    NSLog(@"Firebase Error: Original setDelegate: IMP not found, cannot call original method.");
+  }
+}
+
 @implementation FIRSAMAppDelegate
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
@@ -79,38 +161,27 @@
 namespace firebase {
 namespace util {
 
-void ForEachAppDelegateClass(void (^block)(Class)) {
-  unsigned int number_of_classes;
-  Class *classes = objc_copyClassList(&number_of_classes);
-  for (unsigned int i = 0; i < number_of_classes; i++) {
-    Class clazz = classes[i];
-    if (class_conformsToProtocol(clazz, @protocol(UIApplicationDelegate))) {
-      const char *class_name = class_getName(clazz);
-      bool blacklisted = false;
-      static const char *kClassNameBlacklist[] = {
-          // Declared in Firebase Analytics:
-          // //googlemac/iPhone/Firebase/Analytics/Sources/ApplicationDelegate/
-          // FIRAAppDelegateProxy.m
-          "FIRAAppDelegate",
-          // Declared here.
-          "FIRSAMAppDelegate"};
-      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
-        if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
-          blacklisted = true;
-          break;
-        }
-      }
-      if (!blacklisted) {
-        if (GetLogLevel() <= kLogLevelDebug) {
-          // Call NSLog directly because we may be in a +load method,
-          // and C++ classes may not be constructed yet.
-          NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
-        }
-        block(clazz);
+void RunOnAppDelegateClasses(void (^block)(Class)) {
+  if (g_seen_delegate_classes_count > 0) {
+    NSLog(@"Firebase: RunOnAppDelegateClasses executing block for %d already seen delegate class(es).",
+          g_seen_delegate_classes_count);
+    for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+      if (g_seen_delegate_classes[i]) { // Safety check
+        block(g_seen_delegate_classes[i]);
       }
     }
+  } else {
+    NSLog(@"Firebase: RunOnAppDelegateClasses - no delegate classes seen yet. Block will be queued for future delegates.");
   }
-  free(classes);
+
+  // Always try to queue the block for any future new delegate classes.
+  if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
+    g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
+    g_pending_block_count++;
+    NSLog(@"Firebase: RunOnAppDelegateClasses - added block to pending list (total pending: %d). This block will run on future new delegate classes.", g_pending_block_count);
+  } else {
+    NSLog(@"Firebase Error: RunOnAppDelegateClasses - pending block queue is full (max %d). Cannot add new block for future execution. Discarding block.", MAX_PENDING_APP_DELEGATE_BLOCKS);
+  }
 }
 
 NSDictionary *StringMapToNSDictionary(const std::map<std::string, std::string> &string_map) {
