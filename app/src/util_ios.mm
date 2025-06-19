@@ -44,41 +44,62 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
           class_getName(new_class));
   } else {
     NSLog(@"Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
+    // If delegate is nil, new_class remains nil.
+    // The original implementation will be called later.
+    // No class processing or block execution needed.
   }
 
   if (new_class) {
-    bool already_seen = false;
-    for (int i = 0; i < g_seen_delegate_classes_count; i++) {
-      if (g_seen_delegate_classes[i] == new_class) {
-        already_seen = true;
-        break;
+    // 1. Superclass Check
+    bool superclass_already_seen = false;
+    Class current_super = class_getSuperclass(new_class);
+    while (current_super) {
+      for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+        if (g_seen_delegate_classes[i] == current_super) {
+          superclass_already_seen = true;
+          NSLog(@"Firebase: Delegate class %s has superclass %s which was already seen. Skipping processing for %s.",
+                class_getName(new_class), class_getName(current_super), class_getName(new_class));
+          break;
+        }
       }
+      if (superclass_already_seen) break;
+      current_super = class_getSuperclass(current_super);
     }
 
-    if (!already_seen) {
-      if (g_seen_delegate_classes_count < MAX_SEEN_DELEGATE_CLASSES) {
-        g_seen_delegate_classes[g_seen_delegate_classes_count] = new_class;
-        g_seen_delegate_classes_count++;
-        NSLog(@"Firebase: Added new delegate class %s to seen list (total seen: %d).",
-              class_getName(new_class), g_seen_delegate_classes_count);
+    if (!superclass_already_seen) {
+      // 2. Direct Class Check (if no superclass was seen)
+      bool direct_class_already_seen = false;
+      for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+        if (g_seen_delegate_classes[i] == new_class) {
+          direct_class_already_seen = true;
+          NSLog(@"Firebase: Delegate class %s already seen directly. Skipping processing.",
+                class_getName(new_class));
+          break;
+        }
+      }
 
-        if (g_pending_block_count > 0) {
-          NSLog(@"Firebase: Executing %d pending block(s) for new delegate class: %s.",
-                g_pending_block_count, class_getName(new_class));
-          for (int i = 0; i < g_pending_block_count; i++) {
-            if (g_pending_app_delegate_blocks[i]) {
-              g_pending_app_delegate_blocks[i](new_class);
-              // Pending blocks are not cleared here; they persist to be run by RunOnAppDelegate
-              // for all seen delegate classes, and for any future new delegate classes.
+      if (!direct_class_already_seen) {
+        // 3. Process as New Class
+        if (g_seen_delegate_classes_count < MAX_SEEN_DELEGATE_CLASSES) {
+          g_seen_delegate_classes[g_seen_delegate_classes_count] = new_class;
+          g_seen_delegate_classes_count++;
+          NSLog(@"Firebase: Added new delegate class %s to seen list (total seen: %d).",
+                class_getName(new_class), g_seen_delegate_classes_count);
+
+          if (g_pending_block_count > 0) {
+            NSLog(@"Firebase: Executing %d pending block(s) for new delegate class: %s.",
+                  g_pending_block_count, class_getName(new_class));
+            for (int i = 0; i < g_pending_block_count; i++) {
+              if (g_pending_app_delegate_blocks[i]) {
+                g_pending_app_delegate_blocks[i](new_class);
+              }
             }
           }
+        } else {
+          NSLog(@"Firebase Error: Exceeded MAX_SEEN_DELEGATE_CLASSES (%d). Cannot add new delegate class %s or run pending blocks for it.",
+                MAX_SEEN_DELEGATE_CLASSES, class_getName(new_class));
         }
-      } else {
-        NSLog(@"Firebase Error: Exceeded MAX_SEEN_DELEGATE_CLASSES (%d). Cannot add new delegate class %s or run pending blocks for it.",
-              MAX_SEEN_DELEGATE_CLASSES, class_getName(new_class));
       }
-    } else {
-      NSLog(@"Firebase: Delegate class %s already seen. Not re-processing pending blocks for it here.", class_getName(new_class));
     }
   }
 
@@ -435,23 +456,8 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   const char *class_name = class_getName(clazz);
   Method method = class_getInstanceMethod(clazz, name);
   NSString *selector_name_nsstring = NSStringFromSelector(name);
-  const char *selector_name = selector_name_nsstring.UTF8String; // Used for logging later
-
-  IMP current_actual_imp = method ? method_getImplementation(method) : nil;
-
-  // === Begin new idempotency check ===
-  if (current_actual_imp == imp) {
-    if (GetLogLevel() <= kLogLevelDebug) { // Assuming GetLogLevel() and kLogLevelDebug are accessible
-      NSLog(@"Firebase Cache: Method %s on class %s is already swizzled with the target IMP. Skipping re-swizzle.",
-            selector_name, class_name);
-    }
-    return; // Already swizzled to the desired implementation
-  }
-  // === End new idempotency check ===
-
-  // If we reach here, current_actual_imp is different from imp, or the method didn't exist.
-  // We now assign original_method_implementation to be current_actual_imp for the rest of the function.
-  IMP original_method_implementation = current_actual_imp;
+  const char *selector_name = selector_name_nsstring.UTF8String;
+  IMP original_method_implementation = method ? method_getImplementation(method) : nil; // Directly initialized
 
   // Get the type encoding of the selector from a type_encoding_class (which is a class which
   // implements a stub for the method).
@@ -460,13 +466,14 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   assert(type_encoding);
 
   NSString *new_method_name_nsstring = nil;
-  // The GetLogLevel() check here is fine, but the NSLog should use class_name and selector_name
-  // which are already defined.
   if (GetLogLevel() <= kLogLevelDebug) {
-    // Original: NSLog(@"Registering method for %s selector %s", class_name, selector_name);
-    // This log can be more specific now, e.g., "Attempting to swizzle/add method..."
-    // For now, let's keep it or refine it if needed, but ensure it uses defined vars.
-     NSLog(@"Firebase Cache: Attempting to register method for %s selector %s", class_name, selector_name);
+    // This log might have been just "Registering method..." or similar.
+    // Let's revert to a more basic version if it was changed, or ensure it's reasonable.
+    // For the purpose of this revert, keeping the "Firebase Cache: Attempting to register..."
+    // or reverting to a simpler "Registering method..." is acceptable if the exact prior state
+    // of this specific log line is not critical, the main point is the logic revert.
+    // Let's assume it was:
+    NSLog(@"Firebase Cache: Registering method for %s selector %s", class_name, selector_name);
   }
   if (original_method_implementation) {
     // Try adding a method with randomized prefix on the name.
