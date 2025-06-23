@@ -27,14 +27,8 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
-// Key for Info.plist to specify the AppDelegate class name.
+// Key used in Info.plist to specify a custom AppDelegate class name.
 static NSString *const kFirebaseAppDelegateClassNameKey = @"FirebaseAppDelegateClassName";
-
-// Flag to indicate if Firebase should only run on a specific AppDelegate class
-// specified via Info.plist, bypassing setDelegate: swizzling.
-static bool g_firebase_specific_delegate_mode = false;
-// Stores the specific AppDelegate class if specified via Info.plist.
-static Class _Nullable g_firebase_target_app_delegate_class = nil;
 
 #define MAX_PENDING_APP_DELEGATE_BLOCKS 8
 #define MAX_SEEN_DELEGATE_CLASSES 32
@@ -172,38 +166,55 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
 + (void)load {
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
-    // Check Info.plist for the specific AppDelegate class name
     NSString *appDelegateClassName = [[NSBundle mainBundle] objectForInfoDictionaryKey:kFirebaseAppDelegateClassNameKey];
 
     if (appDelegateClassName && [appDelegateClassName isKindOfClass:[NSString class]] && appDelegateClassName.length > 0) {
-      Class specificAppDelegateClass = NSClassFromString(appDelegateClassName);
-      if (specificAppDelegateClass) {
-        NSLog(@"Firebase: Info.plist key '%@' found. Targeting AppDelegate class: %@. Swizzling of setDelegate: will be skipped.", kFirebaseAppDelegateClassNameKey, appDelegateClassName);
-        g_firebase_specific_delegate_mode = true;
-        g_firebase_target_app_delegate_class = specificAppDelegateClass;
+      Class specificClass = NSClassFromString(appDelegateClassName);
+      if (specificClass) {
+        NSLog(@"Firebase: Info.plist key '%@' found. Targeting AppDelegate class: %@. Swizzling of [UIApplication setDelegate:] will be skipped.",
+              kFirebaseAppDelegateClassNameKey, appDelegateClassName);
 
-        // Clear any previously seen classes and set only the target one.
-        // This makes g_seen_delegate_classes consistent for RunOnAppDelegateClasses.
+        // Set this class as the sole "seen" delegate for Firebase processing.
+        // g_seen_delegate_classes_count should be 0 here in +load, but clear just in case.
         for (int i = 0; i < g_seen_delegate_classes_count; i++) {
             g_seen_delegate_classes[i] = nil;
         }
-        g_seen_delegate_classes[0] = specificAppDelegateClass;
+        g_seen_delegate_classes[0] = specificClass;
         g_seen_delegate_classes_count = 1;
+        NSLog(@"Firebase: %@ is now the only delegate class Firebase will initially process.", appDelegateClassName);
 
-        NSLog(@"Firebase: %@ is now the only 'seen' delegate class.", appDelegateClassName);
-        return; // IMPORTANT: Do not proceed to swizzle setDelegate:
+        // If there are already blocks pending (e.g., from other Firebase components' +load methods),
+        // execute them now for the specified delegate. These blocks will remain in the pending
+        // queue, mirroring the behavior of the original swizzled setDelegate: method which also
+        // does not clear pending blocks after execution (as they might apply to future delegates).
+        // In this Info.plist mode, however, Firebase won't process further setDelegate: calls.
+        if (g_pending_block_count > 0) {
+          NSLog(@"Firebase: +load (Info.plist Mode) - Executing %d PENDING block(s) for specified delegate: %@. (Blocks are not removed from queue).",
+                g_pending_block_count, NSStringFromClass(specificClass));
+          for (int i = 0; i < g_pending_block_count; i++) {
+            if (g_pending_app_delegate_blocks[i]) {
+              g_pending_app_delegate_blocks[i](specificClass);
+            }
+          }
+          NSLog(@"Firebase: +load (Info.plist Mode) - Pending blocks executed for specific delegate.");
+        }
+        // Skip swizzling. g_original_setDelegate_imp remains NULL.
+        return;
       } else {
-        NSLog(@"Firebase Error: Info.plist key '%@' provided class name '%@', but this class was not found. Proceeding with default setDelegate: swizzling.", kFirebaseAppDelegateClassNameKey, appDelegateClassName);
+        NSLog(@"Firebase Error: Info.plist key '%@' specifies class '%@', which was not found. Proceeding with default [UIApplication setDelegate:] swizzling.",
+              kFirebaseAppDelegateClassNameKey, appDelegateClassName);
       }
     } else {
-        if (appDelegateClassName) { // Key exists but is empty or not a string
-            NSLog(@"Firebase Warning: Info.plist key '%@' is present but invalid (empty or not a string: %@). Proceeding with default setDelegate: swizzling.", kFirebaseAppDelegateClassNameKey, appDelegateClassName);
-        } else { // Key does not exist
-             NSLog(@"Firebase: Info.plist key '%@' not found. Proceeding with default setDelegate: swizzling.", kFirebaseAppDelegateClassNameKey);
-        }
+      if (appDelegateClassName) { // Key is present but value is invalid (e.g., empty string or wrong type).
+        NSLog(@"Firebase Warning: Info.plist key '%@' has an invalid value ('%@'). Proceeding with default [UIApplication setDelegate:] swizzling.",
+              kFirebaseAppDelegateClassNameKey, appDelegateClassName);
+      } else { // Key is not present.
+        // This is the default case, no special logging needed here beyond the swizzling log itself.
+      }
     }
 
-    // Original swizzling logic if the Info.plist key is not used or class not found
+    // Standard behavior: Swizzle [UIApplication setDelegate:]
+    NSLog(@"Firebase: Proceeding with swizzling of [UIApplication setDelegate:].");
     Class uiApplicationClass = [UIApplication class];
     SEL originalSelector = @selector(setDelegate:);
     Method originalMethod = class_getInstanceMethod(uiApplicationClass, originalSelector);
@@ -228,72 +239,27 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
 namespace firebase {
 namespace util {
 
+// This is the ORIGINAL implementation of RunOnAppDelegateClasses
 void RunOnAppDelegateClasses(void (^block)(Class)) {
-  // Execute the block for any already seen/specified delegate(s).
-  // In specific mode, g_seen_delegate_classes_count is 1, and g_seen_delegate_classes[0] is the target.
-  // In swizzle mode, this iterates through all delegates captured by the swizzled setDelegate:.
   if (g_seen_delegate_classes_count > 0) {
-    NSLog(@"Firebase: RunOnAppDelegateClasses - Executing block for %d seen/specified delegate(s). Mode: %@",
-          g_seen_delegate_classes_count, g_firebase_specific_delegate_mode ? @"Specific" : @"Swizzle");
+    NSLog(@"Firebase: RunOnAppDelegateClasses executing block for %d already seen delegate class(es).",
+          g_seen_delegate_classes_count);
     for (int i = 0; i < g_seen_delegate_classes_count; i++) {
       if (g_seen_delegate_classes[i]) { // Safety check
         block(g_seen_delegate_classes[i]);
       }
     }
   } else {
-    // This case should primarily occur in swizzle mode if no delegate has been set yet.
-    // In specific mode, +load should have set g_seen_delegate_classes_count to 1.
-    // If it's 0 in specific mode, it implies an issue or very early call, so queuing is reasonable.
-    NSLog(@"Firebase: RunOnAppDelegateClasses - No delegate classes seen yet. Mode: %@. Block will be queued.",
-          g_firebase_specific_delegate_mode ? @"Specific" : @"Swizzle");
+    NSLog(@"Firebase: RunOnAppDelegateClasses - no delegate classes seen yet. Block will be queued for future delegates.");
   }
 
-  // Handle pending blocks and queuing of the current block based on mode.
-  if (g_firebase_specific_delegate_mode) {
-    // Specific Delegate Mode:
-    // Process any previously pending blocks for the target delegate (once).
-    if (g_firebase_target_app_delegate_class) { // Ensure target is known
-      static dispatch_once_t once_token_specific_delegate_pending_blocks;
-      dispatch_once(&once_token_specific_delegate_pending_blocks, ^{
-        if (g_pending_block_count > 0) {
-          NSLog(@"Firebase: RunOnAppDelegateClasses (Specific Mode) - Executing %d PENDING block(s) for target delegate: %@",
-                g_pending_block_count, NSStringFromClass(g_firebase_target_app_delegate_class));
-          for (int i = 0; i < g_pending_block_count; i++) {
-            if (g_pending_app_delegate_blocks[i]) {
-              g_pending_app_delegate_blocks[i](g_firebase_target_app_delegate_class);
-              g_pending_app_delegate_blocks[i] = nil; // Clear after execution
-            }
-          }
-          g_pending_block_count = 0; // All pending blocks consumed for the specific target
-        }
-      });
-    }
-    // Do NOT queue the current 'block' for "future delegates" in specific mode.
-    // If g_seen_delegate_classes_count was 0 above (e.g. called before +load fully set up specific mode),
-    // the block needs to be queued to run on the specific delegate once it's identified.
-    if (g_seen_delegate_classes_count == 0 && g_firebase_target_app_delegate_class) { // Target known but not yet in g_seen_delegate_classes
-        if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
-            g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
-            g_pending_block_count++;
-            NSLog(@"Firebase: RunOnAppDelegateClasses (Specific Mode) - Target delegate %@ not in seen list yet. Current block queued (total pending: %d).",
-                  NSStringFromClass(g_firebase_target_app_delegate_class), g_pending_block_count);
-        } else {
-            NSLog(@"Firebase Error: RunOnAppDelegateClasses (Specific Mode) - Pending block queue full. Cannot queue current block for target %@.",
-                  NSStringFromClass(g_firebase_target_app_delegate_class));
-        }
-    } else {
-        NSLog(@"Firebase: RunOnAppDelegateClasses (Specific Mode) - Block already executed for target or no target. Not adding to pending queue.");
-    }
+  // Always try to queue the block for any future new delegate classes.
+  if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
+    g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
+    g_pending_block_count++;
+    NSLog(@"Firebase: RunOnAppDelegateClasses - added block to pending list (total pending: %d). This block will run on future new delegate classes.", g_pending_block_count);
   } else {
-    // Original Swizzling Mode:
-    // Queue the current block if no delegates seen yet, or always for future new delegates.
-    if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
-      g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
-      g_pending_block_count++;
-      NSLog(@"Firebase: RunOnAppDelegateClasses (Swizzle Mode) - Added block to pending list (total pending: %d). This block will run on future new delegate classes.", g_pending_block_count);
-    } else {
-      NSLog(@"Firebase Error: RunOnAppDelegateClasses (Swizzle Mode) - Pending block queue is full (max %d). Cannot add new block for future execution. Discarding block.", MAX_PENDING_APP_DELEGATE_BLOCKS);
-    }
+    NSLog(@"Firebase Error: RunOnAppDelegateClasses - pending block queue is full (max %d). Cannot add new block for future execution. Discarding block.", MAX_PENDING_APP_DELEGATE_BLOCKS);
   }
 }
 
