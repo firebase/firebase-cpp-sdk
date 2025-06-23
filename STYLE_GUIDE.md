@@ -279,7 +279,7 @@ complexity, especially when part of it is reflected in external code:
 ### Application Initiated Async Operations
 
 * Use the Future / State Pattern.
-* Add a `*Result()` method for each async operation method to allow the caller
+* Add a `*LastResult()` method for each async operation method to allow the caller
   to poll and not save state.
 
 e.g.
@@ -288,7 +288,7 @@ e.g.
     // Start async operation.
     Future<SignInWithCrendentialResult> SignInWithCredential(...);
     // Get the result of the pending / last async operation for the method.
-    Future<SignInWithCrendentialResult> GetSignInWithCredentialResult();
+    Future<SignInWithCrendentialResult> SignInWithCredentialLastResult();
 
     Usage examples:
     // call and register callback
@@ -304,7 +304,7 @@ e.g.
 
     // call and poll #2 (result stored in API)
     SignInWithCredential();
-    while (GetSignInWithCredentialResult().value() != kComplete) {
+    while (SignInWithCredentialLastResult().value() != kComplete) {
     }
 ```
 
