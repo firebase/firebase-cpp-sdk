@@ -239,7 +239,6 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
 namespace firebase {
 namespace util {
 
-// This is the ORIGINAL implementation of RunOnAppDelegateClasses
 void RunOnAppDelegateClasses(void (^block)(Class)) {
   if (g_seen_delegate_classes_count > 0) {
     NSLog(@"Firebase: RunOnAppDelegateClasses executing block for %d already seen delegate class(es).",
