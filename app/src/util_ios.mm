@@ -158,6 +158,39 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
 #endif  // defined(__IPHONE_12_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
 @end
 
+@implementation UIApplication (FirebaseAppDelegateSwizzling)
+
++ (void)load {
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    Class uiApplicationClass = [UIApplication class];
+    SEL originalSelector = @selector(setDelegate:);
+    Method originalMethod = class_getInstanceMethod(uiApplicationClass, originalSelector);
+
+    if (!originalMethod) {
+      NSLog(@"Firebase Error: Original [UIApplication setDelegate:] method not found for swizzling.");
+      return;
+    }
+
+    // Replace the original method's implementation with Firebase_setDelegate
+    // and store the original IMP.
+    IMP previousImp = method_setImplementation(originalMethod, (IMP)Firebase_setDelegate);
+    if (previousImp) {
+        g_original_setDelegate_imp = previousImp;
+        NSLog(@"Firebase: Successfully swizzled [UIApplication setDelegate:] and stored original IMP.");
+    } else {
+        // This would be unusual - method_setImplementation replacing a NULL IMP,
+        // or method_setImplementation itself failed (though it doesn't typically return NULL on failure,
+        // it might return the new IMP or the old one depending on versions/runtime).
+        // More robustly, g_original_setDelegate_imp should be checked before use.
+        // For now, this logging indicates if previousImp was unexpectedly nil.
+        NSLog(@"Firebase Error: Swizzled [UIApplication setDelegate:], but original IMP was NULL (or method_setImplementation failed to return the previous IMP).");
+    }
+  });
+}
+
+@end
+
 namespace firebase {
 namespace util {
 
