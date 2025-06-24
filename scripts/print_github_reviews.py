@@ -485,9 +485,10 @@ def main():
     # Handling for empty line comments will be just before their processing loop.
     # if not comments: (handled later)
 
+    # Initialize timestamps for 'next command' suggestion
     latest_overall_review_activity_dt = None
-    latest_line_comment_activity_dt = None # Renamed from latest_activity_timestamp_obj
-    processed_comments_count = 0 # This tracks line comments
+    latest_line_comment_activity_dt = None
+    processed_comments_count = 0
 
     # Only print line comments header if there are comments to process
     # The 'comments' list here has already been checked for None (API error)
