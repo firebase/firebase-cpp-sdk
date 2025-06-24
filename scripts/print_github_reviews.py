@@ -284,6 +284,11 @@ def main():
     args = parser.parse_args()
     error_suffix = " (use --help for more details)"
 
+    # Initialize tracking variables early, including processed_comments_count
+    latest_overall_review_activity_dt = None
+    latest_line_comment_activity_dt = None
+    processed_comments_count = 0
+
     if not args.token:
         sys.stderr.write(f"Error: GitHub token not provided. Set GITHUB_TOKEN or use --token.{error_suffix}\n")
         sys.exit(1)
@@ -474,10 +479,8 @@ def main():
     # Note: The decision to exit if only line comments fail vs. if only overall reviews fail could be nuanced.
     # For now, failure to fetch either is treated as a critical error for the script's purpose.
 
-    # Initialize tracking variables early - MOVED TO TOP OF MAIN
-    # latest_overall_review_activity_dt = None
-    # latest_line_comment_activity_dt = None
-    # processed_comments_count = 0 # This is specifically for line comments
+    # Initializations for latest_overall_review_activity_dt, latest_line_comment_activity_dt,
+    # and processed_comments_count have been moved to the top of the main() function.
 
     # Handling for line comments
     if not comments: # comments is an empty list here (None case handled above)
