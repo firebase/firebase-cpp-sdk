@@ -26,8 +26,6 @@ import re
 import subprocess
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-# from absl import logging # Removed
-
 # Constants for GitHub API interaction
 RETRIES = 3
 BACKOFF = 5
@@ -35,15 +33,11 @@ RETRY_STATUS = (403, 500, 502, 504) # HTTP status codes to retry on
 TIMEOUT = 5 # Default timeout for requests in seconds
 TIMEOUT_LONG = 20 # Longer timeout, currently not used by functions in this script
 
-# Global variables for the target repository.
-# These are populated by set_repo_url_standalone() after determining
-# the owner and repo from arguments or git configuration.
+# Global variables for the target repository, populated by set_repo_url_standalone()
 OWNER = ''
 REPO = ''
-BASE_URL = 'https://api.github.com' # Base URL for GitHub API
-GITHUB_API_URL = '' # Dynamically constructed API URL for the specific repository
-
-# logging.set_verbosity(logging.WARNING) # Removed
+BASE_URL = 'https://api.github.com'
+GITHUB_API_URL = ''
 
 
 def set_repo_url_standalone(owner_name, repo_name):
@@ -80,7 +74,7 @@ def get_pull_request_review_comments(token, pull_number, since=None):
 
   base_params = {'per_page': per_page}
   if since:
-    base_params['since'] = since # Filter comments by timestamp
+    base_params['since'] = since
 
   while True:
     current_page_params = base_params.copy()
@@ -90,22 +84,21 @@ def get_pull_request_review_comments(token, pull_number, since=None):
       with requests_retry_session().get(url, headers=headers, params=current_page_params,
                         stream=True, timeout=TIMEOUT) as response:
         response.raise_for_status()
-        # logging.info("get_pull_request_review_comments: %s params %s response: %s", url, current_page_params, response) # Removed
 
         current_page_results = response.json()
-        if not current_page_results: # No more data on this page
+        if not current_page_results: # No more data
             break
 
         results.extend(current_page_results)
 
-        if len(current_page_results) < per_page: # Last page
+        if len(current_page_results) < per_page: # Reached last page
             break
 
         page += 1
 
     except requests.exceptions.RequestException as e:
       sys.stderr.write(f"Error: Failed to fetch review comments (page {page}, params: {current_page_params}) for PR {pull_number}: {e}\n")
-      return None # Indicate error
+      return None
   return results
 
 
@@ -127,7 +120,6 @@ def list_pull_requests(token, state, head, base):
     try:
       with requests_retry_session().get(url, headers=headers, params=params,
                         stream=True, timeout=TIMEOUT) as response:
-        # logging.info("list_pull_requests: %s params: %s response: %s", url, params, response) # Removed
         response.raise_for_status()
         current_page_results = response.json()
         if not current_page_results:
@@ -136,7 +128,7 @@ def list_pull_requests(token, state, head, base):
         keep_going = (len(current_page_results) == per_page)
     except requests.exceptions.RequestException as e:
       sys.stderr.write(f"Error: Failed to list pull requests (page {params.get('page', 'N/A')}, params: {params}) for {OWNER}/{REPO}: {e}\n")
-      return None # Indicate error
+      return None
   return results
 
 
@@ -157,7 +149,6 @@ def get_pull_request_reviews(token, owner, repo, pull_number):
         try:
             with requests_retry_session().get(url, headers=headers, params=params,
                                 stream=True, timeout=TIMEOUT) as response:
-                # logging.info("get_pull_request_reviews: %s params: %s response: %s", url, params, response) # Removed
                 response.raise_for_status()
                 current_page_results = response.json()
                 if not current_page_results:
@@ -166,7 +157,7 @@ def get_pull_request_reviews(token, owner, repo, pull_number):
                 keep_going = (len(current_page_results) == per_page)
         except requests.exceptions.RequestException as e:
             sys.stderr.write(f"Error: Failed to list pull request reviews (page {params.get('page', 'N/A')}, params: {params}) for PR {pull_number} in {owner}/{repo}: {e}\n")
-            return None # Indicate error
+            return None
     return results
 
 
@@ -220,12 +211,11 @@ def main():
             sys.stderr.write(f"Determined repository: {determined_owner}/{determined_repo} from git remote.\n")
     except (subprocess.CalledProcessError, FileNotFoundError, UnicodeDecodeError) as e:
         sys.stderr.write(f"Could not automatically determine repository from git remote: {e}\n")
-    except Exception as e: # Catch any other unexpected error during git processing, though less likely.
+    except Exception as e: # Catch any other unexpected error.
         sys.stderr.write(f"An unexpected error occurred while determining repository: {e}\n")
 
     def parse_repo_url(url_string):
         """Parses owner and repository name from various GitHub URL formats."""
-        # Handles https://github.com/owner/repo.git, git@github.com:owner/repo.git, and URLs without .git suffix.
         url_match = re.search(r"(?:(?:https?://github\.com/)|(?:git@github\.com:))([^/]+)/([^/.]+?)(?:\.git)?/?$", url_string)
         if url_match:
             return url_match.group(1), url_match.group(2)
@@ -326,30 +316,27 @@ def main():
                 final_owner = args.owner
                 final_repo = args.repo
                 sys.stderr.write(f"Using repository from --owner/--repo args: {final_owner}/{final_repo}\n")
-            else: # User set one but not the other (and the other wasn't available from a default)
+            else:
                  sys.stderr.write(f"Error: Both --owner and --repo must be specified if one is provided explicitly (and --url is not used).{error_suffix}\n")
                  sys.exit(1)
         elif args.owner and args.repo: # Both args have values, from successful auto-detection
             final_owner = args.owner
             final_repo = args.repo
-        elif args.owner or args.repo: # Only one has a value (e.g. auto-detect only found one)
+        elif args.owner or args.repo: # Only one has a value from auto-detection (e.g. git remote parsing failed partially)
             sys.stderr.write(f"Error: Both --owner and --repo are required if not using --url, and auto-detection was incomplete.{error_suffix}\n")
             sys.exit(1)
-        # If final_owner/repo are still None here, it means auto-detection failed and user provided nothing.
+        # If final_owner/repo are still None here, it means auto-detection failed AND user provided nothing.
 
     if not final_owner or not final_repo:
         sys.stderr.write(f"Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.{error_suffix}\n")
         sys.exit(1)
 
-    # Set global repository variables for API calls
     if not set_repo_url_standalone(final_owner, final_repo):
-        # This path should ideally not be reached if previous checks are robust.
         sys.stderr.write(f"Error: Could not set repository to {final_owner}/{final_repo}. Ensure owner/repo are correct.{error_suffix}\n")
         sys.exit(1)
 
-    # Determine Pull Request number
     pull_request_number = args.pull_number
-    current_branch_for_pr_check = None
+    current_branch_for_pr_check = None # Store branch name if auto-detecting PR
     if not pull_request_number:
         sys.stderr.write("Pull number not specified, attempting to find PR for current branch...\n")
         current_branch_for_pr_check = get_current_branch_name()
@@ -359,22 +346,19 @@ def main():
             if pull_request_number:
                 sys.stderr.write(f"Found PR #{pull_request_number} for branch {current_branch_for_pr_check}.\n")
             else:
-                # Informational, actual error handled by `if not pull_request_number:` below
-                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n")
+                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n") # Informational
         else:
             sys.stderr.write(f"Error: Could not determine current git branch. Cannot find PR automatically.{error_suffix}\n")
             sys.exit(1)
 
-    if not pull_request_number:
+    if not pull_request_number: # Final check for PR number
         error_message = "Error: Pull request number is required."
-        if not args.pull_number and current_branch_for_pr_check:
+        if not args.pull_number and current_branch_for_pr_check: # Auto-detect branch ok, but no PR found
             error_message = f"Error: Pull request number not specified and no open PR found for branch {current_branch_for_pr_check}."
-        elif not args.pull_number and not current_branch_for_pr_check: # Should have been caught and exited above.
-             error_message = "Error: Pull request number not specified and could not determine current git branch."
+        # The case where current_branch_for_pr_check is None (git branch fail) is caught and exited above.
         sys.stderr.write(f"{error_message}{error_suffix}\n")
         sys.exit(1)
 
-    # Fetch overall reviews first
     sys.stderr.write(f"Fetching overall reviews for PR #{pull_request_number} from {OWNER}/{REPO}...\n")
     overall_reviews = get_pull_request_reviews(args.token, OWNER, REPO, pull_request_number)
 
@@ -490,47 +474,24 @@ def main():
     # Note: The decision to exit if only line comments fail vs. if only overall reviews fail could be nuanced.
     # For now, failure to fetch either is treated as a critical error for the script's purpose.
 
-    # Handling for empty line comments will be just before their processing loop.
-    # if not comments: (handled later)
+    # Initialize tracking variables early - MOVED TO TOP OF MAIN
+    # latest_overall_review_activity_dt = None
+    # latest_line_comment_activity_dt = None
+    # processed_comments_count = 0 # This is specifically for line comments
 
-    # Initialize timestamps for 'next command' suggestion
-    latest_overall_review_activity_dt = None
-    latest_line_comment_activity_dt = None
-    processed_comments_count = 0
-
-    # Only print line comments header if there are comments to process
-    # The 'comments' list here has already been checked for None (API error)
-    # and for being empty (no comments found, in which case script would have exited).
-    # However, all comments could be filtered out by status or content.
-    # So, we'll print the header, and if nothing follows, it's acceptable.
-    # A more robust check would be to see if any comment *will* be printed.
-    # For now, let's check if the list is non-empty before printing the header.
-    # The user's request was "if there are no review comments to display".
-    # This means after all filtering. The current loop structure processes then prints.
-    # A simple way is to print header only if `comments` list is not empty,
-    # and then if the loop results in `processed_comments_count == 0`, the section will be empty.
-    # Or, delay printing header until first comment is processed.
-
-    # Let's try: print header only if comments list is not empty *before* the loop.
-    # If all get filtered out, an empty section is fine.
-    # The existing "No review comments found..." handles the case of an initially empty list.
-    # The current plan asks for "processed_comments_count > 0". This requires a look-ahead or restructuring.
-
-    # Simpler approach: If the `comments` list (from API) is not empty, print header.
-    # If all get filtered out inside the loop, the section will be empty.
-    # The earlier check `elif not comments:` handles the case of truly no comments from API.
-    # So, if we reach here, `comments` is a non-empty list.
-    # The condition should be: if any comments *survive* the loop's internal filters.
-    # This is best done by checking `processed_comments_count` *after* the loop,
-    # but the header needs to be printed *before*.
-    # So, we print the header if `comments` is not empty, and accept an empty section if all are filtered.
-    # The user's request can be interpreted as "don't print the header if the `comments` list is empty
-    # *after fetching and initial checks*".
-
-    if comments: # If the list from API (after None check) is not empty
+    # Handling for line comments
+    if not comments: # comments is an empty list here (None case handled above)
+        sys.stderr.write(f"No line comments found for PR #{pull_request_number} (or matching filters).\n")
+        # If there were also no overall reviews, and no line comments, then nothing to show.
+        # The 'next command' suggestion logic below will still run if overall_reviews had content.
+        if not filtered_overall_reviews : # and not comments (implicitly true here)
+             # Only return (and skip 'next command' suggestion) if NO content at all was printed.
+             # If overall_reviews were printed, we still want the 'next command' suggestion.
+             pass # Let it fall through to the 'next command' suggestion logic
+    else:
         print("# Review Comments\n\n")
 
-    for comment in comments: # `comments` is guaranteed to be a list here
+    for comment in comments: # if comments is empty, this loop is skipped.
         created_at_str = comment.get("created_at")
 
         current_pos = comment.get("position")
