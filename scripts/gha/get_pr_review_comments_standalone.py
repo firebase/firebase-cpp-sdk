@@ -28,17 +28,20 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from absl import logging
 
-# Constants from firebase_github.py
+# Constants for GitHub API interaction
 RETRIES = 3
 BACKOFF = 5
-RETRY_STATUS = (403, 500, 502, 504)
-TIMEOUT = 5
-TIMEOUT_LONG = 20 # Not used in the functions we are copying, but good to have if expanding.
+RETRY_STATUS = (403, 500, 502, 504) # HTTP status codes to retry on
+TIMEOUT = 5 # Default timeout for requests in seconds
+TIMEOUT_LONG = 20 # Longer timeout, currently not used by functions in this script
 
-OWNER = '' # Will be determined dynamically or from args
-REPO = '' # Will be determined dynamically or from args
-BASE_URL = 'https://api.github.com'
-GITHUB_API_URL = '' # Will be set by set_repo_url_standalone
+# Global variables for the target repository.
+# These are populated by set_repo_url_standalone() after determining
+# the owner and repo from arguments or git configuration.
+OWNER = ''
+REPO = ''
+BASE_URL = 'https://api.github.com' # Base URL for GitHub API
+GITHUB_API_URL = '' # Dynamically constructed API URL for the specific repository
 
 logging.set_verbosity(logging.INFO)
 
@@ -72,15 +75,14 @@ def get_pull_request_review_comments(token, pull_number, since=None):
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
 
   page = 1
-  per_page = 100
+  per_page = 100 # GitHub API default and max is 100 for many paginated endpoints
   results = []
 
-  # Base parameters for the API request
   base_params = {'per_page': per_page}
   if since:
-    base_params['since'] = since
+    base_params['since'] = since # Filter comments by timestamp
 
-  while True: # Loop indefinitely until explicitly broken
+  while True:
     current_page_params = base_params.copy()
     current_page_params['page'] = page
 
@@ -88,24 +90,22 @@ def get_pull_request_review_comments(token, pull_number, since=None):
       with requests_retry_session().get(url, headers=headers, params=current_page_params,
                         stream=True, timeout=TIMEOUT) as response:
         response.raise_for_status()
-        # Log which page and if 'since' was used for clarity
         logging.info("get_pull_request_review_comments: %s params %s response: %s", url, current_page_params, response)
 
         current_page_results = response.json()
-        if not current_page_results: # No more results on this page
-            break # Exit loop, no more comments to fetch
+        if not current_page_results: # No more data on this page
+            break
 
         results.extend(current_page_results)
 
-        # If fewer results than per_page were returned, it's the last page
-        if len(current_page_results) < per_page:
-            break # Exit loop, this was the last page
+        if len(current_page_results) < per_page: # Last page
+            break
 
-        page += 1 # Increment page for the next iteration
+        page += 1
 
     except requests.exceptions.RequestException as e:
       logging.error(f"Error fetching review comments (page {page}, params: {current_page_params}) for PR {pull_number}: {e}")
-      break # Stop trying if there's an error
+      break
   return results
 
 
@@ -124,22 +124,19 @@ def list_pull_requests(token, state, head, base):
     if base: params.update({'base': base})
     page = page + 1
     keep_going = False
-    # Ensure GITHUB_API_URL is set before this function is called if OWNER/REPO are not passed explicitly
-    # For standalone script, OWNER and REPO are global and GITHUB_API_URL is set by set_repo_url_standalone
     try:
       with requests_retry_session().get(url, headers=headers, params=params,
                         stream=True, timeout=TIMEOUT) as response:
         logging.info("list_pull_requests: %s params: %s response: %s", url, params, response)
-        response.raise_for_status() # Raise an exception for bad status codes
+        response.raise_for_status()
         current_page_results = response.json()
-        if not current_page_results: # No more results on this page
+        if not current_page_results:
             break
         results.extend(current_page_results)
-        # If exactly per_page results were retrieved, read the next page.
         keep_going = (len(current_page_results) == per_page)
     except requests.exceptions.RequestException as e:
       logging.error(f"Error listing pull requests (page {params.get('page', 'N/A')}, params: {params}) for {OWNER}/{REPO}: {e}")
-      break # Stop trying if there's an error
+      break
   return results
 
 
@@ -158,21 +155,20 @@ def get_latest_pr_for_branch(token, owner, repo, branch_name):
         sys.stderr.write("Owner and repo must be set to find PR for branch.\n")
         return None
 
-    head_branch_spec = f"{owner}:{branch_name}" # GitHub API requires owner in head spec for forks
-    prs = list_pull_requests(token=token, state="open", head=head_branch_spec, base=None) # base can be None
+    head_branch_spec = f"{owner}:{branch_name}" # Format required by GitHub API for head branch
+    prs = list_pull_requests(token=token, state="open", head=head_branch_spec, base=None)
 
     if not prs:
         return None
 
-    # Sort PRs by creation date, most recent first
-    # PRs are dictionaries, 'created_at' is an ISO 8601 string
+    # Sort PRs by creation date (most recent first) to find the latest.
     try:
         prs.sort(key=lambda pr: pr.get("created_at", ""), reverse=True)
-    except Exception as e:
+    except Exception as e: # Broad exception for safety, though sort issues are rare with valid data.
         sys.stderr.write(f"Could not sort PRs by creation date: {e}\n")
-        return None # Or handle more gracefully
+        return None
 
-    if prs: # Check if list is not empty after sort
+    if prs:
         return prs[0].get("number")
     return None
 
@@ -187,7 +183,6 @@ def main():
     try:
         git_url_bytes = subprocess.check_output(["git", "remote", "get-url", "origin"], stderr=subprocess.PIPE)
         git_url = git_url_bytes.decode().strip()
-        # Regex for https://github.com/owner/repo.git or git@github.com:owner/repo.git
         match = re.search(r"(?:(?:https?://github\.com/)|(?:git@github\.com:))([^/]+)/([^/.]+)(?:\.git)?", git_url)
         if match:
             determined_owner = match.group(1)
@@ -195,13 +190,12 @@ def main():
             sys.stderr.write(f"Determined repository: {determined_owner}/{determined_repo} from git remote.\n")
     except (subprocess.CalledProcessError, FileNotFoundError, UnicodeDecodeError) as e:
         sys.stderr.write(f"Could not automatically determine repository from git remote: {e}\n")
-    except Exception as e: # Catch any other unexpected error during git processing
+    except Exception as e: # Catch any other unexpected error during git processing, though less likely.
         sys.stderr.write(f"An unexpected error occurred while determining repository: {e}\n")
 
-    # Helper function to parse owner/repo from URL
     def parse_repo_url(url_string):
-        # Regex for https://github.com/owner/repo.git or git@github.com:owner/repo.git
-        # Also handles URLs without .git suffix
+        """Parses owner and repository name from various GitHub URL formats."""
+        # Handles https://github.com/owner/repo.git, git@github.com:owner/repo.git, and URLs without .git suffix.
         url_match = re.search(r"(?:(?:https?://github\.com/)|(?:git@github\.com:))([^/]+)/([^/.]+?)(?:\.git)?/?$", url_string)
         if url_match:
             return url_match.group(1), url_match.group(2)
@@ -212,11 +206,10 @@ def main():
                     "Repository can be specified via --url, or --owner AND --repo, or auto-detected from git remote 'origin'.",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    # Arguments for repository specification
     parser.add_argument(
         "--pull_number",
         type=int,
-        default=None, # Now optional
+        default=None,
         help="Pull request number. If not provided, script attempts to find the latest open PR for the current git branch."
     )
     parser.add_argument(
@@ -228,13 +221,13 @@ def main():
     parser.add_argument(
         "--owner",
         type=str,
-        default=determined_owner, # Default to auto-detected
+        default=determined_owner,
         help=f"Repository owner. Used if --url is not provided. {'Default: ' + determined_owner if determined_owner else 'Required if --url is not used and not determinable from git.'}"
     )
     parser.add_argument(
         "--repo",
         type=str,
-        default=determined_repo,  # Default to auto-detected
+        default=determined_repo,
         help=f"Repository name. Used if --url is not provided. {'Default: ' + determined_repo if determined_repo else 'Required if --url is not used and not determinable from git.'}"
     )
     parser.add_argument(
@@ -278,14 +271,8 @@ def main():
     final_owner = None
     final_repo = None
 
-    # Logic for determining owner and repo:
-    # 1. If --url is provided, use it. Error if --owner or --repo are also explicitly set.
-    # 2. Else if --owner and --repo are provided, use them.
-    # 3. Else (neither --url nor --owner/--repo pair explicitly set), use auto-detected values (which are defaults for args.owner/args.repo).
-
+    # Determine repository owner and name
     if args.url:
-        # URL is provided, it takes precedence.
-        # Error if --owner or --repo were also explicitly set by the user (i.e., different from their defaults)
         owner_explicitly_set = args.owner is not None and args.owner != determined_owner
         repo_explicitly_set = args.repo is not None and args.repo != determined_repo
         if owner_explicitly_set or repo_explicitly_set:
@@ -301,44 +288,38 @@ def main():
             sys.stderr.write(f"Error: Invalid URL format: {args.url}. Expected https://github.com/owner/repo or git@github.com:owner/repo.git{error_suffix}\n")
             sys.exit(1)
     else:
-        # URL is not provided, try to use owner/repo.
-        # These could be from explicit user input or from auto-detection (via defaults).
         is_owner_from_user = args.owner is not None and args.owner != determined_owner
         is_repo_from_user = args.repo is not None and args.repo != determined_repo
-        is_owner_from_default = args.owner is not None and args.owner == determined_owner and determined_owner is not None
-        is_repo_from_default = args.repo is not None and args.repo == determined_repo and determined_repo is not None
 
-        if (is_owner_from_user or is_repo_from_user): # User explicitly set at least one
-            if args.owner and args.repo: # Both were set (either explicitly or one explicit, one default that existed)
+        if (is_owner_from_user or is_repo_from_user): # User explicitly set at least one of owner/repo
+            if args.owner and args.repo:
                 final_owner = args.owner
                 final_repo = args.repo
                 sys.stderr.write(f"Using repository from --owner/--repo args: {final_owner}/{final_repo}\n")
-            else: # User set one but not the other, and the other wasn't available from a default
+            else: # User set one but not the other (and the other wasn't available from a default)
                  sys.stderr.write(f"Error: Both --owner and --repo must be specified if one is provided explicitly (and --url is not used).{error_suffix}\n")
                  sys.exit(1)
-        elif args.owner and args.repo: # Both are from successful auto-detection (already printed "Determined repository...")
+        elif args.owner and args.repo: # Both args have values, from successful auto-detection
             final_owner = args.owner
             final_repo = args.repo
-        elif args.owner or args.repo: # Only one was available (e.g. auto-detect only found one, or bad default state)
+        elif args.owner or args.repo: # Only one has a value (e.g. auto-detect only found one)
             sys.stderr.write(f"Error: Both --owner and --repo are required if not using --url, and auto-detection was incomplete.{error_suffix}\n")
             sys.exit(1)
-        # If none of the above, final_owner/repo remain None, will be caught by the check below.
+        # If final_owner/repo are still None here, it means auto-detection failed and user provided nothing.
 
     if not final_owner or not final_repo:
         sys.stderr.write(f"Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.{error_suffix}\n")
         sys.exit(1)
 
-
-    if not final_owner or not final_repo:
-        sys.stderr.write(f"Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.{error_suffix}\n")
-        sys.exit(1)
-
-    if not set_repo_url_standalone(final_owner, final_repo): # Sets global OWNER and REPO
+    # Set global repository variables for API calls
+    if not set_repo_url_standalone(final_owner, final_repo):
+        # This path should ideally not be reached if previous checks are robust.
         sys.stderr.write(f"Error: Could not set repository to {final_owner}/{final_repo}. Ensure owner/repo are correct.{error_suffix}\n")
         sys.exit(1)
 
+    # Determine Pull Request number
     pull_request_number = args.pull_number
-    current_branch_for_pr_check = None # Used to improve final error message
+    current_branch_for_pr_check = None
     if not pull_request_number:
         sys.stderr.write("Pull number not specified, attempting to find PR for current branch...\n")
         current_branch_for_pr_check = get_current_branch_name()
@@ -348,18 +329,18 @@ def main():
             if pull_request_number:
                 sys.stderr.write(f"Found PR #{pull_request_number} for branch {current_branch_for_pr_check}.\n")
             else:
-                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n") # This is informational, error below
+                # Informational, actual error handled by `if not pull_request_number:` below
+                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n")
         else:
             sys.stderr.write(f"Error: Could not determine current git branch. Cannot find PR automatically.{error_suffix}\n")
             sys.exit(1)
 
     if not pull_request_number:
         error_message = "Error: Pull request number is required."
-        if not args.pull_number and current_branch_for_pr_check: # Auto-detect branch ok, but no PR found
+        if not args.pull_number and current_branch_for_pr_check:
             error_message = f"Error: Pull request number not specified and no open PR found for branch {current_branch_for_pr_check}."
-        elif not args.pull_number and not current_branch_for_pr_check: # Should have been caught above
+        elif not args.pull_number and not current_branch_for_pr_check: # Should have been caught and exited above.
              error_message = "Error: Pull request number not specified and could not determine current git branch."
-
         sys.stderr.write(f"{error_message}{error_suffix}\n")
         sys.exit(1)
 
@@ -408,10 +389,10 @@ def main():
         if status_text == STATUS_OLD and args.exclude_old:
             continue
 
-        # Track latest 'updated_at' for '--since' suggestion; 'created_at' is for display.
         updated_at_str = comment.get("updated_at")
-        if updated_at_str: # Check if updated_at_str is not None and not empty
+        if updated_at_str:
             try:
+                # Compatibility for Python < 3.11 which doesn't handle 'Z' suffix in fromisoformat
                 if sys.version_info < (3, 11):
                     dt_str_updated = updated_at_str.replace("Z", "+00:00")
                 else:
@@ -422,12 +403,11 @@ def main():
             except ValueError:
                 sys.stderr.write(f"Warning: Could not parse updated_at timestamp: {updated_at_str}\n")
 
-        # Get other comment details
         user = comment.get("user", {}).get("login", "Unknown user")
         path = comment.get("path", "N/A")
         body = comment.get("body", "").strip()
 
-        if not body:
+        if not body: # Skip comments with no actual text content
             continue
 
         processed_comments_count += 1
@@ -446,24 +426,19 @@ def main():
         print(f"*   **URL**: <{html_url}>\n")
 
         print("\n### Context:")
-        print("```") # Start of Markdown code block
+        print("```")
         if diff_hunk and diff_hunk.strip():
-            if args.context_lines == 0: # User wants the full hunk
+            if args.context_lines == 0: # 0 means full hunk
                 print(diff_hunk)
-            else: # User wants N lines of context (args.context_lines > 0)
+            else: # Display header (if any) and last N lines
                 hunk_lines = diff_hunk.split('\n')
-                if hunk_lines and hunk_lines[0].startswith("@@ "):
+                if hunk_lines and hunk_lines[0].startswith("@@ "): # Diff hunk header
                     print(hunk_lines[0])
-                    hunk_lines = hunk_lines[1:] # Modify list in place for remaining operations
-
-                # Proceed with the (potentially modified) hunk_lines
-                # If hunk_lines is empty here (e.g. original hunk was only a header that was removed),
-                # hunk_lines[-args.context_lines:] will be [], and "\n".join([]) is "",
-                # so print("") will effectively print a newline. This is acceptable.
+                    hunk_lines = hunk_lines[1:]
                 print("\n".join(hunk_lines[-args.context_lines:]))
-        else: # diff_hunk was None or empty
+        else:
             print("(No diff hunk available for this comment)")
-        print("```") # End of Markdown code block
+        print("```")
 
         print("\n### Comment:")
         print(body)
@@ -473,15 +448,15 @@ def main():
 
     if latest_activity_timestamp_obj:
         try:
-            # Ensure it's UTC before adding timedelta, then format
+            # Suggest next command with '--since' pointing to just after the latest comment processed.
             next_since_dt = latest_activity_timestamp_obj.astimezone(timezone.utc) + timedelta(seconds=2)
             next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-            new_cmd_args = [sys.executable, sys.argv[0]] # Start with interpreter and script path
-            i = 1 # Start checking from actual arguments in sys.argv
+            new_cmd_args = [sys.executable, sys.argv[0]]
+            i = 1
             while i < len(sys.argv):
-                if sys.argv[i] == "--since":
-                    i += 2 # Skip --since and its value
+                if sys.argv[i] == "--since": # Skip existing --since argument and its value
+                    i += 2
                     continue
                 new_cmd_args.append(sys.argv[i])
                 i += 1
