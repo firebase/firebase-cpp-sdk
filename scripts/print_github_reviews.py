@@ -430,13 +430,16 @@ def main():
     # Output overall reviews if any exist after filtering
     if filtered_overall_reviews:
         print("# Code Reviews\n\n") # Changed heading
+        # Explicitly re-initialize before this loop to be absolutely sure for the update logic within it.
+        # The main initialization at the top of main() handles the case where this block is skipped.
+        temp_latest_overall_review_dt = None # Use a temporary variable for this loop's accumulation
         for review in filtered_overall_reviews:
             user = review.get("user", {}).get("login", "Unknown user")
             submitted_at_str = review.get("submitted_at", "N/A") # Keep original string for printing
             state = review.get("state", "N/A")
             body = review.get("body", "").strip()
 
-            # Track latest overall review timestamp
+            # Track latest overall review timestamp within this block
             if submitted_at_str and submitted_at_str != "N/A":
                 try:
                     if sys.version_info < (3, 11):
@@ -444,8 +447,8 @@ def main():
                     else:
                         dt_str_submitted = submitted_at_str
                     current_review_submitted_dt = datetime.datetime.fromisoformat(dt_str_submitted)
-                    if latest_overall_review_activity_dt is None or current_review_submitted_dt > latest_overall_review_activity_dt:
-                        latest_overall_review_activity_dt = current_review_submitted_dt
+                    if temp_latest_overall_review_dt is None or current_review_submitted_dt > temp_latest_overall_review_dt:
+                        temp_latest_overall_review_dt = current_review_submitted_dt
                 except ValueError:
                     sys.stderr.write(f"Warning: Could not parse overall review submitted_at for --since suggestion: {submitted_at_str}\n")
 
@@ -462,6 +465,11 @@ def main():
                 print("\n### Summary Comment:")
                 print(body)
             print("\n---")
+
+        # After processing all overall reviews in this block, update the main variable
+        if temp_latest_overall_review_dt:
+            latest_overall_review_activity_dt = temp_latest_overall_review_dt
+
         # Add an extra newline to separate from line comments if any overall reviews were printed
         print("\n")
 
