@@ -320,30 +320,43 @@ def main():
 
     if not final_owner or not final_repo:
         sys.stderr.write("Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.\n")
-        parser.print_help()
-        sys.exit(1)
+        sys.exit(1) # No print_help() here, as per request
 
     if not set_repo_url_standalone(final_owner, final_repo): # Sets global OWNER and REPO
         sys.stderr.write(f"Error: Could not set repository to {final_owner}/{final_repo}. Ensure owner/repo are correct.\n")
         sys.exit(1)
 
     pull_request_number = args.pull_number
+    current_branch_for_pr_check = None # Used to improve final error message
     if not pull_request_number:
         sys.stderr.write("Pull number not specified, attempting to find PR for current branch...\n")
-        current_branch = get_current_branch_name()
-        if current_branch:
-            sys.stderr.write(f"Current git branch is: {current_branch}\n")
-            # Pass global OWNER and REPO which are set by set_repo_url_standalone
-            pull_request_number = get_latest_pr_for_branch(args.token, OWNER, REPO, current_branch)
+        current_branch_for_pr_check = get_current_branch_name()
+        if current_branch_for_pr_check:
+            sys.stderr.write(f"Current git branch is: {current_branch_for_pr_check}\n")
+            pull_request_number = get_latest_pr_for_branch(args.token, OWNER, REPO, current_branch_for_pr_check)
             if pull_request_number:
-                sys.stderr.write(f"Found PR #{pull_request_number} for branch {current_branch}.\n")
+                sys.stderr.write(f"Found PR #{pull_request_number} for branch {current_branch_for_pr_check}.\n")
             else:
-                sys.stderr.write(f"No open PR found for branch {current_branch} in {OWNER}/{REPO}.\n")
+                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n")
         else:
-            sys.stderr.write("Could not determine current git branch. Cannot find PR automatically.\n")
+            # Error: Could not determine current git branch (for PR detection).
+            sys.stderr.write("Error: Could not determine current git branch. Cannot find PR automatically.\n")
+            sys.exit(1) # No print_help() here, as per request
 
     if not pull_request_number:
-        sys.stderr.write("Error: Pull request number is required. Provide --pull_number or ensure an open PR exists for the current branch.\n")
+        # This is reached if:
+        #   - --pull_number was not specified AND
+        #   - current branch was determined BUT no PR was found for it.
+        # (The cases where branch itself couldn't be determined now exit above without print_help)
+        error_message = "Error: Pull request number not specified and no open PR found for the current branch."
+        if args.pull_number: # Should not happen if logic is correct, but as a safeguard
+            error_message = f"Error: Pull request number {args.pull_number} is invalid or not found."
+        elif not current_branch_for_pr_check: # Should be caught by exit above
+             error_message = "Error: Pull request number not specified and could not determine current git branch."
+
+        sys.stderr.write(error_message + "\n")
+        # Keeping print_help() for this more general failure case unless explicitly asked to remove.
+        # This specific error (no PR found for a valid branch) is different from "can't find branch".
         parser.print_help()
         sys.exit(1)
 
