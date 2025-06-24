@@ -109,6 +109,74 @@ def get_pull_request_review_comments(token, pull_number, since=None):
   return results
 
 
+def list_pull_requests(token, state, head, base):
+  """https://docs.github.com/en/rest/reference/pulls#list-pull-requests"""
+  url = f'{GITHUB_API_URL}/pulls'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  page = 1
+  per_page = 100
+  results = []
+  keep_going = True
+  while keep_going:
+    params = {'per_page': per_page, 'page': page}
+    if state: params.update({'state': state})
+    if head: params.update({'head': head})
+    if base: params.update({'base': base})
+    page = page + 1
+    keep_going = False
+    # Ensure GITHUB_API_URL is set before this function is called if OWNER/REPO are not passed explicitly
+    # For standalone script, OWNER and REPO are global and GITHUB_API_URL is set by set_repo_url_standalone
+    try:
+      with requests_retry_session().get(url, headers=headers, params=params,
+                        stream=True, timeout=TIMEOUT) as response:
+        logging.info("list_pull_requests: %s params: %s response: %s", url, params, response)
+        response.raise_for_status() # Raise an exception for bad status codes
+        current_page_results = response.json()
+        if not current_page_results: # No more results on this page
+            break
+        results.extend(current_page_results)
+        # If exactly per_page results were retrieved, read the next page.
+        keep_going = (len(current_page_results) == per_page)
+    except requests.exceptions.RequestException as e:
+      logging.error(f"Error listing pull requests (page {params.get('page', 'N/A')}, params: {params}) for {OWNER}/{REPO}: {e}")
+      break # Stop trying if there's an error
+  return results
+
+
+def get_current_branch_name():
+    """Gets the current git branch name."""
+    try:
+        branch_bytes = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.PIPE)
+        return branch_bytes.decode().strip()
+    except (subprocess.CalledProcessError, FileNotFoundError, UnicodeDecodeError) as e:
+        sys.stderr.write(f"Could not determine current git branch: {e}\n")
+        return None
+
+def get_latest_pr_for_branch(token, owner, repo, branch_name):
+    """Fetches the most recent open pull request for a given branch."""
+    if not owner or not repo:
+        sys.stderr.write("Owner and repo must be set to find PR for branch.\n")
+        return None
+
+    head_branch_spec = f"{owner}:{branch_name}" # GitHub API requires owner in head spec for forks
+    prs = list_pull_requests(token=token, state="open", head=head_branch_spec, base=None) # base can be None
+
+    if not prs:
+        return None
+
+    # Sort PRs by creation date, most recent first
+    # PRs are dictionaries, 'created_at' is an ISO 8601 string
+    try:
+        prs.sort(key=lambda pr: pr.get("created_at", ""), reverse=True)
+    except Exception as e:
+        sys.stderr.write(f"Could not sort PRs by creation date: {e}\n")
+        return None # Or handle more gracefully
+
+    if prs: # Check if list is not empty after sort
+        return prs[0].get("number")
+    return None
+
+
 def main():
     STATUS_IRRELEVANT = "[IRRELEVANT]"
     STATUS_OLD = "[OLD]"
@@ -151,6 +219,12 @@ def main():
         help="Pull request number."
     )
     # Arguments for repository specification
+    parser.add_argument(
+        "--pull_number",
+        type=int,
+        default=None, # Now optional
+        help="Pull request number. If not provided, script attempts to find the latest open PR for the current git branch."
+    )
     parser.add_argument(
         "--url",
         type=str,
@@ -255,22 +329,42 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    if not set_repo_url_standalone(final_owner, final_repo):
+    if not set_repo_url_standalone(final_owner, final_repo): # Sets global OWNER and REPO
         sys.stderr.write(f"Error: Could not set repository to {final_owner}/{final_repo}. Ensure owner/repo are correct.\n")
         sys.exit(1)
 
-    sys.stderr.write(f"Fetching comments for PR #{args.pull_number} from {OWNER}/{REPO}...\n")
+    pull_request_number = args.pull_number
+    if not pull_request_number:
+        sys.stderr.write("Pull number not specified, attempting to find PR for current branch...\n")
+        current_branch = get_current_branch_name()
+        if current_branch:
+            sys.stderr.write(f"Current git branch is: {current_branch}\n")
+            # Pass global OWNER and REPO which are set by set_repo_url_standalone
+            pull_request_number = get_latest_pr_for_branch(args.token, OWNER, REPO, current_branch)
+            if pull_request_number:
+                sys.stderr.write(f"Found PR #{pull_request_number} for branch {current_branch}.\n")
+            else:
+                sys.stderr.write(f"No open PR found for branch {current_branch} in {OWNER}/{REPO}.\n")
+        else:
+            sys.stderr.write("Could not determine current git branch. Cannot find PR automatically.\n")
+
+    if not pull_request_number:
+        sys.stderr.write("Error: Pull request number is required. Provide --pull_number or ensure an open PR exists for the current branch.\n")
+        parser.print_help()
+        sys.exit(1)
+
+    sys.stderr.write(f"Fetching comments for PR #{pull_request_number} from {OWNER}/{REPO}...\n")
     if args.since:
         sys.stderr.write(f"Filtering comments updated since: {args.since}\n")
 
     comments = get_pull_request_review_comments(
         args.token,
-        args.pull_number,
+        pull_request_number,
         since=args.since
     )
 
     if not comments:
-        sys.stderr.write(f"No review comments found for PR #{args.pull_number} (or matching filters), or an error occurred.\n")
+        sys.stderr.write(f"No review comments found for PR #{pull_request_number} (or matching filters), or an error occurred.\n")
         return
 
     latest_activity_timestamp_obj = None
