@@ -413,7 +413,12 @@ def main():
                             continue
                     except ValueError as ve:
                         sys.stderr.write(f"Warning: Could not parse review submitted_at timestamp '{submitted_at_str}' or --since timestamp '{args.since}': {ve}\n")
-                        # Decide: skip review or include it if parsing fails? For now, include.
+                        # If parsing fails, we might choose to include the review to be safe, or skip. Current: include.
+
+            # New filter: Exclude "COMMENTED" reviews with an empty body
+            if review.get("state") == "COMMENTED" and not review.get("body", "").strip():
+                continue
+
             filtered_overall_reviews.append(review)
 
         # Sort by submission time, oldest first
