@@ -427,20 +427,36 @@ def main():
         except Exception as e: # Broad exception for safety
              sys.stderr.write(f"Warning: Could not sort overall reviews: {e}\n")
 
+    # Output overall reviews if any exist after filtering
     if filtered_overall_reviews:
-        print("# Overall Review Summaries\n\n")
+        print("# Code Reviews\n\n") # Changed heading
         for review in filtered_overall_reviews:
             user = review.get("user", {}).get("login", "Unknown user")
-            submitted_at = review.get("submitted_at", "N/A")
+            submitted_at_str = review.get("submitted_at", "N/A") # Keep original string for printing
             state = review.get("state", "N/A")
             body = review.get("body", "").strip()
+
+            # Track latest overall review timestamp
+            if submitted_at_str and submitted_at_str != "N/A":
+                try:
+                    if sys.version_info < (3, 11):
+                        dt_str_submitted = submitted_at_str.replace("Z", "+00:00")
+                    else:
+                        dt_str_submitted = submitted_at_str
+                    current_review_submitted_dt = datetime.datetime.fromisoformat(dt_str_submitted)
+                    if latest_overall_review_activity_dt is None or current_review_submitted_dt > latest_overall_review_activity_dt:
+                        latest_overall_review_activity_dt = current_review_submitted_dt
+                except ValueError:
+                    sys.stderr.write(f"Warning: Could not parse overall review submitted_at for --since suggestion: {submitted_at_str}\n")
+
             html_url = review.get("html_url", "N/A")
             review_id = review.get("id", "N/A")
 
             print(f"## Review by: **{user}** (ID: `{review_id}`)\n")
-            print(f"*   **Submitted At**: `{submitted_at}`")
+            print(f"*   **Submitted At**: `{submitted_at_str}`") # Print original string
             print(f"*   **State**: `{state}`")
             print(f"*   **URL**: <{html_url}>\n")
+            # Removed duplicated lines here
 
             if body:
                 print("\n### Summary Comment:")
@@ -469,10 +485,43 @@ def main():
     # Handling for empty line comments will be just before their processing loop.
     # if not comments: (handled later)
 
-    latest_activity_timestamp_obj = None # This is for line comments' 'since' suggestion
+    latest_overall_review_activity_dt = None
+    latest_line_comment_activity_dt = None # Renamed from latest_activity_timestamp_obj
     processed_comments_count = 0 # This tracks line comments
-    print("# Review Comments\n\n")
-    for comment in comments:
+
+    # Only print line comments header if there are comments to process
+    # The 'comments' list here has already been checked for None (API error)
+    # and for being empty (no comments found, in which case script would have exited).
+    # However, all comments could be filtered out by status or content.
+    # So, we'll print the header, and if nothing follows, it's acceptable.
+    # A more robust check would be to see if any comment *will* be printed.
+    # For now, let's check if the list is non-empty before printing the header.
+    # The user's request was "if there are no review comments to display".
+    # This means after all filtering. The current loop structure processes then prints.
+    # A simple way is to print header only if `comments` list is not empty,
+    # and then if the loop results in `processed_comments_count == 0`, the section will be empty.
+    # Or, delay printing header until first comment is processed.
+
+    # Let's try: print header only if comments list is not empty *before* the loop.
+    # If all get filtered out, an empty section is fine.
+    # The existing "No review comments found..." handles the case of an initially empty list.
+    # The current plan asks for "processed_comments_count > 0". This requires a look-ahead or restructuring.
+
+    # Simpler approach: If the `comments` list (from API) is not empty, print header.
+    # If all get filtered out inside the loop, the section will be empty.
+    # The earlier check `elif not comments:` handles the case of truly no comments from API.
+    # So, if we reach here, `comments` is a non-empty list.
+    # The condition should be: if any comments *survive* the loop's internal filters.
+    # This is best done by checking `processed_comments_count` *after* the loop,
+    # but the header needs to be printed *before*.
+    # So, we print the header if `comments` is not empty, and accept an empty section if all are filtered.
+    # The user's request can be interpreted as "don't print the header if the `comments` list is empty
+    # *after fetching and initial checks*".
+
+    if comments: # If the list from API (after None check) is not empty
+        print("# Review Comments\n\n")
+
+    for comment in comments: # `comments` is guaranteed to be a list here
         created_at_str = comment.get("created_at")
 
         current_pos = comment.get("position")
@@ -509,10 +558,10 @@ def main():
                 else:
                     dt_str_updated = updated_at_str
                 current_comment_activity_dt = datetime.datetime.fromisoformat(dt_str_updated)
-                if latest_activity_timestamp_obj is None or current_comment_activity_dt > latest_activity_timestamp_obj:
-                    latest_activity_timestamp_obj = current_comment_activity_dt
+                if latest_line_comment_activity_dt is None or current_comment_activity_dt > latest_line_comment_activity_dt: # Corrected variable name
+                    latest_line_comment_activity_dt = current_comment_activity_dt # Corrected variable name
             except ValueError:
-                sys.stderr.write(f"Warning: Could not parse updated_at timestamp: {updated_at_str}\n")
+                sys.stderr.write(f"Warning: Could not parse line comment updated_at for --since suggestion: {updated_at_str}\n")
 
         user = comment.get("user", {}).get("login", "Unknown user")
         path = comment.get("path", "N/A")
@@ -557,10 +606,19 @@ def main():
 
     sys.stderr.write(f"\nPrinted {processed_comments_count} comments to stdout.\n")
 
-    if latest_activity_timestamp_obj:
+    # Determine the overall latest activity timestamp
+    overall_latest_activity_dt = None
+    if latest_overall_review_activity_dt and latest_line_comment_activity_dt:
+        overall_latest_activity_dt = max(latest_overall_review_activity_dt, latest_line_comment_activity_dt)
+    elif latest_overall_review_activity_dt:
+        overall_latest_activity_dt = latest_overall_review_activity_dt
+    elif latest_line_comment_activity_dt:
+        overall_latest_activity_dt = latest_line_comment_activity_dt
+
+    if overall_latest_activity_dt:
         try:
-            # Suggest next command with '--since' pointing to just after the latest comment processed.
-            next_since_dt = latest_activity_timestamp_obj.astimezone(timezone.utc) + timedelta(seconds=2)
+            # Suggest next command with '--since' pointing to just after the latest activity.
+            next_since_dt = overall_latest_activity_dt.astimezone(timezone.utc) + timedelta(seconds=2)
             next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
             new_cmd_args = [sys.executable, sys.argv[0]]
