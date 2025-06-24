@@ -537,9 +537,30 @@ addition to any you may have implemented.
 
 The Firebase Cloud Messaging library needs to attach
 handlers to the application delegate using method swizzling. If you are using
-these libraries, at load time, Firebase will identify your `AppDelegate` class
-and swizzle the required methods onto it, chaining a call back to your existing
-method implementation.
+these libraries, at load time, Firebase will typically identify your `AppDelegate`
+class and swizzle the required methods onto it.
+
+#### Specifying Your AppDelegate Class Directly (iOS)
+
+For a more direct approach, or if you encounter issues with the default
+method swizzling, you can explicitly tell Firebase which class is your
+application's `AppDelegate`. To do this, add the `FirebaseAppDelegateClassName`
+key to your app's `Info.plist` file:
+
+*   **Key:** `FirebaseAppDelegateClassName`
+*   **Type:** `String`
+*   **Value:** Your AppDelegate's class name (e.g., `MyCustomAppDelegate`)
+
+**Example `Info.plist` entry:**
+```xml
+<key>FirebaseAppDelegateClassName</key>
+<string>MyCustomAppDelegate</string>
+```
+
+If this key is provided with a valid class name, Firebase will use that class
+directly for its AppDelegate-related interactions. If the key is not present,
+is invalid, or the class is not found, Firebase will use its standard method
+swizzling approach.
 
 ### Custom Android Build Systems
 
@@ -654,6 +675,14 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - iOS: Added an option to explicitly specify your app's `AppDelegate` class
+      name via the `FirebaseAppDelegateClassName` key in `Info.plist`. This
+      provides a more direct way for Firebase to interact with your specified
+      AppDelegate. See "Platform Notes > iOS Method Swizzling >
+      Specifying Your AppDelegate Class Directly (iOS)" for details.
+
 ### 12.8.0
 -   Changes
     - General (iOS): Update to Firebase Cocoapods version 11.14.0.
