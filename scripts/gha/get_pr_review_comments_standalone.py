@@ -140,6 +140,36 @@ def list_pull_requests(token, state, head, base):
   return results
 
 
+def get_pull_request_reviews(token, owner, repo, pull_number):
+    """Fetches all reviews for a given pull request."""
+    # Note: GitHub API for listing reviews does not support a 'since' parameter directly.
+    # Filtering by 'since' must be done client-side after fetching all reviews.
+    url = f'{GITHUB_API_URL}/pulls/{pull_number}/reviews'
+    headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+    page = 1
+    per_page = 100
+    results = []
+    keep_going = True
+    while keep_going:
+        params = {'per_page': per_page, 'page': page}
+        page = page + 1
+        keep_going = False
+        try:
+            with requests_retry_session().get(url, headers=headers, params=params,
+                                stream=True, timeout=TIMEOUT) as response:
+                logging.info("get_pull_request_reviews: %s params: %s response: %s", url, params, response)
+                response.raise_for_status()
+                current_page_results = response.json()
+                if not current_page_results:
+                    break
+                results.extend(current_page_results)
+                keep_going = (len(current_page_results) == per_page)
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error listing pull request reviews (page {params.get('page', 'N/A')}, params: {params}) for PR {pull_number} in {owner}/{repo}: {e}")
+            return None # Indicate error
+    return results
+
+
 def get_current_branch_name():
     """Gets the current git branch name."""
     try:
@@ -344,25 +374,98 @@ def main():
         sys.stderr.write(f"{error_message}{error_suffix}\n")
         sys.exit(1)
 
-    sys.stderr.write(f"Fetching comments for PR #{pull_request_number} from {OWNER}/{REPO}...\n")
+    # Fetch overall reviews first
+    sys.stderr.write(f"Fetching overall reviews for PR #{pull_request_number} from {OWNER}/{REPO}...\n")
+    overall_reviews = get_pull_request_reviews(args.token, OWNER, REPO, pull_request_number)
+
+    if overall_reviews is None:
+        sys.stderr.write(f"Error: Failed to fetch overall reviews due to an API or network issue.{error_suffix}\nPlease check logs for details.\n")
+        sys.exit(1)
+
+    filtered_overall_reviews = []
+    if overall_reviews: # If not None and not empty
+        for review in overall_reviews:
+            if review.get("state") == "DISMISSED":
+                continue
+
+            if args.since:
+                submitted_at_str = review.get("submitted_at")
+                if submitted_at_str:
+                    try:
+                        # Compatibility for Python < 3.11
+                        if sys.version_info < (3, 11):
+                            dt_str_submitted = submitted_at_str.replace("Z", "+00:00")
+                        else:
+                            dt_str_submitted = submitted_at_str
+                        submitted_dt = datetime.datetime.fromisoformat(dt_str_submitted)
+
+                        since_dt_str = args.since
+                        if sys.version_info < (3, 11) and args.since.endswith("Z"):
+                             since_dt_str = args.since.replace("Z", "+00:00")
+                        since_dt = datetime.datetime.fromisoformat(since_dt_str)
+
+                        # Ensure 'since_dt' is timezone-aware if 'submitted_dt' is.
+                        # GitHub timestamps are UTC. fromisoformat on Z or +00:00 makes them aware.
+                        if submitted_dt.tzinfo and not since_dt.tzinfo:
+                             since_dt = since_dt.replace(tzinfo=timezone.utc) # Assume since is UTC if not specified
+
+                        if submitted_dt < since_dt:
+                            continue
+                    except ValueError as ve:
+                        sys.stderr.write(f"Warning: Could not parse review submitted_at timestamp '{submitted_at_str}' or --since timestamp '{args.since}': {ve}\n")
+                        # Decide: skip review or include it if parsing fails? For now, include.
+            filtered_overall_reviews.append(review)
+
+        # Sort by submission time, oldest first
+        try:
+            filtered_overall_reviews.sort(key=lambda r: r.get("submitted_at", ""))
+        except Exception as e: # Broad exception for safety
+             sys.stderr.write(f"Warning: Could not sort overall reviews: {e}\n")
+
+    if filtered_overall_reviews:
+        print("# Overall Review Summaries\n\n")
+        for review in filtered_overall_reviews:
+            user = review.get("user", {}).get("login", "Unknown user")
+            submitted_at = review.get("submitted_at", "N/A")
+            state = review.get("state", "N/A")
+            body = review.get("body", "").strip()
+            html_url = review.get("html_url", "N/A")
+            review_id = review.get("id", "N/A")
+
+            print(f"## Review by: **{user}** (ID: `{review_id}`)\n")
+            print(f"*   **Submitted At**: `{submitted_at}`")
+            print(f"*   **State**: `{state}`")
+            print(f"*   **URL**: <{html_url}>\n")
+
+            if body:
+                print("\n### Summary Comment:")
+                print(body)
+            print("\n---")
+        # Add an extra newline to separate from line comments if any overall reviews were printed
+        print("\n")
+
+
+    sys.stderr.write(f"Fetching line comments for PR #{pull_request_number} from {OWNER}/{REPO}...\n")
     if args.since:
-        sys.stderr.write(f"Filtering comments updated since: {args.since}\n")
+        sys.stderr.write(f"Filtering line comments updated since: {args.since}\n") # Clarify this 'since' is for line comments
 
     comments = get_pull_request_review_comments(
         args.token,
         pull_request_number,
-        since=args.since
+        since=args.since # This 'since' applies to line comment's 'updated_at'
     )
 
-    if comments is None: # Explicit check for None, indicating an API/network error
-        sys.stderr.write(f"Error: Failed to fetch review comments due to an API or network issue.{error_suffix}\nPlease check logs for details.\n")
+    if comments is None:
+        sys.stderr.write(f"Error: Failed to fetch line comments due to an API or network issue.{error_suffix}\nPlease check logs for details.\n")
         sys.exit(1)
-    elif not comments: # Empty list, meaning no comments found or matching filters
-        sys.stderr.write(f"No review comments found for PR #{pull_request_number} (or matching filters).\n")
-        return # Graceful exit with 0
+    # Note: The decision to exit if only line comments fail vs. if only overall reviews fail could be nuanced.
+    # For now, failure to fetch either is treated as a critical error for the script's purpose.
 
-    latest_activity_timestamp_obj = None
-    processed_comments_count = 0
+    # Handling for empty line comments will be just before their processing loop.
+    # if not comments: (handled later)
+
+    latest_activity_timestamp_obj = None # This is for line comments' 'since' suggestion
+    processed_comments_count = 0 # This tracks line comments
     print("# Review Comments\n\n")
     for comment in comments:
         created_at_str = comment.get("created_at")
