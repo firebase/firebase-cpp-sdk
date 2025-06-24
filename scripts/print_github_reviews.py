@@ -26,12 +26,12 @@ import re
 import subprocess
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+
 # Constants for GitHub API interaction
 RETRIES = 3
 BACKOFF = 5
 RETRY_STATUS = (403, 500, 502, 504) # HTTP status codes to retry on
 TIMEOUT = 5 # Default timeout for requests in seconds
-TIMEOUT_LONG = 20 # Longer timeout, currently not used by functions in this script
 
 # Global variables for the target repository, populated by set_repo_url_standalone()
 OWNER = ''
@@ -374,7 +374,8 @@ def main():
     filtered_overall_reviews = []
     if overall_reviews: # If not None and not empty
         for review in overall_reviews:
-            if review.get("state") == "DISMISSED":
+            review_state = review.get("state")
+            if review_state == "DISMISSED" or review_state == "PENDING":
                 continue
 
             if args.since:
@@ -404,31 +405,26 @@ def main():
                         sys.stderr.write(f"Warning: Could not parse review submitted_at timestamp '{submitted_at_str}' or --since timestamp '{args.since}': {ve}\n")
                         # If parsing fails, we might choose to include the review to be safe, or skip. Current: include.
 
-            # New filter: Exclude "COMMENTED" reviews with an empty body
             if review.get("state") == "COMMENTED" and not review.get("body", "").strip():
                 continue
 
             filtered_overall_reviews.append(review)
 
-        # Sort by submission time, oldest first
         try:
             filtered_overall_reviews.sort(key=lambda r: r.get("submitted_at", ""))
         except Exception as e: # Broad exception for safety
              sys.stderr.write(f"Warning: Could not sort overall reviews: {e}\n")
 
-    # Output overall reviews if any exist after filtering
     if filtered_overall_reviews:
-        print("# Code Reviews\n\n") # Changed heading
-        # Explicitly re-initialize before this loop to be absolutely sure for the update logic within it.
-        # The main initialization at the top of main() handles the case where this block is skipped.
-        temp_latest_overall_review_dt = None # Use a temporary variable for this loop's accumulation
+        print("# Code Reviews\n\n")
+        # Use a temporary variable for accumulating latest timestamp within this specific block
+        temp_latest_overall_review_dt = None
         for review in filtered_overall_reviews:
             user = review.get("user", {}).get("login", "Unknown user")
-            submitted_at_str = review.get("submitted_at", "N/A") # Keep original string for printing
+            submitted_at_str = review.get("submitted_at", "N/A")
             state = review.get("state", "N/A")
             body = review.get("body", "").strip()
 
-            # Track latest overall review timestamp within this block
             if submitted_at_str and submitted_at_str != "N/A":
                 try:
                     if sys.version_info < (3, 11):
@@ -445,32 +441,29 @@ def main():
             review_id = review.get("id", "N/A")
 
             print(f"## Review by: **{user}** (ID: `{review_id}`)\n")
-            print(f"*   **Submitted At**: `{submitted_at_str}`") # Print original string
+            print(f"*   **Submitted At**: `{submitted_at_str}`")
             print(f"*   **State**: `{state}`")
             print(f"*   **URL**: <{html_url}>\n")
-            # Removed duplicated lines here
 
             if body:
-                print("\n### Summary Comment:")
+                print("\n### Comment:") # Changed heading
                 print(body)
             print("\n---")
 
         # After processing all overall reviews in this block, update the main variable
         if temp_latest_overall_review_dt:
             latest_overall_review_activity_dt = temp_latest_overall_review_dt
-
-        # Add an extra newline to separate from line comments if any overall reviews were printed
         print("\n")
 
 
     sys.stderr.write(f"Fetching line comments for PR #{pull_request_number} from {OWNER}/{REPO}...\n")
     if args.since:
-        sys.stderr.write(f"Filtering line comments updated since: {args.since}\n") # Clarify this 'since' is for line comments
+        sys.stderr.write(f"Filtering line comments updated since: {args.since}\n")
 
     comments = get_pull_request_review_comments(
         args.token,
         pull_request_number,
-        since=args.since # This 'since' applies to line comment's 'updated_at'
+        since=args.since
     )
 
     if comments is None:
@@ -479,22 +472,15 @@ def main():
     # Note: The decision to exit if only line comments fail vs. if only overall reviews fail could be nuanced.
     # For now, failure to fetch either is treated as a critical error for the script's purpose.
 
-    # Initializations for latest_overall_review_activity_dt, latest_line_comment_activity_dt,
-    # and processed_comments_count have been moved to the top of the main() function.
-
     # Handling for line comments
-    if not comments: # comments is an empty list here (None case handled above)
+    if not comments:
         sys.stderr.write(f"No line comments found for PR #{pull_request_number} (or matching filters).\n")
-        # If there were also no overall reviews, and no line comments, then nothing to show.
-        # The 'next command' suggestion logic below will still run if overall_reviews had content.
-        if not filtered_overall_reviews : # and not comments (implicitly true here)
-             # Only return (and skip 'next command' suggestion) if NO content at all was printed.
-             # If overall_reviews were printed, we still want the 'next command' suggestion.
-             pass # Let it fall through to the 'next command' suggestion logic
+        # If filtered_overall_reviews is also empty, then overall_latest_activity_dt will be None,
+        # and no 'next command' suggestion will be printed. This is correct.
     else:
         print("# Review Comments\n\n")
 
-    for comment in comments: # if comments is empty, this loop is skipped.
+    for comment in comments:
         created_at_str = comment.get("created_at")
 
         current_pos = comment.get("position")
@@ -531,8 +517,8 @@ def main():
                 else:
                     dt_str_updated = updated_at_str
                 current_comment_activity_dt = datetime.datetime.fromisoformat(dt_str_updated)
-                if latest_line_comment_activity_dt is None or current_comment_activity_dt > latest_line_comment_activity_dt: # Corrected variable name
-                    latest_line_comment_activity_dt = current_comment_activity_dt # Corrected variable name
+                if latest_line_comment_activity_dt is None or current_comment_activity_dt > latest_line_comment_activity_dt:
+                    latest_line_comment_activity_dt = current_comment_activity_dt
             except ValueError:
                 sys.stderr.write(f"Warning: Could not parse line comment updated_at for --since suggestion: {updated_at_str}\n")
 
@@ -540,7 +526,7 @@ def main():
         path = comment.get("path", "N/A")
         body = comment.get("body", "").strip()
 
-        if not body: # Skip comments with no actual text content
+        if not body:
             continue
 
         processed_comments_count += 1
@@ -561,11 +547,11 @@ def main():
         print("\n### Context:")
         print("```")
         if diff_hunk and diff_hunk.strip():
-            if args.context_lines == 0: # 0 means full hunk
+            if args.context_lines == 0:
                 print(diff_hunk)
-            else: # Display header (if any) and last N lines
+            else:
                 hunk_lines = diff_hunk.split('\n')
-                if hunk_lines and hunk_lines[0].startswith("@@ "): # Diff hunk header
+                if hunk_lines and hunk_lines[0].startswith("@@ "):
                     print(hunk_lines[0])
                     hunk_lines = hunk_lines[1:]
                 print("\n".join(hunk_lines[-args.context_lines:]))
@@ -590,14 +576,13 @@ def main():
 
     if overall_latest_activity_dt:
         try:
-            # Suggest next command with '--since' pointing to just after the latest activity.
             next_since_dt = overall_latest_activity_dt.astimezone(timezone.utc) + timedelta(seconds=2)
             next_since_str = next_since_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
             new_cmd_args = [sys.executable, sys.argv[0]]
             i = 1
             while i < len(sys.argv):
-                if sys.argv[i] == "--since": # Skip existing --since argument and its value
+                if sys.argv[i] == "--since":
                     i += 2
                     continue
                 new_cmd_args.append(sys.argv[i])
