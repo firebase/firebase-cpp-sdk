@@ -43,7 +43,7 @@ REPO = ''
 BASE_URL = 'https://api.github.com' # Base URL for GitHub API
 GITHUB_API_URL = '' # Dynamically constructed API URL for the specific repository
 
-logging.set_verbosity(logging.INFO)
+logging.set_verbosity(logging.WARNING)
 
 
 def set_repo_url_standalone(owner_name, repo_name):
@@ -105,7 +105,7 @@ def get_pull_request_review_comments(token, pull_number, since=None):
 
     except requests.exceptions.RequestException as e:
       logging.error(f"Error fetching review comments (page {page}, params: {current_page_params}) for PR {pull_number}: {e}")
-      break
+      return None # Indicate error
   return results
 
 
@@ -136,7 +136,7 @@ def list_pull_requests(token, state, head, base):
         keep_going = (len(current_page_results) == per_page)
     except requests.exceptions.RequestException as e:
       logging.error(f"Error listing pull requests (page {params.get('page', 'N/A')}, params: {params}) for {OWNER}/{REPO}: {e}")
-      break
+      return None # Indicate error
   return results
 
 
@@ -354,9 +354,12 @@ def main():
         since=args.since
     )
 
-    if not comments:
-        sys.stderr.write(f"No review comments found for PR #{pull_request_number} (or matching filters), or an error occurred.\n")
-        return
+    if comments is None: # Explicit check for None, indicating an API/network error
+        sys.stderr.write(f"Error: Failed to fetch review comments due to an API or network issue.{error_suffix}\nPlease check logs for details.\n")
+        sys.exit(1)
+    elif not comments: # Empty list, meaning no comments found or matching filters
+        sys.stderr.write(f"No review comments found for PR #{pull_request_number} (or matching filters).\n")
+        return # Graceful exit with 0
 
     latest_activity_timestamp_obj = None
     processed_comments_count = 0
