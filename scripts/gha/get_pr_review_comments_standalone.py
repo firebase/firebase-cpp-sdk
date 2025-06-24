@@ -150,26 +150,24 @@ def main():
         required=True,
         help="Pull request number."
     )
-    repo_spec_group = parser.add_mutually_exclusive_group()
-    repo_spec_group.add_argument(
+    # Arguments for repository specification
+    parser.add_argument(
         "--url",
         type=str,
         default=None,
-        help="Full GitHub repository URL (e.g., https://github.com/owner/repo or git@github.com:owner/repo.git). Overrides --owner/--repo and git detection."
+        help="Full GitHub repository URL (e.g., https://github.com/owner/repo or git@github.com:owner/repo.git). Takes precedence over --owner/--repo."
     )
-    # Create a sub-group for owner/repo pair if not using URL
-    owner_repo_group = repo_spec_group.add_argument_group('owner_repo_pair', 'Specify owner and repository name (used if --url is not provided)')
-    owner_repo_group.add_argument(
+    parser.add_argument(
         "--owner",
         type=str,
-        default=determined_owner,
-        help=f"Repository owner. {'Default: ' + determined_owner if determined_owner else 'Required if --url is not used and not determinable from git.'}"
+        default=determined_owner, # Default to auto-detected
+        help=f"Repository owner. Used if --url is not provided. {'Default: ' + determined_owner if determined_owner else 'Required if --url is not used and not determinable from git.'}"
     )
-    owner_repo_group.add_argument(
+    parser.add_argument(
         "--repo",
         type=str,
-        default=determined_repo,
-        help=f"Repository name. {'Default: ' + determined_repo if determined_repo else 'Required if --url is not used and not determinable from git.'}"
+        default=determined_repo,  # Default to auto-detected
+        help=f"Repository name. Used if --url is not provided. {'Default: ' + determined_repo if determined_repo else 'Required if --url is not used and not determinable from git.'}"
     )
     parser.add_argument(
         "--token",
@@ -211,7 +209,16 @@ def main():
     final_owner = None
     final_repo = None
 
+    # Logic for determining owner and repo:
+    # 1. If --url is provided, use it. Error if --owner or --repo are also explicitly set.
+    # 2. Else if --owner and --repo are provided, use them.
+    # 3. Else (neither --url nor --owner/--repo pair explicitly set), use auto-detected values (which are defaults for args.owner/args.repo).
+
     if args.url:
+        if args.owner != determined_owner or args.repo != determined_repo: # Check if owner/repo were explicitly changed from defaults
+            sys.stderr.write("Error: Cannot use --owner/--repo when --url is specified.\n")
+            parser.print_help()
+            sys.exit(1)
         parsed_owner, parsed_repo = parse_repo_url(args.url)
         if parsed_owner and parsed_repo:
             final_owner = parsed_owner
@@ -221,25 +228,30 @@ def main():
             sys.stderr.write(f"Error: Invalid URL format provided: {args.url}. Expected https://github.com/owner/repo or git@github.com:owner/repo.git\n")
             parser.print_help()
             sys.exit(1)
-    # If URL is not provided, check owner/repo. They default to determined_owner/repo.
-    elif args.owner and args.repo:
+    elif (args.owner != determined_owner or args.repo != determined_repo) or (not determined_owner and args.owner and args.repo):
+        # This condition means:
+        # 1. User explicitly set --owner or --repo to something different than auto-detected OR
+        # 2. Auto-detection failed (determined_owner is None) AND user provided both owner and repo.
+        if not args.owner or not args.repo:
+            sys.stderr.write("Error: Both --owner and --repo must be specified if one is provided (and --url is not used).\n")
+            parser.print_help()
+            sys.exit(1)
         final_owner = args.owner
         final_repo = args.repo
-        # If these values are different from the auto-detected ones (i.e., user explicitly provided them),
-        # or if auto-detection failed and these are the only source.
-        if (args.owner != determined_owner or args.repo != determined_repo) and (determined_owner or determined_repo):
-             sys.stderr.write(f"Using repository from --owner/--repo args: {final_owner}/{final_repo}\n")
-        # If auto-detection worked and user didn't override, the initial "Determined repository..." message is sufficient.
-    elif args.owner or args.repo: # Only one of owner/repo was specified (and not --url)
-        sys.stderr.write("Error: Both --owner and --repo must be specified if one is provided and --url is not used.\n")
-        parser.print_help()
-        sys.exit(1)
-    # If --url, --owner, --repo are all None, it means auto-detection failed AND user provided nothing.
-    # This case is caught by the final check below.
-
+        sys.stderr.write(f"Using repository from --owner/--repo args: {final_owner}/{final_repo}\n")
+    elif args.owner and args.repo: # Using auto-detected values which are now in args.owner and args.repo
+        final_owner = args.owner
+        final_repo = args.repo
+        # The "Determined repository..." message was already printed if successful.
+    else: # Handles cases like only one of owner/repo being set after defaults, or auto-detection failed and nothing/partial was given.
+        if (args.owner and not args.repo) or (not args.owner and args.repo):
+             sys.stderr.write("Error: Both --owner and --repo must be specified if one is provided (and --url is not used).\n")
+             parser.print_help()
+             sys.exit(1)
+        # If it reaches here and final_owner/repo are still None, it means auto-detection failed and user didn't provide valid pair.
 
     if not final_owner or not final_repo:
-        sys.stderr.write("Error: Could not determine repository. Please specify --url, or both --owner and --repo, or ensure git remote 'origin' is configured correctly.\n")
+        sys.stderr.write("Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.\n")
         parser.print_help()
         sys.exit(1)
 
