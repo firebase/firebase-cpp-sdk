@@ -26,7 +26,7 @@ import re
 import subprocess
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from absl import logging
+# from absl import logging # Removed
 
 # Constants for GitHub API interaction
 RETRIES = 3
@@ -43,7 +43,7 @@ REPO = ''
 BASE_URL = 'https://api.github.com' # Base URL for GitHub API
 GITHUB_API_URL = '' # Dynamically constructed API URL for the specific repository
 
-logging.set_verbosity(logging.WARNING)
+# logging.set_verbosity(logging.WARNING) # Removed
 
 
 def set_repo_url_standalone(owner_name, repo_name):
@@ -90,7 +90,7 @@ def get_pull_request_review_comments(token, pull_number, since=None):
       with requests_retry_session().get(url, headers=headers, params=current_page_params,
                         stream=True, timeout=TIMEOUT) as response:
         response.raise_for_status()
-        logging.info("get_pull_request_review_comments: %s params %s response: %s", url, current_page_params, response)
+        # logging.info("get_pull_request_review_comments: %s params %s response: %s", url, current_page_params, response) # Removed
 
         current_page_results = response.json()
         if not current_page_results: # No more data on this page
@@ -104,7 +104,7 @@ def get_pull_request_review_comments(token, pull_number, since=None):
         page += 1
 
     except requests.exceptions.RequestException as e:
-      logging.error(f"Error fetching review comments (page {page}, params: {current_page_params}) for PR {pull_number}: {e}")
+      sys.stderr.write(f"Error: Failed to fetch review comments (page {page}, params: {current_page_params}) for PR {pull_number}: {e}\n")
       return None # Indicate error
   return results
 
@@ -127,7 +127,7 @@ def list_pull_requests(token, state, head, base):
     try:
       with requests_retry_session().get(url, headers=headers, params=params,
                         stream=True, timeout=TIMEOUT) as response:
-        logging.info("list_pull_requests: %s params: %s response: %s", url, params, response)
+        # logging.info("list_pull_requests: %s params: %s response: %s", url, params, response) # Removed
         response.raise_for_status()
         current_page_results = response.json()
         if not current_page_results:
@@ -135,7 +135,7 @@ def list_pull_requests(token, state, head, base):
         results.extend(current_page_results)
         keep_going = (len(current_page_results) == per_page)
     except requests.exceptions.RequestException as e:
-      logging.error(f"Error listing pull requests (page {params.get('page', 'N/A')}, params: {params}) for {OWNER}/{REPO}: {e}")
+      sys.stderr.write(f"Error: Failed to list pull requests (page {params.get('page', 'N/A')}, params: {params}) for {OWNER}/{REPO}: {e}\n")
       return None # Indicate error
   return results
 
@@ -157,7 +157,7 @@ def get_pull_request_reviews(token, owner, repo, pull_number):
         try:
             with requests_retry_session().get(url, headers=headers, params=params,
                                 stream=True, timeout=TIMEOUT) as response:
-                logging.info("get_pull_request_reviews: %s params: %s response: %s", url, params, response)
+                # logging.info("get_pull_request_reviews: %s params: %s response: %s", url, params, response) # Removed
                 response.raise_for_status()
                 current_page_results = response.json()
                 if not current_page_results:
@@ -165,7 +165,7 @@ def get_pull_request_reviews(token, owner, repo, pull_number):
                 results.extend(current_page_results)
                 keep_going = (len(current_page_results) == per_page)
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error listing pull request reviews (page {params.get('page', 'N/A')}, params: {params}) for PR {pull_number} in {owner}/{repo}: {e}")
+            sys.stderr.write(f"Error: Failed to list pull request reviews (page {params.get('page', 'N/A')}, params: {params}) for PR {pull_number} in {owner}/{repo}: {e}\n")
             return None # Indicate error
     return results
 
