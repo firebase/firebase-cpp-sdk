@@ -212,12 +212,6 @@ def main():
                     "Repository can be specified via --url, or --owner AND --repo, or auto-detected from git remote 'origin'.",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument( # This is always required
-        "--pull_number",
-        type=int,
-        required=True,
-        help="Pull request number."
-    )
     # Arguments for repository specification
     parser.add_argument(
         "--pull_number",
