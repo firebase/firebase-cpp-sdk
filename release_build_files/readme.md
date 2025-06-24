@@ -675,7 +675,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### 12.9.0 (Upcoming)
+### Upcoming Release
 -   Changes
     - iOS: Added an option to explicitly specify your app's `AppDelegate` class
       name via the `FirebaseAppDelegateClassName` key in `Info.plist`. This
