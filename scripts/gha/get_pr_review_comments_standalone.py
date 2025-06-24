@@ -269,9 +269,10 @@ def main():
     )
 
     args = parser.parse_args()
+    error_suffix = " (use --help for more details)"
 
     if not args.token:
-        sys.stderr.write("Error: GitHub token not provided. Set GITHUB_TOKEN or use --token.\n")
+        sys.stderr.write(f"Error: GitHub token not provided. Set GITHUB_TOKEN or use --token.{error_suffix}\n")
         sys.exit(1)
 
     final_owner = None
@@ -283,47 +284,57 @@ def main():
     # 3. Else (neither --url nor --owner/--repo pair explicitly set), use auto-detected values (which are defaults for args.owner/args.repo).
 
     if args.url:
-        if args.owner != determined_owner or args.repo != determined_repo: # Check if owner/repo were explicitly changed from defaults
-            sys.stderr.write("Error: Cannot use --owner/--repo when --url is specified.\n")
-            parser.print_help()
+        # URL is provided, it takes precedence.
+        # Error if --owner or --repo were also explicitly set by the user (i.e., different from their defaults)
+        owner_explicitly_set = args.owner is not None and args.owner != determined_owner
+        repo_explicitly_set = args.repo is not None and args.repo != determined_repo
+        if owner_explicitly_set or repo_explicitly_set:
+            sys.stderr.write(f"Error: Cannot use --owner or --repo when --url is specified.{error_suffix}\n")
             sys.exit(1)
+
         parsed_owner, parsed_repo = parse_repo_url(args.url)
         if parsed_owner and parsed_repo:
             final_owner = parsed_owner
             final_repo = parsed_repo
             sys.stderr.write(f"Using repository from --url: {final_owner}/{final_repo}\n")
         else:
-            sys.stderr.write(f"Error: Invalid URL format provided: {args.url}. Expected https://github.com/owner/repo or git@github.com:owner/repo.git\n")
-            parser.print_help()
+            sys.stderr.write(f"Error: Invalid URL format: {args.url}. Expected https://github.com/owner/repo or git@github.com:owner/repo.git{error_suffix}\n")
             sys.exit(1)
-    elif (args.owner != determined_owner or args.repo != determined_repo) or (not determined_owner and args.owner and args.repo):
-        # This condition means:
-        # 1. User explicitly set --owner or --repo to something different than auto-detected OR
-        # 2. Auto-detection failed (determined_owner is None) AND user provided both owner and repo.
-        if not args.owner or not args.repo:
-            sys.stderr.write("Error: Both --owner and --repo must be specified if one is provided (and --url is not used).\n")
-            parser.print_help()
+    else:
+        # URL is not provided, try to use owner/repo.
+        # These could be from explicit user input or from auto-detection (via defaults).
+        is_owner_from_user = args.owner is not None and args.owner != determined_owner
+        is_repo_from_user = args.repo is not None and args.repo != determined_repo
+        is_owner_from_default = args.owner is not None and args.owner == determined_owner and determined_owner is not None
+        is_repo_from_default = args.repo is not None and args.repo == determined_repo and determined_repo is not None
+
+        if (is_owner_from_user or is_repo_from_user): # User explicitly set at least one
+            if args.owner and args.repo: # Both were set (either explicitly or one explicit, one default that existed)
+                final_owner = args.owner
+                final_repo = args.repo
+                sys.stderr.write(f"Using repository from --owner/--repo args: {final_owner}/{final_repo}\n")
+            else: # User set one but not the other, and the other wasn't available from a default
+                 sys.stderr.write(f"Error: Both --owner and --repo must be specified if one is provided explicitly (and --url is not used).{error_suffix}\n")
+                 sys.exit(1)
+        elif args.owner and args.repo: # Both are from successful auto-detection (already printed "Determined repository...")
+            final_owner = args.owner
+            final_repo = args.repo
+        elif args.owner or args.repo: # Only one was available (e.g. auto-detect only found one, or bad default state)
+            sys.stderr.write(f"Error: Both --owner and --repo are required if not using --url, and auto-detection was incomplete.{error_suffix}\n")
             sys.exit(1)
-        final_owner = args.owner
-        final_repo = args.repo
-        sys.stderr.write(f"Using repository from --owner/--repo args: {final_owner}/{final_repo}\n")
-    elif args.owner and args.repo: # Using auto-detected values which are now in args.owner and args.repo
-        final_owner = args.owner
-        final_repo = args.repo
-        # The "Determined repository..." message was already printed if successful.
-    else: # Handles cases like only one of owner/repo being set after defaults, or auto-detection failed and nothing/partial was given.
-        if (args.owner and not args.repo) or (not args.owner and args.repo):
-             sys.stderr.write("Error: Both --owner and --repo must be specified if one is provided (and --url is not used).\n")
-             parser.print_help()
-             sys.exit(1)
-        # If it reaches here and final_owner/repo are still None, it means auto-detection failed and user didn't provide valid pair.
+        # If none of the above, final_owner/repo remain None, will be caught by the check below.
 
     if not final_owner or not final_repo:
-        sys.stderr.write("Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.\n")
-        sys.exit(1) # No print_help() here, as per request
+        sys.stderr.write(f"Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.{error_suffix}\n")
+        sys.exit(1)
+
+
+    if not final_owner or not final_repo:
+        sys.stderr.write(f"Error: Could not determine repository. Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.{error_suffix}\n")
+        sys.exit(1)
 
     if not set_repo_url_standalone(final_owner, final_repo): # Sets global OWNER and REPO
-        sys.stderr.write(f"Error: Could not set repository to {final_owner}/{final_repo}. Ensure owner/repo are correct.\n")
+        sys.stderr.write(f"Error: Could not set repository to {final_owner}/{final_repo}. Ensure owner/repo are correct.{error_suffix}\n")
         sys.exit(1)
 
     pull_request_number = args.pull_number
@@ -337,27 +348,19 @@ def main():
             if pull_request_number:
                 sys.stderr.write(f"Found PR #{pull_request_number} for branch {current_branch_for_pr_check}.\n")
             else:
-                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n")
+                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n") # This is informational, error below
         else:
-            # Error: Could not determine current git branch (for PR detection).
-            sys.stderr.write("Error: Could not determine current git branch. Cannot find PR automatically.\n")
-            sys.exit(1) # No print_help() here, as per request
+            sys.stderr.write(f"Error: Could not determine current git branch. Cannot find PR automatically.{error_suffix}\n")
+            sys.exit(1)
 
     if not pull_request_number:
-        # This is reached if:
-        #   - --pull_number was not specified AND
-        #   - current branch was determined BUT no PR was found for it.
-        # (The cases where branch itself couldn't be determined now exit above without print_help)
-        error_message = "Error: Pull request number not specified and no open PR found for the current branch."
-        if args.pull_number: # Should not happen if logic is correct, but as a safeguard
-            error_message = f"Error: Pull request number {args.pull_number} is invalid or not found."
-        elif not current_branch_for_pr_check: # Should be caught by exit above
+        error_message = "Error: Pull request number is required."
+        if not args.pull_number and current_branch_for_pr_check: # Auto-detect branch ok, but no PR found
+            error_message = f"Error: Pull request number not specified and no open PR found for branch {current_branch_for_pr_check}."
+        elif not args.pull_number and not current_branch_for_pr_check: # Should have been caught above
              error_message = "Error: Pull request number not specified and could not determine current git branch."
 
-        sys.stderr.write(error_message + "\n")
-        # Keeping print_help() for this more general failure case unless explicitly asked to remove.
-        # This specific error (no PR found for a valid branch) is different from "can't find branch".
-        parser.print_help()
+        sys.stderr.write(f"{error_message}{error_suffix}\n")
         sys.exit(1)
 
     sys.stderr.write(f"Fetching comments for PR #{pull_request_number} from {OWNER}/{REPO}...\n")
