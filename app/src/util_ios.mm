@@ -230,9 +230,9 @@ static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> de
     } else {
       if (appDelegateClassName) {  // Key is present but value is invalid (e.g., empty string or
                                    // wrong type).
-	NSLog(@"Firebase Error: Info.plist key '%@' has an invalid value ('%@'). Proceeding "
-	      @"with default swizzling.",
-	      kFirebaseAppDelegateClassNameKey, appDelegateClassName);
+        NSLog(@"Firebase Error: Info.plist key '%@' has an invalid value ('%@'). Proceeding "
+              @"with default swizzling.",
+              kFirebaseAppDelegateClassNameKey, appDelegateClassName);
       } else {  // Key is not present.
         // This is the default case, no special logging needed here beyond the swizzling log itself.
       }
