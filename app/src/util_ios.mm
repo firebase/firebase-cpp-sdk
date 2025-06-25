@@ -28,6 +28,7 @@
 #import <objc/runtime.h>
 
 using firebase::GetLogLevel;
+using firebase::kLogLevelDebug;
 
 // Key used in Info.plist to specify a custom AppDelegate class name.
 static NSString *const kFirebaseAppDelegateClassNameKey = @"FirebaseAppDelegateClassName";
