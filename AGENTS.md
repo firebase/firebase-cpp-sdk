@@ -1,6 +1,6 @@
 # Introduction
 
-> **Note on Document Formatting:** This document (`Jules.md`) should be
+> **Note on Document Formatting:** This document (`AGENTS.md`) should be
 > maintained with lines word-wrapped to a maximum of 80 characters to ensure
 > readability across various editors and terminals.
 
@@ -574,7 +574,7 @@ prevent memory leaks, dangling pointers, or double deletions.
 This document is a living guide. As the Firebase C++ SDK evolves, new patterns
 may emerge, or existing practices might change. If you introduce a new common
 pattern, significantly alter a build process, or establish a new best practice
-during your work, please take a moment to update this `Jules.md` file
+during your work, please take a moment to update this `AGENTS.md` file
 accordingly.
 
 Keeping this document current will greatly benefit future AI agents and human
@@ -584,7 +584,7 @@ developers working on this repository.
 
 ## Recommended General Prompt Instruction
 
-When working on this task, please consistently refer to the `Jules.md` guide
+When working on this task, please consistently refer to the `AGENTS.md` guide
 for all repository-specific conventions, including setup procedures, coding
 style, common architectural patterns, and API usage. Pay close attention to the
 testing strategies outlined, ensuring your implementation includes
@@ -592,31 +592,31 @@ comprehensive integration tests with detailed test cases in your plan. Implement
 robust error handling for any new or modified public API methods, following the
 patterns for `firebase::Future` error reporting. If the feature involves
 platform-specific code, ensure the public API remains consistent across all
-platforms, as discussed in `Jules.md`. Write clear, maintainable code,
+platforms, as discussed in `AGENTS.md`. Write clear, maintainable code,
 adhering to the commenting guidelines, and if you need to add new third-party
 dependencies, document the rationale and update build configurations according
 to the established practices. Ensure your changes align with the overall best
-practices detailed in `Jules.md`.
+practices detailed in `AGENTS.md`.
 
 ## Key Directives for Jules AI
 
-*   **Prioritize `Jules.md`**: This document (`Jules.md`) contains
+*   **Prioritize `AGENTS.md`**: This document (`AGENTS.md`) contains
     repository-specific guidelines. Prioritize this information when making
     decisions about coding style, testing procedures, architectural patterns,
     and API usage.
 *   **Adherence to Patterns**: Strive to follow the common patterns and best
     practices outlined here. This ensures consistency across the codebase.
-*   **Clarification for Deviations**: If the existing patterns in `Jules.md` do
+*   **Clarification for Deviations**: If the existing patterns in `AGENTS.md` do
     not seem suitable for a specific task, or if a deviation is necessary,
     please explicitly state this in your plan or request clarification before
     proceeding with implementation.
-*   **Updating `Jules.md`**: If you introduce a new, broadly applicable
+*   **Updating `AGENTS.md`**: If you introduce a new, broadly applicable
     pattern, or if a significant change to the build process or best practices
     occurs as part of your task, please include a step in your plan to update
-    `Jules.md` to reflect these changes.
+    `AGENTS.md` to reflect these changes.
 *   **Testing**: Remember that integration tests are the primary method of
     testing. Ensure new features are accompanied by corresponding integration
-    tests as described in the 'Testing' section of `Jules.md`.
+    tests as described in the 'Testing' section of `AGENTS.md`.
 *   **Commit Messages**: Follow standard commit message guidelines. A brief
     summary line, followed by a more detailed explanation if necessary.
 *   **Tool Limitations & Path Specificity**: If codebase search tools (like
