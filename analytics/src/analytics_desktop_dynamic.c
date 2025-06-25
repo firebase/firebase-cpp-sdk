@@ -18,7 +18,8 @@
 
 #include <stddef.h>
 
-static void* g_stub_memory = NULL;
+// A nice big chunk of stub memory that can be returned by stubbed Create methods.
+static char g_stub_memory[256] = {0};
 
 // clang-format off
 
@@ -38,7 +39,7 @@ const int FirebaseAnalytics_KnownWindowsDllHashCount = 1;
 // --- Stub Function Definitions ---
 // Stub for GoogleAnalytics_Options_Create
 static GoogleAnalytics_Options* Stub_GoogleAnalytics_Options_Create() {
-    return (GoogleAnalytics_Options*)(&g_stub_memory);
+    return (GoogleAnalytics_Options*)(&g_stub_memory[0]);
 }
 
 // Stub for GoogleAnalytics_Options_Destroy
@@ -48,7 +49,7 @@ static void Stub_GoogleAnalytics_Options_Destroy(GoogleAnalytics_Options* option
 
 // Stub for GoogleAnalytics_Item_Create
 static GoogleAnalytics_Item* Stub_GoogleAnalytics_Item_Create() {
-    return (GoogleAnalytics_Item*)(&g_stub_memory);
+    return (GoogleAnalytics_Item*)(&g_stub_memory[0]);
 }
 
 // Stub for GoogleAnalytics_Item_InsertInt
@@ -79,7 +80,7 @@ static void Stub_GoogleAnalytics_Item_Destroy(GoogleAnalytics_Item* item) {
 
 // Stub for GoogleAnalytics_ItemVector_Create
 static GoogleAnalytics_ItemVector* Stub_GoogleAnalytics_ItemVector_Create() {
-    return (GoogleAnalytics_ItemVector*)(&g_stub_memory);
+    return (GoogleAnalytics_ItemVector*)(&g_stub_memory[0]);
 }
 
 // Stub for GoogleAnalytics_ItemVector_InsertItem
@@ -94,7 +95,7 @@ static void Stub_GoogleAnalytics_ItemVector_Destroy(GoogleAnalytics_ItemVector* 
 
 // Stub for GoogleAnalytics_EventParameters_Create
 static GoogleAnalytics_EventParameters* Stub_GoogleAnalytics_EventParameters_Create() {
-    return (GoogleAnalytics_EventParameters*)(&g_stub_memory);
+    return (GoogleAnalytics_EventParameters*)(&g_stub_memory[0]);
 }
 
 // Stub for GoogleAnalytics_EventParameters_InsertInt
