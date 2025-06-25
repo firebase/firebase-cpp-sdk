@@ -13,7 +13,11 @@
 # limitations under the License.
 
 
-
+if(WIN32)
+  set(ANALYTICS_TEST_PLATFORM_DEPS Crypt32.lib)
+else()
+  set(ANALYTICS_TEST_PLATFORM_DEPS "")
+endif()
 
 firebase_cpp_cc_test(
   firebase_analytics_test
@@ -23,6 +27,7 @@ firebase_cpp_cc_test(
     firebase_app_for_testing
     firebase_analytics
     firebase_testing
+    ${ANALYTICS_TEST_PLATFORM_DEPS}
 )
 
 firebase_cpp_cc_test_on_ios(

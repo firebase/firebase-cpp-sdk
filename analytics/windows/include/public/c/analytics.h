@@ -1,7 +1,9 @@
 // Copyright 2025 Google LLC
+
 #ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_C_ANALYTICS_H_
 #define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_C_ANALYTICS_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #if defined(ANALYTICS_DLL) && defined(_WIN32)
@@ -13,6 +15,78 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
+
+/**
+ * @brief GoogleAnalytics_Options for initializing the Analytics SDK.
+ * GoogleAnalytics_Options_Create() must be used to create an instance of this
+ * struct with default values. If these options are created manually instead of
+ * using GoogleAnalytics_Options_Create(), initialization will fail, and the
+ * caller will be responsible for destroying the options.
+ */
+ANALYTICS_API typedef struct {
+  /**
+   * @brief The unique identifier for the Firebase app across all of Firebase
+   * with a platform-specific format. This is a required field, can not be null
+   * or empty, and must be UTF-8 encoded.
+   *
+   * The caller is responsible for allocating this memory, and deallocating it
+   * once the options instance has been destroyed.
+   *
+   * Example: 1:1234567890:android:321abc456def7890
+   */
+  const char* app_id;
+
+  /**
+   * @brief Unique identifier for the application implementing the SDK. The
+   * format typically follows a reversed domain name convention. This is a
+   * required field, can not be null or empty, and must be UTF-8 encoded.
+   *
+   * The caller is responsible for allocating this memory, and deallocating it
+   * once the options instance has been destroyed.
+   *
+   * Example: com.google.analytics.AnalyticsApp
+   */
+  const char* package_name;
+
+  /**
+   * @brief Whether Analytics is enabled at the very first launch.
+   * This value is then persisted across app sessions, and from then on, takes
+   * precedence over the value of this field.
+   * GoogleAnalytics_SetAnalyticsCollectionEnabled() can be used to
+   * enable/disable after that point.
+   */
+  bool analytics_collection_enabled_at_first_launch;
+
+  /**
+   * @brief Reserved for internal use by the SDK.
+   */
+  GoogleAnalytics_Reserved* reserved;
+} GoogleAnalytics_Options;
+
+/**
+ * @brief Creates an instance of GoogleAnalytics_Options with default values.
+ *
+ * The caller is responsible for destroying the options using the
+ * GoogleAnalytics_Options_Destroy() function, unless it has been passed to the
+ * GoogleAnalytics_Initialize() function, in which case it will be destroyed
+ * automatically.
+ *
+ * @return A pointer to a newly allocated GoogleAnalytics_Options instance.
+ */
+ANALYTICS_API GoogleAnalytics_Options* GoogleAnalytics_Options_Create();
+
+/**
+ * @brief Destroys the GoogleAnalytics_Options instance. Must not be called if
+ * the options were created with GoogleAnalytics_Options_Create() and passed to
+ * the GoogleAnalytics_Initialize() function, which would destroy them
+ * automatically.
+ *
+ * @param[in] options The GoogleAnalytics_Options instance to destroy.
+ */
+ANALYTICS_API void GoogleAnalytics_Options_Destroy(
+    GoogleAnalytics_Options* options);
 
 /**
  * @brief Opaque type for an item.
@@ -211,6 +285,20 @@ ANALYTICS_API void GoogleAnalytics_EventParameters_Destroy(
     GoogleAnalytics_EventParameters* event_parameter_map);
 
 /**
+ * @brief Initializes the Analytics SDK. Until this is called, all analytics
+ * functions below will be no-ops.
+ *
+ * @param[in] options The options for initializing the Analytics
+ * SDK. Deleted regardless of return value, if it was allocated with the
+ * GoogleAnalytics_Options_Create() function.
+ * @return true if the Analytics SDK was successfully initialized, false
+ * otherwise. Also returns false if the Analytics SDK has already been
+ * initialized.
+ */
+ANALYTICS_API bool GoogleAnalytics_Initialize(
+    const GoogleAnalytics_Options* options);
+
+/**
  * @brief Logs an app event.
  *
  * The event can have up to 25 parameters. Events with the same name must have
@@ -296,7 +384,7 @@ ANALYTICS_API void GoogleAnalytics_LogEvent(
 ANALYTICS_API void GoogleAnalytics_SetUserProperty(const char* name,
                                                    const char* value);
 
-/*
+/**
  * @brief Sets the user ID property.
  *
  * This feature must be used in accordance with
@@ -309,13 +397,13 @@ ANALYTICS_API void GoogleAnalytics_SetUserProperty(const char* name,
  */
 ANALYTICS_API void GoogleAnalytics_SetUserId(const char* user_id);
 
-/*
+/**
  * @brief Clears all analytics data for this instance from the device and resets
  * the app instance ID.
  */
 ANALYTICS_API void GoogleAnalytics_ResetAnalyticsData();
 
-/*
+/**
  * @brief Sets whether analytics collection is enabled for this app on this
  * device.
  *
