@@ -51,6 +51,7 @@ static HMODULE g_analytics_module = 0;
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
 static bool g_initialized = false;
 static int g_fake_instance_id = 0;
+static bool g_analytics_collection_enabled = true;
 
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
@@ -99,9 +100,8 @@ void Initialize(const App& app) {
         } else {
           c_options->app_id = current_app_id.c_str();
           c_options->package_name = current_package_name.c_str();
-          c_options->analytics_collection_enabled_at_first_launch = true;
-          // c_options->reserved is initialized by
-          // GoogleAnalytics_Options_Create
+          c_options->analytics_collection_enabled_at_first_launch =
+	    g_analytics_collection_enabled;
 
           LogInfo(
               "Analytics: Initializing Google Analytics C API with App ID: %s, "
@@ -144,7 +144,7 @@ void Terminate() {
     FreeLibrary(g_analytics_module);
     g_analytics_module = 0;
   }
-#endif
+#endif  // defined(_WIN32)
 
   internal::FutureData::Destroy();
   internal::UnregisterTerminateOnDefaultAppDestroy();
@@ -178,10 +178,15 @@ static void ConvertParametersToGAParams(
       // Vector types for top-level event parameters are not supported on
       // Desktop. Only specific complex types (like a map processed into an
       // ItemVector) are handled.
-      LogError(
-          "Analytics: Parameter '%s' has type Vector, which is unsupported for "
-          "event parameters on Desktop. Skipping.",
-          param.name);
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogError(
+		 "Analytics: Parameter '%s' has type Vector, which is unsupported for "
+		 "event parameters on Desktop. Skipping.",
+		 param.name);
+      }
+#endif  // defined(_WIN32)
       continue;  // Skip this parameter
     } else if (param.value.is_map()) {
       // This block handles parameters that are maps.
@@ -365,9 +370,11 @@ void SetUserId(const char* user_id) {
 //
 // @param[in] enabled A flag that enables or disables Analytics collection.
 void SetAnalyticsCollectionEnabled(bool enabled) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  g_analytics_collection_enabled = enabled;
 
-  GoogleAnalytics_SetAnalyticsCollectionEnabled(enabled);
+  if (internal::IsInitialized()) {
+    GoogleAnalytics_SetAnalyticsCollectionEnabled(enabled);
+  }
 }
 
 // Clears all analytics data for this app from the device and resets the app
@@ -432,53 +439,83 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
 
   // Not supported by the Windows C API.
   (void)consent_settings;  // Mark as unused
-  LogWarning(
-      "Analytics: SetConsent() is not supported and has no effect on Desktop.");
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogWarning(
+		   "Analytics: SetConsent() is not supported and has no effect on Desktop.");
+      }
+#endif  // defined(_WIN32)
 }
 
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)email_address;
-  LogWarning(
-      "Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is "
-      "not supported and has no effect on Desktop.");
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogWarning(
+		   "Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is "
+		   "not supported and has no effect on Desktop.");
+      }
+#endif  // defined(_WIN32)
 }
 
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)phone_number;
-  LogWarning(
-      "Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is "
-      "not supported and has no effect on Desktop.");
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogWarning(
+		   "Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is "
+		   "not supported and has no effect on Desktop.");
+      }
+#endif  // defined(_WIN32)
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email_address) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_email_address;
-  LogWarning(
-      "Analytics: "
-      "InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not "
-      "supported and has no effect on Desktop.");
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogWarning(
+		   "Analytics: "
+		   "InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not "
+		   "supported and has no effect on Desktop.");
+      }
+#endif  // defined(_WIN32)
 }
 
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone_number) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_phone_number;
-  LogWarning(
-      "Analytics: InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() "
-      "is not supported and has no effect on Desktop.");
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogWarning(
+		   "Analytics: InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() "
+		   "is not supported and has no effect on Desktop.");
+      }
+#endif  // defined(_WIN32)
 }
 
 void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)milliseconds;
-  LogWarning(
-      "Analytics: SetSessionTimeoutDuration() is not supported and has no "
-      "effect on Desktop.");
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogWarning(
+		   "Analytics: SetSessionTimeoutDuration() is not supported and has no "
+		   "effect on Desktop.");
+      }
+#endif  // defined(_WIN32)
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
@@ -493,8 +530,14 @@ Future<std::string> GetAnalyticsInstanceId() {
     instance_id += ss.str();
   }
   api->CompleteWithResult(future_handle, 0, "", instance_id);
-  LogWarning(
-      "Analytics: GetAnalyticsInstanceId() is not supported on Desktop.");
+
+#if defined(_WIN32)
+      if (g_analytics_module) {
+	// Only log this if we are not in stub mode.
+	LogWarning(
+		   "Analytics: GetAnalyticsInstanceId() is not supported on Desktop.");
+      }
+#endif  // defined(_WIN32)
   return Future<std::string>(api, future_handle.get());
 }
 
@@ -515,14 +558,24 @@ Future<int64_t> GetSessionId() {
       api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
   int64_t session_id = 0x5E5510171D570BL;  // "SESSIONIDSTUB", kinda
   api->CompleteWithResult(future_handle, 0, "", session_id);
-  LogWarning("Analytics: GetSessionId() is not supported on Desktop.");
+#if defined(_WIN32)
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning("Analytics: GetSessionId() is not supported on Desktop.");
+  }
+#endif  // defined(_WIN32)
   return Future<int64_t>(api, future_handle.get());
 }
 
 Future<int64_t> GetSessionIdLastResult() {
   FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
-  LogWarning(
-      "Analytics: GetSessionIdLastResult() is not supported on Desktop.");
+#if defined(_WIN32)
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+	       "Analytics: GetSessionIdLastResult() is not supported on Desktop.");
+  }
+#endif  // defined(_WIN32)
   return static_cast<const Future<int64_t>&>(
       internal::FutureData::Get()->api()->LastResult(
           internal::kAnalyticsFnGetSessionId));
