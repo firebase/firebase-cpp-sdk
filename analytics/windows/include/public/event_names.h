@@ -1,4 +1,3 @@
-// Copyright 2025 Google LLC
 #ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_EVENT_NAMES_H_
 #define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_EVENT_NAMES_H_
 
@@ -14,7 +13,7 @@
 // alphabetic character. The "firebase_", "google_", and "ga_" prefixes are
 // reserved and should not be used.
 
-namespace firebase::analytics {
+namespace google::analytics {
 
 // Ad Impression event. This event signifies when a user sees an ad impression.
 // Note: If you supply the @c kParameterValue parameter, you must also supply
@@ -421,6 +420,6 @@ inline constexpr char kEventViewPromotion[] = "view_promotion";
 // </ul>
 inline constexpr char kEventViewSearchResults[] = "view_search_results";
 
-}  // namespace firebase::analytics
+}  // namespace google::analytics
 
 #endif  // ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_EVENT_NAMES_H_

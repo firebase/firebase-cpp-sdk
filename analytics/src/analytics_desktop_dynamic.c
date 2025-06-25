@@ -23,16 +23,26 @@ static void* g_stub_memory = NULL;
 // clang-format off
 
 // Number of Google Analytics functions expected to be loaded from the DLL.
-const int FirebaseAnalytics_DynamicFunctionCount = 19;
+const int FirebaseAnalytics_DynamicFunctionCount = 22;
 
 #if defined(_WIN32)
-// Google Analytics Windows DLL SHA256 hash, to be verified on load.
-const unsigned char FirebaseAnalytics_WindowsDllHash[] = {
-    0xc1, 0xb9, 0xff, 0x6e, 0x91, 0x19, 0xc3, 0x0b, 0xbe, 0xb7, 0x47, 0x23, 0x26, 0xdc, 0xde, 0x41, 0x8f, 0x45, 0x68, 0x2e, 0x6b, 0x82, 0x2e, 0x25, 0xee, 0xd9, 0x22, 0xfe, 0x6e, 0x3c, 0xc6, 0x98
+// Array of known Google Analytics Windows DLL SHA256 hashes (hex strings).
+const char* FirebaseAnalytics_KnownWindowsDllHashes[] = {
+    "13ae5f9349b24186f1f3667b52832076e8d14ad9656c3546b1b7fca79ac8144b"
 };
 #endif  // defined(_WIN32)
 
 // --- Stub Function Definitions ---
+// Stub for GoogleAnalytics_Options_Create
+static GoogleAnalytics_Options* Stub_GoogleAnalytics_Options_Create() {
+    return (GoogleAnalytics_Options*)(&g_stub_memory);
+}
+
+// Stub for GoogleAnalytics_Options_Destroy
+static void Stub_GoogleAnalytics_Options_Destroy(GoogleAnalytics_Options* options) {
+    // No return value.
+}
+
 // Stub for GoogleAnalytics_Item_Create
 static GoogleAnalytics_Item* Stub_GoogleAnalytics_Item_Create() {
     return (GoogleAnalytics_Item*)(&g_stub_memory);
@@ -113,6 +123,11 @@ static void Stub_GoogleAnalytics_EventParameters_Destroy(GoogleAnalytics_EventPa
     // No return value.
 }
 
+// Stub for GoogleAnalytics_Initialize
+static bool Stub_GoogleAnalytics_Initialize(const GoogleAnalytics_Options* options) {
+    return 1;
+}
+
 // Stub for GoogleAnalytics_LogEvent
 static void Stub_GoogleAnalytics_LogEvent(const char* name, GoogleAnalytics_EventParameters* parameters) {
     // No return value.
@@ -141,6 +156,8 @@ static void Stub_GoogleAnalytics_SetAnalyticsCollectionEnabled(bool enabled) {
 
 
 // --- Function Pointer Initializations ---
+GoogleAnalytics_Options* (*ptr_GoogleAnalytics_Options_Create)() = &Stub_GoogleAnalytics_Options_Create;
+void (*ptr_GoogleAnalytics_Options_Destroy)(GoogleAnalytics_Options* options) = &Stub_GoogleAnalytics_Options_Destroy;
 GoogleAnalytics_Item* (*ptr_GoogleAnalytics_Item_Create)() = &Stub_GoogleAnalytics_Item_Create;
 void (*ptr_GoogleAnalytics_Item_InsertInt)(GoogleAnalytics_Item* item, const char* key, int64_t value) = &Stub_GoogleAnalytics_Item_InsertInt;
 void (*ptr_GoogleAnalytics_Item_InsertDouble)(GoogleAnalytics_Item* item, const char* key, double value) = &Stub_GoogleAnalytics_Item_InsertDouble;
@@ -155,6 +172,7 @@ void (*ptr_GoogleAnalytics_EventParameters_InsertDouble)(GoogleAnalytics_EventPa
 void (*ptr_GoogleAnalytics_EventParameters_InsertString)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, const char* value) = &Stub_GoogleAnalytics_EventParameters_InsertString;
 void (*ptr_GoogleAnalytics_EventParameters_InsertItemVector)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, GoogleAnalytics_ItemVector* value) = &Stub_GoogleAnalytics_EventParameters_InsertItemVector;
 void (*ptr_GoogleAnalytics_EventParameters_Destroy)(GoogleAnalytics_EventParameters* event_parameter_map) = &Stub_GoogleAnalytics_EventParameters_Destroy;
+bool (*ptr_GoogleAnalytics_Initialize)(const GoogleAnalytics_Options* options) = &Stub_GoogleAnalytics_Initialize;
 void (*ptr_GoogleAnalytics_LogEvent)(const char* name, GoogleAnalytics_EventParameters* parameters) = &Stub_GoogleAnalytics_LogEvent;
 void (*ptr_GoogleAnalytics_SetUserProperty)(const char* name, const char* value) = &Stub_GoogleAnalytics_SetUserProperty;
 void (*ptr_GoogleAnalytics_SetUserId)(const char* user_id) = &Stub_GoogleAnalytics_SetUserId;
@@ -170,6 +188,16 @@ int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
         return count;
     }
 
+    FARPROC proc_GoogleAnalytics_Options_Create = GetProcAddress(dll_handle, "GoogleAnalytics_Options_Create");
+    if (proc_GoogleAnalytics_Options_Create) {
+        ptr_GoogleAnalytics_Options_Create = (GoogleAnalytics_Options* (*)())proc_GoogleAnalytics_Options_Create;
+        count++;
+    }
+    FARPROC proc_GoogleAnalytics_Options_Destroy = GetProcAddress(dll_handle, "GoogleAnalytics_Options_Destroy");
+    if (proc_GoogleAnalytics_Options_Destroy) {
+        ptr_GoogleAnalytics_Options_Destroy = (void (*)(GoogleAnalytics_Options* options))proc_GoogleAnalytics_Options_Destroy;
+        count++;
+    }
     FARPROC proc_GoogleAnalytics_Item_Create = GetProcAddress(dll_handle, "GoogleAnalytics_Item_Create");
     if (proc_GoogleAnalytics_Item_Create) {
         ptr_GoogleAnalytics_Item_Create = (GoogleAnalytics_Item* (*)())proc_GoogleAnalytics_Item_Create;
@@ -240,6 +268,11 @@ int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
         ptr_GoogleAnalytics_EventParameters_Destroy = (void (*)(GoogleAnalytics_EventParameters* event_parameter_map))proc_GoogleAnalytics_EventParameters_Destroy;
         count++;
     }
+    FARPROC proc_GoogleAnalytics_Initialize = GetProcAddress(dll_handle, "GoogleAnalytics_Initialize");
+    if (proc_GoogleAnalytics_Initialize) {
+        ptr_GoogleAnalytics_Initialize = (bool (*)(const GoogleAnalytics_Options* options))proc_GoogleAnalytics_Initialize;
+        count++;
+    }
     FARPROC proc_GoogleAnalytics_LogEvent = GetProcAddress(dll_handle, "GoogleAnalytics_LogEvent");
     if (proc_GoogleAnalytics_LogEvent) {
         ptr_GoogleAnalytics_LogEvent = (void (*)(const char* name, GoogleAnalytics_EventParameters* parameters))proc_GoogleAnalytics_LogEvent;
@@ -270,6 +303,8 @@ int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
 }
 
 void FirebaseAnalytics_UnloadDynamicFunctions(void) {
+    ptr_GoogleAnalytics_Options_Create = &Stub_GoogleAnalytics_Options_Create;
+    ptr_GoogleAnalytics_Options_Destroy = &Stub_GoogleAnalytics_Options_Destroy;
     ptr_GoogleAnalytics_Item_Create = &Stub_GoogleAnalytics_Item_Create;
     ptr_GoogleAnalytics_Item_InsertInt = &Stub_GoogleAnalytics_Item_InsertInt;
     ptr_GoogleAnalytics_Item_InsertDouble = &Stub_GoogleAnalytics_Item_InsertDouble;
@@ -284,6 +319,7 @@ void FirebaseAnalytics_UnloadDynamicFunctions(void) {
     ptr_GoogleAnalytics_EventParameters_InsertString = &Stub_GoogleAnalytics_EventParameters_InsertString;
     ptr_GoogleAnalytics_EventParameters_InsertItemVector = &Stub_GoogleAnalytics_EventParameters_InsertItemVector;
     ptr_GoogleAnalytics_EventParameters_Destroy = &Stub_GoogleAnalytics_EventParameters_Destroy;
+    ptr_GoogleAnalytics_Initialize = &Stub_GoogleAnalytics_Initialize;
     ptr_GoogleAnalytics_LogEvent = &Stub_GoogleAnalytics_LogEvent;
     ptr_GoogleAnalytics_SetUserProperty = &Stub_GoogleAnalytics_SetUserProperty;
     ptr_GoogleAnalytics_SetUserId = &Stub_GoogleAnalytics_SetUserId;

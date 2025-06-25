@@ -20,7 +20,78 @@
 #include <stdbool.h>  // needed for bool type in pure C
 
 // --- Copied from original header ---
+#include <stdbool.h>
 #include <stdint.h>
+
+/**
+ * @brief GoogleAnalytics_Options for initializing the Analytics SDK.
+ * GoogleAnalytics_Options_Create() must be used to create an instance of this
+ * struct with default values. If these options are created manually instead of
+ * using GoogleAnalytics_Options_Create(), initialization will fail, and the
+ * caller will be responsible for destroying the options.
+ */
+ANALYTICS_API typedef struct {
+  /**
+   * @brief The unique identifier for the Firebase app across all of Firebase
+   * with a platform-specific format. This is a required field, can not be null
+   * or empty, and must be UTF-8 encoded.
+   *
+   * The caller is responsible for allocating this memory, and deallocating it
+   * once the options instance has been destroyed.
+   *
+   * Example: 1:1234567890:android:321abc456def7890
+   */
+  const char* app_id;
+
+  /**
+   * @brief Unique identifier for the application implementing the SDK. The
+   * format typically follows a reversed domain name convention. This is a
+   * required field, can not be null or empty, and must be UTF-8 encoded.
+   *
+   * The caller is responsible for allocating this memory, and deallocating it
+   * once the options instance has been destroyed.
+   *
+   * Example: com.google.analytics.AnalyticsApp
+   */
+  const char* package_name;
+
+  /**
+   * @brief Whether Analytics is enabled at the very first launch.
+   * This value is then persisted across app sessions, and from then on, takes
+   * precedence over the value of this field.
+   * GoogleAnalytics_SetAnalyticsCollectionEnabled() can be used to
+   * enable/disable after that point.
+   */
+  bool analytics_collection_enabled_at_first_launch;
+
+  /**
+   * @brief Reserved for internal use by the SDK.
+   */
+  GoogleAnalytics_Reserved* reserved;
+} GoogleAnalytics_Options;
+
+/**
+ * @brief Creates an instance of GoogleAnalytics_Options with default values.
+ *
+ * The caller is responsible for destroying the options using the
+ * GoogleAnalytics_Options_Destroy() function, unless it has been passed to the
+ * GoogleAnalytics_Initialize() function, in which case it will be destroyed
+ * automatically.
+ *
+ * @return A pointer to a newly allocated GoogleAnalytics_Options instance.
+ */
+ANALYTICS_API GoogleAnalytics_Options* GoogleAnalytics_Options_Create();
+
+/**
+ * @brief Destroys the GoogleAnalytics_Options instance. Must not be called if
+ * the options were created with GoogleAnalytics_Options_Create() and passed to
+ * the GoogleAnalytics_Initialize() function, which would destroy them
+ * automatically.
+ *
+ * @param[in] options The GoogleAnalytics_Options instance to destroy.
+ */
+ANALYTICS_API void GoogleAnalytics_Options_Destroy(
+    GoogleAnalytics_Options* options);
 
 /**
  * @brief Opaque type for an item.
@@ -71,6 +142,8 @@ extern "C" {
 
 // --- Function Pointer Declarations ---
 // clang-format off
+extern GoogleAnalytics_Options* (*ptr_GoogleAnalytics_Options_Create)();
+extern void (*ptr_GoogleAnalytics_Options_Destroy)(GoogleAnalytics_Options* options);
 extern GoogleAnalytics_Item* (*ptr_GoogleAnalytics_Item_Create)();
 extern void (*ptr_GoogleAnalytics_Item_InsertInt)(GoogleAnalytics_Item* item, const char* key, int64_t value);
 extern void (*ptr_GoogleAnalytics_Item_InsertDouble)(GoogleAnalytics_Item* item, const char* key, double value);
@@ -85,12 +158,15 @@ extern void (*ptr_GoogleAnalytics_EventParameters_InsertDouble)(GoogleAnalytics_
 extern void (*ptr_GoogleAnalytics_EventParameters_InsertString)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, const char* value);
 extern void (*ptr_GoogleAnalytics_EventParameters_InsertItemVector)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, GoogleAnalytics_ItemVector* value);
 extern void (*ptr_GoogleAnalytics_EventParameters_Destroy)(GoogleAnalytics_EventParameters* event_parameter_map);
+extern bool (*ptr_GoogleAnalytics_Initialize)(const GoogleAnalytics_Options* options);
 extern void (*ptr_GoogleAnalytics_LogEvent)(const char* name, GoogleAnalytics_EventParameters* parameters);
 extern void (*ptr_GoogleAnalytics_SetUserProperty)(const char* name, const char* value);
 extern void (*ptr_GoogleAnalytics_SetUserId)(const char* user_id);
 extern void (*ptr_GoogleAnalytics_ResetAnalyticsData)();
 extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 
+#define GoogleAnalytics_Options_Create ptr_GoogleAnalytics_Options_Create
+#define GoogleAnalytics_Options_Destroy ptr_GoogleAnalytics_Options_Destroy
 #define GoogleAnalytics_Item_Create ptr_GoogleAnalytics_Item_Create
 #define GoogleAnalytics_Item_InsertInt ptr_GoogleAnalytics_Item_InsertInt
 #define GoogleAnalytics_Item_InsertDouble ptr_GoogleAnalytics_Item_InsertDouble
@@ -105,6 +181,7 @@ extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 #define GoogleAnalytics_EventParameters_InsertString ptr_GoogleAnalytics_EventParameters_InsertString
 #define GoogleAnalytics_EventParameters_InsertItemVector ptr_GoogleAnalytics_EventParameters_InsertItemVector
 #define GoogleAnalytics_EventParameters_Destroy ptr_GoogleAnalytics_EventParameters_Destroy
+#define GoogleAnalytics_Initialize ptr_GoogleAnalytics_Initialize
 #define GoogleAnalytics_LogEvent ptr_GoogleAnalytics_LogEvent
 #define GoogleAnalytics_SetUserProperty ptr_GoogleAnalytics_SetUserProperty
 #define GoogleAnalytics_SetUserId ptr_GoogleAnalytics_SetUserId
