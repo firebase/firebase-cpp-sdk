@@ -159,6 +159,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         f.write(f"// Generated from {os.path.basename(header_file_path)} by {os.path.basename(sys.argv[0])}\n\n")
         f.write(f"#ifndef {header_guard}\n")
         f.write(f"#define {header_guard}\n\n")
+        f.write(f"#define ANALYTICS_API  // filter out from header copy\n\n")
         f.write("#include <stdbool.h>  // needed for bool type in pure C\n\n")
 
         f.write("// --- Copied from original header ---\n")

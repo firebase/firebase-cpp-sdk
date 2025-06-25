@@ -28,9 +28,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-
-// analytics_windows.h is not strictly needed if only using C API via
-// analytics_desktop_dynamic.h #include "analytics/src/analytics_windows.h"
+#include "analytics_windows.h"
 #endif  // defined(_WIN32)
 
 namespace firebase {
