@@ -23,6 +23,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
+
 /**
  * @brief GoogleAnalytics_Options for initializing the Analytics SDK.
  * GoogleAnalytics_Options_Create() must be used to create an instance of this

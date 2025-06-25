@@ -100,7 +100,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
     includes = re.findall(r"#include\s+<.*?>", header_content)
 
     # Find all typedefs, including their documentation comments
-    typedefs = re.findall(r"/\*\*(?:[\s\S]*?)\*/\s*typedef[\s\S]*?;\s*", header_content)
+    typedefs = re.findall(r"(?:/\*\*(?:[\s\S]*?)\*/\s*)?typedef[\s\S]*?;\s*", header_content)
 
     # --- Extract function prototypes ---
     function_pattern = re.compile(
@@ -127,7 +127,7 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         if "void" in return_type:
             return_statement = "    // No return value."
         elif "*" in return_type:
-            return_statement = f'    return ({return_type})(&g_stub_memory);'
+            return_statement = f'    return ({return_type})(&g_stub_memory[0]);'
         else: # bool, int64_t, etc.
             return_statement = "    return 1;"
 
@@ -203,7 +203,8 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         f.write(f"// Generated from {os.path.basename(header_file_path)} by {os.path.basename(sys.argv[0])}\n\n")
         f.write(f'#include "{INCLUDE_PREFIX}{os.path.basename(output_h_path)}"\n\n')
         f.write('#include <stddef.h>\n\n')
-        f.write("static void* g_stub_memory = NULL;\n\n")
+        f.write("// A nice big chunk of stub memory that can be returned by stubbed Create methods.\n")
+        f.write("static char g_stub_memory[256] = {0};\n\n")
         f.write("// clang-format off\n")
         f.write(f'\n// Number of Google Analytics functions expected to be loaded from the DLL.')
         f.write(f'\nconst int FirebaseAnalytics_DynamicFunctionCount = {len(function_details_for_loader)};\n\n');
