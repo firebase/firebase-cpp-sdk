@@ -207,13 +207,6 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
         f.write("// clang-format off\n")
         f.write(f'\n// Number of Google Analytics functions expected to be loaded from the DLL.')
         f.write(f'\nconst int FirebaseAnalytics_DynamicFunctionCount = {len(function_details_for_loader)};\n\n');
-        # f.write("#if defined(_WIN32)\n")
-        # f.write('// Google Analytics Windows DLL SHA256 hash, to be verified before loading.\n')
-        # f.write('const unsigned char FirebaseAnalytics_WindowsDllHash[] = {\n    ')
-        # f.write(', '.join(["0x%02x" % s for s in dll_hash]))
-        # f.write('\n};\n')
-        # f.write("#endif  // defined(_WIN32)\n")
-
         f.write("#if defined(_WIN32)\n")
         f.write('// Array of known Google Analytics Windows DLL SHA256 hashes (hex strings).\n')
         f.write('const char* FirebaseAnalytics_KnownWindowsDllHashes[] = {\n')
