@@ -77,8 +77,6 @@ def generate_function_pointers(dll_file_path, header_file_path, output_h_path, o
     current_dll_hex_hash = dll_hash.hex()
     if current_dll_hex_hash not in known_hex_hashes:
         known_hex_hashes.append(current_dll_hex_hash)
-        # Sort for consistency, although not strictly required by the prompt
-        # known_hex_hashes.sort() # Decided against sorting to maintain order of addition for now
 
     with open(hash_file_path, 'w') as f:
         for hex_hash in known_hex_hashes:

@@ -105,7 +105,7 @@ set_property(TARGET firebase_analytics PROPERTY FOLDER "Firebase Cpp")
 target_link_libraries(firebase_analytics
     PUBLIC firebase_app)
 if(WIN32)
-  target_link_libraries(firebase_analytics PUBLIC Crypt32.lib)
+  target_link_libraries(firebase_analytics PRIVATE Crypt32.lib)
 endif()
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.

@@ -39,13 +39,6 @@ namespace analytics {
 #define ANALYTICS_DLL_FILENAME L"analytics_win.dll"
 
 static HMODULE g_analytics_module = 0;
-// It's generally safer to use local std::string copies within Initialize
-// for app_id and package_name to ensure their lifetime if Initialize
-// could theoretically be called multiple times with different App objects,
-// or if AppOptions getters returned temporaries.
-// Given AppOptions structure, direct use of app.options().app_id() etc.
-// within the Initialize call *should* be safe as App outlives the call,
-// but local copies are more robust.
 #endif  // defined(_WIN32)
 
 // Future data for analytics.
@@ -57,8 +50,6 @@ static bool g_analytics_collection_enabled = true;
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
 void Initialize(const App& app) {
-  // app parameter is now used to retrieve AppOptions.
-
   g_initialized = true;
   internal::RegisterTerminateOnDefaultAppDestroy();
   internal::FutureData::Create();
