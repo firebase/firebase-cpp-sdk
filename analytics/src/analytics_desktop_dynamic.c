@@ -30,11 +30,12 @@ const int FirebaseAnalytics_DynamicFunctionCount = 22;
 #if defined(_WIN32)
 // Array of known Google Analytics Windows DLL SHA256 hashes (hex strings).
 const char* FirebaseAnalytics_KnownWindowsDllHashes[] = {
+    "c1b9ff6e9119c30bbeb7472326dcde418f45682e6b822e25eed922fe6e3cc698",
     "13ae5f9349b24186f1f3667b52832076e8d14ad9656c3546b1b7fca79ac8144b"
 };
 
 // Count of known Google Analytics Windows DLL SHA256 hashes.
-const int FirebaseAnalytics_KnownWindowsDllHashCount = 1;
+const int FirebaseAnalytics_KnownWindowsDllHashCount = 2;
 #endif  // defined(_WIN32)
 
 // --- Stub Function Definitions ---
