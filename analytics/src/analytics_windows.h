@@ -17,6 +17,7 @@
 
 #include <windows.h>
 
+#include <string>
 #include <vector>
 
 namespace firebase {
@@ -25,7 +26,7 @@ namespace internal {
 
 HMODULE VerifyAndLoadAnalyticsLibrary(
     const wchar_t* library_filename,
-    const std::vector<std::vector<unsigned char>>& allowed_hashes);
+    const std::vector<std::string>& allowed_hashes);
 
 }  // namespace internal
 }  // namespace analytics
