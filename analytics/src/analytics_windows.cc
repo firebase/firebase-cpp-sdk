@@ -99,11 +99,12 @@ static std::string CalculateFileSha256(HANDLE hFile) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG "CalculateFileSha256.SetFilePointer failed. Error: %u",
              dwError);
-    return ""; // Return empty string on failure
+    return "";  // Return empty string on failure
   }
 
   // Acquire Crypto Provider.
-  // Using CRYPT_VERIFYCONTEXT for operations that don't require private key access.
+  // Using CRYPT_VERIFYCONTEXT for operations that don't require private key
+  // access.
   if (!CryptAcquireContextW(&hProv, NULL, NULL, PROV_RSA_AES,
                             CRYPT_VERIFYCONTEXT)) {
     DWORD dwError = GetLastError();
@@ -152,7 +153,8 @@ static std::string CalculateFileSha256(HANDLE hFile) {
   // --- Get the binary hash value ---
   DWORD cbHashValue = 0;
   DWORD dwCount = sizeof(DWORD);
-  if (!CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE*)&cbHashValue, &dwCount, 0)) {
+  if (!CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE*)&cbHashValue, &dwCount,
+                         0)) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG
              "CalculateFileSha256.CryptGetHashParam (HP_HASHSIZE) failed. "
@@ -179,12 +181,13 @@ static std::string CalculateFileSha256(HANDLE hFile) {
   // --- Convert the binary hash to a hex string ---
   DWORD hex_string_size = 0;
   if (!CryptBinaryToStringA(binary_hash_value.data(), binary_hash_value.size(),
-                            CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF,
-                            NULL, &hex_string_size)) {
+                            CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF, NULL,
+                            &hex_string_size)) {
     DWORD dwError = GetLastError();
-    LogError(LOG_TAG
-             "CalculateFileSha256.CryptBinaryToStringA (size) failed. Error: %u",
-             dwError);
+    LogError(
+        LOG_TAG
+        "CalculateFileSha256.CryptBinaryToStringA (size) failed. Error: %u",
+        dwError);
     CryptDestroyHash(hHash);
     CryptReleaseContext(hProv, 0);
     return "";
@@ -196,7 +199,8 @@ static std::string CalculateFileSha256(HANDLE hFile) {
                             &hex_hash_string[0], &hex_string_size)) {
     DWORD dwError = GetLastError();
     LogError(LOG_TAG
-             "CalculateFileSha256.CryptBinaryToStringA (conversion) failed. Error: %u",
+             "CalculateFileSha256.CryptBinaryToStringA (conversion) failed. "
+             "Error: %u",
              dwError);
     CryptDestroyHash(hHash);
     CryptReleaseContext(hProv, 0);
@@ -286,9 +290,9 @@ HMODULE VerifyAndLoadAnalyticsLibrary(
       if (calculated_hash == expected_hash) {
         hash_matched = true;
         break;
-      }
-      else {
-	LogDebug(LOG_TAG "Hash mismatch: got %s expected %s", calculated_hash.c_str(), expected_hash.c_str());
+      } else {
+        LogDebug(LOG_TAG "Hash mismatch: got %s expected %s",
+                 calculated_hash.c_str(), expected_hash.c_str());
       }
     }
 

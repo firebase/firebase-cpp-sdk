@@ -29,8 +29,8 @@
 #if defined(_WIN32)
 #include <windows.h>
 
-// analytics_windows.h is not strictly needed if only using C API via analytics_desktop_dynamic.h
-// #include "analytics/src/analytics_windows.h"
+// analytics_windows.h is not strictly needed if only using C API via
+// analytics_desktop_dynamic.h #include "analytics/src/analytics_windows.h"
 #endif  // defined(_WIN32)
 
 namespace firebase {
@@ -67,8 +67,9 @@ void Initialize(const App& app) {
 #if defined(_WIN32)
   if (!g_analytics_module) {
     std::vector<std::string> allowed_hashes;
-    for (int i=0; i < FirebaseAnalytics_KnownWindowsDllHashCount; i++) {
-      allowed_hashes.push_back(std::string(FirebaseAnalytics_KnownWindowsDllHashes[i]));
+    for (int i = 0; i < FirebaseAnalytics_KnownWindowsDllHashCount; i++) {
+      allowed_hashes.push_back(
+          std::string(FirebaseAnalytics_KnownWindowsDllHashes[i]));
     }
 
     g_analytics_module =
@@ -76,8 +77,8 @@ void Initialize(const App& app) {
             ANALYTICS_DLL_FILENAME, allowed_hashes);
 
     if (g_analytics_module) {
-      int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(
-          g_analytics_module);
+      int num_loaded =
+          FirebaseAnalytics_LoadDynamicFunctions(g_analytics_module);
       if (num_loaded < FirebaseAnalytics_DynamicFunctionCount) {
         LogWarning(
             "Analytics: Failed to load functions from Google Analytics "
@@ -101,23 +102,29 @@ void Initialize(const App& app) {
           c_options->app_id = current_app_id.c_str();
           c_options->package_name = current_package_name.c_str();
           c_options->analytics_collection_enabled_at_first_launch = true;
-          // c_options->reserved is initialized by GoogleAnalytics_Options_Create
+          // c_options->reserved is initialized by
+          // GoogleAnalytics_Options_Create
 
-          LogInfo("Analytics: Initializing Google Analytics C API with App ID: %s, Package Name: %s",
-                  c_options->app_id ? c_options->app_id : "null",
-                  c_options->package_name ? c_options->package_name : "null");
+          LogInfo(
+              "Analytics: Initializing Google Analytics C API with App ID: %s, "
+              "Package Name: %s",
+              c_options->app_id ? c_options->app_id : "null",
+              c_options->package_name ? c_options->package_name : "null");
 
           if (!GoogleAnalytics_Initialize(c_options)) {
             LogError("Analytics: Failed to initialize Google Analytics C API.");
-            // GoogleAnalytics_Initialize destroys c_options automatically if created by _Create
+            // GoogleAnalytics_Initialize destroys c_options automatically if
+            // created by _Create
           } else {
-            LogInfo("Analytics: Google Analytics C API initialized successfully.");
+            LogInfo(
+                "Analytics: Google Analytics C API initialized successfully.");
           }
         }
       }
     } else {
-      // LogWarning for g_analytics_module load failure is handled by VerifyAndLoadAnalyticsLibrary
-      g_analytics_module = 0; // Ensure it's null if loading failed
+      // LogWarning for g_analytics_module load failure is handled by
+      // VerifyAndLoadAnalyticsLibrary
+      g_analytics_module = 0;  // Ensure it's null if loading failed
     }
   }
 #endif  // defined(_WIN32)
