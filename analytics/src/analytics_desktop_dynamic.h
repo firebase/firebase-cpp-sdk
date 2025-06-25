@@ -17,6 +17,8 @@
 #ifndef FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DESKTOP_DYNAMIC_H_
 #define FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DESKTOP_DYNAMIC_H_
 
+#define ANALYTICS_API  // filter out from header copy
+
 #include <stdbool.h>  // needed for bool type in pure C
 
 // --- Copied from original header ---
