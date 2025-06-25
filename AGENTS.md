@@ -1,5 +1,9 @@
 # Introduction
 
+> **Note on Document Formatting:** This document (`AGENTS.md`) should be
+> maintained with lines word-wrapped to a maximum of 80 characters to ensure
+> readability across various editors and terminals.
+
 This document provides context and guidance for AI agents (like Jules) when
 making changes to the Firebase C++ SDK repository. It covers essential
 information about the repository's structure, setup, testing procedures, API
@@ -34,8 +38,8 @@ instructions for your specific platform.
 *   **Android SDK & NDK**: Required for building Android libraries. `sdkmanager`
     can be used for installation. CMake for Android (version 3.10.2
     recommended) is also needed.
-*   **(Windows Only) Strings**: From Microsoft Sysinternals, required for Android
-    builds on Windows.
+*   **(Windows Only) Strings**: From Microsoft Sysinternals, required for
+    Android builds on Windows.
 *   **Cocoapods**: Required for building iOS or tvOS libraries.
 
 ## Building the SDK
@@ -74,9 +78,10 @@ generated in each library's build directory (e.g.,
 
 ### Desktop Platform Setup Details
 
-When setting up for desktop, if you are using an iOS `GoogleService-Info.plist`
-file, convert it to the required `google-services-desktop.json` using the
-script: `python generate_xml_from_google_services_json.py --plist -i GoogleService-Info.plist`
+When setting up for desktop, if you are using an iOS
+`GoogleService-Info.plist` file, convert it to the required
+`google-services-desktop.json` using the script:
+`python generate_xml_from_google_services_json.py --plist -i GoogleService-Info.plist`
 (run this from the script's directory, ensuring the plist file is accessible).
 
 The desktop SDK searches for configuration files in the current working
@@ -175,8 +180,9 @@ Database).
         parameters if not relying on a `google-services.json` or
         `GoogleService-Info.plist` file.
 2.  **Service Instances**: Once `firebase::App` is initialized, you generally
-    obtain instances of specific Firebase services using a static `GetInstance()`
-    method on the service's class, passing the `firebase::App` object.
+    obtain instances of specific Firebase services using a static
+    `GetInstance()` method on the service's class, passing the `firebase::App`
+    object.
     *   Examples for services like Auth, Database, Storage, Firestore:
         *   `firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app, &init_result);`
         *   `firebase::database::Database* database = firebase::database::Database::GetInstance(app, &init_result);`
@@ -192,8 +198,8 @@ Database).
         called as global functions within the `firebase::analytics` namespace,
         rather than on an instance object obtained via `GetInstance()`.
         Refer to the specific product's header file for its exact
-        initialization mechanism if it deviates from the common `GetInstance(app, ...)`
-        pattern.
+        initialization mechanism if it deviates from the common
+        `GetInstance(app, ...)` pattern.
 
 ### Asynchronous Operations: `firebase::Future<T>`
 
@@ -205,8 +211,8 @@ where `T` is the type of the expected result.
     `kFutureStatusInvalid`.
 *   **Getting Results**: Once `future.status() == kFutureStatusComplete`:
     *   Check for errors: `future.error()`. A value of `0` (e.g.,
-        `firebase::auth::kAuthErrorNone`, `firebase::database::kErrorNone`)
-        usually indicates success.
+        `firebase::auth::kAuthErrorNone`,
+        `firebase::database::kErrorNone`) usually indicates success.
     *   Get the error message: `future.error_message()`.
     *   Get the result: `future.result()`. This returns a pointer to the result
         object of type `T`. The result is only valid if `future.error()`
@@ -218,8 +224,8 @@ where `T` is the type of the expected result.
 
 ### Core Classes and Operations (Examples from Auth and Database)
 
-While each Firebase product has its own specific classes, the following examples
-illustrate common API patterns:
+While each Firebase product has its own specific classes, the following
+examples illustrate common API patterns:
 
 *   **`firebase::auth::Auth`**: The main entry point for Firebase
     Authentication.
@@ -305,6 +311,12 @@ API documentation.
     as mentioned in `CONTRIBUTING.md`.
 *   **Formatting**: Use `python3 scripts/format_code.py -git_diff -verbose` to
     format your code before committing.
+*   **Naming Precision for Dynamic Systems**: Function names should precisely
+    reflect their behavior, especially in systems with dynamic or asynchronous
+    interactions. For example, a function that processes a list of items should
+    be named differently from one that operates on a single, specific item
+    captured asynchronously. Regularly re-evaluate function names as
+    requirements evolve to maintain clarity.
 
 ## Comments
 
@@ -328,8 +340,9 @@ API documentation.
 *   **Check `Future` status and errors**: Always check `future.status()` and
     `future.error()` before attempting to use `future.result()`.
     *   A common success code is `0` (e.g.,
-        `firebase::auth::kAuthErrorNone`, `firebase::database::kErrorNone`).
-        Other specific error codes are defined per module (e.g.,
+        `firebase::auth::kAuthErrorNone`,
+        `firebase::database::kErrorNone`). Other specific error codes are
+        defined per module (e.g.,
         `firebase::auth::kAuthErrorUserNotFound`).
 *   **Callback error parameters**: When using listeners or other callbacks,
     always check the provided error code and message before processing the
@@ -362,6 +375,13 @@ API documentation.
     otherwise ensuring the `Future` completes its course, particularly for
     operations with side effects or those that allocate significant backend
     resources.
+*   **Lifecycle of Queued Callbacks/Blocks**: If blocks or callbacks are queued
+    to be run upon an asynchronous event (e.g., an App Delegate class being set
+    or a Future completing), clearly define and document their lifecycle.
+    Determine if they are one-shot (cleared after first execution) or
+    persistent (intended to run for multiple or future events). This impacts
+    how associated data and the blocks themselves are stored and cleared,
+    preventing memory leaks or unexpected multiple executions.
 
 ## Immutability
 
@@ -397,6 +417,29 @@ API documentation.
     integration, it can occasionally be a factor to consider when debugging app
     delegate behavior or integrating with other libraries that also perform
     swizzling.
+    When implementing or interacting with swizzling, especially for App Delegate
+    methods like `[UIApplication setDelegate:]`:
+        *   Be highly aware that `setDelegate:` can be called multiple times
+            with different delegate class instances, including proxy classes
+            from other libraries (e.g., GUL - Google Utilities). Swizzling
+            logic must be robust against being invoked multiple times for the
+            same effective method on the same class or on classes in a
+            hierarchy. An idempotency check (i.e., if the method's current IMP
+            is already the target swizzled IMP, do nothing more for that
+            specific swizzle attempt) in any swizzling utility can prevent
+            issues like recursion.
+        *   When tracking unique App Delegate classes (e.g., for applying hooks
+            or callbacks via swizzling), consider the class hierarchy. If a
+            superclass has already been processed, processing a subclass for
+            the same inherited methods might be redundant or problematic. A
+            strategy to check if a newly set delegate is a subclass of an
+            already processed delegate can prevent such issues.
+        *   For code that runs very early in the application lifecycle on
+            iOS/macOS (e.g., `+load` methods, static initializers involved in
+            swizzling), prefer using `NSLog` directly over custom logging
+            frameworks if there's any uncertainty about whether the custom
+            framework is fully initialized, to avoid crashes during logging
+            itself.
 
 ## Class and File Structure
 
@@ -462,9 +505,9 @@ management:
     module, but the fundamental responsibility for creation and deletion in
     typical scenarios lies with the Pimpl class itself.
 
-It's crucial to correctly implement all these aspects (constructors, destructor,
-copy/move operators) when dealing with raw pointer Pimpls to prevent memory
-leaks, dangling pointers, or double deletions.
+It's crucial to correctly implement all these aspects (constructors,
+destructor, copy/move operators) when dealing with raw pointer Pimpls to
+prevent memory leaks, dangling pointers, or double deletions.
 
 ## Namespace Usage
 
@@ -531,7 +574,7 @@ leaks, dangling pointers, or double deletions.
 This document is a living guide. As the Firebase C++ SDK evolves, new patterns
 may emerge, or existing practices might change. If you introduce a new common
 pattern, significantly alter a build process, or establish a new best practice
-during your work, please take a moment to update this `Jules.md` file
+during your work, please take a moment to update this `AGENTS.md` file
 accordingly.
 
 Keeping this document current will greatly benefit future AI agents and human
@@ -541,7 +584,7 @@ developers working on this repository.
 
 ## Recommended General Prompt Instruction
 
-When working on this task, please consistently refer to the `Jules.md` guide
+When working on this task, please consistently refer to the `AGENTS.md` guide
 for all repository-specific conventions, including setup procedures, coding
 style, common architectural patterns, and API usage. Pay close attention to the
 testing strategies outlined, ensuring your implementation includes
@@ -549,30 +592,35 @@ comprehensive integration tests with detailed test cases in your plan. Implement
 robust error handling for any new or modified public API methods, following the
 patterns for `firebase::Future` error reporting. If the feature involves
 platform-specific code, ensure the public API remains consistent across all
-platforms, as discussed in `Jules.md`. Write clear, maintainable code,
+platforms, as discussed in `AGENTS.md`. Write clear, maintainable code,
 adhering to the commenting guidelines, and if you need to add new third-party
 dependencies, document the rationale and update build configurations according
 to the established practices. Ensure your changes align with the overall best
-practices detailed in `Jules.md`.
+practices detailed in `AGENTS.md`.
 
 ## Key Directives for Jules AI
 
-*   **Prioritize `Jules.md`**: This document (`Jules.md`) contains
+*   **Prioritize `AGENTS.md`**: This document (`AGENTS.md`) contains
     repository-specific guidelines. Prioritize this information when making
     decisions about coding style, testing procedures, architectural patterns,
     and API usage.
 *   **Adherence to Patterns**: Strive to follow the common patterns and best
     practices outlined here. This ensures consistency across the codebase.
-*   **Clarification for Deviations**: If the existing patterns in `Jules.md` do
+*   **Clarification for Deviations**: If the existing patterns in `AGENTS.md` do
     not seem suitable for a specific task, or if a deviation is necessary,
     please explicitly state this in your plan or request clarification before
     proceeding with implementation.
-*   **Updating `Jules.md`**: If you introduce a new, broadly applicable
+*   **Updating `AGENTS.md`**: If you introduce a new, broadly applicable
     pattern, or if a significant change to the build process or best practices
     occurs as part of your task, please include a step in your plan to update
-    `Jules.md` to reflect these changes.
+    `AGENTS.md` to reflect these changes.
 *   **Testing**: Remember that integration tests are the primary method of
     testing. Ensure new features are accompanied by corresponding integration
-    tests as described in the 'Testing' section of `Jules.md`.
+    tests as described in the 'Testing' section of `AGENTS.md`.
 *   **Commit Messages**: Follow standard commit message guidelines. A brief
     summary line, followed by a more detailed explanation if necessary.
+*   **Tool Limitations & Path Specificity**: If codebase search tools (like
+    `grep` or recursive `ls`) are limited or unavailable, and initial attempts
+    to locate files/modules based on common directory structures are
+    unsuccessful, explicitly ask for more specific paths rather than assuming a
+    module doesn't exist or contains no relevant code.
