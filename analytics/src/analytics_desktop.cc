@@ -28,6 +28,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+
 #include "analytics_windows.h"
 #endif  // defined(_WIN32)
 
@@ -101,7 +102,7 @@ void Initialize(const App& app) {
           c_options->app_id = current_app_id.c_str();
           c_options->package_name = current_package_name.c_str();
           c_options->analytics_collection_enabled_at_first_launch =
-	    g_analytics_collection_enabled;
+              g_analytics_collection_enabled;
 
           LogInfo(
               "Analytics: Initializing Google Analytics C API with App ID: %s, "
@@ -180,13 +181,14 @@ static void ConvertParametersToGAParams(
       // ItemVector) are handled.
 #if defined(_WIN32)
       if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogError(
-		 "Analytics: Parameter '%s' has type Vector, which is unsupported for "
-		 "event parameters on Desktop. Skipping.",
-		 param.name);
+        // Only log this if we are not in stub mode.
+        LogError(
+            "Analytics: Parameter '%s' has type Vector, which is unsupported "
+            "for "
+            "event parameters on Desktop. Skipping.",
+            param.name);
       }
-#endif  // defined(_WIN32)
+#endif           // defined(_WIN32)
       continue;  // Skip this parameter
     } else if (param.value.is_map()) {
       // This block handles parameters that are maps.
@@ -440,11 +442,12 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   // Not supported by the Windows C API.
   (void)consent_settings;  // Mark as unused
 #if defined(_WIN32)
-      if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogWarning(
-		   "Analytics: SetConsent() is not supported and has no effect on Desktop.");
-      }
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+        "Analytics: SetConsent() is not supported and has no effect on "
+        "Desktop.");
+  }
 #endif  // defined(_WIN32)
 }
 
@@ -453,12 +456,12 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)email_address;
 #if defined(_WIN32)
-      if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogWarning(
-		   "Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is "
-		   "not supported and has no effect on Desktop.");
-      }
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+        "Analytics: InitiateOnDeviceConversionMeasurementWithEmailAddress() is "
+        "not supported and has no effect on Desktop.");
+  }
 #endif  // defined(_WIN32)
 }
 
@@ -467,12 +470,12 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)phone_number;
 #if defined(_WIN32)
-      if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogWarning(
-		   "Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is "
-		   "not supported and has no effect on Desktop.");
-      }
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+        "Analytics: InitiateOnDeviceConversionMeasurementWithPhoneNumber() is "
+        "not supported and has no effect on Desktop.");
+  }
 #endif  // defined(_WIN32)
 }
 
@@ -481,13 +484,13 @@ void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_email_address;
 #if defined(_WIN32)
-      if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogWarning(
-		   "Analytics: "
-		   "InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not "
-		   "supported and has no effect on Desktop.");
-      }
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+        "Analytics: "
+        "InitiateOnDeviceConversionMeasurementWithHashedEmailAddress() is not "
+        "supported and has no effect on Desktop.");
+  }
 #endif  // defined(_WIN32)
 }
 
@@ -496,12 +499,13 @@ void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_phone_number;
 #if defined(_WIN32)
-      if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogWarning(
-		   "Analytics: InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() "
-		   "is not supported and has no effect on Desktop.");
-      }
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+        "Analytics: "
+        "InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber() "
+        "is not supported and has no effect on Desktop.");
+  }
 #endif  // defined(_WIN32)
 }
 
@@ -509,12 +513,12 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)milliseconds;
 #if defined(_WIN32)
-      if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogWarning(
-		   "Analytics: SetSessionTimeoutDuration() is not supported and has no "
-		   "effect on Desktop.");
-      }
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+        "Analytics: SetSessionTimeoutDuration() is not supported and has no "
+        "effect on Desktop.");
+  }
 #endif  // defined(_WIN32)
 }
 
@@ -532,11 +536,11 @@ Future<std::string> GetAnalyticsInstanceId() {
   api->CompleteWithResult(future_handle, 0, "", instance_id);
 
 #if defined(_WIN32)
-      if (g_analytics_module) {
-	// Only log this if we are not in stub mode.
-	LogWarning(
-		   "Analytics: GetAnalyticsInstanceId() is not supported on Desktop.");
-      }
+  if (g_analytics_module) {
+    // Only log this if we are not in stub mode.
+    LogWarning(
+        "Analytics: GetAnalyticsInstanceId() is not supported on Desktop.");
+  }
 #endif  // defined(_WIN32)
   return Future<std::string>(api, future_handle.get());
 }
@@ -573,7 +577,7 @@ Future<int64_t> GetSessionIdLastResult() {
   if (g_analytics_module) {
     // Only log this if we are not in stub mode.
     LogWarning(
-	       "Analytics: GetSessionIdLastResult() is not supported on Desktop.");
+        "Analytics: GetSessionIdLastResult() is not supported on Desktop.");
   }
 #endif  // defined(_WIN32)
   return static_cast<const Future<int64_t>&>(
