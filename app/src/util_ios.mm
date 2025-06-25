@@ -27,6 +27,103 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
+using firebase::GetLogLevel;
+using firebase::kLogLevelDebug;
+
+// Key used in Info.plist to specify a custom AppDelegate class name.
+static NSString *const kFirebaseAppDelegateClassNameKey = @"FirebaseAppDelegateClassName";
+
+#define MAX_PENDING_APP_DELEGATE_BLOCKS 8
+#define MAX_SEEN_DELEGATE_CLASSES 32
+
+static IMP g_original_setDelegate_imp = NULL;
+static void (^g_pending_app_delegate_blocks[MAX_PENDING_APP_DELEGATE_BLOCKS])(Class) = {nil};
+static int g_pending_block_count = 0;
+static Class g_seen_delegate_classes[MAX_SEEN_DELEGATE_CLASSES] = {nil};
+static int g_seen_delegate_classes_count = 0;
+
+static void Firebase_setDelegate(id self, SEL _cmd, id<UIApplicationDelegate> delegate) {
+  Class new_class = nil;
+  if (delegate) {
+    new_class = [delegate class];
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: UIApplication setDelegate: called with class %s (Swizzled)",
+            class_getName(new_class));
+  } else {
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: UIApplication setDelegate: called with nil delegate (Swizzled)");
+  }
+
+  if (new_class) {
+    // 1. Superclass Check
+    bool superclass_already_seen = false;
+    Class current_super = class_getSuperclass(new_class);
+    while (current_super) {
+      for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+        if (g_seen_delegate_classes[i] == current_super) {
+          superclass_already_seen = true;
+          if (GetLogLevel() <= kLogLevelDebug)
+            NSLog(@"Firebase: Delegate class %s has superclass %s which was already seen. Skipping "
+                  @"processing for %s.",
+                  class_getName(new_class), class_getName(current_super), class_getName(new_class));
+          break;
+        }
+      }
+      if (superclass_already_seen) break;
+      current_super = class_getSuperclass(current_super);
+    }
+
+    if (!superclass_already_seen) {
+      // 2. Direct Class Check (if no superclass was seen)
+      bool direct_class_already_seen = false;
+      for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+        if (g_seen_delegate_classes[i] == new_class) {
+          direct_class_already_seen = true;
+          if (GetLogLevel() <= kLogLevelDebug)
+            NSLog(@"Firebase: Delegate class %s already seen directly. Skipping processing.",
+                  class_getName(new_class));
+          break;
+        }
+      }
+
+      if (!direct_class_already_seen) {
+        // 3. Process as New Class
+        if (g_seen_delegate_classes_count < MAX_SEEN_DELEGATE_CLASSES) {
+          g_seen_delegate_classes[g_seen_delegate_classes_count] = new_class;
+          g_seen_delegate_classes_count++;
+          if (GetLogLevel() <= kLogLevelDebug)
+            NSLog(@"Firebase: Added new delegate class %s to seen list (total seen: %d).",
+                  class_getName(new_class), g_seen_delegate_classes_count);
+
+          if (g_pending_block_count > 0) {
+            if (GetLogLevel() <= kLogLevelDebug)
+              NSLog(@"Firebase: Executing %d pending block(s) for new delegate class: %s.",
+                    g_pending_block_count, class_getName(new_class));
+            for (int i = 0; i < g_pending_block_count; i++) {
+              if (g_pending_app_delegate_blocks[i]) {
+                g_pending_app_delegate_blocks[i](new_class);
+                // Pending blocks persist to run for future new delegate classes.
+              }
+            }
+          }
+        } else {
+          NSLog(@"Firebase Error: Exceeded MAX_SEEN_DELEGATE_CLASSES (%d). Cannot add new delegate "
+                @"class %s or run pending blocks for it.",
+                MAX_SEEN_DELEGATE_CLASSES, class_getName(new_class));
+        }
+      }
+    }
+  }
+
+  // Call the original setDelegate: implementation
+  if (g_original_setDelegate_imp) {
+    ((void (*)(id, SEL, id<UIApplicationDelegate>))g_original_setDelegate_imp)(self, _cmd,
+                                                                               delegate);
+  } else {
+    NSLog(@"Firebase Error: Original setDelegate: IMP not found, cannot call original method.");
+  }
+}
+
 @implementation FIRSAMAppDelegate
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
@@ -76,41 +173,133 @@
 #endif  // defined(__IPHONE_12_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
 @end
 
+@implementation UIApplication (FirebaseAppDelegateSwizzling)
+
++ (void)load {
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    NSString *appDelegateClassName =
+        [[NSBundle mainBundle] objectForInfoDictionaryKey:kFirebaseAppDelegateClassNameKey];
+
+    if (appDelegateClassName && [appDelegateClassName isKindOfClass:[NSString class]] &&
+        appDelegateClassName.length > 0) {
+      Class specificClass = NSClassFromString(appDelegateClassName);
+      if (specificClass) {
+        if (GetLogLevel() <= kLogLevelDebug)
+          NSLog(@"Firebase: Info.plist key '%@' found. Targeting AppDelegate class: %@. Swizzling "
+                @"of [UIApplication setDelegate:] will be skipped.",
+                kFirebaseAppDelegateClassNameKey, appDelegateClassName);
+
+        // Set this class as the sole "seen" delegate for Firebase processing.
+        // g_seen_delegate_classes_count should be 0 here in +load, but clear just in case.
+        for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+          g_seen_delegate_classes[i] = nil;
+        }
+        g_seen_delegate_classes[0] = specificClass;
+        g_seen_delegate_classes_count = 1;
+        if (GetLogLevel() <= kLogLevelDebug)
+          NSLog(@"Firebase: %@ is now the only delegate class Firebase will initially process.",
+                appDelegateClassName);
+
+        // If there are already blocks pending (e.g., from other Firebase components' +load
+        // methods), execute them now for the specified delegate. These blocks will remain in the
+        // pending queue, mirroring the behavior of the original swizzled setDelegate: method which
+        // also does not clear pending blocks after execution (as they might apply to future
+        // delegates). In this Info.plist mode, however, Firebase won't process further setDelegate:
+        // calls.
+        if (g_pending_block_count > 0) {
+          if (GetLogLevel() <= kLogLevelDebug)
+            NSLog(@"Firebase: +load (Info.plist Mode) - Executing %d PENDING block(s) for "
+                  @"specified delegate: %@. (Blocks are not removed from queue).",
+                  g_pending_block_count, NSStringFromClass(specificClass));
+          for (int i = 0; i < g_pending_block_count; i++) {
+            if (g_pending_app_delegate_blocks[i]) {
+              g_pending_app_delegate_blocks[i](specificClass);
+            }
+          }
+          if (GetLogLevel() <= kLogLevelDebug)
+            NSLog(@"Firebase: +load (Info.plist Mode) - Pending blocks executed for specific "
+                  @"delegate.");
+        }
+        // Skip swizzling. g_original_setDelegate_imp remains NULL.
+        return;
+      } else {
+        NSLog(@"Firebase Error: Info.plist key '%@' specifies class '%@', which was not found. "
+              @"Proceeding with default swizzling.",
+              kFirebaseAppDelegateClassNameKey, appDelegateClassName);
+      }
+    } else {
+      if (appDelegateClassName) {  // Key is present but value is invalid (e.g., empty string or
+                                   // wrong type).
+        NSLog(@"Firebase Error: Info.plist key '%@' has an invalid value ('%@'). Proceeding "
+              @"with default swizzling.",
+              kFirebaseAppDelegateClassNameKey, appDelegateClassName);
+      } else {  // Key is not present.
+        // This is the default case, no special logging needed here beyond the swizzling log itself.
+      }
+    }
+
+    // Standard behavior: Swizzle [UIApplication setDelegate:]
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: Proceeding with swizzling of [UIApplication setDelegate:].");
+    Class uiApplicationClass = [UIApplication class];
+    SEL originalSelector = @selector(setDelegate:);
+    Method originalMethod = class_getInstanceMethod(uiApplicationClass, originalSelector);
+
+    if (!originalMethod) {
+      NSLog(
+          @"Firebase Error: Original [UIApplication setDelegate:] method not found for swizzling.");
+      return;
+    }
+
+    IMP previousImp = method_setImplementation(originalMethod, (IMP)Firebase_setDelegate);
+    if (previousImp) {
+      g_original_setDelegate_imp = previousImp;
+      if (GetLogLevel() <= kLogLevelDebug)
+        NSLog(@"Firebase: Successfully swizzled [UIApplication setDelegate:] and stored original "
+              @"IMP.");
+    } else {
+      NSLog(@"Firebase Error: Swizzled [UIApplication setDelegate:], but original IMP was NULL (or "
+            @"method_setImplementation failed to return the previous IMP).");
+    }
+  });
+}
+
+@end
+
 namespace firebase {
 namespace util {
 
-void ForEachAppDelegateClass(void (^block)(Class)) {
-  unsigned int number_of_classes;
-  Class *classes = objc_copyClassList(&number_of_classes);
-  for (unsigned int i = 0; i < number_of_classes; i++) {
-    Class clazz = classes[i];
-    if (class_conformsToProtocol(clazz, @protocol(UIApplicationDelegate))) {
-      const char *class_name = class_getName(clazz);
-      bool blacklisted = false;
-      static const char *kClassNameBlacklist[] = {
-          // Declared in Firebase Analytics:
-          // //googlemac/iPhone/Firebase/Analytics/Sources/ApplicationDelegate/
-          // FIRAAppDelegateProxy.m
-          "FIRAAppDelegate",
-          // Declared here.
-          "FIRSAMAppDelegate"};
-      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
-        if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
-          blacklisted = true;
-          break;
-        }
-      }
-      if (!blacklisted) {
-        if (GetLogLevel() <= kLogLevelDebug) {
-          // Call NSLog directly because we may be in a +load method,
-          // and C++ classes may not be constructed yet.
-          NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
-        }
-        block(clazz);
+void RunOnAppDelegateClasses(void (^block)(Class)) {
+  if (g_seen_delegate_classes_count > 0) {
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: RunOnAppDelegateClasses executing block for %d already seen delegate "
+            @"class(es).",
+            g_seen_delegate_classes_count);
+    for (int i = 0; i < g_seen_delegate_classes_count; i++) {
+      if (g_seen_delegate_classes[i]) {  // Safety check
+        block(g_seen_delegate_classes[i]);
       }
     }
+  } else {
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: RunOnAppDelegateClasses - no delegate classes seen yet. Block will be "
+            @"queued for future delegates.");
   }
-  free(classes);
+
+  // Always try to queue the block for any future new delegate classes.
+  if (g_pending_block_count < MAX_PENDING_APP_DELEGATE_BLOCKS) {
+    g_pending_app_delegate_blocks[g_pending_block_count] = [block copy];
+    g_pending_block_count++;
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: RunOnAppDelegateClasses - added block to pending list (total pending: %d). "
+            @"This block will run on future new delegate classes.",
+            g_pending_block_count);
+  } else {
+    NSLog(@"Firebase Error: RunOnAppDelegateClasses - pending block queue is full (max %d). Cannot "
+          @"add new block for future execution. Discarding block.",
+          MAX_PENDING_APP_DELEGATE_BLOCKS);
+  }
 }
 
 NSDictionary *StringMapToNSDictionary(const std::map<std::string, std::string> &string_map) {
@@ -354,8 +543,27 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   const char *class_name = class_getName(clazz);
   Method method = class_getInstanceMethod(clazz, name);
   NSString *selector_name_nsstring = NSStringFromSelector(name);
-  const char *selector_name = selector_name_nsstring.UTF8String;
-  IMP original_method_implementation = method ? method_getImplementation(method) : nil;
+  const char *selector_name = selector_name_nsstring.UTF8String;  // Used for logging later
+
+  IMP current_actual_imp = method ? method_getImplementation(method) : nil;
+
+  // === Begin idempotency check ===
+  if (current_actual_imp == imp) {
+    // Assuming GetLogLevel() and kLogLevelDebug are available here.
+    // Based on previous file content, GetLogLevel is available in this file from util_ios.h.
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: Method %s on class %s is already swizzled with the target IMP. Skipping "
+            @"re-swizzle.",
+            selector_name, class_name);
+
+    return;  // Already swizzled to the desired implementation
+  }
+  // === End idempotency check ===
+
+  // If we reach here, current_actual_imp is different from imp, or the method didn't exist.
+  // We now assign original_method_implementation to be current_actual_imp for the rest of the
+  // function.
+  IMP original_method_implementation = current_actual_imp;
 
   // Get the type encoding of the selector from a type_encoding_class (which is a class which
   // implements a stub for the method).
@@ -364,9 +572,9 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   assert(type_encoding);
 
   NSString *new_method_name_nsstring = nil;
-  if (GetLogLevel() <= kLogLevelDebug) {
-    NSLog(@"Registering method for %s selector %s", class_name, selector_name);
-  }
+  if (GetLogLevel() <= kLogLevelDebug)
+    NSLog(@"Firebase: Attempting to register method for %s selector %s", class_name, selector_name);
+
   if (original_method_implementation) {
     // Try adding a method with randomized prefix on the name.
     int retry = kRandomNameGenerationRetries;
@@ -381,32 +589,32 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
     }
     const char *new_method_name = new_method_name_nsstring.UTF8String;
     if (retry == 0) {
-      NSLog(@"Failed to add method %s on class %s as the %s method already exists on the class. To "
-            @"resolve this issue, change the name of the method %s on the class %s.",
-            new_method_name, class_name, new_method_name, new_method_name, class_name);
+      NSLog(
+          @"Firebase Error: Failed to add method %s on class %s as the %s method already exists on "
+          @"the class. To resolve this issue, change the name of the method %s on the class %s.",
+          new_method_name, class_name, new_method_name, new_method_name, class_name);
       return;
     }
     method_setImplementation(method, imp);
     // Save the selector name that points at the original method implementation.
     SetMethod(name, new_method_name_nsstring);
-    if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog(@"Registered method for %s selector %s (original method %s 0x%08x)", class_name,
-            selector_name, new_method_name,
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: Registered method for %s selector %s (original method %s 0x%08x)",
+            class_name, selector_name, new_method_name,
             static_cast<int>(reinterpret_cast<intptr_t>(original_method_implementation)));
-    }
+
   } else if (add_method) {
-    if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog(@"Adding method for %s selector %s", class_name, selector_name);
-    }
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: Adding method for %s selector %s", class_name, selector_name);
+
     // The class doesn't implement the selector so simply install our method implementation.
     if (!class_addMethod(clazz, name, imp, type_encoding)) {
-      NSLog(@"Failed to add new method %s on class %s.", selector_name, class_name);
+      NSLog(@"Firebase Error: Failed to add new method %s on class %s.", selector_name, class_name);
     }
   } else {
-    if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog(@"Method implementation for %s selector %s not found, ignoring.", class_name,
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: Method implementation for %s selector %s not found, ignoring.", class_name,
             selector_name);
-    }
   }
 }
 
@@ -420,9 +628,9 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
       selector_implementation_names_per_selector_[selector_name_nsstring];
   const char *class_name = class_getName(clazz);
   if (!selector_implementation_names) {
-    if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog(@"Method not cached for class %s selector %s.", class_name, selector_name);
-    }
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: Method not cached for class %s selector %s.", class_name, selector_name);
+
     return nil;
   }
 
@@ -440,10 +648,10 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
     search_class = clazz;
     for (; search_class; search_class = class_getSuperclass(search_class)) {
       const char *search_class_name = class_getName(search_class);
-      if (GetLogLevel() <= kLogLevelDebug) {
-        NSLog(@"Searching for selector %s (%s) on class %s", selector_name,
+      if (GetLogLevel() <= kLogLevelDebug)
+        NSLog(@"Firebase: Searching for selector %s (%s) on class %s", selector_name,
               selector_implementation_name, search_class_name);
-      }
+
       Method method = class_getInstanceMethod(search_class, selector_implementation);
       method_implementation = method ? method_getImplementation(method) : nil;
       if (method_implementation) break;
@@ -451,18 +659,18 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
     if (method_implementation) break;
   }
   if (!method_implementation) {
-    if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog(@"Class %s does not respond to selector %s (%s)", class_name, selector_name,
+    if (GetLogLevel() <= kLogLevelDebug)
+      NSLog(@"Firebase: Class %s does not respond to selector %s (%s)", class_name, selector_name,
             selector_implementation_name_nsstring.UTF8String);
-    }
+
     return nil;
   }
-  if (GetLogLevel() <= kLogLevelDebug) {
-    NSLog(@"Found %s (%s, 0x%08x) on class %s (%s)", selector_name,
+  if (GetLogLevel() <= kLogLevelDebug)
+    NSLog(@"Firebase: Found %s (%s, 0x%08x) on class %s (%s)", selector_name,
           selector_implementation_name_nsstring.UTF8String,
           static_cast<int>(reinterpret_cast<intptr_t>(method_implementation)), class_name,
           class_getName(search_class));
-  }
+
   return method_implementation;
 }
 

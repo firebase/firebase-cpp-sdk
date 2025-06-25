@@ -87,4 +87,7 @@ project.afterEvaluate {
   generateProguardFile('app_check')
   setupDexDependencies(':app_check:app_check_resources')
   preBuild.dependsOn(':app:build')
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }

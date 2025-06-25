@@ -32,9 +32,9 @@ env:
   demumbleVer: "df938e45c2b0e064fb5323d88b692d03b451d271"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 15.1 is the version we build the SDK with.
+  # Xcode version 16.2 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "15.1"
+  xcodeVersion: "16.2"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
   GITHUB_TOKEN: ${{ github.token }}
@@ -42,7 +42,7 @@ env:
 jobs:
   log_inputs:
     name: log-inputs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: log run inputs
         run: |
@@ -79,17 +79,20 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-13]
+        os: [ubuntu-22.04, macos-14]
         include:
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
-        - os: macos-13
+        - os: macos-14
           tools_platform: darwin
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
@@ -185,9 +188,12 @@ jobs:
 
   build_and_package_ios_tvos:
     name: build-and-package-ios-tvos
-    runs-on: macos-13
+    runs-on: macos-14
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
@@ -243,11 +249,14 @@ jobs:
 
   build_and_package_android:
     name: build-and-package-android
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Force Java 11
         shell: bash
         run: echo "JAVA_HOME=${JAVA_HOME_11_X64}" >> $GITHUB_ENV
@@ -308,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-20.04, macos-13]
+        os: [windows-latest, ubuntu-22.04, macos-14]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
@@ -322,11 +331,11 @@ jobs:
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
           sdk_platform: "windows"
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
           sdk_platform: "linux"
-        - os: macos-13
+        - os: macos-14
           vcpkg_triplet_suffix: "osx"
           additional_build_flags: "--target_format libraries"
           sdk_platform: "darwin"
@@ -334,24 +343,27 @@ jobs:
         exclude:
         - os: windows-latest
           linux_abi: "c++11"
-        - os: macos-13
+        - os: macos-14
           architecture: "x86"
-        - os: macos-13
+        - os: macos-14
           msvc_runtime: "dynamic"
-        - os: macos-13
+        - os: macos-14
           linux_abi: "c++11"
-        - os: macos-13
+        - os: macos-14
           build_type: "Debug"
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           msvc_runtime: "dynamic"
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           build_type: "Debug"
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           architecture: "arm64"
         - os: windows-latest
           architecture: "arm64"
 
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
@@ -409,7 +421,6 @@ jobs:
           max_attempts: 3
           command: |
             python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.architecture }}' --ssl boringssl
-
       - name: Export verbose flag
         shell: bash
         run: |
@@ -465,40 +476,40 @@ jobs:
       matrix:
         sdk_platform: [linux, darwin, windows]
         suffix: ['']
-        runs_on_platform: [ubuntu-20.04]
+        runs_on_platform: [ubuntu-22.04]
         include:
         # Split windows packaging into multiple runners.
         - sdk_platform: windows
           suffix: '-x86-Release-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: windows
           suffix: '-x86-Release-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: windows
           suffix: '-x64-Release-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: windows
           suffix: '-x64-Release-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: windows
           suffix: '-x86-Debug-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: windows
           suffix: '-x86-Debug-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: windows
           suffix: '-x64-Debug-static'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
         - sdk_platform: darwin
-          runs_on_platform: macos-13
+          runs_on_platform: macos-14
         exclude:
         - sdk_platform: windows
           suffix: ''
         - sdk_platform: darwin
-          runs_on_platform: ubuntu-20.04
+          runs_on_platform: ubuntu-22.04
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -656,7 +667,7 @@ jobs:
 
   download_sdk_package:
     name: download-sdk-package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [log_inputs]
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
@@ -706,7 +717,7 @@ jobs:
 
   merge_packages:
     name: final-merge-packages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     needs: [build_and_package_ios_tvos, build_and_package_android, package_desktop, log_inputs]
     steps:
@@ -767,7 +778,7 @@ jobs:
 
   create_windows_only_package:
     name: create-windows-only-package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [merge_packages]
     steps:
       - name: download SDK zip
@@ -814,7 +825,7 @@ jobs:
     # Clean up intermediate artifacts from packaging step.
     # This can happen after the final package merge is finished.
     name: cleanup-packaging-artifacts
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [merge_packages]
     if: |
       (
@@ -835,7 +846,7 @@ jobs:
     # Trigger the integration_tests workflow.
     needs: [merge_packages, download_sdk_package, create_windows_only_package, cleanup_packaging_artifacts]
     if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled() && !failure()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
@@ -904,7 +915,7 @@ jobs:
   attempt_retry:
     name: "attempt-retry"
     needs: [trigger_integration_tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ failure() && !cancelled() && github.event_name == 'schedule' }}
     steps:
       - name: Checkout repo

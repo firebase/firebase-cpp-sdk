@@ -5,6 +5,8 @@ on:
   pull_request_target:
     types: [synchronize]
 
+permissions: write-all
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
@@ -12,7 +14,7 @@ concurrency:
 jobs:
   dismiss_stale_approvals:
     # Dismiss stale approvals for users without write access, or if this PR comes from a fork.
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # Only if another commit was added to the PR.
     steps:
       - name: Check user permission

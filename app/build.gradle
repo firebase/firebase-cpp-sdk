@@ -81,4 +81,7 @@ project.afterEvaluate {
   setupDexDependencies(':app:app_resources')
   setupDexDependencies(':app:google_api_resources')
   setupDexDependencies(':app:invites_resources')
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }

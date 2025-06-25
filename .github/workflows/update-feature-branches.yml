@@ -13,6 +13,8 @@ on:
   schedule:
     - cron: "0 16 * * 1"  # Mondays, 4pm UTC = 9am PST / 10am PDT
 
+permissions: write-all
+
 env:
   defaultBranchPattern: "feature_branch/*"
   defaultMainBranch: "main"
@@ -23,7 +25,7 @@ env:
 jobs:
   list_feature_branches:
     name: list-feature-branches
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       branch_list: ${{ steps.get-branches.outputs.branch_list }}
     steps:
@@ -57,7 +59,7 @@ jobs:
   create_merge_prs:
     name: create-merge-pr-${{ matrix.branch_name }}
     needs: [ list_feature_branches ]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ needs.list_feature_branches.outputs.branch_list != '[]' }}
     strategy:
       fail-fast: false

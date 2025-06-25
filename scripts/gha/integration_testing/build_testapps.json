@@ -113,6 +113,19 @@
       "provision": "Google_Development.mobileprovision"
     },
     {
+      "name": "ump",
+      "full_name": "FirebaseUmp",
+      "bundle_id": "com.google.ios.admob.testapp",
+      "ios_target": "integration_test",
+      "tvos_target": "",
+      "testapp_path": "ump/integration_test",
+      "frameworks": [
+        "firebase_ump.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    },
+    {
       "name": "installations",
       "full_name": "FirebaseInstallations",
       "bundle_id": "com.google.firebase.fis.testapp",

@@ -13,7 +13,7 @@ on:
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   GITHUB_TOKEN: ${{ github.token }}
-  xcodeVersion: "14.1"  # Only affects Mac runners, and only for prerequisites.
+  xcodeVersion: "16.2"  # Only affects Mac runners, and only for prerequisites.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   prepare_matrix:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
@@ -50,13 +50,30 @@ jobs:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
+        exclude:
+        # Do not attempt to use arm64 on Windows or Linux.
+        - os: windows-latest
+          architecture: arm64
+        - os: ubuntu-22.04
+          architecture: arm64
+        # Do not attempt to use x64 on Mac.
+        - os: macos-14
+          architecture: x64
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
       - name: Force Java 11
+        if: runner.os != 'macOS'
         shell: bash
         run: echo "JAVA_HOME=${JAVA_HOME_11_X64}" >> $GITHUB_ENV
+      - name: Force Java 11 (mac)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: echo "JAVA_HOME=${JAVA_HOME_11_arm64}" >> $GITHUB_ENV
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash

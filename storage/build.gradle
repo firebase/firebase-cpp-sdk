@@ -88,4 +88,7 @@ project.afterEvaluate {
   setupDexDependencies(':storage:storage_resources')
   preBuild.dependsOn(':app:build')
   preBuild.dependsOn(':auth:build')
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }

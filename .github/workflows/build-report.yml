@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: "0 21 * * *"  # 9pm UTC = 1pm PST / 2pm PDT, 12 hours after testapps run
 
+permissions: write-all
+
 env:
   GITHUB_TOKEN: ${{ github.token }}
   numDays: 7
@@ -17,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         test_set: [ general, firestore ]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: generate-report-${{ matrix.test_set }}
     steps:
     - name: Pause 5 minutes to offset Firestore fetches.

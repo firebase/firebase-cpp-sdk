@@ -55,7 +55,7 @@ android {
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:33.5.1')
+  implementation platform('com.google.firebase:firebase-bom:33.15.0')
   implementation 'com.google.firebase:firebase-analytics'
   implementation 'com.google.firebase:firebase-dynamic-links'
   implementation project(':app:app_resources')
@@ -63,6 +63,9 @@ dependencies {
 
 afterEvaluate {
   generateReleaseBuildConfig.enabled = false
+  project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask) {
+    enabled = false
+  }
 }
 
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"

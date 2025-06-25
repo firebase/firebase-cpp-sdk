@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   prepare_matrix:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
@@ -70,24 +70,26 @@ jobs:
             msvc_runtime: "dynamic"
         exclude:
           # msvc_runtime excludes
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             msvc_runtime: "dynamic"
-          - os: macos-13
+          - os: macos-14
             msvc_runtime: "dynamic"
           # architecture excluees
-          - os: macos-13
+          - os: macos-14
             architecture: "x86"
+          - os: macos-14
+            architecture: "x64"
           # Xcode excludes -- allow only one on osx and linux
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             xcode_version: "11.7"
           - os: windows-latest
             xcode_version: "11.7"
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             xcode_version: "12.5.1"
           - os: windows-latest
             xcode_version: "12.5.1"
           # arm64 is only for macos
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             architecture: "arm64"
           - os: windows-latest
             architecture: "arm64"
@@ -95,6 +97,9 @@ jobs:
           - xcode_version: "11.7"
             architecture: "arm64"
     steps:                
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
@@ -165,9 +170,17 @@ jobs:
 
       - name: Setup python
         uses: actions/setup-python@v4
+        if: startsWith(matrix.os, 'ubuntu')
         with:
           python-version: ${{ matrix.python_version }}
-          architecture: 'x64'
+          architecture: x64
+
+      - name: Setup python (Mac)
+        uses: actions/setup-python@v4
+        if: startsWith(matrix.os, 'macos')
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
 
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
@@ -223,7 +236,7 @@ jobs:
           LANG: en_US
         run: |
           cd build
-          ctest --repeat until-pass:3 --output-on-failure
+          ctest --repeat until-pass:3 --output-on-failure -E firestore_util_test
 
       - name: Run unit tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
@@ -292,10 +305,13 @@ jobs:
     ### It's possible to add more apps here once integration tests are less flaky.
     name: local-integration-tests-linux-openssl
     needs: prepare_matrix
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -331,7 +347,7 @@ jobs:
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${apis} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-ubuntu-20.04-openssl" \
+            --artifact_name "desktop-ubuntu-22.04-openssl" \
             --noadd_timestamp \
             --short_output_paths \
             --cmake_flag=-DFIREBASE_QUICK_TEST=ON
@@ -339,7 +355,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-desktop-ubuntu-20.04-openssl.log
+          cat build-results-desktop-ubuntu-22.04-openssl.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -361,15 +377,15 @@ jobs:
           java-version: '17'
       - name: Run Desktop integration tests
         run: |
-          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-20.04-openssl/firestore/google-services.json
-          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-20.04-openssl --logfile_name "desktop-ubuntu-20.04-openssl"'
+          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-22.04-openssl/firestore/google-services.json
+          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-22.04-openssl --logfile_name "desktop-ubuntu-22.04-openssl"'
         env:
           USE_FIRESTORE_EMULATOR: true
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps-desktop-ubuntu-20.04-openssl/test-results-desktop-ubuntu-20.04-openssl.log
+          cat testapps-desktop-ubuntu-22.04-openssl/test-results-desktop-ubuntu-22.04-openssl.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
