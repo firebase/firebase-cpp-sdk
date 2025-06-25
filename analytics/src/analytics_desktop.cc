@@ -28,6 +28,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+
 #include "analytics_windows.h"
 #endif  // defined(_WIN32)
 

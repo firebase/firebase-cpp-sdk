@@ -18,7 +18,8 @@
 
 #include <stddef.h>
 
-// A nice big chunk of stub memory that can be returned by stubbed Create methods.
+// A nice big chunk of stub memory that can be returned by stubbed Create
+// methods.
 static char g_stub_memory[256] = {0};
 
 // clang-format off
