@@ -29,7 +29,8 @@
 #if defined(_WIN32)
 #include <windows.h>
 
-#include "analytics/src/analytics_windows.h"
+// analytics_windows.h is not strictly needed if only using C API via analytics_desktop_dynamic.h
+// #include "analytics/src/analytics_windows.h"
 #endif  // defined(_WIN32)
 
 namespace firebase {
@@ -39,6 +40,13 @@ namespace analytics {
 #define ANALYTICS_DLL_FILENAME L"analytics_win.dll"
 
 static HMODULE g_analytics_module = 0;
+// It's generally safer to use local std::string copies within Initialize
+// for app_id and package_name to ensure their lifetime if Initialize
+// could theoretically be called multiple times with different App objects,
+// or if AppOptions getters returned temporaries.
+// Given AppOptions structure, direct use of app.options().app_id() etc.
+// within the Initialize call *should* be safe as App outlives the call,
+// but local copies are more robust.
 #endif  // defined(_WIN32)
 
 // Future data for analytics.
@@ -49,10 +57,7 @@ static int g_fake_instance_id = 0;
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
 void Initialize(const App& app) {
-  // The 'app' parameter is not directly used by the underlying Google Analytics
-  // C API for Windows for global initialization. It's included for API
-  // consistency with other Firebase platforms.
-  (void)app;
+  // app parameter is now used to retrieve AppOptions.
 
   g_initialized = true;
   internal::RegisterTerminateOnDefaultAppDestroy();
@@ -72,7 +77,7 @@ void Initialize(const App& app) {
 
     if (g_analytics_module) {
       int num_loaded = FirebaseAnalytics_LoadDynamicFunctions(
-          g_analytics_module);  // Ensure g_analytics_module is used
+          g_analytics_module);
       if (num_loaded < FirebaseAnalytics_DynamicFunctionCount) {
         LogWarning(
             "Analytics: Failed to load functions from Google Analytics "
@@ -81,12 +86,41 @@ void Initialize(const App& app) {
         FirebaseAnalytics_UnloadDynamicFunctions();
         FreeLibrary(g_analytics_module);
         g_analytics_module = 0;
+        // Do not proceed with C API initialization if functions didn't load
       } else {
         LogInfo("Analytics: Loaded Google Analytics module.");
+
+        // Initialize Google Analytics C API
+        std::string current_app_id = app.options().app_id();
+        std::string current_package_name = app.options().package_name();
+
+        GoogleAnalytics_Options* c_options = GoogleAnalytics_Options_Create();
+        if (!c_options) {
+          LogError("Analytics: Failed to create GoogleAnalytics_Options.");
+        } else {
+          c_options->app_id = current_app_id.c_str();
+          c_options->package_name = current_package_name.c_str();
+          c_options->analytics_collection_enabled_at_first_launch = true;
+          // c_options->reserved is initialized by GoogleAnalytics_Options_Create
+
+          LogInfo("Analytics: Initializing Google Analytics C API with App ID: %s, Package Name: %s",
+                  c_options->app_id ? c_options->app_id : "null",
+                  c_options->package_name ? c_options->package_name : "null");
+
+          if (!GoogleAnalytics_Initialize(c_options)) {
+            LogError("Analytics: Failed to initialize Google Analytics C API.");
+            // GoogleAnalytics_Initialize destroys c_options automatically if created by _Create
+          } else {
+            LogInfo("Analytics: Google Analytics C API initialized successfully.");
+          }
+        }
       }
+    } else {
+      // LogWarning for g_analytics_module load failure is handled by VerifyAndLoadAnalyticsLibrary
+      g_analytics_module = 0; // Ensure it's null if loading failed
     }
   }
-#endif
+#endif  // defined(_WIN32)
 }
 
 namespace internal {
