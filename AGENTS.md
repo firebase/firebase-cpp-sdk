@@ -252,7 +252,11 @@ where `T` is the type of the expected result.
     methods. If you add a new asynchronous operation, it should be added to
     that enum, and that ID should be used for all of the internal FutureApi
     operations. Non-async functions never need to touch this.
-
+*   Asynchronous functions ONLY: Only asynchronous functions need to use
+    the Future pattern, e.g. anything with a callback. If you are simply
+    calling an underlying SDK function that finishes its work and returns
+    immediately, with no callback, there is no need to use a Future. See
+    `STYLE_GUIDE.md` for more details on asynchronous operations.
 
 ### Core Classes and Operations (Examples from Auth and Database)
 
