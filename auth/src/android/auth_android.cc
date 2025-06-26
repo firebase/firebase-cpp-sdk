@@ -676,5 +676,13 @@ void DisableTokenAutoRefresh(AuthData* auth_data) {}
 void InitializeTokenRefresher(AuthData* auth_data) {}
 void DestroyTokenRefresher(AuthData* auth_data) {}
 
+#if !FIREBASE_PLATFORM_IOS
+// Stub for non-iOS platforms.
+void Auth::UseUserAccessGroup(const char* user_access_group) {
+  // This function is only implemented on iOS.
+  (void)user_access_group; // Mark as used to avoid compiler warnings.
+}
+#endif  // !FIREBASE_PLATFORM_IOS
+
 }  // namespace auth
 }  // namespace firebase

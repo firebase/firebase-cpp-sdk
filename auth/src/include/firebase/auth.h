@@ -428,6 +428,24 @@ class Auth {
   /// Get results of the most recent call to SendPasswordResetEmail.
   Future<void> SendPasswordResetEmailLastResult() const;
 
+  /// @brief Specifies a user access group for keychain data sharing for the
+  /// current app.
+  ///
+  /// @details This method is only functional on iOS. On other platforms, it is
+  /// a no-op.
+  ///
+  /// Setting this will allow the application to share user credentials with
+  /// other applications that are members of the same access group.
+  ///
+  /// After this is called, all future get and set keychain operations will use
+  /// the new user access group. By default, this is nil and credentials are
+  /// only accessible by the current application.
+  ///
+  /// @param[in] user_access_group The user access group string to use.
+  ///   Pass `nullptr` or an empty string to reset to the default (app-only)
+  ///   access group.
+  void UseUserAccessGroup(const char* user_access_group);
+
 #ifndef SWIG
   /// @brief Registers a listener to changes in the authentication state.
   ///

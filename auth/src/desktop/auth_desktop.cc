@@ -768,5 +768,13 @@ void IdTokenRefreshThread::DisableAuthRefresh() {
   ref_count_--;
 }
 
+#if !FIREBASE_PLATFORM_IOS
+// Stub for non-iOS platforms.
+void Auth::UseUserAccessGroup(const char* user_access_group) {
+  // This function is only implemented on iOS.
+  (void)user_access_group; // Mark as used to avoid compiler warnings.
+}
+#endif  // !FIREBASE_PLATFORM_IOS
+
 }  // namespace auth
 }  // namespace firebase

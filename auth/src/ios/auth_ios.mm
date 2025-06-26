@@ -608,5 +608,22 @@ void DisableTokenAutoRefresh(AuthData *auth_data) {}
 void InitializeTokenRefresher(AuthData *auth_data) {}
 void DestroyTokenRefresher(AuthData *auth_data) {}
 
+void Auth::UseUserAccessGroup(const char* user_access_group) {
+  if (!auth_data_) return;
+  NSString* access_group_nsstring = nil;
+  if (user_access_group != nullptr && strlen(user_access_group) > 0) {
+    access_group_nsstring = [NSString stringWithUTF8String:user_access_group];
+  }
+
+  NSError* error = nil;
+  BOOL success = [AuthImpl(auth_data_) useUserAccessGroup:access_group_nsstring error:&error];
+  if (!success || error) {
+    LogWarning("Error setting user access group: %s",
+               [[error localizedDescription] UTF8String]);
+    // Note: The C++ method is void, so we're not propagating the error further up.
+    // If specific error handling is needed in C++, the method signature would need to change.
+  }
+}
+
 }  // namespace auth
 }  // namespace firebase
