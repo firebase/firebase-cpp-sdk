@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "firebase/storage/storage_reference.h"
-#include "storage/src/desktop/storage_internal_desktop.h"
+#include "storage/src/desktop/storage_desktop.h"  // Corrected include path
 #include "storage/src/desktop/storage_reference_desktop.h"
 
 namespace firebase {
