@@ -403,6 +403,15 @@ void SetDefaultEventParameters(const std::map<std::string, Variant>& default_par
                pair.first.c_str(), Variant::TypeName(value.type()));
     }
   }
+  // If ns_default_parameters is empty at this point, it means all input
+  // parameters were invalid or the input map itself was empty.
+  // In this case, we should not call the native SDK, as passing an empty
+  // NSDictionary might clear existing parameters, which is not the intent
+  // if all inputs were simply invalid.
+  if ([ns_default_parameters count] == 0) {
+    LogDebug("SetDefaultEventParameters: No valid parameters to set, skipping native call.");
+    return;
+  }
   [FIRAnalytics setDefaultEventParameters:ns_default_parameters];
 }
 

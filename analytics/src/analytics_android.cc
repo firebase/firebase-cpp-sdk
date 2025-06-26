@@ -681,6 +681,28 @@ void SetDefaultEventParameters(
     }
   }
 
+  // Check if the bundle is empty. If so, it means all input parameters were
+  // invalid or the input map itself was empty. In this case, we should not
+  // call the native SDK, as passing an empty Bundle might clear existing
+  // parameters, which is not the intent if all inputs were simply invalid.
+  jboolean is_bundle_empty = env->CallBooleanMethod(
+      bundle, util::bundle::GetMethodId(util::bundle::kIsEmpty));
+  if (util::CheckAndClearJniExceptions(env)) {
+    LogError(
+        "SetDefaultEventParameters: Failed to check if Bundle is empty. "
+        "Skipping native call to avoid potential issues.");
+    env->DeleteLocalRef(bundle);
+    return;
+  }
+
+  if (is_bundle_empty) {
+    LogDebug(
+        "SetDefaultEventParameters: No valid parameters to set, skipping "
+        "native call.");
+    env->DeleteLocalRef(bundle);
+    return;
+  }
+
   env->CallVoidMethod(
       g_analytics_class_instance,
       analytics::GetMethodId(analytics::kSetDefaultEventParameters), bundle);
