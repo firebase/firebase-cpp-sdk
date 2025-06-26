@@ -627,6 +627,7 @@ void SetDefaultEventParameters(
     return;
   }
 
+  bool any_parameter_added = false;
   for (const auto& pair : default_parameters) {
     const Variant& value = pair.second;
     const char* key_cstr = pair.first.c_str();
@@ -648,6 +649,8 @@ void SetDefaultEventParameters(
         LogError(
             "SetDefaultEventParameters: Failed to put null string for key: %s",
             key_cstr);
+      } else {
+        any_parameter_added = true;
       }
       env->DeleteLocalRef(key_jstring);
     } else if (value.is_string() || value.is_int64() || value.is_double() ||
@@ -655,7 +658,9 @@ void SetDefaultEventParameters(
       // AddVariantToBundle handles these types and their JNI conversions.
       // It also logs if an individual AddToBundle within it fails or if a type
       // is unsupported by it.
-      if (!AddVariantToBundle(env, bundle, key_cstr, value)) {
+      if (AddVariantToBundle(env, bundle, key_cstr, value)) {
+        any_parameter_added = true;
+      } else {
         // This specific log gives context that the failure happened during
         // SetDefaultEventParameters for a type that was expected to be
         // supported by AddVariantToBundle.
@@ -681,24 +686,10 @@ void SetDefaultEventParameters(
     }
   }
 
-  // Check if the bundle is empty. If so, it means all input parameters were
-  // invalid or the input map itself was empty. In this case, we should not
-  // call the native SDK, as passing an empty Bundle might clear existing
-  // parameters, which is not the intent if all inputs were simply invalid.
-  jboolean is_bundle_empty = env->CallBooleanMethod(
-      bundle, util::bundle::GetMethodId(util::bundle::kIsEmpty));
-  if (util::CheckAndClearJniExceptions(env)) {
-    LogError(
-        "SetDefaultEventParameters: Failed to check if Bundle is empty. "
-        "Skipping native call to avoid potential issues.");
-    env->DeleteLocalRef(bundle);
-    return;
-  }
-
-  if (is_bundle_empty) {
+  if (!any_parameter_added) {
     LogDebug(
-        "SetDefaultEventParameters: No valid parameters to set, skipping "
-        "native call.");
+        "SetDefaultEventParameters: No valid parameters were processed, "
+        "skipping native call to avoid clearing existing parameters.");
     env->DeleteLocalRef(bundle);
     return;
   }
