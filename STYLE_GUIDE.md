@@ -376,11 +376,3 @@ e.g.
       }
     }
 ```
-
-# Data Types
-
-* Time: [Milliseconds since the epoch](https://en.wikipedia.org/wiki/Unix_time)
-
-# More on C++ and games
-
-* Performance Oriented C++ for Game Developers (very incomplete).
