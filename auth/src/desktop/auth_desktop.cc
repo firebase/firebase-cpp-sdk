@@ -768,5 +768,11 @@ void IdTokenRefreshThread::DisableAuthRefresh() {
   ref_count_--;
 }
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  // This is an iOS-only feature. No-op on desktop.
+  (void)access_group; // Suppress unused variable warning
+  return kAuthErrorNone;
+}
+
 }  // namespace auth
 }  // namespace firebase
