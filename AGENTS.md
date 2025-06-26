@@ -33,14 +33,22 @@ instructions for your specific platform.
 *   **CMake**: Version 3.7 or newer.
 *   **Python**: Version 3.7 or newer.
 *   **Abseil-py**: Python package.
-*   **OpenSSL**: Required for Realtime Database and Cloud Firestore (especially
-    for desktop builds).
+*   **OpenSSL**: Required for desktop builds, unless you build with the
+    `-DFIREBASE_USE_BORINGSSL=YES` cmake flag.
+*   **libsecret-1-dev**: (Linux Desktop) Required for secure credential storage.
+    Install using `sudo apt-get install libsecret-1-dev`.
 *   **Android SDK & NDK**: Required for building Android libraries. `sdkmanager`
     can be used for installation. CMake for Android (version 3.10.2
     recommended) is also needed.
 *   **(Windows Only) Strings**: From Microsoft Sysinternals, required for
     Android builds on Windows.
 *   **Cocoapods**: Required for building iOS or tvOS libraries.
+
+To build for Desktop, you can install prerequisites by running the following
+script in the root of the repository: `scripts/gha/install_prereqs_desktop.py`
+
+To build for Android, you can install prerequisites by running the following
+script in the root of the repository: `build_scripts/android/install_prereqs.sh`
 
 ## Building the SDK
 
@@ -50,15 +58,22 @@ The SDK uses CMake for C++ compilation and Gradle for Android-specific parts.
 
 1.  Create a build directory (e.g., `mkdir desktop_build && cd desktop_build`).
 2.  Run CMake to configure: `cmake ..`
-    *   For iOS:
-        `cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake ..`
-        Note: iOS setup typically requires both including Firebase pods (via
-        `Podfile`) and linking the `.framework` files from the C++ SDK
-        distribution.
-    *   For tvOS:
-        `cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/apple.toolchain.cmake -DPLATFORM=TVOS ..`
+    *   For Desktop: Run as is. You can use BORINGSSL instead of OpenSSL (for fewer
+        system dependencies with the `-DFIREBASE_USE_BORINGSSL=YES` parameter.
+    *   For iOS, include the `-DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake`
+        parameter. This requires running on a Mac build machine.
 3.  Build specific targets: `cmake --build . --target firebase_analytics`
     (replace `firebase_analytics` with the desired library).
+    Or omit the entire `--target` parameter to build all targets.
+
+    For development, building specific targets
+    (e.g., `cmake --build . --target firebase_app`) is generally faster and
+    recommended once CMake configuration is complete. The full build
+    (`cmake --build .`) can be very time-consuming (but can be sped up by adding
+    `-j4` to the command-line).
+
+You can also use the `scripts/gha/build_desktop.py` script to build the full
+desktop SDK.
 
 Refer to `README.md` for details on CMake generators and providing custom
 third-party dependency locations.
@@ -76,17 +91,30 @@ This command should be run from the root of the repository. Proguard files are
 generated in each library's build directory (e.g.,
 `analytics/build/analytics.pro`).
 
-### Desktop Platform Setup Details
+You can build the entire SDK for Android by running `./gradlew build` or
+`build_scripts/android/build.sh`.
 
-When setting up for desktop, if you are using an iOS
-`GoogleService-Info.plist` file, convert it to the required
-`google-services-desktop.json` using the script:
-`python generate_xml_from_google_services_json.py --plist -i GoogleService-Info.plist`
-(run this from the script's directory, ensuring the plist file is accessible).
+### Xcode (iOS)
 
-The desktop SDK searches for configuration files in the current working
-directory, first for `google-services-desktop.json`, then for
-`google-services.json`.
+Unfortunately, the iOS version of the SDK cannot be built on Linux, it can only
+be built in a MacOS environment. You will have to rely on GitHub Actions to
+build for iOS, and have the user inform you of any build issues that come up.
+
+### Troubleshooting Desktop Builds
+
+*   Linux: **Missing `libsecret-1-dev`**:
+    CMake configuration may fail if `libsecret-1-dev` is not installed.
+    The `scripts/gha/install_prereqs_desktop.py` script should handle this.
+    If it doesn't, or if the package is removed, you might need to install it
+    manually: `sudo apt-get update && sudo apt-get install -y libsecret-1-dev`.
+
+*   Linux: **LevelDB Patch Failure when building Firestore**:
+    If you are building the SDK with Firestore enabled
+    (`-DFIREBASE_INCLUDE_FIRESTORE=ON`, which is the default for desktop) and
+    encounter a patch error related to `leveldb-1.23_windows_paths.patch` (e.g.,
+    `util/env_windows.cc: patch does not apply`), you can ignore this issue if
+    it does not prevent the rest of the build from running. The patch is only
+    important on Windows.
 
 Common system library dependencies for desktop:
 *   **Windows**: Common dependencies include `advapi32.lib`, `ws2_32.lib`,
@@ -96,6 +124,9 @@ Common system library dependencies for desktop:
     frameworks like `CoreFoundation`, `Foundation`, and `Security`.
 *   **Linux**: Common dependencies include `pthread` (system library). When
     using GCC 5+, define `-D_GLIBCXX_USE_CXX11_ABI=0`.
+
+On all desktop platforms, building with -DFIREBASE_USE_BORINGSSL=YES can help
+bypass any OpenSSL dependency issues.
 
 ## Including the SDK in Projects
 
@@ -139,18 +170,10 @@ coverage within the integration tests.
     (e.g., Firestore, Auth) are typically located in the `integration_test/`
     directory within that product's module (e.g.,
     `firestore/integration_test/`).
-*   **Test Scripts**: The root of the repository contains scripts for running
-    tests on various platforms, such as:
-    *   `test_windows_x32.bat`
-    *   `test_windows_x64.bat`
-    *   `test_linux.sh`
-    *   `test_mac_x64.sh`
-    *   `test_mac_ios.sh`
-    *   `test_mac_ios_simulator.sh`
 
-    These scripts typically build the SDKs and then execute the relevant tests
-    (primarily integration tests) via CTest or other platform-specific test
-    runners.
+    Because building integration tests requires internal google-services files,
+    Jules cannot do it in its environment; instead, we rely on GitHub Actions's
+    Integration Test workflow to build and run the integration tests.
 
 ## Writing Tests
 
@@ -221,6 +244,19 @@ where `T` is the type of the expected result.
     callback function (lambda or function pointer) that will be invoked when
     the future completes. The callback receives the completed future as an
     argument.
+*   k?????Fn_* enums: A list of each SDK's asynchronous functions is usually
+    kept in an enum in that SDK. For example, all of Auth's asynchronous
+    functions are named kAuthFn_* and kUserFn_*. Only asynchronous operations
+    (which return a Future) need to be in those function enums; these are used
+    internally to hold a reference to the FutureHandle for the *LastResult()
+    methods. If you add a new asynchronous operation, it should be added to
+    that enum, and that ID should be used for all of the internal FutureApi
+    operations. Non-async functions never need to touch this.
+*   Asynchronous functions ONLY: Only asynchronous functions need to use
+    the Future pattern, e.g. anything with a callback. If you are simply
+    calling an underlying SDK function that finishes its work and returns
+    immediately, with no callback, there is no need to use a Future. See
+    `STYLE_GUIDE.md` for more details on asynchronous operations.
 
 ### Core Classes and Operations (Examples from Auth and Database)
 
@@ -306,6 +342,9 @@ API documentation.
 
 ## Coding Style
 
+*   **Firebase C++ Style Guide**: For specific C++ API design and coding
+    conventions relevant to this SDK, refer to the
+    [STYLE_GUIDE.md](STYLE_GUIDE.md).
 *   **Google C++ Style Guide**: Adhere to the
     [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
     as mentioned in `CONTRIBUTING.md`.
