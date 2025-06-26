@@ -93,7 +93,13 @@ generated in each library's build directory (e.g.,
 You can build the entire SDK for Android by running `./gradlew build` or
 `build_scripts/android/build.sh`.
 
-#### Troubleshooting Desktop Builds
+### Xcode (iOS)
+
+Unfortunately, the iOS version of the SDK cannot be built on Linux, it can only
+be built in a MacOS environment. You will have to rely on GitHub Actions to
+build for iOS, and have the user inform you of any build issues that come up.
+
+### Troubleshooting Desktop Builds
 
 *   Linux: **Missing `libsecret-1-dev`**:
     CMake configuration may fail if `libsecret-1-dev` is not installed.
