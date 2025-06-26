@@ -33,8 +33,10 @@ instructions for your specific platform.
 *   **CMake**: Version 3.7 or newer.
 *   **Python**: Version 3.7 or newer.
 *   **Abseil-py**: Python package.
-*   **OpenSSL**: Required for Realtime Database and Cloud Firestore (especially
-    for desktop builds).
+*   **OpenSSL**: Required for desktop builds, unless you build with the
+    `-DFIREBASE_USE_BORINGSSL=YES` cmake flag.
+*   **libsecret-1-dev**: (Linux Desktop) Required for secure credential storage.
+    Install using `sudo apt-get install libsecret-1-dev`.
 *   **Android SDK & NDK**: Required for building Android libraries. `sdkmanager`
     can be used for installation. CMake for Android (version 3.10.2
     recommended) is also needed.
