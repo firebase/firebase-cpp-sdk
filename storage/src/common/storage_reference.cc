@@ -257,12 +257,12 @@ Future<Metadata> StorageReference::PutFileLastResult() {
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
 
 Future<ListResult> StorageReference::ListAll() {
-  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
+  FIREBASE_ASSERT_RETURN(Future<ListResult>(), is_valid());
   return internal_->ListAll();
 }
 
 Future<ListResult> StorageReference::List(const char* page_token) {
-  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
+  FIREBASE_ASSERT_RETURN(Future<ListResult>(), is_valid());
   return internal_->List(page_token);
 }
 
