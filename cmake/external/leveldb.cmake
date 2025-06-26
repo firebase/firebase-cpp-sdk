@@ -18,8 +18,10 @@ if(TARGET leveldb)
   return()
 endif()
 
+if (DESKTOP AND MSVC)
 set(patch_file 
   ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/leveldb/0001-leveldb-1.23-windows-paths.patch)
+endif()
 
 # This version must be kept in sync with the version in firestore.patch.txt.
 # If this version ever changes then make sure to update the version in
