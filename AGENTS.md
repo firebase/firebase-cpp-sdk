@@ -35,6 +35,8 @@ instructions for your specific platform.
 *   **Abseil-py**: Python package.
 *   **OpenSSL**: Required for Realtime Database and Cloud Firestore (especially
     for desktop builds).
+*   **libsecret-1-dev**: (Linux Desktop) Required for secure credential storage.
+    Install using `sudo apt-get install libsecret-1-dev`.
 *   **Android SDK & NDK**: Required for building Android libraries. `sdkmanager`
     can be used for installation. CMake for Android (version 3.10.2
     recommended) is also needed.

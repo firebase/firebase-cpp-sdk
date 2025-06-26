@@ -26,6 +26,13 @@ set(patch_file
 # firestore.patch.txt accordingly.
 set(version 1.23)
 
+# Determine the patch command based on the operating system
+if(WIN32)
+  set(PATCH_CMD git apply ${patch_file} && git gc --aggressive)
+else()
+  set(PATCH_CMD git gc --aggressive) # Only run git gc on non-Windows
+endif()
+
 ExternalProject_Add(
   leveldb
 
@@ -40,5 +47,5 @@ ExternalProject_Add(
   INSTALL_COMMAND   ""
   TEST_COMMAND      ""
   HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
-  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
+  PATCH_COMMAND ${PATCH_CMD}
 )
