@@ -306,6 +306,9 @@ API documentation.
 
 ## Coding Style
 
+*   **Firebase C++ Style Guide**: For specific C++ API design and coding
+    conventions relevant to this SDK, refer to the
+    [STYLE_GUIDE.md](STYLE_GUIDE.md).
 *   **Google C++ Style Guide**: Adhere to the
     [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
     as mentioned in `CONTRIBUTING.md`.
