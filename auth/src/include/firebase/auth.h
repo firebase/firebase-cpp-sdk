@@ -517,6 +517,20 @@ class Auth {
   /// not available on the current device.
   static Auth* GetAuth(App* app, InitResult* init_result_out = nullptr);
 
+  /// @brief Sets the user access group to use for keychain operations.
+  ///
+  /// @param[in] user_access_group The user access group ID. For an app to share
+  /// keychain items with other apps, it must be a member of an access group.
+  /// For more information, see
+  /// https://developer.apple.com/documentation/security/keychain_services/keychain_items/sharing_access_to_keychain_items_among_a_collection_of_apps
+  ///
+  /// @return Returns `kAuthErrorNone` on success, or an error code if the
+  /// operation failed.
+  ///
+  /// @note This method is only applicable to iOS. On other platforms, it is a
+  /// stub and will always return `kAuthErrorNone`.
+  AuthError UseUserAccessGroup(const char* user_access_group);
+
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class ::firebase::App;
