@@ -22,6 +22,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "storage/src/desktop/curl_requests.h"
 #include "storage/src/desktop/storage_path.h"
+#include "storage/src/include/firebase/storage/list_result.h"  // Added for ListResult
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 namespace firebase {

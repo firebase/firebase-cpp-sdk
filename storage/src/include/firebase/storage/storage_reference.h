@@ -20,6 +20,7 @@
 
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
+#include "firebase/storage/list_result.h"  // Added for ListResult
 #include "firebase/storage/metadata.h"
 
 namespace firebase {
