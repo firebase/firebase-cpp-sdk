@@ -69,7 +69,8 @@ The SDK uses CMake for C++ compilation and Gradle for Android-specific parts.
     For development, building specific targets
     (e.g., `cmake --build . --target firebase_app`) is generally faster and
     recommended once CMake configuration is complete. The full build
-    (`cmake --build .`) can be very time-consuming.
+    (`cmake --build .`) can be very time-consuming (but can be sped up by adding
+    `-j4` to the command-line).
 
 You can also use the `scripts/gha/build_desktop.py` script to build the full
 desktop SDK.
