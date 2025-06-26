@@ -306,7 +306,7 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
       // A Variant type that couldn't be handled was passed in.
       LogError("LogEvent(%s): %s is not a valid parameter value type. "
                "No event was logged.",
-               parameter.name, Variant::TypeName(parameter.value.type()));
+               parameter.name, firebase::Variant::TypeName(parameter.value.type()));
     }
   }
   [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
@@ -371,6 +371,53 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   [FIRAnalytics
       setSessionTimeoutInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
+}
+
+void SetDefaultEventParameters(const std::map<std::string, Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  NSMutableDictionary* ns_default_parameters =
+      [[NSMutableDictionary alloc] initWithCapacity:default_parameters.size()];
+  for (const auto& pair : default_parameters) {
+    NSString* key = SafeString(pair.first.c_str());
+    const Variant& value = pair.second;
+
+    if (value.is_null()) {
+      [ns_default_parameters setObject:[NSNull null] forKey:key];
+    } else if (value.is_int64()) {
+      [ns_default_parameters setObject:[NSNumber numberWithLongLong:value.int64_value()]
+                                forKey:key];
+    } else if (value.is_double()) {
+      [ns_default_parameters setObject:[NSNumber numberWithDouble:value.double_value()] forKey:key];
+    } else if (value.is_string()) {
+      [ns_default_parameters setObject:SafeString(value.string_value()) forKey:key];
+    } else if (value.is_bool()) {
+      [ns_default_parameters setObject:[NSNumber numberWithBool:value.bool_value()] forKey:key];
+    } else if (value.is_vector() || value.is_map()) {
+      LogError("SetDefaultEventParameters: Value for key '%s' has type '%s' which is not supported "
+               "for default event parameters. Only string, int64, double, bool, and null are "
+               "supported. Skipping.",
+               pair.first.c_str(), Variant::TypeName(value.type()));
+    } else {
+      LogError("SetDefaultEventParameters: Value for key '%s' has an unexpected type '%s' which is "
+               "not supported. Skipping.",
+               pair.first.c_str(), Variant::TypeName(value.type()));
+    }
+  }
+  // If ns_default_parameters is empty at this point, it means all input
+  // parameters were invalid or the input map itself was empty.
+  // In this case, we should not call the native SDK, as passing an empty
+  // NSDictionary might clear existing parameters, which is not the intent
+  // if all inputs were simply invalid.
+  if ([ns_default_parameters count] == 0) {
+    LogDebug("SetDefaultEventParameters: No valid parameters to set, skipping native call.");
+    return;
+  }
+  [FIRAnalytics setDefaultEventParameters:ns_default_parameters];
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  [FIRAnalytics setDefaultEventParameters:nil];
 }
 
 void ResetAnalyticsData() {
