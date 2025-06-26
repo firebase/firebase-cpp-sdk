@@ -244,6 +244,15 @@ where `T` is the type of the expected result.
     callback function (lambda or function pointer) that will be invoked when
     the future completes. The callback receives the completed future as an
     argument.
+*   k?????Fn_* enums: A list of each SDK's asynchronous functions is usually
+    kept in an enum in that SDK. For example, all of Auth's asynchronous
+    functions are named kAuthFn_* and kUserFn_*. Only asynchronous operations
+    (which return a Future) need to be in those function enums; these are used
+    internally to hold a reference to the FutureHandle for the *LastResult()
+    methods. If you add a new asynchronous operation, it should be added to
+    that enum, and that ID should be used for all of the internal FutureApi
+    operations. Non-async functions never need to touch this.
+
 
 ### Core Classes and Operations (Examples from Auth and Database)
 
