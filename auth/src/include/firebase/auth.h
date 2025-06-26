@@ -428,6 +428,38 @@ class Auth {
   /// Get results of the most recent call to SendPasswordResetEmail.
   Future<void> SendPasswordResetEmailLastResult() const;
 
+  /// @brief Sets the user access group to use for keychain data sharing.
+  ///
+  /// This method is only functional on iOS and tvOS. On other platforms, it is
+  /// a no-op and will return `kAuthErrorNone`.
+  ///
+  /// Allows you to specify a keychain access group to be used for sharing
+  /// authentication state across multiple apps from the same publisher.
+  /// Calling this method will switch the underlying data persistence for the
+  /// current Auth instance to the specified access group.
+  ///
+  /// If `access_group` is `nullptr` or an empty string, the access group will
+  /// be cleared and the default persistence (isolated to the app) will be
+  /// used.
+  ///
+  /// @param[in] access_group The keychain access group string (e.g.,
+  ///   "com.example.mygroup"). Pass `nullptr` or an empty string to reset to
+  ///   the default app-specific keychain.
+  ///
+  /// @return `kAuthErrorNone` on success.
+  ///         Returns `kAuthErrorKeychainError` if an error occurs while
+  ///         accessing the keychain (iOS/tvOS only).
+  ///         Returns `kAuthErrorUnimplemented` if called on a platform other
+  ///         than iOS or tvOS, though current stub implementations return
+  ///         `kAuthErrorNone`.
+  ///
+  /// @note On tvOS, if `shareAuthStateAcrossDevices` is set to `true`,
+  /// attempting to set an access group may have specific behaviors or
+  /// limitations as outlined in the Firebase iOS SDK documentation. Refer to
+  /// the official Firebase documentation for `[FIRAuth
+  /// useUserAccessGroup:error:]` for more details.
+  AuthError UseUserAccessGroup(const char* access_group);
+
 #ifndef SWIG
   /// @brief Registers a listener to changes in the authentication state.
   ///
