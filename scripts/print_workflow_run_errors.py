@@ -159,8 +159,8 @@ def main():
   parser.add_argument(
       "--grep-pattern", "-g",
       type=str,
-      default="[Ee]rror[: ]",
-      help="Extended Regular Expression (ERE) to search for in logs. Default: \"[Ee]rror[: ]\". If an empty string is passed, grep is disabled."
+      default="[Ee][Rr][Rr][Oo][Rr][: ]",
+      help="Extended Regular Expression (ERE) to search for in logs. Default: \"[Ee][Rr][Rr][Oo][Rr][: ]\". If an empty string is passed, grep is disabled."
   )
   parser.add_argument(
       "--grep-context", "-C",
