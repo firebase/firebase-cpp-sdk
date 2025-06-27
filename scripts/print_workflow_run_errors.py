@@ -156,6 +156,18 @@ def main():
       default=False,
       help="If set, print logs for all failed steps in a job. Default is to print logs only for the first failed step."
   )
+  parser.add_argument(
+      "--grep-pattern", "-g",
+      type=str,
+      default=None,
+      help="Extended Regular Expression (ERE) to search for in logs. If provided, log output will be filtered by grep."
+  )
+  parser.add_argument(
+      "--grep-context", "-C",
+      type=int,
+      default=5,
+      help="Number of lines of leading and trailing context to print for grep matches. Default: 5."
+  )
 
   args = parser.parse_args()
   error_suffix = " (use --help for more details)"
@@ -320,15 +332,49 @@ def main():
                   # Found the end of the targeted step's log
                   break # Stop processing lines for this step (within this job's logs)
 
+      log_to_process = ""
+      log_source_message = ""
+
       if current_step_log_segment:
-          print(f"Log for failed step '{step_name}' (last {args.log_lines} lines of its segment):")
-          for log_line in current_step_log_segment[-args.log_lines:]:
-              print(log_line)
+          log_to_process = "\n".join(current_step_log_segment)
+          log_source_message = f"Log for failed step '{step_name}'"
       else:
-          # Fallback if specific step log segment couldn't be reliably identified
-          print(f"Could not isolate log for step '{step_name}'. Printing last {args.log_lines} lines of the entire job log as context:")
-          for log_line in log_lines_for_job[-args.log_lines:]: # Use the job's split lines
-            print(log_line)
+          log_to_process = "\n".join(log_lines_for_job) # Use the full job log as fallback
+          log_source_message = f"Could not isolate log for step '{step_name}'. Using entire job log"
+
+      if args.grep_pattern:
+          print(f"{log_source_message} (grep results for pattern '{args.grep_pattern}' with context {args.grep_context}):")
+          try:
+              # Using subprocess to call grep
+              # Pass log_to_process as stdin to grep
+              process = subprocess.run(
+                  ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
+                  input=log_to_process,
+                  text=True,
+                  capture_output=True,
+                  check=False # Do not throw exception on non-zero exit (e.g. no match)
+              )
+              if process.returncode == 0: # Match found
+                  print(process.stdout.strip())
+              elif process.returncode == 1: # No match found
+                  print(f"No matches found for pattern '{args.grep_pattern}' in this log segment.")
+              else: # Grep error
+                  sys.stderr.write(f"Grep command failed with error code {process.returncode}:\n{process.stderr}\n")
+          except FileNotFoundError:
+              sys.stderr.write("Error: 'grep' command not found. Please ensure it is installed and in your PATH to use --grep-pattern.\n")
+              # Fallback to printing last N lines if grep is not found? Or just skip log? For now, skip.
+              print("Skipping log display for this step as grep is unavailable.")
+          except Exception as e:
+              sys.stderr.write(f"An unexpected error occurred while running grep: {e}\n")
+              print("Skipping log display due to an error with grep.")
+      else:
+          # Default behavior: print last N lines
+          print(f"{log_source_message} (last {args.log_lines} lines):")
+          # current_step_log_segment is a list of lines, log_lines_for_job is also a list of lines
+          lines_to_print_from = current_step_log_segment if current_step_log_segment else log_lines_for_job
+          for log_line in lines_to_print_from[-args.log_lines:]:
+              print(log_line)
+
       print(f"--- End of log for step: {step_name} ---")
       first_failed_step_logged = True # Mark that we've logged at least one step
 
