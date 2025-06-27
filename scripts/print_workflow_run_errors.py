@@ -65,6 +65,19 @@ def requests_retry_session(retries=RETRIES,
   return session
 
 
+def get_current_branch_name():
+    """Gets the current git branch name."""
+    try:
+        branch_bytes = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.PIPE)
+        return branch_bytes.decode().strip()
+    except (subprocess.CalledProcessError, FileNotFoundError, UnicodeDecodeError) as e:
+        sys.stderr.write(f"Info: Could not determine current git branch via 'git rev-parse --abbrev-ref HEAD': {e}. Branch will need to be specified.\n")
+        return None
+    except Exception as e: # Catch any other unexpected error.
+        sys.stderr.write(f"Info: An unexpected error occurred while determining current git branch: {e}. Branch will need to be specified.\n")
+        return None
+
+
 def main():
   """Main function to parse arguments and orchestrate the script."""
   determined_owner = None
@@ -89,19 +102,23 @@ def main():
         return url_match.group(1), url_match.group(2)
     return None, None
 
+  current_branch = get_current_branch_name()
+
   parser = argparse.ArgumentParser(
       description="Fetch and display failed steps and their logs from a GitHub workflow run.",
       formatter_class=argparse.RawTextHelpFormatter
   )
   parser.add_argument(
-      "workflow_name",
+      "--workflow", "--workflow-name",
       type=str,
-      help="Name of the workflow file (e.g., 'main.yml' or 'build-test.yml')."
+      default="integration_test.yml",
+      help="Name of the workflow file (e.g., 'main.yml' or 'build-test.yml'). Default: 'integration_test.yml'."
   )
   parser.add_argument(
-      "branch",
+      "--branch",
       type=str,
-      help="GitHub branch name to check for the workflow run."
+      default=current_branch,
+      help=f"GitHub branch name to check for the workflow run. {'Default: ' + current_branch if current_branch else 'Required if not determinable from current git branch.'}"
   )
   parser.add_argument(
       "--url",
@@ -130,8 +147,14 @@ def main():
   parser.add_argument(
       "--log-lines",
       type=int,
-      default=500,
-      help="Number of lines to print from the end of each failed step's log. Default: 500."
+      default=100,
+      help="Number of lines to print from the end of each failed step's log. Default: 100."
+  )
+  parser.add_argument(
+      "--all-failed-steps",
+      action="store_true",
+      default=False,
+      help="If set, print logs for all failed steps in a job. Default is to print logs only for the first failed step."
   )
 
   args = parser.parse_args()
@@ -210,11 +233,15 @@ def main():
     sys.stderr.write(f"Error: Could not set repository info to {final_owner}/{final_repo}. Ensure owner/repo are correct.{error_suffix}\n")
     sys.exit(1)
 
-  sys.stderr.write(f"Processing workflow '{args.workflow_name}' on branch '{args.branch}' for repo {OWNER}/{REPO}\n")
+  if not args.branch:
+      sys.stderr.write(f"Error: Branch name is required. Please specify --branch or ensure it can be detected from your current git repository.{error_suffix}\n")
+      sys.exit(1)
 
-  run = get_latest_workflow_run(args.token, args.workflow_name, args.branch)
+  sys.stderr.write(f"Processing workflow '{args.workflow}' on branch '{args.branch}' for repo {OWNER}/{REPO}\n")
+
+  run = get_latest_workflow_run(args.token, args.workflow, args.branch)
   if not run:
-    sys.stderr.write(f"No workflow run found for workflow '{args.workflow_name}' on branch '{args.branch}'.\n")
+    sys.stderr.write(f"No workflow run found for workflow '{args.workflow}' on branch '{args.branch}'.\n")
     sys.exit(0)
 
   sys.stderr.write(f"Found workflow run ID: {run['id']} (Status: {run.get('status')}, Conclusion: {run.get('conclusion')})\n")
@@ -261,44 +288,27 @@ def main():
         continue
 
     print(f"\n--- Failed Steps in Job: {job['name']} ---")
+    first_failed_step_logged = False
     for step in failed_steps_details:
+      if not args.all_failed_steps and first_failed_step_logged:
+        print(f"\n--- Skipping subsequent failed step: {step.get('name', 'Unnamed step')} (use --all-failed-steps to see all) ---")
+        break # Stop after the first failed step if not --all-failed-steps
+
       step_name = step.get('name', 'Unnamed step')
       print(f"\n--- Step: {step_name} ---")
-      # Attempt to extract specific step log
-      # GitHub log format: ##[group]Step Name ... ##[endgroup]
-      # A simpler approach for now is to print the relevant section of the full job log
-      # if we can identify it. If not, we might fall back to the full log or last N lines.
-      # For now, we'll just print the last N lines of the *entire job log* for *each* failed step found by API,
-      # as parsing the full log to attribute lines to specific steps is complex.
-      # A more advanced implementation would parse the log structure.
-
-      # Simplistic approach: Print last N lines of the whole job log for context for this step.
-      # This is not ideal as it doesn't isolate the step's specific log lines.
-      # A better method would be to parse the job_logs string.
-
-      # Placeholder for more precise log extraction for the specific step
-      # For now, we'll find the step in the log and print lines around it or from it.
 
       # Crude log extraction:
-      step_log_lines = []
-      in_step_group = False
       # Regex to match group start, attempting to capture the step name robustly
-      # Handles cases like "Run echo "hello"" where step['name'] is `Run echo "hello"`
-      # and in logs it might be `##[group]Run echo "hello"`
-      # We need to be careful with regex special characters in step_name
       escaped_step_name = re.escape(step_name)
-      # Try to match common step prefixes if the exact name isn't found
-      # This is still very heuristic.
       step_start_pattern = re.compile(r"^##\[group\](?:Run\s+|Setup\s+|Complete\s+)?.*?" + escaped_step_name, re.IGNORECASE)
       step_end_pattern = re.compile(r"^##\[endgroup\]")
 
       current_step_log_segment = []
       capturing_for_failed_step = False
-
-      log_lines = job_logs.splitlines()
+      log_lines_for_job = job_logs.splitlines() # Split once per job
 
       # Try to find the specific step's log segment
-      for line in log_lines:
+      for line in log_lines_for_job:
           if step_start_pattern.search(line):
               capturing_for_failed_step = True
               current_step_log_segment = [line] # Start with the group line
@@ -308,7 +318,7 @@ def main():
               if step_end_pattern.search(line):
                   capturing_for_failed_step = False
                   # Found the end of the targeted step's log
-                  break # Stop processing lines for this step
+                  break # Stop processing lines for this step (within this job's logs)
 
       if current_step_log_segment:
           print(f"Log for failed step '{step_name}' (last {args.log_lines} lines of its segment):")
@@ -317,9 +327,10 @@ def main():
       else:
           # Fallback if specific step log segment couldn't be reliably identified
           print(f"Could not isolate log for step '{step_name}'. Printing last {args.log_lines} lines of the entire job log as context:")
-          for log_line in log_lines[-args.log_lines:]:
+          for log_line in log_lines_for_job[-args.log_lines:]: # Use the job's split lines
             print(log_line)
       print(f"--- End of log for step: {step_name} ---")
+      first_failed_step_logged = True # Mark that we've logged at least one step
 
     print(f"\n--- End of Failed Steps for Job: {job['name']} ---\n")
 
