@@ -1513,4 +1513,18 @@ TEST_F(FirebaseAuthTest, TestLinkFederatedProviderBadProviderIdFails) {
 
 #endif  // defined(ENABLE_OAUTH_TESTS)
 
+#if TARGET_OS_IPHONE
+TEST_F(FirebaseAuthTest, TestUseUserAccessGroup) {
+  // This is a simple smoke test to ensure the method can be called
+  // without crashing on iOS and returns the expected default success.
+  // Deeper testing of keychain access group functionality would require
+  // more complex setup and is typically done manually or with UI tests.
+  EXPECT_EQ(auth_->UseUserAccessGroup(nullptr),
+            firebase::auth::kAuthErrorNone);
+  EXPECT_EQ(auth_->UseUserAccessGroup("test-group"),
+            firebase::auth::kAuthErrorNone);
+  EXPECT_EQ(auth_->UseUserAccessGroup(""), firebase::auth::kAuthErrorNone);
+}
+#endif  // TARGET_OS_IPHONE
+
 }  // namespace firebase_testapp_automated

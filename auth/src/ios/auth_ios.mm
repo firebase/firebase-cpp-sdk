@@ -610,10 +610,10 @@ void DestroyTokenRefresher(AuthData *auth_data) {}
 
 AuthError Auth::UseUserAccessGroup(const char* access_group_str) {
   if (!auth_data_) {
-    return kAuthErrorUninitialized;
+    return kAuthErrorFailure;
   }
   NSString* access_group_ns_str = nil;
-  if (access_group_str != nullptr && strlen(access_group_str) > 0) {
+  if (access_group_str != nullptr) {
     access_group_ns_str = [NSString stringWithUTF8String:access_group_str];
   }
 

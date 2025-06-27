@@ -676,5 +676,10 @@ void DisableTokenAutoRefresh(AuthData* auth_data) {}
 void InitializeTokenRefresher(AuthData* auth_data) {}
 void DestroyTokenRefresher(AuthData* auth_data) {}
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  // This is an iOS-only feature. No-op on other platforms.
+  return kAuthErrorNone;
+}
+
 }  // namespace auth
 }  // namespace firebase

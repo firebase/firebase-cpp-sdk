@@ -522,11 +522,9 @@ class Auth {
   /// This method is only functional on iOS. On other platforms, it is a no-op
   /// and will always return `kAuthErrorNone`.
   ///
-  /// If you are using iCloud keychain synchronization, you will need to call
-  /// this method to set the user access group.
-  ///
-  /// @param[in] access_group The user access group to use. Set to `nullptr` or
-  /// an empty string to use the default access group.
+  /// @param[in] access_group The user access group to use. Set to `nullptr`
+  /// to use the default access group. An empty string will be passed as an
+  /// empty string.
   ///
   /// @return `kAuthErrorNone` on success, or an AuthError code if an error
   /// occurred.
