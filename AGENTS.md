@@ -663,3 +663,12 @@ practices detailed in `AGENTS.md`.
     to locate files/modules based on common directory structures are
     unsuccessful, explicitly ask for more specific paths rather than assuming a
     module doesn't exist or contains no relevant code.
+*   **GitHub PR Review Comments**: If the user asks you to address comments from
+    GitHub code review, that means that you should run the following command:
+    `python3 scripts/print_github_reviews.py --branch BRANCH_NAME_THAT_JULES_PUSHED_TO_GITHUB`
+    (with the remote branch name that was actually pushed to GitHub substituted,
+    and if you aren't sure what it is or it returns an error, just ask the user,
+    as they may have renamed the branch before pushing) and address the comments
+    it shows. If it succeeds, then subsequent times you run the script on the
+    same branch, include the `--since` parameter in accordance with the previous
+    script run's output to ensure you only fetch new comments.
