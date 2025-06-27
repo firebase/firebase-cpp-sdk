@@ -676,5 +676,14 @@ void DisableTokenAutoRefresh(AuthData* auth_data) {}
 void InitializeTokenRefresher(AuthData* auth_data) {}
 void DestroyTokenRefresher(AuthData* auth_data) {}
 
+// Stub implementation for UseUserAccessGroupInternal on Android.
+AuthError UseUserAccessGroupInternal(AuthData* auth_data,
+                                     const char* group_id) {
+  // This function is a no-op on Android.
+  (void)auth_data;
+  (void)group_id;
+  return kAuthErrorNone;
+}
+
 }  // namespace auth
 }  // namespace firebase

@@ -517,6 +517,23 @@ class Auth {
   /// not available on the current device.
   static Auth* GetAuth(App* app, InitResult* init_result_out = nullptr);
 
+  /// @brief Sets the user access group to use for data sharing for the app.
+  ///
+  /// This method is only applicable to iOS. On other platforms, it's a no-op
+  /// and will return `kAuthErrorNone`.
+  ///
+  /// Sets the user access group to use for data sharing for the app. This
+  /// should be used to share authentication data between apps that have the
+  /// same access group.
+  ///
+  /// @param[in] group_id The user access group to use. For example,
+  /// `com.example.accessgroup`. Set to `nullptr` or an empty string to clear
+  /// a previously set value and use the default keychain group.
+  ///
+  /// @return Returns `kAuthErrorNone` on success, or an `AuthError` code if an
+  /// error occurred.
+  AuthError UseUserAccessGroup(const char* group_id);
+
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class ::firebase::App;
