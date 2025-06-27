@@ -254,7 +254,7 @@ def main():
         "--token",
         type=str,
         default=os.environ.get("GITHUB_TOKEN"),
-        help="GitHub token. Can also be set via GITHUB_TOKEN env var."
+        help="GitHub token. Can also be set via GITHUB_TOKEN env var or from ~/.github_token."
     )
     parser.add_argument(
         "--context-lines",
@@ -289,9 +289,23 @@ def main():
     latest_line_comment_activity_dt = None
     processed_comments_count = 0
 
-    if not args.token:
-        sys.stderr.write(f"Error: GitHub token not provided. Set GITHUB_TOKEN or use --token.{error_suffix}\n")
+    token = args.token
+    if not token:
+        try:
+            with open(os.path.expanduser("~/.github_token"), "r") as f:
+                token = f.read().strip()
+            if token:
+                sys.stderr.write("Using token from ~/.github_token\n")
+        except FileNotFoundError:
+            pass  # File not found is fine, we'll check token next
+        except Exception as e:
+            sys.stderr.write(f"Warning: Could not read ~/.github_token: {e}\n")
+
+
+    if not token:
+        sys.stderr.write(f"Error: GitHub token not provided. Set GITHUB_TOKEN, use --token, or place it in ~/.github_token.{error_suffix}\n")
         sys.exit(1)
+    args.token = token # Ensure args.token is populated for the rest of the script
 
     final_owner = None
     final_repo = None
