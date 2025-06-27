@@ -497,6 +497,17 @@ class Auth {
   /// emulator.
   ///
   void UseEmulator(std::string host, uint32_t port);
+
+  /// @brief Sets the user access group to use for data sharing.
+  ///
+  /// This method is only functional on iOS. On other platforms, it will
+  /// immediately return kAuthErrorUnimplemented.
+  ///
+  /// @param[in] access_group The access group to use.
+  ///
+  /// @return kAuthErrorNone on success, or an AuthError code if an error
+  /// occurred.
+  AuthError UseUserAccessGroup(const char* access_group);
 #endif  //! defined(DOXYGEN), to hide the api from public documentation.
 
   /// Gets the App this auth object is connected to.

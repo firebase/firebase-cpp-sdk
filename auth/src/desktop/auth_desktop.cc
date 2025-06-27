@@ -632,6 +632,10 @@ void DestroyUserDataPersist(AuthData* auth_data) {
   auth_data->auth->RemoveAuthStateListener(auth_impl->user_data_persist.get());
 }
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  return kAuthErrorUnimplemented;
+}
+
 void LoadFinishTriggerListeners(AuthData* auth_data) {
   MutexLock destructing_lock(auth_data->destructing_mutex);
   if (auth_data->destructing) {

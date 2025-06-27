@@ -676,5 +676,9 @@ void DisableTokenAutoRefresh(AuthData* auth_data) {}
 void InitializeTokenRefresher(AuthData* auth_data) {}
 void DestroyTokenRefresher(AuthData* auth_data) {}
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  return kAuthErrorUnimplemented;
+}
+
 }  // namespace auth
 }  // namespace firebase

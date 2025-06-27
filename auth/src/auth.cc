@@ -373,5 +373,14 @@ AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, AuthResult)
 
 AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, AuthResult)
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  if (!auth_data_) return kAuthErrorUninitialized;
+#if FIREBASE_PLATFORM_IOS
+  return UseUserAccessGroupInternal(auth_data_, access_group);
+#else
+  return kAuthErrorUnimplemented;
+#endif  // FIREBASE_PLATFORM_IOS
+}
+
 }  // namespace auth
 }  // namespace firebase

@@ -137,6 +137,9 @@ void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
 /// like user interaction errors, they are actually caused by bad provider ids.
 NSError *RemapBadProviderIDErrors(NSError *_Nonnull error);
 
+// iOS-specific implementation of Auth::UseUserAccessGroup.
+AuthError UseUserAccessGroupInternal(AuthData* auth_data, const char* access_group);
+
 }  // namespace auth
 }  // namespace firebase
 
