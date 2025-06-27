@@ -173,6 +173,28 @@ class Auth {
   /// set_language_code().
   void UseAppLanguage();
 
+  /// @brief Uses the specified user access group for keychain operations on
+  /// iOS.
+  ///
+  /// This method should be called before any other Firebase Auth operations that
+  /// might interact with the keychain, such as sign-in or sign-out.
+  ///
+  /// On iOS, this method corresponds to `[FIRAuth useUserAccessGroup:]`.
+  /// If a value is provided, it will be used to set the user's access group,
+  /// which will be used to share credentials across apps from the same
+  /// developer. If `nullptr` is provided, it will clear any previously set
+  /// access group.
+  ///
+  /// On other platforms (Android, desktop), this method is a no-op and will
+  /// always return `kAuthErrorNone`.
+  ///
+  /// @param[in] access_group The access group to use, or `nullptr` to clear
+  ///            the access group.
+  ///
+  /// @return `kAuthErrorNone` on success, or an `AuthError` code if an error
+  ///          occurred on iOS (e.g., keychain error).
+  AuthError UseUserAccessGroup(const char* access_group);
+
   // ----- Providers -------------------------------------------------------
   /// Asynchronously requests the IDPs (identity providers) that can be used
   /// for the given email address.

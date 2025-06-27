@@ -575,6 +575,11 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
   auth_impl->assigned_emulator_url.append(std::to_string(port));
 }
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  // No-op on desktop.
+  return kAuthErrorNone;
+}
+
 void InitializeTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Initialize(auth_data);
