@@ -517,6 +517,21 @@ class Auth {
   /// not available on the current device.
   static Auth* GetAuth(App* app, InitResult* init_result_out = nullptr);
 
+  /// @brief Specifies a user access group for iCloud keychain access.
+  ///
+  /// This method is only functional on iOS. On other platforms, it is a no-op
+  /// and will always return `kAuthErrorNone`.
+  ///
+  /// If you are using iCloud keychain synchronization, you will need to call
+  /// this method to set the user access group.
+  ///
+  /// @param[in] access_group The user access group to use. Set to `nullptr` or
+  /// an empty string to use the default access group.
+  ///
+  /// @return `kAuthErrorNone` on success, or an AuthError code if an error
+  /// occurred.
+  AuthError UseUserAccessGroup(const char* access_group);
+
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class ::firebase::App;

@@ -608,5 +608,23 @@ void DisableTokenAutoRefresh(AuthData *auth_data) {}
 void InitializeTokenRefresher(AuthData *auth_data) {}
 void DestroyTokenRefresher(AuthData *auth_data) {}
 
+AuthError Auth::UseUserAccessGroup(const char* access_group_str) {
+  if (!auth_data_) {
+    return kAuthErrorUninitialized;
+  }
+  NSString* access_group_ns_str = nil;
+  if (access_group_str != nullptr && strlen(access_group_str) > 0) {
+    access_group_ns_str = [NSString stringWithUTF8String:access_group_str];
+  }
+
+  NSError* error = nil;
+  BOOL success = [AuthImpl(auth_data_) useUserAccessGroup:access_group_ns_str error:&error];
+  if (success) {
+    return kAuthErrorNone;
+  } else {
+    return AuthErrorFromNSError(error);
+  }
+}
+
 }  // namespace auth
 }  // namespace firebase
