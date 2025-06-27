@@ -159,14 +159,14 @@ def main():
   parser.add_argument(
       "--grep-pattern", "-g",
       type=str,
-      default=None,
-      help="Extended Regular Expression (ERE) to search for in logs. If provided, log output will be filtered by grep."
+      default="[Ee]rror[: ]",
+      help="Extended Regular Expression (ERE) to search for in logs. Default: \"[Ee]rror[: ]\". If an empty string is passed, grep is disabled."
   )
   parser.add_argument(
       "--grep-context", "-C",
       type=int,
-      default=5,
-      help="Number of lines of leading and trailing context to print for grep matches. Default: 5."
+      default=10,
+      help="Number of lines of leading and trailing context to print for grep matches. Default: 10."
   )
 
   args = parser.parse_args()
