@@ -63,9 +63,6 @@ enum AuthApiFunction {
   kInternalFn_GetTokenForRefresher,
   kInternalFn_GetTokenForFunctionRegistry,
 
-  // Non-future returning external functions tracked for consistency or potential future use.
-  kAuthFn_UseUserAccessGroup,
-
   kNumAuthFunctions
 };
 

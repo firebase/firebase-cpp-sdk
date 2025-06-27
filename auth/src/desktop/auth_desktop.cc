@@ -575,6 +575,11 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
   auth_impl->assigned_emulator_url.append(std::to_string(port));
 }
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  // This is an iOS-only feature. No-op on other platforms.
+  return kAuthErrorNone;
+}
+
 void InitializeTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Initialize(auth_data);
@@ -766,12 +771,6 @@ void IdTokenRefreshThread::EnableAuthRefresh() {
 void IdTokenRefreshThread::DisableAuthRefresh() {
   MutexLock lock(ref_count_mutex_);
   ref_count_--;
-}
-
-AuthError Auth::UseUserAccessGroup(const char* access_group) {
-  // This is an iOS-only feature. No-op on desktop.
-  (void)access_group; // Suppress unused variable warning
-  return kAuthErrorNone;
 }
 
 }  // namespace auth

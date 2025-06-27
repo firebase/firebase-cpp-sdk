@@ -233,6 +233,12 @@ def main():
         help="Pull request number. If not provided, script attempts to find the latest open PR for the current git branch."
     )
     parser.add_argument(
+        "--branch",
+        type=str,
+        default=None,
+        help="Branch name to find the latest open PR for. Mutually exclusive with --pull_number. If neither --pull_number nor --branch is provided, uses the current git branch."
+    )
+    parser.add_argument(
         "--url",
         type=str,
         default=None,
@@ -254,7 +260,7 @@ def main():
         "--token",
         type=str,
         default=os.environ.get("GITHUB_TOKEN"),
-        help="GitHub token. Can also be set via GITHUB_TOKEN env var."
+        help="GitHub token. Can also be set via GITHUB_TOKEN env var or from ~/.github_token."
     )
     parser.add_argument(
         "--context-lines",
@@ -289,9 +295,23 @@ def main():
     latest_line_comment_activity_dt = None
     processed_comments_count = 0
 
-    if not args.token:
-        sys.stderr.write(f"Error: GitHub token not provided. Set GITHUB_TOKEN or use --token.{error_suffix}\n")
+    token = args.token
+    if not token:
+        try:
+            with open(os.path.expanduser("~/.github_token"), "r") as f:
+                token = f.read().strip()
+            if token:
+                sys.stderr.write("Using token from ~/.github_token\n")
+        except FileNotFoundError:
+            pass  # File not found is fine, we'll check token next
+        except Exception as e:
+            sys.stderr.write(f"Warning: Could not read ~/.github_token: {e}\n")
+
+
+    if not token:
+        sys.stderr.write(f"Error: GitHub token not provided. Set GITHUB_TOKEN, use --token, or place it in ~/.github_token.{error_suffix}\n")
         sys.exit(1)
+    args.token = token # Ensure args.token is populated for the rest of the script
 
     final_owner = None
     final_repo = None
@@ -341,26 +361,40 @@ def main():
         sys.exit(1)
 
     pull_request_number = args.pull_number
-    current_branch_for_pr_check = None # Store branch name if auto-detecting PR
+    branch_to_find_pr_for = None
+
+    if args.pull_number and args.branch:
+        sys.stderr.write(f"Error: --pull_number and --branch are mutually exclusive.{error_suffix}\n")
+        sys.exit(1)
+
     if not pull_request_number:
-        sys.stderr.write("Pull number not specified, attempting to find PR for current branch...\n")
-        current_branch_for_pr_check = get_current_branch_name()
-        if current_branch_for_pr_check:
-            sys.stderr.write(f"Current git branch is: {current_branch_for_pr_check}\n")
-            pull_request_number = get_latest_pr_for_branch(args.token, OWNER, REPO, current_branch_for_pr_check)
-            if pull_request_number:
-                sys.stderr.write(f"Found PR #{pull_request_number} for branch {current_branch_for_pr_check}.\n")
-            else:
-                sys.stderr.write(f"No open PR found for branch {current_branch_for_pr_check} in {OWNER}/{REPO}.\n") # Informational
+        if args.branch:
+            branch_to_find_pr_for = args.branch
+            sys.stderr.write(f"Pull number not specified, attempting to find PR for branch: {branch_to_find_pr_for}...\n")
         else:
-            sys.stderr.write(f"Error: Could not determine current git branch. Cannot find PR automatically.{error_suffix}\n")
-            sys.exit(1)
+            sys.stderr.write("Pull number and branch not specified, attempting to find PR for current git branch...\n")
+            branch_to_find_pr_for = get_current_branch_name()
+            if branch_to_find_pr_for:
+                sys.stderr.write(f"Current git branch is: {branch_to_find_pr_for}\n")
+            else:
+                sys.stderr.write(f"Error: Could not determine current git branch. Cannot find PR automatically.{error_suffix}\n")
+                sys.exit(1)
+
+        if branch_to_find_pr_for: # This will be true if args.branch was given, or if get_current_branch_name() succeeded
+            pull_request_number = get_latest_pr_for_branch(args.token, OWNER, REPO, branch_to_find_pr_for)
+            if pull_request_number:
+                sys.stderr.write(f"Found PR #{pull_request_number} for branch {branch_to_find_pr_for}.\n")
+            else:
+                sys.stderr.write(f"No open PR found for branch {branch_to_find_pr_for} in {OWNER}/{REPO}.\n")
+        # If branch_to_find_pr_for is None here, it means get_current_branch_name() failed and we already exited.
 
     if not pull_request_number: # Final check for PR number
-        error_message = "Error: Pull request number is required."
-        if not args.pull_number and current_branch_for_pr_check: # Auto-detect branch ok, but no PR found
-            error_message = f"Error: Pull request number not specified and no open PR found for branch {current_branch_for_pr_check}."
-        # The case where current_branch_for_pr_check is None (git branch fail) is caught and exited above.
+        error_message = "Error: Pull request number could not be determined."
+        if args.branch: # Specific error if --branch was used
+            error_message = f"Error: No open PR found for specified branch '{args.branch}'."
+        elif not args.pull_number and branch_to_find_pr_for: # Auto-detect current branch ok, but no PR found
+             error_message = f"Error: Pull request number not specified and no open PR found for current branch '{branch_to_find_pr_for}'."
+        # The case where current_branch_for_pr_check (now branch_to_find_pr_for) is None (git branch fail) is caught and exited above.
         sys.stderr.write(f"{error_message}{error_suffix}\n")
         sys.exit(1)
 

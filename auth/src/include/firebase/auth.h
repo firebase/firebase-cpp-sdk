@@ -517,21 +517,19 @@ class Auth {
   /// not available on the current device.
   static Auth* GetAuth(App* app, InitResult* init_result_out = nullptr);
 
-  /// @brief Sets the user access group for keychain data sharing.
+  /// @brief Specifies a user access group for iCloud keychain access.
   ///
-  /// This method is only functional on iOS. On other platforms, it is a stub
+  /// This method is only functional on iOS. On other platforms, it is a no-op
   /// and will always return `kAuthErrorNone`.
   ///
-  /// On iOS, this allows you to share user credentials across multiple apps
-  /// from the same developer. It corresponds to calling
-  /// `[FIRAuth useUserAccessGroup:error:]` on the underlying iOS SDK.
+  /// If you are using iCloud keychain synchronization, you will need to call
+  /// this method to set the user access group.
   ///
-  /// @param[in] access_group The access group to use. Set to `nullptr` or an
-  /// empty string to clear the access group and use the app's default keychain
-  /// group.
+  /// @param[in] access_group The user access group to use. Set to `nullptr` or
+  /// an empty string to use the default access group.
   ///
-  /// @return `kAuthErrorNone` on success, or an AuthError code if the operation
-  /// fails on iOS. On non-iOS platforms, this always returns `kAuthErrorNone`.
+  /// @return `kAuthErrorNone` on success, or an AuthError code if an error
+  /// occurred.
   AuthError UseUserAccessGroup(const char* access_group);
 
  private:
