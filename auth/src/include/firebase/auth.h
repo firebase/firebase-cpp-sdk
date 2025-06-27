@@ -502,6 +502,25 @@ class Auth {
   /// Gets the App this auth object is connected to.
   App& app();
 
+  /// @brief Modifies this Auth instance to use the specified keychain access
+  /// group.
+  ///
+  /// Accessing the keychain requires that the application has the keychain
+  /// sharing capability and that the level of entitling access to the keychain
+  /// is `any` (런타임에 여러 앱에서 키체인 항목을 공유하도록 허용). See
+  /// https://developer.apple.com/documentation/security/keychain_services/keychain_items/sharing_access_to_keychain_items_among_a_collection_of_apps
+  /// for more details.
+  ///
+  /// @note This method is only functional on iOS. On other platforms, it's a
+  /// no-op and will return kAuthErrorNone.
+  ///
+  /// @param[in] access_group The keychain access group to use. Set to @c nullptr
+  /// to use the default app bundle ID access group.
+  ///
+  /// @return kAuthErrorNone on success, or an AuthError code if an error
+  /// occurred.
+  AuthError UseUserAccessGroup(const char* access_group);
+
   /// Returns the Auth object for an App. Creates the Auth if required.
   ///
   /// To get the Auth object for the default app, use,
