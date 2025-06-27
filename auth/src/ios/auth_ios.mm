@@ -590,6 +590,26 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
   SetEmulatorJni(auth_data_, host.c_str(), port);
 }
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  if (!auth_data_) {
+    return kAuthErrorNone; // Or appropriate error if auth_data_ is unexpectedly null
+  }
+  FIRAuth* fir_auth = AuthImpl(auth_data_);
+  NSString* ns_access_group = nil;
+  if (access_group) {
+    ns_access_group = [NSString stringWithUTF8String:access_group];
+  }
+
+  NSError* ns_error = nil;
+  BOOL success = [fir_auth useUserAccessGroup:ns_access_group error:&ns_error];
+
+  if (success) {
+    return kAuthErrorNone;
+  } else {
+    return AuthErrorFromNSError(ns_error);
+  }
+}
+
 // Remap iOS SDK errors reported by the UIDelegate. While these errors seem like
 // user interaction errors, they are actually caused by bad provider ids.
 NSError *RemapBadProviderIDErrors(NSError *_Nonnull error) {
