@@ -525,11 +525,16 @@ class Auth {
   /// If you are using iCloud keychain synchronization, you will need to call
   /// this method to set the user access group.
   ///
-  /// @param[in] access_group The user access group to use. Set to `nullptr` or
-  /// an empty string to use the default access group.
+  /// @param[in] access_group The user access group to use.
+  ///   - On iOS, if `nullptr` is provided, `nil` will be passed to the
+  ///     underlying SDK, typically resetting to the default or app's main
+  ///     access group.
+  ///   - On iOS, if an empty string (`""`) is provided, an empty `NSString`
+  ///     will be passed to the underlying SDK.
+  ///   - On other platforms, this parameter is ignored.
   ///
   /// @return `kAuthErrorNone` on success, or an AuthError code if an error
-  /// occurred.
+  /// occurred (iOS only).
   AuthError UseUserAccessGroup(const char* access_group);
 
  private:
