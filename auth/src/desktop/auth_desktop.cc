@@ -576,8 +576,8 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
 }
 
 AuthError Auth::UseUserAccessGroup(const char* access_group) {
-  // No-op on desktop.
-  return kAuthErrorNone;
+  // Not implemented on desktop.
+  return kAuthErrorUnimplemented;
 }
 
 void InitializeTokenRefresher(AuthData* auth_data) {

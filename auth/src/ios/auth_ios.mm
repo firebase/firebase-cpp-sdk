@@ -592,11 +592,11 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
 
 AuthError Auth::UseUserAccessGroup(const char* access_group) {
   if (!auth_data_) {
-    return kAuthErrorNone; // Or appropriate error if auth_data_ is unexpectedly null
+    return kAuthErrorUninitialized;
   }
   FIRAuth* fir_auth = AuthImpl(auth_data_);
   NSString* ns_access_group = nil;
-  if (access_group) {
+  if (access_group && strlen(access_group) > 0) {
     ns_access_group = [NSString stringWithUTF8String:access_group];
   }
 

@@ -671,8 +671,8 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
 }
 
 AuthError Auth::UseUserAccessGroup(const char* access_group) {
-  // No-op on Android.
-  return kAuthErrorNone;
+  // Not implemented on Android.
+  return kAuthErrorUnimplemented;
 }
 
 // Not implemented for Android.
