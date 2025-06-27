@@ -111,8 +111,8 @@ def main():
   parser.add_argument(
       "--workflow", "--workflow-name",
       type=str,
-      default="integration_test.yml",
-      help="Name of the workflow file (e.g., 'main.yml' or 'build-test.yml'). Default: 'integration_test.yml'."
+      default="integration_tests.yml",
+      help="Name of the workflow file (e.g., 'main.yml' or 'build-test.yml'). Default: 'integration_tests.yml'."
   )
   parser.add_argument(
       "--branch",
@@ -167,6 +167,12 @@ def main():
       type=int,
       default=10,
       help="Number of lines of leading and trailing context to print for grep matches. Default: 10."
+  )
+  parser.add_argument(
+      "--job-pattern",
+      type=str,
+      default='^build.*',
+      help="Regular expression to filter job names. Only jobs matching this pattern will be processed. Default: '^build.*'"
   )
 
   args = parser.parse_args()
@@ -258,24 +264,47 @@ def main():
 
   sys.stderr.write(f"Found workflow run ID: {run['id']} (Status: {run.get('status')}, Conclusion: {run.get('conclusion')})\n")
 
-  failed_jobs = get_failed_jobs_for_run(args.token, run['id'])
+  try:
+    job_name_pattern = re.compile(args.job_pattern)
+  except re.error as e:
+    sys.stderr.write(f"Error: Invalid regex for --job-pattern '{args.job_pattern}': {e}\n")
+    sys.exit(1)
 
-  if not failed_jobs:
-    sys.stderr.write(f"No failed jobs found for workflow run ID: {run['id']}.\n")
-    if run.get('conclusion') == 'success':
-        print(f"Workflow run {run['id']} completed successfully with no failed jobs.")
-    elif run.get('status') == 'in_progress' and run.get('conclusion') is None:
-        print(f"Workflow run {run['id']} is still in progress. No failed jobs reported yet.")
-    else:
-        # This case might indicate the workflow failed but not at a job level,
-        # or jobs are still pending/running.
-        print(f"Workflow run {run['id']} has conclusion '{run.get('conclusion')}' but no specific failed jobs were identified by this script's criteria.")
+  # 1. Fetch all jobs for the run
+  all_jobs_api_response = get_all_jobs_for_run(args.token, run['id'])
+
+  if all_jobs_api_response is None: # Indicates an API error during fetch
+    sys.stderr.write(f"Could not retrieve jobs for workflow run ID: {run['id']}. Exiting.\n")
+    sys.exit(1)
+
+  # 2. Filter jobs by name pattern
+  name_matching_jobs = [job for job in all_jobs_api_response if job_name_pattern.search(job['name'])]
+
+  if not name_matching_jobs:
+    sys.stderr.write(f"No jobs found matching pattern '{args.job_pattern}' in workflow run ID: {run['id']}.\n")
     sys.exit(0)
 
-  print(f"\n--- Failed Jobs for Workflow Run ID: {run['id']} ({run.get('html_url', 'No URL')}) ---\n")
+  sys.stderr.write(f"Found {len(name_matching_jobs)} job(s) matching pattern '{args.job_pattern}'. Checking for failures...\n")
 
-  for job in failed_jobs:
+  # 3. From the name-matching jobs, find the ones that actually failed
+  failed_jobs_matching_criteria = [job for job in name_matching_jobs if job.get('conclusion') == 'failure']
+
+  if not failed_jobs_matching_criteria:
+    sys.stderr.write(f"No failed jobs found among those matching pattern '{args.job_pattern}' for workflow run ID: {run['id']}.\n")
+    if run.get('conclusion') == 'success':
+        print(f"Workflow run {run['id']} ({run.get('html_url', 'N/A')}) completed successfully. No jobs matching pattern '{args.job_pattern}' failed.")
+    elif run.get('status') == 'in_progress' and run.get('conclusion') is None:
+        print(f"Workflow run {run['id']} ({run.get('html_url', 'N/A')}) is still in progress. No jobs matching pattern '{args.job_pattern}' have failed yet.")
+    else:
+        print(f"Workflow run {run['id']} ({run.get('html_url', 'N/A')}) has conclusion '{run.get('conclusion')}', but no jobs matching pattern ('{args.job_pattern}') were found to have failed.")
+    sys.exit(0)
+
+  print(f"\n--- Failed Jobs (matching pattern '{args.job_pattern}') for Workflow Run ID: {run['id']} ({run.get('html_url', 'No URL')}) ---\n")
+
+  for job in failed_jobs_matching_criteria:
     print(f"==================================================================================")
+    # Keep the job pattern in the individual job heading for clarity if needed, or remove if too verbose.
+    # For now, let's assume it's clear from the main heading.
     print(f"Job: {job['name']} (ID: {job['id']}) - FAILED")
     print(f"Job URL: {job.get('html_url', 'N/A')}")
     print(f"==================================================================================")
@@ -405,8 +434,8 @@ def get_latest_workflow_run(token, workflow_name, branch_name):
     return None
 
 
-def get_failed_jobs_for_run(token, run_id):
-  """Fetches all jobs for a given workflow run and filters for failed ones."""
+def get_all_jobs_for_run(token, run_id):
+  """Fetches all jobs for a given workflow run."""
   url = f'{GITHUB_API_URL}/actions/runs/{run_id}/jobs'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
 
@@ -437,7 +466,7 @@ def get_failed_jobs_for_run(token, run_id):
       return None
 
   failed_jobs = [job for job in all_jobs if job.get('conclusion') == 'failure']
-  return failed_jobs
+  return all_jobs # Return all jobs, filtering happens in main
 
 
 def get_job_logs(token, job_id):
