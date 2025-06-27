@@ -592,7 +592,7 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
 
 AuthError Auth::UseUserAccessGroup(const char* access_group) {
   if (!auth_data_) {
-    return kAuthErrorUninitialized;
+    return kAuthErrorFailure;  // Or a more specific "not initialized" error if available
   }
   NSString* ns_access_group = access_group ? @(access_group) : nil;
   NSError* error = nil;
