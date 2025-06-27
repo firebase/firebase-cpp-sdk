@@ -768,5 +768,14 @@ void IdTokenRefreshThread::DisableAuthRefresh() {
   ref_count_--;
 }
 
+// Stub implementation for UseUserAccessGroupInternal on desktop.
+AuthError UseUserAccessGroupInternal(AuthData* auth_data,
+                                     const char* group_id) {
+  // This function is a no-op on desktop platforms.
+  (void)auth_data;
+  (void)group_id;
+  return kAuthErrorNone;
+}
+
 }  // namespace auth
 }  // namespace firebase

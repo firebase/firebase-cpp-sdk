@@ -373,12 +373,6 @@ AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, AuthResult)
 
 AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, AuthResult)
 
-// Platform-specific implementation of UseUserAccessGroup.
-// This is defined in auth_ios.mm for iOS, and auth_stub.cc for other
-// platforms.
-AuthError UseUserAccessGroupInternal(AuthData* auth_data,
-                                     const char* group_id);
-
 AuthError Auth::UseUserAccessGroup(const char* group_id) {
   if (!auth_data_) {
     return kAuthErrorUninitialized;

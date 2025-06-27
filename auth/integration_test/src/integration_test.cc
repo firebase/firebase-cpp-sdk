@@ -1513,4 +1513,47 @@ TEST_F(FirebaseAuthTest, TestLinkFederatedProviderBadProviderIdFails) {
 
 #endif  // defined(ENABLE_OAUTH_TESTS)
 
+TEST_F(FirebaseAuthTest, TestUseUserAccessGroup) {
+  // This test simply calls the UseUserAccessGroup method to ensure it doesn't
+  // crash. It doesn't verify the underlying keychain behavior.
+  // On non-iOS platforms, this is a no-op and should return kAuthErrorNone.
+  // On iOS, it will call the underlying OS method.
+
+  LogDebug("Calling UseUserAccessGroup with a test group ID.");
+  firebase::auth::AuthError error =
+      auth_->UseUserAccessGroup("com.firebase.test.accessgroup");
+
+#if TARGET_OS_IPHONE
+  // On iOS, the actual error code depends on keychain access and provisioning.
+  // For this test, we just ensure it doesn't crash.
+  // A specific error like kAuthErrorMissingIOSBundleID might occur if the
+  // environment isn't set up for keychain sharing, or kAuthErrorNone on
+  // success. For a simple "does not crash" test, we don't strictly check
+  // the error code, but kAuthErrorNone is the ideal outcome if keychain is
+  // usable.
+  LogDebug("UseUserAccessGroup returned %d on iOS.", error);
+#else
+  // On other platforms, it should be a no-op.
+  EXPECT_EQ(error, firebase::auth::kAuthErrorNone);
+#endif
+
+  LogDebug("Calling UseUserAccessGroup with nullptr to clear the group.");
+  error = auth_->UseUserAccessGroup(nullptr);
+
+#if TARGET_OS_IPHONE
+  LogDebug("UseUserAccessGroup(nullptr) returned %d on iOS.", error);
+#else
+  EXPECT_EQ(error, firebase::auth::kAuthErrorNone);
+#endif
+
+  LogDebug("Calling UseUserAccessGroup with empty string to clear the group.");
+  error = auth_->UseUserAccessGroup("");
+
+#if TARGET_OS_IPHONE
+  LogDebug("UseUserAccessGroup(\"\") returned %d on iOS.", error);
+#else
+  EXPECT_EQ(error, firebase::auth::kAuthErrorNone);
+#endif
+}
+
 }  // namespace firebase_testapp_automated
