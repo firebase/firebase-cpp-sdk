@@ -310,8 +310,8 @@ def main():
   parser.add_argument(
       "--grep-context", "-C",
       type=int,
-      default=10,
-      help="Number of lines of leading and trailing context to print for grep matches. Default: 10."
+      default=5,
+      help="Number of lines of leading and trailing context to print for grep matches. Default: 5."
   )
   parser.add_argument(
       "--job-pattern",
