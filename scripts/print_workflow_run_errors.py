@@ -490,7 +490,7 @@ def main():
       sys.stderr.write(f"INFO: Found {len(failed_jobs_this_pattern)} failed job(s) for pattern '{current_pattern_str}'.\n")
 
       # Call the refactored processing function
-      _process_and_display_logs_for_failed_jobs(args, failed_jobs_this_pattern, run.get('html_url'), current_pattern_str)
+      _process_and_display_logs_for_failed_jobs(args, failed_jobs_this_pattern, run_details.get('html_url'), current_pattern_str)
 
       found_failures_and_processed = True
       sys.stderr.write(f"INFO: Failures processed for pattern '{current_pattern_str}'. Subsequent patterns will not be checked.\n")
