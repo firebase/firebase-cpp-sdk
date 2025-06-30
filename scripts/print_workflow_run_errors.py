@@ -148,7 +148,7 @@ def main():
       "--log-lines",
       type=int,
       default=100,
-      help="Number of lines to print from the end of each failed step's log. Default: 100."
+      help="Number of lines to print from the end of each failed step's log (if not using grep). Default: 100."
   )
   parser.add_argument(
       "--all-failed-steps",
@@ -299,15 +299,17 @@ def main():
         print(f"Workflow run {run['id']} ({run.get('html_url', 'N/A')}) has conclusion '{run.get('conclusion')}', but no jobs matching pattern ('{args.job_pattern}') were found to have failed.")
     sys.exit(0)
 
-  print(f"\n--- Failed Jobs (matching pattern '{args.job_pattern}') for Workflow Run ID: {run['id']} ({run.get('html_url', 'No URL')}) ---\n")
+  # Print summary of failed jobs to stderr
+  sys.stderr.write("\nSummary of failed jobs matching criteria:\n")
+  for job in failed_jobs_matching_criteria:
+    sys.stderr.write(f"  - {job['name']} (ID: {job['id']})\n")
+  sys.stderr.write("\n") # Add a newline for separation before stdout details
+
+  print(f"\n# Detailed Logs for Failed Jobs (matching pattern '{args.job_pattern}') for Workflow Run ID: {run['id']} ([Run Link]({run.get('html_url', 'No URL')}))\n")
 
   for job in failed_jobs_matching_criteria:
-    print(f"==================================================================================")
-    # Keep the job pattern in the individual job heading for clarity if needed, or remove if too verbose.
-    # For now, let's assume it's clear from the main heading.
-    print(f"Job: {job['name']} (ID: {job['id']}) - FAILED")
-    print(f"Job URL: {job.get('html_url', 'N/A')}")
-    print(f"==================================================================================")
+    print(f"\n## Job: {job['name']} (ID: {job['id']}) - FAILED")
+    print(f"[Job URL]({job.get('html_url', 'N/A')})\n")
 
     job_logs = get_job_logs(args.token, job['id'])
     if not job_logs:
@@ -320,23 +322,41 @@ def main():
             if step.get('conclusion') == 'failure':
                 failed_steps_details.append(step)
 
-    if not failed_steps_details:
-        print("\nNo specific failed steps found in job data, but job marked as failed. Printing last lines of full job log as fallback:\n")
-        log_lines = job_logs.splitlines()
-        for line in log_lines[-args.log_lines:]:
-            print(line)
-        print("\n--- End of log snippet for job ---")
+    if not failed_steps_details: # No specific failed steps found in API, but job is failed
+        print("\n**Note: No specific failed steps were identified in the job's metadata, but the job itself is marked as failed.**")
+        log_lines_for_job_fallback = job_logs.splitlines()
+        if args.grep_pattern:
+            print(f"Displaying grep results for pattern '{args.grep_pattern}' with context {args.grep_context} from **entire job log**:")
+            print("\n```log")
+            try:
+                process = subprocess.run(
+                    ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
+                    input="\n".join(log_lines_for_job_fallback), text=True, capture_output=True, check=False
+                )
+                if process.returncode == 0: print(process.stdout.strip())
+                elif process.returncode == 1: print(f"No matches found for pattern '{args.grep_pattern}' in entire job log.")
+                else: sys.stderr.write(f"Grep command failed on full job log: {process.stderr}\n")
+            except FileNotFoundError: sys.stderr.write("Error: 'grep' not found, cannot process full job log with grep.\n")
+            except Exception as e: sys.stderr.write(f"Grep error on full job log: {e}\n")
+            print("```")
+        else:
+            print(f"Displaying last {args.log_lines} lines from **entire job log** as fallback:")
+            print("\n```log")
+            for line in log_lines_for_job_fallback[-args.log_lines:]:
+                print(line)
+            print("```")
+        print("\n---") # Horizontal rule
         continue
 
-    print(f"\n--- Failed Steps in Job: {job['name']} ---")
+    print(f"\n### Failed Steps in Job: {job['name']}")
     first_failed_step_logged = False
     for step in failed_steps_details:
       if not args.all_failed_steps and first_failed_step_logged:
-        print(f"\n--- Skipping subsequent failed step: {step.get('name', 'Unnamed step')} (use --all-failed-steps to see all) ---")
+        print(f"\n--- Skipping subsequent failed step: {step.get('name', 'Unnamed step')} (use --all-failed-steps to see all) ---") # Keep this as plain text for now
         break # Stop after the first failed step if not --all-failed-steps
 
       step_name = step.get('name', 'Unnamed step')
-      print(f"\n--- Step: {step_name} ---")
+      print(f"\n#### Step: {step_name}")
 
       # Crude log extraction:
       # Regex to match group start, attempting to capture the step name robustly
@@ -372,7 +392,8 @@ def main():
           log_source_message = f"Could not isolate log for step '{step_name}'. Using entire job log"
 
       if args.grep_pattern:
-          print(f"{log_source_message} (grep results for pattern '{args.grep_pattern}' with context {args.grep_context}):")
+          print(f"\n{log_source_message} (grep results for pattern `{args.grep_pattern}` with context {args.grep_context}):\n")
+          print("```log")
           try:
               # Using subprocess to call grep
               # Pass log_to_process as stdin to grep
@@ -388,26 +409,29 @@ def main():
               elif process.returncode == 1: # No match found
                   print(f"No matches found for pattern '{args.grep_pattern}' in this log segment.")
               else: # Grep error
-                  sys.stderr.write(f"Grep command failed with error code {process.returncode}:\n{process.stderr}\n")
+                  # Print error within the log block if possible, or as a note if it's too disruptive
+                  print(f"Grep command failed with error code {process.returncode}. Stderr:\n{process.stderr}")
           except FileNotFoundError:
               sys.stderr.write("Error: 'grep' command not found. Please ensure it is installed and in your PATH to use --grep-pattern.\n")
-              # Fallback to printing last N lines if grep is not found? Or just skip log? For now, skip.
               print("Skipping log display for this step as grep is unavailable.")
           except Exception as e:
               sys.stderr.write(f"An unexpected error occurred while running grep: {e}\n")
               print("Skipping log display due to an error with grep.")
+          print("```")
       else:
           # Default behavior: print last N lines
-          print(f"{log_source_message} (last {args.log_lines} lines):")
+          print(f"\n{log_source_message} (last {args.log_lines} lines):\n")
+          print("```log")
           # current_step_log_segment is a list of lines, log_lines_for_job is also a list of lines
           lines_to_print_from = current_step_log_segment if current_step_log_segment else log_lines_for_job
           for log_line in lines_to_print_from[-args.log_lines:]:
               print(log_line)
+          print("```")
 
-      print(f"--- End of log for step: {step_name} ---")
+      print(f"\n---") # Horizontal rule after each step's log
       first_failed_step_logged = True # Mark that we've logged at least one step
 
-    print(f"\n--- End of Failed Steps for Job: {job['name']} ---\n")
+    print(f"\n---") # Horizontal rule after all steps for a job
 
 
 def get_latest_workflow_run(token, workflow_name, branch_name):
