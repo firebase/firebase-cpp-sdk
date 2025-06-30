@@ -64,6 +64,13 @@ def requests_retry_session(retries=RETRIES,
   session.mount('https://', adapter)
   return session
 
+# Regex to match ISO 8601 timestamps like "2023-10-27T18:30:59.1234567Z " or "2023-10-27T18:30:59Z "
+TIMESTAMP_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s*")
+
+def strip_initial_timestamp(line: str) -> str:
+    """Removes an ISO 8601-like timestamp from the beginning of a line if present."""
+    return TIMESTAMP_REGEX.sub("", line)
+
 
 def get_current_branch_name():
     """Gets the current git branch name."""
@@ -307,14 +314,24 @@ def main():
 
   print(f"\n# Detailed Logs for Failed Jobs (matching pattern '{args.job_pattern}') for Workflow Run ID: {run['id']} ([Run Link]({run.get('html_url', 'No URL')}))\n")
 
-  for job in failed_jobs_matching_criteria:
+  total_failed_jobs_to_process = len(failed_jobs_matching_criteria)
+  successful_log_fetches = 0
+
+  for idx, job in enumerate(failed_jobs_matching_criteria):
+    sys.stderr.write(f"INFO: Downloading log {idx+1}/{total_failed_jobs_to_process} for job '{job['name']}' (ID: {job['id']})...\n")
+    job_logs = get_job_logs(args.token, job['id'])
+
     print(f"\n## Job: {job['name']} (ID: {job['id']}) - FAILED")
     print(f"[Job URL]({job.get('html_url', 'N/A')})\n")
 
-    job_logs = get_job_logs(args.token, job['id'])
     if not job_logs:
-      print("Could not retrieve logs for this job.")
-      continue
+      print("**Could not retrieve logs for this job.**")
+      # Also print to stderr if it's a critical failure to fetch
+      sys.stderr.write(f"WARNING: Failed to retrieve logs for job '{job['name']}' (ID: {job['id']}).\n")
+      continue # Skip to the next job
+
+    successful_log_fetches += 1
+    # If logs were fetched, proceed to process them (already existing logic)
 
     failed_steps_details = []
     if job.get('steps'):
@@ -324,14 +341,17 @@ def main():
 
     if not failed_steps_details: # No specific failed steps found in API, but job is failed
         print("\n**Note: No specific failed steps were identified in the job's metadata, but the job itself is marked as failed.**")
-        log_lines_for_job_fallback = job_logs.splitlines()
+
+        # Apply timestamp stripping to the full job log
+        stripped_log_lines_fallback = [strip_initial_timestamp(line) for line in job_logs.splitlines()]
+
         if args.grep_pattern:
             print(f"Displaying grep results for pattern '{args.grep_pattern}' with context {args.grep_context} from **entire job log**:")
             print("\n```log")
             try:
                 process = subprocess.run(
                     ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
-                    input="\n".join(log_lines_for_job_fallback), text=True, capture_output=True, check=False
+                    input="\n".join(stripped_log_lines_fallback), text=True, capture_output=True, check=False
                 )
                 if process.returncode == 0: print(process.stdout.strip())
                 elif process.returncode == 1: print(f"No matches found for pattern '{args.grep_pattern}' in entire job log.")
@@ -342,7 +362,7 @@ def main():
         else:
             print(f"Displaying last {args.log_lines} lines from **entire job log** as fallback:")
             print("\n```log")
-            for line in log_lines_for_job_fallback[-args.log_lines:]:
+            for line in stripped_log_lines_fallback[-args.log_lines:]: # Use stripped lines
                 print(line)
             print("```")
         print("\n---") # Horizontal rule
@@ -364,52 +384,52 @@ def main():
       step_start_pattern = re.compile(r"^##\[group\](?:Run\s+|Setup\s+|Complete\s+)?.*?" + escaped_step_name, re.IGNORECASE)
       step_end_pattern = re.compile(r"^##\[endgroup\]")
 
-      current_step_log_segment = []
-      capturing_for_failed_step = False
-      log_lines_for_job = job_logs.splitlines() # Split once per job
+      # Get raw lines for the entire job first
+      raw_log_lines_for_job = job_logs.splitlines()
 
-      # Try to find the specific step's log segment
-      for line in log_lines_for_job:
+      current_step_raw_log_segment_lines = [] # Stores raw lines of the isolated step
+      capturing_for_failed_step = False
+      for line in raw_log_lines_for_job: # Iterate raw lines to find segment
           if step_start_pattern.search(line):
               capturing_for_failed_step = True
-              current_step_log_segment = [line] # Start with the group line
+              current_step_raw_log_segment_lines = [line]
               continue
           if capturing_for_failed_step:
-              current_step_log_segment.append(line)
+              current_step_raw_log_segment_lines.append(line)
               if step_end_pattern.search(line):
                   capturing_for_failed_step = False
-                  # Found the end of the targeted step's log
-                  break # Stop processing lines for this step (within this job's logs)
+                  break
 
-      log_to_process = ""
+      # Determine which set of lines to process (isolated step or full job) and strip timestamps
+      lines_to_process_stripped = []
       log_source_message = ""
 
-      if current_step_log_segment:
-          log_to_process = "\n".join(current_step_log_segment)
+      if current_step_raw_log_segment_lines:
+          lines_to_process_stripped = [strip_initial_timestamp(line) for line in current_step_raw_log_segment_lines]
           log_source_message = f"Log for failed step '{step_name}'"
       else:
-          log_to_process = "\n".join(log_lines_for_job) # Use the full job log as fallback
+          # Fallback to full job log if specific step segment couldn't be isolated
+          lines_to_process_stripped = [strip_initial_timestamp(line) for line in raw_log_lines_for_job]
           log_source_message = f"Could not isolate log for step '{step_name}'. Using entire job log"
+
+      log_content_for_processing = "\n".join(lines_to_process_stripped)
 
       if args.grep_pattern:
           print(f"\n{log_source_message} (grep results for pattern `{args.grep_pattern}` with context {args.grep_context}):\n")
           print("```log")
           try:
-              # Using subprocess to call grep
-              # Pass log_to_process as stdin to grep
               process = subprocess.run(
                   ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
-                  input=log_to_process,
+                  input=log_content_for_processing, # Use stripped content
                   text=True,
                   capture_output=True,
-                  check=False # Do not throw exception on non-zero exit (e.g. no match)
+                  check=False
               )
-              if process.returncode == 0: # Match found
+              if process.returncode == 0:
                   print(process.stdout.strip())
-              elif process.returncode == 1: # No match found
+              elif process.returncode == 1:
                   print(f"No matches found for pattern '{args.grep_pattern}' in this log segment.")
-              else: # Grep error
-                  # Print error within the log block if possible, or as a note if it's too disruptive
+              else:
                   print(f"Grep command failed with error code {process.returncode}. Stderr:\n{process.stderr}")
           except FileNotFoundError:
               sys.stderr.write("Error: 'grep' command not found. Please ensure it is installed and in your PATH to use --grep-pattern.\n")
@@ -419,12 +439,10 @@ def main():
               print("Skipping log display due to an error with grep.")
           print("```")
       else:
-          # Default behavior: print last N lines
           print(f"\n{log_source_message} (last {args.log_lines} lines):\n")
           print("```log")
-          # current_step_log_segment is a list of lines, log_lines_for_job is also a list of lines
-          lines_to_print_from = current_step_log_segment if current_step_log_segment else log_lines_for_job
-          for log_line in lines_to_print_from[-args.log_lines:]:
+          # Print from the already stripped lines (lines_to_process_stripped)
+          for log_line in lines_to_process_stripped[-args.log_lines:]:
               print(log_line)
           print("```")
 
@@ -432,6 +450,9 @@ def main():
       first_failed_step_logged = True # Mark that we've logged at least one step
 
     print(f"\n---") # Horizontal rule after all steps for a job
+
+  # Print final summary of log fetching to stderr
+  sys.stderr.write(f"\nINFO: Processed logs for {successful_log_fetches}/{total_failed_jobs_to_process} targeted failed jobs.\n")
 
 
 def get_latest_workflow_run(token, workflow_name, branch_name):
