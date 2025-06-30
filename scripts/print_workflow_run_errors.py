@@ -223,6 +223,37 @@ def _process_and_display_logs_for_failed_jobs(args, list_of_failed_jobs, workflo
   sys.stderr.write(f"INFO: Log processing complete for this batch. Successfully fetched and processed logs for {successful_log_fetches}/{total_failed_jobs_to_process} job(s) from pattern '{current_pattern_str}'.\n")
 
 
+def get_workflow_run_details_by_id(token, run_id_to_fetch):
+  """Fetches details for a specific workflow run ID from GitHub API."""
+  url = f'{GITHUB_API_URL}/actions/runs/{run_id_to_fetch}'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+
+  sys.stderr.write(f"INFO: Fetching details for workflow run ID: {run_id_to_fetch} from {url}\n")
+  try:
+    with requests_retry_session().get(url, headers=headers, timeout=TIMEOUT) as response:
+      response.raise_for_status()
+      return response.json()  # Returns the full run object
+  except requests.exceptions.HTTPError as e:
+    if e.response.status_code == 404:
+      sys.stderr.write(f"ERROR: Workflow run ID {run_id_to_fetch} not found.\n")
+    else:
+      sys.stderr.write(f"ERROR: HTTP error fetching details for run ID {run_id_to_fetch}: {e}\n")
+      if e.response is not None:
+        # Avoid printing potentially very large HTML error pages from GitHub
+        try:
+            error_detail = e.response.json() # Check if there's a JSON error message
+            sys.stderr.write(f"Response JSON: {json.dumps(error_detail, indent=2)}\n")
+        except json.JSONDecodeError:
+            sys.stderr.write(f"Response Text (first 500 chars): {e.response.text[:500]}...\n")
+    return None
+  except requests.exceptions.RequestException as e:
+    sys.stderr.write(f"ERROR: Request failed while fetching details for run ID {run_id_to_fetch}: {e}\n")
+    return None
+  except json.JSONDecodeError as e: # Should be caught by RequestException or HTTPError if response is bad
+    sys.stderr.write(f"ERROR: Failed to parse JSON response for run ID {run_id_to_fetch} details: {e}\n")
+    return None
+
+
 def main():
   """Main function to parse arguments and orchestrate the script."""
   determined_owner = None
@@ -320,6 +351,12 @@ def main():
       help="Regular expression to filter job names. Can be specified multiple times to check patterns in order. "
            "If no patterns are specified, defaults to checking: '^build.*', then '^test.*', then '.*'."
   )
+  parser.add_argument(
+      "--run-id",
+      type=int,
+      default=None,
+      help="Specify a specific workflow run ID to process. If provided, --workflow and --branch are ignored."
+  )
 
   args = parser.parse_args()
   error_suffix = " (use --help for more details)"
@@ -393,18 +430,40 @@ def main():
       sys.stderr.write(f"Error: Branch name is required. Please specify --branch or ensure it can be detected from your current git repository.{error_suffix}\n")
       sys.exit(1)
 
-  sys.stderr.write(f"Processing workflow '{args.workflow}' on branch '{args.branch}' for repo {OWNER}/{REPO}\n")
+  run_details = None # This will hold the workflow run information
 
-  run = get_latest_workflow_run(args.token, args.workflow, args.branch)
-  if not run:
-    sys.stderr.write(f"No workflow run found for workflow '{args.workflow}' on branch '{args.branch}'.\n")
-    sys.exit(0)
+  if args.run_id:
+    sys.stderr.write(f"INFO: Attempting to process directly specified workflow run ID: {args.run_id}\n")
+    # When run_id is given, --workflow and --branch are ignored as per help text.
+    # We need to fetch the run details to get its html_url and confirm existence.
+    run_details = get_workflow_run_details_by_id(args.token, args.run_id)
+    if not run_details:
+      # get_workflow_run_details_by_id already prints specific errors
+      sys.stderr.write(f"ERROR: Could not retrieve details for specified run ID {args.run_id}. Exiting.\n")
+      sys.exit(1)
+    sys.stderr.write(f"INFO: Successfully fetched details for run ID: {run_details['id']} (Status: {run_details.get('status')}, Conclusion: {run_details.get('conclusion')}, URL: {run_details.get('html_url')})\n")
+  else:
+    # Original logic: find run by workflow name and branch
+    if not args.branch: # This check might be redundant if get_current_branch_name always provides one or script exits
+        sys.stderr.write(f"Error: --branch is required when --run-id is not specified.{error_suffix}\n")
+        sys.exit(1)
+    if not args.workflow: # Should not happen due to default, but good practice
+        sys.stderr.write(f"Error: --workflow is required when --run-id is not specified.{error_suffix}\n")
+        sys.exit(1)
 
-  sys.stderr.write(f"Found workflow run ID: {run['id']} (Status: {run.get('status')}, Conclusion: {run.get('conclusion')})\n")
+    sys.stderr.write(f"INFO: Searching for latest workflow run for '{args.workflow}' on branch '{args.branch}' in repo {OWNER}/{REPO}...\n")
+    run_details = get_latest_workflow_run(args.token, args.workflow, args.branch)
+    if not run_details:
+      sys.stderr.write(f"INFO: No workflow run found for workflow '{args.workflow}' on branch '{args.branch}'.\n")
+      sys.exit(0)
+    sys.stderr.write(f"INFO: Found latest workflow run ID: {run_details['id']} (Status: {run_details.get('status')}, Conclusion: {run_details.get('conclusion')})\n")
+
+  # At this point, run_details should be populated either from --run-id or by search
+  # The rest of the script uses run_details['id'] and run_details.get('html_url')
 
   patterns_to_check = args.job_pattern if args.job_pattern else DEFAULT_JOB_PATTERNS
 
-  all_jobs_api_response = get_all_jobs_for_run(args.token, run['id'])
+  all_jobs_api_response = get_all_jobs_for_run(args.token, run_details['id'])
   if all_jobs_api_response is None:
     sys.stderr.write(f"Could not retrieve jobs for workflow run ID: {run['id']}. Exiting.\n")
     sys.exit(1)
