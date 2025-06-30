@@ -42,7 +42,7 @@ using internal::ListResultInternal;
 // Global function to be called by CleanupNotifier
 // This function is responsible for cleaning up the internal state of a
 // ListResult object when the App is being shut down.
-static void GlobalCleanupListResult(void* list_result_void) {
+void GlobalCleanupListResult(void* list_result_void) {
   if (list_result_void) {
     ListResult* list_result = static_cast<ListResult*>(list_result_void);
     // This method will delete internal_ and set it to nullptr.

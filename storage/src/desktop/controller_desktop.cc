@@ -82,8 +82,8 @@ int64_t ControllerInternal::total_byte_count() {
 // Returns the StorageReference associated with this Controller.
 StorageReferenceInternal* ControllerInternal::GetReference() const {
   MutexLock lock(mutex_);
-  return reference_.is_valid()
-             ? new StorageReferenceInternal(*reference_.internal_)
+  return reference_.is_valid() && reference_.internal_ != nullptr
+             ? reference_.internal_->Clone()
              : nullptr;
 }
 

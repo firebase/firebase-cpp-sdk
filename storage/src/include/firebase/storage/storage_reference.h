@@ -404,6 +404,7 @@ class StorageReference {
   friend class Storage;
   friend class internal::StorageReferenceInternal;
   friend class internal::StorageReferenceInternalCommon;
+  friend class internal::StorageReferenceInternalDesktop; // Add friend for desktop internal class
 
   StorageReference(internal::StorageReferenceInternal* internal);
 

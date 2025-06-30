@@ -87,15 +87,14 @@ StorageReference::StorageReference(StorageReferenceInternal* internal)
 }
 
 StorageReference::StorageReference(const StorageReference& other)
-    : internal_(other.internal_ ? new StorageReferenceInternal(*other.internal_)
-                                : nullptr) {
+    : internal_(other.internal_ ? other.internal_->Clone() : nullptr) {
   StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
 }
 
 StorageReference& StorageReference::operator=(const StorageReference& other) {
+  if (this == &other) return *this;
   StorageReferenceInternalCommon::DeleteInternal(this);
-  internal_ = other.internal_ ? new StorageReferenceInternal(*other.internal_)
-                              : nullptr;
+  internal_ = other.internal_ ? other.internal_->Clone() : nullptr;
   StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
@@ -269,9 +268,7 @@ Future<ListResult> StorageReference::ListAll() {
 }
 
 Future<ListResult> StorageReference::ListLastResult() {
-  if (!internal_) return Future<ListResult>();
-  return static_cast<const Future<ListResult>&>(
-      internal_->future()->LastResult(kStorageReferenceFnList));
+  return internal_ ? internal_->ListLastResult() : Future<ListResult>();
 }
 
 }  // namespace storage

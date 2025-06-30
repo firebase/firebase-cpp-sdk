@@ -82,6 +82,9 @@ class StorageInternal {
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return app_ != nullptr; }
 
+  // Conforms to common interface, equivalent to initialized() for desktop.
+  bool app_valid() const { return initialized(); }
+
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
   FutureManager& future_manager() { return future_manager_; }

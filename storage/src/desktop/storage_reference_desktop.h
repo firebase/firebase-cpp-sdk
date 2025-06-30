@@ -23,6 +23,7 @@
 #include "storage/src/desktop/curl_requests.h"
 #include "storage/src/desktop/storage_path.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
+#include "storage/src/common/storage_reference_internal.h" // Include the base class definition
 
 namespace firebase {
 namespace storage {
@@ -52,114 +53,113 @@ class BlockingResponse;
 class MetadataChainData;
 class Notifier;
 
-class StorageReferenceInternal {
+class StorageReferenceInternalDesktop : public StorageReferenceInternal {
  public:
-  StorageReferenceInternal(const std::string& storageUri,
-                           StorageInternal* storage);
-  StorageReferenceInternal(const StoragePath& storageUri,
-                           StorageInternal* storage);
-  StorageReferenceInternal(const StorageReferenceInternal& other);
+  StorageReferenceInternalDesktop(const std::string& storageUri,
+                                  StorageInternal* storage);
+  StorageReferenceInternalDesktop(const StoragePath& storageUri,
+                                  StorageInternal* storage);
+  StorageReferenceInternalDesktop(const StorageReferenceInternalDesktop& other);
 
-  ~StorageReferenceInternal();
+  ~StorageReferenceInternalDesktop() override;
+
+  // Implementations for pure virtuals from StorageReferenceInternal
+  StorageInternal* storage_internal() const override { return storage_; }
+  StorageReferenceInternal* Clone() const override;
 
   // Gets the storage to which we refer.
-  Storage* storage() const;
+  Storage* storage() const override;
 
   // Gets a reference to a location relative to this one.
-  StorageReferenceInternal* Child(const char* path) const;
+  StorageReferenceInternal* Child(const char* path) const override;
 
   // Return the Google Cloud Storage bucket that holds this object.
-  std::string bucket() const;
+  std::string bucket() const override;
 
   // Return the full path of the object.
-  std::string full_path() const;
+  std::string full_path() const override;
 
   // Returns the short name of this object.
-  std::string name();
+  std::string name() override;
 
   // Returns a new instance of StorageReference pointing to the parent location
   // or null if this instance references the root location.
-  StorageReferenceInternal* GetParent();
+  StorageReferenceInternal* GetParent() override;
 
   // Deletes the object at the current path.
-  Future<void> Delete();
+  Future<void> Delete() override;
 
   // Returns the result of the most recent call to Delete();
-  Future<void> DeleteLastResult();
+  Future<void> DeleteLastResult() override;
 
   // Asynchronously downloads the object from this StorageReference.
   Future<size_t> GetFile(const char* path, Listener* listener,
-                         Controller* controller_out);
+                         Controller* controller_out) override;
 
   // Returns the result of the most recent call to GetFile();
-  Future<size_t> GetFileLastResult();
+  Future<size_t> GetFileLastResult() override;
 
   // Asynchronously downloads the object from this StorageReference.
   Future<size_t> GetBytes(void* buffer, size_t buffer_size, Listener* listener,
-                          Controller* controller_out);
+                          Controller* controller_out) override;
 
   // Returns the result of the most recent call to GetBytes();
-  Future<size_t> GetBytesLastResult();
+  Future<size_t> GetBytesLastResult() override;
 
   // Asynchronously retrieves a long lived download URL with a revokable token.
-  Future<std::string> GetDownloadUrl();
+  Future<std::string> GetDownloadUrl() override;
 
   // Returns the result of the most recent call to GetDownloadUrl();
-  Future<std::string> GetDownloadUrlLastResult();
+  Future<std::string> GetDownloadUrlLastResult() override;
 
   // Retrieves metadata associated with an object at this StorageReference.
-  Future<Metadata> GetMetadata();
+  Future<Metadata> GetMetadata() override;
 
   // Returns the result of the most recent call to GetMetadata();
-  Future<Metadata> GetMetadataLastResult();
+  Future<Metadata> GetMetadataLastResult() override;
 
   // Updates the metadata associated with this StorageReference.
-  Future<Metadata> UpdateMetadata(const Metadata* metadata);
+  Future<Metadata> UpdateMetadata(const Metadata* metadata) override;
 
   // Returns the result of the most recent call to UpdateMetadata();
-  Future<Metadata> UpdateMetadataLastResult();
+  Future<Metadata> UpdateMetadataLastResult() override;
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
   Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
-                            Listener* listener, Controller* controller_out);
+                            Listener* listener, Controller* controller_out) override;
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
   Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
                             const Metadata* metadata, Listener* listener,
-                            Controller* controller_out);
+                            Controller* controller_out) override;
 
   // Returns the result of the most recent call to Write();
-  Future<Metadata> PutBytesLastResult();
+  Future<Metadata> PutBytesLastResult() override;
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
   Future<Metadata> PutFile(const char* path, Listener* listener,
-                           Controller* controller_out);
+                           Controller* controller_out) override;
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
   Future<Metadata> PutFile(const char* path, const Metadata* metadata,
-                           Listener* listener, Controller* controller_out);
+                           Listener* listener, Controller* controller_out) override;
 
   // Returns the result of the most recent call to Write();
-  Future<Metadata> PutFileLastResult();
+  Future<Metadata> PutFileLastResult() override;
 
   // Asynchronously lists objects and common prefixes under this reference
-  // (stub).
-  Future<ListResult> List(int32_t max_results);
-  Future<ListResult> List(int32_t max_results, const char* page_token);
+  Future<ListResult> List(int32_t max_results) override;
+  Future<ListResult> List(int32_t max_results, const char* page_token) override;
 
   // Asynchronously lists all objects and common prefixes under this reference
-  // (stub).
-  Future<ListResult> ListAll();
+  Future<ListResult> ListAll() override;
 
-  // Returns the result of the most recent List operation (stub).
-  Future<ListResult> ListLastResult();
-
-  // Pointer to the StorageInternal instance we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
+  // Returns the result of the most recent List operation
+  Future<ListResult> ListLastResult() override;
 
   // Wrap this in a StorageReference.
   // Exposed for testing.

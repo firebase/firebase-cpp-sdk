@@ -74,6 +74,12 @@ class ListResult {
   bool is_valid() const;
 
  private:
+  /// @cond FIREBASE_APP_INTERNAL
+  // Method called by the CleanupNotifier global callback to perform cleanup.
+  void ClearInternalForCleanup();
+  friend void GlobalCleanupListResult(void* list_result_void);
+  /// @endcond
+
   internal::ListResultInternal* internal_;
 };
 
