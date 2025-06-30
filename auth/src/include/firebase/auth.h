@@ -1,4 +1,3 @@
-stray text causing a build error
 /*
  * Copyright 2016 Google LLC
  *
