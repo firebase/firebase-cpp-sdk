@@ -39,6 +39,15 @@ REPO = ''
 BASE_URL = 'https://api.github.com'
 GITHUB_API_URL = ''
 
+DEFAULT_JOB_PATTERNS = ['^build.*', '^test.*', '.*']
+
+# Regex to match ISO 8601 timestamps like "2023-10-27T18:30:59.1234567Z " or "2023-10-27T18:30:59Z "
+TIMESTAMP_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s*")
+
+def strip_initial_timestamp(line: str) -> str:
+    """Removes an ISO 8601-like timestamp from the beginning of a line if present."""
+    return TIMESTAMP_REGEX.sub("", line)
+
 
 def set_repo_info(owner_name, repo_name):
   """Sets the global repository owner, name, and API URL."""
@@ -64,13 +73,6 @@ def requests_retry_session(retries=RETRIES,
   session.mount('https://', adapter)
   return session
 
-# Regex to match ISO 8601 timestamps like "2023-10-27T18:30:59.1234567Z " or "2023-10-27T18:30:59Z "
-TIMESTAMP_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s*")
-
-def strip_initial_timestamp(line: str) -> str:
-    """Removes an ISO 8601-like timestamp from the beginning of a line if present."""
-    return TIMESTAMP_REGEX.sub("", line)
-
 
 def get_current_branch_name():
     """Gets the current git branch name."""
@@ -83,6 +85,142 @@ def get_current_branch_name():
     except Exception as e: # Catch any other unexpected error.
         sys.stderr.write(f"Info: An unexpected error occurred while determining current git branch: {e}. Branch will need to be specified.\n")
         return None
+
+def _process_and_display_logs_for_failed_jobs(args, list_of_failed_jobs, workflow_run_html_url, current_pattern_str):
+  """
+  Helper function to process a list of already identified failed jobs for a specific pattern.
+  It handles fetching logs, stripping timestamps, grepping, and printing Markdown output.
+  """
+  print(f"\n# Detailed Logs for Failed Jobs (matching pattern '{current_pattern_str}') for Workflow Run ([Run Link]({workflow_run_html_url}))\n")
+
+  total_failed_jobs_to_process = len(list_of_failed_jobs)
+  successful_log_fetches = 0
+
+  # Print summary of these specific failed jobs to stderr
+  sys.stderr.write(f"INFO: Summary of failed jobs for pattern '{current_pattern_str}':\n")
+  for job in list_of_failed_jobs:
+    sys.stderr.write(f"  - {job['name']} (ID: {job['id']})\n")
+  sys.stderr.write("\n")
+
+  for idx, job in enumerate(list_of_failed_jobs):
+    sys.stderr.write(f"INFO: Downloading log {idx+1}/{total_failed_jobs_to_process} for job '{job['name']}' (ID: {job['id']})...\n")
+    job_logs_raw = get_job_logs(args.token, job['id']) # Renamed to avoid conflict with global
+
+    print(f"\n## Job: {job['name']} (ID: {job['id']}) - FAILED")
+    print(f"[Job URL]({job.get('html_url', 'N/A')})\n")
+
+    if not job_logs_raw:
+      print("**Could not retrieve logs for this job.**")
+      sys.stderr.write(f"WARNING: Failed to retrieve logs for job '{job['name']}' (ID: {job['id']}).\n")
+      continue
+
+    successful_log_fetches += 1
+
+    failed_steps_details = []
+    if job.get('steps'):
+        for step in job['steps']:
+            if step.get('conclusion') == 'failure':
+                failed_steps_details.append(step)
+
+    if not failed_steps_details:
+        print("\n**Note: No specific failed steps were identified in the job's metadata, but the job itself is marked as failed.**")
+        stripped_log_lines_fallback = [strip_initial_timestamp(line) for line in job_logs_raw.splitlines()]
+        if args.grep_pattern:
+            print(f"Displaying grep results for pattern '{args.grep_pattern}' with context {args.grep_context} from **entire job log**:")
+            print("\n```log")
+            try:
+                process = subprocess.run(
+                    ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
+                    input="\n".join(stripped_log_lines_fallback), text=True, capture_output=True, check=False
+                )
+                if process.returncode == 0: print(process.stdout.strip())
+                elif process.returncode == 1: print(f"No matches found for pattern '{args.grep_pattern}' in entire job log.")
+                else: sys.stderr.write(f"Grep command failed on full job log: {process.stderr}\n") # Should this be in log block?
+            except FileNotFoundError: sys.stderr.write("Error: 'grep' not found, cannot process full job log with grep.\n")
+            except Exception as e: sys.stderr.write(f"Grep error on full job log: {e}\n")
+            print("```")
+        else:
+            print(f"Displaying last {args.log_lines} lines from **entire job log** as fallback:")
+            print("\n```log")
+            for line in stripped_log_lines_fallback[-args.log_lines:]:
+                print(line)
+            print("```")
+        print("\n---")
+        continue
+
+    print(f"\n### Failed Steps in Job: {job['name']}")
+    first_failed_step_logged = False
+    for step in failed_steps_details:
+      if not args.all_failed_steps and first_failed_step_logged:
+        print(f"\n--- Skipping subsequent failed step: {step.get('name', 'Unnamed step')} (use --all-failed-steps to see all) ---")
+        break
+
+      step_name = step.get('name', 'Unnamed step')
+      print(f"\n#### Step: {step_name}")
+
+      escaped_step_name = re.escape(step_name)
+      step_start_pattern = re.compile(r"^##\[group\](?:Run\s+|Setup\s+|Complete\s+)?.*?" + escaped_step_name, re.IGNORECASE)
+      step_end_pattern = re.compile(r"^##\[endgroup\]")
+
+      raw_log_lines_for_job_step_search = job_logs_raw.splitlines()
+      current_step_raw_log_segment_lines = []
+      capturing_for_failed_step = False
+      for line in raw_log_lines_for_job_step_search:
+          if step_start_pattern.search(line):
+              capturing_for_failed_step = True
+              current_step_raw_log_segment_lines = [line]
+              continue
+          if capturing_for_failed_step:
+              current_step_raw_log_segment_lines.append(line)
+              if step_end_pattern.search(line):
+                  capturing_for_failed_step = False
+                  break
+
+      lines_to_process_stripped = []
+      log_source_message = ""
+
+      if current_step_raw_log_segment_lines:
+          lines_to_process_stripped = [strip_initial_timestamp(line) for line in current_step_raw_log_segment_lines]
+          log_source_message = f"Log for failed step '{step_name}'"
+      else:
+          lines_to_process_stripped = [strip_initial_timestamp(line) for line in raw_log_lines_for_job_step_search] # Use full job log if segment not found
+          log_source_message = f"Could not isolate log for step '{step_name}'. Using entire job log"
+
+      log_content_for_processing = "\n".join(lines_to_process_stripped)
+
+      if args.grep_pattern:
+          print(f"\n{log_source_message} (grep results for pattern `{args.grep_pattern}` with context {args.grep_context}):\n")
+          print("```log")
+          try:
+              process = subprocess.run(
+                  ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
+                  input=log_content_for_processing, text=True, capture_output=True, check=False
+              )
+              if process.returncode == 0:
+                  print(process.stdout.strip())
+              elif process.returncode == 1:
+                  print(f"No matches found for pattern '{args.grep_pattern}' in this log segment.")
+              else:
+                  print(f"Grep command failed with error code {process.returncode}. Stderr:\n{process.stderr}")
+          except FileNotFoundError:
+              sys.stderr.write("Error: 'grep' command not found. Please ensure it is installed and in your PATH to use --grep-pattern.\n")
+              print("Skipping log display for this step as grep is unavailable.")
+          except Exception as e:
+              sys.stderr.write(f"An unexpected error occurred while running grep: {e}\n")
+              print("Skipping log display due to an error with grep.")
+          print("```")
+      else:
+          print(f"\n{log_source_message} (last {args.log_lines} lines):\n")
+          print("```log")
+          for log_line in lines_to_process_stripped[-args.log_lines:]:
+              print(log_line)
+          print("```")
+
+      print(f"\n---")
+      first_failed_step_logged = True
+    print(f"\n---")
+
+  sys.stderr.write(f"INFO: Log processing complete for this batch. Successfully fetched and processed logs for {successful_log_fetches}/{total_failed_jobs_to_process} job(s) from pattern '{current_pattern_str}'.\n")
 
 
 def main():
@@ -177,9 +315,10 @@ def main():
   )
   parser.add_argument(
       "--job-pattern",
+      action='append',
       type=str,
-      default='^build.*',
-      help="Regular expression to filter job names. Only jobs matching this pattern will be processed. Default: '^build.*'"
+      help="Regular expression to filter job names. Can be specified multiple times to check patterns in order. "
+           "If no patterns are specified, defaults to checking: '^build.*', then '^test.*', then '.*'."
   )
 
   args = parser.parse_args()
@@ -200,7 +339,7 @@ def main():
   if not token:
     sys.stderr.write(f"Error: GitHub token not provided. Set GITHUB_TOKEN, use --token, or place it in ~/.github_token.{error_suffix}\n")
     sys.exit(1)
-  args.token = token # Ensure args.token is populated
+  args.token = token
 
   final_owner = None
   final_repo = None
@@ -224,7 +363,7 @@ def main():
     is_owner_from_user_arg = args.owner is not None and args.owner != determined_owner
     is_repo_from_user_arg = args.repo is not None and args.repo != determined_repo
 
-    if is_owner_from_user_arg or is_repo_from_user_arg: # User explicitly set at least one of owner/repo via args
+    if is_owner_from_user_arg or is_repo_from_user_arg:
         if args.owner and args.repo:
             final_owner = args.owner
             final_repo = args.repo
@@ -232,29 +371,21 @@ def main():
         else:
             sys.stderr.write(f"Error: Both --owner and --repo must be specified if one is provided explicitly (and --url is not used).{error_suffix}\n")
             sys.exit(1)
-    elif args.owner and args.repo: # Both args have values, likely from successful auto-detection (or user provided matching defaults)
+    elif args.owner and args.repo:
         final_owner = args.owner
         final_repo = args.repo
-        # No specific message needed if it's from auto-detection, already printed.
-        # If user explicitly provided args that match auto-detected, that's fine.
-    # If final_owner/repo are still None here, it means auto-detection failed AND user provided nothing for owner/repo.
-    # Or, only one of owner/repo was auto-detected and the other wasn't provided.
 
   if not final_owner or not final_repo:
     missing_parts = []
     if not final_owner: missing_parts.append("--owner")
     if not final_repo: missing_parts.append("--repo")
-
     error_msg = "Error: Could not determine repository."
-    if missing_parts:
-        error_msg += f" Missing { ' and '.join(missing_parts) }."
+    if missing_parts: error_msg += f" Missing { ' and '.join(missing_parts) }."
     error_msg += f" Please specify --url, OR both --owner and --repo, OR ensure git remote 'origin' is configured correctly.{error_suffix}"
     sys.stderr.write(error_msg + "\n")
     sys.exit(1)
 
   if not set_repo_info(final_owner, final_repo):
-    # This path should ideally not be reached if final_owner/repo are validated,
-    # but as a safeguard:
     sys.stderr.write(f"Error: Could not set repository info to {final_owner}/{final_repo}. Ensure owner/repo are correct.{error_suffix}\n")
     sys.exit(1)
 
@@ -271,202 +402,66 @@ def main():
 
   sys.stderr.write(f"Found workflow run ID: {run['id']} (Status: {run.get('status')}, Conclusion: {run.get('conclusion')})\n")
 
-  try:
-    job_name_pattern = re.compile(args.job_pattern)
-  except re.error as e:
-    sys.stderr.write(f"Error: Invalid regex for --job-pattern '{args.job_pattern}': {e}\n")
-    sys.exit(1)
+  patterns_to_check = args.job_pattern if args.job_pattern else DEFAULT_JOB_PATTERNS
 
-  # 1. Fetch all jobs for the run
   all_jobs_api_response = get_all_jobs_for_run(args.token, run['id'])
-
-  if all_jobs_api_response is None: # Indicates an API error during fetch
+  if all_jobs_api_response is None:
     sys.stderr.write(f"Could not retrieve jobs for workflow run ID: {run['id']}. Exiting.\n")
     sys.exit(1)
 
-  # 2. Filter jobs by name pattern
-  name_matching_jobs = [job for job in all_jobs_api_response if job_name_pattern.search(job['name'])]
+  found_failures_and_processed = False
+  for current_pattern_str in patterns_to_check:
+    sys.stderr.write(f"\nINFO: Checking with job pattern: '{current_pattern_str}'...\n")
+    try:
+      current_job_name_regex = re.compile(current_pattern_str)
+    except re.error as e:
+      sys.stderr.write(f"WARNING: Invalid regex for job pattern '{current_pattern_str}': {e}. Skipping this pattern.\n")
+      continue
 
-  if not name_matching_jobs:
-    sys.stderr.write(f"No jobs found matching pattern '{args.job_pattern}' in workflow run ID: {run['id']}.\n")
-    sys.exit(0)
+    name_matching_jobs = [j for j in all_jobs_api_response if current_job_name_regex.search(j['name'])]
 
-  sys.stderr.write(f"Found {len(name_matching_jobs)} job(s) matching pattern '{args.job_pattern}'. Checking for failures...\n")
+    if not name_matching_jobs:
+      sys.stderr.write(f"INFO: No jobs found matching pattern '{current_pattern_str}'.\n")
+      continue
 
-  # 3. From the name-matching jobs, find the ones that actually failed
-  failed_jobs_matching_criteria = [job for job in name_matching_jobs if job.get('conclusion') == 'failure']
+    sys.stderr.write(f"INFO: Found {len(name_matching_jobs)} job(s) matching pattern '{current_pattern_str}'. Checking for failures...\n")
+    failed_jobs_this_pattern = [j for j in name_matching_jobs if j.get('conclusion') == 'failure']
 
-  if not failed_jobs_matching_criteria:
-    sys.stderr.write(f"No failed jobs found among those matching pattern '{args.job_pattern}' for workflow run ID: {run['id']}.\n")
-    if run.get('conclusion') == 'success':
-        print(f"Workflow run {run['id']} ({run.get('html_url', 'N/A')}) completed successfully. No jobs matching pattern '{args.job_pattern}' failed.")
-    elif run.get('status') == 'in_progress' and run.get('conclusion') is None:
-        print(f"Workflow run {run['id']} ({run.get('html_url', 'N/A')}) is still in progress. No jobs matching pattern '{args.job_pattern}' have failed yet.")
+    if failed_jobs_this_pattern:
+      sys.stderr.write(f"INFO: Found {len(failed_jobs_this_pattern)} failed job(s) for pattern '{current_pattern_str}'.\n")
+
+      # Call the refactored processing function
+      _process_and_display_logs_for_failed_jobs(args, failed_jobs_this_pattern, run.get('html_url'), current_pattern_str)
+
+      found_failures_and_processed = True
+      sys.stderr.write(f"INFO: Failures processed for pattern '{current_pattern_str}'. Subsequent patterns will not be checked.\n")
+      break
     else:
-        print(f"Workflow run {run['id']} ({run.get('html_url', 'N/A')}) has conclusion '{run.get('conclusion')}', but no jobs matching pattern ('{args.job_pattern}') were found to have failed.")
-    sys.exit(0)
+      sys.stderr.write(f"INFO: All {len(name_matching_jobs)} job(s) matching pattern '{current_pattern_str}' succeeded or are not yet concluded.\n")
 
-  # Print summary of failed jobs to stderr
-  sys.stderr.write("\nSummary of failed jobs matching criteria:\n")
-  for job in failed_jobs_matching_criteria:
-    sys.stderr.write(f"  - {job['name']} (ID: {job['id']})\n")
-  sys.stderr.write("\n") # Add a newline for separation before stdout details
-
-  print(f"\n# Detailed Logs for Failed Jobs (matching pattern '{args.job_pattern}') for Workflow Run ID: {run['id']} ([Run Link]({run.get('html_url', 'No URL')}))\n")
-
-  total_failed_jobs_to_process = len(failed_jobs_matching_criteria)
-  successful_log_fetches = 0
-
-  for idx, job in enumerate(failed_jobs_matching_criteria):
-    sys.stderr.write(f"INFO: Downloading log {idx+1}/{total_failed_jobs_to_process} for job '{job['name']}' (ID: {job['id']})...\n")
-    job_logs = get_job_logs(args.token, job['id'])
-
-    print(f"\n## Job: {job['name']} (ID: {job['id']}) - FAILED")
-    print(f"[Job URL]({job.get('html_url', 'N/A')})\n")
-
-    if not job_logs:
-      print("**Could not retrieve logs for this job.**")
-      # Also print to stderr if it's a critical failure to fetch
-      sys.stderr.write(f"WARNING: Failed to retrieve logs for job '{job['name']}' (ID: {job['id']}).\n")
-      continue # Skip to the next job
-
-    successful_log_fetches += 1
-    # If logs were fetched, proceed to process them (already existing logic)
-
-    failed_steps_details = []
-    if job.get('steps'):
-        for step in job['steps']:
-            if step.get('conclusion') == 'failure':
-                failed_steps_details.append(step)
-
-    if not failed_steps_details: # No specific failed steps found in API, but job is failed
-        print("\n**Note: No specific failed steps were identified in the job's metadata, but the job itself is marked as failed.**")
-
-        # Apply timestamp stripping to the full job log
-        stripped_log_lines_fallback = [strip_initial_timestamp(line) for line in job_logs.splitlines()]
-
-        if args.grep_pattern:
-            print(f"Displaying grep results for pattern '{args.grep_pattern}' with context {args.grep_context} from **entire job log**:")
-            print("\n```log")
-            try:
-                process = subprocess.run(
-                    ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
-                    input="\n".join(stripped_log_lines_fallback), text=True, capture_output=True, check=False
-                )
-                if process.returncode == 0: print(process.stdout.strip())
-                elif process.returncode == 1: print(f"No matches found for pattern '{args.grep_pattern}' in entire job log.")
-                else: sys.stderr.write(f"Grep command failed on full job log: {process.stderr}\n")
-            except FileNotFoundError: sys.stderr.write("Error: 'grep' not found, cannot process full job log with grep.\n")
-            except Exception as e: sys.stderr.write(f"Grep error on full job log: {e}\n")
-            print("```")
-        else:
-            print(f"Displaying last {args.log_lines} lines from **entire job log** as fallback:")
-            print("\n```log")
-            for line in stripped_log_lines_fallback[-args.log_lines:]: # Use stripped lines
-                print(line)
-            print("```")
-        print("\n---") # Horizontal rule
-        continue
-
-    print(f"\n### Failed Steps in Job: {job['name']}")
-    first_failed_step_logged = False
-    for step in failed_steps_details:
-      if not args.all_failed_steps and first_failed_step_logged:
-        print(f"\n--- Skipping subsequent failed step: {step.get('name', 'Unnamed step')} (use --all-failed-steps to see all) ---") # Keep this as plain text for now
-        break # Stop after the first failed step if not --all-failed-steps
-
-      step_name = step.get('name', 'Unnamed step')
-      print(f"\n#### Step: {step_name}")
-
-      # Crude log extraction:
-      # Regex to match group start, attempting to capture the step name robustly
-      escaped_step_name = re.escape(step_name)
-      step_start_pattern = re.compile(r"^##\[group\](?:Run\s+|Setup\s+|Complete\s+)?.*?" + escaped_step_name, re.IGNORECASE)
-      step_end_pattern = re.compile(r"^##\[endgroup\]")
-
-      # Get raw lines for the entire job first
-      raw_log_lines_for_job = job_logs.splitlines()
-
-      current_step_raw_log_segment_lines = [] # Stores raw lines of the isolated step
-      capturing_for_failed_step = False
-      for line in raw_log_lines_for_job: # Iterate raw lines to find segment
-          if step_start_pattern.search(line):
-              capturing_for_failed_step = True
-              current_step_raw_log_segment_lines = [line]
-              continue
-          if capturing_for_failed_step:
-              current_step_raw_log_segment_lines.append(line)
-              if step_end_pattern.search(line):
-                  capturing_for_failed_step = False
-                  break
-
-      # Determine which set of lines to process (isolated step or full job) and strip timestamps
-      lines_to_process_stripped = []
-      log_source_message = ""
-
-      if current_step_raw_log_segment_lines:
-          lines_to_process_stripped = [strip_initial_timestamp(line) for line in current_step_raw_log_segment_lines]
-          log_source_message = f"Log for failed step '{step_name}'"
-      else:
-          # Fallback to full job log if specific step segment couldn't be isolated
-          lines_to_process_stripped = [strip_initial_timestamp(line) for line in raw_log_lines_for_job]
-          log_source_message = f"Could not isolate log for step '{step_name}'. Using entire job log"
-
-      log_content_for_processing = "\n".join(lines_to_process_stripped)
-
-      if args.grep_pattern:
-          print(f"\n{log_source_message} (grep results for pattern `{args.grep_pattern}` with context {args.grep_context}):\n")
-          print("```log")
-          try:
-              process = subprocess.run(
-                  ['grep', '-E', f"-C{args.grep_context}", args.grep_pattern],
-                  input=log_content_for_processing, # Use stripped content
-                  text=True,
-                  capture_output=True,
-                  check=False
-              )
-              if process.returncode == 0:
-                  print(process.stdout.strip())
-              elif process.returncode == 1:
-                  print(f"No matches found for pattern '{args.grep_pattern}' in this log segment.")
-              else:
-                  print(f"Grep command failed with error code {process.returncode}. Stderr:\n{process.stderr}")
-          except FileNotFoundError:
-              sys.stderr.write("Error: 'grep' command not found. Please ensure it is installed and in your PATH to use --grep-pattern.\n")
-              print("Skipping log display for this step as grep is unavailable.")
-          except Exception as e:
-              sys.stderr.write(f"An unexpected error occurred while running grep: {e}\n")
-              print("Skipping log display due to an error with grep.")
-          print("```")
-      else:
-          print(f"\n{log_source_message} (last {args.log_lines} lines):\n")
-          print("```log")
-          # Print from the already stripped lines (lines_to_process_stripped)
-          for log_line in lines_to_process_stripped[-args.log_lines:]:
-              print(log_line)
-          print("```")
-
-      print(f"\n---") # Horizontal rule after each step's log
-      first_failed_step_logged = True # Mark that we've logged at least one step
-
-    print(f"\n---") # Horizontal rule after all steps for a job
-
-  # Print final summary of log fetching to stderr
-  sys.stderr.write(f"\nINFO: Processed logs for {successful_log_fetches}/{total_failed_jobs_to_process} targeted failed jobs.\n")
+  if not found_failures_and_processed:
+    sys.stderr.write(f"\nINFO: No failed jobs found for any of the specified/default patterns ('{', '.join(patterns_to_check)}') after checking the workflow run.\n")
+    # Optionally print overall run status if nothing specific was found
+    overall_status = run.get('status')
+    overall_conclusion = run.get('conclusion')
+    if overall_status and overall_conclusion:
+        sys.stderr.write(f"INFO: Overall workflow run status: {overall_status}, conclusion: {overall_conclusion}.\n")
+    elif overall_status:
+        sys.stderr.write(f"INFO: Overall workflow run status: {overall_status}.\n")
 
 
 def get_latest_workflow_run(token, workflow_name, branch_name):
   """Fetches the most recent workflow run for a given workflow name and branch."""
   url = f'{GITHUB_API_URL}/actions/workflows/{workflow_name}/runs'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
-  params = {'branch': branch_name, 'per_page': 1, 'page': 1} # Get the most recent 1
+  params = {'branch': branch_name, 'per_page': 1, 'page': 1}
 
   try:
     with requests_retry_session().get(url, headers=headers, params=params, timeout=TIMEOUT) as response:
       response.raise_for_status()
       data = response.json()
       if data['workflow_runs'] and len(data['workflow_runs']) > 0:
-        return data['workflow_runs'][0] # The first one is the most recent
+        return data['workflow_runs'][0]
       else:
         return None
   except requests.exceptions.RequestException as e:
@@ -485,11 +480,11 @@ def get_all_jobs_for_run(token, run_id):
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
 
   page = 1
-  per_page = 100 # GitHub API default and max is 100 for many paginated endpoints
+  per_page = 100
   all_jobs = []
 
   while True:
-    params = {'per_page': per_page, 'page': page, 'filter': 'latest'} # 'latest' attempt for each job
+    params = {'per_page': per_page, 'page': page, 'filter': 'latest'}
     try:
       with requests_retry_session().get(url, headers=headers, params=params, timeout=TIMEOUT) as response:
         response.raise_for_status()
@@ -499,19 +494,20 @@ def get_all_jobs_for_run(token, run_id):
           break
         all_jobs.extend(current_page_jobs)
         if len(current_page_jobs) < per_page:
-          break # Reached last page
+          break
         page += 1
     except requests.exceptions.RequestException as e:
       sys.stderr.write(f"Error: Failed to fetch jobs for run ID {run_id} (page {page}): {e}\n")
       if e.response is not None:
         sys.stderr.write(f"Response content: {e.response.text}\n")
-      return None # Return None if any page fails
+      return None
     except json.JSONDecodeError as e:
       sys.stderr.write(f"Error: Failed to parse JSON response for jobs: {e}\n")
       return None
 
-  failed_jobs = [job for job in all_jobs if job.get('conclusion') == 'failure']
-  return all_jobs # Return all jobs, filtering happens in main
+  # This was an error in previous version, failed_jobs was defined but all_jobs returned
+  # Now it correctly returns all_jobs as intended by the function name.
+  return all_jobs
 
 
 def get_job_logs(token, job_id):
@@ -520,20 +516,13 @@ def get_job_logs(token, job_id):
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
 
   try:
-    # Logs can be large, use a longer timeout and stream if necessary,
-    # but for typical use, direct content might be fine.
-    # The GitHub API for logs redirects to a download URL. `requests` handles this.
     with requests_retry_session().get(url, headers=headers, timeout=LONG_TIMEOUT, stream=False) as response:
       response.raise_for_status()
-      # The response for logs is plain text, not JSON
       return response.text
   except requests.exceptions.RequestException as e:
     sys.stderr.write(f"Error: Failed to download logs for job ID {job_id}: {e}\n")
     if e.response is not None:
-        # Log URLs might expire or have other issues, content might be HTML error page
         sys.stderr.write(f"Response status: {e.response.status_code}\n")
-        # Avoid printing potentially huge HTML error pages to stderr directly
-        # sys.stderr.write(f"Response content: {e.response.text[:500]}...\n") # Print a snippet
     return None
 
 
