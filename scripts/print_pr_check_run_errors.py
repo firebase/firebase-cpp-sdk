@@ -398,15 +398,53 @@ def main():
     check_run_id = run.get('id')
     check_run_name = run.get('name')
 
-    # Construct the command
-    # We use final_owner and final_repo which were resolved from args or git remote
-    command = [
-        "scripts/print_workflow_run_errors.py",
-        "--owner", final_owner,
-        "--repo", final_repo,
-        "--token", "\"<YOUR_GITHUB_TOKEN_OR_USE_ENV_VAR>\"", # Using a placeholder
-        "--run-id", str(check_run_id)
-    ]
+    # Construct the command for print_workflow_run_errors.py
+    command = ["scripts/print_workflow_run_errors.py"]
+
+    # Conditionally add --owner and --repo
+    owner_repo_was_cmd_line_arg = False
+    # A simple check: if --url is in sys.argv, or --owner or --repo.
+    # This doesn't perfectly check if argparse *used* these from sys.argv vs default,
+    # but it's a good heuristic for "user attempted to specify".
+    # More robust would be to compare args.url to its default, etc.
+    # For now, this heuristic is acceptable.
+    if any(arg.startswith("--url") for arg in sys.argv):
+        owner_repo_was_cmd_line_arg = True
+    if not owner_repo_was_cmd_line_arg: # only check --owner/--repo if --url wasn't specified
+        if any(arg.startswith("--owner") for arg in sys.argv) or \
+           any(arg.startswith("--repo") for arg in sys.argv):
+            owner_repo_was_cmd_line_arg = True
+
+    if owner_repo_was_cmd_line_arg:
+        command.extend(["--owner", final_owner, "--repo", final_repo])
+    # No 'else' needed: if not explicit, print_workflow_run_errors.py should auto-detect
+
+    # Conditionally add --token
+    # Add only if the token was provided via the --token argument to *this* script.
+    # We need to know if args.token initially came from the command line vs. env/file.
+    # The current `args.token` is always populated if a token is found.
+    # We need a way to distinguish. Let's check if sys.argv contained --token.
+    token_was_cmd_line_arg = False
+    for i, arg_val in enumerate(sys.argv):
+        if arg_val == "--token":
+            if i + 1 < len(sys.argv): # Ensure there's a value after --token
+                # Check if the value matches the one we are using.
+                # This isn't foolproof if token is passed as --token=$GITHUB_TOKEN,
+                # but it's a reasonable heuristic for direct --token <value>
+                if sys.argv[i+1] == args.token:
+                     token_was_cmd_line_arg = True
+            break # Found --token, stop checking
+        elif arg_val.startswith("--token="):
+            if arg_val.split('=', 1)[1] == args.token:
+                token_was_cmd_line_arg = True
+            break
+
+
+    if token_was_cmd_line_arg:
+        command.extend(["--token", "\"<YOUR_EXPLICIT_TOKEN_HERE>\""]) # Placeholder for explicit token
+    # No 'else': if not explicit cmd line, print_workflow_run_errors.py should use env/file
+
+    command.extend(["--run-id", str(check_run_id)])
 
     # Add some optional parameters if they are set in the current script's args,
     # assuming print_workflow_run_errors.py supports them or similar ones.
