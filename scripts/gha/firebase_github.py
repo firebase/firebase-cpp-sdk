@@ -58,14 +58,14 @@ def set_repo_url(repo):
 def requests_retry_session(retries=RETRIES,
                            backoff_factor=BACKOFF,
                            status_forcelist=RETRY_STATUS,
-                           allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])):  # Added allowed_methods
+                           allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])):
     session = requests.Session()
     retry = Retry(total=retries,
                   read=retries,
                   connect=retries,
                   backoff_factor=backoff_factor,
                   status_forcelist=status_forcelist,
-                  allowed_methods=allowed_methods)  # Added allowed_methods
+                  allowed_methods=allowed_methods)
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
