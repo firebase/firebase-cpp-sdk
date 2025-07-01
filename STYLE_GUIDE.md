@@ -100,10 +100,10 @@ Examples of typical Do's and Don'ts:
   they result in hard to understand errors, and can make correct use of
   your API harder to understand.
 
-* Utilize C++11 features where appropriate. This project has adopted C++11,
+* Utilize C++17 features where appropriate. This project has adopted C++17,
   and features such as `std::unique_ptr`, `std::shared_ptr`,
-  `std::make_unique`, and `std::move` are encouraged to improve code safety
-  and readability. However, avoid features from C++14 or newer standards.
+  `std::make_unique`, `std::move`, and `std::optional` are encouraged to
+  improve code safety and readability.
 
 * Go easy on objectifying everything, and prefer value types. In languages
   like Java it is common to give each "concept" your API deals with its own
