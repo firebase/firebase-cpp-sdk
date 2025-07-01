@@ -72,7 +72,7 @@ libs/windows              | Windows static libraries (desktop or stub
 
 ## C++ Language Standards
 
-The Firebase C++ SDK supports the C++14 language standard. For more information,
+The Firebase C++ SDK supports the C++17 language standard. For more information,
 please see our [C++ Language Standard Support
 Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
 
@@ -677,6 +677,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General: Updated the minimum C++ standard from C++14 to C++17.
     - iOS: Added an option to explicitly specify your app's `AppDelegate` class
       name via the `FirebaseAppDelegateClassName` key in `Info.plist`. This
       provides a more direct way for Firebase to interact with your specified
