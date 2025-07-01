@@ -20,15 +20,13 @@ def firebaseDependenciesMap = [
   'app_check' : ['com.google.firebase:firebase-appcheck',
                  'com.google.firebase:firebase-appcheck-debug',
                  'com.google.firebase:firebase-appcheck-playintegrity'],
-  'play_services' : ['com.google.android.gms:play-services-base:18.6.0'],
+  'play_services' : ['com.google.android.gms:play-services-base:18.7.0'],
   'analytics' : ['com.google.firebase:firebase-analytics'],
   'auth' : ['com.google.firebase:firebase-auth'],
   'database' : ['com.google.firebase:firebase-database'],
   'dynamic_links' : ['com.google.firebase:firebase-dynamic-links'],
   'firestore' : ['com.google.firebase:firebase-firestore'],
   'functions' : ['com.google.firebase:firebase-functions'],
-  'gma' : ['com.google.android.gms:play-services-ads:23.0.0',
-           'com.google.android.ump:user-messaging-platform:2.2.0'],
   'installations' : ['com.google.firebase:firebase-installations'],
   'invites' : ['com.google.firebase:firebase-invites'],
   // Messaging has an additional local dependency to include.
@@ -39,7 +37,8 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf'],
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
-  'testlab' : []
+  'testlab' : [],
+  'ump' : ['com.google.android.ump:user-messaging-platform:2.2.0']
 ]
 
 // A map of library to the gradle resources that they depend upon.
@@ -51,9 +50,9 @@ def firebaseResourceDependenciesMap = [
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],
   'firestore' : [':firestore:firestore_resources'],
-  'gma' : [':gma:gma_resources'],
   'remote_config' : [':remote_config:remote_config_resources'],
-  'storage' : [':storage:storage_resources']
+  'storage' : [':storage:storage_resources'],
+  'ump' : [':ump:ump_resources']
 ]
 
 def setResourceDependencies(String subproject) {
@@ -92,9 +91,6 @@ class Dependencies {
   def getFirestore() {
     libSet.add('firestore')
   }
-  def getGma() {
-    libSet.add('gma')
-  }
   def getFunctions() {
     libSet.add('functions')
   }
@@ -115,6 +111,9 @@ class Dependencies {
   }
   def getStorage() {
     libSet.add('storage')
+  }
+  def getUmp() {
+    libSet.add('ump')
   }
 }
 
@@ -159,7 +158,7 @@ project.afterEvaluate {
 
     // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:33.11.0')
+      implementation platform('com.google.firebase:firebase-bom:33.15.0')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Generate and include the proguard file

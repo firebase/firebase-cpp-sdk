@@ -72,11 +72,13 @@ jobs:
           # msvc_runtime excludes
           - os: ubuntu-22.04
             msvc_runtime: "dynamic"
-          - os: macos-13
+          - os: macos-14
             msvc_runtime: "dynamic"
           # architecture excluees
-          - os: macos-13
+          - os: macos-14
             architecture: "x86"
+          - os: macos-14
+            architecture: "x64"
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-22.04
             xcode_version: "11.7"
@@ -95,6 +97,9 @@ jobs:
           - xcode_version: "11.7"
             architecture: "arm64"
     steps:                
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
@@ -165,9 +170,17 @@ jobs:
 
       - name: Setup python
         uses: actions/setup-python@v4
+        if: startsWith(matrix.os, 'ubuntu')
         with:
           python-version: ${{ matrix.python_version }}
-          architecture: 'x64'
+          architecture: x64
+
+      - name: Setup python (Mac)
+        uses: actions/setup-python@v4
+        if: startsWith(matrix.os, 'macos')
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
 
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
@@ -296,6 +309,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}

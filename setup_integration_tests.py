@@ -40,11 +40,11 @@ DEFAULT_DESTINATIONS = [
     'firestore/integration_test',
     'firestore/integration_test_internal',
     'functions/integration_test',
-    'gma/integration_test',
     'installations/integration_test',
     'messaging/integration_test',
     'remote_config/integration_test',
     'storage/integration_test',
+    'ump/integration_test',
 ]
 
 destinations = sys.argv[1:] if len(sys.argv) > 1 else DEFAULT_DESTINATIONS

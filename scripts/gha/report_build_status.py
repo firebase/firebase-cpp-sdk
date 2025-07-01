@@ -191,7 +191,7 @@ def format_errors(all_errors, severity, event):
 
     if product == 'missing_log':
       product_name = 'missing logs'
-    elif product == 'gma':
+    elif product == 'ump':
       product_name = product.upper()
     else:
       product_name = product.replace('_', ' ').title()
@@ -664,6 +664,7 @@ def main(argv):
         latest = latest.replace(" ", "&nbsp;")
         product = product.replace("_", " ")
         product = product.upper() if product == "gma" else product.title()
+        product = product.upper() if product == "ump" else product.title()
         if len(test_list[test_id]['links']) > 0:
           latest = "[%s](%s)" % (latest, test_list[test_id]['links'][-1])
 

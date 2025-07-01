@@ -8,10 +8,9 @@ iOS, and desktop platforms. It includes the following Firebase libraries:
 |||
 |--|--|
 |[Google Analytics for Firebase](https://firebase.google.com/docs/analytics/)|
-|[Firebase App Check](https://firebase.google.com/docs/app-check/)|
 |[Firebase Authentication](https://firebase.google.com/docs/auth/)|[Firebase Realtime Database](https://firebase.google.com/docs/database/)|
 |[Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)|[Cloud Firestore](https://firebase.google.com/docs/firestore/)|
-|[Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)|
+|[Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)|[Firebase Invites](https://firebase.google.com/docs/invites/)|
 |[Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)|[Firebase Remote Config](https://firebase.google.com/docs/remote-config/)|
 |[Cloud Storage for Firebase](https://firebase.google.com/docs/storage/)|
 

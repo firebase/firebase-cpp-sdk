@@ -20,4 +20,6 @@ include ':app',
         ':remote_config',
         ':remote_config:remote_config_resources',
         ':storage',
-        ':storage:storage_resources'
+        ':storage:storage_resources',
+        ':ump',
+        ':ump:ump_resources'

@@ -541,17 +541,6 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_result.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
-  set(gma_HDRS
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/native_ad.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/query_info.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump/consent_info.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump/types.h)
   set(installations_HDRS
     ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
   set(messaging_HDRS
@@ -566,6 +555,10 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/listener.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/metadata.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/storage_reference.h)
+  set(ump_HDRS
+    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump.h
+    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/consent_info.h
+    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/types.h)
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
@@ -576,11 +569,12 @@ if (IOS)
     ${dynamic_links_HDRS}
     ${firestore_HDRS}
     ${functions_HDRS}
-    ${gma_HDRS}
     ${installations_HDRS}
     ${messaging_HDRS}
     ${remote_config_HDRS}
-    ${storage_HDRS})
+    ${storage_HDRS}
+    ${ump_HDRS}
+    )
 
   # add framework header files to target
   target_sources(firebase_app PRIVATE ${framework_HDRS})

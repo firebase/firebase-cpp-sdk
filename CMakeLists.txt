@@ -48,7 +48,7 @@ option(FIREBASE_INCLUDE_FIRESTORE
 option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
-option(FIREBASE_INCLUDE_GMA "Include the GMA library."
+option(FIREBASE_INCLUDE_UMP "Include the UMP library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTALLATIONS
        "Include the Firebase Installations library."
@@ -123,12 +123,10 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  #  GMA and FDL are not supported on tvOS.
+  #  UMP and FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
-  set(FIREBASE_INCLUDE_GMA OFF)
+  set(FIREBASE_INCLUDE_UMP OFF)
 endif()
-
-
 
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
 # set it manually if ANDROID_NDK has been defined.
@@ -156,6 +154,11 @@ if(APPLE)
   # build output for our Objective-C++ files much too verbose.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nullability-completeness")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nullability-completeness")
+  if(DESKTOP)
+    # Mac desktop Firestore build requires -Wno-deprecated-declarations
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+  endif()
 endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
@@ -629,10 +632,12 @@ endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
 endif()
+if (FIREBASE_INCLUDE_UMP)
+  add_subdirectory(ump)
+endif()
 if (FIREBASE_INCLUDE_INSTALLATIONS)
   add_subdirectory(installations)
 endif()
-
 if (FIREBASE_INCLUDE_MESSAGING)
   add_subdirectory(messaging)
 endif()

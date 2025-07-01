@@ -41,9 +41,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'macos-13' ]
+        os: [ 'macos-14' ]
         xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
@@ -63,7 +66,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.8
-          architecture: "x64"
+          architecture: "arm64"
 
       - name: Install prerequisites
         run: |
