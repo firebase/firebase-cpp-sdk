@@ -471,24 +471,63 @@ def main(argv):
           found_artifacts = False
           # There are possibly multiple artifacts, so iterate through all of them,
           # and extract the relevant ones into a temp folder, and then summarize them all.
+          # Prioritize artifacts by date, older ones might be expired.
+          sorted_artifacts = sorted(artifacts, key=lambda art: dateutil.parser.parse(art['created_at']), reverse=True)
+
           with tempfile.TemporaryDirectory() as tmpdir:
-            for a in artifacts:
+            for a in sorted_artifacts: # Iterate over sorted artifacts
               if 'log-artifact' in a['name']:
-                print("Checking this artifact:", a['name'], "\n")
-                artifact_contents = firebase_github.download_artifact(FLAGS.token, a['id'])
-                if artifact_contents:
-                  found_artifacts = True
-                  artifact_data = io.BytesIO(artifact_contents)
-                  artifact_zip = zipfile.ZipFile(artifact_data)
-                  artifact_zip.extractall(path=tmpdir)
+                logging.debug("Attempting to download artifact: %s (ID: %s, Created: %s)", a['name'], a['id'], a['created_at'])
+                # Pass tmpdir to download_artifact to save directly
+                artifact_downloaded_path = os.path.join(tmpdir, f"{a['id']}.zip")
+                # Attempt to download the artifact with a timeout
+                download_success = False # Initialize download_success
+                try:
+                    # download_artifact now returns True on success, None on failure.
+                    if firebase_github.download_artifact(FLAGS.token, a['id'], output_path=artifact_downloaded_path):
+                        download_success = True
+                except requests.exceptions.Timeout:
+                    logging.warning(f"Timeout while trying to download artifact: {a['name']} (ID: {a['id']})")
+                    # download_success remains False
+
+                if download_success and os.path.exists(artifact_downloaded_path):
+                  try:
+                    with open(artifact_downloaded_path, "rb") as f:
+                        artifact_contents = f.read()
+                    if artifact_contents: # Ensure content was read
+                        found_artifacts = True
+                        artifact_data = io.BytesIO(artifact_contents)
+                        with zipfile.ZipFile(artifact_data) as artifact_zip: # Use with statement for ZipFile
+                            artifact_zip.extractall(path=tmpdir)
+                        logging.info("Successfully downloaded and extracted artifact: %s", a['name'])
+                    else:
+                        logging.warning("Artifact %s (ID: %s) was downloaded but is empty.", a['name'], a['id'])
+                  except zipfile.BadZipFile:
+                    logging.error("Failed to open zip file for artifact %s (ID: %s). It might be corrupted or not a zip file.", a['name'], a['id'])
+                  except Exception as e:
+                    logging.error("An error occurred during artifact processing %s (ID: %s): %s", a['name'], a['id'], e)
+                  finally:
+                    # Clean up the downloaded zip file whether it was processed successfully or not
+                    if os.path.exists(artifact_downloaded_path):
+                        os.remove(artifact_downloaded_path)
+                elif not download_success : # Covers False or None from download_artifact
+                  # Logging for non-timeout failures is now primarily handled within download_artifact
+                  # We only log a general failure here if it wasn't a timeout (already logged)
+                  # and download_artifact indicated failure (returned None).
+                  # This avoids double logging for specific HTTP errors like 410.
+                  pass # Most specific logging is now in firebase_github.py
+
             if found_artifacts:
               (success, results) = summarize_test_results.summarize_logs(tmpdir, False, False, True)
-              print("Results:", success, "    ", results, "\n")
+              logging.info("Summarized logs results - Success: %s, Results (first 100 chars): %.100s", success, results)
               run['log_success'] = success
               run['log_results'] = results
+            else:
+              logging.warning("No artifacts could be successfully downloaded and processed for run %s on day %s.", run['id'], day)
+
 
           if not found_artifacts:
-            # Artifacts expire after some time, so if they are gone, we need
+            # Artifacts expire after some time, or download failed, so if they are gone, we need
             # to read the GitHub logs instead.  This is much slower, so we
             # prefer to read artifacts instead whenever possible.
             logging.info("Reading github logs for run %s instead", run['id'])
