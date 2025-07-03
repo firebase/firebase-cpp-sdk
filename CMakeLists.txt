@@ -48,8 +48,6 @@ option(FIREBASE_INCLUDE_FIRESTORE
 option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
-option(FIREBASE_INCLUDE_GMA "Include the GMA library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_UMP "Include the UMP library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTALLATIONS
@@ -125,9 +123,8 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  #  GMA, UMP, and FDL are not supported on tvOS.
+  #  UMP and FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
-  set(FIREBASE_INCLUDE_GMA OFF)
   set(FIREBASE_INCLUDE_UMP OFF)
 endif()
 
@@ -634,9 +631,6 @@ if (FIREBASE_INCLUDE_FIRESTORE)
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
-endif()
-if (FIREBASE_INCLUDE_GMA)
-  add_subdirectory(gma)
 endif()
 if (FIREBASE_INCLUDE_UMP)
   add_subdirectory(ump)
