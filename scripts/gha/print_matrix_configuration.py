@@ -134,7 +134,7 @@ PARAMETERS = {
       }
     },
     "config": {
-      "apis": "analytics,app_check,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
+      "apis": "analytics,app_check,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
       "mobile_test_on": "real,virtual"
     }
   },
@@ -316,9 +316,11 @@ def scan_changes_in_file(parm_key, auto_diff, path, requested_api_list):
   change_lines = [l for l in change_lines if len(l) > 20]
   changed_apis = set()
   for line in change_lines:
-    if ("Google-Mobile-Ads" in line or "GoogleUserMessagingPlatform" in line or
-       "play-services-ads" in line or "user-messaging-platform" in line):
-      changed_apis.add("gma")
+    if ("GoogleUserMessagingPlatform" in line or
+       "user-messaging-platform" in line):
+      # This is for UMP, not GMA, so keep it if UMP is in requested_api_list
+      if "ump" in requested_api_list:
+        changed_apis.add("ump")
     else:
       changed_apis.update(requested_api_list)
       break
