@@ -160,6 +160,12 @@ add_library(firebase_auth STATIC
 
 set_property(TARGET firebase_auth PROPERTY FOLDER "Firebase Cpp")
 
+if(ANDROID)
+  target_link_options(firebase_auth
+      PRIVATE
+          "-Wl,-z,max-page-size=16384")
+endif()
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_auth
   PUBLIC

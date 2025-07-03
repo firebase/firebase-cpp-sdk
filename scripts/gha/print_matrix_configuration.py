@@ -178,15 +178,16 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=SH-01L,version=28"},  # AQUOS sense2 SH-01L
   ],
   "android_latest": [
-      {"type": "ftl", "device": "model=oriole,version=33"},  # Pixel 6
-      {"type": "ftl", "device": "model=panther,version=33"},  # Pixel 7
-      {"type": "ftl", "device": "model=lynx,version=33"},  # Pixel 7a
-      {"type": "ftl", "device": "model=cheetah,version=33"},  # Pixel 7 Pro
-      {"type": "ftl", "device": "model=felix,version=33"},  # Pixel Fold
-      {"type": "ftl", "device": "model=tangorpro,version=33"},  # Pixel Tablet
-      {"type": "ftl", "device": "model=gts8uwifi,version=33"},  # Galaxy Tab S8 Ultra
-      {"type": "ftl", "device": "model=b0q,version=33"},  # Galaxy S22 Ultra
-      {"type": "ftl", "device": "model=b4q,version=33"},  # Galaxy Z Flip4
+      {"type": "ftl", "device": "model=shiba_beta,version=35"},  # Pixel 8 (to test 16kb page size)
+#      {"type": "ftl", "device": "model=oriole,version=33"},  # Pixel 6
+#      {"type": "ftl", "device": "model=panther,version=33"},  # Pixel 7
+#      {"type": "ftl", "device": "model=lynx,version=33"},  # Pixel 7a
+#      {"type": "ftl", "device": "model=cheetah,version=33"},  # Pixel 7 Pro
+#      {"type": "ftl", "device": "model=felix,version=33"},  # Pixel Fold
+#      {"type": "ftl", "device": "model=tangorpro,version=33"},  # Pixel Tablet
+#      {"type": "ftl", "device": "model=gts8uwifi,version=33"},  # Galaxy Tab S8 Ultra
+#      {"type": "ftl", "device": "model=b0q,version=33"},  # Galaxy S22 Ultra
+#      {"type": "ftl", "device": "model=b4q,version=33"},  # Galaxy Z Flip4
   ],
   "emulator_ftl_target": [
       {"type": "ftl", "device": "model=Pixel2,version=28"},

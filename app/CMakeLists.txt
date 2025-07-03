@@ -362,6 +362,12 @@ else()
   target_compile_options(firebase_app PRIVATE -fno-exceptions)
 endif()
 
+if(ANDROID)
+  target_link_options(firebase_app
+      PRIVATE
+          "-Wl,-z,max-page-size=16384")
+endif()
+
 target_include_directories(firebase_app
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include

@@ -120,6 +120,12 @@ add_library(firebase_remote_config STATIC
 
 set_property(TARGET firebase_remote_config PROPERTY FOLDER "Firebase Cpp")
 
+if(ANDROID)
+  target_link_options(firebase_remote_config
+      PRIVATE
+          "-Wl,-z,max-page-size=16384")
+endif()
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_remote_config
   PUBLIC

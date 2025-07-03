@@ -144,6 +144,12 @@ add_library(firebase_testing STATIC
     ${util_SRCS}
 )
 
+if(ANDROID)
+  target_link_options(firebase_testing
+      PRIVATE
+          "-Wl,-z,max-page-size=16384")
+endif()
+
 target_include_directories(firebase_testing
     PUBLIC
         ${FLATBUFFERS_SOURCE_DIR}/include
