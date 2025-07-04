@@ -160,6 +160,16 @@ class StorageReferenceInternal {
   // Returns the result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
 
+  // Asynchronously lists objects and common prefixes under this reference.
+  Future<ListResult> List(int32_t max_results);
+  Future<ListResult> List(int32_t max_results, const char* _Nullable page_token);
+
+  // Asynchronously lists all objects and common prefixes under this reference.
+  Future<ListResult> ListAll();
+
+  // Returns the result of the most recent List operation.
+  Future<ListResult> ListLastResult();
+
   // StorageInternal instance we are associated with.
   StorageInternal* _Nullable storage_internal() const { return storage_; }
 
