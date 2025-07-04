@@ -37,4 +37,6 @@
 
 + (void)resetAnalyticsData;
 
++ (void)setDefaultEventParameters:(nullable NSDictionary<NSString *, id> *)parameters;
+
 @end
