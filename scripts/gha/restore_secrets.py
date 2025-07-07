@@ -86,6 +86,8 @@ def main(argv):
       # /scripts/gha-encrypted/auth/google-services.json.gpg turns into
       # /<repo_dir>/auth/integration_test/google-services.json
       api = os.path.basename(os.path.dirname(path))
+      if api == "gma":  # Skip processing for GMA secrets
+        continue
       if FLAGS.apis and api not in FLAGS.apis:
         print("Skipping secret found in product api", api)
         continue
