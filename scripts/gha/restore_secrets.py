@@ -86,39 +86,79 @@ def main(argv):
       # /scripts/gha-encrypted/auth/google-services.json.gpg turns into
       # /<repo_dir>/auth/integration_test/google-services.json
       api = os.path.basename(os.path.dirname(path))
-      if api == "gma":  # Skip processing for GMA secrets
+      # This is the primary skip for GMA. Ensure it's effective.
+      if api == "gma":
         continue
+
       if FLAGS.apis and api not in FLAGS.apis:
         print("Skipping secret found in product api", api)
         continue
+
       print("Encrypted Google Service file found: %s" % path)
       file_name = os.path.basename(path).replace(".gpg", "")
-      dest_paths = [os.path.join(repo_dir, api, "integration_test", file_name)]
+
+      # Initialize dest_paths. It will be populated based on conditions.
+      dest_paths = []
+
       if FLAGS.artifact:
-        # /<repo_dir>/<artifact>/auth/google-services.json
-        if "google-services" in path and os.path.isdir(os.path.join(repo_dir, FLAGS.artifact, api)):
-          dest_paths = [os.path.join(repo_dir, FLAGS.artifact, api, file_name)]
+        # If processing for artifacts, construct artifact-specific path.
+        # The 'api == "gma"' check above should prevent this block from executing for GMA.
+        artifact_api_path = os.path.join(repo_dir, FLAGS.artifact, api)
+        if "google-services" in path and os.path.isdir(artifact_api_path):
+          dest_paths.append(os.path.join(artifact_api_path, file_name))
         else:
+          # If not a google-services file or the artifact API directory doesn't exist,
+          # skip this file for artifact processing.
+          print(f"Skipping artifact path for {path} (API: {api}, Artifact: {FLAGS.artifact})")
+          # This continue is vital: if no artifact path, don't fall through to default path logic for this file.
           continue
+      else:
+        # If not processing for artifacts, use the default integration_test path.
+        # The 'api == "gma"' check above should prevent this line from executing for GMA.
+        dest_paths.append(os.path.join(repo_dir, api, "integration_test", file_name))
 
-      # Some apis like Firestore also have internal integration tests.
-      if os.path.exists( os.path.join(repo_dir, api, "integration_test_internal")):
-        dest_paths.append(os.path.join(repo_dir, api,
-                                       "integration_test_internal", file_name))
+      # If dest_paths is still empty (e.g., was artifact flow but conditions not met), skip.
+      if not dest_paths:
+        print(f"No valid destination paths determined for {path} (API: {api}). Skipping.")
+        continue
+
+      # Append internal integration test path if it exists, for non-GMA APIs.
+      # This now correctly checks 'api' before forming the path.
+      if api != "gma" and os.path.exists(os.path.join(repo_dir, api, "integration_test_internal")):
+        # Only add internal path if a primary path was already added.
+        # This ensures we don't *only* try to write to an internal path if, for instance,
+        # the artifact conditions weren't met but an internal dir exists.
+        if dest_paths: # Check if dest_paths has at least one path already
+            dest_paths.append(os.path.join(repo_dir, api, "integration_test_internal", file_name))
+
+      # If, after all checks, dest_paths is empty, skip.
+      if not dest_paths:
+        print(f"No destination paths after internal check for {path}. Skipping.")
+        continue
+
       decrypted_text = _decrypt(path, passphrase)
-      for dest_path in dest_paths:
-        with open(dest_path, "w") as f:
+      for dest_path_item in dest_paths:
+        # Final explicit check, although redundant if above logic is correct.
+        if "/gma/" in dest_path_item or "\\gma\\" in dest_path_item:
+            print(f"CRITICAL WARNING: Attempting to write to a GMA path, this should not happen: {dest_path_item}. Skipping.")
+            continue
+        print(f"Writing decrypted file to {dest_path_item}")
+        with open(dest_path_item, "w") as f:
           f.write(decrypted_text)
-        print("Copied decrypted google service file to %s" % dest_path)
-        # We use a Google Service file as the source of truth for the reverse id
-        # that needs to be patched into the Info.plist files.
-        if dest_path.endswith(".plist"):
-          _patch_reverse_id(dest_path)
-          _patch_bundle_id(dest_path)
+        print("Copied decrypted google service file to %s" % dest_path_item)
+        if dest_path_item.endswith(".plist"):
+          _patch_reverse_id(dest_path_item)
+          _patch_bundle_id(dest_path_item)
 
+  # The rest of the script handles non-GoogleService files (uri_prefix, app_check_token, gcs_key_file)
+  # These are not per-API, so the GMA removal shouldn't affect them directly,
+  # as long as their respective directories still exist if they are not GMA-specific.
+
+  # This check should be fine as FLAGS.artifact is global to the script run.
   if FLAGS.artifact:
     return
 
+  # This part is for dynamic_links, not gma.
   if not FLAGS.apis or "dynamic_links" in FLAGS.apis:
     print("Attempting to patch Dynamic Links uri prefix.")
     uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
