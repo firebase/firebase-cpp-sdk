@@ -20,7 +20,6 @@ namespace firebase {
 namespace auth {
 
 AUTH_RESULT_FN(User, GetToken, std::string)
-AUTH_RESULT_FN(User, UpdateEmail, void)
 AUTH_RESULT_FN(User, UpdatePassword, void)
 AUTH_RESULT_FN(User, LinkWithCredential, AuthResult)
 AUTH_RESULT_FN(User, Reauthenticate, void)

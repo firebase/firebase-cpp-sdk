@@ -102,20 +102,6 @@ std::vector<UserInfoInterface> User::provider_data() const {
   return provider_data;
 }
 
-Future<void> User::UpdateEmail(const char *email) {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateEmail);
-  [UserImpl(auth_data_) updateEmail:@(email)
-                         completion:^(NSError *_Nullable error) {
-                           futures.Complete(handle, AuthErrorFromNSError(error),
-                                            [error.localizedDescription UTF8String]);
-                         }];
-  return MakeFuture(&futures, handle);
-}
-
 Future<void> User::UpdatePassword(const char *password) {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
