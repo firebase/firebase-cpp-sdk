@@ -20,7 +20,7 @@ def firebaseDependenciesMap = [
   'app_check' : ['com.google.firebase:firebase-appcheck',
                  'com.google.firebase:firebase-appcheck-debug',
                  'com.google.firebase:firebase-appcheck-playintegrity'],
-  'play_services' : ['com.google.android.gms:play-services-base:18.7.0'],
+  'play_services' : ['com.google.android.gms:play-services-base:18.7.2'],
   'analytics' : ['com.google.firebase:firebase-analytics'],
   'auth' : ['com.google.firebase:firebase-auth'],
   'database' : ['com.google.firebase:firebase-database'],
@@ -164,7 +164,7 @@ project.afterEvaluate {
 
     // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:33.15.0')
+      implementation platform('com.google.firebase:firebase-bom:33.16.0')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Generate and include the proguard file
