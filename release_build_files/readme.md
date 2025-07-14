@@ -677,7 +677,6 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - Auth: Removed deprecated `User::UpdateEmail` method.
     - iOS: Added an option to explicitly specify your app's `AppDelegate` class
       name via the `FirebaseAppDelegateClassName` key in `Info.plist`. This
       provides a more direct way for Firebase to interact with your specified

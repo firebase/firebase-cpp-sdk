@@ -229,6 +229,20 @@ class User : public UserInfoInterface {
   /// </SWIG>
   std::vector<UserInfoInterface> provider_data() const;
 
+  /// @deprecated This is a deprecated method. Please use
+  /// SendEmailVerificationBeforeUpdatingEmail(email) instead.
+  ///
+  /// Sets the email address for the user.
+  ///
+  /// May fail if there is already an email/password-based account for the same
+  /// email address.
+  FIREBASE_DEPRECATED Future<void> UpdateEmail(const char* email);
+
+  /// @deprecated
+  ///
+  /// Get results of the most recent call to UpdateEmail.
+  FIREBASE_DEPRECATED Future<void> UpdateEmailLastResult() const;
+
   /// Attempts to change the password for the current user.
   ///
   /// For an account linked to an Identity Provider (IDP) with no password,

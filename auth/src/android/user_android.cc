@@ -41,6 +41,8 @@ METHOD_LOOKUP_DEFINITION(tokenresult,
     X(IsAnonymous, "isAnonymous", "()Z"),                                      \
     X(Token, "getIdToken", "(Z)Lcom/google/android/gms/tasks/Task;"),          \
     X(ProviderData, "getProviderData", "()Ljava/util/List;"),                  \
+    X(UpdateEmail, "updateEmail", "(Ljava/lang/String;)"                       \
+      "Lcom/google/android/gms/tasks/Task;"),                                  \
     X(VerifyBeforeUpdateEmail, "verifyBeforeUpdateEmail",                      \
       "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;"),              \
     X(UpdatePassword, "updatePassword", "(Ljava/lang/String;)"                 \
@@ -349,6 +351,26 @@ std::vector<UserInfoInterface> User::provider_data() const {
     }
   }
   return provider_data;
+}
+
+Future<void> User::UpdateEmail(const char* email) {
+  if (!ValidUser(auth_data_)) {
+    return Future<void>();
+  }
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateEmail);
+  JNIEnv* env = Env(auth_data_);
+
+  jstring j_email = env->NewStringUTF(email);
+  jobject pending_result = env->CallObjectMethod(
+      UserImpl(auth_data_), user::GetMethodId(user::kUpdateEmail), j_email);
+  env->DeleteLocalRef(j_email);
+
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    RegisterCallback(pending_result, handle, auth_data_, nullptr);
+    env->DeleteLocalRef(pending_result);
+  }
+  return MakeFuture(&futures, handle);
 }
 
 Future<void> User::UpdatePassword(const char* password) {

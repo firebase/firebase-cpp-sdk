@@ -436,23 +436,6 @@ TEST_F(UserDesktopTest, TestReload) {
   VerifyProviderData(firebase_user_);
 }
 
-// Tests the happy case of setting a new email on the currently logged in user.
-TEST_F(UserDesktopTest, TestUpdateEmail) {
-  InitializeConfigWithAFake(GetUrlForApi(API_KEY, "setAccountInfo"),
-                            FakeSetAccountInfoResponse());
-
-  // SetAccountInfoResponse contains a new token.
-  id_token_listener.ExpectChanges(1);
-  auth_state_listener.ExpectChanges(0);
-
-  const std::string new_email = "new_fake_email@example.com";
-
-  EXPECT_NE(new_email, firebase_user_.email());
-  WaitForFuture(firebase_user_.UpdateEmail(new_email.c_str()));
-  EXPECT_EQ(new_email, firebase_user_.email());
-  VerifyProviderData(firebase_user_);
-}
-
 // Tests the happy case of setting a new password on the currently logged in
 // user.
 TEST_F(UserDesktopTest, TestUpdatePassword) {
@@ -815,16 +798,6 @@ TEST_F(UserDesktopTestSignOutOnError, Reload) {
   sem_.Wait();
 }
 
-TEST_F(UserDesktopTestSignOutOnError, UpdateEmail) {
-  CheckSignOutIfUserIsInvalid(
-      GetUrlForApi(API_KEY, "setAccountInfo"), "USER_NOT_FOUND",
-      kAuthErrorUserNotFound, [&] {
-        sem_.Post();
-        return firebase_user_.UpdateEmail("fake_email@example.com");
-      });
-  sem_.Wait();
-}
-
 TEST_F(UserDesktopTestSignOutOnError, UpdatePassword) {
   CheckSignOutIfUserIsInvalid(
       GetUrlForApi(API_KEY, "setAccountInfo"), "USER_DISABLED",
@@ -879,30 +852,6 @@ TEST_F(UserDesktopTestSignOutOnError, GetToken) {
                                 return firebase_user_.GetToken(true);
                               });
   sem_.Wait();
-}
-
-// This test is to expose potential race condition and is primarily intended to
-// be run with --config=tsan
-TEST_F(UserDesktopTest, TestRaceCondition_SetAccountInfoAndSignOut) {
-  InitializeConfigWithAFake(GetUrlForApi(API_KEY, "setAccountInfo"),
-                            FakeSetAccountInfoResponse());
-
-  // SignOut is engaged on the main thread, whereas UpdateEmail will be executed
-  // on the background thread; consequently, the order in which they are
-  // executed is not defined. Nevertheless, this should not lead to any data
-  // corruption, when UpdateEmail writes to user profile while it's being
-  // deleted by SignOut. Whichever method succeeds first, user must be signed
-  // out once both are finished: if SignOut finishes last, it overrides the
-  // updated user, and if UpdateEmail finishes last, it should note that there
-  // is no currently signed in user and fail with kAuthErrorUserNotFound.
-
-  auto future = firebase_user_.UpdateEmail("some_email");
-  firebase_auth_->SignOut();
-  while (future.status() == firebase::kFutureStatusPending) {
-  }
-
-  EXPECT_THAT(future.error(), AnyOf(kAuthErrorNone, kAuthErrorNoSignedInUser));
-  EXPECT_FALSE(firebase_auth_->current_user().is_valid());
 }
 
 // LinkWithProvider tests.
