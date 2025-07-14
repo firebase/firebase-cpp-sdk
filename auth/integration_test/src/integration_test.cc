@@ -762,8 +762,8 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
   EXPECT_TRUE(user.is_valid());
 
   // Update the user's password.
-  // Email update functionality has been changed and the old UpdateEmail method removed.
-  // A more comprehensive test for the new email update flow
+  // Email update functionality has been changed and the old UpdateEmail method
+  // removed. A more comprehensive test for the new email update flow
   // (SendEmailVerificationBeforeUpdatingEmail) would be needed here.
   WaitForCompletion(user.UpdatePassword(kTestPasswordUpdated),
                     "UpdatePassword");
