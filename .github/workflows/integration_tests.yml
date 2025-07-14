@@ -50,7 +50,8 @@ env:
   triggerLabelQuick: "tests-requested: quick"
   pythonVersion: '3.8'
   xcodeVersion: '16.2'
-  artifactRetentionDays: 2
+  logArtifactRetentionDays: 90
+  binaryArtifactRetentionDays: 7
   GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
@@ -376,14 +377,14 @@ jobs:
         with:
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
@@ -496,14 +497,14 @@ jobs:
         with:
           name: testapps-android-${{ matrix.os }}
           path: testapps-android-${{ matrix.os }}
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload Android build results artifact
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-android-${{ matrix.os }}
           path: build-results-android-${{ matrix.os }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
@@ -604,14 +605,14 @@ jobs:
         with:
           name: testapps-ios-${{ matrix.os }}
           path: testapps-ios-${{ matrix.os }}
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload iOS build results artifact
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-ios-${{ matrix.os }}
           path: build-results-ios-${{ matrix.os }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
@@ -711,14 +712,14 @@ jobs:
         with:
           name: testapps-tvos-${{ matrix.os }}
           path: testapps-tvos-${{ matrix.os }}
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload tvOS build results artifact
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-tvos-${{ matrix.os }}
           path: build-results-tvos-${{ matrix.os }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
@@ -848,7 +849,7 @@ jobs:
         with:
           name: log-artifact-test-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
@@ -963,21 +964,21 @@ jobs:
         with:
           name: log-artifact-test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Upload Android test video artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/video-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.mp4
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload Android test logcat artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-logcat-artifact-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/logcat-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.txt
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
@@ -1149,14 +1150,14 @@ jobs:
         with:
           name: log-artifact-test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
           path: testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Upload iOS test video artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
           path: testapps/video-*-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.mp4
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
@@ -1289,14 +1290,14 @@ jobs:
         with:
           name: log-artifact-test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
           path: testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Upload tvOS test video artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
           path: testapps/video-*-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.mp4
-          retention-days: ${{ env.artifactRetentionDays }}
+          retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v4
