@@ -87,7 +87,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.15.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.16.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -181,7 +181,7 @@ User Messaging Platform    | libfirebase_ump.a
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:2.2.0
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.7.0
+Google Play services module| com.google.android.gms:play-services-base:18.7.2
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
