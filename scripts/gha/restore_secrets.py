@@ -109,7 +109,6 @@ def main(argv):
         else:
           # If not a google-services file or the artifact API directory doesn't exist,
           # skip this file for artifact processing.
-          print(f"Skipping artifact path for {path} (API: {api}, Artifact: {FLAGS.artifact})")
           # This continue is vital: if no artifact path, don't fall through to default path logic for this file.
           continue
       else:
@@ -119,7 +118,6 @@ def main(argv):
 
       # If dest_paths is still empty (e.g., was artifact flow but conditions not met), skip.
       if not dest_paths:
-        print(f"No valid destination paths determined for {path} (API: {api}). Skipping.")
         continue
 
       # Append internal integration test path if it exists, for non-GMA APIs.
@@ -133,16 +131,13 @@ def main(argv):
 
       # If, after all checks, dest_paths is empty, skip.
       if not dest_paths:
-        print(f"No destination paths after internal check for {path}. Skipping.")
         continue
 
       decrypted_text = _decrypt(path, passphrase)
       for dest_path_item in dest_paths:
         # Final explicit check, although redundant if above logic is correct.
         if "/gma/" in dest_path_item or "\\gma\\" in dest_path_item:
-            print(f"CRITICAL WARNING: Attempting to write to a GMA path, this should not happen: {dest_path_item}. Skipping.")
             continue
-        print(f"Writing decrypted file to {dest_path_item}")
         with open(dest_path_item, "w") as f:
           f.write(decrypted_text)
         print("Copied decrypted google service file to %s" % dest_path_item)
