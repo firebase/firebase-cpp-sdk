@@ -580,11 +580,6 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   WaitForCompletionOrInvalidStatus(string_future, "GetToken");
   EXPECT_NE(string_future.error(), firebase::auth::kAuthErrorNone);
 
-  LogDebug("Update Email");
-  void_future = invalid_user.UpdateEmail(GenerateEmailAddress().c_str());
-  WaitForCompletionOrInvalidStatus(void_future, "UpdateEmail");
-  EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
-
   LogDebug("Update Password");
   void_future = invalid_user.UpdatePassword(kTestPassword);
   WaitForCompletionOrInvalidStatus(void_future, "UpdatePassword");
@@ -766,17 +761,12 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
   firebase::auth::User user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
 
-  // Update the user's email and password.
-  const std::string new_email = "new_" + email;
-  WaitForCompletion(user.UpdateEmail(new_email.c_str()), "UpdateEmail");
+  // Update the user's password.
+  // Email update functionality has been changed and the old UpdateEmail method
+  // removed. A more comprehensive test for the new email update flow
+  // (SendEmailVerificationBeforeUpdatingEmail) would be needed here.
   WaitForCompletion(user.UpdatePassword(kTestPasswordUpdated),
                     "UpdatePassword");
-
-  firebase::auth::Credential new_email_cred =
-      firebase::auth::EmailAuthProvider::GetCredential(new_email.c_str(),
-                                                       kTestPasswordUpdated);
-  WaitForCompletion(user.Reauthenticate(new_email_cred), "Reauthenticate");
-  EXPECT_TRUE(user.is_valid());
 
   WaitForCompletion(user.SendEmailVerification(), "SendEmailVerification");
   DeleteUser();
