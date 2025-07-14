@@ -31,8 +31,6 @@ namespace auth {
 
 class SetAccountInfoRequest : public AuthRequest {
  public:
-  static std::unique_ptr<SetAccountInfoRequest> CreateUpdateEmailRequest(
-      ::firebase::App& app, const char* api_key, const char* email);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdatePasswordRequest(
       ::firebase::App& app, const char* api_key, const char* password,
       const char* language_code = nullptr);

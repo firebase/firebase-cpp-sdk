@@ -37,20 +37,6 @@ SetAccountInfoRequest::SetAccountInfoRequest(::firebase::App& app,
 }
 
 std::unique_ptr<SetAccountInfoRequest>
-SetAccountInfoRequest::CreateUpdateEmailRequest(::firebase::App& app,
-                                                const char* const api_key,
-                                                const char* const email) {
-  auto request = CreateRequest(app, api_key);
-  if (email) {
-    request->application_data_->email = email;
-  } else {
-    LogError("No email given");
-  }
-  request->UpdatePostFields();
-  return request;
-}
-
-std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdatePasswordRequest(
     ::firebase::App& app, const char* const api_key, const char* const password,
     const char* const language_code) {

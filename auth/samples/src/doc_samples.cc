@@ -361,23 +361,6 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
     // [END auth_profile_edit_check]
   }
   {
-    // [START auth_set_email_check]
-    firebase::auth::User user = auth->current_user();
-    if (user.is_valid()) {
-      user.UpdateEmail("user@example.com")
-          .OnCompletion(
-              [](const firebase::Future<void>& completed_future,
-                 void* user_data) {
-                // We are probably in a different thread right now.
-                if (completed_future.error() == 0) {
-                  printf("User email address updated.");
-                }
-              },
-              nullptr);
-    }
-    // [END auth_set_email_check]
-  }
-  {
     // [START auth_user_verify_email_check]
     firebase::auth::User user = auth->current_user();
     if (user.is_valid()) {

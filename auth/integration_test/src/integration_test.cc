@@ -580,11 +580,6 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   WaitForCompletionOrInvalidStatus(string_future, "GetToken");
   EXPECT_NE(string_future.error(), firebase::auth::kAuthErrorNone);
 
-  LogDebug("Update Email");
-  void_future = invalid_user.UpdateEmail(GenerateEmailAddress().c_str());
-  WaitForCompletionOrInvalidStatus(void_future, "UpdateEmail");
-  EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
-
   LogDebug("Update Password");
   void_future = invalid_user.UpdatePassword(kTestPassword);
   WaitForCompletionOrInvalidStatus(void_future, "UpdatePassword");
