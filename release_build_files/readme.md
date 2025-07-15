@@ -10,7 +10,6 @@ on *iOS* and *Android*:
 *   Firebase Dynamic Links (deprecated SDK)
 *   Cloud Firestore
 *   Firebase Functions
-*   Google Mobile Ads (deprecated SDK)
 *   Firebase Installations
 *   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
@@ -131,14 +130,6 @@ Firebase Functions         | libfirebase_functions
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
-Google Mobile Ads          | libfirebase_gma.a
-|                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics
-|                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:23.0.0
-|                          | (Maven package)
-|                          | com.google.android.ump:user-messaging-platform:2.2.0
-|                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-installations
@@ -208,7 +199,6 @@ firebaseCpp.dependencies {
   dynamicLinks
   firestore
   functions
-  gma
   installations
   messaging
   remoteConfig
@@ -258,11 +248,6 @@ Firebase Functions         | firebase_functions.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Functions Cocoapod (11.14.0)
 |                          | Firebase/Auth Cocoapod (11.14.0)
-Google Mobile Ads          | firebase_gma.xcframework
-|                          | firebase.xcframework
-|                          | Firebase/CoreOnly Cocoapod (11.14.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (11.2.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (11.14.0)
@@ -325,11 +310,6 @@ Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_auth.a (optional)
 |                          | Firebase/Functions Cocoapod (11.14.0)
 |                          | Firebase/Auth Cocoapod (11.14.0)
-Google Mobile Ads          | libfirebase_gma.a
-|                          | libfirebase_app.a
-|                          | Firebase/CoreOnly Cocoapod (11.14.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (11.2.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (11.14.0)
@@ -397,8 +377,6 @@ Firebase Analytics (stub)       | libfirebase_analytics.a
 |                               | libfirebase_app.a
 Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
 |                               | libfirebase_app.a
-Google Mobile Ads (stub)        | libfirebase_gma.a
-|                               | libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a
 |                               | libfirebase_app.a
 Firebase Cloud Messaging (stub) | libfirebase_messaging.a
@@ -442,8 +420,6 @@ Firebase Analytics (stub)       | firebase_analytics.framework
 |                               | firebase.framework
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
 |                               | firebase.framework
-Google Mobile Ads (stub)        | libfirebase_gma.a
-|                               | libfirebase_app.a
 Firebase Installations (stub)   | firebase_installations.framework
 |                               | firebase.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
@@ -487,8 +463,6 @@ Firebase Storage                | firebase_storage.lib
 Firebase Analytics (stub)       | firebase_analytics.lib
 |                               | firebase_app.lib
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
-|                               | firebase_app.lib
-Google Mobile Ads (stub)        | firebase_gma.lib
 |                               | firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib
 |                               | firebase_app.lib
@@ -631,23 +605,10 @@ Firestore                | Required
 Functions                | Required
 Installations            | Not Required
 Instance ID              | Required
-Google Mobile Ads        | Not required (usually; see below)
 Realtime Database        | Required
 Remote Config            | Required
 Storage                  | Required
 User Messaging Platform  | Not required
-
-#### A note on Google Mobile Ads and Google Play services
-
-Most versions of the Google Mobile Ads SDK for Android can work properly without
-Google Play services. However, if you are using the
-`com.google.android.gms:play-services-ads-lite` dependency instead of the
-standard `com.google.firebase:firebase-ads` dependency, Google Play services
-WILL be required in your specific case.
-
-GMA initialization will only return `kInitResultFailedMissingDependency` when
-Google Play services is unavailable AND you are using
-`com.google.android.gms:play-services-ads-lite`.
 
 ### Desktop project setup
 
@@ -683,6 +644,9 @@ code.
       provides a more direct way for Firebase to interact with your specified
       AppDelegate. See "Platform Notes > iOS Method Swizzling >
       Specifying Your AppDelegate Class Directly (iOS)" for details.
+    - Google Mobile Ads (GMA) has been removed from the Firebase C++ SDK.
+      It was previously deprecated. For more information, see the
+      [SDK documentation](https://developers.google.com/admob/cpp/sdk).
 
 ### 12.8.0
 -   Changes

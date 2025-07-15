@@ -10,9 +10,8 @@ iOS, and desktop platforms. It includes the following Firebase libraries:
 |[Google Analytics for Firebase](https://firebase.google.com/docs/analytics/)|
 |[Firebase Authentication](https://firebase.google.com/docs/auth/)|[Firebase Realtime Database](https://firebase.google.com/docs/database/)|
 |[Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)|[Cloud Firestore](https://firebase.google.com/docs/firestore/)|
-|[Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)|[Firebase Invites](https://firebase.google.com/docs/invites/)|
-|[Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)|[Firebase Remote Config](https://firebase.google.com/docs/remote-config/)|
-|[Cloud Storage for Firebase](https://firebase.google.com/docs/storage/)|
+|[Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)|[Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)|
+|[Firebase Remote Config](https://firebase.google.com/docs/remote-config/)|[Cloud Storage for Firebase](https://firebase.google.com/docs/storage/)|
 
 <br>
 
@@ -117,7 +116,6 @@ The CMake following targets are available to build and link with:
 | Firebase Dynamic Links | firebase_dynamic_links |
 | Cloud Firestore | firebase_firestore |
 | Cloud Functions for Firebase | firebase_functions |
-| Firebase Invites | firebase_invites |
 | Firebase Cloud Messaging | firebase_messaging |
 | Firebase Remote Config | firebase_remote_config |
 | Cloud Storage for Firebase | firebase_storage |
@@ -222,7 +220,6 @@ release version of each Firebase library is:
 | Firebase Dynamic Links | :dynamic_links:assembleRelease |
 | Cloud Firestore | :firestore:assembleRelease |
 | Cloud Functions for Firebase | :functions:assembleRelease |
-| Firebase Invites | :invites:assembleRelease |
 | Firebase Cloud Messaging | :messaging:assembleRelease |
 | Firebase Remote Config | :remote_config:assembleRelease |
 | Cloud Storage for Firebase | :storage:assembleRelease |

@@ -191,8 +191,6 @@ def format_errors(all_errors, severity, event):
 
     if product == 'missing_log':
       product_name = 'missing logs'
-    elif product == 'gma':
-      product_name = product.upper()
     elif product == 'ump':
       product_name = product.upper()
     else:
@@ -726,9 +724,11 @@ def main(argv):
         else:
           test_name_str = test_name
 
+        product_display_name = product.replace("_", " ").title()
+
         print("| %d | %s | %s | %s | %s&nbsp;%s<br/>&nbsp;&nbsp;&nbsp;Logs: %s |" % (
             test_list[test_id]['count'], latest,
-            product, platform,
+            product_display_name, platform,
             test_name_str, severity, " ".join(link_list)))
       else:
         print("%d\t%s\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], latest, severity, product, platform, test_name))
