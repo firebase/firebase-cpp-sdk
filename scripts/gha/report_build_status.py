@@ -191,6 +191,8 @@ def format_errors(all_errors, severity, event):
 
     if product == 'missing_log':
       product_name = 'missing logs'
+    elif product == 'ump':
+      product_name = product.upper()
     else:
       product_name = product.replace('_', ' ').title()
 

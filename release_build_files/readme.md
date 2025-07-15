@@ -605,23 +605,10 @@ Firestore                | Required
 Functions                | Required
 Installations            | Not Required
 Instance ID              | Required
-Google Mobile Ads        | Not required (usually; see below)
 Realtime Database        | Required
 Remote Config            | Required
 Storage                  | Required
 User Messaging Platform  | Not required
-
-#### A note on Google Mobile Ads and Google Play services
-
-Most versions of the Google Mobile Ads SDK for Android can work properly without
-Google Play services. However, if you are using the
-`com.google.android.gms:play-services-ads-lite` dependency instead of the
-standard `com.google.firebase:firebase-ads` dependency, Google Play services
-WILL be required in your specific case.
-
-GMA initialization will only return `kInitResultFailedMissingDependency` when
-Google Play services is unavailable AND you are using
-`com.google.android.gms:play-services-ads-lite`.
 
 ### Desktop project setup
 
@@ -656,7 +643,7 @@ code.
       provides a more direct way for Firebase to interact with your specified
       AppDelegate. See "Platform Notes > iOS Method Swizzling >
       Specifying Your AppDelegate Class Directly (iOS)" for details.
-    - Google Mobile Ads (GMA) C++ SDK has been removed from the Firebase C++ SDK.
+    - Google Mobile Ads (GMA) has been removed from the Firebase C++ SDK.
       It was previously deprecated. For more information, see the
       [SDK documentation](https://developers.google.com/admob/cpp/sdk).
 

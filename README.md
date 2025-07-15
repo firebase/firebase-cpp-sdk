@@ -15,10 +15,6 @@ iOS, and desktop platforms. It includes the following Firebase libraries:
 
 <br>
 
-**Note:** The Google Mobile Ads (GMA) C++ SDK has been deprecated and was removed from this SDK.
-
-<br>
-
 Firebase is an app development platform with tools to help you build, grow and monetize your app. More information about Firebase can be found [HERE](https://firebase.google.com).
 
 - More information about the Firebase C++ SDK can be found [HERE](https://firebase.google.com/docs/cpp/setup)
