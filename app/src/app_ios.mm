@@ -71,10 +71,6 @@ static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions
     const char* value = platform_options.databaseURL.UTF8String;
     if (value) app_options->set_database_url(value);
   }
-  if (!strlen(app_options->ga_tracking_id())) {
-    const char* value = platform_options.trackingID.UTF8String;
-    if (value) app_options->set_ga_tracking_id(value);
-  }
   if (!strlen(app_options->storage_bucket())) {
     const char* value = platform_options.storageBucket.UTF8String;
     if (value) app_options->set_storage_bucket(value);
@@ -106,9 +102,6 @@ static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
   }
   if (strlen(app_options.database_url())) {
     platform_options.databaseURL = @(app_options.database_url());
-  }
-  if (strlen(app_options.ga_tracking_id())) {
-    platform_options.trackingID = @(app_options.ga_tracking_id());
   }
   if (strlen(app_options.storage_bucket())) {
     platform_options.storageBucket = @(app_options.storage_bucket());
