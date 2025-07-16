@@ -7,11 +7,9 @@ on *iOS* and *Android*:
 *   Firebase App Check
 *   Firebase Authentication
 *   Firebase Cloud Messaging
-*   Firebase Dynamic Links (deprecated SDK)
 *   Cloud Firestore
 *   Firebase Functions
 *   Firebase Installations
-*   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
 *   Firebase Remote Config
 *   Firebase Storage
@@ -106,12 +104,6 @@ Firebase Authentication    | libfirebase_auth.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
-Firebase Dynamic Links     | libfirebase_dynamic_links.a
-|                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics
-|                          | (Maven package)
-|                          | com.google.firebase:firebase-dynamic-links
-|                          | (Maven package)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -196,7 +188,6 @@ firebaseCpp.dependencies {
   appCheck
   auth
   database
-  dynamicLinks
   firestore
   functions
   installations
@@ -235,9 +226,6 @@ Firebase App Check         | firebase_app_check.xcframework
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Auth Cocoapod (11.14.0)
-Firebase Dynamic Links     | firebase_dynamic_links.xcframework
-|                          | firebase.xcframework
-|                          | Firebase/DynamicLinks Cocoapod (11.14.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
@@ -297,9 +285,6 @@ Firebase App Check         | firebase_app_check.xcframework
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
 |                          | Firebase/Auth Cocoapod (11.14.0)
-Firebase Dynamic Links     | libfirebase_dynamic_links.a
-|                          | libfirebase_app.a
-|                          | Firebase/DynamicLinks Cocoapod (11.14.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
@@ -375,8 +360,6 @@ Firebase Storage                | libfirebase_storage.a
 |                               | libfirebase_app.a
 Firebase Analytics (stub)       | libfirebase_analytics.a
 |                               | libfirebase_app.a
-Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
-|                               | libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a
 |                               | libfirebase_app.a
 Firebase Cloud Messaging (stub) | libfirebase_messaging.a
@@ -417,8 +400,6 @@ Firebase Storage                | firebase_storage.framework
 |                               | firebase_auth.framework
 |                               | firebase.framework
 Firebase Analytics (stub)       | firebase_analytics.framework
-|                               | firebase.framework
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
 |                               | firebase.framework
 Firebase Installations (stub)   | firebase_installations.framework
 |                               | firebase.framework
@@ -461,8 +442,6 @@ Firebase Storage                | firebase_storage.lib
 |                               | firebase_auth.lib
 |                               | firebase_app.lib
 Firebase Analytics (stub)       | firebase_analytics.lib
-|                               | firebase_app.lib
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
 |                               | firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib
 |                               | firebase_app.lib
@@ -600,11 +579,9 @@ Analytics                | Not required
 App Check                | Not required
 Cloud Messaging          | Required
 Auth                     | Required
-Dynamic Links            | Required
 Firestore                | Required
 Functions                | Required
 Installations            | Not Required
-Instance ID              | Required
 Realtime Database        | Required
 Remote Config            | Required
 Storage                  | Required
@@ -639,11 +616,15 @@ code.
 ### Upcoming Release
 -   Changes
     - Auth: Removed deprecated `User::UpdateEmail` method.
-    - iOS: Added an option to explicitly specify your app's `AppDelegate` class
-      name via the `FirebaseAppDelegateClassName` key in `Info.plist`. This
-      provides a more direct way for Firebase to interact with your specified
-      AppDelegate. See "Platform Notes > iOS Method Swizzling >
-      Specifying Your AppDelegate Class Directly (iOS)" for details.
+    - General (iOS): Added an option to explicitly specify your app's
+      `AppDelegate` class name via the `FirebaseAppDelegateClassName` key in
+      `Info.plist`. This provides a more direct way for Firebase to interact
+      with your specified AppDelegate. See "Platform Notes > iOS Method
+      Swizzling > Specifying Your AppDelegate Class Directly (iOS)" for
+      details.
+    - Dynamic Links: Removed the Dynamic Links SDK. See the [support
+      documentation](https://firebase.google.com/support/dynamic-links-faq)
+      for more information.
     - Google Mobile Ads (GMA) has been removed from the Firebase C++ SDK.
       It was previously deprecated. For more information, see the
       [SDK documentation](https://developers.google.com/admob/cpp/sdk).

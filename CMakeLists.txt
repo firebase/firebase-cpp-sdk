@@ -39,9 +39,6 @@ option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library."
 option(FIREBASE_INCLUDE_DATABASE
        "Include the Firebase Realtime Database library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
-option(FIREBASE_INCLUDE_DYNAMIC_LINKS
-       "Include the Firebase Dynamic Links library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_FIRESTORE
        "Include the Cloud Firestore library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -123,8 +120,7 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  #  UMP and FDL are not supported on tvOS.
-  set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
+  #  UMP is not supported on tvOS.
   set(FIREBASE_INCLUDE_UMP OFF)
 endif()
 
@@ -621,9 +617,6 @@ if (FIREBASE_INCLUDE_AUTH)
 endif()
 if (FIREBASE_INCLUDE_DATABASE)
   add_subdirectory(database)
-endif()
-if (FIREBASE_INCLUDE_DYNAMIC_LINKS)
-  add_subdirectory(dynamic_links)
 endif()
 if (FIREBASE_INCLUDE_FIRESTORE)
   add_subdirectory(firestore)

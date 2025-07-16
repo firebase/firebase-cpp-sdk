@@ -451,7 +451,7 @@ API documentation.
     Firebase project's Realtime Database rules. Without these indexes, queries
     may fail or not return expected results.
 *   **iOS Method Swizzling**: Be aware that some Firebase products on iOS
-    (e.g., Dynamic Links, Cloud Messaging) use method swizzling to
+    (e.g., Cloud Messaging) use method swizzling to
     automatically attach handlers to your `AppDelegate`. While this simplifies
     integration, it can occasionally be a factor to consider when debugging app
     delegate behavior or integrating with other libraries that also perform

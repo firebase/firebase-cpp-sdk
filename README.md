@@ -9,7 +9,7 @@ iOS, and desktop platforms. It includes the following Firebase libraries:
 |--|--|
 |[Google Analytics for Firebase](https://firebase.google.com/docs/analytics/)|
 |[Firebase Authentication](https://firebase.google.com/docs/auth/)|[Firebase Realtime Database](https://firebase.google.com/docs/database/)|
-|[Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)|[Cloud Firestore](https://firebase.google.com/docs/firestore/)|
+|[Cloud Firestore](https://firebase.google.com/docs/firestore/)|
 |[Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)|[Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)|
 |[Firebase Remote Config](https://firebase.google.com/docs/remote-config/)|[Cloud Storage for Firebase](https://firebase.google.com/docs/storage/)|
 
@@ -113,7 +113,6 @@ The CMake following targets are available to build and link with:
 | Google Analytics for Firebase | firebase_analytics |
 | Firebase Authentication | firebase_auth |
 | Firebase Realtime Database | firebase_database |
-| Firebase Dynamic Links | firebase_dynamic_links |
 | Cloud Firestore | firebase_firestore |
 | Cloud Functions for Firebase | firebase_functions |
 | Firebase Cloud Messaging | firebase_messaging |
@@ -217,7 +216,6 @@ release version of each Firebase library is:
 | Google Analytics for Firebase | :analytics:assembleRelease |
 | Firebase Authentication | :auth:assembleRelease |
 | Firebase Realtime Database | :database:assembleRelease |
-| Firebase Dynamic Links | :dynamic_links:assembleRelease |
 | Cloud Firestore | :firestore:assembleRelease |
 | Cloud Functions for Firebase | :functions:assembleRelease |
 | Firebase Cloud Messaging | :messaging:assembleRelease |
