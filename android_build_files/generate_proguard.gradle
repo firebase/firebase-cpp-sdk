@@ -103,23 +103,11 @@ def defineGenerateProguardFile(String subproject, String buildType,
       }
       FileTree proguardFileTree = fileTree("$proguardSearchDir")
           .matching({ include "**/*.pro" })
-      // The app directory contains invites, which we don't want to include in
-      // the app proguard file.
-      if ("${subproject}" == "app") {
-        proguardFileTree = proguardFileTree.matching({ exclude "*invites*" })
-      }
       // We don't want to include proguard files from any external libraries.
       proguardFileTree =
           proguardFileTree.matching({ exclude "**/external/src/**" })
       Set<File> proguardSet = proguardFileTree.getFiles()
 
-      // On the other hand, if building dynamic_links or invites, we want to
-      // include the invites proguard file contained in app.
-      if ("${subproject}" == "dynamic_links" || "${subproject}" == "invites") {
-        FileTree invitesResourceTree = fileTree("$proguardSearchDir/../app")
-            .matching({ include "**/invites_resources.pro" })
-        proguardSet.addAll(invitesResourceTree.getFiles())
-      }
       // The proguard file generated from the C++ library might not be in the
       // search directory, so add it if it is missing.
       File cppProguardFile = new File(cppProguard)

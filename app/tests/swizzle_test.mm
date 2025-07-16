@@ -67,27 +67,6 @@
 
   NSMutableArray *expectedList = [[NSMutableArray alloc] init];
 
-  // From invites_ios_startup.mm
-  [expectedList addObject:[NSString stringWithFormat:@"application:openURL:options:|%p|%p|%p",
-                                                     application, url, dict]];
-  [appDelegate application:application openURL:url options:dict];
-
-  [expectedList
-      addObject:[NSString stringWithFormat:
-                              @"application:openURL:sourceApplication:annotation:|%p|%p|%p|%p",
-                              application, url, string, testId]];
-  [appDelegate application:application openURL:url sourceApplication:string annotation:testId];
-
-  [expectedList
-      addObject:[NSString stringWithFormat:
-                              @"application:continueUserActivity:restorationHandler:|%p|%p|%p",
-                              application, activity, handler]];
-  [appDelegate application:application continueUserActivity:activity restorationHandler:handler];
-
-  [expectedList
-      addObject:[NSString stringWithFormat:@"applicationDidBecomeActive:|%p", application]];
-  [appDelegate applicationDidBecomeActive:application];
-
   // From instance_id.mm
   [expectedList
       addObject:[NSString

@@ -36,7 +36,6 @@ DEFAULT_DESTINATIONS = [
     'app_check/integration_test',
     'auth/integration_test',
     'database/integration_test',
-    'dynamic_links/integration_test',
     'firestore/integration_test',
     'firestore/integration_test_internal',
     'functions/integration_test',

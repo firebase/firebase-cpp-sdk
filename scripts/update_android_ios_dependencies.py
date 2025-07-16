@@ -175,7 +175,6 @@ PODS = [
   'FirebaseAuth',
   'FirebaseCrashlytics',
   'FirebaseDatabase',
-  'FirebaseDynamicLinks',
   'FirebaseFirestore',
   'FirebaseFunctions',
   'FirebaseInstallations',

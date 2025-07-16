@@ -24,11 +24,9 @@ def firebaseDependenciesMap = [
   'analytics' : ['com.google.firebase:firebase-analytics'],
   'auth' : ['com.google.firebase:firebase-auth'],
   'database' : ['com.google.firebase:firebase-database'],
-  'dynamic_links' : ['com.google.firebase:firebase-dynamic-links'],
   'firestore' : ['com.google.firebase:firebase-firestore'],
   'functions' : ['com.google.firebase:firebase-functions'],
   'installations' : ['com.google.firebase:firebase-installations'],
-  'invites' : ['com.google.firebase:firebase-invites'],
   // Messaging has an additional local dependency to include.
   'messaging' : ['com.google.firebase:firebase-messaging',
                  'firebase_cpp_sdk.messaging:messaging_java',
@@ -44,8 +42,7 @@ def firebaseDependenciesMap = [
 // A map of library to the gradle resources that they depend upon.
 def firebaseResourceDependenciesMap = [
   'app' : [':app:app_resources',
-           ':app:google_api_resources',
-           ':app:invites_resources'],
+           ':app:google_api_resources'],
   'app_check' : [':app_check:app_check_resources'],
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],
@@ -85,9 +82,6 @@ class Dependencies {
   def getDatabase() {
     libSet.add('database')
   }
-  def getDynamicLinks() {
-    libSet.add('dynamic_links')
-  }
   def getFirestore() {
     libSet.add('firestore')
   }
@@ -96,9 +90,6 @@ class Dependencies {
   }
   def getInstallations() {
     libSet.add('installations')
-  }
-  def getInvites() {
-    libSet.add('invites')
   }
   def getMessaging() {
     libSet.add('messaging')
