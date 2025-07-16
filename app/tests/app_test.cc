@@ -248,7 +248,7 @@ TEST_F(AppTest, LoadDefault) {
   // GA tracking ID can currently only be configured on iOS.
   EXPECT_STREQ("fake ga tracking id from resource", options.ga_tracking_id());
 #endif  // FIREBASE_PLATFORM_IOS
-#endif // __APPLE__
+#endif  // __APPLE__
   EXPECT_STREQ("fake storage bucket from resource", options.storage_bucket());
   EXPECT_STREQ("fake project id from resource", options.project_id());
 #if !FIREBASE_PLATFORM_IOS
