@@ -207,11 +207,13 @@ TEST_F(AppTest, TestSetDatabaseUrl) {
   EXPECT_STREQ("http://abc-xyz-123.firebaseio.com", options.database_url());
 }
 
+#ifndef __APPLE__
 TEST_F(AppTest, TestSetGaTrackingId) {
   AppOptions options;
   options.set_ga_tracking_id("UA-12345678-1");
   EXPECT_STREQ("UA-12345678-1", options.ga_tracking_id());
 }
+#endif  // __APPLE__
 
 TEST_F(AppTest, TestSetStorageBucket) {
   AppOptions options;
@@ -241,10 +243,12 @@ TEST_F(AppTest, LoadDefault) {
   EXPECT_STREQ("fake messaging sender id from resource",
                options.messaging_sender_id());
   EXPECT_STREQ("fake database url from resource", options.database_url());
+#ifndef __APPLE__
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // GA tracking ID can currently only be configured on iOS.
   EXPECT_STREQ("fake ga tracking id from resource", options.ga_tracking_id());
 #endif  // FIREBASE_PLATFORM_IOS
+#endif  // __APPLE__
   EXPECT_STREQ("fake storage bucket from resource", options.storage_bucket());
   EXPECT_STREQ("fake project id from resource", options.project_id());
 #if !FIREBASE_PLATFORM_IOS
