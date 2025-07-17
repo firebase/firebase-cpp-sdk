@@ -615,13 +615,14 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - Auth: Removed deprecated `User::UpdateEmail` method.
+    - General (iOS): Minimum iOS deployment target is now 15.0.
     - General (iOS): Added an option to explicitly specify your app's
       `AppDelegate` class name via the `FirebaseAppDelegateClassName` key in
       `Info.plist`. This provides a more direct way for Firebase to interact
       with your specified AppDelegate. See "Platform Notes > iOS Method
       Swizzling > Specifying Your AppDelegate Class Directly (iOS)" for
       details.
+    - Auth: Removed deprecated `User::UpdateEmail` method.
     - Dynamic Links: Removed the Dynamic Links SDK. See the [support
       documentation](https://firebase.google.com/support/dynamic-links-faq)
       for more information.
