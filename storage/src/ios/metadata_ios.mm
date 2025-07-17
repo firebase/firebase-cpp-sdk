@@ -183,12 +183,8 @@ const char* MetadataInternal::name() { return NSStringToCString(impl().name, &na
 const char* MetadataInternal::path() { return NSStringToCString(impl().path, &path_); }
 
 StorageReferenceInternal* MetadataInternal::GetReference() {
-  if (storage_ && impl()) {
-    return new StorageReferenceInternal(
-        storage_, std::make_unique<FIRStorageReferencePointer>(impl().storageReference));
-  } else {
-    return nullptr;
-  }
+  // There is no way to get this information on iOS anymore.
+  return nullptr;
 }
 
 int64_t MetadataInternal::size_bytes() { return static_cast<int64_t>(impl().size); }
