@@ -25,9 +25,11 @@
 namespace firebase {
 namespace storage {
 
+// Forward declarations
 class Controller;
 class Listener;
 class Storage;
+class ListResult;
 
 /// @cond FIREBASE_APP_INTERNAL
 namespace internal {
@@ -339,6 +341,60 @@ class StorageReference {
   /// StorageReference is invalid.
   bool is_valid() const;
 
+  /// @brief Asynchronously lists objects and common prefixes under this
+  /// StorageReference.
+  ///
+  /// This method allows you to list objects and common prefixes (virtual
+  /// subdirectories) directly under this StorageReference.
+  ///
+  /// @param[in] max_results The maximum number of items and prefixes to return
+  /// in a single page. Must be greater than 0 and at most 1000.
+  ///
+  /// @return A Future that will eventually contain a ListResult.
+  /// If the operation is successful, the ListResult will contain the first
+  /// page of items and prefixes, and potentially a page_token to retrieve
+  /// subsequent pages.
+  Future<ListResult> List(int32_t max_results);
+
+  /// @brief Asynchronously lists objects and common prefixes under this
+  /// StorageReference.
+  ///
+  /// This method allows you to list objects and common prefixes (virtual
+  /// subdirectories) directly under this StorageReference.
+  ///
+  /// @param[in] max_results The maximum number of items and prefixes to return
+  /// in a single page. Must be greater than 0 and at most 1000.
+  /// @param[in] page_token A page token, returned from a previous call to
+  /// List, to retrieve the next page of results. If nullptr or an empty
+  /// string, retrieves the first page.
+  ///
+  /// @return A Future that will eventually contain a ListResult.
+  /// If the operation is successful, the ListResult will contain the
+  /// requested page of items and prefixes, and potentially a page_token
+  /// to retrieve subsequent pages.
+  Future<ListResult> List(int32_t max_results, const char* page_token);
+
+  /// @brief Asynchronously lists all objects and common prefixes under this
+  /// StorageReference.
+  ///
+  /// This method will list all items and prefixes under the current reference
+  /// by making multiple calls to the backend service if necessary, until all
+  /// results have been fetched.
+  ///
+  /// @note This can be a long-running and memory-intensive operation if there
+  /// are many objects under the reference. Consider using the paginated
+  /// List() method for very large directories.
+  ///
+  /// @return A Future that will eventually contain a ListResult.
+  /// If the operation is successful, the ListResult will contain all items
+  /// and prefixes. The page_token in the result will be empty.
+  Future<ListResult> ListAll();
+
+  /// @brief Returns the result of the most recent call to List() or ListAll().
+  ///
+  /// @return The result of the most recent call to List() or ListAll().
+  Future<ListResult> ListLastResult();
+
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class Controller;
@@ -348,6 +404,7 @@ class StorageReference {
   friend class Storage;
   friend class internal::StorageReferenceInternal;
   friend class internal::StorageReferenceInternalCommon;
+  friend class internal::StorageReferenceInternalDesktop; // Add friend for desktop internal class
 
   StorageReference(internal::StorageReferenceInternal* internal);
 
