@@ -84,7 +84,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.15.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:34.0.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -162,9 +162,9 @@ User Messaging Platform    | libfirebase_ump.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.ump:user-messaging-platform:2.2.0
+|                          | com.google.android.ump:user-messaging-platform:3.2.0
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.7.0
+Google Play services module| com.google.android.gms:play-services-base:18.7.2
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
@@ -331,8 +331,8 @@ Xcode project to ensure that the Swift runtime is included in your app.
 
 #### Linux libraries
 
-For Linux, library versions are provided for 32-bit (i386) and 64-bit (x86_64)
-platforms.
+For Linux, library versions are provided for 32-bit (i386, deprecated) and
+64-bit (x86_64) platforms.
 
 Two sets of Linux libraries are available: one set built against the newer C++11
 ABI, and another set built against the standard (legacy) ABI. This is equivalent
@@ -615,6 +615,8 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 34.0.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.0.0.
     - General (iOS): Minimum iOS deployment target is now 15.0.
     - General (iOS): Added an option to explicitly specify your app's
       `AppDelegate` class name via the `FirebaseAppDelegateClassName` key in
@@ -622,6 +624,8 @@ code.
       with your specified AppDelegate. See "Platform Notes > iOS Method
       Swizzling > Specifying Your AppDelegate Class Directly (iOS)" for
       details.
+    - General (Linux): 32-bit (i386) build support is now deprecated, and will
+      be removed in the future.
     - Auth: Removed deprecated `User::UpdateEmail` method.
     - Dynamic Links: Removed the Dynamic Links SDK. See the [support
       documentation](https://firebase.google.com/support/dynamic-links-faq)
