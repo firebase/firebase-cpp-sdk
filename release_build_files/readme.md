@@ -331,8 +331,8 @@ Xcode project to ensure that the Swift runtime is included in your app.
 
 #### Linux libraries
 
-For Linux, library versions are provided for 32-bit (i386) and 64-bit (x86_64)
-platforms.
+For Linux, library versions are provided for 32-bit (i386, deprecated) and
+64-bit (x86_64) platforms.
 
 Two sets of Linux libraries are available: one set built against the newer C++11
 ABI, and another set built against the standard (legacy) ABI. This is equivalent
@@ -615,6 +615,8 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 34.0.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.0.0.
     - General (iOS): Minimum iOS deployment target is now 15.0.
     - General (iOS): Added an option to explicitly specify your app's
       `AppDelegate` class name via the `FirebaseAppDelegateClassName` key in
@@ -622,6 +624,8 @@ code.
       with your specified AppDelegate. See "Platform Notes > iOS Method
       Swizzling > Specifying Your AppDelegate Class Directly (iOS)" for
       details.
+    - General (Linux): 32-bit (i386) build support is now deprecated, and will
+      be removed in the future.
     - Auth: Removed deprecated `User::UpdateEmail` method.
     - Dynamic Links: Removed the Dynamic Links SDK. See the [support
       documentation](https://firebase.google.com/support/dynamic-links-faq)
