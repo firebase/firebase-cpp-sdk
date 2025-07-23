@@ -449,7 +449,7 @@ def main(argv):
             logs_zip = zipfile.ZipFile(logs_compressed_data)
             m = get_message_from_github_log(
               logs_zip,
-              r'check_and_prepare/.*Run if.*expanded.*then.*\.txt',
+              r'check_and_prepare\.txt',
               r'\[warning\]Downloading SDK package from previous run:[^\n]*/([0-9]*)$')
             if m:
               packaging_run = m.group(1)
@@ -538,7 +538,7 @@ def main(argv):
                 logs_zip = zipfile.ZipFile(logs_compressed_data)
                 m = get_message_from_github_log(
                   logs_zip,
-                  r'summarize-results/.*Summarize results into GitHub',
+                  r'summarize-results\.txt',
                   r'\[error\]INTEGRATION TEST FAILURES\n—+\n(.*)$')
                 if m:
                   run['log_success'] = False
