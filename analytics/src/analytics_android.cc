@@ -58,6 +58,8 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetSessionId, "getSessionId",                                             \
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V", util::kMethodTypeInstance),                     \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
     firebase::util::kMethodTypeStatic)
@@ -512,7 +514,8 @@ void LogEvent(const char* name, const Parameter* parameters,
         LogError(
             "LogEvent(%s): %s is not a valid parameter value type. "
             "No event was logged.",
-            parameter.name, Variant::TypeName(parameter.value.type()));
+            parameter.name,
+            firebase::Variant::TypeName(parameter.value.type()));
       }
     }
   });
@@ -607,6 +610,118 @@ void ResetAnalyticsData() {
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kResetAnalyticsData));
   util::CheckAndClearJniExceptions(env);
+}
+
+void SetDefaultEventParameters(
+    const std::map<std::string, firebase::Variant>& default_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+  if (!env) return;
+
+  jobject bundle =
+      env->NewObject(util::bundle::GetClass(),
+                     util::bundle::GetMethodId(util::bundle::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+    LogError("Failed to create Bundle for SetDefaultEventParameters.");
+    if (bundle) env->DeleteLocalRef(bundle);
+    return;
+  }
+
+  bool any_parameter_added = false;
+  for (const auto& pair : default_parameters) {
+    const Variant& value = pair.second;
+    const char* key_cstr = pair.first.c_str();
+
+    if (value.is_null()) {
+      jstring key_jstring = env->NewStringUTF(key_cstr);
+      if (util::CheckAndClearJniExceptions(env) || !key_jstring) {
+        LogError(
+            "SetDefaultEventParameters: Failed to create jstring for null "
+            "value key: %s",
+            key_cstr);
+        if (key_jstring) env->DeleteLocalRef(key_jstring);
+        continue;
+      }
+      env->CallVoidMethod(bundle,
+                          util::bundle::GetMethodId(util::bundle::kPutString),
+                          key_jstring, nullptr);
+      if (util::CheckAndClearJniExceptions(env)) {
+        LogError(
+            "SetDefaultEventParameters: Failed to put null string for key: %s",
+            key_cstr);
+      } else {
+        any_parameter_added = true;
+      }
+      env->DeleteLocalRef(key_jstring);
+    } else if (value.is_string() || value.is_int64() || value.is_double() ||
+               value.is_bool()) {
+      // AddVariantToBundle handles these types and their JNI conversions.
+      // It also logs if an individual AddToBundle within it fails or if a type
+      // is unsupported by it.
+      if (AddVariantToBundle(env, bundle, key_cstr, value)) {
+        any_parameter_added = true;
+      } else {
+        // This specific log gives context that the failure happened during
+        // SetDefaultEventParameters for a type that was expected to be
+        // supported by AddVariantToBundle.
+        LogError(
+            "SetDefaultEventParameters: Failed to add parameter for key '%s' "
+            "with supported type '%s'. This might indicate a JNI issue during "
+            "conversion.",
+            key_cstr, Variant::TypeName(value.type()));
+      }
+    } else if (value.is_vector() || value.is_map()) {
+      LogError(
+          "SetDefaultEventParameters: Value for key '%s' has type '%s' which "
+          "is not supported for default event parameters. Only string, int64, "
+          "double, bool, and null are supported. Skipping.",
+          key_cstr, Variant::TypeName(value.type()));
+    } else {
+      // This case handles other fundamental Variant types that are not scalars
+      // and not vector/map.
+      LogError(
+          "SetDefaultEventParameters: Value for key '%s' has an unexpected and "
+          "unsupported type '%s'. Skipping.",
+          key_cstr, Variant::TypeName(value.type()));
+    }
+  }
+
+  if (!any_parameter_added) {
+    LogDebug(
+        "SetDefaultEventParameters: No valid parameters were processed, "
+        "skipping native call to avoid clearing existing parameters.");
+    env->DeleteLocalRef(bundle);
+    return;
+  }
+
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters), bundle);
+  if (util::CheckAndClearJniExceptions(env)) {
+    LogError("Failed to call setDefaultEventParameters on Java instance.");
+  }
+
+  env->DeleteLocalRef(bundle);
+}
+
+void ClearDefaultEventParameters() {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+  if (!env) return;
+
+  // Calling with nullptr bundle should clear the parameters.
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters), nullptr);
+  if (util::CheckAndClearJniExceptions(env)) {
+    // This might happen if the method isn't available on older SDKs,
+    // or if some other JNI error occurs.
+    LogError(
+        "Failed to call setDefaultEventParameters(null) on Java instance. "
+        "This may indicate the method is not available on this Android SDK "
+        "version "
+        "or another JNI error occurred.");
+  }
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
