@@ -144,7 +144,9 @@ void MetadataInternal::UpdateStorageInternal() {
 }
 
 StorageReferenceInternal* MetadataInternal::GetReference() const {
-  return new StorageReferenceInternal(*storage_reference_.internal_);
+  return storage_reference_.is_valid() && storage_reference_.internal_ != nullptr
+             ? storage_reference_.internal_->Clone()
+             : nullptr;
 }
 
 std::string MetadataInternal::LookUpString(Variant* root, const char* key,
