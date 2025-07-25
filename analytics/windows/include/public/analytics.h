@@ -1,4 +1,5 @@
 // Copyright 2025 Google LLC
+
 #ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_ANALYTICS_H_
 #define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_ANALYTICS_H_
 
@@ -33,6 +34,38 @@ class Analytics {
   using EventParameters = std::unordered_map<std::string, EventParameterValue>;
 
   /**
+   * @brief Options for initializing the Analytics SDK.
+   */
+  struct Options {
+    /**
+     * @brief The unique identifier for the Firebase app across all of Firebase
+     * with a platform-specific format. This is a required field, can not be
+     * empty, and must be UTF-8 encoded.
+     *
+     * Example: 1:1234567890:android:321abc456def7890
+     */
+    std::string app_id;
+
+    /**
+     * @brief Unique identifier for the application implementing the SDK. The
+     * format typically follows a reversed domain name convention. This is a
+     * required field, can not be empty, and must be UTF-8 encoded.
+     *
+     * Example: com.google.analytics.AnalyticsApp
+     */
+    std::string package_name;
+
+    /**
+     * @brief Whether Analytics is enabled at the very first launch.
+     * This value is then persisted across app sessions, and from then on, takes
+     * precedence over the value of this field.
+     * SetAnalyticsCollectionEnabled() can be used to enable/disable after that
+     * point.
+     */
+    bool analytics_collection_enabled_at_first_launch = true;
+  };
+
+  /**
    * @brief Returns the singleton instance of the Analytics class.
    */
   static Analytics& GetInstance() {
@@ -45,6 +78,26 @@ class Analytics {
   Analytics& operator=(const Analytics&) = delete;
   Analytics(Analytics&&) = delete;
   Analytics& operator=(Analytics&&) = delete;
+
+  /**
+   * @brief Initializes the Analytics SDK with the given options. Until this is
+   * called, all analytics methods below will be no-ops.
+   *
+   * @param[in] options The options to initialize the Analytics SDK with.
+   *
+   * @return true if the Analytics SDK was successfully initialized, false
+   * otherwise. Also returns false if the Analytics SDK has already been
+   * initialized.
+   */
+  bool Initialize(const Options& options) {
+    GoogleAnalytics_Options* google_analytics_options =
+        GoogleAnalytics_Options_Create();
+    google_analytics_options->app_id = options.app_id.c_str();
+    google_analytics_options->package_name = options.package_name.c_str();
+    google_analytics_options->analytics_collection_enabled_at_first_launch =
+        options.analytics_collection_enabled_at_first_launch;
+    return GoogleAnalytics_Initialize(google_analytics_options);
+  }
 
   /**
    * @brief Logs an app event.
