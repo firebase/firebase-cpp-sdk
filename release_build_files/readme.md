@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Changes
+    - Storage (iOS): Handle absolute paths being provided to GetFile. (#1724)
+
 ### 13.0.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 34.0.0.

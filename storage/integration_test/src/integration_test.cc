@@ -647,7 +647,8 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     std::string path = PathForResource() + kGetFileTestFile;
     // Cloud Storage expects a URI, so add file:// in front of local
     // paths.
-    std::string file_path = kFileUriScheme + path;
+    // TODO: Revert, just testing to see if this will pass without.
+    std::string file_path = /*kFileUriScheme +*/ path;
 
     LogDebug("Saving to local file: %s", path.c_str());
 

@@ -142,7 +142,21 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path, Listener* lis
   // Cache a copy of the impl and storage, in case this is destroyed before the thread runs.
   FIRStorageReference* my_impl = impl();
   StorageInternal* storage = storage_;
-  NSURL* local_file_url = [NSURL URLWithString:@(path)];
+  NSString* path_string = @(path);
+  NSURL* local_file_url = nil;
+  if ([path_string hasPrefix:@"file://"]) {
+    // If it starts with the prefix, load it assuming a URL string.
+    local_file_url = [NSURL URLWithString:path_string];
+  } else {
+    // Otherwise, assume it is a file path.
+    local_file_url = [NSURL fileURLWithPath:path_string];
+  }
+  // If we still failed to convert the path, error out.
+  if (local_file_url == nil) {
+    future_impl->Complete(handle, kErrorUnknown,
+      "Unable to convert provided path to valid URL");
+    return GetFileLastResult();
+  }
   util::DispatchAsyncSafeMainQueue(^() {
       FIRStorageDownloadTask *download_task;
       {
