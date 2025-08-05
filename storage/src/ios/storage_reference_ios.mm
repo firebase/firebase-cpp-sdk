@@ -143,6 +143,10 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path, Listener* lis
   FIRStorageReference* my_impl = impl();
   StorageInternal* storage = storage_;
   NSString* path_string = @(path);
+  if (path_string.length == 0) {
+    future_impl->Complete(handle, kErrorUnknown, "Path cannot be empty.")
+    return GetFileLastResult();
+  }
   NSURL* local_file_url = nil;
   if ([path_string hasPrefix:@"file://"]) {
     // If it starts with the prefix, load it assuming a URL string.

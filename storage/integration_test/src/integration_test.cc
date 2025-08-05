@@ -647,8 +647,29 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     std::string path = PathForResource() + kGetFileTestFile;
     // Cloud Storage expects a URI, so add file:// in front of local
     // paths.
-    // TODO: Revert, just testing to see if this will pass without.
-    std::string file_path = /*kFileUriScheme +*/ path;
+    std::string file_path = kFileUriScheme + path;
+
+    LogDebug("Saving to local file: %s", path.c_str());
+
+    firebase::Future<size_t> future =
+        RunWithRetry<size_t>([&]() { return ref.GetFile(file_path.c_str()); });
+    WaitForCompletion(future, "GetFile");
+    EXPECT_NE(future.result(), nullptr);
+    EXPECT_EQ(*future.result(), kSimpleTestFile.size());
+
+    std::vector<char> buffer(kSimpleTestFile.size());
+    FILE* file = fopen(path.c_str(), "rb");
+    EXPECT_NE(file, nullptr);
+    size_t bytes_read = std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
+    EXPECT_EQ(bytes_read, kSimpleTestFile.size());
+    fclose(file);
+    EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
+  }
+  // Test GetFile without the file prefix to ensure we can download to a file.
+  {
+    std::string path = PathForResource() + kGetFileTestFile;
+    // Try the direct path, which should also work.
+    std::string file_path = path;
 
     LogDebug("Saving to local file: %s", path.c_str());
 
