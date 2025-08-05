@@ -147,12 +147,9 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path, Listener* lis
     future_impl->Complete(handle, kErrorUnknown, "Path cannot be empty.");
     return GetFileLastResult();
   }
-  NSURL* local_file_url = nil;
-  if ([path_string hasPrefix:@"file://"]) {
-    // If it starts with the prefix, load it assuming a URL string.
-    local_file_url = [NSURL URLWithString:path_string];
-  } else {
-    // Otherwise, assume it is a file path.
+  NSURL* local_file_url = [NSURL URLWithString:path_string];
+  if (local_file_url == nil) {
+    // If it failed to load as a URL, try loading it is a path.
     local_file_url = [NSURL fileURLWithPath:path_string];
   }
   // If we still failed to convert the path, error out.
