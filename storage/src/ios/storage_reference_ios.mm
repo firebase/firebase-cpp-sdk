@@ -144,7 +144,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path, Listener* lis
   StorageInternal* storage = storage_;
   NSString* path_string = @(path);
   if (path_string.length == 0) {
-    future_impl->Complete(handle, kErrorUnknown, "Path cannot be empty.")
+    future_impl->Complete(handle, kErrorUnknown, "Path cannot be empty.");
     return GetFileLastResult();
   }
   NSURL* local_file_url = nil;
