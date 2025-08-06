@@ -28,8 +28,10 @@
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
+#include "firebase/storage/list_result.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
+#include "storage/src/desktop/list_result_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"
@@ -696,6 +698,42 @@ StorageReferenceInternal* StorageReferenceInternal::GetParent() {
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
   return storage_->future_manager().GetFutureApi(this);
+}
+
+Future<ListResult> StorageReferenceInternal::List(int32_t max_results) {
+  ReferenceCountedFutureImpl* future_api = future();
+  SafeFutureHandle<ListResult> handle =
+      future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  future_api->CompleteWithResult(handle, kErrorUnimplemented,
+                                 "List operation is not supported on desktop.",
+                                 ListResult(nullptr));
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::List(int32_t max_results,
+                                                  const char* page_token) {
+  ReferenceCountedFutureImpl* future_api = future();
+  SafeFutureHandle<ListResult> handle =
+      future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  future_api->CompleteWithResult(handle, kErrorUnimplemented,
+                                 "List operation is not supported on desktop.",
+                                 ListResult(nullptr));
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListAll() {
+  ReferenceCountedFutureImpl* future_api = future();
+  SafeFutureHandle<ListResult> handle =
+      future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  future_api->CompleteWithResult(
+      handle, kErrorUnimplemented,
+      "ListAll operation is not supported on desktop.", ListResult(nullptr));
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
 }
 
 }  // namespace internal
