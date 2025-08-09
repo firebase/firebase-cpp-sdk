@@ -47,6 +47,8 @@ enum Error {
   kErrorDownloadSizeExceeded,
   /// User cancelled the operation.
   kErrorCancelled,
+  /// The operation is not implemented on the current platform.
+  kErrorUnimplemented,
 };
 
 /// @brief Get the human-readable error message corresponding to an error code.

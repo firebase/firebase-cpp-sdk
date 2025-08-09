@@ -30,6 +30,7 @@ class MetadataInternal;
 class MetadataInternalCommon;
 class StorageInternal;
 class StorageReferenceInternal;
+class StorageReferenceInternalDesktop; // Forward declaration
 }  // namespace internal
 
 class Storage;
@@ -261,6 +262,7 @@ class Metadata {
   friend class internal::MetadataInternal;
   friend class internal::MetadataInternalCommon;
   friend class internal::StorageReferenceInternal;
+  friend class internal::StorageReferenceInternalDesktop; // Added friendship
 
 #ifndef INTERNAL_EXPERIMENTAL
   Metadata(internal::MetadataInternal* internal);
