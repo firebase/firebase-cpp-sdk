@@ -46,6 +46,8 @@ static HMODULE g_analytics_module = 0;
 static bool g_initialized = false;
 static int g_fake_instance_id = 0;
 static bool g_analytics_collection_enabled = true;
+static std::string g_app_id;
+static std::string g_package_name;
 
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
@@ -83,15 +85,15 @@ void Initialize(const App& app) {
         LogInfo("Analytics: Loaded Google Analytics module.");
 
         // Initialize Google Analytics C API
-        std::string current_app_id = app.options().app_id();
-        std::string current_package_name = app.options().package_name();
+        g_app_id = app.options().app_id();
+        g_package_name = app.options().package_name();
 
         GoogleAnalytics_Options* c_options = GoogleAnalytics_Options_Create();
         if (!c_options) {
           LogError("Analytics: Failed to create GoogleAnalytics_Options.");
         } else {
-          c_options->app_id = current_app_id.c_str();
-          c_options->package_name = current_package_name.c_str();
+          c_options->app_id = g_app_id.c_str();
+          c_options->package_name = g_package_name.c_str();
           c_options->analytics_collection_enabled_at_first_launch =
               g_analytics_collection_enabled;
 
