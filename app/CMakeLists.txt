@@ -33,12 +33,6 @@ binary_to_array("google_api_resources"
     "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/google_api_resources_lib.jar"
     "google_api"
     "${FIREBASE_GEN_FILE_DIR}/app")
-firebase_cpp_gradle(":app:invites_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/invites_resources_lib.jar")
-binary_to_array("invites_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/invites_resources_lib.jar"
-    "firebase_invites"
-    "${FIREBASE_GEN_FILE_DIR}/app")
 
 # Generate version.h
 set(version_header_dir ${FIREBASE_GEN_FILE_DIR}/app/src/include/firebase)
@@ -142,33 +136,17 @@ else()
   set(mutex_SRCS src/mutex_pthread.cc)
 endif()
 
-set(invites_SRCS
-    src/invites/cached_receiver.cc
-    src/invites/invites_receiver_internal.cc)
-
 set(app_android_SRCS
     src/app_android.cc
     src/google_play_services/availability_android.cc
     ${app_resources_source}
     ${google_api_resources_source}
-    ${invites_resources_source}
-    src/invites/android/invites_receiver_internal_android.cc
-    src/invites/android/invites_android_helper.cc
     src/uuid.cc)
 set(app_ios_SRCS
     src/app_ios.mm
     src/util_apple.mm
     src/util_ios.mm
-    src/invites/ios/invites_receiver_internal_ios.mm
-    src/invites/ios/invites_ios_startup.mm
     src/uuid_ios_darwin.mm)
-if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  # TVOS does not have a web browser and does not support dynamic links.
-  # Remove these files if we are building for TVOS.
-  list(REMOVE_ITEM app_ios_SRCS
-    src/invites/ios/invites_receiver_internal_ios.mm
-    src/invites/ios/invites_ios_startup.mm)
-endif()
 
 
 # Flatbuffer schemas used by the desktop implementation.
@@ -195,7 +173,6 @@ build_flatbuffers("${desktop_flatbuffers_schemas}"
 
 set(app_desktop_SRCS
     src/app_desktop.cc
-    src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc
     src/heartbeat/date_provider.cc
     src/heartbeat/heartbeat_storage_desktop.cc
@@ -286,11 +263,7 @@ set(utility_common_HDRS
 set(utility_android_HDRS)
 set(utility_ios_HDRS)
 set(utility_desktop_HDRS
-    src/variant_util.h
-    src/invites/cached_receiver.h
-    src/invites/invites_receiver_internal.h
-    src/invites/receiver_interface.h
-    src/invites/sender_receiver_interface.h)
+    src/variant_util.h)
 if(ANDROID)
   set(utility_HDRS
       "${utility_common_HDRS}"
@@ -307,15 +280,10 @@ endif()
 
 set(app_android_HDRS
     ${app_resources_header}
-    ${google_api_resources_header}
-    ${invites_resources_header}
-    src/invites/android/invites_android_helper.h
-    src/invites/android/invites_receiver_internal_android.h)
+    ${google_api_resources_header})
 set(app_ios_HDRS
-    src/app_ios.h
-    src/invites/ios/invites_receiver_internal_ios.h)
-set(app_desktop_HDRS
-    src/invites/stub/invites_receiver_internal_stub.h)
+    src/app_ios.h)
+set(app_desktop_HDRS)
 if(ANDROID)
   set(app_platform_HDRS
       "${app_android_HDRS}")
@@ -344,7 +312,6 @@ add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
     ${common_SRCS}
-    ${invites_SRCS}
     ${mutex_SRCS}
     ${app_platform_SRCS}
     ${internal_HDRS}
@@ -419,7 +386,6 @@ elseif(IOS)
     POD_NAMES
       .
       FirebaseCore
-      FirebaseDynamicLinks
       FirebaseInstanceID
   )
 else()
@@ -504,9 +470,6 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/mutable_data.h
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/query.h
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/transaction.h)
-  set(dynamic_links_HDRS
-    ${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links.h
-    ${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links/components.h)
   set(firestore_HDRS
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
@@ -541,17 +504,6 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_result.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
-  set(gma_HDRS
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/native_ad.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/query_info.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump/consent_info.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump/types.h)
   set(installations_HDRS
     ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
   set(messaging_HDRS
@@ -577,10 +529,8 @@ if (IOS)
     ${app_check_HDRS}
     ${auth_HDRS}
     ${database_HDRS}
-    ${dynamic_links_HDRS}
     ${firestore_HDRS}
     ${functions_HDRS}
-    ${gma_HDRS}
     ${installations_HDRS}
     ${messaging_HDRS}
     ${remote_config_HDRS}

@@ -85,8 +85,6 @@ def main
     make_changes_for_auth
   elsif path_components.include?('FirebaseMessaging')
     make_changes_for_messaging
-  elsif path_components.include?('FirebaseDynamicLinks')
-    make_changes_for_dynamiclinks
   end
 
   framework_dir = "#@xcode_project_dir/Frameworks"
@@ -119,12 +117,6 @@ def make_changes_for_messaging
   add_system_framework('UserNotifications')
   enable_remote_notification
   puts 'Finished making messaging-specific changes.'
-end
-
-def make_changes_for_dynamiclinks
-  puts 'Dynamic Links testapp detected.'
-  add_entitlements
-  puts 'Finished making Dynamic Links-specific changes.'
 end
 
 def add_entitlements

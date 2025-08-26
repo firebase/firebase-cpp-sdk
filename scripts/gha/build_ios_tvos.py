@@ -50,11 +50,10 @@ CONFIG = {
   'ios': {
     'supported_targets' : ('firebase_analytics', 'firebase_app_check',
                            'firebase_auth', 'firebase_database',
-                           'firebase_dynamic_links', 'firebase_firestore',
-                           'firebase_functions', 'firebase_gma',
-                           'firebase_installations', 'firebase_messaging',
-                           'firebase_remote_config', 'firebase_storage',
-                           'firebase_ump'),
+                           'firebase_firestore',
+                           'firebase_functions', 'firebase_installations',
+                           'firebase_messaging', 'firebase_remote_config',
+                           'firebase_storage', 'firebase_ump'),
     'device': {
       'architectures' : ['arm64'],
       'toolchain' : 'cmake/toolchains/ios.cmake',
@@ -590,10 +589,10 @@ def parse_cmdline_args():
   parser.add_argument('-t', '--target', nargs='+',
     default=( 'firebase_analytics', 'firebase_app_check',
               'firebase_auth', 'firebase_database',
-              'firebase_dynamic_links', 'firebase_firestore',
-              'firebase_functions', 'firebase_gma',
-              'firebase_installations', 'firebase_messaging',
-              'firebase_remote_config', 'firebase_storage', 'firebase_ump'),
+              'firebase_firestore',
+              'firebase_functions', 'firebase_installations',
+              'firebase_messaging', 'firebase_remote_config',
+              'firebase_storage', 'firebase_ump'),
     help='List of CMake build targets')
   parser.add_argument('-o', '--os', nargs='+', default=('ios', 'tvos'),
     help='List of operating systems to build for.')

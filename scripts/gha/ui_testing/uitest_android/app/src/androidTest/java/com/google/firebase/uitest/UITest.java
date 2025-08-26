@@ -41,77 +41,11 @@ import org.junit.runner.RunWith;
 public class UITest {
   private static final String TAG = "UITestResult";
 
-  private static final String GMA_PACKAGE = "com.google.android.admob.testapp";
-
   private static final String MESSAGING_PACKAGE = "com.google.firebase.cpp.messaging.testapp";
 
   private static final int DEFAULT_TIMEOUT = 5000;
 
   private static final int WAIT_UI_TIMEOUT = 30000;
-
-  @Test
-  public void testGMA() throws UiObjectNotFoundException, InterruptedException {
-    // Start from the home screen & Launch the app
-    UiDevice device = UiDevice.getInstance(getInstrumentation());
-    device.pressHome();
-    launchApp(GMA_PACKAGE);
-    device.wait(Until.hasObject(By.pkg(GMA_PACKAGE).depth(0)),
-        DEFAULT_TIMEOUT); // Wait for the app to appear
-    Log.e(TAG, "GMA launched");
-
-    // 1 TestAdViewAdOpenedAdClosed
-    UiObject2 reference = device.wait(Until.findObject(By.text("Test Ad")), 60 * 1000);
-    Assert.assertNotNull(reference);
-    Log.e(TAG, "TestAdVie loaded");
-    Thread.sleep(DEFAULT_TIMEOUT);
-    // click on the bottom of the "Test Ad" TextView, where the Ad present
-    int x = reference.getVisibleBounds().centerX();
-    int y = reference.getVisibleBounds().bottom + 5;
-    device.click(x, y);
-    Thread.sleep(DEFAULT_TIMEOUT);
-    device.pressBack(); // back to testapp
-    Log.e(TAG, "TestAdViewAdClick closed");
-
-    Thread.sleep(DEFAULT_TIMEOUT);
-
-    // 2 TestInterstitialAdLoadAndShow
-    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
-    Assert.assertNotNull(reference);
-    Log.e(TAG, "InterstitialAd2 loaded");
-    Thread.sleep(DEFAULT_TIMEOUT);
-    // click the center point of the device, where the Ad present
-    x = device.getDisplayWidth() / 2;
-    y = device.getDisplayHeight() / 2;
-    device.click(x, y);
-    Log.e(TAG, "InterstitialAd2 clicked");
-    Thread.sleep(DEFAULT_TIMEOUT);
-    device.pressBack(); // back to testapp
-    Thread.sleep(DEFAULT_TIMEOUT);
-    // click the top left corner close bottom.
-    // Use "Test Ad" TextView bottom position as the reference
-    x = reference.getVisibleBounds().bottom;
-    y = reference.getVisibleBounds().bottom;
-    device.click(x, y);
-    Log.e(TAG, "InterstitialAd2 closed");
-
-    Thread.sleep(DEFAULT_TIMEOUT);
-
-    // 3 TestRewardedAdLoadAndShow
-    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
-    Assert.assertNotNull(reference);
-    Log.e(TAG, "RewardedAd loaded");
-    // click the top right corner close bottom.
-    x = device.getDisplayWidth() - reference.getVisibleBounds().bottom;
-    y = reference.getVisibleBounds().bottom;
-    Thread.sleep(30 * 1000);
-    device.click(x, y);
-    Log.e(TAG, "RewardedAd closed");
-
-    // Finish GMA Tests
-    Thread.sleep(60 * 1000);
-    // reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
-    // Assert.assertNull(reference);
-  }
 
   private void launchApp(String packageName) {
     Context context = getApplicationContext();

@@ -81,7 +81,7 @@ function(ios_test_add_frameworks name)
   endif()
 
   set(SDK_FRAMEWORK_DIR_NAMES FirebaseABTesting FirebaseAnalytics FirebaseAuth
-                              FirebaseDatabase FirebaseDynamicLinks
+                              FirebaseDatabase
                               FirebaseFunctions FirebaseMessaging
                               FirebaseRemoteConfig FirebaseStorage
                               GoogleSignIn )

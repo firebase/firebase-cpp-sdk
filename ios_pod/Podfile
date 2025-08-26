@@ -1,24 +1,22 @@
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '13.0'
+platform :ios, '15.0'
 use_frameworks!
 
 target 'GetPods' do
-  pod 'Firebase/Core', '11.14.0'
+  pod 'Firebase/Core', '12.0.0'
 
-  pod 'Google-Mobile-Ads-SDK', '11.2.0'
   pod 'GoogleUserMessagingPlatform', '2.3.0'
-  pod 'Firebase/Analytics', '11.14.0'
-  pod 'Firebase/AppCheck', '11.14.0'
-  pod 'Firebase/Auth', '11.14.0'
-  pod 'Firebase/Crashlytics', '11.14.0'
-  pod 'Firebase/Database', '11.14.0'
-  pod 'Firebase/DynamicLinks', '11.14.0'
-  pod 'Firebase/Firestore', '11.14.0'
-  pod 'Firebase/Functions', '11.14.0'
-  pod 'Firebase/Installations', '11.14.0'
-  pod 'Firebase/Messaging', '11.14.0'
-  pod 'Firebase/RemoteConfig', '11.14.0'
-  pod 'Firebase/Storage', '11.14.0'
+  pod 'Firebase/Analytics', '12.0.0'
+  pod 'Firebase/AppCheck', '12.0.0'
+  pod 'Firebase/Auth', '12.0.0'
+  pod 'Firebase/Crashlytics', '12.0.0'
+  pod 'Firebase/Database', '12.0.0'
+  pod 'Firebase/Firestore', '12.0.0'
+  pod 'Firebase/Functions', '12.0.0'
+  pod 'Firebase/Installations', '12.0.0'
+  pod 'Firebase/Messaging', '12.0.0'
+  pod 'Firebase/RemoteConfig', '12.0.0'
+  pod 'Firebase/Storage', '12.0.0'
 
 end
 

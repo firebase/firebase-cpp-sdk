@@ -57,13 +57,15 @@ def set_repo_url(repo):
 
 def requests_retry_session(retries=RETRIES,
                            backoff_factor=BACKOFF,
-                           status_forcelist=RETRY_STATUS):
+                           status_forcelist=RETRY_STATUS,
+                           allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])):
     session = requests.Session()
     retry = Retry(total=retries,
                   read=retries,
                   connect=retries,
                   backoff_factor=backoff_factor,
-                  status_forcelist=status_forcelist)
+                  status_forcelist=status_forcelist,
+                  allowed_methods=allowed_methods)
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
@@ -183,14 +185,36 @@ def download_artifact(token, artifact_id, output_path=None):
   """https://docs.github.com/en/rest/reference/actions#download-an-artifact"""
   url = f'{GITHUB_API_URL}/actions/artifacts/{artifact_id}/zip'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
-  with requests_retry_session().get(url, headers=headers, stream=True, timeout=TIMEOUT_LONG) as response:
-    logging.info("download_artifact: %s response: %s", url, response)
-    if output_path:
-      with open(output_path, 'wb') as file:
-          shutil.copyfileobj(response.raw, file)
-    elif response.status_code == 200:
-      return response.content
-  return None
+  # Custom retry for artifact download due to potential for 410 errors (artifact expired)
+  # which shouldn't be retried indefinitely like other server errors.
+  artifact_retry = Retry(total=5,  # Increased retries
+                         read=5,
+                         connect=5,
+                         backoff_factor=1,  # More aggressive backoff for artifacts
+                         status_forcelist=(500, 502, 503, 504), # Only retry on these server errors
+                         allowed_methods=frozenset(['GET']))
+  session = requests.Session()
+  adapter = HTTPAdapter(max_retries=artifact_retry)
+  session.mount('https://', adapter)
+
+  try:
+    with session.get(url, headers=headers, stream=True, timeout=TIMEOUT_LONG) as response:
+      logging.info("download_artifact: %s response: %s", url, response)
+      response.raise_for_status()  # Raise an exception for bad status codes
+      if output_path:
+        with open(output_path, 'wb') as file:
+            shutil.copyfileobj(response.raw, file)
+        return True # Indicate success
+      else:
+        return response.content
+  except requests.exceptions.HTTPError as e:
+    logging.error(f"HTTP error downloading artifact {artifact_id}: {e.response.status_code} - {e.response.reason}")
+    if e.response.status_code == 410:
+        logging.warning(f"Artifact {artifact_id} has expired and cannot be downloaded.")
+    return None # Indicate failure
+  except requests.exceptions.RequestException as e:
+    logging.error(f"Error downloading artifact {artifact_id}: {e}")
+    return None # Indicate failure
 
 
 def dismiss_review(token, pull_number, review_id, message):
