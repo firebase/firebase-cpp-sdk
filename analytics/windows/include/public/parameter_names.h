@@ -1,8 +1,9 @@
 // Copyright 2025 Google LLC
+
 #ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_PARAMETER_NAMES_H_
 #define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_PARAMETER_NAMES_H_
 
-namespace firebase::analytics {
+namespace google::analytics {
 
 // Game achievement ID (string).
 inline constexpr char kParameterAchievementId[] = "achievement_id";
@@ -248,6 +249,6 @@ inline constexpr char kParameterValue[] = "value";
 // The type of virtual currency being used (string).
 inline constexpr char kParameterVirtualCurrencyName[] = "virtual_currency_name";
 
-}  // namespace firebase::analytics
+}  // namespace google::analytics
 
 #endif  // ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_PARAMETER_NAMES_H_

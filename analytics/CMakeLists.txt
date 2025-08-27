@@ -74,9 +74,15 @@ set(android_SRCS
 set(ios_SRCS
     src/analytics_ios.mm)
 
-# Source files used by the stub implementation.
-set(stub_SRCS
-    src/analytics_stub.cc)
+# Source files used by the desktop / stub implementation.
+set(desktop_SRCS
+    src/analytics_desktop.cc
+    src/analytics_desktop_dynamic.c)
+
+if(WIN32)
+  # Add Windows-specific sources for desktop builds.
+  list(APPEND desktop_SRCS src/analytics_windows.cc)
+endif()
 
 if(ANDROID)
   set(analytics_platform_SRCS
@@ -86,7 +92,7 @@ elseif(IOS)
       "${ios_SRCS}")
 else()
   set(analytics_platform_SRCS
-      "${stub_SRCS}")
+      "${desktop_SRCS}")
 endif()
 
 add_library(firebase_analytics STATIC
@@ -98,6 +104,9 @@ set_property(TARGET firebase_analytics PROPERTY FOLDER "Firebase Cpp")
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_analytics
     PUBLIC firebase_app)
+if(WIN32)
+  target_link_libraries(firebase_analytics PRIVATE Crypt32.lib)
+endif()
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
 target_include_directories(firebase_analytics
