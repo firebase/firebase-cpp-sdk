@@ -18,15 +18,21 @@ if(TARGET leveldb)
   return()
 endif()
 
+set(current_patch_file "") # Explicitly initialize for this scope
 if (DESKTOP AND MSVC)
-set(patch_file 
-  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/leveldb/0001-leveldb-1.23-windows-paths.patch)
+  set(current_patch_file
+    ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/leveldb/0001-leveldb-1.23-windows-paths.patch)
 endif()
 
 # This version must be kept in sync with the version in firestore.patch.txt.
 # If this version ever changes then make sure to update the version in
 # firestore.patch.txt accordingly.
 set(version 1.23)
+
+set(final_patch_command "")
+if(current_patch_file)
+  set(final_patch_command git apply ${current_patch_file} && git gc --aggressive)
+endif()
 
 ExternalProject_Add(
   leveldb
@@ -42,5 +48,5 @@ ExternalProject_Add(
   INSTALL_COMMAND   ""
   TEST_COMMAND      ""
   HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
-  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
+  PATCH_COMMAND ${final_patch_command}
 )

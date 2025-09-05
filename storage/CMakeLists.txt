@@ -19,6 +19,7 @@ set(common_SRCS
     src/common/common.cc
     src/common/controller.cc
     src/common/listener.cc
+    src/common/list_result.cc
     src/common/metadata.cc
     src/common/storage.cc
     src/common/storage_reference.cc
@@ -36,6 +37,7 @@ binary_to_array("storage_resources"
 set(android_SRCS
     ${storage_resources_source}
     src/android/controller_android.cc
+    src/android/list_result_android.cc
     src/android/metadata_android.cc
     src/android/storage_android.cc
     src/android/storage_reference_android.cc)
@@ -44,6 +46,7 @@ set(android_SRCS
 set(ios_SRCS
     src/ios/controller_ios.mm
     src/ios/listener_ios.mm
+    src/ios/list_result_ios.mm
     src/ios/metadata_ios.mm
     src/ios/storage_ios.mm
     src/ios/storage_reference_ios.mm
@@ -54,6 +57,7 @@ set(desktop_SRCS
     src/desktop/controller_desktop.cc
     src/desktop/curl_requests.cc
     src/desktop/listener_desktop.cc
+    src/desktop/list_result_desktop.cc
     src/desktop/metadata_desktop.cc
     src/desktop/rest_operation.cc
     src/desktop/storage_desktop.cc
