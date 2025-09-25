@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 
+#include "app/src/log.h"
+
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
