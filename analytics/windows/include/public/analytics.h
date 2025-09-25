@@ -1,9 +1,23 @@
 // Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_ANALYTICS_H_
 #define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_ANALYTICS_H_
 
 #include <cstdint>
+#include <functional>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -32,6 +46,41 @@ class Analytics {
   using EventParameterValue =
       std::variant<int64_t, double, std::string, ItemVector>;
   using EventParameters = std::unordered_map<std::string, EventParameterValue>;
+
+  /**
+   * @brief The state of an app in its lifecycle.
+   */
+  enum AppLifecycleState {
+    /**
+     * @brief This is an invalid state that is used to capture unininitialized
+     * values.
+     */
+    kUnknown,
+    /**
+     * @brief The app is about to be terminated.
+     */
+    kTermination,
+  };
+
+  /**
+   * @brief The log level of the message logged by the SDK.
+   */
+  enum LogLevel {
+    kDebug,
+    kInfo,
+    kWarning,
+    kError,
+  };
+
+  /**
+   * @brief The callback type for logging messages from the SDK.
+   *
+   * The callback is invoked whenever the SDK logs a message.
+   *
+   * @param[in] log_level The log level of the message.
+   * @param[in] message The message logged by the SDK.
+   */
+  using LogCallback = std::function<void(LogLevel, const std::string&)>;
 
   /**
    * @brief Options for initializing the Analytics SDK.
@@ -63,6 +112,15 @@ class Analytics {
      * point.
      */
     bool analytics_collection_enabled_at_first_launch = true;
+
+    /**
+     * @brief An optional path to a folder where the SDK can store its data.
+     * If not provided, the SDK will store its data in the same folder as the
+     * executable.
+     *
+     * The path must pre-exist and the app has read and write access to it.
+     */
+    std::optional<std::string> app_data_directory;
   };
 
   /**
@@ -96,6 +154,10 @@ class Analytics {
     google_analytics_options->package_name = options.package_name.c_str();
     google_analytics_options->analytics_collection_enabled_at_first_launch =
         options.analytics_collection_enabled_at_first_launch;
+    google_analytics_options->app_data_directory =
+        options.app_data_directory.value_or("").empty()
+            ? nullptr
+            : options.app_data_directory.value().c_str();
     return GoogleAnalytics_Initialize(google_analytics_options);
   }
 
@@ -269,8 +331,87 @@ class Analytics {
     GoogleAnalytics_SetAnalyticsCollectionEnabled(enabled);
   }
 
+  /**
+   * @brief Allows the passing of a callback to be used when the SDK logs any
+   * messages regarding its behavior. The callback must be thread-safe.
+   *
+   * @param[in] callback The callback to use. Must be thread-safe.
+   */
+  void SetLogCallback(LogCallback callback) {
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      current_callback_ = callback;
+    }
+
+    if (!callback) {
+      GoogleAnalytics_SetLogCallback(nullptr);
+      return;
+    }
+
+    GoogleAnalytics_SetLogCallback(
+        [](GoogleAnalytics_LogLevel log_level, const char* message) {
+          LogLevel cpp_log_level;
+          switch (log_level) {
+            case GoogleAnalytics_LogLevel::kDebug:
+              cpp_log_level = LogLevel::kDebug;
+              break;
+            case GoogleAnalytics_LogLevel::kInfo:
+              cpp_log_level = LogLevel::kInfo;
+              break;
+            case GoogleAnalytics_LogLevel::kWarning:
+              cpp_log_level = LogLevel::kWarning;
+              break;
+            case GoogleAnalytics_LogLevel::kError:
+              cpp_log_level = LogLevel::kError;
+              break;
+            default:
+              cpp_log_level = LogLevel::kInfo;
+          }
+          LogCallback local_callback;
+          Analytics& self = Analytics::GetInstance();
+          {
+            std::lock_guard<std::mutex> lock(self.mutex_);
+            local_callback = self.current_callback_;
+          }
+          if (local_callback) {
+            local_callback(cpp_log_level, std::string(message));
+          }
+        });
+  }
+
+  /**
+   * @brief Notifies the current state of the app's lifecycle.
+   *
+   * This method is used to notify the Analytics SDK about the current state of
+   * the app's lifecycle. The Analytics SDK will use this information to log
+   * events, update user properties, upload data, etc.
+   *
+   * kTermination is used to indicate that the app is about to be terminated.
+   * The caller will be blocked until all pending data is uploaded or an error
+   * occurs. The caller must ensure the OS does not terminate background threads
+   * before the call returns.
+   *
+   * @param[in] state The current state of the app's lifecycle.
+   */
+  void NotifyAppLifecycleChange(AppLifecycleState state) {
+    GoogleAnalytics_AppLifecycleState c_state;
+    switch (state) {
+      case AppLifecycleState::kTermination:
+        c_state = GoogleAnalytics_AppLifecycleState_kTermination;
+        break;
+      case AppLifecycleState::kUnknown:
+      default:
+        c_state = GoogleAnalytics_AppLifecycleState_kUnknown;
+        break;
+    }
+    GoogleAnalytics_NotifyAppLifecycleChange(c_state);
+  }
+
  private:
   Analytics() = default;
+
+  std::mutex mutex_;
+  LogCallback current_callback_;
 };
 
 }  // namespace google::analytics

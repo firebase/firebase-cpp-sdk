@@ -36,7 +36,7 @@ namespace firebase {
 namespace analytics {
 
 #if defined(_WIN32)
-#define ANALYTICS_DLL_FILENAME L"analytics_win.dll"
+#define ANALYTICS_DLL_FILENAME L"google_analytics.dll"
 
 static HMODULE g_analytics_module = 0;
 #endif  // defined(_WIN32)
@@ -134,6 +134,10 @@ bool IsInitialized() { return g_initialized; }
 void Terminate() {
 #if defined(_WIN32)
   if (g_analytics_module) {
+    // Make sure to notify the SDK that the analytics is being terminated to
+    // upload any pending data.
+    NotifyAppLifecycleChange(AppLifecycleState::kTermination);
+
     FirebaseAnalytics_UnloadDynamicFunctions();
     FreeLibrary(g_analytics_module);
     g_analytics_module = 0;
@@ -379,6 +383,46 @@ void ResetAnalyticsData() {
 
   GoogleAnalytics_ResetAnalyticsData();
   g_fake_instance_id++;
+}
+
+// Notify the Analytics SDK about the current state of the app's lifecycle.
+void NotifyAppLifecycleChange(AppLifecycleState state) { 
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  GoogleAnalytics_NotifyAppLifecycleChange(
+      static_cast<GoogleAnalytics_AppLifecycleState>(state));
+}
+
+static void (*firebaseLogCallback)(LogLevel log_level, const char* log_message,
+                           void* callback_data) = nullptr;
+
+void SetLogCallback(LogCallback callback) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
+  firebaseLogCallback = callback;
+
+  GoogleAnalytics_SetLogCallback(
+      [](GoogleAnalytics_LogLevel log_level, const char* message) {
+        if (firebaseLogCallback) {
+          LogLevel fbLogLevel;
+          switch (log_level) {
+            case GoogleAnalytics_LogLevel::kDebug:
+              fbLogLevel = LogLevel::kLogLevelDebug;
+              break;
+            case GoogleAnalytics_LogLevel::kInfo:
+              fbLogLevel = LogLevel::kLogLevelInfo;
+              break;
+            case GoogleAnalytics_LogLevel::kWarning:
+              fbLogLevel = LogLevel::kLogLevelWarning;
+              break;
+            case GoogleAnalytics_LogLevel::kError:
+              fbLogLevel = LogLevel::kLogLevelError;
+              break;
+            default:
+              fbLogLevel = LogLevel::kLogLevelInfo;
+          }
+          firebaseLogCallback(fbLogLevel, message, nullptr);
+        }
+    });
 }
 
 // Overloaded versions of LogEvent for convenience.
