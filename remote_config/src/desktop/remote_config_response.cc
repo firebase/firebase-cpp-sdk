@@ -95,6 +95,9 @@ void RemoteConfigResponse::MarkCompleted() {
     return;
   }
   const flatbuffers::FlatBufferBuilder& builder = parser_->builder_;
+  if (builder.GetSize() == 0 || builder.GetBufferPointer() == nullptr) {
+    return;
+  }
   const fbs::Response* body_fbs =
       flatbuffers::GetRoot<fbs::Response>(builder.GetBufferPointer());
 
