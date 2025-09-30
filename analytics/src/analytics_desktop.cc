@@ -386,7 +386,7 @@ void ResetAnalyticsData() {
 }
 
 // Notify the Analytics SDK about the current state of the app's lifecycle.
-void NotifyAppLifecycleChange(AppLifecycleState state) { 
+void NotifyAppLifecycleChange(AppLifecycleState state) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   GoogleAnalytics_NotifyAppLifecycleChange(
       static_cast<GoogleAnalytics_AppLifecycleState>(state));

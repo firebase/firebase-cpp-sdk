@@ -558,15 +558,11 @@ void SetSessionTimeoutDuration(int64_t milliseconds);
 /// instance id.
 void ResetAnalyticsData();
 
-
 /// @brief The state of an app in its lifecycle.
 ///
 /// kUnknown is an invalid sate that is used to capture uninitialized values.
 /// kTermination is used to indicate that the app is about to be terminated.
-enum AppLifecycleState {
-  kUnknown = 0,
-  kTermination
-};
+enum AppLifecycleState { kUnknown = 0, kTermination };
 
 /// @brief Notifies the current state of the app's lifecycle.
 ///
@@ -580,7 +576,7 @@ enum AppLifecycleState {
 /// before the call returns.
 ///
 /// @param[in] state The current state of the app's lifecycle.
- 
+
 void NotifyAppLifecycleChange(AppLifecycleState state);
 
 /// Get the instance ID from the analytics service.
