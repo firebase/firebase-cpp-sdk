@@ -23,8 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "app/src/log.h"
-
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
@@ -584,13 +582,6 @@ enum AppLifecycleState {
 /// @param[in] state The current state of the app's lifecycle.
  
 void NotifyAppLifecycleChange(AppLifecycleState state);
-
-/// @brief Allows the passing of a callback to be used when the SDK logs any
-/// *messages regarding its behavior.The callback must be thread -
-/// safe.
-/// 
-/// @param[in] callback The callback to use. Must be thread-safe.
-void SetLogCallback(LogCallback callback);
 
 /// Get the instance ID from the analytics service.
 ///

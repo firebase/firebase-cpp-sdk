@@ -392,39 +392,6 @@ void NotifyAppLifecycleChange(AppLifecycleState state) {
       static_cast<GoogleAnalytics_AppLifecycleState>(state));
 }
 
-static void (*firebaseLogCallback)(LogLevel log_level, const char* log_message,
-                           void* callback_data) = nullptr;
-
-void SetLogCallback(LogCallback callback) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-
-  firebaseLogCallback = callback;
-
-  GoogleAnalytics_SetLogCallback(
-      [](GoogleAnalytics_LogLevel log_level, const char* message) {
-        if (firebaseLogCallback) {
-          LogLevel fbLogLevel;
-          switch (log_level) {
-            case GoogleAnalytics_LogLevel::kDebug:
-              fbLogLevel = LogLevel::kLogLevelDebug;
-              break;
-            case GoogleAnalytics_LogLevel::kInfo:
-              fbLogLevel = LogLevel::kLogLevelInfo;
-              break;
-            case GoogleAnalytics_LogLevel::kWarning:
-              fbLogLevel = LogLevel::kLogLevelWarning;
-              break;
-            case GoogleAnalytics_LogLevel::kError:
-              fbLogLevel = LogLevel::kLogLevelError;
-              break;
-            default:
-              fbLogLevel = LogLevel::kLogLevelInfo;
-          }
-          firebaseLogCallback(fbLogLevel, message, nullptr);
-        }
-    });
-}
-
 // Overloaded versions of LogEvent for convenience.
 
 void LogEvent(const char* name) {
