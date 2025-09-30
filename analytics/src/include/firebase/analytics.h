@@ -561,7 +561,7 @@ void ResetAnalyticsData();
 
 /// @brief The state of an app in its lifecycle.
 ///
-/// kUnknown is an invalid sate that is used to capture uninitialized values.
+/// kUnknown is an invalid state that is used to capture uninitialized values.
 /// kTermination is used to indicate that the app is about to be terminated.
 enum AppLifecycleState {
   kUnknown = 0,
