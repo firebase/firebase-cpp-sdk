@@ -263,7 +263,8 @@ TEST_F(FirebaseAnalyticsTest, TestNotifyAppLifecycleChange) {
   // Can't confirm that these do anything but just run them all to ensure the
   // app doesn't crash.
   firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
-  firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kTermination);
+  firebase::analytics::NotifyAppLifecycleChange(
+      firebase::analytics::kTermination);
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
