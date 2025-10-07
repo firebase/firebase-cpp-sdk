@@ -408,7 +408,7 @@ Firebase Cloud Messaging (stub) | firebase_messaging.framework
 User Messaging Platform (stub)  | libfirebase_ump.a
 |                               | libfirebase_app.a
 
-The provided libraries have been tested using Xcode 16.3. When building C++
+The provided libraries have been tested using Xcode 16.4. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more

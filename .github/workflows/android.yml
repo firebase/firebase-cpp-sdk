@@ -13,7 +13,7 @@ on:
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   GITHUB_TOKEN: ${{ github.token }}
-  xcodeVersion: "16.3"  # Only affects Mac runners, and only for prerequisites.
+  xcodeVersion: "16.4"  # Only affects Mac runners, and only for prerequisites.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
@@ -57,7 +57,7 @@ jobs:
         - os: ubuntu-22.04
           architecture: arm64
         # Do not attempt to use x64 on Mac.
-        - os: macos-14
+        - os: macos-15
           architecture: x64
     steps:
       - uses: lukka/get-cmake@latest
