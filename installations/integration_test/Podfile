@@ -5,8 +5,8 @@ use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '15.0'
-  pod 'Firebase/Analytics', '12.2.0'
-  pod 'Firebase/Installations', '12.2.0'
+  pod 'Firebase/Analytics', '12.4.0'
+  pod 'Firebase/Installations', '12.4.0'
 end
 
 post_install do |installer|
