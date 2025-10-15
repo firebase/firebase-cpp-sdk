@@ -35,10 +35,10 @@ StorageInternal::StorageInternal(App* app, const char* url) {
 
   if (url) {
     url_ = url;
-    root_ = StoragePath(url_);
+    root_ = StoragePath(this, url_);
   } else {
     const char* bucket = app->options().storage_bucket();
-    root_ = StoragePath(bucket ? std::string(kGsScheme) + bucket : "");
+    root_ = StoragePath(this, bucket ? std::string(kGsScheme) + bucket : "");
   }
 
   // LINT.IfChange
@@ -76,20 +76,22 @@ StorageInternal::~StorageInternal() {
 }
 
 // Get a StorageReference to the root of the database.
-StorageReferenceInternal* StorageInternal::GetReference() const {
+StorageReferenceInternal* StorageInternal::GetReference() {
+  configured_ = true;
   return new StorageReferenceInternal(url_, const_cast<StorageInternal*>(this));
 }
 
 // Get a StorageReference for the specified path.
-StorageReferenceInternal* StorageInternal::GetReference(
-    const char* path) const {
+StorageReferenceInternal* StorageInternal::GetReference(const char* path) {
+  configured_ = true;
   return new StorageReferenceInternal(root_.GetChild(path),
                                       const_cast<StorageInternal*>(this));
 }
 
 // Get a StorageReference for the provided URL.
 StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
-    const char* url) const {
+    const char* url) {
+  configured_ = true;
   return new StorageReferenceInternal(url, const_cast<StorageInternal*>(this));
 }
 
@@ -132,6 +134,27 @@ void StorageInternal::CleanupCompletedOperations() {
     RemoveOperation(*it);
     delete *it;
   }
+}
+
+void StorageInternal::UseEmulator(const char* host, int port) {
+  if (host == nullptr || host[0] == '\0') {
+    throw std::invalid_argument("Emulator host cannot be null or empty.");
+  }
+  host_ = host;
+
+  if (port <= 0) {
+    throw std::invalid_argument("Emulator port must be a positive number.");
+  }
+  port_ = port;
+
+  if (configured_) {
+    throw std::logic_error(
+        "Cannot connect to emulator after Storage SDK initialization. "
+        "Call use_emulator(host, port) before creating a Storage "
+        "reference or trying to load data.");
+  }
+
+  scheme_ = "http";
 }
 
 }  // namespace internal

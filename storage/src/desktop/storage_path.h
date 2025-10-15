@@ -25,6 +25,8 @@ namespace internal {
 
 extern const char kGsScheme[];
 
+class StorageInternal;
+
 // Class for managing paths for firebase storage.
 // Storage paths are made up of a bucket, a path,
 // and (optionally) an object, located at that path.
@@ -35,11 +37,11 @@ class StoragePath {
 
   // Constructs a storage path, based on an input URL.  The URL can either be
   // an HTTP[s] link, or a gs URI.
-  explicit StoragePath(const std::string& path);
+  explicit StoragePath(StorageInternal *storage, const std::string& path);
 
   // Constructs a storage path, based on raw strings for the bucket, path, and
   // object.
-  StoragePath(const std::string& bucket, const std::string& path,
+  StoragePath(StorageInternal *storage, const std::string& bucket, const std::string& path,
               const std::string& object = "");
 
   // The bucket portion of this path.
@@ -60,14 +62,14 @@ class StoragePath {
   // in a path where bucket is "bucket", local_path is "path/otherchild/" and
   // object is an empty string.
   StoragePath GetChild(const std::string& path) const {
-    return StoragePath(bucket_, path_.GetChild(path));
+    return StoragePath(storage_internal_, bucket_, path_.GetChild(path));
   }
 
   // Returns the location one folder up from the current location.  If the
   // path is at already at the root level, this returns the path unchanged.
   // The Object in the result is always set to empty.
   StoragePath GetParent() const {
-    return StoragePath(bucket_, path_.GetParent());
+    return StoragePath(storage_internal_, bucket_, path_.GetParent());
   }
 
   // Returns the path as a HTTP URL to the asset.
@@ -82,14 +84,16 @@ class StoragePath {
  private:
   static const char* const kSeparator;
 
-  StoragePath(const std::string& bucket, const Path& path)
-      : bucket_(bucket), path_(path) {}
+  StoragePath(StorageInternal *storage, const std::string& bucket, const Path& path)
+    : storage_internal_(storage), bucket_(bucket), path_(path) {}
 
   void ConstructFromGsUri(const std::string& uri, int path_start);
   void ConstructFromHttpUrl(const std::string& url, int path_start);
 
   std::string bucket_;
   Path path_;
+  StorageInternal* storage_internal_;
+
 };
 
 }  // namespace internal

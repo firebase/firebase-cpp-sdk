@@ -43,13 +43,13 @@ class StorageInternal {
   std::string url() { return url_; }
 
   // Get a StorageReference to the root of the database.
-  StorageReferenceInternal* GetReference() const;
+  StorageReferenceInternal* GetReference();
 
   // Get a StorageReference for the specified path.
-  StorageReferenceInternal* GetReference(const char* path) const;
+  StorageReferenceInternal* GetReference(const char* path);
 
   // Get a StorageReference for the provided URL.
-  StorageReferenceInternal* GetReferenceFromUrl(const char* url) const;
+  StorageReferenceInternal* GetReferenceFromUrl(const char* url);
 
   // Returns the maximum time (in seconds) to retry a download if a failure
   // occurs.
@@ -99,6 +99,19 @@ class StorageInternal {
   // Remove an operation from the list of outstanding operations.
   void RemoveOperation(RestOperation* operation);
 
+  // Configures the Storage SDK to use an emulated backend instead of call the
+  // default remote backend
+  void UseEmulator(const char* host, int port);
+
+  // Returns the Host for the storage backend
+  std::string get_host() { return host_; }
+
+  // Returns the Port for the storage backend
+  int get_port() { return port_; }
+
+  // Returns the url scheme currenly in use for the storage backend
+  std::string get_scheme() {return scheme_;}
+
  private:
   // Clean up completed operations.
   void CleanupCompletedOperations();
@@ -119,6 +132,11 @@ class StorageInternal {
   std::string user_agent_;
   Mutex operations_mutex_;
   std::vector<RestOperation*> operations_;
+  std::string host_ = "firebasestorage.googleapis.com";
+  std::string scheme_ = "https";
+  int port_ = 443;
+  bool configured_;
+
 };
 
 }  // namespace internal
