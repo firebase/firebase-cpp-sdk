@@ -135,7 +135,7 @@ class StorageInternal {
   std::string host_ = "firebasestorage.googleapis.com";
   std::string scheme_ = "https";
   int port_ = 443;
-  bool configured_;
+  bool configured_ = false;
 };
 
 }  // namespace internal
