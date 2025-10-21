@@ -616,8 +616,8 @@ code.
 ### 13.3.0
 -   Changes
     - Storage: Add support for Firebase Storage emulator via `UseEmulator`.
-	  The `UseEmulator` method should be called before invoking any other
-	  methods on a new instance of Storage. Default port is 9199.
+        The `UseEmulator` method should be called before invoking any other
+        methods on a new instance of Storage. Default port is 9199.
 
 ### 13.2.0
 -   Changes
