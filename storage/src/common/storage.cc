@@ -227,8 +227,7 @@ void Storage::set_max_operation_retry_time(double max_transfer_retry_seconds) {
 }
 
 void Storage::UseEmulator(const char* host, int port) {
-  if (internal_)
-    internal_->UseEmulator(host, port);
+  if (internal_) internal_->UseEmulator(host, port);
 }
 
 }  // namespace storage

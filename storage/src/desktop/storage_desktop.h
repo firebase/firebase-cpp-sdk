@@ -110,7 +110,7 @@ class StorageInternal {
   int get_port() { return port_; }
 
   // Returns the url scheme currenly in use for the storage backend
-  std::string get_scheme() {return scheme_;}
+  std::string get_scheme() { return scheme_; }
 
  private:
   // Clean up completed operations.
@@ -136,7 +136,6 @@ class StorageInternal {
   std::string scheme_ = "https";
   int port_ = 443;
   bool configured_;
-
 };
 
 }  // namespace internal

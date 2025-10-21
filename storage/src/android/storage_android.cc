@@ -477,8 +477,8 @@ void StorageInternal::UseEmulator(const char* host, int port) {
   JNIEnv* env = app_->GetJNIEnv();
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID((host != nullptr && host[0] != '\0'),
                                       "Emulator host cannot be null or empty.")
-  FIREBASE_ASSERT_MESSAGE_RETURN_VOID((port > 0),
-                                      "Emulator port must be a positive number.")
+  FIREBASE_ASSERT_MESSAGE_RETURN_VOID(
+      (port > 0), "Emulator port must be a positive number.")
 
   jobject host_string = env->NewStringUTF(host);
   jint port_num = static_cast<jint>(port);

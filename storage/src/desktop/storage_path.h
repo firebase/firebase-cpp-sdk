@@ -37,12 +37,12 @@ class StoragePath {
 
   // Constructs a storage path, based on an input URL.  The URL can either be
   // an HTTP[s] link, or a gs URI.
-  explicit StoragePath(StorageInternal *storage, const std::string& path);
+  explicit StoragePath(StorageInternal* storage, const std::string& path);
 
   // Constructs a storage path, based on raw strings for the bucket, path, and
   // object.
-  StoragePath(StorageInternal *storage, const std::string& bucket, const std::string& path,
-              const std::string& object = "");
+  StoragePath(StorageInternal* storage, const std::string& bucket,
+              const std::string& path, const std::string& object = "");
 
   // The bucket portion of this path.
   // In the path: MyBucket/folder/object, it would return "MyBucket".
@@ -84,8 +84,9 @@ class StoragePath {
  private:
   static const char* const kSeparator;
 
-  StoragePath(StorageInternal *storage, const std::string& bucket, const Path& path)
-    : storage_internal_(storage), bucket_(bucket), path_(path) {}
+  StoragePath(StorageInternal* storage, const std::string& bucket,
+              const Path& path)
+      : storage_internal_(storage), bucket_(bucket), path_(path) {}
 
   void ConstructFromGsUri(const std::string& uri, int path_start);
   void ConstructFromHttpUrl(const std::string& url, int path_start);
@@ -93,7 +94,6 @@ class StoragePath {
   std::string bucket_;
   Path path_;
   StorageInternal* storage_internal_;
-
 };
 
 }  // namespace internal

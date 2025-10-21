@@ -16,8 +16,8 @@
 
 #include <string.h>
 
-#include <string>
 #include <iostream>
+#include <string>
 
 #include "app/rest/util.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -42,7 +42,7 @@ const char kBucketEndString[] = "/o/";
 const size_t kBucketEndStringLength = FIREBASE_STRLEN(kBucketEndString);
 const char kBucketIdentifierString[] = "/v0/b/";
 
-StoragePath::StoragePath(StorageInternal *storage, const std::string& path) {
+StoragePath::StoragePath(StorageInternal* storage, const std::string& path) {
   storage_internal_ = storage;
   bucket_ = "";
   path_ = Path("");
@@ -60,9 +60,8 @@ StoragePath::StoragePath(StorageInternal *storage, const std::string& path) {
 
 // Constructs a storage path, based on raw strings for the bucket, path, and
 // object.
-StoragePath::StoragePath(StorageInternal *storage,
-                         const std::string& bucket, const std::string& path,
-                         const std::string& object) {
+StoragePath::StoragePath(StorageInternal* storage, const std::string& bucket,
+                         const std::string& path, const std::string& object) {
   storage_internal_ = storage;
   bucket_ = bucket;
   path_ = Path(path).GetChild(object);
