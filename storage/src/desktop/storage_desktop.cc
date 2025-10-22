@@ -23,6 +23,7 @@
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/log.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_reference_desktop.h"
 
@@ -138,23 +139,26 @@ void StorageInternal::CleanupCompletedOperations() {
 
 void StorageInternal::UseEmulator(const char* host, int port) {
   if (host == nullptr || host[0] == '\0') {
-    throw std::invalid_argument("Emulator host cannot be null or empty.");
+    LogError("Emulator host cannot be null or empty.");
+    return;
   }
-  host_ = host;
 
   if (port <= 0) {
-    throw std::invalid_argument("Emulator port must be a positive number.");
+    LogError("Emulator port must be a positive number.");
+    return;
   }
-  port_ = port;
 
   if (configured_) {
-    throw std::logic_error(
+    LogError(
         "Cannot connect to emulator after Storage SDK initialization. "
         "Call use_emulator(host, port) before creating a Storage "
         "reference or trying to load data.");
+    return;
   }
 
   scheme_ = "http";
+  port_ = port;
+  host_ = host;
 }
 
 }  // namespace internal
