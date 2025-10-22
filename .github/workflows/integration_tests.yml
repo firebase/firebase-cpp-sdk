@@ -48,7 +48,7 @@ env:
   triggerLabelPrefix: "tests-requested: "
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
-  pythonVersion: '3.8'
+  pythonVersion: '3.9'
   xcodeVersion: '16.2'
   logArtifactRetentionDays: 90
   binaryArtifactRetentionDays: 7
