@@ -77,20 +77,20 @@ StorageInternal::~StorageInternal() {
 
 // Get a StorageReference to the root of the database.
 StorageReferenceInternal* StorageInternal::GetReference() const {
-  return new StorageReferenceInternal(url_, const_cast<StorageInternal*>(this));
+  return new StorageReferenceInternalDesktop(url_, const_cast<StorageInternal*>(this));
 }
 
 // Get a StorageReference for the specified path.
 StorageReferenceInternal* StorageInternal::GetReference(
     const char* path) const {
-  return new StorageReferenceInternal(root_.GetChild(path),
+  return new StorageReferenceInternalDesktop(root_.GetChild(path),
                                       const_cast<StorageInternal*>(this));
 }
 
 // Get a StorageReference for the provided URL.
 StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
     const char* url) const {
-  return new StorageReferenceInternal(url, const_cast<StorageInternal*>(this));
+  return new StorageReferenceInternalDesktop(url, const_cast<StorageInternal*>(this));
 }
 
 // Returns the auth token for the current user, if there is a current user,

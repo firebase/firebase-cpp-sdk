@@ -28,8 +28,10 @@
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
+#include "firebase/storage/list_result.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
+#include "storage/src/desktop/list_result_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"
@@ -46,59 +48,63 @@ namespace internal {
  * (see <a href="https://cloud.google.com/storage/">Google Cloud Storage</a>)
  */
 
-StorageReferenceInternal::StorageReferenceInternal(
+StorageReferenceInternalDesktop::StorageReferenceInternalDesktop(
     const std::string& storageUri, StorageInternal* storage)
     : storage_(storage), storageUri_(storageUri) {
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
 
-StorageReferenceInternal::StorageReferenceInternal(
+StorageReferenceInternalDesktop::StorageReferenceInternalDesktop(
     const StoragePath& storageUri, StorageInternal* storage)
     : storage_(storage), storageUri_(storageUri) {
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
 
-StorageReferenceInternal::StorageReferenceInternal(
-    const StorageReferenceInternal& other)
+StorageReferenceInternalDesktop::StorageReferenceInternalDesktop(
+    const StorageReferenceInternalDesktop& other)
     : storage_(other.storage_), storageUri_(other.storageUri_) {
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
 
-StorageReferenceInternal::~StorageReferenceInternal() {
+StorageReferenceInternalDesktop::~StorageReferenceInternalDesktop() {
   storage_->future_manager().ReleaseFutureApi(this);
 }
 
+StorageReferenceInternal* StorageReferenceInternalDesktop::Clone() const {
+  return new StorageReferenceInternalDesktop(*this);
+}
+
 // Gets the storage to which we refer.
-Storage* StorageReferenceInternal::storage() const {
+Storage* StorageReferenceInternalDesktop::storage() const {
   return Storage::GetInstance(storage_->app());
 }
 
 // Return the Google Cloud Storage bucket that holds this object.
-std::string StorageReferenceInternal::bucket() const {
+std::string StorageReferenceInternalDesktop::bucket() const {
   return storageUri_.GetBucket();
 }
 
 // Return the full path of the object.
-std::string StorageReferenceInternal::full_path() const {
+std::string StorageReferenceInternalDesktop::full_path() const {
   return "/" + storageUri_.GetPath().str();
 }
 
 // Gets a reference to a location relative to this one.
-StorageReferenceInternal* StorageReferenceInternal::Child(
+StorageReferenceInternal* StorageReferenceInternalDesktop::Child(
     const char* path) const {
   if (path == nullptr) return nullptr;
-  return new StorageReferenceInternal(storageUri_.GetChild(path), storage_);
+  return new StorageReferenceInternalDesktop(storageUri_.GetChild(path), storage_);
 }
 
-StorageReference StorageReferenceInternal::AsStorageReference() const {
-  return StorageReference(new StorageReferenceInternal(*this));
+StorageReference StorageReferenceInternalDesktop::AsStorageReference() const {
+  return StorageReference(new StorageReferenceInternalDesktop(*this));
 }
 
 // Handy utility function.  Takes ownership of request/response controllers
 // passed in, and will delete them when the request is complete.
 // (listener and controller_out are not deleted, since they are owned by the
 // calling function, if they exist.)
-void StorageReferenceInternal::RestCall(rest::Request* request,
+void StorageReferenceInternalDesktop::RestCall(rest::Request* request,
                                         Notifier* request_notifier,
                                         BlockingResponse* response,
                                         FutureHandle handle, Listener* listener,
@@ -154,9 +160,9 @@ struct MetadataChainData {
 // Basically just chains futures together via OnCompletion callbacks, but
 // has a few tricky bits, where it uses a copy of the original reference
 // to hide the internal futures from the user, so the user can just deal with
-// one external future.  (Which is completed by the OnCompletion chain when
-// all of the operations have concluded.)
-void StorageReferenceInternal::SetupMetadataChain(
+// (listener and controller_out are not deleted, since they are owned by the
+// calling function, if they exist.)
+void StorageReferenceInternalDesktop::SetupMetadataChain(
     Future<Metadata> starting_future, MetadataChainData* data) {
   data->inner_future = starting_future;
   starting_future.OnCompletion(
@@ -201,7 +207,7 @@ void StorageReferenceInternal::SetupMetadataChain(
 }
 
 // Deletes the object at the current path.
-Future<void> StorageReferenceInternal::Delete() {
+Future<void> StorageReferenceInternalDesktop::Delete() {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<void>(kStorageReferenceFnDelete);
 
@@ -222,7 +228,7 @@ Future<void> StorageReferenceInternal::Delete() {
   return DeleteLastResult();
 }
 
-Future<void> StorageReferenceInternal::DeleteLastResult() {
+Future<void> StorageReferenceInternalDesktop::DeleteLastResult() {
   return static_cast<const Future<void>&>(
       future()->LastResult(kStorageReferenceFnDelete));
 }
@@ -232,7 +238,7 @@ const int kAppCheckTokenTimeoutMs = 10000;
 
 // Handy utility function, since REST calls have similar setup and teardown.
 // Can potentially block getting Future results for the Request.
-void StorageReferenceInternal::PrepareRequestBlocking(
+void StorageReferenceInternalDesktop::PrepareRequestBlocking(
     rest::Request* request, const char* url, const char* method,
     const char* content_type) {
   request->set_url(url);
@@ -273,7 +279,7 @@ void StorageReferenceInternal::PrepareRequestBlocking(
 }
 
 // Asynchronously downloads the object from this StorageReference.
-Future<size_t> StorageReferenceInternal::GetFile(const char* path,
+Future<size_t> StorageReferenceInternalDesktop::GetFile(const char* path,
                                                  Listener* listener,
                                                  Controller* controller_out) {
   auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
@@ -298,13 +304,13 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
   return GetFileLastResult();
 }
 
-Future<size_t> StorageReferenceInternal::GetFileLastResult() {
+Future<size_t> StorageReferenceInternalDesktop::GetFileLastResult() {
   return static_cast<const Future<size_t>&>(
       future()->LastResult(kStorageReferenceFnGetFile));
 }
 
 // Asynchronously downloads the object from this StorageReference.
-Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
+Future<size_t> StorageReferenceInternalDesktop::GetBytes(void* buffer,
                                                   size_t buffer_size,
                                                   Listener* listener,
                                                   Controller* controller_out) {
@@ -330,13 +336,13 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
 
 // Sends a rest request, and creates a separate thread to retry failures.
 template <typename FutureType>
-void StorageReferenceInternal::SendRequestWithRetry(
+void StorageReferenceInternalDesktop::SendRequestWithRetry(
     StorageReferenceFn internal_function_reference,
     SendRequestFunct send_request_funct,
     SafeFutureHandle<FutureType> final_handle, double max_retry_time_seconds) {
   BlockingResponse* first_response = send_request_funct();
   std::thread async_retry_thread(
-      &StorageReferenceInternal::AsyncSendRequestWithRetry<FutureType>, this,
+      &StorageReferenceInternalDesktop::AsyncSendRequestWithRetry<FutureType>, this,
       internal_function_reference, send_request_funct, final_handle,
       first_response, max_retry_time_seconds);
   async_retry_thread.detach();
@@ -348,7 +354,7 @@ const int kMaxSleepTimeMillis = 30000;
 // In a separate thread, repeatedly send Rest requests until one succeeds or a
 // maximum amount of time has passed.
 template <typename FutureType>
-void StorageReferenceInternal::AsyncSendRequestWithRetry(
+void StorageReferenceInternalDesktop::AsyncSendRequestWithRetry(
     StorageReferenceFn internal_function_reference,
     SendRequestFunct send_request_funct,
     SafeFutureHandle<FutureType> final_handle, BlockingResponse* response,
@@ -406,7 +412,7 @@ bool g_retry_all_errors_for_testing = false;
 
 // Returns whether or not an http status represents a failure that should be
 // retried.
-bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
+bool StorageReferenceInternalDesktop::IsRetryableFailure(int httpStatus) {
   return (httpStatus >= 500 && httpStatus < 600) || httpStatus == 429 ||
          httpStatus == 408 ||
          (g_retry_all_errors_for_testing &&
@@ -414,20 +420,20 @@ bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
 }
 
 // Returns the result of the most recent call to GetBytes();
-Future<size_t> StorageReferenceInternal::GetBytesLastResult() {
+Future<size_t> StorageReferenceInternalDesktop::GetBytesLastResult() {
   return static_cast<const Future<size_t>&>(
       future()->LastResult(kStorageReferenceFnGetBytes));
 }
 
 // Asynchronously uploads data to the currently specified StorageReference,
 // without additional metadata.
-Future<Metadata> StorageReferenceInternal::PutBytes(
+Future<Metadata> StorageReferenceInternalDesktop::PutBytes(
     const void* buffer, size_t buffer_size, Listener* listener,
     Controller* controller_out) {
   return PutBytes(buffer, buffer_size, nullptr, listener, controller_out);
 }
 
-Future<Metadata> StorageReferenceInternal::PutBytesInternal(
+Future<Metadata> StorageReferenceInternalDesktop::PutBytesInternal(
     const void* buffer, size_t buffer_size, Listener* listener,
     Controller* controller_out, const char* content_type) {
   auto* future_api = future();
@@ -458,7 +464,7 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
 
 // Asynchronously uploads data to the currently specified StorageReference,
 // with metadata included.
-Future<Metadata> StorageReferenceInternal::PutBytes(
+Future<Metadata> StorageReferenceInternalDesktop::PutBytes(
     const void* buffer, size_t buffer_size, const Metadata* metadata,
     Listener* listener, Controller* controller_out) {
   // This is the handle for the actual future returned to the user.
@@ -469,8 +475,11 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   // This is the future to do the actual putfile.  Note that it is on a
   // different storage reference than the original, so the caller of this
   // function can't access it via PutFileLastResult.
+  // Cast to Desktop specific internal to call the private helper.
+  StorageReferenceInternalDesktop* desktop_internal_for_put =
+      static_cast<StorageReferenceInternalDesktop*>(data->storage_ref.internal_);
   Future<Metadata> putbytes_internal =
-      data->storage_ref.internal_->PutBytesInternal(
+      desktop_internal_for_put->PutBytesInternal(
           buffer, buffer_size, listener, controller_out,
           metadata ? metadata->content_type() : nullptr);
 
@@ -479,7 +488,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   return PutBytesLastResult();
 }
 
-Future<Metadata> StorageReferenceInternal::PutBytesLastResult() {
+Future<Metadata> StorageReferenceInternalDesktop::PutBytesLastResult() {
   return static_cast<const Future<Metadata>&>(
       future()->LastResult(kStorageReferenceFnPutBytes));
 }
@@ -488,13 +497,13 @@ Future<Metadata> StorageReferenceInternal::PutBytesLastResult() {
 // without additional metadata.
 // Currently not terribly efficient about it.
 // TODO(b/69434445): Make this more efficient. b/69434445
-Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
+Future<Metadata> StorageReferenceInternalDesktop::PutFile(const char* path,
                                                    Listener* listener,
                                                    Controller* controller_out) {
   return PutFile(path, nullptr, listener, controller_out);
 }
 
-Future<Metadata> StorageReferenceInternal::PutFileInternal(
+Future<Metadata> StorageReferenceInternalDesktop::PutFileInternal(
     const char* path, Listener* listener, Controller* controller_out,
     const char* content_type) {
   auto* future_api = future();
@@ -534,7 +543,7 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
 
 // Asynchronously uploads data to the currently specified StorageReference,
 // without additional metadata.
-Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
+Future<Metadata> StorageReferenceInternalDesktop::PutFile(const char* path,
                                                    const Metadata* metadata,
                                                    Listener* listener,
                                                    Controller* controller_out) {
@@ -546,8 +555,11 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   // This is the future to do the actual putfile.  Note that it is on a
   // different storage reference than the original, so the caller of this
   // function can't access it via PutFileLastResult.
+  // Cast to Desktop specific internal to call the private helper.
+  StorageReferenceInternalDesktop* desktop_internal_for_put =
+      static_cast<StorageReferenceInternalDesktop*>(data->storage_ref.internal_);
   Future<Metadata> putfile_internal =
-      data->storage_ref.internal_->PutFileInternal(
+      desktop_internal_for_put->PutFileInternal(
           path, listener, controller_out,
           metadata ? metadata->content_type() : nullptr);
 
@@ -557,13 +569,13 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
 }
 
 // Returns the result of the most recent call to PutFile();
-Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
+Future<Metadata> StorageReferenceInternalDesktop::PutFileLastResult() {
   return static_cast<const Future<Metadata>&>(
       future()->LastResult(kStorageReferenceFnPutFile));
 }
 
 // Retrieves metadata associated with an object at this StorageReference.
-Future<Metadata> StorageReferenceInternal::GetMetadata() {
+Future<Metadata> StorageReferenceInternalDesktop::GetMetadata() {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadata);
 
@@ -590,13 +602,13 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
 }
 
 // Returns the result of the most recent call to GetMetadata();
-Future<Metadata> StorageReferenceInternal::GetMetadataLastResult() {
+Future<Metadata> StorageReferenceInternalDesktop::GetMetadataLastResult() {
   return static_cast<const Future<Metadata>&>(
       future()->LastResult(kStorageReferenceFnGetMetadata));
 }
 
 // Updates the metadata associated with this StorageReference.
-Future<Metadata> StorageReferenceInternal::UpdateMetadata(
+Future<Metadata> StorageReferenceInternalDesktop::UpdateMetadata(
     const Metadata* metadata) {
   auto* future_api = future();
   auto handle =
@@ -629,13 +641,13 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
 }
 
 // Returns the result of the most recent call to UpdateMetadata();
-Future<Metadata> StorageReferenceInternal::UpdateMetadataLastResult() {
+Future<Metadata> StorageReferenceInternalDesktop::UpdateMetadataLastResult() {
   return static_cast<const Future<Metadata>&>(
       future()->LastResult(kStorageReferenceFnUpdateMetadata));
 }
 
 // Asynchronously retrieves a long lived download URL with a revokable token.
-Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
+Future<std::string> StorageReferenceInternalDesktop::GetDownloadUrl() {
   // TODO(b/78908154): Re-implement this function without use of GetMetadata()
   Future<Metadata> metadata_future = GetMetadata();
   auto* future_api = future();
@@ -678,24 +690,60 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
 }
 
 // Returns the result of the most recent call to GetDownloadUrl();
-Future<std::string> StorageReferenceInternal::GetDownloadUrlLastResult() {
+Future<std::string> StorageReferenceInternalDesktop::GetDownloadUrlLastResult() {
   return static_cast<const Future<std::string>&>(
       future()->LastResult(kStorageReferenceFnGetDownloadUrl));
 }
 
 // Returns the short name of this object.
-std::string StorageReferenceInternal::name() {
+std::string StorageReferenceInternalDesktop::name() {
   return storageUri_.GetPath().GetBaseName();
 }
 
 // Returns a new instance of StorageReference pointing to the parent location
 // or null if this instance references the root location.
-StorageReferenceInternal* StorageReferenceInternal::GetParent() {
-  return new StorageReferenceInternal(storageUri_.GetParent(), storage_);
+StorageReferenceInternal* StorageReferenceInternalDesktop::GetParent() {
+  return new StorageReferenceInternalDesktop(storageUri_.GetParent(), storage_);
 }
 
-ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
+ReferenceCountedFutureImpl* StorageReferenceInternalDesktop::future() {
   return storage_->future_manager().GetFutureApi(this);
+}
+
+Future<ListResult> StorageReferenceInternalDesktop::List(int32_t max_results) {
+  ReferenceCountedFutureImpl* future_api = future();
+  SafeFutureHandle<ListResult> handle =
+      future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  future_api->CompleteWithResult(handle, firebase::storage::kErrorUnimplemented,
+                                 "List operation is not supported on desktop.",
+                                 ListResult(nullptr));
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternalDesktop::List(int32_t max_results,
+                                                  const char* page_token) {
+  ReferenceCountedFutureImpl* future_api = future();
+  SafeFutureHandle<ListResult> handle =
+      future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  future_api->CompleteWithResult(handle, firebase::storage::kErrorUnimplemented,
+                                 "List operation is not supported on desktop.",
+                                 ListResult(nullptr));
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternalDesktop::ListAll() {
+  ReferenceCountedFutureImpl* future_api = future();
+  SafeFutureHandle<ListResult> handle =
+      future_api->SafeAlloc<ListResult>(kStorageReferenceFnList);
+  future_api->CompleteWithResult(
+      handle, firebase::storage::kErrorUnimplemented,
+      "ListAll operation is not supported on desktop.", ListResult(nullptr));
+  return ListLastResult();
+}
+
+Future<ListResult> StorageReferenceInternalDesktop::ListLastResult() {
+  return static_cast<const Future<ListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
 }
 
 }  // namespace internal
