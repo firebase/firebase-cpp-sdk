@@ -22,6 +22,7 @@
 #include "storage/src/ios/storage_reference_ios.h"
 
 #import "FirebaseStorage-Swift.h"
+#include <Foundation/Foundation.h>
 
 namespace firebase {
 namespace storage {
@@ -95,6 +96,17 @@ double StorageInternal::max_operation_retry_time() const { return impl().maxOper
 
 void StorageInternal::set_max_operation_retry_time(double max_transfer_retry_seconds) {
   impl().maxOperationRetryTime = max_transfer_retry_seconds;
+}
+
+void StorageInternal::UseEmulator(const char* host, int port) {
+
+  NSCAssert(host && host[0] != '\0', @"Emulator host cannot be null or empty.");
+
+  NSCAssert(port > 0, @"Emulator port must be a positive number.");
+
+  NSString *hostString = [NSString stringWithUTF8String:host];
+
+  [impl() useEmulatorWithHost:hostString port:port];
 }
 
 // Whether this object was successfully initialized by the constructor.

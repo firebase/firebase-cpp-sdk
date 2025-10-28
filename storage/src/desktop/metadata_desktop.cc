@@ -133,7 +133,8 @@ const char* MetadataInternal::download_url() const {
 
 std::string MetadataInternal::GetPathFromToken(const std::string& token) const {
   std::string http_url =
-      StoragePath("gs://" + bucket_ + "/" + path_).AsHttpUrl();
+      StoragePath(storage_internal_, "gs://" + bucket_ + "/" + path_)
+          .AsHttpUrl();
   if (!token.empty()) http_url += "&token=" + token;
   return http_url;
 }

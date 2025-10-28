@@ -48,23 +48,23 @@ TEST_F(StorageDesktopUtilsTests, testGSStoragePathConstructors) {
   StoragePath test_path;
 
   // Test basic case:
-  test_path = StoragePath("gs://Bucket/path/Object");
+  test_path = StoragePath(nullptr, "gs://Bucket/path/Object");
 
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path/Object");
 
   // Test a more complex path:
-  test_path = StoragePath("gs://Bucket/path/morepath/Object");
+  test_path = StoragePath(nullptr, "gs://Bucket/path/morepath/Object");
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path/morepath/Object");
 
   // Extra slashes:
-  test_path = StoragePath("gs://Bucket/path////Object");
+  test_path = StoragePath(nullptr, "gs://Bucket/path////Object");
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path/Object");
 
   // Path with no Object:
-  test_path = StoragePath("gs://Bucket/path////more////");
+  test_path = StoragePath(nullptr, "gs://Bucket/path////more////");
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path/more");
 }
@@ -76,29 +76,30 @@ TEST_F(StorageDesktopUtilsTests, testHTTPStoragePathConstructors) {
   std::string intended_path_result = "path/to/Object/Object.data";
 
   // Test basic case:
-  test_path = StoragePath(
-      "http://firebasestorage.googleapis.com/v0/b/Bucket/o/"
-      "path%2fto%2FObject%2fObject.data");
+  test_path = StoragePath(nullptr,
+                          "http://firebasestorage.googleapis.com/v0/b/Bucket/o/"
+                          "path%2fto%2FObject%2fObject.data");
   EXPECT_STREQ(test_path.GetBucket().c_str(), intended_bucket_result.c_str());
   EXPECT_STREQ(test_path.GetPath().c_str(), intended_path_result.c_str());
 
   // httpS (instead of http):
-  test_path = StoragePath(
-      "https://firebasestorage.googleapis.com/v0/b/Bucket/o/"
-      "path%2fto%2FObject%2fObject.data");
+  test_path =
+      StoragePath(nullptr,
+                  "https://firebasestorage.googleapis.com/v0/b/Bucket/o/"
+                  "path%2fto%2FObject%2fObject.data");
   EXPECT_STREQ(test_path.GetBucket().c_str(), intended_bucket_result.c_str());
   EXPECT_STREQ(test_path.GetPath().c_str(), intended_path_result.c_str());
 
   // Extra slashes:
-  test_path = StoragePath(
-      "http://firebasestorage.googleapis.com/v0/b/Bucket/o/"
-      "path%2f%2f%2f%2fto%2FObject%2f%2f%2f%2fObject.data");
+  test_path = StoragePath(nullptr,
+                          "http://firebasestorage.googleapis.com/v0/b/Bucket/o/"
+                          "path%2f%2f%2f%2fto%2FObject%2f%2f%2f%2fObject.data");
   EXPECT_STREQ(test_path.GetBucket().c_str(), intended_bucket_result.c_str());
   EXPECT_STREQ(test_path.GetPath().c_str(), intended_path_result.c_str());
 }
 
 TEST_F(StorageDesktopUtilsTests, testInvalidConstructors) {
-  StoragePath bad_path("argleblargle://Bucket/path1/path2/Object");
+  StoragePath bad_path(nullptr, "argleblargle://Bucket/path1/path2/Object");
   EXPECT_FALSE(bad_path.IsValid());
 }
 
@@ -107,12 +108,12 @@ TEST_F(StorageDesktopUtilsTests, testStoragePathParent) {
   StoragePath test_path;
 
   // Test parent, when there is an GetObject.
-  test_path = StoragePath("gs://Bucket/path/Object").GetParent();
+  test_path = StoragePath(nullptr, "gs://Bucket/path/Object").GetParent();
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path");
 
   // Test parent with no GetObject.
-  test_path = StoragePath("gs://Bucket/path/morepath/").GetParent();
+  test_path = StoragePath(nullptr, "gs://Bucket/path/morepath/").GetParent();
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path");
 }
@@ -122,27 +123,32 @@ TEST_F(StorageDesktopUtilsTests, testStoragePathChild) {
   StoragePath test_path;
 
   // Test child when there is no object.
-  test_path = StoragePath("gs://Bucket/path/morepath/").GetChild("newobj");
+  test_path =
+      StoragePath(nullptr, "gs://Bucket/path/morepath/").GetChild("newobj");
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path/morepath/newobj");
 
   // Test child when there is an object.
-  test_path = StoragePath("gs://Bucket/path/object").GetChild("newpath/");
+  test_path =
+      StoragePath(nullptr, "gs://Bucket/path/object").GetChild("newpath/");
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path/object/newpath");
 }
 
 TEST_F(StorageDesktopUtilsTests, testUrlConverter) {
-  StoragePath test_path("gs://Bucket/path1/path2/Object");
+  std::unique_ptr<App> app(firebase::testing::CreateApp());
+  StorageInternal* storage = new StorageInternal(app.get(), "gs://Bucket");
+
+  StoragePath test_path(storage, "gs://Bucket/path1/path2/Object");
 
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path1/path2/Object");
 
   EXPECT_STREQ(test_path.AsHttpUrl().c_str(),
-               "https://firebasestorage.googleapis.com"
+               "https://firebasestorage.googleapis.com:443"
                "/v0/b/Bucket/o/path1%2Fpath2%2FObject?alt=media");
   EXPECT_STREQ(test_path.AsHttpMetadataUrl().c_str(),
-               "https://firebasestorage.googleapis.com"
+               "https://firebasestorage.googleapis.com:443"
                "/v0/b/Bucket/o/path1%2Fpath2%2FObject");
 }
 
