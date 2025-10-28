@@ -62,7 +62,9 @@ namespace internal {
     "(Ljava/lang/String;)"                                              \
     "Lcom/google/firebase/storage/StorageReference;"),                  \
   X(GetApp, "getApp",                                                   \
-    "()Lcom/google/firebase/FirebaseApp;")
+    "()Lcom/google/firebase/FirebaseApp;"),                             \
+  X(UseEmulator, "useEmulator",                                         \
+    "(Ljava/lang/String;I)V")
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(firebase_storage, FIREBASE_STORAGE_METHODS)
@@ -469,6 +471,23 @@ void StorageInternal::set_max_operation_retry_time(
                       firebase_storage::GetMethodId(
                           firebase_storage::kSetMaxOperationRetryTimeMillis),
                       millis);
+}
+
+void StorageInternal::UseEmulator(const char* host, int port) {
+  JNIEnv* env = app_->GetJNIEnv();
+  FIREBASE_ASSERT_MESSAGE_RETURN_VOID((host != nullptr && host[0] != '\0'),
+                                      "Emulator host cannot be null or empty.")
+  FIREBASE_ASSERT_MESSAGE_RETURN_VOID(
+      (port > 0), "Emulator port must be a positive number.")
+
+  jobject host_string = env->NewStringUTF(host);
+  jint port_num = static_cast<jint>(port);
+
+  env->CallVoidMethod(
+      obj_, firebase_storage::GetMethodId(firebase_storage::kUseEmulator),
+      host_string, port_num);
+  env->DeleteLocalRef(host_string);
+  util::CheckAndClearJniExceptions(env);
 }
 
 }  // namespace internal

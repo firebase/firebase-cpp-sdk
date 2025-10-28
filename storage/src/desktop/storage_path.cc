@@ -16,10 +16,12 @@
 
 #include <string.h>
 
+#include <iostream>
 #include <string>
 
 #include "app/rest/util.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "storage/src/desktop/storage_desktop.h"
 
 namespace firebase {
 namespace storage {
@@ -38,8 +40,10 @@ const char kBucketStartString[] = "firebasestorage.googleapis.com/v0/b/";
 const size_t kBucketStartStringLength = FIREBASE_STRLEN(kBucketStartString);
 const char kBucketEndString[] = "/o/";
 const size_t kBucketEndStringLength = FIREBASE_STRLEN(kBucketEndString);
+const char kBucketIdentifierString[] = "/v0/b/";
 
-StoragePath::StoragePath(const std::string& path) {
+StoragePath::StoragePath(StorageInternal* storage, const std::string& path) {
+  storage_internal_ = storage;
   bucket_ = "";
   path_ = Path("");
   if (path.compare(0, kGsSchemeLength, kGsScheme) == 0) {
@@ -56,8 +60,9 @@ StoragePath::StoragePath(const std::string& path) {
 
 // Constructs a storage path, based on raw strings for the bucket, path, and
 // object.
-StoragePath::StoragePath(const std::string& bucket, const std::string& path,
-                         const std::string& object) {
+StoragePath::StoragePath(StorageInternal* storage, const std::string& bucket,
+                         const std::string& path, const std::string& object) {
+  storage_internal_ = storage;
   bucket_ = bucket;
   path_ = Path(path).GetChild(object);
 }
@@ -97,15 +102,20 @@ void StoragePath::ConstructFromHttpUrl(const std::string& url, int path_start) {
 std::string StoragePath::AsHttpUrl() const {
   static const char* kUrlEnd = "?alt=media";
   // Construct the URL.  Final format is:
-  // https://[projectname].googleapis.com/v0/b/[bucket]/o/[path and/or object]
+  // http[s]://[host]:[port]/v0/b/[bucket]/o/[path and/or object]
   return AsHttpMetadataUrl() + kUrlEnd;
 }
 
 std::string StoragePath::AsHttpMetadataUrl() const {
   // Construct the URL.  Final format is:
-  // https://[projectname].googleapis.com/v0/b/[bucket]/o/[path and/or object]
-  std::string result = kHttpsScheme;
-  result += kBucketStartString;
+  // [scheme]://[host]:[port]/v0/b/[bucket]/o/[path and/or object]
+
+  std::string result = storage_internal_->get_scheme();
+  result += "://";
+  result += storage_internal_->get_host();
+  result += ":";
+  result += std::to_string(storage_internal_->get_port());
+  result += kBucketIdentifierString;
   result += bucket_;
   result += kBucketEndString;
   result += rest::util::EncodeUrl(path_.str());

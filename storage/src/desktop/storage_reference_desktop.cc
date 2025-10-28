@@ -48,7 +48,7 @@ namespace internal {
 
 StorageReferenceInternal::StorageReferenceInternal(
     const std::string& storageUri, StorageInternal* storage)
-    : storage_(storage), storageUri_(storageUri) {
+    : storage_(storage), storageUri_(storage, storageUri) {
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
 

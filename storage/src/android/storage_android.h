@@ -92,6 +92,10 @@ class StorageInternal {
   // if a failure occurs.
   void set_max_operation_retry_time(double max_transfer_retry_seconds);
 
+  // Configures the Storage SDK to use an emulated backend instead of call the
+  // default remote backend
+  void UseEmulator(const char* host, int port);
+
   // Convert an error code obtained from a Java StorageException into a C++
   // Error enum.
   Error ErrorFromJavaErrorCode(jint java_error_code) const;
