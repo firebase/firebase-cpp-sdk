@@ -496,6 +496,7 @@ METHOD_LOOKUP_DECLARATION(activity, ACTIVITY_METHODS)
     X(GetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;"),   \
     X(KeySet, "keySet", "()Ljava/util/Set;"),                              \
     X(PutFloat, "putFloat", "(Ljava/lang/String;F)V"),                     \
+    X(PutDouble, "putDouble", "(Ljava/lang/String;D)V"),                   \
     X(PutLong, "putLong", "(Ljava/lang/String;J)V"),                       \
     X(PutString, "putString", "(Ljava/lang/String;Ljava/lang/String;)V"),  \
     X(PutBundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V"), \

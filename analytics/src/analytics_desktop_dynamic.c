@@ -139,6 +139,10 @@ static void Stub_GoogleAnalytics_LogEvent(const char* name, GoogleAnalytics_Even
     // No return value.
 }
 
+static void Stub_GoogleAnalytics_SetDefaultEventParameters(GoogleAnalytics_EventParameters* parameters, size_t number_of_parameters) {
+    // No return value.
+}
+
 // Stub for GoogleAnalytics_SetUserProperty
 static void Stub_GoogleAnalytics_SetUserProperty(const char* name,
                                                    const char* value) {
@@ -180,6 +184,7 @@ void (*ptr_GoogleAnalytics_EventParameters_InsertItemVector)(GoogleAnalytics_Eve
 void (*ptr_GoogleAnalytics_EventParameters_Destroy)(GoogleAnalytics_EventParameters* event_parameter_map) = &Stub_GoogleAnalytics_EventParameters_Destroy;
 bool (*ptr_GoogleAnalytics_Initialize)(const GoogleAnalytics_Options* options) = &Stub_GoogleAnalytics_Initialize;
 void (*ptr_GoogleAnalytics_LogEvent)(const char* name, GoogleAnalytics_EventParameters* parameters) = &Stub_GoogleAnalytics_LogEvent;
+void (*ptr_GoogleAnalytics_SetDefaultEventParameters)(GoogleAnalytics_EventParameters* parameters, size_t number_of_parameters) = &Stub_GoogleAnalytics_SetDefaultEventParameters;
 void (*ptr_GoogleAnalytics_SetUserProperty)(const char* name, const char* value) = &Stub_GoogleAnalytics_SetUserProperty;
 void (*ptr_GoogleAnalytics_SetUserId)(const char* user_id) = &Stub_GoogleAnalytics_SetUserId;
 void (*ptr_GoogleAnalytics_ResetAnalyticsData)() = &Stub_GoogleAnalytics_ResetAnalyticsData;

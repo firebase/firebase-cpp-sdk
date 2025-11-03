@@ -60,7 +60,9 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
-    firebase::util::kMethodTypeStatic)
+    firebase::util::kMethodTypeStatic),                                       \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V")
 // clang-format on
 
 // clang-format off
@@ -340,8 +342,8 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key,
 void AddToBundle(JNIEnv* env, jobject bundle, const char* key, double value) {
   jstring key_string = env->NewStringUTF(key);
   env->CallVoidMethod(bundle,
-                      util::bundle::GetMethodId(util::bundle::kPutFloat),
-                      key_string, static_cast<jfloat>(value));
+                      util::bundle::GetMethodId(util::bundle::kPutDouble),
+                      key_string, static_cast<jdouble>(value));
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(key_string);
 }
@@ -516,6 +518,43 @@ void LogEvent(const char* name, const Parameter* parameters,
       }
     }
   });
+}
+
+// Set the default event parametrs.
+void SetDefaultEventParameters(const Parameter* parameters,
+                               size_t number_of_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+
+  if (!parameters) {
+    env->CallVoidMethod(
+        g_analytics_class_instance,
+        analytics::GetMethodId(analytics::kSetDefaultEventParameters), nullptr);
+    if (util::CheckAndClearJniExceptions(env)) {
+      LogError("Failed to set default event parameters");
+    }
+    return;
+  }
+
+  jobject bundle =
+      env->NewObject(util::bundle::GetClass(),
+                     util::bundle::GetMethodId(util::bundle::kConstructor));
+  for (size_t i = 0; i < number_of_parameters; ++i) {
+    const Parameter& parameter = parameters[i];
+    if (!AddVariantToBundle(env, bundle, parameter.name, parameter.value)) {
+      // A Variant type that couldn't be handled was passed in.
+      LogError(
+          "SetDefaultEventParameters(%s): %s is not a valid parameter value"
+          " type. Excluded from default parameters.",
+          parameter.name, Variant::TypeName(parameter.value.type()));
+    }
+  }
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters), bundle);
+  if (util::CheckAndClearJniExceptions(env)) {
+    LogError("Failed to set default event parameters");
+  }
 }
 
 /// Initiates on-device conversion measurement given a user email address on iOS

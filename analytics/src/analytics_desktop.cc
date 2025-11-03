@@ -429,6 +429,11 @@ void LogEvent(const char* name, const char* parameter_name,
 
 // --- Stub Implementations for Unsupported Features ---
 
+void SetDefaultEventParameters(const Parameter* parameters,
+                               size_t number_of_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+}
+
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 

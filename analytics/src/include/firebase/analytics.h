@@ -476,6 +476,22 @@ void LogEvent(const char* name);
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters);
 
+/// @brief Adds parameters that will be set on every event logged from the SDK.
+///
+/// Adds parameters that will be set on every event logged from the SDK,
+/// including automatic ones. The values passed in the parameters bundle will
+/// be added to the map of default event parameters. These parameters persist
+/// across app runs. They are of lower precedence than event parameters, so if
+/// an event parameter and a parameter set using this API have the same name,
+/// the value of the event parameter will be used. The same limitations on event
+/// parameters apply to default event parameters.
+///
+/// @param[in] parameters Array of Parameter structures.
+/// @param[in] number_of_parameters Number of elements in the parameters
+/// array.
+void SetDefaultEventParameters(const Parameter* parameters,
+                               size_t number_of_parameters);
+
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// and tvOS (no-op on Android). On iOS and tvOS, this method requires the
 /// dependency GoogleAppMeasurementOnDeviceConversion to be linked in,

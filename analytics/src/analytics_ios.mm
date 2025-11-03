@@ -312,6 +312,9 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
   [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
 }
 
+void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_parameters) {  
+}
+
 /// Initiates on-device conversion measurement given a user email address on iOS (no-op on
 /// Android). On iOS, requires dependency GoogleAppMeasurementOnDeviceConversion to be linked
 /// in, otherwise it is a no-op.
