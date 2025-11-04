@@ -334,7 +334,7 @@ void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_par
     if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value)) {
       // A Variant type that couldn't be handled was passed in.
       LogError("SetDefaultEventParameters(%s): %s is not a valid parameter value type. "
-               "No event was logged.",
+               "The parameter was not added.",
                parameter.name, Variant::TypeName(parameter.value.type()));
     }
   }

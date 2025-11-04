@@ -493,9 +493,7 @@ void LogEvent(const char* name, const Parameter* parameters,
 /// prefix is reserved and should not be used. Note that event names are
 /// case-sensitive and that logging two events whose names differ only in
 /// case will result in two distinct events.
-/// @param[in] parameters Array of Parameter structures.
-/// @param[in] number_of_parameters Number of elements in the parameters
-/// array.
+/// @param[in] parameters Vector of Parameter structures.
 void LogEvent(const char* name, const std::vector<Parameter>& parameters);
 
 /// @brief Adds parameters that will be set on every event logged from the SDK.

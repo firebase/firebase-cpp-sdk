@@ -561,6 +561,7 @@ void SetDefaultEventParameters(const Parameter* parameters,
   if (util::CheckAndClearJniExceptions(env)) {
     LogError("Failed to set default event parameters");
   }
+  env->DeleteLocalRef(bundle);
 }
 
 // Set the default event parameters
