@@ -299,13 +299,13 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithComplexParameters) {
 
 TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
   const firebase::analytics::Parameter kDefaultParameters[] = {
-        firebase::analytics::Parameter("default_parameter_double", 123.456),
-        firebase::analytics::Parameter("default_parameter_int", 4),
-        firebase::analytics::Parameter("default_parameter_str",
-                                       "Hello World"),
-    };
+      firebase::analytics::Parameter("default_parameter_double", 123.456),
+      firebase::analytics::Parameter("default_parameter_int", 4),
+      firebase::analytics::Parameter("default_parameter_str", "Hello World"),
+  };
 
-  firebase::analytics::SetDefaultEventParameters(kDefaultParameters,
+  firebase::analytics::SetDefaultEventParameters(
+      kDefaultParameters,
       sizeof(kDefaultParameters) / sizeof(kDefaultParameters[0]));
   firebase::analytics::LogEvent("default_parameter_event");
   firebase::analytics::SetDefaultEventParameters(nullptr, 0);

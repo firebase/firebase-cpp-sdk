@@ -563,9 +563,9 @@ void SetDefaultEventParameters(const Parameter* parameters,
   }
 }
 
-  // Set the default event parameters
+// Set the default event parameters
 void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
-  setDefaultEventParameters(parameters.data(), parameters.size());
+  SetDefaultEventParameters(parameters.data(), parameters.size());
 }
 
 /// Initiates on-device conversion measurement given a user email address on iOS
