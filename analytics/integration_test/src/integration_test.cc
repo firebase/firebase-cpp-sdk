@@ -298,7 +298,7 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithComplexParameters) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
-  const std::vector<Parameter> kDefaultParameters = {
+  const std::vector<firebase::analytics::Parameter> kDefaultParameters = {
       firebase::analytics::Parameter("default_parameter_double", 123.456),
       firebase::analytics::Parameter("default_parameter_int", 4),
       firebase::analytics::Parameter("default_parameter_str", "Hello World"),
