@@ -545,6 +545,12 @@ void SetDefaultEventParameters(const Parameter* parameters,
   jobject bundle =
       env->NewObject(util::bundle::GetClass(),
                      util::bundle::GetMethodId(util::bundle::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+    LogError("Failed to create bundle for SetDefaultEventParameters.");
+    if (bundle) env->DeleteLocalRef(bundle);
+    return;
+  }
+
   for (size_t i = 0; i < number_of_parameters; ++i) {
     const Parameter& parameter = parameters[i];
     if (!AddVariantToBundle(env, bundle, parameter.name, parameter.value)) {
