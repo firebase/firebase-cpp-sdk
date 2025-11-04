@@ -312,7 +312,38 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
   [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
 }
 
-void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_parameters) {  
+// log an event and the associated parameters via a vector.
+void LogEvent(const char* name, const std::vector<Parameter>& parameters) {
+  LogEvent(name, parameters.data(), parameters.size());
+}
+
+// Sets the default event parameter
+void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+
+  if (!parameters || number_of_parameters == 0) {
+    [FIRAnalytics setDefaultEventParameters:nil];
+    return;
+  }
+
+  NSMutableDictionary* parameters_dict =
+      [NSMutableDictionary dictionaryWithCapacity:number_of_parameters];
+  for (size_t i = 0; i < number_of_parameters; ++i) {
+    const Parameter& parameter = parameters[i];
+    NSString* parameter_name = SafeString(parameter.name);
+    if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value)) {
+      // A Variant type that couldn't be handled was passed in.
+      LogError("SetDefaultEventParameters(%s): %s is not a valid parameter value type. "
+               "No event was logged.",
+               parameter.name, Variant::TypeName(parameter.value.type()));
+    }
+  }
+  [FIRAnalytics setDefaultEventParameters:parameters_dict];
+}
+
+// Sets the default event parameters via a vector
+void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
+  SetDefaultEventParameters(parameters.data(), parameters.size());
 }
 
 /// Initiates on-device conversion measurement given a user email address on iOS (no-op on

@@ -310,6 +310,11 @@ void LogEvent(const char* name, const Parameter* parameters,
   // c_event_params if non-null.
 }
 
+// log an event and the associated parameters via a vector.
+void LogEvent(const char* name, const std::vector<Parameter>& parameters) {
+  LogEvent(name, parameters.data(), parameters.size());
+}
+
 // Sets a user property to the given value.
 //
 // Up to 25 user property names are supported. Once set, user property values
@@ -432,6 +437,10 @@ void LogEvent(const char* name, const char* parameter_name,
 void SetDefaultEventParameters(const Parameter* parameters,
                                size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+}
+
+void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
+  SetDefaultEventParameters(parameters.data(), parameters.size());
 }
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {

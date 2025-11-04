@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
@@ -520,13 +521,18 @@ void LogEvent(const char* name, const Parameter* parameters,
   });
 }
 
-// Set the default event parametrs.
+// log an event and the associated parameters via a vector.
+void LogEvent(const char* name, const std::vector<Parameter>& parameters) {
+  LogEvent(name, parameters.data(), parameters.size());
+}
+
+// Set the default event parameters.
 void SetDefaultEventParameters(const Parameter* parameters,
                                size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
 
-  if (!parameters) {
+  if (!parameters || number_of_parameters == 0) {
     env->CallVoidMethod(
         g_analytics_class_instance,
         analytics::GetMethodId(analytics::kSetDefaultEventParameters), nullptr);
@@ -555,6 +561,11 @@ void SetDefaultEventParameters(const Parameter* parameters,
   if (util::CheckAndClearJniExceptions(env)) {
     LogError("Failed to set default event parameters");
   }
+}
+
+  // Set the default event parameters
+void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
+  setDefaultEventParameters(parameters.data(), parameters.size());
 }
 
 /// Initiates on-device conversion measurement given a user email address on iOS
