@@ -3,20 +3,20 @@ platform :ios, '15.0'
 use_frameworks!
 
 target 'GetPods' do
-  pod 'Firebase/Core', '12.4.0'
+  pod 'Firebase/Core', '12.6.0'
 
   pod 'GoogleUserMessagingPlatform', '2.3.0'
-  pod 'Firebase/Analytics', '12.4.0'
-  pod 'Firebase/AppCheck', '12.4.0'
-  pod 'Firebase/Auth', '12.4.0'
-  pod 'Firebase/Crashlytics', '12.4.0'
-  pod 'Firebase/Database', '12.4.0'
-  pod 'Firebase/Firestore', '12.4.0'
-  pod 'Firebase/Functions', '12.4.0'
-  pod 'Firebase/Installations', '12.4.0'
-  pod 'Firebase/Messaging', '12.4.0'
-  pod 'Firebase/RemoteConfig', '12.4.0'
-  pod 'Firebase/Storage', '12.4.0'
+  pod 'Firebase/Analytics', '12.6.0'
+  pod 'Firebase/AppCheck', '12.6.0'
+  pod 'Firebase/Auth', '12.6.0'
+  pod 'Firebase/Crashlytics', '12.6.0'
+  pod 'Firebase/Database', '12.6.0'
+  pod 'Firebase/Firestore', '12.6.0'
+  pod 'Firebase/Functions', '12.6.0'
+  pod 'Firebase/Installations', '12.6.0'
+  pod 'Firebase/Messaging', '12.6.0'
+  pod 'Firebase/RemoteConfig', '12.6.0'
+  pod 'Firebase/Storage', '12.6.0'
 
 end
 
