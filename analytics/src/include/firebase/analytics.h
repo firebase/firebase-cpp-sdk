@@ -568,7 +568,8 @@ enum AppLifecycleState { kUnknown = 0, kTermination };
 ///
 /// This method is used to notify the Analytics SDK about the current state of
 /// the app's lifecycle. The Analytics SDK will use this information to log
-/// events, update user properties, upload data, etc.
+/// events, update user properties, upload data, etc. The method only work on
+/// windows and is a NO-OP on iOS and Android.
 ///
 /// kTermination is used to indicate that the app is about to be terminated.
 /// The caller will be blocked until all pending data is uploaded or an error
