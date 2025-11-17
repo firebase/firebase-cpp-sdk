@@ -609,6 +609,9 @@ void ResetAnalyticsData() {
   util::CheckAndClearJniExceptions(env);
 }
 
+// NO-OP in Android and iOS. Only used in Windows.
+void NotifyAppLifecycleChange(AppLifecycleState) {}
+
 Future<std::string> GetAnalyticsInstanceId() {
   FIREBASE_ASSERT_RETURN(GetAnalyticsInstanceIdLastResult(),
                          internal::IsInitialized());
@@ -735,6 +738,7 @@ Future<int64_t> GetSessionIdLastResult() {
       internal::FutureData::Get()->api()->LastResult(
           internal::kAnalyticsFnGetSessionId));
 }
+
 
 }  // namespace analytics
 }  // namespace firebase
