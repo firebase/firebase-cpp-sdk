@@ -739,6 +739,5 @@ Future<int64_t> GetSessionIdLastResult() {
           internal::kAnalyticsFnGetSessionId));
 }
 
-
 }  // namespace analytics
 }  // namespace firebase
