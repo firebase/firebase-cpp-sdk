@@ -380,7 +380,7 @@ void ResetAnalyticsData() {
 }
 
 // No-Op on iOS and Android. Only used in Windows desktop apps.
-void NotifyAppLifecycleChange(AppLifeCycleState) {}
+void NotifyAppLifecycleChange(AppLifecycleState) {}
 
 Future<std::string> GetAnalyticsInstanceId() {
   MutexLock lock(g_mutex);
