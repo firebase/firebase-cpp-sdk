@@ -618,6 +618,10 @@ code.
     - Storage: Add support for Firebase Storage emulator via `UseEmulator`.
         The `UseEmulator` method should be called before invoking any other
         methods on a new instance of Storage. Default port is 9199.
+    - Analytics: Add support for SetDefaultEventParameters in Android and iOS.
+        Adds parameters that will be set on every event logged from the SDK,
+        including automatic ones.
+    - Analytics: Enables LogEvent to take in a vector of parameters.
 
 ### 13.2.0
 -   Changes
