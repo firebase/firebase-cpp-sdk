@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -557,6 +558,28 @@ void SetSessionTimeoutDuration(int64_t milliseconds);
 /// Clears all analytics data for this app from the device and resets the app
 /// instance id.
 void ResetAnalyticsData();
+
+/// @brief The log level of the message logged by the SDK.
+enum LogLevel {
+  kLogLevelDebug,
+  kLogLevelInfo,
+  kLogLevelWarning,
+  kLogLevelError,
+};
+
+/// @brief The callback type for logging messages from the SDK.
+///
+/// The callback is invoked whenever the SDK logs a message.
+///
+/// @param[in] log_level The log level of the message.
+/// @param[in] message The message logged by the SDK.
+using LogCallback =  std::function<void(LogLevel, const char*)>;
+
+/// @brief Allows the passing of a callback to be used when the SDK logs any
+/// messages regarding its behavior. The callback must be thread-safe.
+///
+/// @param[in] callback The callback to use. Must be thread-safe.
+void SetLogCallback(const LogCallback& callback);
 
 /// @brief The state of an app in its lifecycle.
 ///

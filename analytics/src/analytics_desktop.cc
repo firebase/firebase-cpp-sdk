@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <map>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,6 +45,8 @@ static HMODULE g_analytics_module = 0;
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
 static bool g_initialized = false;
+static LogCallback g_log_callback;
+static std::mutex g_log_callback_mutex;
 static int g_fake_instance_id = 0;
 static bool g_analytics_collection_enabled = true;
 static std::string g_app_id;
@@ -383,6 +386,41 @@ void ResetAnalyticsData() {
 
   GoogleAnalytics_ResetAnalyticsData();
   g_fake_instance_id++;
+}
+
+// C-style callback that will be passed to the Google Analytics C API.
+static void GoogleAnalyticsWraperLogCallback(GoogleAnalytics_LogLevel log_level,
+                            const char* message) {
+  if (g_log_callback) {
+    LogLevel sdk_log_level;
+    switch (log_level) {
+      case kDebug:
+        sdk_log_level = kLogLevelDebug;
+        break;
+      case kInfo:
+        sdk_log_level = kLogLevelInfo;
+        break;
+      case kWarning:
+        sdk_log_level = kLogLevelWarning;
+        break;
+      case kError:
+        sdk_log_level = kLogLevelError;
+        break;
+      default:
+        sdk_log_level = kLogLevelInfo;
+    }
+    g_log_callback(sdk_log_level, message);
+  }
+}
+
+// Allows the passing of a callback to be used when the SDK logs any
+// messages regarding its behavior. The callback must be thread-safe.
+void SetLogCallback(const LogCallback& callback) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // The C API does not support user data, so we must use a global variable.
+  std::lock_guard<std::mutex> lock(g_log_callback_mutex);
+  g_log_callback = callback;
+  GoogleAnalytics_SetLogCallback(GoogleAnalyticsWraperLogCallback);
 }
 
 // Notify the Analytics SDK about the current state of the app's lifecycle.

@@ -380,6 +380,9 @@ void ResetAnalyticsData() {
 }
 
 // No-Op on iOS and Android. Only used in Windows desktop apps.
+void SetLogCallback(const LogCallback&) {}
+
+// No-Op on iOS and Android. Only used in Windows desktop apps.
 void NotifyAppLifecycleChange(AppLifecycleState) {}
 
 Future<std::string> GetAnalyticsInstanceId() {
