@@ -613,8 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 13.3.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 34.6.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.6.0.
     - Storage: Add support for Firebase Storage emulator via `UseEmulator`.
         The `UseEmulator` method should be called before invoking any other
         methods on a new instance of Storage. Default port is 9199.
