@@ -26,6 +26,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
+#include "firebase/log.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -388,28 +389,29 @@ void ResetAnalyticsData() {
   g_fake_instance_id++;
 }
 
+LogLevel ConvertAnalyticsLogLevelToFirebaseLogLevel(
+    GoogleAnalytics_LogLevel log_level) {
+  switch (log_level) {
+    case kDebug:
+      return kLogLevelDebug;
+      case kInfo:
+        return kLogLevelInfo;
+      case kWarning:
+        return kLogLevelWarning;
+      case kError:
+        return kLogLevelError;
+      default:
+        return kLogLevelInfo;
+  }
+}
+
 // C-style callback that will be passed to the Google Analytics C API.
 static void GoogleAnalyticsWraperLogCallback(GoogleAnalytics_LogLevel log_level,
                             const char* message) {
   if (g_log_callback) {
-    LogLevel sdk_log_level;
-    switch (log_level) {
-      case kDebug:
-        sdk_log_level = kLogLevelDebug;
-        break;
-      case kInfo:
-        sdk_log_level = kLogLevelInfo;
-        break;
-      case kWarning:
-        sdk_log_level = kLogLevelWarning;
-        break;
-      case kError:
-        sdk_log_level = kLogLevelError;
-        break;
-      default:
-        sdk_log_level = kLogLevelInfo;
-    }
-    g_log_callback(sdk_log_level, message);
+    LogLevel firebase_log_level =
+        ConvertAnalyticsLogLevelToFirebaseLogLevel(log_level);
+    g_log_callback(firebase_log_level, message);
   }
 }
 

@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "firebase/app.h"
+#include "firebase/log.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/variant.h"
@@ -559,14 +560,6 @@ void SetSessionTimeoutDuration(int64_t milliseconds);
 /// instance id.
 void ResetAnalyticsData();
 
-/// @brief The log level of the message logged by the SDK.
-enum LogLevel {
-  kLogLevelDebug,
-  kLogLevelInfo,
-  kLogLevelWarning,
-  kLogLevelError,
-};
-
 /// @brief The callback type for logging messages from the SDK.
 ///
 /// The callback is invoked whenever the SDK logs a message.
@@ -576,7 +569,7 @@ enum LogLevel {
 using LogCallback =  std::function<void(LogLevel, const char*)>;
 
 /// @brief Allows the passing of a callback to be used when the SDK logs any
-/// messages regarding its behavior. The callback must be thread-safe.
+/// messages regarding its behaviour. The callback must be thread-safe.
 ///
 /// @param[in] callback The callback to use. Must be thread-safe.
 void SetLogCallback(const LogCallback& callback);
