@@ -478,6 +478,55 @@ void LogEvent(const char* name);
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters);
 
+/// @brief Log an event with associated parameters.
+///
+/// An Event is an important occurrence in your app that you want to
+/// measure.  You can report up to 500 different types of events per app and
+/// you can associate up to 25 unique parameters with each Event type.
+///
+/// Some common events are documented in @ref event_names (%event_names.h),
+/// but you may also choose to specify custom event types that are associated
+/// with your specific app.
+///
+/// @param[in] name Name of the event to log. Should contain 1 to 40
+/// alphanumeric characters or underscores. The name must start with an
+/// alphabetic character. Some event names are reserved. See @ref event_names
+/// (%event_names.h) for the list of reserved event names. The "firebase_"
+/// prefix is reserved and should not be used. Note that event names are
+/// case-sensitive and that logging two events whose names differ only in
+/// case will result in two distinct events.
+/// @param[in] parameters Vector of Parameter structures.
+void LogEvent(const char* name, const std::vector<Parameter>& parameters);
+
+/// @brief Adds parameters that will be set on every event logged from the SDK.
+///
+/// Adds parameters that will be set on every event logged from the SDK,
+/// including automatic ones. The values passed in the parameters bundle will
+/// be added to the map of default event parameters. These parameters persist
+/// across app runs. They are of lower precedence than event parameters, so if
+/// an event parameter and a parameter set using this API have the same name,
+/// the value of the event parameter will be used. The same limitations on event
+/// parameters apply to default event parameters.
+///
+/// @param[in] parameters Array of Parameter structures.
+/// @param[in] number_of_parameters Number of elements in the parameters
+/// array.
+void SetDefaultEventParameters(const Parameter* parameters,
+                               size_t number_of_parameters);
+
+/// @brief Adds parameters that will be set on every event logged from the SDK.
+///
+/// Adds parameters that will be set on every event logged from the SDK,
+/// including automatic ones. The values passed in the parameters bundle will
+/// be added to the map of default event parameters. These parameters persist
+/// across app runs. They are of lower precedence than event parameters, so if
+/// an event parameter and a parameter set using this API have the same name,
+/// the value of the event parameter will be used. The same limitations on event
+/// parameters apply to default event parameters.
+///
+/// @param[in] parameters reference to vector of Parameter structures.
+void SetDefaultEventParameters(const std::vector<Parameter>& parameters);
+
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// and tvOS (no-op on Android). On iOS and tvOS, this method requires the
 /// dependency GoogleAppMeasurementOnDeviceConversion to be linked in,

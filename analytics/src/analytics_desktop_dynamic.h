@@ -206,6 +206,7 @@ extern bool (*ptr_GoogleAnalytics_EventParameters_InsertItemVector)(GoogleAnalyt
 extern void (*ptr_GoogleAnalytics_EventParameters_Destroy)(GoogleAnalytics_EventParameters* event_parameter_map);
 extern bool (*ptr_GoogleAnalytics_Initialize)(GoogleAnalytics_Options* options);
 extern void (*ptr_GoogleAnalytics_LogEvent)(const char* name, GoogleAnalytics_EventParameters* parameters);
+extern void (*ptr_GoogleAnalytics_SetDefaultEventParameters)(GoogleAnalytics_EventParameters* parameters, size_t number_of_parameters);
 extern void (*ptr_GoogleAnalytics_SetUserProperty)(const char* name, const char* value);
 extern void (*ptr_GoogleAnalytics_SetUserId)(const char* user_id);
 extern void (*ptr_GoogleAnalytics_ResetAnalyticsData)();

@@ -36,7 +36,7 @@ def firebaseDependenciesMap = [
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
   'testlab' : [],
-  'ump' : ['com.google.android.ump:user-messaging-platform:3.2.0']
+  'ump' : ['com.google.android.ump:user-messaging-platform:4.0.0']
 ]
 
 // Handles adding the Firebase C++ dependencies as properties.
@@ -123,7 +123,7 @@ project.afterEvaluate {
 
       // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:34.4.0')
+      implementation platform('com.google.firebase:firebase-bom:34.6.0')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Messaging includes an aar, which to be depended on properly requires

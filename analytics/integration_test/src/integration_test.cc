@@ -324,6 +324,18 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithComplexParameters) {
       sizeof(kViewCartParameters) / sizeof(kViewCartParameters[0]));
 }
 
+TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
+  const std::vector<firebase::analytics::Parameter> kDefaultParameters = {
+      firebase::analytics::Parameter("default_parameter_double", 123.456),
+      firebase::analytics::Parameter("default_parameter_int", 4),
+      firebase::analytics::Parameter("default_parameter_str", "Hello World"),
+  };
+
+  firebase::analytics::SetDefaultEventParameters(kDefaultParameters);
+  firebase::analytics::LogEvent("default_parameter_event");
+  firebase::analytics::SetDefaultEventParameters(nullptr, 0);
+}
+
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   // On Android, this test must be performed at the end, after all the tests for
   // session ID and instance ID. This is because once you call SetConsent to

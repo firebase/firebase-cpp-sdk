@@ -56,9 +56,9 @@ android {
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:34.4.0')
+  implementation platform('com.google.firebase:firebase-bom:34.6.0')
   implementation 'com.google.firebase:firebase-analytics'
-  implementation 'com.google.android.ump:user-messaging-platform:3.2.0'
+  implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
 }
 
 afterEvaluate {
