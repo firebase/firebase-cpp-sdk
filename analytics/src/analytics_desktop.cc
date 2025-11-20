@@ -399,20 +399,20 @@ LogLevel ConvertAnalyticsLogLevelToFirebaseLogLevel(
   switch (log_level) {
     case kDebug:
       return kLogLevelDebug;
-      case kInfo:
-        return kLogLevelInfo;
-      case kWarning:
-        return kLogLevelWarning;
-      case kError:
-        return kLogLevelError;
-      default:
-        return kLogLevelInfo;
+    case kInfo:
+      return kLogLevelInfo;
+    case kWarning:
+      return kLogLevelWarning;
+    case kError:
+      return kLogLevelError;
+    default:
+      return kLogLevelInfo;
   }
 }
 
 // C-style callback that will be passed to the Google Analytics C API.
 static void GoogleAnalyticsWraperLogCallback(GoogleAnalytics_LogLevel log_level,
-                            const char* message) {
+                                             const char* message) {
   if (g_log_callback) {
     LogLevel firebase_log_level =
         ConvertAnalyticsLogLevelToFirebaseLogLevel(log_level);

@@ -25,9 +25,9 @@
 #include <vector>
 
 #include "firebase/app.h"
-#include "firebase/log.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
+#include "firebase/log.h"
 #include "firebase/variant.h"
 
 #if !defined(DOXYGEN) && !defined(SWIG)
@@ -615,7 +615,7 @@ void ResetAnalyticsData();
 ///
 /// @param[in] log_level The log level of the message.
 /// @param[in] message The message logged by the SDK.
-using LogCallback =  std::function<void(LogLevel, const char*)>;
+using LogCallback = std::function<void(LogLevel, const char*)>;
 
 /// @brief Allows the passing of a callback to be used when the SDK logs any
 /// messages regarding its behaviour. The callback must be thread-safe.

@@ -242,11 +242,11 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
       InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(hashed_phone);
 }
 
-#if defined(_WIN32)
+// #if defined(_WIN32)
 TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
   bool log_callback_called = false;
   firebase::analytics::SetLogCallback(
-      [&](firebase::analytics::LogLevel log_level, const char* message) {
+      [&](firebase::LogLevel log_level, const char* message) {
         log_callback_called = true;
       });
   // Log an event with an invalid parameter to trigger a log message.
@@ -259,7 +259,7 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
   EXPECT_TRUE(log_callback_called);
   firebase::analytics::SetLogCallback(nullptr);
 }
-#endif  // defined(_WIN32)
+// #endif  // defined(_WIN32)
 
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
   // Log an event with no parameters.
