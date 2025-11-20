@@ -191,7 +191,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 
 // Used to populate an array of MethodNameSignature.
 #define METHOD_NAME_SIGNATURE_5(id, name, signature, method_type, optional) \
-  {name, signature, method_type, optional}
+  { name, signature, method_type, optional }
 #define METHOD_NAME_SIGNATURE_4(id, name, signature, method_type) \
   METHOD_NAME_SIGNATURE_5(                                        \
       id, name, signature, method_type,                           \
