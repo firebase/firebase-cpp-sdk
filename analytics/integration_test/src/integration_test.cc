@@ -244,10 +244,13 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
 
 #if defined(_WIN32)
 TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
+  std::promise<void> finishedPromise;
+  std::future<void> finished Future = readyPromise.get_future();
   bool log_callback_called = false;
   firebase::analytics::SetLogCallback(
       [&](firebase::LogLevel log_level, const char* message) {
         log_callback_called = true;
+        finishedPromise.set_value();
       });
   // Log an event with an invalid parameter to trigger a log message.
   const firebase::analytics::Parameter kInvalidParameters[] = {
@@ -256,6 +259,7 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
   firebase::analytics::LogEvent(
       "invalid_event", kInvalidParameters,
       sizeof(kInvalidParameters) / sizeof(kInvalidParameters[0]));
+  readyPromise.set_value();
   EXPECT_TRUE(log_callback_called);
   firebase::analytics::SetLogCallback(nullptr);
 }
