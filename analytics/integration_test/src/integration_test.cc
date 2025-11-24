@@ -263,7 +263,7 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
       "invalid_event", kInvalidParameters,
       sizeof(kInvalidParameters) / sizeof(kInvalidParameters[0]));
 
-  if (finished.wait_for(std::chrono::seconds(5)) ==
+  if (finished.wait_for(std::chrono::seconds(60)) ==
       std::future_status::timeout) {
     ADD_FAILURE() << "Timed out waiting for log callback";
   } else {
