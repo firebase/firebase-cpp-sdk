@@ -256,7 +256,6 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
         finishedPromise.set_value();
       });
 
-  // Trigger the event
   const firebase::analytics::Parameter kInvalidParameters[] = {
       firebase::analytics::Parameter("invalid_character_!", 5),
   };
@@ -264,12 +263,11 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
       "invalid_event", kInvalidParameters,
       sizeof(kInvalidParameters) / sizeof(kInvalidParameters[0]));
 
-  // Idiomatic Timeout Handling
   if (finished.wait_for(std::chrono::seconds(5)) ==
       std::future_status::timeout) {
     ADD_FAILURE() << "Timed out waiting for log callback";
   } else {
-    finished.get(); // Synchronizes threads and propagates any exceptions
+    finished.get();
   }
 
   EXPECT_TRUE(log_callback_called);
