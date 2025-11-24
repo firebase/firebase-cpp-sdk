@@ -256,8 +256,9 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
         finishedPromise.set_value();
       });
 
+  char* mynull = nullptr;
   const firebase::analytics::Parameter kInvalidParameters[] = {
-      firebase::analytics::Parameter("invalid_character_!", 5),
+      firebase::analytics::Parameter("null_event", mynull),
   };
   firebase::analytics::LogEvent(
       "invalid_event", kInvalidParameters,
