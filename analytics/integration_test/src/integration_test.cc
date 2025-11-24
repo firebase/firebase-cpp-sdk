@@ -15,10 +15,12 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <future>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/analytics.h"
@@ -245,21 +247,31 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
 #if defined(_WIN32)
 TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
   std::promise<void> finishedPromise;
-  std::future<void> finished Future = readyPromise.get_future();
+  std::future<void> finished = finishedPromise.get_future();
   bool log_callback_called = false;
+
   firebase::analytics::SetLogCallback(
       [&](firebase::LogLevel log_level, const char* message) {
         log_callback_called = true;
         finishedPromise.set_value();
       });
-  // Log an event with an invalid parameter to trigger a log message.
+
+  // Trigger the event
   const firebase::analytics::Parameter kInvalidParameters[] = {
       firebase::analytics::Parameter("invalid_character_!", 5),
   };
   firebase::analytics::LogEvent(
       "invalid_event", kInvalidParameters,
       sizeof(kInvalidParameters) / sizeof(kInvalidParameters[0]));
-  readyPromise.set_value();
+
+  // Idiomatic Timeout Handling
+  if (finished.wait_for(std::chrono::seconds(5)) ==
+      std::future_status::timeout) {
+    ADD_FAILURE() << "Timed out waiting for log callback";
+  } else {
+    finished.get(); // Synchronizes threads and propagates any exceptions
+  }
+
   EXPECT_TRUE(log_callback_called);
   firebase::analytics::SetLogCallback(nullptr);
 }
