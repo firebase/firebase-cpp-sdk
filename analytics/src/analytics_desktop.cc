@@ -411,13 +411,20 @@ LogLevel ConvertAnalyticsLogLevelToFirebaseLogLevel(
   }
 }
 
-// C-style callback that will be passed to the Google Analytics C API.
-static void GoogleAnalyticsWraperLogCallback(GoogleAnalytics_LogLevel log_level,
-                                             const char* message) {
-  if (g_log_callback) {
+
+extern "C" void GoogleAnalyticsWrapperLogCallback(
+    GoogleAnalytics_LogLevel log_level, const char* message) {
+  LogCallback callback_to_call;
+
+  {
+    std::lock_guard<std::mutex> lock(g_log_callback_mutex);
+    callback_to_call = g_log_callback;
+  }
+
+  if (callback_to_call) {
     LogLevel firebase_log_level =
         ConvertAnalyticsLogLevelToFirebaseLogLevel(log_level);
-    g_log_callback(firebase_log_level, message);
+    callback_to_call(firebase_log_level, message);
   }
 }
 
@@ -426,8 +433,10 @@ static void GoogleAnalyticsWraperLogCallback(GoogleAnalytics_LogLevel log_level,
 void SetLogCallback(const LogCallback& callback) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   // The C API does not support user data, so we must use a global variable.
-  std::lock_guard<std::mutex> lock(g_log_callback_mutex);
-  g_log_callback = callback;
+  {
+    std::lock_guard<std::mutex> lock(g_log_callback_mutex);
+    g_log_callback = callback;
+  }
   GoogleAnalytics_SetLogCallback(GoogleAnalyticsWraperLogCallback);
 }
 
