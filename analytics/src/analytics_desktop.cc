@@ -437,7 +437,7 @@ void SetLogCallback(const LogCallback& callback) {
     std::lock_guard<std::mutex> lock(g_log_callback_mutex);
     g_log_callback = callback;
   }
-  GoogleAnalytics_SetLogCallback(GoogleAnalyticsWraperLogCallback);
+  GoogleAnalytics_SetLogCallback(GoogleAnalyticsWrapperLogCallback);
 }
 
 // Notify the Analytics SDK about the current state of the app's lifecycle.
