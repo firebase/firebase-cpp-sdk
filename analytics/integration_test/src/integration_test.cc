@@ -250,16 +250,21 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
   std::future<void> finished = finishedPromise.get_future();
   bool log_callback_called = false;
 
+  // Save the current log level, and set to verbose for this test.
+  firebase::LogLevel current_log_level = firebase::GetLogLevel();
+  firebase::SetLogLevel(firebase::LogLevel::kLogLevelVerbose);
+
   firebase::analytics::SetLogCallback(
       [&](firebase::LogLevel log_level, const char* message) {
         log_callback_called = true;
         finishedPromise.set_value();
       });
 
-  // Pass kUnknown to trigger a warning log directly from the DLL (on Windows),
+  //  Pass kUnknown to trigger a warning log directly from the DLL (on
+  //  Windows),
   firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
 
-  if (finished.wait_for(std::chrono::seconds(60)) ==
+  if (finished.wait_for(std::chrono::seconds(10)) ==
       std::future_status::timeout) {
     ADD_FAILURE() << "Timed out waiting for log callback";
   } else {
@@ -268,6 +273,7 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
 
   EXPECT_TRUE(log_callback_called);
   firebase::analytics::SetLogCallback(nullptr);
+  firebase::SetLogLevel(current_log_level);
 }
 #endif  // defined(_WIN32)
 
