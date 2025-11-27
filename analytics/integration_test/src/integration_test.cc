@@ -70,6 +70,8 @@ void FirebaseAnalyticsTest::SetUpTestSuite() {
 #endif  // defined(__ANDROID__)
 
   firebase::analytics::Initialize(*shared_app_);
+  LogInfo("Analytics DLL Loaded: %s",
+          firebase::analytics::IsAnalyticsDllLoaded() ? "true" : "false");
   did_test_setconsent_ = false;
 }
 
@@ -249,16 +251,27 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
   std::promise<void> finishedPromise;
   std::future<void> finished = finishedPromise.get_future();
   bool log_callback_called = false;
+    ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
 
   // Save the current log level, and set to verbose for this test.
   firebase::LogLevel current_log_level = firebase::GetLogLevel();
   firebase::SetLogLevel(firebase::LogLevel::kLogLevelVerbose);
-
+    ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
   firebase::analytics::SetLogCallback(
       [&](firebase::LogLevel log_level, const char* message) {
         log_callback_called = true;
         finishedPromise.set_value();
       });
+
+
+
 
   //  Pass kUnknown to trigger a warning log directly from the DLL (on
   //  Windows),
