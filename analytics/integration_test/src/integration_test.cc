@@ -15,10 +15,12 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <future>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/analytics.h"
@@ -68,6 +70,8 @@ void FirebaseAnalyticsTest::SetUpTestSuite() {
 #endif  // defined(__ANDROID__)
 
   firebase::analytics::Initialize(*shared_app_);
+  LogInfo("Analytics DLL Loaded: %s",
+          firebase::analytics::IsAnalyticsDllLoaded() ? "true" : "false");
   did_test_setconsent_ = false;
 }
 
@@ -242,6 +246,50 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
       InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(hashed_phone);
 }
 
+#if defined(_WIN32)
+TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
+  std::promise<void> finishedPromise;
+  std::future<void> finished = finishedPromise.get_future();
+  bool log_callback_called = false;
+    ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+
+  // Save the current log level, and set to verbose for this test.
+  firebase::LogLevel current_log_level = firebase::GetLogLevel();
+  firebase::SetLogLevel(firebase::LogLevel::kLogLevelVerbose);
+    ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  firebase::analytics::SetLogCallback(
+      [&](firebase::LogLevel log_level, const char* message) {
+        log_callback_called = true;
+        finishedPromise.set_value();
+      });
+
+
+
+
+  //  Pass kUnknown to trigger a warning log directly from the DLL (on
+  //  Windows),
+  firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
+
+  if (finished.wait_for(std::chrono::seconds(10)) ==
+      std::future_status::timeout) {
+    ADD_FAILURE() << "Timed out waiting for log callback";
+  } else {
+    finished.get();
+  }
+
+  EXPECT_TRUE(log_callback_called);
+  firebase::analytics::SetLogCallback(nullptr);
+  firebase::SetLogLevel(current_log_level);
+}
+#endif  // defined(_WIN32)
+
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
   // Log an event with no parameters.
   firebase::analytics::LogEvent(firebase::analytics::kEventLogin);
@@ -257,6 +305,14 @@ TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
   firebase::analytics::LogEvent(firebase::analytics::kEventJoinGroup,
                                 firebase::analytics::kParameterGroupID,
                                 "spoon_welders");
+}
+
+TEST_F(FirebaseAnalyticsTest, TestNotifyAppLifecycleChange) {
+  // Can't confirm that these do anything but just run them all to ensure the
+  // app doesn't crash.
+  firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
+  firebase::analytics::NotifyAppLifecycleChange(
+      firebase::analytics::kTermination);
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
