@@ -627,7 +627,7 @@ def _build_apple(
       "--XCodeCPP.frameworks", ",".join(framework_paths)
   ]
   # Internal integration tests require the SDK root as an include path.
-  if repo_dir and api_config.internal_testapp_path:
+  if repo_dir:
     xcode_patcher_args.extend(("--XCodeCPP.include", repo_dir))
   if os.path.isfile(entitlements_path):  # Not all testapps require entitlements
     logging.info("Entitlements file detected.")

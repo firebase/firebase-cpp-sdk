@@ -27,6 +27,7 @@
 #include "firebase/analytics/user_property_names.h"
 #include "firebase/app.h"
 #include "firebase/util.h"
+#include "analytics/src/analytics_internal.h"
 #include "firebase_test_framework.h"  // NOLINT
 
 // The TO_STRING macro is useful for command line defined strings as the quotes
@@ -351,6 +352,14 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   ProcessEvents(1000);
 
   did_test_setconsent_ = true;
+}
+
+TEST_F(FirebaseAnalyticsTest, TestIsAnalyticsDllLoaded) {
+#if defined(_WIN32)
+  EXPECT_TRUE(firebase::analytics::internal::IsAnalyticsDllLoaded());
+#else
+  GTEST_SKIP();
+#endif  // defined(_WIN32)
 }
 
 }  // namespace firebase_testapp_automated

@@ -23,6 +23,7 @@
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
+#include "analytics/src/analytics_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
@@ -164,6 +165,8 @@ namespace internal {
 
 // Determine whether the analytics module is initialized.
 bool IsInitialized() { return g_app != nullptr; }
+
+bool IsAnalyticsDllLoaded() { return false; }
 
 }  // namespace internal
 
