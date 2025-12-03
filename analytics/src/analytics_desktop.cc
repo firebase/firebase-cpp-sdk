@@ -42,16 +42,6 @@ namespace analytics {
 static HMODULE g_analytics_module = 0;
 #endif  // defined(_WIN32)
 
-namespace internal {
-bool IsAnalyticsDllLoaded() {
-#if defined(_WIN32)
-  return g_analytics_module != 0;
-#else
-  return false;
-#endif  // defined(_WIN32)
-}
-}  // namespace internal
-
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
 static bool g_initialized = false;
@@ -134,6 +124,14 @@ void Initialize(const App& app) {
 }
 
 namespace internal {
+
+bool IsAnalyticsDllLoaded() {
+#if defined(_WIN32)
+  return g_analytics_module != 0;
+#else
+  return false;
+#endif  // defined(_WIN32)
+}
 
 // Determine whether the analytics module is initialized.
 bool IsInitialized() { return g_initialized; }
