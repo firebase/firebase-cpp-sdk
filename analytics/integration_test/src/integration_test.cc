@@ -20,7 +20,6 @@
 #include <cstring>
 #include <ctime>
 
-#include "analytics/src/analytics_internal.h"
 #include "app_framework.h"  // NOLINT
 #include "firebase/analytics.h"
 #include "firebase/analytics/event_names.h"

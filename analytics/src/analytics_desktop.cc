@@ -19,7 +19,6 @@
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/analytics_desktop_dynamic.h"
-#include "analytics/src/analytics_internal.h"
 #include "analytics/src/include/firebase/analytics.h"
 #include "app/src/future_manager.h"  // For FutureData
 #include "app/src/include/firebase/app.h"
@@ -124,14 +123,6 @@ void Initialize(const App& app) {
 }
 
 namespace internal {
-
-bool IsAnalyticsDllLoaded() {
-#if defined(_WIN32)
-  return g_analytics_module != 0;
-#else
-  return false;
-#endif  // defined(_WIN32)
-}
 
 // Determine whether the analytics module is initialized.
 bool IsInitialized() { return g_initialized; }
