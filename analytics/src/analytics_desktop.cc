@@ -134,12 +134,6 @@ bool IsInitialized() { return g_initialized; }
 
 }  // namespace internal
 
-#if defined(_WIN32)
-bool IsAnalyticsDllLoaded() { return g_analytics_module != 0; }
-#else
-bool IsAnalyticsDllLoaded() { return false; }
-#endif  // defined(_WIN32)
-
 // Terminates the Analytics desktop API.
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {

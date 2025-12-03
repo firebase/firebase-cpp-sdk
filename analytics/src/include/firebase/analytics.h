@@ -623,11 +623,6 @@ using LogCallback = std::function<void(LogLevel, const char*)>;
 /// @param[in] callback The callback to use. Must be thread-safe.
 void SetLogCallback(const LogCallback& callback);
 
-/// @brief Returns true if the Google Analytics DLL was successfully loaded.
-///
-/// @returns true if the DLL was loaded, false otherwise.
-bool IsAnalyticsDllLoaded();
-
 /// @brief The state of an app in its lifecycle.
 ///
 /// kUnknown is an invalid state that is used to capture uninitialized values.
