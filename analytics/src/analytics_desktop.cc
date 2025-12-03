@@ -19,13 +19,13 @@
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/analytics_desktop_dynamic.h"
+#include "analytics/src/analytics_internal.h"
 #include "analytics/src/include/firebase/analytics.h"
 #include "app/src/future_manager.h"  // For FutureData
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
-#include "analytics/src/analytics_internal.h"
 
 #if defined(_WIN32)
 #include <windows.h>

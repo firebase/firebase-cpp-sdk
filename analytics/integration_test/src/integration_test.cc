@@ -20,6 +20,7 @@
 #include <cstring>
 #include <ctime>
 
+#include "analytics/src/analytics_internal.h"
 #include "app_framework.h"  // NOLINT
 #include "firebase/analytics.h"
 #include "firebase/analytics/event_names.h"
@@ -27,7 +28,6 @@
 #include "firebase/analytics/user_property_names.h"
 #include "firebase/app.h"
 #include "firebase/util.h"
-#include "analytics/src/analytics_internal.h"
 #include "firebase_test_framework.h"  // NOLINT
 
 // The TO_STRING macro is useful for command line defined strings as the quotes

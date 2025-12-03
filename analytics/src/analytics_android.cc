@@ -22,8 +22,8 @@
 #include <vector>
 
 #include "analytics/src/analytics_common.h"
-#include "analytics/src/include/firebase/analytics.h"
 #include "analytics/src/analytics_internal.h"
+#include "analytics/src/include/firebase/analytics.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
