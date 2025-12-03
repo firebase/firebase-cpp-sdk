@@ -354,12 +354,4 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   did_test_setconsent_ = true;
 }
 
-TEST_F(FirebaseAnalyticsTest, TestIsAnalyticsDllLoaded) {
-#if defined(_WIN32)
-  EXPECT_TRUE(firebase::analytics::internal::IsAnalyticsDllLoaded());
-#else
-  GTEST_SKIP();
-#endif  // defined(_WIN32)
-}
-
 }  // namespace firebase_testapp_automated

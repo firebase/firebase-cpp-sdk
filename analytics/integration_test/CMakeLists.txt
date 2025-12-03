@@ -83,7 +83,6 @@ set(FIREBASE_INTEGRATION_TEST_SRCS
 
 # The include directory for the testapp.
 include_directories(src)
-include_directories(${FIREBASE_CPP_SDK_DIR})
 
 # Firebase C++ SDK requires C++14.
 set (CMAKE_CXX_STANDARD 14)
