@@ -256,7 +256,6 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
         finishedPromise.set_value();
       });
 
-  // Pass kUnknown to trigger a warning log directly from the DLL (on Windows),
   firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
 
   if (finished.wait_for(std::chrono::seconds(60)) ==

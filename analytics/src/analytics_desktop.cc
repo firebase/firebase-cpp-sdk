@@ -412,7 +412,7 @@ LogLevel ConvertAnalyticsLogLevelToFirebaseLogLevel(
 }
 
 
-extern "C" void GoogleAnalyticsWrapperLogCallback(
+void GoogleAnalyticsWrapperLogCallback(
     GoogleAnalytics_LogLevel log_level, const char* message) {
   LogCallback callback_to_call;
 

@@ -612,6 +612,7 @@ void ResetAnalyticsData();
 /// @brief The callback type for logging messages from the SDK.
 ///
 /// The callback is invoked whenever the SDK logs a message.
+/// Currently only works for Windows Desktop.
 ///
 /// @param[in] log_level The log level of the message.
 /// @param[in] message The message logged by the SDK.
@@ -639,10 +640,9 @@ enum AppLifecycleState { kUnknown = 0, kTermination };
 /// kTermination is used to indicate that the app is about to be terminated.
 /// The caller will be blocked until all pending data is uploaded or an error
 /// occurs. The caller must ensure the OS does not terminate background threads
-/// before the call returns.
+/// before the call returns. Currently only works for Windows Desktop.
 ///
 /// @param[in] state The current state of the app's lifecycle.
-
 void NotifyAppLifecycleChange(AppLifecycleState state);
 
 /// Get the instance ID from the analytics service.
