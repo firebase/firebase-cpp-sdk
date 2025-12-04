@@ -433,6 +433,15 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+      - run: df -h
+      - name: Free Disk Space (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          # Delete large unused libraries/packages to free up space
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo docker builder prune -a
+      - run: df -h
       - name: Force Java 11
         if: ${{ !(runner.os == 'macOS') }}
         shell: bash
