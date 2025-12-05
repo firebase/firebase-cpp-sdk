@@ -34,7 +34,7 @@ typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
  * using GoogleAnalytics_Options_Create(), initialization will fail, and the
  * caller will be responsible for destroying the options.
  */
-ANALYTICS_API typedef struct {
+typedef struct ANALYTICS_API GoogleAnalytics_Options {
   /**
    * @brief The unique identifier for the Firebase app across all of Firebase
    * with a platform-specific format. This is a required field, can not be null
@@ -69,10 +69,52 @@ ANALYTICS_API typedef struct {
   bool analytics_collection_enabled_at_first_launch;
 
   /**
+   * @brief An optional path to a folder where the SDK can store its data.
+   * If not provided, the SDK will store its data in the same folder as the
+   * executable.
+   *
+   * The path must pre-exist and the app has read and write access to it.
+   */
+  const char* app_data_directory;
+
+  /**
    * @brief Reserved for internal use by the SDK.
    */
   GoogleAnalytics_Reserved* reserved;
 } GoogleAnalytics_Options;
+
+/**
+ * @brief The state of an app in its lifecycle.
+ */
+typedef enum GoogleAnalytics_AppLifecycleState {
+  /**
+   * @brief This is an invalid state that is used to capture unininitialized
+   * values.
+   */
+  GoogleAnalytics_AppLifecycleState_kUnknown = 0,
+  /**
+   * @brief The app is about to be terminated.
+   */
+  GoogleAnalytics_AppLifecycleState_kTermination = 1,
+} GoogleAnalytics_AppLifecycleState;
+
+/**
+ * @brief The log level of a log message.
+ */
+typedef enum GoogleAnalytics_LogLevel {
+  kDebug,
+  kInfo,
+  kWarning,
+  kError,
+} GoogleAnalytics_LogLevel;
+
+/**
+ * @brief Function pointer type for a log callback.
+ *
+ * @param[in] message The log message string.
+ */
+typedef void (*GoogleAnalytics_LogCallback)(GoogleAnalytics_LogLevel log_level,
+                                            const char* message);
 
 /**
  * @brief Creates an instance of GoogleAnalytics_Options with default values.
@@ -149,26 +191,28 @@ extern "C" {
 extern GoogleAnalytics_Options* (*ptr_GoogleAnalytics_Options_Create)();
 extern void (*ptr_GoogleAnalytics_Options_Destroy)(GoogleAnalytics_Options* options);
 extern GoogleAnalytics_Item* (*ptr_GoogleAnalytics_Item_Create)();
-extern void (*ptr_GoogleAnalytics_Item_InsertInt)(GoogleAnalytics_Item* item, const char* key, int64_t value);
-extern void (*ptr_GoogleAnalytics_Item_InsertDouble)(GoogleAnalytics_Item* item, const char* key, double value);
-extern void (*ptr_GoogleAnalytics_Item_InsertString)(GoogleAnalytics_Item* item, const char* key, const char* value);
+extern bool (*ptr_GoogleAnalytics_Item_InsertInt)(GoogleAnalytics_Item* item, const char* key, int64_t value);
+extern bool (*ptr_GoogleAnalytics_Item_InsertDouble)(GoogleAnalytics_Item* item, const char* key, double value);
+extern bool (*ptr_GoogleAnalytics_Item_InsertString)(GoogleAnalytics_Item* item, const char* key, const char* value);
 extern void (*ptr_GoogleAnalytics_Item_Destroy)(GoogleAnalytics_Item* item);
 extern GoogleAnalytics_ItemVector* (*ptr_GoogleAnalytics_ItemVector_Create)();
-extern void (*ptr_GoogleAnalytics_ItemVector_InsertItem)(GoogleAnalytics_ItemVector* item_vector, GoogleAnalytics_Item* item);
+extern bool (*ptr_GoogleAnalytics_ItemVector_InsertItem)(GoogleAnalytics_ItemVector* item_vector, GoogleAnalytics_Item* item);
 extern void (*ptr_GoogleAnalytics_ItemVector_Destroy)(GoogleAnalytics_ItemVector* item_vector);
 extern GoogleAnalytics_EventParameters* (*ptr_GoogleAnalytics_EventParameters_Create)();
-extern void (*ptr_GoogleAnalytics_EventParameters_InsertInt)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, int64_t value);
-extern void (*ptr_GoogleAnalytics_EventParameters_InsertDouble)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, double value);
-extern void (*ptr_GoogleAnalytics_EventParameters_InsertString)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, const char* value);
-extern void (*ptr_GoogleAnalytics_EventParameters_InsertItemVector)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, GoogleAnalytics_ItemVector* value);
+extern bool (*ptr_GoogleAnalytics_EventParameters_InsertInt)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, int64_t value);
+extern bool (*ptr_GoogleAnalytics_EventParameters_InsertDouble)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, double value);
+extern bool (*ptr_GoogleAnalytics_EventParameters_InsertString)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, const char* value);
+extern bool (*ptr_GoogleAnalytics_EventParameters_InsertItemVector)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, GoogleAnalytics_ItemVector* value);
 extern void (*ptr_GoogleAnalytics_EventParameters_Destroy)(GoogleAnalytics_EventParameters* event_parameter_map);
-extern bool (*ptr_GoogleAnalytics_Initialize)(const GoogleAnalytics_Options* options);
+extern bool (*ptr_GoogleAnalytics_Initialize)(GoogleAnalytics_Options* options);
 extern void (*ptr_GoogleAnalytics_LogEvent)(const char* name, GoogleAnalytics_EventParameters* parameters);
 extern void (*ptr_GoogleAnalytics_SetDefaultEventParameters)(GoogleAnalytics_EventParameters* parameters, size_t number_of_parameters);
 extern void (*ptr_GoogleAnalytics_SetUserProperty)(const char* name, const char* value);
 extern void (*ptr_GoogleAnalytics_SetUserId)(const char* user_id);
 extern void (*ptr_GoogleAnalytics_ResetAnalyticsData)();
 extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
+extern void (*ptr_GoogleAnalytics_SetLogCallback)(GoogleAnalytics_LogCallback callback);
+extern void (*ptr_GoogleAnalytics_NotifyAppLifecycleChange)(GoogleAnalytics_AppLifecycleState state);
 
 #define GoogleAnalytics_Options_Create ptr_GoogleAnalytics_Options_Create
 #define GoogleAnalytics_Options_Destroy ptr_GoogleAnalytics_Options_Destroy
@@ -192,6 +236,8 @@ extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 #define GoogleAnalytics_SetUserId ptr_GoogleAnalytics_SetUserId
 #define GoogleAnalytics_ResetAnalyticsData ptr_GoogleAnalytics_ResetAnalyticsData
 #define GoogleAnalytics_SetAnalyticsCollectionEnabled ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled
+#define GoogleAnalytics_SetLogCallback ptr_GoogleAnalytics_SetLogCallback
+#define GoogleAnalytics_NotifyAppLifecycleChange ptr_GoogleAnalytics_NotifyAppLifecycleChange
 // clang-format on
 
 // Number of Google Analytics functions expected to be loaded from the DLL.

@@ -211,7 +211,7 @@ else()
     )
   elseif(MSVC)
     set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32)
-    set(ANALYTICS_WINDOWS_DLL "${FIREBASE_CPP_SDK_DIR}/analytics/windows/analytics_win.dll")
+    set(ANALYTICS_WINDOWS_DLL "${FIREBASE_CPP_SDK_DIR}/analytics/windows/google_analytics.dll")
 
     # For Windows, check if the Analytics DLL exists, and copy it in if so.
     if (EXISTS "${ANALYTICS_WINDOWS_DLL}")
