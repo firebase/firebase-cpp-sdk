@@ -206,8 +206,8 @@ TEST_DEVICES = {
   "emulator_32bit": [ {"type": "virtual", "image":"system-images;android-30;google_apis;x86"} ],
   "ios_min": [
       # Slightly different OS versions because of limited FTL selection.
-      {"type": "ftl", "device": "model=iphone13pro,version=15.7"},
-      {"type": "ftl", "device": "model=iphone8,version=15.7"},
+      {"type": "ftl", "device": "model=iphone14pro,version=16.6"},
+      {"type": "ftl", "device": "model=iphone8,version=16.6"},
   ],
   "ios_target": [
       # Slightly different OS versions because of limited FTL selection.
@@ -217,8 +217,7 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
   "ios_latest": [
-      {"type": "ftl", "device": "model=iphone15,version=18.0"},
-      {"type": "ftl", "device": "model=iphone15pro,version=18.0"},
+      {"type": "ftl", "device": "model=iphone16pro,version=18.3"},
   ],
   "simulator_min": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
   "simulator_target": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
