@@ -37,7 +37,7 @@ Example:
 iPhone 8, OS 12.0:
   --ios_name "iPhone 8" --ios_version "12.0"
 Alternatively, to set an iOS device, use the one of the values below:
-[simulator_min, simulator_target, simulator_latest]
+[simulator_target]
 Example:
   --ios_device "simulator_target"
 

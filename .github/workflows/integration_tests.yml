@@ -1029,11 +1029,7 @@ jobs:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
         test_type: ["gameloop"]
         exclude:
-          -  ios_device: "ios_min"
-             test_type: "uitest"
           -  ios_device: "ios_target"
-             test_type: "uitest"
-          -  ios_device: "ios_latest"
              test_type: "uitest"
         build_os: [macos-14]
     steps:
