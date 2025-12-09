@@ -125,6 +125,7 @@ _LIMIT = 400  # Hard limit on how many jobs to fetch.
 _PASS_TEXT = "Pass"
 _FAILURE_TEXT = "Failure"
 _FLAKY_TEXT = "Pass (flaky)"
+_MISSING_TEXT = "Missing"
 
 general_test_time = ' 09:0'
 firestore_test_time = ' 10:0'
@@ -352,10 +353,11 @@ def main(argv):
     # Forced options if outputting Markdown.
     FLAGS.output_header = True
     FLAGS.output_username = False
-    global _FAILURE_TEXT, _PASS_TEXT, _FLAKY_TEXT
+    global _FAILURE_TEXT, _PASS_TEXT, _FLAKY_TEXT, _MISSING_TEXT
     _FAILURE_TEXT = "❌ **" + _FAILURE_TEXT  + "**"
     _PASS_TEXT = "✅ " + _PASS_TEXT
     _FLAKY_TEXT = _PASS_TEXT + " (flaky)"
+    _MISSING_TEXT = "❌ **" + _MISSING_TEXT  + "**"
 
   if FLAGS.read_cache:
     logging.info("Reading cache file: %s", FLAGS.read_cache)
@@ -602,19 +604,33 @@ def main(argv):
     day_str = day
     if FLAGS.output_markdown:
         day_str = day_str.replace("-", "&#8209;")  # non-breaking hyphen.
-    if day not in package_tests or day not in packaging_runs or day not in source_tests:
-      day = last_good_day
-    if not day: continue
-    last_good_day = day
-    source_tests_log = analyze_log(source_tests[day]['log_results'], source_tests[day]['html_url'])
-    if packaging_runs[day]['conclusion'] == "success":
-      package_build_log = _PASS_TEXT
-    else:
-      package_build_log = _FAILURE_TEXT
-    package_build_log = decorate_url(package_build_log, packaging_runs[day]['html_url'])
-    package_tests_log = analyze_log(package_tests[day]['log_results'], package_tests[day]['html_url'])
 
-    notes = create_notes(source_tests[day]['log_results'] if source_tests[day]['log_results'] else package_tests[day]['log_results'])
+    if day in source_tests:
+      source_tests_log = analyze_log(source_tests[day]['log_results'], source_tests[day]['html_url'])
+      source_results = source_tests[day]['log_results']
+    else:
+      # Mark as failure if missing
+      source_tests_log = (decorate_url(_MISSING_TEXT, ""), decorate_url(_MISSING_TEXT, ""))
+      source_results = ""
+
+    if day in packaging_runs:
+      if packaging_runs[day]['conclusion'] == "success":
+        package_build_log = _PASS_TEXT
+      else:
+        package_build_log = _FAILURE_TEXT
+      package_build_log = decorate_url(package_build_log, packaging_runs[day]['html_url'])
+    else:
+      package_build_log = decorate_url(_MISSING_TEXT, "")
+
+    if day in package_tests:
+      package_tests_log = analyze_log(package_tests[day]['log_results'], package_tests[day]['html_url'])
+      package_results = package_tests[day]['log_results']
+    else:
+      package_tests_log = (decorate_url(_MISSING_TEXT, ""), decorate_url(_MISSING_TEXT, ""))
+      package_results = ""
+
+    notes = create_notes(source_results if source_results else package_results)
+    
     if FLAGS.output_markdown and notes:
         notes = "<details><summary>&nbsp;</summary>" + notes + "</details>"
     if notes == prev_notes and not FLAGS.output_markdown:
