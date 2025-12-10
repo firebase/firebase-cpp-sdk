@@ -630,7 +630,7 @@ def main(argv):
       package_results = ""
 
     notes = create_notes(source_results if source_results else package_results)
-    
+
     if FLAGS.output_markdown and notes:
         notes = "<details><summary>&nbsp;</summary>" + notes + "</details>"
     if notes == prev_notes and not FLAGS.output_markdown:
