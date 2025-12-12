@@ -59,6 +59,19 @@
   _cppProvider->GetToken(token_callback);
 }
 
+- (void)getLimitedUseTokenWithCompletion:(nonnull void (^)(FIRAppCheckToken* _Nullable,
+                                                           NSError* _Nullable))handler {
+  auto token_callback{[handler](firebase::app_check::AppCheckToken token, int error_code,
+                                const std::string& error_message) {
+    NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
+        static_cast<firebase::app_check::AppCheckError>(error_code), error_message);
+    FIRAppCheckToken* ios_token =
+        firebase::app_check::internal::AppCheckTokenToFIRAppCheckToken(token);
+    handler(ios_token, ios_error);
+  }};
+  _cppProvider->GetLimitedUseToken(token_callback);
+}
+
 @end
 
 // Defines an iOS AppCheckProviderFactory that wraps a given C++ Factory.
