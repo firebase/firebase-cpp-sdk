@@ -262,7 +262,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--windows_dll",
-        default = os.path.join(os.path.dirname(sys.argv[0]), "windows/analytics_win.dll"),
+        default = os.path.join(os.path.dirname(sys.argv[0]), "windows/google_analytics.dll"),
         help="Path to the DLL file to calculate a hash."
     )
     parser.add_argument(

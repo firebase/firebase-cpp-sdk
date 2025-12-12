@@ -1,4 +1,16 @@
 // Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_C_ANALYTICS_H_
 #define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_C_ANALYTICS_H_
@@ -25,7 +37,7 @@ typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
  * using GoogleAnalytics_Options_Create(), initialization will fail, and the
  * caller will be responsible for destroying the options.
  */
-ANALYTICS_API typedef struct {
+typedef struct ANALYTICS_API GoogleAnalytics_Options {
   /**
    * @brief The unique identifier for the Firebase app across all of Firebase
    * with a platform-specific format. This is a required field, can not be null
@@ -60,10 +72,52 @@ ANALYTICS_API typedef struct {
   bool analytics_collection_enabled_at_first_launch;
 
   /**
+   * @brief An optional path to a folder where the SDK can store its data.
+   * If not provided, the SDK will store its data in the same folder as the
+   * executable.
+   *
+   * The path must pre-exist and the app has read and write access to it.
+   */
+  const char* app_data_directory;
+
+  /**
    * @brief Reserved for internal use by the SDK.
    */
   GoogleAnalytics_Reserved* reserved;
 } GoogleAnalytics_Options;
+
+/**
+ * @brief The state of an app in its lifecycle.
+ */
+typedef enum GoogleAnalytics_AppLifecycleState {
+  /**
+   * @brief This is an invalid state that is used to capture unininitialized
+   * values.
+   */
+  GoogleAnalytics_AppLifecycleState_kUnknown = 0,
+  /**
+   * @brief The app is about to be terminated.
+   */
+  GoogleAnalytics_AppLifecycleState_kTermination = 1,
+} GoogleAnalytics_AppLifecycleState;
+
+/**
+ * @brief The log level of a log message.
+ */
+typedef enum GoogleAnalytics_LogLevel {
+  kDebug,
+  kInfo,
+  kWarning,
+  kError,
+} GoogleAnalytics_LogLevel;
+
+/**
+ * @brief Function pointer type for a log callback.
+ *
+ * @param[in] message The log message string.
+ */
+typedef void (*GoogleAnalytics_LogCallback)(GoogleAnalytics_LogLevel log_level,
+                                            const char* message);
 
 /**
  * @brief Creates an instance of GoogleAnalytics_Options with default values.
@@ -144,8 +198,9 @@ ANALYTICS_API GoogleAnalytics_Item* GoogleAnalytics_Item_Create();
  * @param[in] item The item to insert the int parameter into.
  * @param[in] key The key of the int parameter. Must be UTF-8 encoded.
  * @param[in] value The value of the int parameter.
+ * @return true if the int parameter was successfully inserted, false otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_Item_InsertInt(GoogleAnalytics_Item* item,
+ANALYTICS_API bool GoogleAnalytics_Item_InsertInt(GoogleAnalytics_Item* item,
                                                   const char* key,
                                                   int64_t value);
 
@@ -155,8 +210,10 @@ ANALYTICS_API void GoogleAnalytics_Item_InsertInt(GoogleAnalytics_Item* item,
  * @param[in] item The item to insert the double parameter into.
  * @param[in] key The key of the double parameter. Must be UTF-8 encoded.
  * @param[in] value The value of the double parameter.
+ * @return true if the double parameter was successfully inserted, false
+ * otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_Item_InsertDouble(GoogleAnalytics_Item* item,
+ANALYTICS_API bool GoogleAnalytics_Item_InsertDouble(GoogleAnalytics_Item* item,
                                                      const char* key,
                                                      double value);
 
@@ -166,8 +223,10 @@ ANALYTICS_API void GoogleAnalytics_Item_InsertDouble(GoogleAnalytics_Item* item,
  * @param[in] item The item to insert the string parameter into.
  * @param[in] key The key of the string parameter. Must be UTF-8 encoded.
  * @param[in] value The value of the string parameter. Must be UTF-8 encoded.
+ * @return true if the string parameter was successfully inserted, false
+ * otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_Item_InsertString(GoogleAnalytics_Item* item,
+ANALYTICS_API bool GoogleAnalytics_Item_InsertString(GoogleAnalytics_Item* item,
                                                      const char* key,
                                                      const char* value);
 
@@ -197,8 +256,9 @@ ANALYTICS_API GoogleAnalytics_ItemVector* GoogleAnalytics_ItemVector_Create();
  *
  * @param[in] item_vector The item vector to insert the item into.
  * @param[in] item The item to insert. Automatically destroyed when added.
+ * @return true if the item was successfully inserted, false otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_ItemVector_InsertItem(
+ANALYTICS_API bool GoogleAnalytics_ItemVector_InsertItem(
     GoogleAnalytics_ItemVector* item_vector, GoogleAnalytics_Item* item);
 
 /**
@@ -230,8 +290,9 @@ GoogleAnalytics_EventParameters_Create();
  * parameter into.
  * @param[in] key The key of the int parameter. Must be UTF-8 encoded.
  * @param[in] value The value of the int parameter.
+ * @return true if the int parameter was successfully inserted, false otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_EventParameters_InsertInt(
+ANALYTICS_API bool GoogleAnalytics_EventParameters_InsertInt(
     GoogleAnalytics_EventParameters* event_parameter_map, const char* key,
     int64_t value);
 
@@ -242,8 +303,10 @@ ANALYTICS_API void GoogleAnalytics_EventParameters_InsertInt(
  * parameter into.
  * @param[in] key The key of the double parameter. Must be UTF-8 encoded.
  * @param[in] value The value of the double parameter.
+ * @return true if the double parameter was successfully inserted, false
+ * otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_EventParameters_InsertDouble(
+ANALYTICS_API bool GoogleAnalytics_EventParameters_InsertDouble(
     GoogleAnalytics_EventParameters* event_parameter_map, const char* key,
     double value);
 
@@ -254,8 +317,10 @@ ANALYTICS_API void GoogleAnalytics_EventParameters_InsertDouble(
  * parameter into.
  * @param[in] key The key of the string parameter. Must be UTF-8 encoded.
  * @param[in] value The value of the string parameter. Must be UTF-8 encoded.
+ * @return true if the string parameter was successfully inserted, false
+ * otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_EventParameters_InsertString(
+ANALYTICS_API bool GoogleAnalytics_EventParameters_InsertString(
     GoogleAnalytics_EventParameters* event_parameter_map, const char* key,
     const char* value);
 
@@ -267,8 +332,9 @@ ANALYTICS_API void GoogleAnalytics_EventParameters_InsertString(
  * @param[in] key The key of the item vector. Must be UTF-8 encoded.
  * @param[in] value The value of the item vector. Automatically destroyed as it
  * is added.
+ * @return true if the item vector was successfully inserted, false otherwise.
  */
-ANALYTICS_API void GoogleAnalytics_EventParameters_InsertItemVector(
+ANALYTICS_API bool GoogleAnalytics_EventParameters_InsertItemVector(
     GoogleAnalytics_EventParameters* event_parameter_map, const char* key,
     GoogleAnalytics_ItemVector* value);
 
@@ -295,8 +361,7 @@ ANALYTICS_API void GoogleAnalytics_EventParameters_Destroy(
  * otherwise. Also returns false if the Analytics SDK has already been
  * initialized.
  */
-ANALYTICS_API bool GoogleAnalytics_Initialize(
-    const GoogleAnalytics_Options* options);
+ANALYTICS_API bool GoogleAnalytics_Initialize(GoogleAnalytics_Options* options);
 
 /**
  * @brief Logs an app event.
@@ -412,6 +477,33 @@ ANALYTICS_API void GoogleAnalytics_ResetAnalyticsData();
  * @param[in] enabled A flag that enables or disables Analytics collection.
  */
 ANALYTICS_API void GoogleAnalytics_SetAnalyticsCollectionEnabled(bool enabled);
+
+/**
+ * @brief Allows the passing of a callback to be used when the SDK logs any
+ * messages regarding its behavior. The callback must be thread-safe.
+ *
+ * @param[in] callback The callback to use. Passing `nullptr` removes the
+ * currently set callback.
+ */
+ANALYTICS_API void GoogleAnalytics_SetLogCallback(
+    GoogleAnalytics_LogCallback callback);
+
+/**
+ * @brief Notifies the current state of the app's lifecycle.
+ *
+ * This method is used to notify the Analytics SDK about the current state of
+ * the app's lifecycle. The Analytics SDK will use this information to log
+ * events, update user properties, upload data, etc.
+ *
+ * GoogleAnalytics_AppLifecycleState_kTermination is used to indicate that the
+ * app is about to be terminated. The caller will be blocked until all pending
+ * data is uploaded or an error occurs. The caller must ensure the OS does not
+ * terminate background threads before the call returns.
+ *
+ * @param[in] state The current state of the app's lifecycle.
+ */
+ANALYTICS_API void GoogleAnalytics_NotifyAppLifecycleChange(
+    GoogleAnalytics_AppLifecycleState state);
 
 #ifdef __cplusplus
 }
