@@ -109,11 +109,17 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
     JNIEnv* env, jobject j_provider, jlong c_provider,
     jobject task_completion_source);
 
+JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetLimitedUseToken(
+    JNIEnv* env, jobject j_provider, jlong c_provider,
+    jobject task_completion_source);
+
 static const JNINativeMethod kNativeJniAppCheckProviderMethods[] = {
     {"nativeGetToken",
      "(JLcom/google/android/gms/tasks/TaskCompletionSource;)V",
      reinterpret_cast<void*>(JniAppCheckProvider_nativeGetToken)},
-};
+    {"nativeGetLimitedUseToken",
+     "(JLcom/google/android/gms/tasks/TaskCompletionSource;)V",
+     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetLimitedUseToken)}};
 
 // clang-format off
 #define JNI_APP_CHECK_LISTENER_METHODS(X)                              \
@@ -264,6 +270,39 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
   }};
   AppCheckProvider* provider = reinterpret_cast<AppCheckProvider*>(c_provider);
   provider->GetToken(token_callback);
+}
+
+JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetLimitedUseToken(
+    JNIEnv* env, jobject j_provider, jlong c_provider,
+    jobject task_completion_source) {
+  // Create GlobalReferences to the provider and task. These references will be
+  // deleted in the completion callback.
+  jobject j_provider_global = env->NewGlobalRef(j_provider);
+  jobject task_completion_source_global =
+      env->NewGlobalRef(task_completion_source);
+
+  // Defines a C++ callback method to call
+  // JniAppCheckProvider.HandleGetTokenResult with the resulting token
+  auto token_callback{[j_provider_global, task_completion_source_global](
+                          firebase::app_check::AppCheckToken token,
+                          int error_code, const std::string& error_message) {
+    // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
+    JNIEnv* env = firebase::util::GetJNIEnvFromApp();
+    jstring error_string = env->NewStringUTF(error_message.c_str());
+    jstring token_string = env->NewStringUTF(token.token.c_str());
+    env->CallVoidMethod(
+        j_provider_global,
+        jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
+        task_completion_source_global, token_string, token.expire_time_millis,
+        error_code, error_string);
+    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+    env->DeleteLocalRef(token_string);
+    env->DeleteLocalRef(error_string);
+    env->DeleteGlobalRef(j_provider_global);
+    env->DeleteGlobalRef(task_completion_source_global);
+  }};
+  AppCheckProvider* provider = reinterpret_cast<AppCheckProvider*>(c_provider);
+  provider->GetLimitedUseToken(token_callback);
 }
 
 JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
