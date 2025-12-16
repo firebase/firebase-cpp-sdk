@@ -59,7 +59,7 @@ namespace firebase_testapp_automated {
 
 // Your Firebase project's Debug token goes here.
 // You can get this from Firebase Console, in the App Check settings.
-const char kAppCheckDebugToken[] = "REPLACE_WITH_APP_CHECK_TOKEN";
+const char kAppCheckDebugToken[] = "CD369669-D1E5-4997-9E8D-7D440909F503";
 
 using app_framework::LogDebug;
 using app_framework::LogError;
@@ -583,6 +583,32 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
         got_token_promise->set_value();
       }};
   provider->GetToken(token_callback);
+  auto got_token_future = got_token_promise->get_future();
+  ASSERT_EQ(std::future_status::ready,
+            got_token_future.wait_for(kGetTokenTimeout));
+}
+
+TEST_F(FirebaseAppCheckTest, TestDebugProviderValidLimitedUseToken) {
+  firebase::app_check::DebugAppCheckProviderFactory* factory =
+      firebase::app_check::DebugAppCheckProviderFactory::GetInstance();
+  ASSERT_NE(factory, nullptr);
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+
+  firebase::app_check::AppCheckProvider* provider =
+      factory->CreateProvider(app_);
+  ASSERT_NE(provider, nullptr);
+  auto got_token_promise = std::make_shared<std::promise<void>>();
+  auto token_callback{
+      [got_token_promise](firebase::app_check::AppCheckToken token,
+                          int error_code, const std::string& error_message) {
+        EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
+        EXPECT_EQ("", error_message);
+        EXPECT_NE(0, token.expire_time_millis);
+        EXPECT_NE("", token.token);
+        got_token_promise->set_value();
+      }};
+  provider->GetLimitedUseToken(token_callback);
   auto got_token_future = got_token_promise->get_future();
   ASSERT_EQ(std::future_status::ready,
             got_token_future.wait_for(kGetTokenTimeout));
