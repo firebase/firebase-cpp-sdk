@@ -136,6 +136,10 @@ class FirestoreInternal {
 
   static void SetClientLanguage(const std::string& language_token);
 
+#if defined(__APPLE__)
+  void* swift_bridge() const { return swift_bridge_; }
+#endif
+
  private:
   friend class TestFriend;
 
@@ -176,6 +180,9 @@ class FirestoreInternal {
   App* app_ = nullptr;
   Firestore* firestore_public_ = nullptr;
   std::shared_ptr<api::Firestore> firestore_core_;
+#if defined(__APPLE__)
+  void* swift_bridge_ = nullptr;
+#endif
 
   CleanupNotifier cleanup_;
 

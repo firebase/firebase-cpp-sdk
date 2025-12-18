@@ -45,6 +45,7 @@ set(ios_SRCS
     src/ios/controller_ios.mm
     src/ios/listener_ios.mm
     src/ios/metadata_ios.mm
+    src/ios/StorageBridge.swift
     src/ios/storage_ios.mm
     src/ios/storage_reference_ios.mm
     src/ios/util_ios.mm)

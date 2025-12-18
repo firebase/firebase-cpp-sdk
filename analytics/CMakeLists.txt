@@ -99,6 +99,8 @@ add_library(firebase_analytics STATIC
     ${common_SRCS}
     ${analytics_platform_SRCS})
 
+add_dependencies(firebase_analytics FIREBASE_ANALYTICS_GENERATED_HEADERS)
+
 set_property(TARGET firebase_analytics PROPERTY FOLDER "Firebase Cpp")
 
 # Set up the dependency on Firebase App.

@@ -17,8 +17,6 @@
 #include <string.h>
 
 #include <cstdint>
-#include <string>
-
 #include "app/google_services_generated.h"
 #include "app/google_services_resource.h"
 #include "app/src/assert.h"

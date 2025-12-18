@@ -236,8 +236,7 @@ set(internal_HDRS
     src/include/firebase/log.h
     src/include/firebase/util.h
     src/include/firebase/variant.h
-    src/include/google_play_services/availability.h
-    ${version_header})
+    src/include/google_play_services/availability.h)
 
 set(utility_common_HDRS
     src/app_common.h
@@ -317,8 +316,14 @@ add_library(firebase_app STATIC
     ${internal_HDRS}
     ${utility_HDRS}
     ${app_platform_HDRS}
-    ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
     ${app_flatbuffers_srcs})
+
+add_dependencies(firebase_app FIREBASE_APP_GENERATED_HEADERS)
+add_dependencies(firebase_app app_generated_google_services_includes)
+# For the desktop heartbeats flatbuffers
+if(NOT ANDROID AND NOT IOS)
+  add_dependencies(firebase_app app_generated_includes)
+endif()
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 

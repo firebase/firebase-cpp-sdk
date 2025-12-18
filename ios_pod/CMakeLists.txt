@@ -49,7 +49,7 @@ message("Downloading CocoaPods...")
 
 execute_process(
   COMMAND /bin/bash -c
-          "mkdir -p ${FIREBASE_POD_DIR} && cd ${FIREBASE_POD_DIR} && cmake . -G Xcode && pod install"
+          "export DEVELOPER_DIR=\"/Applications/Xcode.app/Contents/Developer\" && mkdir -p ${FIREBASE_POD_DIR} && cd ${FIREBASE_POD_DIR} && cmake . -G Xcode && pod install"
   OUTPUT_VARIABLE pods_output
 )
 

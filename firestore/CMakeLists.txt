@@ -285,14 +285,52 @@ set(desktop_only_SRCS
     src/main/create_firebase_metadata_provider_desktop.cc
     src/main/firebase_metadata_provider_desktop.cc)
 
+add_library(firebase_firestore STATIC
+    ${common_SRCS}
+    ${firestore_platform_SRCS})
+
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
 
 elseif(IOS)
   set(firestore_platform_SRCS
       "${main_SRCS}"
+      src/ios/firestore_ios.mm
+      src/ios/FirestoreBridge.swift
       "${credentials_provider_ios_SRCS}"
       "${firebase_metadata_provider_ios_SRCS}")
+
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_firestore
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode" "$<$<COMPILE_LANGUAGE:Swift>:-cxx-interoperability-mode=default>")
+  target_link_libraries(firebase_firestore
+                        PUBLIC "-fembed-bitcode")
+
+  set_target_properties(firebase_firestore PROPERTIES
+    XCODE_ATTRIBUTE_DEFINES_MODULE YES
+    SWIFT_OBJC_INTERFACE_HEADER_NAME "firebase_firestore-Swift.h"
+  )
+
+  setup_pod_headers(
+    firebase_firestore
+    INCLUDE_PRIVATE_HEADERS
+    POD_NAMES
+      FirebaseCore
+      FirebaseFirestore
+      FirebaseFirestoreInternal
+      abseil
+      nanopb
+      gRPC-C++
+      gRPC-Core
+      FirebaseAuthInterop/FirebaseAuth/Interop
+      FirebaseCoreExtension/FirebaseCore/Extension
+  )
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_firestore PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 
 else()
   set(firestore_platform_SRCS
@@ -300,10 +338,6 @@ else()
       "${credentials_provider_desktop_SRCS}"
       "${firebase_metadata_provider_desktop_SRCS}")
 endif()
-
-add_library(firebase_firestore STATIC
-    ${common_SRCS}
-    ${firestore_platform_SRCS})
 
 set_property(TARGET firebase_firestore PROPERTY FOLDER "Firebase Cpp")
 

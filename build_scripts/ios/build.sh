@@ -131,7 +131,7 @@ if ${generateMakefiles}; then
 
             echo "generate Makefiles start"
             mkdir -p ${buildpath}/ios_build_file/${platform}-${arch} && cd ${buildpath}/ios_build_file/${platform}-${arch}
-            cmake -DCMAKE_TOOLCHAIN_FILE=${sourcepath}/${toolchain} \
+            cmake -G Xcode -DCMAKE_TOOLCHAIN_FILE=${sourcepath}/${toolchain} \
                 -DCMAKE_OSX_ARCHITECTURES=${arch} \
                 -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
                 ${sourcepath}
