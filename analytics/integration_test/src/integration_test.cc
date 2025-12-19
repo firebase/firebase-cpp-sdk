@@ -245,6 +245,8 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
 }
 
 #if defined(_WIN32)
+// The windows analytics DLL enables users to // set a callback function that is
+// triggered when the underlying DLL logs something.
 TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
   std::promise<void> finishedPromise;
   std::future<void> finished = finishedPromise.get_future();
@@ -256,6 +258,8 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
         finishedPromise.set_value();
       });
 
+  // Sending a NotifyAppLifecycleChange with kUnknown will trigger a logging
+  // callback
   firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
 
   if (finished.wait_for(std::chrono::seconds(60)) ==
