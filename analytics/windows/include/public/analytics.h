@@ -155,9 +155,10 @@ class Analytics {
     google_analytics_options->analytics_collection_enabled_at_first_launch =
         options.analytics_collection_enabled_at_first_launch;
     google_analytics_options->app_data_directory =
-        options.app_data_directory.value_or("").empty()
-            ? nullptr
-            : options.app_data_directory.value().c_str();
+        (options.app_data_directory.has_value() &&
+         !options.app_data_directory->empty())
+            ? options.app_data_directory->c_str()
+            : nullptr;
     return GoogleAnalytics_Initialize(google_analytics_options);
   }
 
