@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Stub cmake project to enable pod files to be installed against
+cmake_minimum_required (VERSION 3.30)
 
-cmake_minimum_required (VERSION 3.1)
-
-project (GetPods CXX)
+project (empty NONE)
 add_library(GetPods empty.cc)

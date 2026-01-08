@@ -14,7 +14,7 @@
 
 # Cmake file for a single C++ integration test build.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.30)
 
 find_program(FIREBASE_PYTHON_EXECUTABLE
   NAMES python3 python
