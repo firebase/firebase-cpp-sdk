@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Top level CMake file that defines targets for the Firebase C++ SDK.
+cmake_minimum_required(VERSION 3.30)
 
-cmake_minimum_required(VERSION 3.1)
+project (firebase_prebuilt NONE)
 
 include(FindPkgConfig)
 
