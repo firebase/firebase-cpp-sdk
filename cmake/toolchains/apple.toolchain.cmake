@@ -142,7 +142,7 @@
 #   command.
 #
 
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.22)
 
 # CMake invokes the toolchain file twice during the first build, but only once during subsequent rebuilds.
 if(IOS_TOOLCHAIN_HAS_RUN)

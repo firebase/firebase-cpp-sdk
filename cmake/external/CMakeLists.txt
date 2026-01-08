@@ -17,7 +17,7 @@
 # setting up ExternalProjects for each dependency, and then building this
 # project, which is done via external_rules.cmake, one directory above.
 
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.22)
 project(Firebase-cpp-download C CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})

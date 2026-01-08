@@ -18,7 +18,7 @@
 # This CMake file is taken from:
 # https://github.com/google/googletest/blob/master/googletest/README.md#incorporating-into-an-existing-cmake-project
 
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.22)
 
 project(googletest-download NONE)
 

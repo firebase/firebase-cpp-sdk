@@ -14,7 +14,7 @@
 
 # CMake file for the firebase_rest_lib library
 
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.22)
 # Firebase C++ SDK requires C++14.
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.

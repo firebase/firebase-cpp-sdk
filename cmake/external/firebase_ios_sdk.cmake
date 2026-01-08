@@ -18,7 +18,7 @@ if(TARGET firebase_ios_sdk OR NOT DOWNLOAD_FIREBASE_IOS_SDK)
   return()
 endif()
 
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.22)
 
 set(SDK_VERSION "6.14.0")
 
