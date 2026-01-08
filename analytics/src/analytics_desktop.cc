@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <future>
 #include <map>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -25,6 +27,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
+#include "firebase/log.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -36,7 +39,7 @@ namespace firebase {
 namespace analytics {
 
 #if defined(_WIN32)
-#define ANALYTICS_DLL_FILENAME L"analytics_win.dll"
+#define ANALYTICS_DLL_FILENAME L"google_analytics.dll"
 
 static HMODULE g_analytics_module = 0;
 #endif  // defined(_WIN32)
@@ -44,6 +47,8 @@ static HMODULE g_analytics_module = 0;
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
 static bool g_initialized = false;
+static LogCallback g_log_callback;
+static std::mutex g_log_callback_mutex;
 static int g_fake_instance_id = 0;
 static bool g_analytics_collection_enabled = true;
 static std::string g_app_id;
@@ -134,6 +139,10 @@ bool IsInitialized() { return g_initialized; }
 void Terminate() {
 #if defined(_WIN32)
   if (g_analytics_module) {
+    // Make sure to notify the SDK that the analytics is being terminated to
+    // upload any pending data.
+    NotifyAppLifecycleChange(AppLifecycleState::kTermination);
+
     FirebaseAnalytics_UnloadDynamicFunctions();
     FreeLibrary(g_analytics_module);
     g_analytics_module = 0;
@@ -384,6 +393,61 @@ void ResetAnalyticsData() {
 
   GoogleAnalytics_ResetAnalyticsData();
   g_fake_instance_id++;
+}
+
+LogLevel ConvertAnalyticsLogLevelToFirebaseLogLevel(
+    GoogleAnalytics_LogLevel log_level) {
+  switch (log_level) {
+    case kDebug:
+      return kLogLevelDebug;
+    case kInfo:
+      return kLogLevelInfo;
+    case kWarning:
+      return kLogLevelWarning;
+    case kError:
+      return kLogLevelError;
+    default:
+      return kLogLevelInfo;
+  }
+}
+
+void GoogleAnalyticsWrapperLogCallback(GoogleAnalytics_LogLevel log_level,
+                                       const char* message) {
+  LogCallback callback_to_call;
+
+  {
+    std::lock_guard<std::mutex> lock(g_log_callback_mutex);
+    callback_to_call = g_log_callback;
+  }
+
+  if (callback_to_call) {
+    LogLevel firebase_log_level =
+        ConvertAnalyticsLogLevelToFirebaseLogLevel(log_level);
+    callback_to_call(firebase_log_level, message);
+  }
+}
+
+// Allows the passing of a callback to be used when the SDK logs any
+// messages regarding its behavior. The callback must be thread-safe.
+void SetLogCallback(const LogCallback& callback) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  // The C API does not support user data, so we must use a global variable.
+  {
+    std::lock_guard<std::mutex> lock(g_log_callback_mutex);
+    g_log_callback = callback;
+  }
+  if (callback) {
+    GoogleAnalytics_SetLogCallback(GoogleAnalyticsWrapperLogCallback);
+  } else {
+    GoogleAnalytics_SetLogCallback(nullptr);
+  }
+}
+
+// Notify the Analytics SDK about the current state of the app's lifecycle.
+void NotifyAppLifecycleChange(AppLifecycleState state) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  GoogleAnalytics_NotifyAppLifecycleChange(
+      static_cast<GoogleAnalytics_AppLifecycleState>(state));
 }
 
 // Overloaded versions of LogEvent for convenience.

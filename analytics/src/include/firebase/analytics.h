@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -26,6 +27,7 @@
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
+#include "firebase/log.h"
 #include "firebase/variant.h"
 
 #if !defined(DOXYGEN) && !defined(SWIG)
@@ -606,6 +608,42 @@ void SetSessionTimeoutDuration(int64_t milliseconds);
 /// Clears all analytics data for this app from the device and resets the app
 /// instance id.
 void ResetAnalyticsData();
+
+/// @brief The callback type for logging messages from the SDK.
+///
+/// The callback is invoked whenever the SDK logs a message.
+/// Currently only works for Windows Desktop.
+///
+/// @param[in] log_level The log level of the message.
+/// @param[in] message The message logged by the SDK.
+using LogCallback = std::function<void(LogLevel, const char*)>;
+
+/// @brief Allows the passing of a callback to be used when the SDK logs any
+/// messages regarding its behaviour. The callback must be thread-safe.
+///
+/// @param[in] callback The callback to use. Must be thread-safe.
+void SetLogCallback(const LogCallback& callback);
+
+/// @brief The state of an app in its lifecycle.
+///
+/// kUnknown is an invalid state that is used to capture uninitialized values.
+/// kTermination is used to indicate that the app is about to be terminated.
+enum AppLifecycleState { kUnknown = 0, kTermination };
+
+/// @brief Notifies the current state of the app's lifecycle.
+///
+/// This method is used to notify the Analytics SDK about the current state of
+/// the app's lifecycle. The Analytics SDK will use this information to log
+/// events, update user properties, upload data, etc. The method only work on
+/// windows and is a NO-OP on iOS and Android.
+///
+/// kTermination is used to indicate that the app is about to be terminated.
+/// The caller will be blocked until all pending data is uploaded or an error
+/// occurs. The caller must ensure the OS does not terminate background threads
+/// before the call returns. Currently only works for Windows Desktop.
+///
+/// @param[in] state The current state of the app's lifecycle.
+void NotifyAppLifecycleChange(AppLifecycleState state);
 
 /// Get the instance ID from the analytics service.
 ///

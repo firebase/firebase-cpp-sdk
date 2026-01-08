@@ -413,6 +413,12 @@ void ResetAnalyticsData() {
   g_resetter->Reset();
 }
 
+// No-Op on iOS and Android. Only used in Windows desktop apps.
+void SetLogCallback(const LogCallback&) {}
+
+// No-Op on iOS and Android. Only used in Windows desktop apps.
+void NotifyAppLifecycleChange(AppLifecycleState) {}
+
 Future<std::string> GetAnalyticsInstanceId() {
   MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());

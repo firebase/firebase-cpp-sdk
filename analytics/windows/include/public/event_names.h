@@ -1,4 +1,16 @@
 // Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_EVENT_NAMES_H_
 #define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_EVENT_NAMES_H_
@@ -31,6 +43,20 @@ namespace google::analytics {
 //     <li>@c kParameterValue (double) (optional)</li>
 // </ul>
 inline constexpr char kEventPublicAdImpression[] = "ad_impression";
+
+// In-App Purchase event. This event signifies that extra content or a
+// subscription was purchased by a user inside an app. Note: This is different
+// from the ecommerce purchase event. Note: If you supply the @c kParameterValue
+// parameter, you must also supply the @c kParameterCurrency parameter so that
+// revenue metrics can be computed accurately. Params:
+//
+// <ul>
+//     <li>@c kParameterCurrency (string)</li>
+//     <li>@c kParameterQuantity (double) (optional)</li>
+//     <li>@c kParameterPrice (double) (optional)</li>
+//     <li>@c kParameterValue (double)</li>
+// </ul>
+inline constexpr char kEventPublicInAppPurchase[] = "in_app_purchase";
 
 // Add Payment Info event. This event signifies that a user has submitted their
 // payment information. Note: If you supply the @c kParameterValue parameter,
@@ -243,15 +269,12 @@ inline constexpr char kEventRefund[] = "refund";
 // </ul>
 inline constexpr char kEventRemoveFromCart[] = "remove_from_cart";
 
-// Screen View event. This event signifies that a screen in your app has
-// appeared. Use this event to contextualize Events that occur on a specific
-// screen. Note: The @c kParameterScreenName parameter is optional, and the @c
-// kParameterScreenClass parameter is required. If the @c kParameterScreenClass
-// is not provided, or if there are extra parameters, the call to log this event
-// will be ignored. Params:
+// Screen View event. This event signifies a screen view. Use this when a screen
+// transition occurs. This event can be logged irrespective of whether automatic
+// screen tracking is enabled. Params:
 //
 // <ul>
-//     <li>@c kParameterScreenClass (string) (required)</li>
+//     <li>@c kParameterScreenClass (string) (optional)</li>
 //     <li>@c kParameterScreenName (string) (optional)</li>
 // </ul>
 inline constexpr char kEventScreenView[] = "screen_view";

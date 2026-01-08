@@ -666,6 +666,12 @@ void ResetAnalyticsData() {
   util::CheckAndClearJniExceptions(env);
 }
 
+// NO-OP in Android and iOS. Only used in Windows.
+void SetLogCallback(const LogCallback&) {}
+
+// NO-OP in Android and iOS. Only used in Windows.
+void NotifyAppLifecycleChange(AppLifecycleState) {}
+
 Future<std::string> GetAnalyticsInstanceId() {
   FIREBASE_ASSERT_RETURN(GetAnalyticsInstanceIdLastResult(),
                          internal::IsInitialized());

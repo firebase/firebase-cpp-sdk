@@ -360,7 +360,7 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         shell: bash
         run: |
-          find "testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" -name integration_test.exe -exec dirname {} \; | while read dir; do cp analytics/windows/analytics_win.dll "$dir/"; done
+          find "testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" -name integration_test.exe -exec dirname {} \; | while read dir; do cp analytics/windows/google_analytics.dll "$dir/"; done
       - name: Upload Desktop Cmake
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
