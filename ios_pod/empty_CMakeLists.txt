@@ -14,5 +14,5 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project (empty NONE)
+project (empty CXX)
 add_library(GetPods empty.cc)
