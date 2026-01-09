@@ -149,7 +149,7 @@ namespace firebase_test_framework {
 #endif  // !defined(_WIN64)
 #else
 #define SKIP_TEST_ON_WINDOWS ((void)0)
-#define SKIP_TEST_ON_WINDOWS_X86 ((void)0)
+#define SKIP_TEST_ON_WINDOWS_32BIT ((void)0)
 #endif  // defined(_WIN32)
 
 #if defined(__linux__)
