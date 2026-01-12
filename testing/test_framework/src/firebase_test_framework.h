@@ -128,14 +128,29 @@ namespace firebase_test_framework {
 #endif  // (defined(TARGET_OS_OSX) && TARGET_OS_OSX)
 
 #if defined(_WIN32)
+// defined when the compilation target is 32-bit ARM, 64-bit ARM, x86, x64
 #define SKIP_TEST_ON_WINDOWS                                               \
   {                                                                        \
     app_framework::LogInfo("Skipping %s on Windows.", test_info_->name()); \
     GTEST_SKIP();                                                          \
     return;                                                                \
   }
+#if !defined(_WIN64)
+// _WIN64 is defined for 64-bit targets (e.g., x64, 64-bit ARM).
+// Its absence on a Windows build indicates a 32-bit target.
+#define SKIP_TEST_ON_WINDOWS_32BIT                           \
+  {                                                          \
+    app_framework::LogInfo("Skipping %s on 32-bit Windows.", \
+                           test_info_->name());              \
+    GTEST_SKIP();                                            \
+    return;                                                  \
+  }
+#else
+#define SKIP_TEST_ON_WINDOWS_32BIT ((void)0)
+#endif  // !defined(_WIN64)
 #else
 #define SKIP_TEST_ON_WINDOWS ((void)0)
+#define SKIP_TEST_ON_WINDOWS_32BIT ((void)0)
 #endif  // defined(_WIN32)
 
 #if defined(__linux__)
