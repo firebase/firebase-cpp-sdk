@@ -1,19 +1,21 @@
-// Copyright 2025 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-#ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_C_ANALYTICS_H_
-#define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_C_ANALYTICS_H_
+#ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PRERELEASE_C_ANALYTICS_H_
+#define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PRERELEASE_C_ANALYTICS_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -99,16 +101,37 @@ typedef enum GoogleAnalytics_AppLifecycleState {
    * @brief The app is about to be terminated.
    */
   GoogleAnalytics_AppLifecycleState_kTermination = 1,
+  /**
+   * @brief The application has user focus (e.g., is in the foreground).
+   */
+  GoogleAnalytics_AppLifecycleState_kFocused = 2,
+  /**
+   * @brief The application does not have user focus (e.g., is in the
+   * background).
+   */
+  GoogleAnalytics_AppLifecycleState_kUnfocused = 3,
 } GoogleAnalytics_AppLifecycleState;
 
 /**
  * @brief The log level of a log message.
  */
 typedef enum GoogleAnalytics_LogLevel {
-  kDebug,
-  kInfo,
-  kWarning,
-  kError,
+  /**
+   * @brief The log message is a debug message.
+   */
+  GoogleAnalytics_LogLevel_kDebug = 0,
+  /**
+   * @brief The log message is an info message.
+   */
+  GoogleAnalytics_LogLevel_kInfo = 1,
+  /**
+   * @brief The log message is a warning message.
+   */
+  GoogleAnalytics_LogLevel_kWarning = 2,
+  /**
+   * @brief The log message is an error message.
+   */
+  GoogleAnalytics_LogLevel_kError = 3,
 } GoogleAnalytics_LogLevel;
 
 /**
@@ -364,6 +387,20 @@ ANALYTICS_API void GoogleAnalytics_EventParameters_Destroy(
 ANALYTICS_API bool GoogleAnalytics_Initialize(GoogleAnalytics_Options* options);
 
 /**
+ * @brief Returns whether the Analytics SDK is initialized.
+ *
+ * @return true if the Analytics SDK is initialized, false otherwise.
+ */
+ANALYTICS_API bool GoogleAnalytics_IsInitialized();
+
+/**
+ * @brief Sets whether debug mode is enabled.
+ *
+ * @param[in] enabled A flag that enables or disables debug mode.
+ */
+ANALYTICS_API void GoogleAnalytics_SetDebugMode(bool enabled);
+
+/**
  * @brief Logs an app event.
  *
  * The event can have up to 25 parameters. Events with the same name must have
@@ -509,4 +546,4 @@ ANALYTICS_API void GoogleAnalytics_NotifyAppLifecycleChange(
 }
 #endif
 
-#endif  // ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_C_ANALYTICS_H_
+#endif  // ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PRERELEASE_C_ANALYTICS_H_

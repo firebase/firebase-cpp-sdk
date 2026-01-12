@@ -213,6 +213,8 @@ extern void (*ptr_GoogleAnalytics_ResetAnalyticsData)();
 extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 extern void (*ptr_GoogleAnalytics_SetLogCallback)(GoogleAnalytics_LogCallback callback);
 extern void (*ptr_GoogleAnalytics_NotifyAppLifecycleChange)(GoogleAnalytics_AppLifecycleState state);
+extern bool (*ptr_GoogleAnalytics_IsInitialized)();
+extern void (*ptr_GoogleAnalytics_SetDebugMode)(bool enabled);
 
 #define GoogleAnalytics_Options_Create ptr_GoogleAnalytics_Options_Create
 #define GoogleAnalytics_Options_Destroy ptr_GoogleAnalytics_Options_Destroy
@@ -238,6 +240,8 @@ extern void (*ptr_GoogleAnalytics_NotifyAppLifecycleChange)(GoogleAnalytics_AppL
 #define GoogleAnalytics_SetAnalyticsCollectionEnabled ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled
 #define GoogleAnalytics_SetLogCallback ptr_GoogleAnalytics_SetLogCallback
 #define GoogleAnalytics_NotifyAppLifecycleChange ptr_GoogleAnalytics_NotifyAppLifecycleChange
+#define GoogleAnalytics_IsInitialized ptr_GoogleAnalytics_IsInitialized
+#define GoogleAnalytics_SetDebugMode ptr_GoogleAnalytics_SetDebugMode
 // clang-format on
 
 // Number of Google Analytics functions expected to be loaded from the DLL.

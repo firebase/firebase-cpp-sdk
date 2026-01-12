@@ -634,7 +634,7 @@ enum AppLifecycleState { kUnknown = 0, kTermination };
 ///
 /// This method is used to notify the Analytics SDK about the current state of
 /// the app's lifecycle. The Analytics SDK will use this information to log
-/// events, update user properties, upload data, etc. The method only work on
+/// events, update user properties, upload data, etc. The method only works on
 /// windows and is a NO-OP on iOS and Android.
 ///
 /// kTermination is used to indicate that the app is about to be terminated.
@@ -644,6 +644,20 @@ enum AppLifecycleState { kUnknown = 0, kTermination };
 ///
 /// @param[in] state The current state of the app's lifecycle.
 void NotifyAppLifecycleChange(AppLifecycleState state);
+
+/// @brief Returns whether the desktop Analytics SDK is initialized.
+///
+/// Returns true if the Analytics SDK is initialized, false otherwise. The
+/// method only works on windows and is a NO-OP on iOS and Android.
+bool IsDesktopInitialized();
+
+/// @brief Sets whether desktop debug mode is enabled.
+///
+/// This methods enables desktop debug mode for the analytics SDK. The
+/// method only works on windows and is a NO-OP on iOS and Android.
+///
+/// @param[in] enabled A flag that enables or disables debug mode.
+void SetDesktopDebugMode(bool enabled);
 
 /// Get the instance ID from the analytics service.
 ///

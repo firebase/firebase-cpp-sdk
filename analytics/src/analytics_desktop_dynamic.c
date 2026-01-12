@@ -175,6 +175,16 @@ static void Stub_GoogleAnalytics_NotifyAppLifecycleChange(GoogleAnalytics_AppLif
     // No return value.
 }
 
+// Stub for GoogleAnalytics_IsInitialized
+static bool Stub_GoogleAnalytics_IsInitialized() {
+  return 1;
+}
+
+// Stub for GoogleAnalytics_SetDebugMode
+static void Stub_GoogleAnalytics_SetDebugMode(bool enabled) {
+    // No return value.
+}
+
 
 // --- Function Pointer Initializations ---
 GoogleAnalytics_Options* (*ptr_GoogleAnalytics_Options_Create)() = &Stub_GoogleAnalytics_Options_Create;
@@ -202,7 +212,8 @@ void (*ptr_GoogleAnalytics_ResetAnalyticsData)() = &Stub_GoogleAnalytics_ResetAn
 void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled) = &Stub_GoogleAnalytics_SetAnalyticsCollectionEnabled;
 void (*ptr_GoogleAnalytics_SetLogCallback)(GoogleAnalytics_LogCallback callback) = &Stub_GoogleAnalytics_SetLogCallback;
 void (*ptr_GoogleAnalytics_NotifyAppLifecycleChange)(GoogleAnalytics_AppLifecycleState state) = &Stub_GoogleAnalytics_NotifyAppLifecycleChange;
-
+bool (*ptr_GoogleAnalytics_IsInitialized)() = &Stub_GoogleAnalytics_IsInitialized;
+void (*ptr_GoogleAnalytics_SetDebugMode)(bool enabled) = &Stub_GoogleAnalytics_SetDebugMode;
 // --- Dynamic Loader Function for Windows ---
 #if defined(_WIN32)
 int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
@@ -333,6 +344,16 @@ int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
         count++;
     }
 
+    FARPROC proc_GoogleAnalytics_IsInitialized = GetProcAddress(dll_handle, "GoogleAnalytics_IsInitialized");
+    if (proc_GoogleAnalytics_IsInitialized) {
+        ptr_GoogleAnalytics_IsInitialized = (bool (*)())proc_GoogleAnalytics_IsInitialized;
+        count++;
+    }
+    FARPROC proc_GoogleAnalytics_SetDebugMode = GetProcAddress(dll_handle, "GoogleAnalytics_SetDebugMode");
+    if (proc_GoogleAnalytics_SetDebugMode) {
+        ptr_GoogleAnalytics_SetDebugMode = (void (*)(bool enabled))proc_GoogleAnalytics_SetDebugMode;
+        count++;
+    }
     return count;
 }
 
@@ -361,6 +382,8 @@ void FirebaseAnalytics_UnloadDynamicFunctions(void) {
     ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled = &Stub_GoogleAnalytics_SetAnalyticsCollectionEnabled;
     ptr_GoogleAnalytics_SetLogCallback = &Stub_GoogleAnalytics_SetLogCallback;
     ptr_GoogleAnalytics_NotifyAppLifecycleChange = &Stub_GoogleAnalytics_NotifyAppLifecycleChange;
+    ptr_GoogleAnalytics_IsInitialized = &Stub_GoogleAnalytics_IsInitialized;
+    ptr_GoogleAnalytics_SetDebugMode = &Stub_GoogleAnalytics_SetDebugMode;
 }
 
 #endif // defined(_WIN32)
