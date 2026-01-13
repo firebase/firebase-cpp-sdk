@@ -25,14 +25,15 @@ static char g_stub_memory[256] = {0};
 // clang-format off
 
 // Number of Google Analytics functions expected to be loaded from the DLL.
-const int FirebaseAnalytics_DynamicFunctionCount = 24;
+const int FirebaseAnalytics_DynamicFunctionCount = 26;
 
 #if defined(_WIN32)
 // Array of known Google Analytics Windows DLL SHA256 hashes (hex strings).
 const char* FirebaseAnalytics_KnownWindowsDllHashes[] = {
     "c1b9ff6e9119c30bbeb7472326dcde418f45682e6b822e25eed922fe6e3cc698",
     "13ae5f9349b24186f1f3667b52832076e8d14ad9656c3546b1b7fca79ac8144b",
-    "3f1fb1bb21bce0061c4b89bb674d3b6c94eaea2c8de98802198a35ea94c97900"
+    "3f1fb1bb21bce0061c4b89bb674d3b6c94eaea2c8de98802198a35ea94c97900",
+    "1e944cd4a2b8d115a32d01f4cc900f23805934b5587b55305df9cd189f9d78d5"
 };
 
 // Count of known Google Analytics Windows DLL SHA256 hashes.
