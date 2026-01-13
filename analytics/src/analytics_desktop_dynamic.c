@@ -177,7 +177,7 @@ static void Stub_GoogleAnalytics_NotifyAppLifecycleChange(GoogleAnalytics_AppLif
 
 // Stub for GoogleAnalytics_IsInitialized
 static bool Stub_GoogleAnalytics_IsInitialized() {
-  return 1;
+  return 0;
 }
 
 // Stub for GoogleAnalytics_SetDebugMode
