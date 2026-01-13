@@ -67,6 +67,9 @@ static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 // Define the destructors for the virtual listener/provider/factory classes.
 AppCheckListener::~AppCheckListener() {}
 AppCheckProvider::~AppCheckProvider() {}
+
+// Default implimenation. Can be overriden by App check providers that support
+// limited use tokens
 void AppCheckProvider::GetLimitedUseToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
