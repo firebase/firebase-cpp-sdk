@@ -37,7 +37,7 @@ const char* FirebaseAnalytics_KnownWindowsDllHashes[] = {
 };
 
 // Count of known Google Analytics Windows DLL SHA256 hashes.
-const int FirebaseAnalytics_KnownWindowsDllHashCount = 3;
+const int FirebaseAnalytics_KnownWindowsDllHashCount = 4;
 #endif  // defined(_WIN32)
 
 // --- Stub Function Definitions ---
