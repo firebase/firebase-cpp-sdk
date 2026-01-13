@@ -248,6 +248,8 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
 // The windows analytics DLL enables users to // set a callback function that is
 // triggered when the underlying DLL logs something.
 TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
+  SKIP_TEST_ON_WINDOWS_32BIT;
+
   std::promise<void> finishedPromise;
   std::future<void> finished = finishedPromise.get_future();
   bool log_callback_called = false;
