@@ -365,6 +365,10 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     CACHE BOOL "Force Firestore build tests to match")
   endif()
 
+  # Disable Snappy's BMI2 optimizations for broader CPU compatibility.
+  # BMI2 instructions cause Illegal Instruction crashes on older CPUs that don't support BMI2.
+  set(SNAPPY_HAVE_BMI2 0 CACHE INTERNAL "Disable BMI2 for CPU compatibility" FORCE)
+
   add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
 
   copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
