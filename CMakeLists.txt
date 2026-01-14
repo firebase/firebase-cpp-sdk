@@ -199,6 +199,9 @@ if (MSVC)
       $<$<CONFIG:Release>:/MD>
   )
   endif()
+  # Disable constexpr mutex constructor to fix crashes on older vcruntimes.
+  # See: https://github.com/microsoft/STL/issues/4730
+  add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 endif()
 
 # Set variables that are used by download_external_sources.
