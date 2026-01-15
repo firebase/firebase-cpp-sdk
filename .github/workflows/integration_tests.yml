@@ -1229,10 +1229,10 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS  -t true
       - name: Setup java for Firestore emulator
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
       - name: Setup Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         uses: nick-invision/retry@v2
