@@ -55,6 +55,11 @@ class DebugTokenRequest
     application_data_->debug_token = std::move(debug_token);
     UpdatePostFields();
   }
+
+  void SetLimitedUse(bool limited_use) {
+    application_data_->limited_use = limited_use;
+    UpdatePostFields();
+  }
 };
 
 }  // namespace internal
