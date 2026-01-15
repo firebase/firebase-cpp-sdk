@@ -423,7 +423,7 @@ void NotifyAppLifecycleChange(AppLifecycleState) {}
 bool IsDesktopInitialized() { return false; }
 
 // NO-OP in Android and iOS. Only used in Windows.
-void SetDesktopDebugMode(bool enabled) {}
+void SetDesktopDebugMode(bool) {}
 
 Future<std::string> GetAnalyticsInstanceId() {
   MutexLock lock(g_mutex);
