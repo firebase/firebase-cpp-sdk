@@ -25,18 +25,19 @@ static char g_stub_memory[256] = {0};
 // clang-format off
 
 // Number of Google Analytics functions expected to be loaded from the DLL.
-const int FirebaseAnalytics_DynamicFunctionCount = 24;
+const int FirebaseAnalytics_DynamicFunctionCount = 26;
 
 #if defined(_WIN32)
 // Array of known Google Analytics Windows DLL SHA256 hashes (hex strings).
 const char* FirebaseAnalytics_KnownWindowsDllHashes[] = {
     "c1b9ff6e9119c30bbeb7472326dcde418f45682e6b822e25eed922fe6e3cc698",
     "13ae5f9349b24186f1f3667b52832076e8d14ad9656c3546b1b7fca79ac8144b",
-    "3f1fb1bb21bce0061c4b89bb674d3b6c94eaea2c8de98802198a35ea94c97900"
+    "3f1fb1bb21bce0061c4b89bb674d3b6c94eaea2c8de98802198a35ea94c97900",
+    "1e944cd4a2b8d115a32d01f4cc900f23805934b5587b55305df9cd189f9d78d5"
 };
 
 // Count of known Google Analytics Windows DLL SHA256 hashes.
-const int FirebaseAnalytics_KnownWindowsDllHashCount = 3;
+const int FirebaseAnalytics_KnownWindowsDllHashCount = 4;
 #endif  // defined(_WIN32)
 
 // --- Stub Function Definitions ---
@@ -175,6 +176,16 @@ static void Stub_GoogleAnalytics_NotifyAppLifecycleChange(GoogleAnalytics_AppLif
     // No return value.
 }
 
+// Stub for GoogleAnalytics_IsInitialized
+static bool Stub_GoogleAnalytics_IsInitialized() {
+  return 0;
+}
+
+// Stub for GoogleAnalytics_SetDebugMode
+static void Stub_GoogleAnalytics_SetDebugMode(bool enabled) {
+    // No return value.
+}
+
 
 // --- Function Pointer Initializations ---
 GoogleAnalytics_Options* (*ptr_GoogleAnalytics_Options_Create)() = &Stub_GoogleAnalytics_Options_Create;
@@ -202,7 +213,8 @@ void (*ptr_GoogleAnalytics_ResetAnalyticsData)() = &Stub_GoogleAnalytics_ResetAn
 void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled) = &Stub_GoogleAnalytics_SetAnalyticsCollectionEnabled;
 void (*ptr_GoogleAnalytics_SetLogCallback)(GoogleAnalytics_LogCallback callback) = &Stub_GoogleAnalytics_SetLogCallback;
 void (*ptr_GoogleAnalytics_NotifyAppLifecycleChange)(GoogleAnalytics_AppLifecycleState state) = &Stub_GoogleAnalytics_NotifyAppLifecycleChange;
-
+bool (*ptr_GoogleAnalytics_IsInitialized)() = &Stub_GoogleAnalytics_IsInitialized;
+void (*ptr_GoogleAnalytics_SetDebugMode)(bool enabled) = &Stub_GoogleAnalytics_SetDebugMode;
 // --- Dynamic Loader Function for Windows ---
 #if defined(_WIN32)
 int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
@@ -333,6 +345,16 @@ int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle) {
         count++;
     }
 
+    FARPROC proc_GoogleAnalytics_IsInitialized = GetProcAddress(dll_handle, "GoogleAnalytics_IsInitialized");
+    if (proc_GoogleAnalytics_IsInitialized) {
+        ptr_GoogleAnalytics_IsInitialized = (bool (*)())proc_GoogleAnalytics_IsInitialized;
+        count++;
+    }
+    FARPROC proc_GoogleAnalytics_SetDebugMode = GetProcAddress(dll_handle, "GoogleAnalytics_SetDebugMode");
+    if (proc_GoogleAnalytics_SetDebugMode) {
+        ptr_GoogleAnalytics_SetDebugMode = (void (*)(bool enabled))proc_GoogleAnalytics_SetDebugMode;
+        count++;
+    }
     return count;
 }
 
@@ -361,6 +383,8 @@ void FirebaseAnalytics_UnloadDynamicFunctions(void) {
     ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled = &Stub_GoogleAnalytics_SetAnalyticsCollectionEnabled;
     ptr_GoogleAnalytics_SetLogCallback = &Stub_GoogleAnalytics_SetLogCallback;
     ptr_GoogleAnalytics_NotifyAppLifecycleChange = &Stub_GoogleAnalytics_NotifyAppLifecycleChange;
+    ptr_GoogleAnalytics_IsInitialized = &Stub_GoogleAnalytics_IsInitialized;
+    ptr_GoogleAnalytics_SetDebugMode = &Stub_GoogleAnalytics_SetDebugMode;
 }
 
 #endif // defined(_WIN32)

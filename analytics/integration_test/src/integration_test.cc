@@ -276,6 +276,29 @@ TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
 }
 #endif  // defined(_WIN32)
 
+TEST_F(FirebaseAnalyticsTest, TestDesktopInitialization) {
+  // The analytics dll does not work on 32 bit systems.
+  SKIP_TEST_ON_WINDOWS_32BIT;
+
+  // Check to see if the desktop DLL is loaded.
+  bool initialized = firebase::analytics::IsDesktopInitialized();
+
+#if defined(_WIN32)
+  // On Windows, it should be true.
+  EXPECT_TRUE(initialized);
+#else
+  // On other platforms, it should return false.
+  EXPECT_FALSE(initialized);
+#endif
+}
+
+TEST_F(FirebaseAnalyticsTest, TestDesktopDebugMode) {
+  // SetDebugMode doesn't return anything, so we just call it to ensure
+  // it doesn't crash.
+  firebase::analytics::SetDesktopDebugMode(true);
+  firebase::analytics::SetDesktopDebugMode(false);
+}
+
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
   // Log an event with no parameters.
   firebase::analytics::LogEvent(firebase::analytics::kEventLogin);

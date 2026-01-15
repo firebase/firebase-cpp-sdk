@@ -1,19 +1,21 @@
-// Copyright 2025 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-#ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_ANALYTICS_H_
-#define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_ANALYTICS_H_
+#ifndef ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PRERELEASE_ANALYTICS_H_
+#define ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PRERELEASE_ANALYTICS_H_
 
 #include <cstdint>
 #include <functional>
@@ -60,6 +62,15 @@ class Analytics {
      * @brief The app is about to be terminated.
      */
     kTermination,
+    /**
+     * @brief The application has user focus (e.g., is in the foreground).
+     */
+    kFocused,
+    /**
+     * @brief The application does not have user focus (e.g., is in the
+     * background).
+     */
+    kUnfocused,
   };
 
   /**
@@ -155,12 +166,25 @@ class Analytics {
     google_analytics_options->analytics_collection_enabled_at_first_launch =
         options.analytics_collection_enabled_at_first_launch;
     google_analytics_options->app_data_directory =
-        (options.app_data_directory.has_value() &&
-         !options.app_data_directory->empty())
-            ? options.app_data_directory->c_str()
-            : nullptr;
+        options.app_data_directory.value_or("").empty()
+            ? nullptr
+            : options.app_data_directory.value().c_str();
     return GoogleAnalytics_Initialize(google_analytics_options);
   }
+
+  /**
+   * @brief Returns whether the Analytics SDK is initialized.
+   *
+   * @return true if the Analytics SDK is initialized, false otherwise.
+   */
+  bool IsInitialized() { return GoogleAnalytics_IsInitialized(); }
+
+  /**
+   * @brief Sets whether debug mode is enabled.
+   *
+   * @param[in] enabled A flag that enables or disables debug mode.
+   */
+  void SetDebugMode(bool enabled) { GoogleAnalytics_SetDebugMode(enabled); }
 
   /**
    * @brief Logs an app event.
@@ -353,16 +377,16 @@ class Analytics {
         [](GoogleAnalytics_LogLevel log_level, const char* message) {
           LogLevel cpp_log_level;
           switch (log_level) {
-            case GoogleAnalytics_LogLevel::kDebug:
+            case GoogleAnalytics_LogLevel_kDebug:
               cpp_log_level = LogLevel::kDebug;
               break;
-            case GoogleAnalytics_LogLevel::kInfo:
+            case GoogleAnalytics_LogLevel_kInfo:
               cpp_log_level = LogLevel::kInfo;
               break;
-            case GoogleAnalytics_LogLevel::kWarning:
+            case GoogleAnalytics_LogLevel_kWarning:
               cpp_log_level = LogLevel::kWarning;
               break;
-            case GoogleAnalytics_LogLevel::kError:
+            case GoogleAnalytics_LogLevel_kError:
               cpp_log_level = LogLevel::kError;
               break;
             default:
@@ -392,11 +416,23 @@ class Analytics {
    * occurs. The caller must ensure the OS does not terminate background threads
    * before the call returns.
    *
+   * kFocused is used to indicate that the app has user focus (e.g., is in the
+   * foreground).
+   *
+   * kUnfocused is used to indicate that the app does not have user focus (e.g.,
+   * is in the background).
+   *
    * @param[in] state The current state of the app's lifecycle.
    */
   void NotifyAppLifecycleChange(AppLifecycleState state) {
     GoogleAnalytics_AppLifecycleState c_state;
     switch (state) {
+      case AppLifecycleState::kFocused:
+        c_state = GoogleAnalytics_AppLifecycleState_kFocused;
+        break;
+      case AppLifecycleState::kUnfocused:
+        c_state = GoogleAnalytics_AppLifecycleState_kUnfocused;
+        break;
       case AppLifecycleState::kTermination:
         c_state = GoogleAnalytics_AppLifecycleState_kTermination;
         break;
@@ -417,4 +453,4 @@ class Analytics {
 
 }  // namespace google::analytics
 
-#endif  // ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PUBLIC_ANALYTICS_H_
+#endif  // ANALYTICS_MOBILE_CONSOLE_MEASUREMENT_PRERELEASE_ANALYTICS_H_

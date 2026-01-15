@@ -450,6 +450,18 @@ void NotifyAppLifecycleChange(AppLifecycleState state) {
       static_cast<GoogleAnalytics_AppLifecycleState>(state));
 }
 
+// Returns true if the desktop Analytics dll is initialized.
+bool IsDesktopInitialized() {
+  FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
+  return GoogleAnalytics_IsInitialized();
+}
+
+// Sends the enabled Flag to the desktop Analytics dll.
+void SetDesktopDebugMode(bool enabled) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  GoogleAnalytics_SetDebugMode(enabled);
+}
+
 // Overloaded versions of LogEvent for convenience.
 
 void LogEvent(const char* name) {

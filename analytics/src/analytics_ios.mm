@@ -419,6 +419,12 @@ void SetLogCallback(const LogCallback&) {}
 // No-Op on iOS and Android. Only used in Windows desktop apps.
 void NotifyAppLifecycleChange(AppLifecycleState) {}
 
+// NO-OP in Android and iOS. Only used in Windows.
+bool IsDesktopInitialized() { return false; }
+
+// NO-OP in Android and iOS. Only used in Windows.
+void SetDesktopDebugMode(bool) {}
+
 Future<std::string> GetAnalyticsInstanceId() {
   MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
