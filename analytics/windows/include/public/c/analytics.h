@@ -32,7 +32,6 @@ extern "C" {
 
 typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
 
-
 /**
  * @brief GoogleAnalytics_Options for initializing the Analytics SDK.
  * GoogleAnalytics_Options_Create() must be used to create an instance of this
@@ -577,7 +576,6 @@ ANALYTICS_API void GoogleAnalytics_SetSessionTimeoutInterval(
  * @see GoogleAnalytics_AppLifecycleState
  */
 ANALYTICS_API void GoogleAnalytics_NotifyAppLifecycleChange(int32_t state);
-
 
 #ifdef __cplusplus
 }

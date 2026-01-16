@@ -411,8 +411,7 @@ LogLevel ConvertAnalyticsLogLevelToFirebaseLogLevel(
   }
 }
 
-void GoogleAnalyticsWrapperLogCallback(int32_t log_level,
-                                       const char* message) {
+void GoogleAnalyticsWrapperLogCallback(int32_t log_level, const char* message) {
   LogCallback callback_to_call;
 
   {
@@ -421,9 +420,8 @@ void GoogleAnalyticsWrapperLogCallback(int32_t log_level,
   }
 
   if (callback_to_call) {
-    LogLevel firebase_log_level =
-        ConvertAnalyticsLogLevelToFirebaseLogLevel(
-            static_cast<GoogleAnalytics_LogLevel>(log_level));
+    LogLevel firebase_log_level = ConvertAnalyticsLogLevelToFirebaseLogLevel(
+        static_cast<GoogleAnalytics_LogLevel>(log_level));
     callback_to_call(firebase_log_level, message);
   }
 }
