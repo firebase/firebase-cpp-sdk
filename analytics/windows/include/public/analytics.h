@@ -83,6 +83,7 @@ class Analytics {
     kError,
   };
 
+
   /**
    * @brief The callback type for logging messages from the SDK.
    *
@@ -132,6 +133,15 @@ class Analytics {
      * The path must pre-exist and the app has read and write access to it.
      */
     std::optional<std::string> app_data_directory;
+    /**
+     * @brief The duration of inactivity in seconds after which a session
+     * terminates.
+     *
+     * If a user interacts with the app after this timeout period, a new session
+     * is initiated. If this field is not set or a negative value is
+     * provided, the SDK's default timeout duration is used.
+     */
+    std::optional<int64_t> session_timeout_duration_seconds;
   };
 
   /**
@@ -169,6 +179,8 @@ class Analytics {
         options.app_data_directory.value_or("").empty()
             ? nullptr
             : options.app_data_directory.value().c_str();
+    google_analytics_options->session_timeout_duration_seconds =
+        options.session_timeout_duration_seconds.value_or(-1);
     return GoogleAnalytics_Initialize(google_analytics_options);
   }
 
@@ -373,35 +385,49 @@ class Analytics {
       return;
     }
 
-    GoogleAnalytics_SetLogCallback(
-        [](GoogleAnalytics_LogLevel log_level, const char* message) {
-          LogLevel cpp_log_level;
-          switch (log_level) {
-            case GoogleAnalytics_LogLevel_kDebug:
-              cpp_log_level = LogLevel::kDebug;
-              break;
-            case GoogleAnalytics_LogLevel_kInfo:
-              cpp_log_level = LogLevel::kInfo;
-              break;
-            case GoogleAnalytics_LogLevel_kWarning:
-              cpp_log_level = LogLevel::kWarning;
-              break;
-            case GoogleAnalytics_LogLevel_kError:
-              cpp_log_level = LogLevel::kError;
-              break;
-            default:
-              cpp_log_level = LogLevel::kInfo;
-          }
-          LogCallback local_callback;
-          Analytics& self = Analytics::GetInstance();
-          {
-            std::lock_guard<std::mutex> lock(self.mutex_);
-            local_callback = self.current_callback_;
-          }
-          if (local_callback) {
-            local_callback(cpp_log_level, std::string(message));
-          }
-        });
+    GoogleAnalytics_SetLogCallback([](int32_t log_level, const char* message) {
+      LogLevel cpp_log_level;
+      switch (log_level) {
+        case GoogleAnalytics_LogLevel_kDebug:
+          cpp_log_level = LogLevel::kDebug;
+          break;
+        case GoogleAnalytics_LogLevel_kInfo:
+          cpp_log_level = LogLevel::kInfo;
+          break;
+        case GoogleAnalytics_LogLevel_kWarning:
+          cpp_log_level = LogLevel::kWarning;
+          break;
+        case GoogleAnalytics_LogLevel_kError:
+          cpp_log_level = LogLevel::kError;
+          break;
+        default:
+          cpp_log_level = LogLevel::kInfo;
+      }
+      LogCallback local_callback;
+      Analytics& self = Analytics::GetInstance();
+      {
+        std::lock_guard<std::mutex> lock(self.mutex_);
+        local_callback = self.current_callback_;
+      }
+      if (local_callback) {
+        local_callback(cpp_log_level, std::string(message));
+      }
+    });
+  }
+
+  /**
+   * @brief Sets the duration of inactivity in seconds after which a session
+   * terminates.
+   *
+   * If a user interacts with the app after this timeout period, a new session
+   * is initiated. If set to a negative value, the value is ignored. The default
+   * value is 1800 seconds (30 minutes).
+   *
+   * @param[in] session_timeout_duration_seconds The session timeout duration in
+   * seconds.
+   */
+  void SetSessionTimeoutInterval(int64_t session_timeout_duration_seconds) {
+    GoogleAnalytics_SetSessionTimeoutInterval(session_timeout_duration_seconds);
   }
 
   /**
@@ -444,8 +470,10 @@ class Analytics {
     GoogleAnalytics_NotifyAppLifecycleChange(c_state);
   }
 
+
  private:
   Analytics() = default;
+
 
   std::mutex mutex_;
   LogCallback current_callback_;

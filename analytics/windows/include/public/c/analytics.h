@@ -32,6 +32,7 @@ extern "C" {
 
 typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
 
+
 /**
  * @brief GoogleAnalytics_Options for initializing the Analytics SDK.
  * GoogleAnalytics_Options_Create() must be used to create an instance of this
@@ -81,6 +82,16 @@ typedef struct ANALYTICS_API GoogleAnalytics_Options {
    * The path must pre-exist and the app has read and write access to it.
    */
   const char* app_data_directory;
+
+  /**
+   * @brief The duration of inactivity in seconds after which a session
+   * terminates.
+   *
+   * If a user interacts with the app after this timeout period,
+   * a new session is initiated. If set to a negative value, the SDK's
+   * default timeout duration is used.
+   */
+  int64_t session_timeout_duration_seconds;
 
   /**
    * @brief Reserved for internal use by the SDK.
@@ -137,9 +148,15 @@ typedef enum GoogleAnalytics_LogLevel {
 /**
  * @brief Function pointer type for a log callback.
  *
- * @param[in] message The log message string.
+ * @param[in] message The log message string. Pass a value from the
+ * #GoogleAnalytics_LogLevel enum.
+ *
+ * @note The parameters are defined as `int32_t` to ensure ABI stability across
+ * different compilers, but callers should use the enum constants directly.
+ *
+ * @see GoogleAnalytics_LogLevel
  */
-typedef void (*GoogleAnalytics_LogCallback)(GoogleAnalytics_LogLevel log_level,
+typedef void (*GoogleAnalytics_LogCallback)(int32_t log_level,
                                             const char* message);
 
 /**
@@ -526,6 +543,20 @@ ANALYTICS_API void GoogleAnalytics_SetLogCallback(
     GoogleAnalytics_LogCallback callback);
 
 /**
+ * @brief Sets the duration of inactivity in seconds after which a session
+ * terminates.
+ *
+ * If a user interacts with the app after this timeout period, a new session is
+ * initiated. If set to a negative value, the value is ignored. The default
+ * value is 1800 seconds (30 minutes).
+ *
+ * @param[in] session_timeout_duration_seconds The session timeout duration in
+ * seconds.
+ */
+ANALYTICS_API void GoogleAnalytics_SetSessionTimeoutInterval(
+    int64_t session_timeout_duration_seconds);
+
+/**
  * @brief Notifies the current state of the app's lifecycle.
  *
  * This method is used to notify the Analytics SDK about the current state of
@@ -537,10 +568,16 @@ ANALYTICS_API void GoogleAnalytics_SetLogCallback(
  * data is uploaded or an error occurs. The caller must ensure the OS does not
  * terminate background threads before the call returns.
  *
- * @param[in] state The current state of the app's lifecycle.
+ * @param[in] state The current state of the app's lifecycle. Pass a value from
+ * the #GoogleAnalytics_AppLifecycleState enum.
+ *
+ * @note The parameters are defined as `int32_t` to ensure ABI stability across
+ * different compilers, but callers should use the enum constants directly.
+ *
+ * @see GoogleAnalytics_AppLifecycleState
  */
-ANALYTICS_API void GoogleAnalytics_NotifyAppLifecycleChange(
-    GoogleAnalytics_AppLifecycleState state);
+ANALYTICS_API void GoogleAnalytics_NotifyAppLifecycleChange(int32_t state);
+
 
 #ifdef __cplusplus
 }
