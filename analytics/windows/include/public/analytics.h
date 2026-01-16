@@ -83,7 +83,6 @@ class Analytics {
     kError,
   };
 
-
   /**
    * @brief The callback type for logging messages from the SDK.
    *
@@ -470,10 +469,8 @@ class Analytics {
     GoogleAnalytics_NotifyAppLifecycleChange(c_state);
   }
 
-
  private:
   Analytics() = default;
-
 
   std::mutex mutex_;
   LogCallback current_callback_;
