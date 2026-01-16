@@ -33,11 +33,12 @@ const char* FirebaseAnalytics_KnownWindowsDllHashes[] = {
     "c1b9ff6e9119c30bbeb7472326dcde418f45682e6b822e25eed922fe6e3cc698",
     "13ae5f9349b24186f1f3667b52832076e8d14ad9656c3546b1b7fca79ac8144b",
     "3f1fb1bb21bce0061c4b89bb674d3b6c94eaea2c8de98802198a35ea94c97900",
-    "1e944cd4a2b8d115a32d01f4cc900f23805934b5587b55305df9cd189f9d78d5"
+    "1e944cd4a2b8d115a32d01f4cc900f23805934b5587b55305df9cd189f9d78d5",
+    "496a9f262836523a7e5db097b2b663f9875eab36e010343d9b967bfa9eef567d"
 };
 
 // Count of known Google Analytics Windows DLL SHA256 hashes.
-const int FirebaseAnalytics_KnownWindowsDllHashCount = 4;
+const int FirebaseAnalytics_KnownWindowsDllHashCount = 5;
 #endif  // defined(_WIN32)
 
 // --- Stub Function Definitions ---

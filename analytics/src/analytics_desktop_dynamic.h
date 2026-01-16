@@ -113,7 +113,7 @@ typedef enum GoogleAnalytics_LogLevel {
  *
  * @param[in] message The log message string.
  */
-typedef void (*GoogleAnalytics_LogCallback)(GoogleAnalytics_LogLevel log_level,
+typedef void (*GoogleAnalytics_LogCallback)(int32_t log_level,
                                             const char* message);
 
 /**
