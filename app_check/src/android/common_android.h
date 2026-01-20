@@ -33,6 +33,8 @@ namespace internal {
 // clang-format off
 #define APP_CHECK_PROVIDER_METHODS(X)                                                        \
   X(GetToken, "getToken",                                                          \
+    "()Lcom/google/android/gms/tasks/Task;"),                                      \
+  X(GetLimitedUseToken, "getLimitedUseToken",                                      \
     "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 
@@ -58,6 +60,13 @@ class AndroidAppCheckProvider : public AppCheckProvider {
   /// the token or with an error code and error message.
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
                     completion_callback) override;
+
+  /// Fetches an AppCheckToken suitable for consumption in limited-use scenarios
+  /// and then calls the provided callback function with the token or with an
+  /// error code and error message.
+  void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) override;
 
  private:
   jobject android_provider_;

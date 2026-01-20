@@ -516,6 +516,27 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
             future2.result()->expire_time_millis);
 }
 
+TEST_F(FirebaseAppCheckTest, TestGetLimitedUseAppCheckToken) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetLimitedUseAppCheckToken();
+  EXPECT_TRUE(WaitForCompletion(future, "GetLimitedUseAppCheckToken"));
+  ::firebase::app_check::AppCheckToken token = *future.result();
+  EXPECT_NE(token.token, "");
+  EXPECT_NE(token.expire_time_millis, 0);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
+      app_check->GetLimitedUseAppCheckTokenLastResult();
+  EXPECT_TRUE(WaitForCompletion(future2, "GetLimitedUseAppCheckTokenLastResult"));
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
+}
+
 TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();

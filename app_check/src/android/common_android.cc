@@ -161,6 +161,30 @@ void AndroidAppCheckProvider::GetToken(
   env->DeleteLocalRef(j_task);
 }
 
+void AndroidAppCheckProvider::GetLimitedUseToken(
+    std::function<void(AppCheckToken, int, const std::string&)>
+        completion_callback) {
+  JNIEnv* env = GetJniEnv();
+
+  jobject j_task = env->CallObjectMethod(
+      android_provider_, app_check_provider::GetMethodId(
+                             app_check_provider::kGetLimitedUseToken));
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    // Create an object to wrap the callback function
+    TokenResultCallbackData* completion_callback_data =
+        new TokenResultCallbackData(completion_callback);
+    util::RegisterCallbackOnTask(
+        env, j_task, TokenResultCallback,
+        reinterpret_cast<void*>(completion_callback_data),
+        jni_task_id_.c_str());
+  } else {
+    AppCheckToken empty_token;
+    completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
+  }
+  env->DeleteLocalRef(j_task);
+}
+
 }  // namespace internal
 }  // namespace app_check
 }  // namespace firebase

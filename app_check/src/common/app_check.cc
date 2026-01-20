@@ -161,6 +161,16 @@ Future<AppCheckToken> AppCheck::GetAppCheckTokenLastResult() {
                    : Future<AppCheckToken>();
 }
 
+Future<AppCheckToken> AppCheck::GetLimitedUseAppCheckToken() {
+  return internal_ ? internal_->GetLimitedUseAppCheckToken()
+                   : Future<AppCheckToken>();
+}
+
+Future<AppCheckToken> AppCheck::GetLimitedUseAppCheckTokenLastResult() {
+  return internal_ ? internal_->GetLimitedUseAppCheckTokenLastResult()
+                   : Future<AppCheckToken>();
+}
+
 void AppCheck::AddAppCheckListener(AppCheckListener* listener) {
   if (!internal_) return;
   internal_->AddAppCheckListener(listener);

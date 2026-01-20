@@ -153,6 +153,14 @@ class AppCheck {
   /// Returns the result of the most recent call to GetAppCheckToken();
   Future<AppCheckToken> GetAppCheckTokenLastResult();
 
+  /// Requests a limited-use Firebase App Check token. This method should be used
+  /// ONLY if you need to authorize requests to a non-Firebase backend. Requests
+  /// to Firebase backends are authorized automatically if configured.
+  Future<AppCheckToken> GetLimitedUseAppCheckToken();
+
+  /// Returns the result of the most recent call to GetLimitedUseAppCheckToken();
+  Future<AppCheckToken> GetLimitedUseAppCheckTokenLastResult();
+
   /// Registers an {@link AppCheckListener} to changes in the token state. This
   /// method should be used ONLY if you need to authorize requests to a
   /// non-Firebase backend. Requests to Firebase backends are authorized
