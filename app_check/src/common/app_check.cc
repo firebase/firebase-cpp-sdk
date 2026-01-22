@@ -68,7 +68,7 @@ static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 AppCheckListener::~AppCheckListener() {}
 AppCheckProvider::~AppCheckProvider() {}
 
-// Default implimenation. Can be overriden by App check providers that support
+// Default implementation. Can be overridden by App check providers that support
 // limited use tokens
 void AppCheckProvider::GetLimitedUseToken(
     std::function<void(AppCheckToken, int, const std::string&)>
