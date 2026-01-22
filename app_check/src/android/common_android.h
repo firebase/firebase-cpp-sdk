@@ -59,9 +59,9 @@ class AndroidAppCheckProvider : public AppCheckProvider {
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
                     completion_callback) override;
 
-  /// Fetches an AppCheckToken suitable for consumption in limited-use scenarios
-  /// and then calls the provided callback function with the token or with an
-  /// error code and error message.
+  /// Fetches an AppCheckToken via a fallback method to the GetToken. The
+  /// current Android implementation does not support limited use tokens. For
+  /// custom App Check providers.
   void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
           completion_callback) override;
