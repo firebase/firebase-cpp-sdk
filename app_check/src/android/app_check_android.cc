@@ -48,7 +48,8 @@ namespace internal {
   X(GetToken, "getAppCheckToken",                                              \
     "(Z)Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetLimitedUseToken, "getLimitedUseAppCheckToken",                          \
-    "()Lcom/google/android/gms/tasks/Task;"),                                  \
+    "()Lcom/google/android/gms/tasks/Task;",                                  \
+    util::kMethodTypeInstance, util::kMethodOptional),                         \
   X(AddAppCheckListener, "addAppCheckListener",                                \
     "(Lcom/google/firebase/appcheck/FirebaseAppCheck$AppCheckListener;)V"),    \
   X(RemoveAppCheckListener, "removeAppCheckListener",                          \
@@ -111,17 +112,10 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
     JNIEnv* env, jobject j_provider, jlong c_provider,
     jobject task_completion_source);
 
-JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetLimitedUseToken(
-    JNIEnv* env, jobject j_provider, jlong c_provider,
-    jobject task_completion_source);
-
 static const JNINativeMethod kNativeJniAppCheckProviderMethods[] = {
     {"nativeGetToken",
      "(JLcom/google/android/gms/tasks/TaskCompletionSource;)V",
-     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetToken)},
-    {"nativeGetLimitedUseToken",
-     "(JLcom/google/android/gms/tasks/TaskCompletionSource;)V",
-     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetLimitedUseToken)}};
+     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetToken)}};
 
 // clang-format off
 #define JNI_APP_CHECK_LISTENER_METHODS(X)                              \
@@ -267,39 +261,6 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
   }};
   AppCheckProvider* provider = reinterpret_cast<AppCheckProvider*>(c_provider);
   provider->GetToken(token_callback);
-}
-
-JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetLimitedUseToken(
-    JNIEnv* env, jobject j_provider, jlong c_provider,
-    jobject task_completion_source) {
-  // Create GlobalReferences to the provider and task. These references will be
-  // deleted in the completion callback.
-  jobject j_provider_global = env->NewGlobalRef(j_provider);
-  jobject task_completion_source_global =
-      env->NewGlobalRef(task_completion_source);
-
-  // Defines a C++ callback method to call
-  // JniAppCheckProvider.HandleGetTokenResult with the resulting token
-  auto token_callback{[j_provider_global, task_completion_source_global](
-                          firebase::app_check::AppCheckToken token,
-                          int error_code, const std::string& error_message) {
-    // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
-    JNIEnv* env = firebase::util::GetJNIEnvFromApp();
-    jstring error_string = env->NewStringUTF(error_message.c_str());
-    jstring token_string = env->NewStringUTF(token.token.c_str());
-    env->CallVoidMethod(
-        j_provider_global,
-        jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
-        task_completion_source_global, token_string, token.expire_time_millis,
-        error_code, error_string);
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    env->DeleteLocalRef(token_string);
-    env->DeleteLocalRef(error_string);
-    env->DeleteGlobalRef(j_provider_global);
-    env->DeleteGlobalRef(task_completion_source_global);
-  }};
-  AppCheckProvider* provider = reinterpret_cast<AppCheckProvider*>(c_provider);
-  provider->GetLimitedUseToken(token_callback);
 }
 
 JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
@@ -492,21 +453,27 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
   JNIEnv* env = app_->GetJNIEnv();
   auto handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetLimitedUseAppCheckToken);
-  jobject j_task = env->CallObjectMethod(
-      app_check_impl_, app_check::GetMethodId(app_check::kGetLimitedUseToken));
+  jmethodID method_id = app_check::GetMethodId(app_check::kGetLimitedUseToken);
+  if (method_id != nullptr) {
+    jobject j_task = env->CallObjectMethod(app_check_impl_, method_id);
 
-  std::string error = util::GetAndClearExceptionMessage(env);
-  if (error.empty()) {
-    auto data_handle = new FutureDataHandle(future(), handle);
-    util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
-                                 reinterpret_cast<void*>(data_handle),
-                                 jni_task_id_.c_str());
+    std::string error = util::GetAndClearExceptionMessage(env);
+    if (error.empty()) {
+      auto data_handle = new FutureDataHandle(future(), handle);
+      util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
+                                   reinterpret_cast<void*>(data_handle),
+                                   jni_task_id_.c_str());
+    } else {
+      AppCheckToken empty_token;
+      future()->CompleteWithResult(handle, kAppCheckErrorUnknown, error.c_str(),
+                                   empty_token);
+    }
+    env->DeleteLocalRef(j_task);
   } else {
-    AppCheckToken empty_token;
-    future()->CompleteWithResult(handle, kAppCheckErrorUnknown, error.c_str(),
-                                 empty_token);
+    // Fall back to the standard getAppCheckToken() if
+    // getLimitedUseAppCheckToken() is missing.
+    return GetAppCheckToken(false);
   }
-  env->DeleteLocalRef(j_task);
   return MakeFuture(future(), handle);
 }
 
