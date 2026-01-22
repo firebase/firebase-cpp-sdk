@@ -226,30 +226,27 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
   __block SafeFutureHandle<AppCheckToken> handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetLimitedUseAppCheckToken);
 
-  [impl() limitedUseTokenWithCompletion:^(FIRAppCheckToken* _Nullable token,
-                                          NSError* _Nullable error) {
-    AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
-    if (error != nil) {
-      NSLog(@"Unable to retrieve limited-use App Check token: %@", error);
-      int error_code =
-          firebase::app_check::internal::AppCheckErrorFromNSError(error);
-      std::string error_message =
-          util::NSStringToString(error.localizedDescription);
+  [impl()
+      limitedUseTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
+        if (error != nil) {
+          NSLog(@"Unable to retrieve limited-use App Check token: %@", error);
+          int error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
+          std::string error_message = util::NSStringToString(error.localizedDescription);
 
-      future()->CompleteWithResult(handle, error_code, error_message.c_str(),
-                                   cpp_token);
-      return;
-    }
-    if (token == nil) {
-      NSLog(@"App Check token is nil.");
-      future()->CompleteWithResult(handle, kAppCheckErrorUnknown,
-                                   "AppCheck GetLimitedUseToken returned an "
-                                   "empty token.",
-                                   cpp_token);
-      return;
-    }
-    future()->CompleteWithResult(handle, kAppCheckErrorNone, cpp_token);
-  }];
+          future()->CompleteWithResult(handle, error_code, error_message.c_str(), cpp_token);
+          return;
+        }
+        if (token == nil) {
+          NSLog(@"App Check token is nil.");
+          future()->CompleteWithResult(handle, kAppCheckErrorUnknown,
+                                       "AppCheck GetLimitedUseToken returned an "
+                                       "empty token.",
+                                       cpp_token);
+          return;
+        }
+        future()->CompleteWithResult(handle, kAppCheckErrorNone, cpp_token);
+      }];
   return MakeFuture(future(), handle);
 }
 

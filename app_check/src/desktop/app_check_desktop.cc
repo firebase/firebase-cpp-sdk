@@ -126,21 +126,21 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
   // Get a new token, and pass the result into the future.
   AppCheckProvider* provider = GetProvider();
   if (provider != nullptr) {
-    auto token_callback{
-        [this, handle](firebase::app_check::AppCheckToken token, int error_code,
-                       const std::string& error_message) {
-          if (error_code == firebase::app_check::kAppCheckErrorNone) {
-            // Note that we do NOT update the cached token for limited-use tokens.
-            future()->CompleteWithResult(handle, 0, token);
-          } else {
-            future()->Complete(handle, error_code, error_message.c_str());
-          }
-        }};
+    auto token_callback{[this, handle](firebase::app_check::AppCheckToken token,
+                                       int error_code,
+                                       const std::string& error_message) {
+      if (error_code == firebase::app_check::kAppCheckErrorNone) {
+        // Note that we do NOT update the cached token for limited-use tokens.
+        future()->CompleteWithResult(handle, 0, token);
+      } else {
+        future()->Complete(handle, error_code, error_message.c_str());
+      }
+    }};
     provider->GetLimitedUseToken(token_callback);
   } else {
-    future()->Complete(
-        handle, firebase::app_check::kAppCheckErrorInvalidConfiguration,
-        "No AppCheckProvider installed.");
+    future()->Complete(handle,
+                       firebase::app_check::kAppCheckErrorInvalidConfiguration,
+                       "No AppCheckProvider installed.");
   }
   return MakeFuture(future(), handle);
 }

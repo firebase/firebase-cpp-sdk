@@ -532,7 +532,8 @@ TEST_F(FirebaseAppCheckTest, TestGetLimitedUseAppCheckToken) {
 
   firebase::Future<::firebase::app_check::AppCheckToken> future2 =
       app_check->GetLimitedUseAppCheckTokenLastResult();
-  EXPECT_TRUE(WaitForCompletion(future2, "GetLimitedUseAppCheckTokenLastResult"));
+  EXPECT_TRUE(
+      WaitForCompletion(future2, "GetLimitedUseAppCheckTokenLastResult"));
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 }
