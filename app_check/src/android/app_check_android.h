@@ -45,6 +45,10 @@ class AppCheckInternal {
 
   Future<AppCheckToken> GetAppCheckTokenLastResult();
 
+  Future<AppCheckToken> GetLimitedUseAppCheckToken();
+
+  Future<AppCheckToken> GetLimitedUseAppCheckTokenLastResult();
+
   void AddAppCheckListener(AppCheckListener* listener);
 
   void RemoveAppCheckListener(AppCheckListener* listener);

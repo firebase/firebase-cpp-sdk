@@ -67,6 +67,18 @@ static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 // Define the destructors for the virtual listener/provider/factory classes.
 AppCheckListener::~AppCheckListener() {}
 AppCheckProvider::~AppCheckProvider() {}
+
+// Default implementation. Can be overridden by App check providers that support
+// limited use tokens
+void AppCheckProvider::GetLimitedUseToken(
+    std::function<void(AppCheckToken, int, const std::string&)>
+        completion_callback) {
+  LogWarning(
+      "A limited-use token was requested, but the custom provider did not "
+      "implement the GetLimitedUseToken method. The default implementation is "
+      "triggered as a result, and GetToken has been invoked instead.");
+  GetToken(completion_callback);
+}
 AppCheckProviderFactory::~AppCheckProviderFactory() {}
 
 namespace internal {
@@ -146,6 +158,16 @@ Future<AppCheckToken> AppCheck::GetAppCheckToken(bool force_refresh) {
 
 Future<AppCheckToken> AppCheck::GetAppCheckTokenLastResult() {
   return internal_ ? internal_->GetAppCheckTokenLastResult()
+                   : Future<AppCheckToken>();
+}
+
+Future<AppCheckToken> AppCheck::GetLimitedUseAppCheckToken() {
+  return internal_ ? internal_->GetLimitedUseAppCheckToken()
+                   : Future<AppCheckToken>();
+}
+
+Future<AppCheckToken> AppCheck::GetLimitedUseAppCheckTokenLastResult() {
+  return internal_ ? internal_->GetLimitedUseAppCheckTokenLastResult()
                    : Future<AppCheckToken>();
 }
 

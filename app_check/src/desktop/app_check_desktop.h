@@ -62,6 +62,10 @@ class AppCheckInternal {
 
   Future<AppCheckToken> GetAppCheckTokenLastResult();
 
+  Future<AppCheckToken> GetLimitedUseAppCheckToken();
+
+  Future<AppCheckToken> GetLimitedUseAppCheckTokenLastResult();
+
   // Gets the App Check token as just the string, to be used by
   // internal methods to not conflict with the publicly returned future.
   Future<std::string> GetAppCheckTokenStringInternal();

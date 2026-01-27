@@ -41,7 +41,16 @@ class DebugAppCheckProvider : public AppCheckProvider {
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
                     completion_callback) override;
 
+  void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) override;
+
  private:
+  void GetTokenInternal(
+      bool limited_use,
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback);
+
   App* app_;
 
   scheduler::Scheduler scheduler_;
@@ -92,6 +101,19 @@ void GetTokenAsync(std::shared_ptr<DebugTokenRequest> request,
 void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
+  GetTokenInternal(false, completion_callback);
+}
+
+void DebugAppCheckProvider::GetLimitedUseToken(
+    std::function<void(AppCheckToken, int, const std::string&)>
+        completion_callback) {
+  GetTokenInternal(true, completion_callback);
+}
+
+void DebugAppCheckProvider::GetTokenInternal(
+    bool limited_use,
+    std::function<void(AppCheckToken, int, const std::string&)>
+        completion_callback) {
   // Identify the user's debug token
   const char* debug_token_cstr;
   if (!debug_token_.empty()) {
@@ -109,6 +131,7 @@ void DebugAppCheckProvider::GetToken(
   // Exchange debug token with the backend to get a proper attestation token.
   auto request = std::make_shared<DebugTokenRequest>(app_);
   request->SetDebugToken(debug_token_cstr);
+  request->SetLimitedUse(limited_use);
 
   // Use an async call, since we don't want to block on the server response.
   auto async_call =

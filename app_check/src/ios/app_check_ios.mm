@@ -59,6 +59,19 @@
   _cppProvider->GetToken(token_callback);
 }
 
+- (void)getLimitedUseTokenWithCompletion:(nonnull void (^)(FIRAppCheckToken* _Nullable,
+                                                           NSError* _Nullable))handler {
+  auto token_callback{[handler](firebase::app_check::AppCheckToken token, int error_code,
+                                const std::string& error_message) {
+    NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
+        static_cast<firebase::app_check::AppCheckError>(error_code), error_message);
+    FIRAppCheckToken* ios_token =
+        firebase::app_check::internal::AppCheckTokenToFIRAppCheckToken(token);
+    handler(ios_token, ios_error);
+  }};
+  _cppProvider->GetLimitedUseToken(token_callback);
+}
+
 @end
 
 // Defines an iOS AppCheckProviderFactory that wraps a given C++ Factory.
@@ -207,6 +220,39 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
 Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
   return static_cast<const Future<AppCheckToken>&>(
       future()->LastResult(kAppCheckFnGetAppCheckToken));
+}
+
+Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
+  __block SafeFutureHandle<AppCheckToken> handle =
+      future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetLimitedUseAppCheckToken);
+
+  [impl()
+      limitedUseTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
+        if (error != nil) {
+          NSLog(@"Unable to retrieve limited-use App Check token: %@", error);
+          int error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
+          std::string error_message = util::NSStringToString(error.localizedDescription);
+
+          future()->CompleteWithResult(handle, error_code, error_message.c_str(), cpp_token);
+          return;
+        }
+        if (token == nil) {
+          NSLog(@"App Check token is nil.");
+          future()->CompleteWithResult(handle, kAppCheckErrorUnknown,
+                                       "AppCheck GetLimitedUseToken returned an "
+                                       "empty token.",
+                                       cpp_token);
+          return;
+        }
+        future()->CompleteWithResult(handle, kAppCheckErrorNone, cpp_token);
+      }];
+  return MakeFuture(future(), handle);
+}
+
+Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckTokenLastResult() {
+  return static_cast<const Future<AppCheckToken>&>(
+      future()->LastResult(kAppCheckFnGetLimitedUseAppCheckToken));
 }
 
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {

@@ -161,6 +161,16 @@ void AndroidAppCheckProvider::GetToken(
   env->DeleteLocalRef(j_task);
 }
 
+void AndroidAppCheckProvider::GetLimitedUseToken(
+    std::function<void(AppCheckToken, int, const std::string&)>
+        completion_callback) {
+  LogWarning(
+      "GetLimitedUseToken() was called, but the AppCheckProvider interface on "
+      "Android does not yet support limited-use tokens. Falling back to "
+      "GetToken().");
+  GetToken(completion_callback);
+}
+
 }  // namespace internal
 }  // namespace app_check
 }  // namespace firebase
