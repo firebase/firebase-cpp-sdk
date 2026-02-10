@@ -446,8 +446,8 @@ def main(argv):
         # Because of the retry logic, there can be multiple attempts.
         # The default log location however only include the last attempt.
         # Thus, we iterate over the attempts to look for the check_and_prepare file
-        for attempt in range(1, run['run_attempt']):
-          logs_url = run['url'] + '/attempts/%d/logs' % attempt
+        for attempt in range(run['run_attempt']):
+          logs_url = run['url'] + '/attempts/%d/logs' % (attempt + 1)
           headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
           with requests.get(logs_url, headers=headers, stream=True) as response:
             if response.status_code == 200:
