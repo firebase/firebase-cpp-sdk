@@ -443,20 +443,25 @@ def main(argv):
 
         packaging_run = 0
 
-        logs_url = run['logs_url']
-        headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
-        with requests.get(logs_url, headers=headers, stream=True) as response:
-          if response.status_code == 200:
-            logs_compressed_data = io.BytesIO(response.content)
-            logs_zip = zipfile.ZipFile(logs_compressed_data)
-            m = get_message_from_github_log(
-              logs_zip,
-              r'check_and_prepare\.txt',
-              r'\[warning\]Downloading SDK package from previous run:[^\n]*/([0-9]*)$')
-            if m:
-              packaging_run = m.group(1)
-        if str(packaging_run) in packaging_run_ids:
-          package_tests[day] = run
+        # Because of the retry logic, there can be multiple attempts.
+        # The default log location however only include the last attempt.
+        # Thus, we iterate over the attempts to look for the check_and_prepare file
+        for attempt in range(1, run['run_attempt']):
+          logs_url = run['url'] + '/attempts/%d/logs' % attempt
+          headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
+          with requests.get(logs_url, headers=headers, stream=True) as response:
+            if response.status_code == 200:
+              logs_compressed_data = io.BytesIO(response.content)
+              logs_zip = zipfile.ZipFile(logs_compressed_data)
+              m = get_message_from_github_log(
+                logs_zip,
+                r'check_and_prepare\.txt',
+                r'\[warning\]Downloading SDK package from previous run:[^\n]*/([0-9]*)$')
+              if m:
+                packaging_run = m.group(1)
+          if str(packaging_run) in packaging_run_ids:
+            package_tests[day] = run
+            break
         bar.next()
 
     logging.info("Package tests: %s %s", list(package_tests.keys()), [package_tests[r]['id'] for r in package_tests.keys()])
