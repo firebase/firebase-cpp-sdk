@@ -258,36 +258,6 @@ TEST_F(UserTest, TestGetProviderData) {
   EXPECT_TRUE(provider.empty());
 }
 
-TEST_F(UserTest, TestUpdateEmail) {
-  const std::string config =
-      std::string(
-          "{"
-          "  config:["
-          "    {fake:'FirebaseUser.updateEmail', futuregeneric:{ticker:1}},"
-          "    {fake:'FIRUser.updateEmail:completion:', futuregeneric:"
-          "{ticker:1}},") +
-      SET_ACCOUNT_INFO_SUCCESSFUL_RESPONSE +
-      "  ]"
-      "}";
-  firebase::testing::cppsdk::ConfigSet(config.c_str());
-
-  EXPECT_NE("new@email.com", firebase_user_.email());
-  Future<void> result = firebase_user_.UpdateEmail("new@email.com");
-
-// Fake Android & iOS implemented the delay. Desktop stub completed immediately.
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
-    FIREBASE_PLATFORM_TVOS
-  EXPECT_EQ(firebase::kFutureStatusPending, result.status());
-  EXPECT_NE("new@email.com", firebase_user_.email());
-  firebase::testing::cppsdk::TickerElapse();
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
-        // FIREBASE_PLATFORM_TVOS
-  MaybeWaitForFuture(result);
-  EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
-  EXPECT_EQ(0, result.error());
-  EXPECT_EQ("new@email.com", firebase_user_.email());
-}
-
 TEST_F(UserTest, TestUpdatePassword) {
   const std::string config =
       std::string(

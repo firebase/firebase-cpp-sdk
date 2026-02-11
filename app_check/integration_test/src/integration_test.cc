@@ -516,6 +516,28 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
             future2.result()->expire_time_millis);
 }
 
+TEST_F(FirebaseAppCheckTest, TestGetLimitedUseAppCheckToken) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetLimitedUseAppCheckToken();
+  EXPECT_TRUE(WaitForCompletion(future, "GetLimitedUseAppCheckToken"));
+  ::firebase::app_check::AppCheckToken token = *future.result();
+  EXPECT_NE(token.token, "");
+  EXPECT_NE(token.expire_time_millis, 0);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
+      app_check->GetLimitedUseAppCheckTokenLastResult();
+  EXPECT_TRUE(
+      WaitForCompletion(future2, "GetLimitedUseAppCheckTokenLastResult"));
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
+}
+
 TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -583,6 +605,32 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
         got_token_promise->set_value();
       }};
   provider->GetToken(token_callback);
+  auto got_token_future = got_token_promise->get_future();
+  ASSERT_EQ(std::future_status::ready,
+            got_token_future.wait_for(kGetTokenTimeout));
+}
+
+TEST_F(FirebaseAppCheckTest, TestDebugProviderValidLimitedUseToken) {
+  firebase::app_check::DebugAppCheckProviderFactory* factory =
+      firebase::app_check::DebugAppCheckProviderFactory::GetInstance();
+  ASSERT_NE(factory, nullptr);
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+
+  firebase::app_check::AppCheckProvider* provider =
+      factory->CreateProvider(app_);
+  ASSERT_NE(provider, nullptr);
+  auto got_token_promise = std::make_shared<std::promise<void>>();
+  auto token_callback{
+      [got_token_promise](firebase::app_check::AppCheckToken token,
+                          int error_code, const std::string& error_message) {
+        EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
+        EXPECT_EQ("", error_message);
+        EXPECT_NE(0, token.expire_time_millis);
+        EXPECT_NE("", token.token);
+        got_token_promise->set_value();
+      }};
+  provider->GetLimitedUseToken(token_callback);
   auto got_token_future = got_token_promise->get_future();
   ASSERT_EQ(std::future_status::ready,
             got_token_future.wait_for(kGetTokenTimeout));

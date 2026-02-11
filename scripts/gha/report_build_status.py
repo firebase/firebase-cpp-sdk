@@ -125,6 +125,7 @@ _LIMIT = 400  # Hard limit on how many jobs to fetch.
 _PASS_TEXT = "Pass"
 _FAILURE_TEXT = "Failure"
 _FLAKY_TEXT = "Pass (flaky)"
+_MISSING_TEXT = "Missing"
 
 general_test_time = ' 09:0'
 firestore_test_time = ' 10:0'
@@ -191,8 +192,6 @@ def format_errors(all_errors, severity, event):
 
     if product == 'missing_log':
       product_name = 'missing logs'
-    elif product == 'gma':
-      product_name = product.upper()
     elif product == 'ump':
       product_name = product.upper()
     else:
@@ -354,10 +353,11 @@ def main(argv):
     # Forced options if outputting Markdown.
     FLAGS.output_header = True
     FLAGS.output_username = False
-    global _FAILURE_TEXT, _PASS_TEXT, _FLAKY_TEXT
+    global _FAILURE_TEXT, _PASS_TEXT, _FLAKY_TEXT, _MISSING_TEXT
     _FAILURE_TEXT = "❌ **" + _FAILURE_TEXT  + "**"
     _PASS_TEXT = "✅ " + _PASS_TEXT
     _FLAKY_TEXT = _PASS_TEXT + " (flaky)"
+    _MISSING_TEXT = "❌ **" + _MISSING_TEXT  + "**"
 
   if FLAGS.read_cache:
     logging.info("Reading cache file: %s", FLAGS.read_cache)
@@ -443,20 +443,25 @@ def main(argv):
 
         packaging_run = 0
 
-        logs_url = run['logs_url']
-        headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
-        with requests.get(logs_url, headers=headers, stream=True) as response:
-          if response.status_code == 200:
-            logs_compressed_data = io.BytesIO(response.content)
-            logs_zip = zipfile.ZipFile(logs_compressed_data)
-            m = get_message_from_github_log(
-              logs_zip,
-              r'check_and_prepare/.*Run if.*expanded.*then.*\.txt',
-              r'\[warning\]Downloading SDK package from previous run:[^\n]*/([0-9]*)$')
-            if m:
-              packaging_run = m.group(1)
-        if str(packaging_run) in packaging_run_ids:
-          package_tests[day] = run
+        # Because of the retry logic, there can be multiple attempts.
+        # The default log location however only include the last attempt.
+        # Thus, we iterate over the attempts to look for the check_and_prepare file
+        for attempt in range(run['run_attempt']):
+          logs_url = run['url'] + '/attempts/%d/logs' % (attempt + 1)
+          headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
+          with requests.get(logs_url, headers=headers, stream=True) as response:
+            if response.status_code == 200:
+              logs_compressed_data = io.BytesIO(response.content)
+              logs_zip = zipfile.ZipFile(logs_compressed_data)
+              m = get_message_from_github_log(
+                logs_zip,
+                r'check_and_prepare\.txt',
+                r'\[warning\]Downloading SDK package from previous run:[^\n]*/([0-9]*)$')
+              if m:
+                packaging_run = m.group(1)
+          if str(packaging_run) in packaging_run_ids:
+            package_tests[day] = run
+            break
         bar.next()
 
     logging.info("Package tests: %s %s", list(package_tests.keys()), [package_tests[r]['id'] for r in package_tests.keys()])
@@ -471,24 +476,63 @@ def main(argv):
           found_artifacts = False
           # There are possibly multiple artifacts, so iterate through all of them,
           # and extract the relevant ones into a temp folder, and then summarize them all.
+          # Prioritize artifacts by date, older ones might be expired.
+          sorted_artifacts = sorted(artifacts, key=lambda art: dateutil.parser.parse(art['created_at']), reverse=True)
+
           with tempfile.TemporaryDirectory() as tmpdir:
-            for a in artifacts:
+            for a in sorted_artifacts: # Iterate over sorted artifacts
               if 'log-artifact' in a['name']:
-                print("Checking this artifact:", a['name'], "\n")
-                artifact_contents = firebase_github.download_artifact(FLAGS.token, a['id'])
-                if artifact_contents:
-                  found_artifacts = True
-                  artifact_data = io.BytesIO(artifact_contents)
-                  artifact_zip = zipfile.ZipFile(artifact_data)
-                  artifact_zip.extractall(path=tmpdir)
+                logging.debug("Attempting to download artifact: %s (ID: %s, Created: %s)", a['name'], a['id'], a['created_at'])
+                # Pass tmpdir to download_artifact to save directly
+                artifact_downloaded_path = os.path.join(tmpdir, f"{a['id']}.zip")
+                # Attempt to download the artifact with a timeout
+                download_success = False # Initialize download_success
+                try:
+                    # download_artifact now returns True on success, None on failure.
+                    if firebase_github.download_artifact(FLAGS.token, a['id'], output_path=artifact_downloaded_path):
+                        download_success = True
+                except requests.exceptions.Timeout:
+                    logging.warning(f"Timeout while trying to download artifact: {a['name']} (ID: {a['id']})")
+                    # download_success remains False
+
+                if download_success and os.path.exists(artifact_downloaded_path):
+                  try:
+                    with open(artifact_downloaded_path, "rb") as f:
+                        artifact_contents = f.read()
+                    if artifact_contents: # Ensure content was read
+                        found_artifacts = True
+                        artifact_data = io.BytesIO(artifact_contents)
+                        with zipfile.ZipFile(artifact_data) as artifact_zip: # Use with statement for ZipFile
+                            artifact_zip.extractall(path=tmpdir)
+                        logging.info("Successfully downloaded and extracted artifact: %s", a['name'])
+                    else:
+                        logging.warning("Artifact %s (ID: %s) was downloaded but is empty.", a['name'], a['id'])
+                  except zipfile.BadZipFile:
+                    logging.error("Failed to open zip file for artifact %s (ID: %s). It might be corrupted or not a zip file.", a['name'], a['id'])
+                  except Exception as e:
+                    logging.error("An error occurred during artifact processing %s (ID: %s): %s", a['name'], a['id'], e)
+                  finally:
+                    # Clean up the downloaded zip file whether it was processed successfully or not
+                    if os.path.exists(artifact_downloaded_path):
+                        os.remove(artifact_downloaded_path)
+                elif not download_success : # Covers False or None from download_artifact
+                  # Logging for non-timeout failures is now primarily handled within download_artifact
+                  # We only log a general failure here if it wasn't a timeout (already logged)
+                  # and download_artifact indicated failure (returned None).
+                  # This avoids double logging for specific HTTP errors like 410.
+                  pass # Most specific logging is now in firebase_github.py
+
             if found_artifacts:
               (success, results) = summarize_test_results.summarize_logs(tmpdir, False, False, True)
-              print("Results:", success, "    ", results, "\n")
+              logging.info("Summarized logs results - Success: %s, Results (first 100 chars): %.100s", success, results)
               run['log_success'] = success
               run['log_results'] = results
+            else:
+              logging.warning("No artifacts could be successfully downloaded and processed for run %s on day %s.", run['id'], day)
+
 
           if not found_artifacts:
-            # Artifacts expire after some time, so if they are gone, we need
+            # Artifacts expire after some time, or download failed, so if they are gone, we need
             # to read the GitHub logs instead.  This is much slower, so we
             # prefer to read artifacts instead whenever possible.
             logging.info("Reading github logs for run %s instead", run['id'])
@@ -501,7 +545,7 @@ def main(argv):
                 logs_zip = zipfile.ZipFile(logs_compressed_data)
                 m = get_message_from_github_log(
                   logs_zip,
-                  r'summarize-results/.*Summarize results into GitHub',
+                  r'summarize-results\.txt',
                   r'\[error\]INTEGRATION TEST FAILURES\n—+\n(.*)$')
                 if m:
                   run['log_success'] = False
@@ -565,19 +609,33 @@ def main(argv):
     day_str = day
     if FLAGS.output_markdown:
         day_str = day_str.replace("-", "&#8209;")  # non-breaking hyphen.
-    if day not in package_tests or day not in packaging_runs or day not in source_tests:
-      day = last_good_day
-    if not day: continue
-    last_good_day = day
-    source_tests_log = analyze_log(source_tests[day]['log_results'], source_tests[day]['html_url'])
-    if packaging_runs[day]['conclusion'] == "success":
-      package_build_log = _PASS_TEXT
-    else:
-      package_build_log = _FAILURE_TEXT
-    package_build_log = decorate_url(package_build_log, packaging_runs[day]['html_url'])
-    package_tests_log = analyze_log(package_tests[day]['log_results'], package_tests[day]['html_url'])
 
-    notes = create_notes(source_tests[day]['log_results'] if source_tests[day]['log_results'] else package_tests[day]['log_results'])
+    if day in source_tests:
+      source_tests_log = analyze_log(source_tests[day]['log_results'], source_tests[day]['html_url'])
+      source_results = source_tests[day]['log_results']
+    else:
+      # Mark as failure if missing
+      source_tests_log = (decorate_url(_MISSING_TEXT, ""), decorate_url(_MISSING_TEXT, ""))
+      source_results = ""
+
+    if day in packaging_runs:
+      if packaging_runs[day]['conclusion'] == "success":
+        package_build_log = _PASS_TEXT
+      else:
+        package_build_log = _FAILURE_TEXT
+      package_build_log = decorate_url(package_build_log, packaging_runs[day]['html_url'])
+    else:
+      package_build_log = decorate_url(_MISSING_TEXT, "")
+
+    if day in package_tests:
+      package_tests_log = analyze_log(package_tests[day]['log_results'], package_tests[day]['html_url'])
+      package_results = package_tests[day]['log_results']
+    else:
+      package_tests_log = (decorate_url(_MISSING_TEXT, ""), decorate_url(_MISSING_TEXT, ""))
+      package_results = ""
+
+    notes = create_notes(source_results if source_results else package_results)
+
     if FLAGS.output_markdown and notes:
         notes = "<details><summary>&nbsp;</summary>" + notes + "</details>"
     if notes == prev_notes and not FLAGS.output_markdown:
@@ -687,9 +745,11 @@ def main(argv):
         else:
           test_name_str = test_name
 
+        product_display_name = product.replace("_", " ").title()
+
         print("| %d | %s | %s | %s | %s&nbsp;%s<br/>&nbsp;&nbsp;&nbsp;Logs: %s |" % (
             test_list[test_id]['count'], latest,
-            product, platform,
+            product_display_name, platform,
             test_name_str, severity, " ".join(link_list)))
       else:
         print("%d\t%s\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], latest, severity, product, platform, test_name))

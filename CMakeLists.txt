@@ -39,16 +39,11 @@ option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library."
 option(FIREBASE_INCLUDE_DATABASE
        "Include the Firebase Realtime Database library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
-option(FIREBASE_INCLUDE_DYNAMIC_LINKS
-       "Include the Firebase Dynamic Links library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_FIRESTORE
        "Include the Cloud Firestore library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
-option(FIREBASE_INCLUDE_GMA "Include the GMA library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_UMP "Include the UMP library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -125,9 +120,7 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  #  GMA, UMP, and FDL are not supported on tvOS.
-  set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
-  set(FIREBASE_INCLUDE_GMA OFF)
+  #  UMP is not supported on tvOS.
   set(FIREBASE_INCLUDE_UMP OFF)
 endif()
 
@@ -206,6 +199,9 @@ if (MSVC)
       $<$<CONFIG:Release>:/MD>
   )
   endif()
+  # Disable constexpr mutex constructor to fix crashes on older vcruntimes.
+  # See: https://github.com/microsoft/STL/issues/4730
+  add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 endif()
 
 # Set variables that are used by download_external_sources.
@@ -368,6 +364,10 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     set(FIREBASE_IOS_BUILD_TESTS OFF
     CACHE BOOL "Force Firestore build tests to match")
   endif()
+
+  # Disable Snappy's BMI2 optimizations for broader CPU compatibility.
+  # BMI2 instructions cause Illegal Instruction crashes on older CPUs that don't support BMI2.
+  set(SNAPPY_HAVE_BMI2 0 CACHE INTERNAL "Disable BMI2 for CPU compatibility" FORCE)
 
   add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
 
@@ -625,18 +625,12 @@ endif()
 if (FIREBASE_INCLUDE_DATABASE)
   add_subdirectory(database)
 endif()
-if (FIREBASE_INCLUDE_DYNAMIC_LINKS)
-  add_subdirectory(dynamic_links)
-endif()
 if (FIREBASE_INCLUDE_FIRESTORE)
   add_subdirectory(firestore)
   add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_FIRESTORE_GENERATED_HEADERS)
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
-endif()
-if (FIREBASE_INCLUDE_GMA)
-  add_subdirectory(gma)
 endif()
 if (FIREBASE_INCLUDE_UMP)
   add_subdirectory(ump)

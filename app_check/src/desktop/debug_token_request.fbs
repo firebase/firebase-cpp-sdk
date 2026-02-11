@@ -16,6 +16,7 @@ namespace firebase.app_check.fbs;
 
 table DebugTokenRequest {
   debug_token:string;
+  limited_use:bool;
 }
 
 root_type DebugTokenRequest;

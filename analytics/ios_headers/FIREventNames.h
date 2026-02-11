@@ -1,6 +1,6 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 11.13.0.
+// Copied from Firebase Analytics iOS SDK 12.8.0.
 
 /// @file FIREventNames.h
 ///
@@ -150,6 +150,26 @@ static NSString *const kFIREventEarnVirtualCurrency
 /// </ul>
 static NSString *const kFIREventGenerateLead NS_SWIFT_NAME(AnalyticsEventGenerateLead) =
     @"generate_lead";
+
+/// In-App Purchase event. This event signifies that extra content or a subscription was purchased
+/// by a user inside an app. Note: This is different from the ecommerce purchase event. Note: If you
+/// supply the @c AnalyticsParameterValue parameter, you must also supply the
+/// @c AnalyticsParameterCurrency parameter so that revenue metrics can be computed accurately.
+/// Params:
+///
+/// <ul>
+///     <li>@c AnalyticsParameterCurrency (String)</li>
+///     <li>@c AnalyticsParameterFreeTrial (Int) (optional)</li>
+///     <li>@c AnalyticsParameterPrice (Double) (optional)</li>
+///     <li>@c AnalyticsParameterPriceIsDiscounted (Int) (optional)</li>
+///     <li>@c AnalyticsParameterProductID (String) (optional)</li>
+///     <li>@c AnalyticsParameterProductName (String) (optional)</li>
+///     <li>@c AnalyticsParameterQuantity (Int) (optional)</li>
+///     <li>@c AnalyticsParameterSubscription (Int) (optional)</li>
+///     <li>@c AnalyticsParameterValue (Double)</li>
+/// </ul>
+static NSString *const kFIREventInAppPurchase NS_SWIFT_NAME(AnalyticsEventInAppPurchase) =
+     @"in_app_purchase";
 
 /// Join Group event. Log this event when a user joins a group such as a guild, team or family. Use
 /// this event to analyze how popular certain groups or social features are in your app. Params:

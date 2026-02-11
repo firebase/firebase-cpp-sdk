@@ -38,7 +38,6 @@ libfirebase_analytics.a                x86_64
 libfirebase_app.a                      x86_64
 libfirebase_auth.a                     x86_64
 libfirebase_database.a                 x86_64
-libfirebase_dynamic_links.a            x86_64
 ...
 
 # To print full paths to libraries and specify a different library filter.

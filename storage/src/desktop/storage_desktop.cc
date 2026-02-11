@@ -23,6 +23,7 @@
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/log.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_reference_desktop.h"
 
@@ -35,10 +36,10 @@ StorageInternal::StorageInternal(App* app, const char* url) {
 
   if (url) {
     url_ = url;
-    root_ = StoragePath(url_);
+    root_ = StoragePath(this, url_);
   } else {
     const char* bucket = app->options().storage_bucket();
-    root_ = StoragePath(bucket ? std::string(kGsScheme) + bucket : "");
+    root_ = StoragePath(this, bucket ? std::string(kGsScheme) + bucket : "");
   }
 
   // LINT.IfChange
@@ -76,20 +77,22 @@ StorageInternal::~StorageInternal() {
 }
 
 // Get a StorageReference to the root of the database.
-StorageReferenceInternal* StorageInternal::GetReference() const {
+StorageReferenceInternal* StorageInternal::GetReference() {
+  configured_ = true;
   return new StorageReferenceInternal(url_, const_cast<StorageInternal*>(this));
 }
 
 // Get a StorageReference for the specified path.
-StorageReferenceInternal* StorageInternal::GetReference(
-    const char* path) const {
+StorageReferenceInternal* StorageInternal::GetReference(const char* path) {
+  configured_ = true;
   return new StorageReferenceInternal(root_.GetChild(path),
                                       const_cast<StorageInternal*>(this));
 }
 
 // Get a StorageReference for the provided URL.
 StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
-    const char* url) const {
+    const char* url) {
+  configured_ = true;
   return new StorageReferenceInternal(url, const_cast<StorageInternal*>(this));
 }
 
@@ -132,6 +135,30 @@ void StorageInternal::CleanupCompletedOperations() {
     RemoveOperation(*it);
     delete *it;
   }
+}
+
+void StorageInternal::UseEmulator(const char* host, int port) {
+  if (host == nullptr || host[0] == '\0') {
+    LogError("Emulator host cannot be null or empty.");
+    return;
+  }
+
+  if (port <= 0) {
+    LogError("Emulator port must be a positive number.");
+    return;
+  }
+
+  if (configured_) {
+    LogError(
+        "Cannot connect to emulator after Storage SDK initialization. "
+        "Call use_emulator(host, port) before creating a Storage "
+        "reference or trying to load data.");
+    return;
+  }
+
+  scheme_ = "http";
+  port_ = port;
+  host_ = host;
 }
 
 }  // namespace internal

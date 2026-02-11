@@ -835,34 +835,6 @@ Future<void> User::Reload() {
                                  callback);
 }
 
-Future<void> User::UpdateEmail(const char* const email) {
-  if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();      // invalid future
-  }
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateEmail);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-  if (!ValidateEmail(&promise, email)) {
-    return promise.LastResult();
-  }
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-
-  const char* language_code = nullptr;
-  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
-  if (!auth_impl->language_code.empty()) {
-    language_code = auth_impl->language_code.c_str();
-  }
-
-  typedef SetAccountInfoRequest RequestT;
-  auto request = RequestT::CreateUpdateEmailRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), email);
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
-                                 PerformSetAccountInfoFlow<void>);
-}
-
 Future<void> User::UpdatePassword(const char* const password) {
   if (auth_data_ == nullptr) {  // user is not valid
     return Future<void>();      // invalid future

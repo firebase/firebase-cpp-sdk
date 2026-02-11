@@ -1,6 +1,6 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 11.13.0.
+// Copied from Firebase Analytics iOS SDK 12.8.0.
 
 /// @file FIRParameterNames.h
 ///
@@ -247,6 +247,17 @@ static NSString *const kFIRParameterExtendSession NS_SWIFT_NAME(AnalyticsParamet
 /// </pre>
 static NSString *const kFIRParameterFlightNumber NS_SWIFT_NAME(AnalyticsParameterFlightNumber) =
     @"flight_number";
+
+/// Indicates if the user is on a free trial of a subscription. Specify 1 to indicate true and 0 to
+/// indicate false (Int).
+/// <pre>
+///     let params = [
+///       AnalyticsParameterFreeTrial : 1,
+///       // ...
+///     ]
+/// </pre>
+static NSString *const kFIRParameterFreeTrial NS_SWIFT_NAME(AnalyticsParameterFreeTrial) =
+    @"free_trial";
 
 /// Group/clan/guild ID (String).
 /// <pre>
@@ -519,6 +530,37 @@ static NSString *const kFIRParameterPaymentType NS_SWIFT_NAME(AnalyticsParameter
 /// </pre>
 static NSString *const kFIRParameterPrice NS_SWIFT_NAME(AnalyticsParameterPrice) = @"price";
 
+/// Indicates if an item's price is discounted. Specify 1 to indicate true and 0 to indicate false
+/// (Int).
+/// <pre>
+///     let params = [
+///       AnalyticsParameterPriceIsDiscounted : 1,
+///       // ...
+///     ]
+/// </pre>
+static NSString *const kFIRParameterPriceIsDiscounted
+    NS_SWIFT_NAME(AnalyticsParameterPriceIsDiscounted) = @"price_is_discounted";
+
+/// The ID of a product (String).
+/// <pre>
+///     let params = [
+///       AnalyticsParameterProductID : "PROD_12345",
+///       // ...
+///     ]
+/// </pre>
+static NSString *const kFIRParameterProductID NS_SWIFT_NAME(AnalyticsParameterProductID) =
+    @"product_id";
+
+/// The name of a product (String).
+/// <pre>
+///     let params = [
+///       AnalyticsParameterProductName : "My Awesome Product",
+///       // ...
+///     ]
+/// </pre>
+static NSString *const kFIRParameterProductName NS_SWIFT_NAME(AnalyticsParameterProductName) =
+    @"product_name";
+
 /// The ID of a product promotion (String).
 /// <pre>
 ///     let params = [
@@ -645,6 +687,17 @@ static NSString *const kFIRParameterSourcePlatform NS_SWIFT_NAME(AnalyticsParame
 /// </pre>
 static NSString *const kFIRParameterStartDate NS_SWIFT_NAME(AnalyticsParameterStartDate) =
     @"start_date";
+
+/// Indicates if the purchase is a subscription. Specify 1 to indicate true and 0 to indicate false
+/// (Int).
+/// <pre>
+///     let params = [
+///       AnalyticsParameterSubscription : 1,
+///       // ...
+///     ]
+/// </pre>
+static NSString *const kFIRParameterSubscription NS_SWIFT_NAME(AnalyticsParameterSubscription) =
+    @"subscription";
 
 /// The result of an operation. Specify 1 to indicate success and 0 to indicate failure (Int).
 /// <pre>

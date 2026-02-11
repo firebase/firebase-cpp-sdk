@@ -37,6 +37,12 @@ class AppAttestProvider : public AppCheckProvider {
   virtual void GetToken(
       std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
 
+  /// Fetches an AppCheckToken suitable for consumption in limited-use scenarios
+  /// and then calls the provided callback function with the token or with an
+  /// error code and error message.
+  virtual void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
+
  private:
   FIRAppAttestProvider* ios_provider_;
 };
@@ -53,6 +59,16 @@ void AppAttestProvider::GetToken(
                             firebase::app_check::internal::AppCheckErrorFromNSError(error),
                             util::NSStringToString(error.localizedDescription).c_str());
       }];
+}
+
+void AppAttestProvider::GetLimitedUseToken(
+    std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
+  [ios_provider_ getLimitedUseTokenWithCompletion:^(FIRAppCheckToken* _Nullable token,
+                                                    NSError* _Nullable error) {
+    completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
+                        firebase::app_check::internal::AppCheckErrorFromNSError(error),
+                        util::NSStringToString(error.localizedDescription).c_str());
+  }];
 }
 
 AppAttestProviderFactoryInternal::AppAttestProviderFactoryInternal() : created_providers_() {}

@@ -78,7 +78,7 @@ PARAMETERS = {
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
       "xcode_version": ["16.2"],
-      "python_version": ["3.8"],
+      "python_version": ["3.9"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
@@ -91,7 +91,7 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
       "architecture": ["x64", "arm64"],
-      "python_version": ["3.8"],
+      "python_version": ["3.9"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-22.04", "macos-14", "windows-latest"]
@@ -127,14 +127,14 @@ PARAMETERS = {
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
         "android_device": ["android_target", "android_latest", "emulator_ftl_target", "emulator_ftl_latest"],
-        "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
+        "ios_device": ["ios_target", "simulator_target"],
         "tvos_device": ["tvos_simulator"],
         "architecture_windows_linux": ["x64", "x86"],
         "architecture_macos": ["x64"],
       }
     },
     "config": {
-      "apis": "analytics,app_check,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
+      "apis": "analytics,app_check,auth,database,firestore,functions,installations,messaging,remote_config,storage",
       "mobile_test_on": "real,virtual"
     }
   },
@@ -204,11 +204,6 @@ TEST_DEVICES = {
   "emulator_target": [ {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"} ],
   "emulator_latest": [ {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"} ],
   "emulator_32bit": [ {"type": "virtual", "image":"system-images;android-30;google_apis;x86"} ],
-  "ios_min": [
-      # Slightly different OS versions because of limited FTL selection.
-      {"type": "ftl", "device": "model=iphone13pro,version=15.7"},
-      {"type": "ftl", "device": "model=iphone8,version=15.7"},
-  ],
   "ios_target": [
       # Slightly different OS versions because of limited FTL selection.
       {"type": "ftl", "device": "model=iphone14pro,version=16.6"},
@@ -216,14 +211,8 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "ios_latest": [
-      {"type": "ftl", "device": "model=iphone15,version=18.0"},
-      {"type": "ftl", "device": "model=iphone15pro,version=18.0"},
-  ],
-  "simulator_min": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
   "simulator_target": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
-  "simulator_latest": [ {"type": "virtual", "name":"iPhone 15 Pro", "version":"17.4"} ],
-  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"16.1"} ],
+  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"17.2"} ],
 }
 
 # Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model
@@ -316,9 +305,11 @@ def scan_changes_in_file(parm_key, auto_diff, path, requested_api_list):
   change_lines = [l for l in change_lines if len(l) > 20]
   changed_apis = set()
   for line in change_lines:
-    if ("Google-Mobile-Ads" in line or "GoogleUserMessagingPlatform" in line or
-       "play-services-ads" in line or "user-messaging-platform" in line):
-      changed_apis.add("gma")
+    if ("GoogleUserMessagingPlatform" in line or
+       "user-messaging-platform" in line):
+      # This is for UMP, not GMA, so keep it if UMP is in requested_api_list
+      if "ump" in requested_api_list:
+        changed_apis.add("ump")
     else:
       changed_apis.update(requested_api_list)
       break

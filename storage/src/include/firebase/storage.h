@@ -139,6 +139,17 @@ class Storage {
   /// download if a failure occurs. Defaults to 120 seconds (2 minutes).
   void set_max_operation_retry_time(double max_transfer_retry_seconds);
 
+  /// @brief Configures the Storage SDK to use an emulated backend instead of
+  /// the default remote backend. This method should be called before invoking
+  /// any other methods on a new instance of Storage
+  void UseEmulator(const std::string& host, int port) {
+    UseEmulator(host.c_str(), port);
+  }
+  /// @brief Configures the Storage SDK to use an emulated backend instead of
+  /// the default remote backend. This method should be called before invoking
+  /// any other methods on a new instance of Storage
+  void UseEmulator(const char* host, int port);
+
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class Metadata;

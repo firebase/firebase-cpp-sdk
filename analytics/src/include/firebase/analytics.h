@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -26,6 +27,7 @@
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
+#include "firebase/log.h"
 #include "firebase/variant.h"
 
 #if !defined(DOXYGEN) && !defined(SWIG)
@@ -476,6 +478,55 @@ void LogEvent(const char* name);
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters);
 
+/// @brief Log an event with associated parameters.
+///
+/// An Event is an important occurrence in your app that you want to
+/// measure.  You can report up to 500 different types of events per app and
+/// you can associate up to 25 unique parameters with each Event type.
+///
+/// Some common events are documented in @ref event_names (%event_names.h),
+/// but you may also choose to specify custom event types that are associated
+/// with your specific app.
+///
+/// @param[in] name Name of the event to log. Should contain 1 to 40
+/// alphanumeric characters or underscores. The name must start with an
+/// alphabetic character. Some event names are reserved. See @ref event_names
+/// (%event_names.h) for the list of reserved event names. The "firebase_"
+/// prefix is reserved and should not be used. Note that event names are
+/// case-sensitive and that logging two events whose names differ only in
+/// case will result in two distinct events.
+/// @param[in] parameters Vector of Parameter structures.
+void LogEvent(const char* name, const std::vector<Parameter>& parameters);
+
+/// @brief Adds parameters that will be set on every event logged from the SDK.
+///
+/// Adds parameters that will be set on every event logged from the SDK,
+/// including automatic ones. The values passed in the parameters bundle will
+/// be added to the map of default event parameters. These parameters persist
+/// across app runs. They are of lower precedence than event parameters, so if
+/// an event parameter and a parameter set using this API have the same name,
+/// the value of the event parameter will be used. The same limitations on event
+/// parameters apply to default event parameters.
+///
+/// @param[in] parameters Array of Parameter structures.
+/// @param[in] number_of_parameters Number of elements in the parameters
+/// array.
+void SetDefaultEventParameters(const Parameter* parameters,
+                               size_t number_of_parameters);
+
+/// @brief Adds parameters that will be set on every event logged from the SDK.
+///
+/// Adds parameters that will be set on every event logged from the SDK,
+/// including automatic ones. The values passed in the parameters bundle will
+/// be added to the map of default event parameters. These parameters persist
+/// across app runs. They are of lower precedence than event parameters, so if
+/// an event parameter and a parameter set using this API have the same name,
+/// the value of the event parameter will be used. The same limitations on event
+/// parameters apply to default event parameters.
+///
+/// @param[in] parameters reference to vector of Parameter structures.
+void SetDefaultEventParameters(const std::vector<Parameter>& parameters);
+
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// and tvOS (no-op on Android). On iOS and tvOS, this method requires the
 /// dependency GoogleAppMeasurementOnDeviceConversion to be linked in,
@@ -557,6 +608,56 @@ void SetSessionTimeoutDuration(int64_t milliseconds);
 /// Clears all analytics data for this app from the device and resets the app
 /// instance id.
 void ResetAnalyticsData();
+
+/// @brief The callback type for logging messages from the SDK.
+///
+/// The callback is invoked whenever the SDK logs a message.
+/// Currently only works for Windows Desktop.
+///
+/// @param[in] log_level The log level of the message.
+/// @param[in] message The message logged by the SDK.
+using LogCallback = std::function<void(LogLevel, const char*)>;
+
+/// @brief Allows the passing of a callback to be used when the SDK logs any
+/// messages regarding its behaviour. The callback must be thread-safe.
+///
+/// @param[in] callback The callback to use. Must be thread-safe.
+void SetLogCallback(const LogCallback& callback);
+
+/// @brief The state of an app in its lifecycle.
+///
+/// kUnknown is an invalid state that is used to capture uninitialized values.
+/// kTermination is used to indicate that the app is about to be terminated.
+enum AppLifecycleState { kUnknown = 0, kTermination };
+
+/// @brief Notifies the current state of the app's lifecycle.
+///
+/// This method is used to notify the Analytics SDK about the current state of
+/// the app's lifecycle. The Analytics SDK will use this information to log
+/// events, update user properties, upload data, etc. The method only works on
+/// windows and is a NO-OP on iOS and Android.
+///
+/// kTermination is used to indicate that the app is about to be terminated.
+/// The caller will be blocked until all pending data is uploaded or an error
+/// occurs. The caller must ensure the OS does not terminate background threads
+/// before the call returns. Currently only works for Windows Desktop.
+///
+/// @param[in] state The current state of the app's lifecycle.
+void NotifyAppLifecycleChange(AppLifecycleState state);
+
+/// @brief Returns whether the desktop Analytics SDK is initialized.
+///
+/// Returns true if the Analytics SDK is initialized, false otherwise. The
+/// method only works on windows and is a NO-OP on iOS and Android.
+bool IsDesktopInitialized();
+
+/// @brief Sets whether desktop debug mode is enabled.
+///
+/// This methods enables desktop debug mode for the analytics SDK. The
+/// method only works on windows and is a NO-OP on iOS and Android.
+///
+/// @param[in] enabled A flag that enables or disables debug mode.
+void SetDesktopDebugMode(bool enabled);
 
 /// Get the instance ID from the analytics service.
 ///

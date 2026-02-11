@@ -78,6 +78,16 @@ class AppCheckProvider {
   virtual void GetToken(
       std::function<void(AppCheckToken, int, const std::string&)>
           completion_callback) = 0;
+
+  /// Fetches an AppCheckToken suitable for consumption in limited-use scenarios
+  /// and then calls the provided callback function with the token or with an
+  /// error code and error message.
+  ///
+  /// If you do not implement this method, the default implementation invokes
+  /// the GetToken method whenever a limited-use token is requested.
+  virtual void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback);
 };
 
 /// Interface for a factory that generates {@link AppCheckProvider}s.
@@ -142,6 +152,15 @@ class AppCheck {
 
   /// Returns the result of the most recent call to GetAppCheckToken();
   Future<AppCheckToken> GetAppCheckTokenLastResult();
+
+  /// Requests a limited-use Firebase App Check token. This method should be
+  /// used ONLY if you need to authorize requests to a non-Firebase backend.
+  /// Requests to Firebase backends are authorized automatically if configured.
+  Future<AppCheckToken> GetLimitedUseAppCheckToken();
+
+  /// Returns the result of the most recent call to
+  /// GetLimitedUseAppCheckToken();
+  Future<AppCheckToken> GetLimitedUseAppCheckTokenLastResult();
 
   /// Registers an {@link AppCheckListener} to changes in the token state. This
   /// method should be used ONLY if you need to authorize requests to a

@@ -32,7 +32,6 @@ This script will perform the following:
 - Google Service files (plist and json) will be restored into the
   integration_test directories.
 - The server key will be patched into the Messaging project.
-- The uri prefix will be patched into the Dynamic Links project.
 - The reverse id will be patched into all Info.plist files, using the value from
   the decrypted Google Service plist files as the source of truth.
 
@@ -116,13 +115,6 @@ def main(argv):
 
   if FLAGS.artifact:
     return
-
-  if not FLAGS.apis or "dynamic_links" in FLAGS.apis:
-    print("Attempting to patch Dynamic Links uri prefix.")
-    uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
-    uri_prefix = _decrypt(uri_path, passphrase)
-    dlinks_project = os.path.join(repo_dir, "dynamic_links", "integration_test")
-    _patch_main_src(dlinks_project, "REPLACE_WITH_YOUR_URI_PREFIX", uri_prefix)
 
   if not FLAGS.apis or "app_check" in FLAGS.apis:
     print("Attempting to patch app check debug token.")

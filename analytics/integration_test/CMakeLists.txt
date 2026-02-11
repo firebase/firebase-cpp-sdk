@@ -211,6 +211,16 @@ else()
     )
   elseif(MSVC)
     set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32)
+    set(ANALYTICS_WINDOWS_DLL "${FIREBASE_CPP_SDK_DIR}/analytics/windows/google_analytics.dll")
+
+    # For Windows, check if the Analytics DLL exists, and copy it in if so.
+    if (EXISTS "${ANALYTICS_WINDOWS_DLL}")
+      add_custom_command(
+        TARGET ${integration_test_target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+	  "${ANALYTICS_WINDOWS_DLL}"
+          $<TARGET_FILE_DIR:${integration_test_target_name}>)
+    endif()
   else()
     set(ADDITIONAL_LIBS pthread)
   endif()

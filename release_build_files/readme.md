@@ -7,12 +7,9 @@ on *iOS* and *Android*:
 *   Firebase App Check
 *   Firebase Authentication
 *   Firebase Cloud Messaging
-*   Firebase Dynamic Links (deprecated SDK)
 *   Cloud Firestore
 *   Firebase Functions
-*   Google Mobile Ads (deprecated SDK)
 *   Firebase Installations
-*   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
 *   Firebase Remote Config
 *   Firebase Storage
@@ -87,7 +84,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:33.14.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:34.8.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -107,12 +104,6 @@ Firebase Authentication    | libfirebase_auth.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
-Firebase Dynamic Links     | libfirebase_dynamic_links.a
-|                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics
-|                          | (Maven package)
-|                          | com.google.firebase:firebase-dynamic-links
-|                          | (Maven package)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -131,14 +122,6 @@ Firebase Functions         | libfirebase_functions
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
-Google Mobile Ads          | libfirebase_gma.a
-|                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics
-|                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:23.0.0
-|                          | (Maven package)
-|                          | com.google.android.ump:user-messaging-platform:2.2.0
-|                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-installations
@@ -150,7 +133,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.16.0  (Maven package)
+|                          | androidx.core:core:1.17.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -179,9 +162,9 @@ User Messaging Platform    | libfirebase_ump.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.ump:user-messaging-platform:2.2.0
+|                          | com.google.android.ump:user-messaging-platform:4.0.0
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.7.0
+Google Play services module| com.google.android.gms:play-services-base:18.10.0
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
@@ -205,10 +188,8 @@ firebaseCpp.dependencies {
   appCheck
   auth
   database
-  dynamicLinks
   firestore
   functions
-  gma
   installations
   messaging
   remoteConfig
@@ -238,53 +219,45 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (11.13.0)
+|                          | Firebase/Analytics Cocoapod (12.8.0)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck Cocoapod (11.13.0)
+|                          | Firebase/AppCheck Cocoapod (12.8.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth Cocoapod (11.13.0)
-Firebase Dynamic Links     | firebase_dynamic_links.xcframework
-|                          | firebase.xcframework
-|                          | Firebase/DynamicLinks Cocoapod (11.13.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
+|                          | Firebase/Firestore Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
-Google Mobile Ads          | firebase_gma.xcframework
-|                          | firebase.xcframework
-|                          | Firebase/CoreOnly Cocoapod (11.13.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (11.2.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
+|                          | Firebase/Functions Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (11.13.0)
+|                          | FirebaseInstallations Cocoapod (12.8.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging Cocoapod (11.13.0)
+|                          | Firebase/Messaging Cocoapod (12.8.0)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
+|                          | Firebase/Database Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig Cocoapod (11.13.0)
+|                          | Firebase/RemoteConfig Cocoapod (12.8.0)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
+|                          | Firebase/Storage Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 User Messaging Platform    | firebase_ump.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/CoreOnly Cocoapod (11.13.0)
+|                          | Firebase/CoreOnly Cocoapod (12.8.0)
 |                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
@@ -305,53 +278,45 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (11.13.0)
+|                          | Firebase/Analytics Cocoapod (12.8.0)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck Cocoapod (11.13.0)
+|                          | Firebase/AppCheck Cocoapod (12.8.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth Cocoapod (11.13.0)
-Firebase Dynamic Links     | libfirebase_dynamic_links.a
-|                          | libfirebase_app.a
-|                          | Firebase/DynamicLinks Cocoapod (11.13.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
+|                          | Firebase/Firestore Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
-Google Mobile Ads          | libfirebase_gma.a
-|                          | libfirebase_app.a
-|                          | Firebase/CoreOnly Cocoapod (11.13.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (11.2.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
+|                          | Firebase/Functions Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (11.13.0)
+|                          | FirebaseInstallations Cocoapod (12.8.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging Cocoapod (11.13.0)
+|                          | Firebase/CloudMessaging Cocoapod (12.8.0)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
+|                          | Firebase/Database Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig Cocoapod (11.13.0)
+|                          | Firebase/RemoteConfig Cocoapod (12.8.0)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage Cocoapod (11.13.0)
-|                          | Firebase/Auth Cocoapod (11.13.0)
+|                          | Firebase/Storage Cocoapod (12.8.0)
+|                          | Firebase/Auth Cocoapod (12.8.0)
 User Messaging Platform    | libfirebase_ump.a
 |                          | libfirebase_app.a
-|                          | Firebase/CoreOnly Cocoapod (11.13.0)
+|                          | Firebase/CoreOnly Cocoapod (12.8.0)
 |                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
@@ -366,8 +331,8 @@ Xcode project to ensure that the Swift runtime is included in your app.
 
 #### Linux libraries
 
-For Linux, library versions are provided for 32-bit (i386) and 64-bit (x86_64)
-platforms.
+For Linux, library versions are provided for 32-bit (i386, deprecated) and
+64-bit (x86_64) platforms.
 
 Two sets of Linux libraries are available: one set built against the newer C++11
 ABI, and another set built against the standard (legacy) ABI. This is equivalent
@@ -394,10 +359,6 @@ Firebase Storage                | libfirebase_storage.a
 |                               | libfirebase_auth.a
 |                               | libfirebase_app.a
 Firebase Analytics (stub)       | libfirebase_analytics.a
-|                               | libfirebase_app.a
-Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
-|                               | libfirebase_app.a
-Google Mobile Ads (stub)        | libfirebase_gma.a
 |                               | libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a
 |                               | libfirebase_app.a
@@ -440,10 +401,6 @@ Firebase Storage                | firebase_storage.framework
 |                               | firebase.framework
 Firebase Analytics (stub)       | firebase_analytics.framework
 |                               | firebase.framework
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
-|                               | firebase.framework
-Google Mobile Ads (stub)        | libfirebase_gma.a
-|                               | libfirebase_app.a
 Firebase Installations (stub)   | firebase_installations.framework
 |                               | firebase.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
@@ -485,10 +442,6 @@ Firebase Storage                | firebase_storage.lib
 |                               | firebase_auth.lib
 |                               | firebase_app.lib
 Firebase Analytics (stub)       | firebase_analytics.lib
-|                               | firebase_app.lib
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
-|                               | firebase_app.lib
-Google Mobile Ads (stub)        | firebase_gma.lib
 |                               | firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib
 |                               | firebase_app.lib
@@ -537,9 +490,30 @@ addition to any you may have implemented.
 
 The Firebase Cloud Messaging library needs to attach
 handlers to the application delegate using method swizzling. If you are using
-these libraries, at load time, Firebase will identify your `AppDelegate` class
-and swizzle the required methods onto it, chaining a call back to your existing
-method implementation.
+these libraries, at load time, Firebase will typically identify your `AppDelegate`
+class and swizzle the required methods onto it.
+
+#### Specifying Your AppDelegate Class Directly (iOS)
+
+For a more direct approach, or if you encounter issues with the default
+method swizzling, you can explicitly tell Firebase which class is your
+application's `AppDelegate`. To do this, add the `FirebaseAppDelegateClassName`
+key to your app's `Info.plist` file:
+
+*   **Key:** `FirebaseAppDelegateClassName`
+*   **Type:** `String`
+*   **Value:** Your AppDelegate's class name (e.g., `MyCustomAppDelegate`)
+
+**Example `Info.plist` entry:**
+```xml
+<key>FirebaseAppDelegateClassName</key>
+<string>MyCustomAppDelegate</string>
+```
+
+If this key is provided with a valid class name, Firebase will use that class
+directly for its AppDelegate-related interactions. If the key is not present,
+is invalid, or the class is not found, Firebase will use its standard method
+swizzling approach.
 
 ### Custom Android Build Systems
 
@@ -605,28 +579,13 @@ Analytics                | Not required
 App Check                | Not required
 Cloud Messaging          | Required
 Auth                     | Required
-Dynamic Links            | Required
 Firestore                | Required
 Functions                | Required
 Installations            | Not Required
-Instance ID              | Required
-Google Mobile Ads        | Not required (usually; see below)
 Realtime Database        | Required
 Remote Config            | Required
 Storage                  | Required
 User Messaging Platform  | Not required
-
-#### A note on Google Mobile Ads and Google Play services
-
-Most versions of the Google Mobile Ads SDK for Android can work properly without
-Google Play services. However, if you are using the
-`com.google.android.gms:play-services-ads-lite` dependency instead of the
-standard `com.google.firebase:firebase-ads` dependency, Google Play services
-WILL be required in your specific case.
-
-GMA initialization will only return `kInitResultFailedMissingDependency` when
-Google Play services is unavailable AND you are using
-`com.google.android.gms:play-services-ads-lite`.
 
 ### Desktop project setup
 
@@ -654,10 +613,64 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Changes
+    - App Check: Add in support for Limited Use Tokens.
+
+### 13.4.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 34.8.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.8.0.
+    - General (Desktop): Fix crashes on older CPUs and MSVC versions.
+
+### 13.3.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 34.6.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.6.0.
+    - Storage: Add support for Firebase Storage emulator via `UseEmulator`.
+        The `UseEmulator` method should be called before invoking any other
+        methods on a new instance of Storage. Default port is 9199.
+    - Analytics: Add support for SetDefaultEventParameters in Android and iOS.
+        Adds parameters that will be set on every event logged from the SDK,
+        including automatic ones.
+    - Analytics: Enables LogEvent to take in a vector of parameters.
+
+### 13.2.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 34.4.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.4.0.
+
+### 13.1.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 34.2.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.2.0.
+    - Storage (iOS): Handle absolute paths being provided to GetFile. (#1724)
+
+### 13.0.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 34.0.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.0.0.
+    - General (iOS): Minimum iOS deployment target is now 15.0.
+    - General (iOS): Added an option to explicitly specify your app's
+      `AppDelegate` class name via the `FirebaseAppDelegateClassName` key in
+      `Info.plist`. This provides a more direct way for Firebase to interact
+      with your specified AppDelegate. See "Platform Notes > iOS Method
+      Swizzling > Specifying Your AppDelegate Class Directly (iOS)" for
+      details.
+    - General (Linux): 32-bit (i386) build support is now deprecated, and will
+      be removed in the future.
+    - Auth: Removed deprecated `User::UpdateEmail` method.
+    - Dynamic Links: Removed the Dynamic Links SDK. See the [support
+      documentation](https://firebase.google.com/support/dynamic-links-faq)
+      for more information.
+    - Google Mobile Ads (GMA) has been removed from the Firebase C++ SDK.
+      It was previously deprecated. For more information, see the
+      [SDK documentation](https://developers.google.com/admob/cpp/sdk).
+
 ### 12.8.0
 -   Changes
-    - General (iOS): Update to Firebase Cocoapods version 11.13.0.
-    - General (Android): Update to Firebase Android BoM version 33.14.0.
+    - General (iOS): Update to Firebase Cocoapods version 11.14.0.
+    - General (Android): Update to Firebase Android BoM version 33.15.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 16.2.
     - UMP: Moved the User Messaging Platform SDK to its own top-level

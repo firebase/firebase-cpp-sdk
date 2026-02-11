@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
@@ -60,7 +61,9 @@ static const ::firebase::App* g_app = nullptr;
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
-    firebase::util::kMethodTypeStatic)
+    firebase::util::kMethodTypeStatic),                                       \
+  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
+    "(Landroid/os/Bundle;)V")
 // clang-format on
 
 // clang-format off
@@ -340,8 +343,8 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key,
 void AddToBundle(JNIEnv* env, jobject bundle, const char* key, double value) {
   jstring key_string = env->NewStringUTF(key);
   env->CallVoidMethod(bundle,
-                      util::bundle::GetMethodId(util::bundle::kPutFloat),
-                      key_string, static_cast<jfloat>(value));
+                      util::bundle::GetMethodId(util::bundle::kPutDouble),
+                      key_string, static_cast<jdouble>(value));
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(key_string);
 }
@@ -518,6 +521,60 @@ void LogEvent(const char* name, const Parameter* parameters,
   });
 }
 
+// log an event and the associated parameters via a vector.
+void LogEvent(const char* name, const std::vector<Parameter>& parameters) {
+  LogEvent(name, parameters.data(), parameters.size());
+}
+
+// Set the default event parameters.
+void SetDefaultEventParameters(const Parameter* parameters,
+                               size_t number_of_parameters) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+
+  if (!parameters || number_of_parameters == 0) {
+    env->CallVoidMethod(
+        g_analytics_class_instance,
+        analytics::GetMethodId(analytics::kSetDefaultEventParameters), nullptr);
+    if (util::CheckAndClearJniExceptions(env)) {
+      LogError("Failed to set default event parameters");
+    }
+    return;
+  }
+
+  jobject bundle =
+      env->NewObject(util::bundle::GetClass(),
+                     util::bundle::GetMethodId(util::bundle::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+    LogError("Failed to create bundle for SetDefaultEventParameters.");
+    if (bundle) env->DeleteLocalRef(bundle);
+    return;
+  }
+
+  for (size_t i = 0; i < number_of_parameters; ++i) {
+    const Parameter& parameter = parameters[i];
+    if (!AddVariantToBundle(env, bundle, parameter.name, parameter.value)) {
+      // A Variant type that couldn't be handled was passed in.
+      LogError(
+          "SetDefaultEventParameters(%s): %s is not a valid parameter value"
+          " type. Excluded from default parameters.",
+          parameter.name, Variant::TypeName(parameter.value.type()));
+    }
+  }
+  env->CallVoidMethod(
+      g_analytics_class_instance,
+      analytics::GetMethodId(analytics::kSetDefaultEventParameters), bundle);
+  if (util::CheckAndClearJniExceptions(env)) {
+    LogError("Failed to set default event parameters");
+  }
+  env->DeleteLocalRef(bundle);
+}
+
+// Set the default event parameters
+void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
+  SetDefaultEventParameters(parameters.data(), parameters.size());
+}
+
 /// Initiates on-device conversion measurement given a user email address on iOS
 /// (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
@@ -608,6 +665,18 @@ void ResetAnalyticsData() {
                       analytics::GetMethodId(analytics::kResetAnalyticsData));
   util::CheckAndClearJniExceptions(env);
 }
+
+// NO-OP in Android and iOS. Only used in Windows.
+void SetLogCallback(const LogCallback&) {}
+
+// NO-OP in Android and iOS. Only used in Windows.
+void NotifyAppLifecycleChange(AppLifecycleState) {}
+
+// NO-OP in Android and iOS. Only used in Windows.
+bool IsDesktopInitialized() { return false; }
+
+// NO-OP in Android and iOS. Only used in Windows.
+void SetDesktopDebugMode(bool) {}
 
 Future<std::string> GetAnalyticsInstanceId() {
   FIREBASE_ASSERT_RETURN(GetAnalyticsInstanceIdLastResult(),

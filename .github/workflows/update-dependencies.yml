@@ -8,9 +8,6 @@ on:
       updateiOS:
         description: 'update iOS dependencies?'
         default: 1
-      includeGMA:
-        description: 'include GMA?'
-        default: 0
       triggerTests:
         description: 'trigger tests on PR?'
         default: 1
@@ -42,7 +39,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.9
 
       - name: Check out base branch
         uses: actions/checkout@v3
@@ -68,20 +65,16 @@ jobs:
 
       - name: Run update script
         run: |
-          gma_flag=
-          if [[ ${{ github.event.inputs.includeGMA }} -eq 1 ]]; then
-            gma_flag="--include_gma"
-          fi
           if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
             if [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
               # Update both
               echo "Updating all dependencies"
-              python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE} ${gma_flag}
+              python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE}
               echo "CHOSEN_DEPS=mobile" >> $GITHUB_ENV
             else
               # Update iOS only
               echo "Updating iOS dependencies only"
-              python scripts/update_android_ios_dependencies.py --skip_android --logfile=${UPDATE_LOGFILE} ${gma_flag}
+              python scripts/update_android_ios_dependencies.py --skip_android --logfile=${UPDATE_LOGFILE}
               echo "CHOSEN_DEPS=iOS" >> $GITHUB_ENV
             fi
             # iOS: Update Firestore external version to match Firestore Cocoapod version.
@@ -102,7 +95,7 @@ jobs:
               # Generate a Podfile for Firebase/Analytics. Use the Specs.git
               # source to avoid any propagation delays due to CocoaPods mirror.
               echo "source 'https://github.com/CocoaPods/Specs.git'" > Podfile
-              echo "platform :ios, '14.0'" >> Podfile
+              echo "platform :ios, '15.0'" >> Podfile
               echo "pod 'Firebase/Analytics', '${analytics_version}'" >> Podfile
               pod repo update
               pod install || true # ignore error since there is no Xcode project
@@ -165,7 +158,7 @@ jobs:
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"
-            python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE} ${gma_flag}
+            python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE}
             echo "CHOSEN_DEPS=Android" >> $GITHUB_ENV
           else
             echo "::error ::Neither Android nor iOS selected. Exiting."

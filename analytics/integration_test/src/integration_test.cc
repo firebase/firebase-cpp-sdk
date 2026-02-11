@@ -15,10 +15,12 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <future>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/analytics.h"
@@ -242,6 +244,61 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
       InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(hashed_phone);
 }
 
+#if defined(_WIN32)
+// The windows analytics DLL enables users to // set a callback function that is
+// triggered when the underlying DLL logs something.
+TEST_F(FirebaseAnalyticsTest, TestSetLogCallback) {
+  SKIP_TEST_ON_WINDOWS_32BIT;
+
+  std::promise<void> finishedPromise;
+  std::future<void> finished = finishedPromise.get_future();
+  bool log_callback_called = false;
+
+  firebase::analytics::SetLogCallback(
+      [&](firebase::LogLevel log_level, const char* message) {
+        log_callback_called = true;
+        finishedPromise.set_value();
+      });
+
+  // Sending a NotifyAppLifecycleChange with kUnknown will trigger a logging
+  // callback
+  firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
+
+  if (finished.wait_for(std::chrono::seconds(60)) ==
+      std::future_status::timeout) {
+    ADD_FAILURE() << "Timed out waiting for log callback";
+  } else {
+    finished.get();
+  }
+
+  EXPECT_TRUE(log_callback_called);
+  firebase::analytics::SetLogCallback(nullptr);
+}
+#endif  // defined(_WIN32)
+
+TEST_F(FirebaseAnalyticsTest, TestDesktopInitialization) {
+  // The analytics dll does not work on 32 bit systems.
+  SKIP_TEST_ON_WINDOWS_32BIT;
+
+  // Check to see if the desktop DLL is loaded.
+  bool initialized = firebase::analytics::IsDesktopInitialized();
+
+#if defined(_WIN32)
+  // On Windows, it should be true.
+  EXPECT_TRUE(initialized);
+#else
+  // On other platforms, it should return false.
+  EXPECT_FALSE(initialized);
+#endif
+}
+
+TEST_F(FirebaseAnalyticsTest, TestDesktopDebugMode) {
+  // SetDebugMode doesn't return anything, so we just call it to ensure
+  // it doesn't crash.
+  firebase::analytics::SetDesktopDebugMode(true);
+  firebase::analytics::SetDesktopDebugMode(false);
+}
+
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
   // Log an event with no parameters.
   firebase::analytics::LogEvent(firebase::analytics::kEventLogin);
@@ -257,6 +314,14 @@ TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
   firebase::analytics::LogEvent(firebase::analytics::kEventJoinGroup,
                                 firebase::analytics::kParameterGroupID,
                                 "spoon_welders");
+}
+
+TEST_F(FirebaseAnalyticsTest, TestNotifyAppLifecycleChange) {
+  // Can't confirm that these do anything but just run them all to ensure the
+  // app doesn't crash.
+  firebase::analytics::NotifyAppLifecycleChange(firebase::analytics::kUnknown);
+  firebase::analytics::NotifyAppLifecycleChange(
+      firebase::analytics::kTermination);
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
@@ -295,6 +360,18 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithComplexParameters) {
   firebase::analytics::LogEvent(
       firebase::analytics::kEventViewCart, kViewCartParameters,
       sizeof(kViewCartParameters) / sizeof(kViewCartParameters[0]));
+}
+
+TEST_F(FirebaseAnalyticsTest, TestSetDefaultEventParameters) {
+  const std::vector<firebase::analytics::Parameter> kDefaultParameters = {
+      firebase::analytics::Parameter("default_parameter_double", 123.456),
+      firebase::analytics::Parameter("default_parameter_int", 4),
+      firebase::analytics::Parameter("default_parameter_str", "Hello World"),
+  };
+
+  firebase::analytics::SetDefaultEventParameters(kDefaultParameters);
+  firebase::analytics::LogEvent("default_parameter_event");
+  firebase::analytics::SetDefaultEventParameters(nullptr, 0);
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {

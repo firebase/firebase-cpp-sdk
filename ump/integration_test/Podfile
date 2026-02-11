@@ -1,11 +1,11 @@
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '13.0'
+platform :ios, '15.0'
 # Firebase UMP test application.
 use_frameworks! :linkage => :static
 
 target 'integration_test' do
-  platform :ios, '13.0'
-  pod 'Firebase/CoreOnly', '11.13.0'
+  platform :ios, '15.0'
+  pod 'Firebase/CoreOnly', '12.8.0'
   pod 'GoogleUserMessagingPlatform', '2.3.0'
 end
 
