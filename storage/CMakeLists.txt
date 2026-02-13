@@ -38,7 +38,8 @@ set(android_SRCS
     src/android/controller_android.cc
     src/android/metadata_android.cc
     src/android/storage_android.cc
-    src/android/storage_reference_android.cc)
+    src/android/storage_reference_android.cc
+    src/android/list_result_android.cc)
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
@@ -47,7 +48,8 @@ set(ios_SRCS
     src/ios/metadata_ios.mm
     src/ios/storage_ios.mm
     src/ios/storage_reference_ios.mm
-    src/ios/util_ios.mm)
+    src/ios/util_ios.mm
+    src/ios/list_result_ios.mm)
 
 # Source files used by the desktop implementation.
 set(desktop_SRCS
@@ -58,7 +60,8 @@ set(desktop_SRCS
     src/desktop/rest_operation.cc
     src/desktop/storage_desktop.cc
     src/desktop/storage_path.cc
-    src/desktop/storage_reference_desktop.cc)
+    src/desktop/storage_reference_desktop.cc
+    src/desktop/list_result_desktop.cc)
 
 if(ANDROID)
   set(storage_platform_SRCS
