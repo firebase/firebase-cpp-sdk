@@ -67,11 +67,11 @@ jobs:
       - name: Run update script
         run: |
           gma_flag=
-          if [[ ${{ github.event.inputs.includeGMA }} -eq 1 ]]; then
+          if [[ ${GITHUB_EVENT_INPUTS_INCLUDEGMA} -eq 1 ]]; then
             gma_flag="--include_gma"
           fi
-          if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
-            if [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
+          if [[ ${GITHUB_EVENT_INPUTS_UPDATEIOS} -eq 1 ]]; then
+            if [[ ${GITHUB_EVENT_INPUTS_UPDATEANDROID} -eq 1 ]]; then
               # Update both
               echo "Updating all dependencies"
               python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE} ${gma_flag}
@@ -160,7 +160,7 @@ jobs:
               done
             fi
             rm -rf ${ziptmp}
-          elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
+          elif [[ ${GITHUB_EVENT_INPUTS_UPDATEANDROID} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"
             python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE} ${gma_flag}
@@ -171,6 +171,10 @@ jobs:
           fi
           touch ${UPDATE_LOGFILE}  # In case it wasn't generated before
           cat ${UPDATE_LOGFILE}
+        env:
+          GITHUB_EVENT_INPUTS_INCLUDEGMA: ${{ github.event.inputs.includeGMA }}
+          GITHUB_EVENT_INPUTS_UPDATEIOS: ${{ github.event.inputs.updateiOS }}
+          GITHUB_EVENT_INPUTS_UPDATEANDROID: ${{ github.event.inputs.updateAndroid }}
 
       - name: Push branch if there are changes
         id: push-branch
@@ -195,15 +199,15 @@ jobs:
             date_str=$(date "+%a %b %d %Y")
             commit_title="Update ${CHOSEN_DEPS} dependencies - ${date_str}"
             commit_body=
-            if [[ -n '${{ github.event.inputs.comment }}' ]]; then
+            if [[ -n '${GITHUB_EVENT_INPUTS_COMMENT}' ]]; then
               # If a comment was provided, start with that instead of blank.
-              commit_body='${{ github.event.inputs.comment }}
+              commit_body='${GITHUB_EVENT_INPUTS_COMMENT}
 
             '
             fi
             commit_body="${commit_body}$(cat ${UPDATE_LOGFILE_PROCESSED})
 
-          > Created by [${{github.workflow}} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+          > Created by [${GITHUB_WORKFLOW} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             git config user.email "firebase-workflow-trigger-bot@google.com"
             git config user.name "firebase-workflow-trigger-bot"
             git config core.commentChar "%"  # so we can use # in git commit messages
@@ -216,12 +220,16 @@ jobs:
             # Push branch
             git push --set-upstream origin "${NEW_BRANCH}"
             # Create pull request
-            pr_number=$(python scripts/gha/create_pull_request.py --token ${{ steps.generate-token.outputs.token }} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "${commit_title}" --body "${commit_body}")
+            pr_number=$(python scripts/gha/create_pull_request.py --token ${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN} --head "${NEW_BRANCH}" --base "${GITHUB_EVENT_INPUTS_BASEBRANCH}" --title "${commit_title}" --body "${commit_body}")
             echo "created_pr_number=${pr_number}" >> $GITHUB_OUTPUT
           else
             echo "::warning ::No changes detected, won't create pull request."
             echo "branch_pushed=0" >> $GITHUB_OUTPUT
           fi
+        env:
+          GITHUB_EVENT_INPUTS_COMMENT: ${{ github.event.inputs.comment }}
+          STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_EVENT_INPUTS_BASEBRANCH: ${{ github.event.inputs.baseBranch }}
 
       - name: Set test trigger label.
         uses: actions-ecosystem/action-add-labels@v1
