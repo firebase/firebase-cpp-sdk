@@ -35,8 +35,8 @@ jobs:
         id: get-branches
         run: |
             branch_pattern='origin/${{ env.defaultBranchPattern }}'
-            if [[ -n '${{ github.event.inputs.branch_patterns }}' ]]; then
-              branch_pattern=origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | origin/|g')
+            if [[ -n '${GITHUB_EVENT_INPUTS_BRANCH_PATTERNS}' ]]; then
+              branch_pattern=origin/$(echo '${GITHUB_EVENT_INPUTS_BRANCH_PATTERNS}' | sed 's| | origin/|g')
             fi
             git remote update
             echo "Branch pattern: ${branch_pattern}"
@@ -53,6 +53,8 @@ jobs:
             fi
             echo "::warning ::Branch list: [${branch_list}]"
             echo "branch_list=[${branch_list}]" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_EVENT_INPUTS_BRANCH_PATTERNS: ${{ github.event.inputs.branch_patterns }}
 
   create_merge_prs:
     name: create-merge-pr-${{ matrix.branch_name }}
@@ -100,14 +102,14 @@ jobs:
             git config core.commentChar "%"  # so we can use # in git commit messages
 
             main_branch='${{ env.defaultMainBranch }}'
-            if [[ -n '${{ github.event.inputs.main_branch }}' ]]; then
-              main_branch='${{ github.event.inputs.main_branch }}'
+            if [[ -n '${GITHUB_EVENT_INPUTS_MAIN_BRANCH}' ]]; then
+              main_branch='${GITHUB_EVENT_INPUTS_MAIN_BRANCH}'
             fi
             # Attempt a merge, then check if any files changed.
             git merge --no-commit --no-ff "origin/${main_branch}" || true
-            if git diff --quiet ${{ matrix.branch_name }}; then
+            if git diff --quiet ${MATRIX_BRANCH_NAME}; then
               # No merge necessary.
-              echo "::warning ::No merge needed for ${{ matrix.branch_name }}, won't create pull request."
+              echo "::warning ::No merge needed for ${MATRIX_BRANCH_NAME}, won't create pull request."
               echo "created_pr_number=0" >> $GITHUB_OUTPUT
               exit 0
             fi
@@ -117,16 +119,20 @@ jobs:
 
             date_str=$(date "+%b %d, %Y")
 
-            pr_title="Automatic merge of ${main_branch} into ${{ matrix.branch_name }} - ${date_str}"
-            pr_body="Automatic merge of ${main_branch} into ${{ matrix.branch_name }}.
+            pr_title="Automatic merge of ${main_branch} into ${MATRIX_BRANCH_NAME} - ${date_str}"
+            pr_body="Automatic merge of ${main_branch} into ${MATRIX_BRANCH_NAME}.
 
-            > Created on ${date_str} by [${{github.workflow}} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID).
+            > Created on ${date_str} by [${GITHUB_WORKFLOW} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID).
             "
             git checkout main
             git checkout -b "${NEW_BRANCH}"
             git push --set-upstream origin "${NEW_BRANCH}"
-            pr_number=$(python scripts/gha/create_pull_request.py --token ${{ steps.generate-token.outputs.token }} --base "${{ matrix.branch_name }}" --head "${NEW_BRANCH}" --title "${pr_title}" --body "${pr_body}")
+            pr_number=$(python scripts/gha/create_pull_request.py --token ${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN} --base "${MATRIX_BRANCH_NAME}" --head "${NEW_BRANCH}" --title "${pr_title}" --body "${pr_body}")
             echo "created_pr_number=${pr_number}" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_EVENT_INPUTS_MAIN_BRANCH: ${{ github.event.inputs.main_branch }}
+          MATRIX_BRANCH_NAME: ${{ matrix.branch_name }}
+          STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Set test trigger label.
         uses: actions-ecosystem/action-add-labels@v1
