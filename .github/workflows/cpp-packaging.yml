@@ -46,11 +46,14 @@ jobs:
     steps:
       - name: log run inputs
         run: |
-          if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
-            echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
-          elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
-            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
+          if [[ -n "${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}" ]]; then
+            echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}.zip"
+          elif [[ -n "${GITHUB_EVENT_INPUTS_DOWNLOADPREVIOUSRUN}" ]]; then
+            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${GITHUB_EVENT_INPUTS_DOWNLOADPREVIOUSRUN}"
           fi
+        env:
+          GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION: ${{ github.event.inputs.downloadPublicVersion }}
+          GITHUB_EVENT_INPUTS_DOWNLOADPREVIOUSRUN: ${{ github.event.inputs.downloadPreviousRun }}
 
       - name: log if skipping integration tests
         if: |
@@ -413,10 +416,12 @@ jobs:
         shell: bash
         run: |
           verbose_flag=
-          if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
+          if [[ -n "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" && "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" -ne 0 ]]; then
             verbose_flag=--verbose
           fi
           echo "VERBOSE_FLAG=${verbose_flag}" >> $GITHUB_ENV
+        env:
+          GITHUB_EVENT_INPUTS_VERBOSEBUILD: ${{ github.event.inputs.verboseBuild }}
       
       # Run the build in the host OS default shell since Windows can't handle long path names in bash.
       - name: Build desktop SDK
@@ -430,7 +435,7 @@ jobs:
           find .. -type f -print > src_file_list.txt
           # Remove intermediate build files (.o and .obj) files to save space.
           find . -type f -name '*.o' -or -name '*.obj' -print0 | xargs -0 rm -f --
-          tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
+          tar -czhf ../firebase-cpp-sdk-${SDK_NAME}-build.tgz .
 
       - name: Print built libraries
         shell: bash
@@ -664,8 +669,8 @@ jobs:
       - name: fetch public SDK package from web
         if: ${{ github.event.inputs.downloadPublicVersion != '' && github.event.inputs.downloadPreviousRun == '' }}
         run: |
-          if [[ ! "${{ github.event.inputs.downloadPublicVersion }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo Invalid version number: "${{ github.event.inputs.downloadPublicVersion }}"
+          if [[ ! "${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo Invalid version number: "${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}"
             exit 1
           fi
           set +e
@@ -673,10 +678,12 @@ jobs:
           # Github runners.
           for retry in {1..10} error; do
           if [[ $retry == "error" ]]; then exit 5; fi
-            curl -L https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip --output firebase_cpp_sdk.zip && break
+            curl -L https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}.zip --output firebase_cpp_sdk.zip && break
             sleep 300
           done
           set -e
+        env:
+          GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION: ${{ github.event.inputs.downloadPublicVersion }}
 
       - name: compute SDK hash
         shell: bash
@@ -862,13 +869,13 @@ jobs:
           USE_EXPANDED_MATRIX=0
         fi
         verbose_flag=
-        if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
+        if [[ -n "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" && "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" -ne 0 ]]; then
           verbose_flag=-v
         fi
         set -e
         if [[ "${{ github.event_name }}" == "schedule" ]]; then
           # trigger integration tests and generate two reports for nightly workflow run: one for firestore, one for the rest.
-          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+          python scripts/gha/trigger_workflow.py -t ${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN} \
             -w integration_tests.yml \
             -p test_packaged_sdk ${{ github.run_id }} \
             -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
@@ -876,7 +883,7 @@ jobs:
             -p test_pull_request nightly-packaging \
             -s 10 \
             -A ${verbose_flag}
-          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+          python scripts/gha/trigger_workflow.py -t ${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN} \
             -w integration_tests.yml \
             -p test_packaged_sdk ${{ github.run_id }} \
             -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
@@ -886,10 +893,13 @@ jobs:
             -A ${verbose_flag}
         else
           # trigger integration tests
-          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+          python scripts/gha/trigger_workflow.py -t ${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN} \
             -w integration_tests.yml \
             -p test_packaged_sdk ${{ github.run_id }} \
             -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
             -s 10 \
             -A ${verbose_flag}
         fi
+      env:
+        GITHUB_EVENT_INPUTS_VERBOSEBUILD: ${{ github.event.inputs.verboseBuild }}
+        STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN: ${{ steps.generate-token.outputs.token }}

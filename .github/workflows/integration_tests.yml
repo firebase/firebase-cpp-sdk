@@ -88,25 +88,25 @@ jobs:
     - id: set_outputs
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
+          if [[ "${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST}" != "nightly-packaging" ]]; then
             # Triggered manually
             echo "trigger=manual_trigger" >> $GITHUB_OUTPUT
-            if [[ "${{ github.event.inputs.use_expanded_matrix }}" == "1" ]]; then
+            if [[ "${GITHUB_EVENT_INPUTS_USE_EXPANDED_MATRIX}" == "1" ]]; then
               echo "requested_tests=expanded" >> $GITHUB_OUTPUT
             fi
-            if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
+            if [[ -z "${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST}" ]]; then
               # test_pull_request not specified
               echo "github_ref=$GITHUB_SHA" >> $GITHUB_OUTPUT
-            elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
+            elif [[ "${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST}" == *:* ]]; then
               # If specified as pr:commit_hash, split them.
-              echo "github_ref=$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)" >> $GITHUB_OUTPUT
-              echo "pr_number=$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f1)" >> $GITHUB_OUTPUT
+              echo "github_ref=$(echo ${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST} | cut -d: -f2)" >> $GITHUB_OUTPUT
+              echo "pr_number=$(echo ${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST} | cut -d: -f1)" >> $GITHUB_OUTPUT
             else
               # Just the PR specified, use refs/pull/<number>/merge as the ref.
-              echo "github_ref=refs/pull/${{github.event.inputs.test_pull_request}}/merge" >> $GITHUB_OUTPUT
-              echo "pr_number=${{ github.event.inputs.test_pull_request }}" >> $GITHUB_OUTPUT
+              echo "github_ref=refs/pull/${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST}/merge" >> $GITHUB_OUTPUT
+              echo "pr_number=${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST}" >> $GITHUB_OUTPUT
             fi
-          elif [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
+          elif [[ "${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST}" == "nightly-packaging" ]]; then
             # Triggered by scheduled packaging SDK workflow.
             echo "trigger=scheduled_trigger" >> $GITHUB_OUTPUT
             echo "github_ref=$GITHUB_SHA" >> $GITHUB_OUTPUT
@@ -118,20 +118,25 @@ jobs:
           echo "requested_tests=expanded" >> $GITHUB_OUTPUT
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
           echo "github_ref=$GITHUB_SHA" >> $GITHUB_OUTPUT
-          if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.label.name }}" == "${{ env.triggerLabelPrefix }}"* ]]; then
+          if [[ "${GITHUB_EVENT_ACTION}" == "labeled" && "${GITHUB_EVENT_LABEL_NAME}" == "${{ env.triggerLabelPrefix }}"* ]]; then
             echo "trigger=label_trigger" >> $GITHUB_OUTPUT
             echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
+            if [[ "${GITHUB_EVENT_LABEL_NAME}" == "${{ env.triggerLabelQuick }}" ]]; then
               echo "requested_tests=auto" >> $GITHUB_OUTPUT
             else
               echo "requested_tests=expanded" >> $GITHUB_OUTPUT
             fi
-          elif [[ "${{ github.event.action }}" == "closed" && "${{ github.event.pull_request.merged == true}}" == "true" ]]; then
+          elif [[ "${GITHUB_EVENT_ACTION}" == "closed" && "${{ github.event.pull_request.merged == true}}" == "true" ]]; then
             echo "trigger=postsubmit_trigger" >> $GITHUB_OUTPUT
             echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             echo "requested_tests=auto" >> $GITHUB_OUTPUT
           fi
         fi
+      env:
+        GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST: ${{ github.event.inputs.test_pull_request }}
+        GITHUB_EVENT_INPUTS_USE_EXPANDED_MATRIX: ${{ github.event.inputs.use_expanded_matrix }}
+        GITHUB_EVENT_ACTION: ${{ github.event.action }}
+        GITHUB_EVENT_LABEL_NAME: ${{ github.event.label.name }}
     ### If it's not a defined trigger, cancel workflow
     ### e.g. Triggered by non-"test-request" label; triggered by not merged PR close event.
     - name: Cancel workflow
@@ -165,45 +170,45 @@ jobs:
         command: pip install -r scripts/gha/python_requirements.txt
     - id: matrix_config
       run: |
-        if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then
+        if [[ "${STEPS_SET_OUTPUTS_OUTPUTS_REQUESTED_TESTS}" == "expanded" ]]; then
           TEST_MATRIX_PARAM=-e=1
           echo "::warning ::Running on the expanded matrix"
-        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "minimal" ]]; then
+        elif [[ "${STEPS_SET_OUTPUTS_OUTPUTS_REQUESTED_TESTS}" == "minimal" ]]; then
           TEST_MATRIX_PARAM=-m=1
           echo "::warning ::Running on the minimal matrix"
-        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then
+        elif [[ "${STEPS_SET_OUTPUTS_OUTPUTS_REQUESTED_TESTS}" == "auto" ]]; then
           # auto-diff only apply when running in a PR.
           # diff against the PR's base. "git merge-base main branch_name" will give the common ancestor of both branches.
-          MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}} || true)
+          MERGE_BASE=$(git merge-base origin/${GITHUB_EVENT_PULL_REQUEST_HEAD_REF} origin/${GITHUB_EVENT_PULL_REQUEST_BASE_REF} || true)
           # If origin/<branch> is no longer valid, then just run all tests.
           if [[ -n "${MERGE_BASE}" ]]; then
-            echo "::warning ::Auto-diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
-            git diff --name-only origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
-            TEST_MATRIX_PARAM="--auto_diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
+            echo "::warning ::Auto-diff origin/${GITHUB_EVENT_PULL_REQUEST_HEAD_REF}..${MERGE_BASE}"
+            git diff --name-only origin/${GITHUB_EVENT_PULL_REQUEST_HEAD_REF}..${MERGE_BASE}
+            TEST_MATRIX_PARAM="--auto_diff origin/${GITHUB_EVENT_PULL_REQUEST_HEAD_REF}..${MERGE_BASE}"
           fi
         fi
 
         # To feed input into the job matrix, we first need to convert to a JSON
         # list. Then we can use fromJson to define the field in the matrix for the tests job.
-        if [[ "${{ github.event.schedule }}" == "0 9 * * *" ]]; then
+        if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 9 * * *" ]]; then
           # at 1am PST/2am PDT. Running integration tests and generate test report for all testapps except firestore
           apis="analytics,app_check,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
-        elif [[ "${{ github.event.schedule }}" == "0 10 * * *" || "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
+        elif [[ "${GITHUB_EVENT_SCHEDULE}" == "0 10 * * *" || "${GITHUB_EVENT_SCHEDULE}" == "0 11 * * *" ]]; then
           # at 2am PST/3am PDT and 3am PST/4am PDT. Running integration tests for firestore and generate test report.
           echo "::warning ::Running Firestore nightly tests"
           apis="firestore"
         else
           echo "::warning ::Running main nightly tests"
-          apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" ${TEST_MATRIX_PARAM} )
+          apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${GITHUB_EVENT_INPUTS_APIS}" ${TEST_MATRIX_PARAM} )
         fi
-        if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
+        if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 11 * * *" ]]; then
           # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
           echo "::warning ::Running against Firestore tip-of-tree"
           matrix_platform="Desktop"
           matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-20.04,macos-12")
         else
-          matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --apis ${apis} )
-          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")
+          matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${GITHUB_EVENT_INPUTS_PLATFORMS}" --apis ${apis} )
+          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${GITHUB_EVENT_INPUTS_OPERATING_SYSTEMS}")
         fi
         echo "apis=${apis}" >> $GITHUB_OUTPUT
         echo "matrix_platform=${matrix_platform}" >> $GITHUB_OUTPUT
@@ -220,18 +225,29 @@ jobs:
         # If building against a packaged SDK, consider it as using boringssl, as the packaged SDK uses boringssl under the hood.
         # This avoids trying to install openssl on the system when compiling against the packaged SDK.
         # As an added bonus, we ensure that the packaged SDK works even without openssl explicitly installed.
-        if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
-          echo "::warning ::Downloading SDK package from previous run: https://github.com/${{github.repository}}/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"
+        if [[ -n "${GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK}" ]]; then
+          echo "::warning ::Downloading SDK package from previous run: https://github.com/${{github.repository}}/actions/runs/${GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK}"
           echo "matrix_ssl=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ssl_lib -o boringssl )" >> $GITHUB_OUTPUT
         else
-          echo "matrix_ssl=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )" >> $GITHUB_OUTPUT
+          echo "matrix_ssl=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ssl_lib -o "${GITHUB_EVENT_INPUTS_DESKTOP_SSL_VARIANTS}" )" >> $GITHUB_OUTPUT
         fi
-        mobile_test_on=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${{github.event.inputs.mobile_test_on}}")
+        mobile_test_on=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${GITHUB_EVENT_INPUTS_MOBILE_TEST_ON}")
         echo "mobile_test_on=${mobile_test_on}" >> $GITHUB_OUTPUT
         echo "android_device=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )" >> $GITHUB_OUTPUT
         echo "xcode_version=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k xcode_version)" >> $GITHUB_OUTPUT
         echo "ios_device=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )" >> $GITHUB_OUTPUT
         echo "tvos_device=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )" >> $GITHUB_OUTPUT
+      env:
+        STEPS_SET_OUTPUTS_OUTPUTS_REQUESTED_TESTS: ${{ steps.set_outputs.outputs.requested_tests }}
+        GITHUB_EVENT_PULL_REQUEST_HEAD_REF: ${{github.event.pull_request.head.ref}}
+        GITHUB_EVENT_PULL_REQUEST_BASE_REF: ${{github.event.pull_request.base.ref}}
+        GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+        GITHUB_EVENT_INPUTS_APIS: ${{github.event.inputs.apis}}
+        GITHUB_EVENT_INPUTS_PLATFORMS: ${{github.event.inputs.platforms}}
+        GITHUB_EVENT_INPUTS_OPERATING_SYSTEMS: ${{github.event.inputs.operating_systems}}
+        GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK: ${{ github.event.inputs.test_packaged_sdk }}
+        GITHUB_EVENT_INPUTS_DESKTOP_SSL_VARIANTS: ${{github.event.inputs.desktop_ssl_variants}}
+        GITHUB_EVENT_INPUTS_MOBILE_TEST_ON: ${{github.event.inputs.mobile_test_on}}
     - name: Update PR label and comment
       if: steps.set_outputs.outputs.pr_number
       shell: bash
@@ -239,10 +255,13 @@ jobs:
         #Add the in-progress label and remove any previous labels.
         python scripts/gha/it_workflow.py --stage start \
           --token ${{github.token}} \
-          --issue_number ${{steps.set_outputs.outputs.pr_number}} \
-          --actor ${{github.actor}} \
-          --commit ${{steps.set_outputs.outputs.github_ref}} \
+          --issue_number ${STEPS_SET_OUTPUTS_OUTPUTS_PR_NUMBER} \
+          --actor ${GITHUB_ACTOR} \
+          --commit ${STEPS_SET_OUTPUTS_OUTPUTS_GITHUB_REF} \
           --run_id ${{github.run_id}}
+      env:
+        STEPS_SET_OUTPUTS_OUTPUTS_PR_NUMBER: ${{steps.set_outputs.outputs.pr_number}}
+        STEPS_SET_OUTPUTS_OUTPUTS_GITHUB_REF: ${{steps.set_outputs.outputs.github_ref}}
 
   build_desktop:
     name: build-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -315,10 +334,17 @@ jobs:
         shell: bash
         env:
           CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+          GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK: ${{ github.event.inputs.test_packaged_sdk }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          GITHUB_EVENT_INPUTS_FIRESTORE_DEP_SOURCE: ${{ github.event.inputs.firestore_dep_source }}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           declare -a additional_flags
-          if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
+          if [[ -n "${GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK}" ]]; then
             # Building integration tests against a packaged SDK.
             mkdir downloaded_sdk
             unzip -q firebase_cpp_sdk.zip -d downloaded_sdk/
@@ -328,24 +354,24 @@ jobs:
             #
             # When building the SDK from source, the default SSL is openssl.
             # To build using boringssl, a cmake flag must be added:
-            if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
+            if [[ "${MATRIX_SSL_VARIANT}" == "boringssl" ]]; then
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
+          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 11 * * *" ]]; then
             # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
             additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=TIP)
-          elif [[ "${{ github.event.inputs.firestore_dep_source }}" ]]; then
-            additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=${{ github.event.inputs.firestore_dep_source }})
+          elif [[ "${GITHUB_EVENT_INPUTS_FIRESTORE_DEP_SOURCE}" ]]; then
+            additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=${GITHUB_EVENT_INPUTS_FIRESTORE_DEP_SOURCE})
           fi
           python scripts/gha/build_testapps.py --p Desktop \
-            --t ${{ needs.check_and_prepare.outputs.apis }} \
+            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" \
+            --artifact_name "desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}" \
             --noadd_timestamp \
             --short_output_paths \
             --gha_build \
-            --arch ${{ matrix.arch }} \
+            --arch ${MATRIX_ARCH} \
             ${additional_flags[*]}
       - name: Upload Desktop Cmake
         uses: actions/upload-artifact@v3
@@ -358,10 +384,14 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
+          if [ ! -f build-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log.json ]; then
             # No summary was created, make a placeholder one.
-            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json
+            echo "__SUMMARY_MISSING__" > build-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log.json
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
@@ -386,21 +416,29 @@ jobs:
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         shell: bash
         run: |
-          pushd ${{env.GCS_UPLOAD_DIR}}
+          pushd ${GCS_UPLOAD_DIR}
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log
-          if [[ "${{ job.status }}" != "success" ]]; then
+          cat build-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
+          JOB_STATUS: ${{ job.status }}
 
   build_android:
     name: build-android-${{ matrix.os }}
@@ -448,7 +486,7 @@ jobs:
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           declare -a additional_flags
-          if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
+          if [[ -n "${GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK}" ]]; then
             # Building integration tests against a packaged SDK.
             mkdir downloaded_sdk
             cd downloaded_sdk
@@ -457,20 +495,26 @@ jobs:
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
           python scripts/gha/build_testapps.py --p Android \
-            --t ${{ needs.check_and_prepare.outputs.apis }}  \
+            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}  \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "android-${{ matrix.os }}" \
+            --artifact_name "android-${MATRIX_OS}" \
             --noadd_timestamp \
             --short_output_paths \
             --gha_build \
             ${additional_flags[*]}
+        env:
+          GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK: ${{ github.event.inputs.test_packaged_sdk }}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
+          MATRIX_OS: ${{ matrix.os }}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-android-${{ matrix.os }}.log.json ]; then
-            echo "__SUMMARY_MISSING__" > build-results-android-${{ matrix.os }}.log.json
+          if [ ! -f build-results-android-${MATRIX_OS}.log.json ]; then
+            echo "__SUMMARY_MISSING__" > build-results-android-${MATRIX_OS}.log.json
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
       - name: Upload Android integration tests artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
@@ -497,18 +541,24 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-android-${{ matrix.os }}.log
-          if [[ "${{ job.status }}" != "success" ]]; then
+          cat build-results-android-${MATRIX_OS}.log
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
+          JOB_STATUS: ${{ job.status }}
 
   build_ios:
     name: build-ios-${{ matrix.os }}
@@ -546,7 +596,7 @@ jobs:
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           declare -a additional_flags
-          if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
+          if [[ -n "${GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK}" ]]; then
             # Building integration tests against a packaged SDK.
             mkdir downloaded_sdk
             cd downloaded_sdk
@@ -555,14 +605,18 @@ jobs:
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
           python scripts/gha/build_testapps.py --p iOS \
-            --t ${{ needs.check_and_prepare.outputs.apis }}  \
+            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}  \
             --output_directory "${{ github.workspace }}" \
-            --ios_sdk ${{ needs.check_and_prepare.outputs.mobile_test_on }} \
+            --ios_sdk ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_MOBILE_TEST_ON} \
             --artifact_name "ios-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
             --gha_build \
             ${additional_flags[*]}
+        env:
+          GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK: ${{ github.event.inputs.test_packaged_sdk }}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_MOBILE_TEST_ON: ${{ needs.check_and_prepare.outputs.mobile_test_on }}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -596,18 +650,23 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           cat build-results-ios-${{ matrix.os }}.log
-          if [[ "${{ job.status }}" != "success" ]]; then
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          JOB_STATUS: ${{ job.status }}
 
   build_tvos:
     name: build-tvos-${{ matrix.os }}
@@ -645,7 +704,7 @@ jobs:
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           declare -a additional_flags
-          if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
+          if [[ -n "${GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK}" ]]; then
             # Building integration tests against a packaged SDK.
             mkdir downloaded_sdk
             cd downloaded_sdk
@@ -654,13 +713,16 @@ jobs:
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
           python scripts/gha/build_testapps.py --p tvOS \
-            --t ${{ needs.check_and_prepare.outputs.apis }}  \
+            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}  \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "tvos-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
             --gha_build \
             ${additional_flags[*]}
+        env:
+          GITHUB_EVENT_INPUTS_TEST_PACKAGED_SDK: ${{ github.event.inputs.test_packaged_sdk }}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -694,18 +756,23 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           cat build-results-tvos-${{ matrix.os }}.log
-          if [[ "${{ job.status }}" != "success" ]]; then
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          JOB_STATUS: ${{ job.status }}
 
   test_desktop:
     name: test-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -781,21 +848,29 @@ jobs:
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
         shell: bash
         run: |
-          if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
-            firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"'
+          if [[ "${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}" == *"firestore"* ]]; then
+            firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}"'
           else
-            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
+            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}"
           fi
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error.
-          if [ -d "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" ] && [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json
+          if [ -d "testapps/testapps-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}" ] && [ ! -f testapps/test-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log.json ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log.json
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -815,18 +890,26 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log
-          if [[ "${{ job.status }}" != "success" ]]; then
+          cat testapps/test-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
+          JOB_STATUS: ${{ job.status }}
 
   # Run tests that depend on custom (self-hosted) runners.
   # For now, this is only used for ARM Mac builds.
@@ -910,20 +993,24 @@ jobs:
           cmd_prefix='arch -arm64'
 
           # If Firestore is included, use the emulator; otherwise just run the tests standalone.
-          if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
+          if [[ "${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}" == *"firestore"* ]]; then
             # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
             # Otherwise the Firestore emulator cannot connect, probably because localhost is ipv6.
             echo '{"emulators":{"firestore":{"port":"8080","host":"127.0.0.1"}}}' > firebase.json
             echo "::warning ::Firestore emulator version: $(firebase --version)"
             set -x
             firebase emulators:exec --only firestore --project demo-example \
-              'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix='"\"${cmd_prefix}\""
+              'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}" --cmd_prefix='"\"${cmd_prefix}\""
           else
             set -x
-            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix="${cmd_prefix}"
+            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}" --cmd_prefix="${cmd_prefix}"
           fi
         env:
           USE_FIRESTORE_EMULATOR: true
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
       - name: Delete keychain (macOS)
         if: ${{ always() && runner.os == 'macOS' }}
         shell: bash
@@ -937,9 +1024,13 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}.log.json ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}.log.json
+          if [ ! -f testapps/test-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log.json ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log.json
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch}}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -959,18 +1050,26 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log
-          if [[ "${{ job.status }}" != "success" ]]; then
+          cat testapps/test-results-desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}.log
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
+          JOB_STATUS: ${{ job.status }}
       - name: Clean up after this run
         shell: bash
         if: ${{ always() }}
@@ -1019,8 +1118,10 @@ jobs:
       - name: Get Device Info
         id: device-info
         run: |
-          echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)" >> $GITHUB_OUTPUT
-          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
+          echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${MATRIX_ANDROID_DEVICE} -get_device_type)" >> $GITHUB_OUTPUT
+          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${MATRIX_ANDROID_DEVICE} -get_ftl_device)" >> $GITHUB_OUTPUT
+        env:
+          MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
       - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
         with:
@@ -1032,9 +1133,12 @@ jobs:
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
-            --android_device "${{ matrix.android_device }}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
+            --android_device "${MATRIX_ANDROID_DEVICE}" \
+            --logfile_name "android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}" \
             --ci
+        env:
+          MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
+          MATRIX_BUILD_OS: ${{ matrix.build_os }}
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
@@ -1051,16 +1155,23 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
-          python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
-            --output_path testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log
+          python scripts/gha/read_ftl_test_result.py --test_result '${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY}' \
+            --output_path testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log
+        env:
+          STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: ${{ steps.ftl_test.outputs.test_summary }}
+          MATRIX_BUILD_OS: ${{ matrix.build_os }}
+          MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-android-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log.json"
+          if [ -d "testapps/testapps-android-${MATRIX_BUILD_OS}" ] && [ ! -f "testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log.json"
           fi
+        env:
+          MATRIX_BUILD_OS: ${{ matrix.build_os }}
+          MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
       - name: Upload Android test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -1094,18 +1205,25 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log"
-          if [[ "${{ job.status }}" != "success" ]]; then
+          cat "testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log"
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          MATRIX_BUILD_OS: ${{ matrix.build_os }}
+          MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
+          JOB_STATUS: ${{ job.status }}
 
   test_ios:
     name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
@@ -1147,8 +1265,10 @@ jobs:
       - name: Device Info
         id: device-info
         run: |
-          echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_device_type)" >> $GITHUB_OUTPUT
-          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
+          echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${MATRIX_IOS_DEVICE} -get_device_type)" >> $GITHUB_OUTPUT
+          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${MATRIX_IOS_DEVICE} -get_ftl_device)" >> $GITHUB_OUTPUT
+        env:
+          MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - name: Set up Node (16)
         uses: actions/setup-node@v3
         with:
@@ -1176,9 +1296,11 @@ jobs:
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
-            --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
+            --ios_device "${MATRIX_IOS_DEVICE}" \
+            --logfile_name "ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}" \
             --ci
+        env:
+          MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
@@ -1195,16 +1317,21 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
-          python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
-            --output_path testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log
+          python scripts/gha/read_ftl_test_result.py --test_result '${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY}' \
+            --output_path testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log
+        env:
+          STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: ${{ steps.ftl_test.outputs.test_summary }}
+          MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json"
+          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log.json"
           fi
+        env:
+          MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -1231,18 +1358,24 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log"
-          if [[ "${{ job.status }}" != "success" ]]; then
+          cat "testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log"
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
+          JOB_STATUS: ${{ job.status }}
 
   test_tvos:
     name: test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
@@ -1294,17 +1427,21 @@ jobs:
         timeout-minutes: 90
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
-            --tvos_device "${{ matrix.tvos_device }}" \
-            --logfile_name "tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}" \
+            --tvos_device "${MATRIX_TVOS_DEVICE}" \
+            --logfile_name "tvos-${{ matrix.build_os }}-${MATRIX_TVOS_DEVICE}" \
             --ci
+        env:
+          MATRIX_TVOS_DEVICE: ${{ matrix.tvos_device }}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error.
-          if [ -d "testapps/testapps-tvos-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json"
+          if [ -d "testapps/testapps-tvos-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-tvos-${{ matrix.build_os }}-${MATRIX_TVOS_DEVICE}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-${{ matrix.build_os }}-${MATRIX_TVOS_DEVICE}.log.json"
           fi
+        env:
+          MATRIX_TVOS_DEVICE: ${{ matrix.tvos_device }}
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
@@ -1331,18 +1468,24 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log"
-          if [[ "${{ job.status }}" != "success" ]]; then
+          cat "testapps/test-results-tvos-${{ matrix.build_os }}-${MATRIX_TVOS_DEVICE}.log"
+          if [[ "${JOB_STATUS}" != "success" ]]; then
             exit 1
           fi
+        env:
+          MATRIX_TVOS_DEVICE: ${{ matrix.tvos_device }}
+          JOB_STATUS: ${{ job.status }}
 
   summarize_results:
     name: "summarize-results"
@@ -1378,35 +1521,44 @@ jobs:
         run: |
           python scripts/gha/it_workflow.py --stage end \
             --token ${{github.token}} \
-            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --issue_number ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER}\
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}} \
-            --new_token ${{steps.generate-token.outputs.token}}
+            --new_token ${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN}
+        env:
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_PR_NUMBER: ${{needs.check_and_prepare.outputs.pr_number}}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
+          STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN: ${{steps.generate-token.outputs.token}}
       - name: Update Daily Report
         if: needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
         shell: bash
         run: |
-          if [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
+          if [[ "${GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST}" == "nightly-packaging" ]]; then
             additional_flags=(--build_against sdk)
           else
-            if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
+            if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 11 * * *" ]]; then
               # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
               additional_flags=(--build_against tip)
             else
               additional_flags=(--build_against repo)
             fi
           fi
-          if [[ "${{ needs.check_and_prepare.outputs.apis }}" == "firestore" ]]; then
+          if [[ "${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}" == "firestore" ]]; then
             additional_flags+=(--build_apis firestore)
           else
             additional_flags+=(--build_apis all_except_firestore)
           fi
           python scripts/gha/it_workflow.py --stage report \
             --token ${{github.token}} \
-            --actor ${{github.actor}} \
-            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --actor ${GITHUB_ACTOR} \
+            --commit ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF} \
             --run_id ${{github.run_id}} \
             ${additional_flags[*]}
+        env:
+          GITHUB_EVENT_INPUTS_TEST_PULL_REQUEST: ${{ github.event.inputs.test_pull_request }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
+          NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
