@@ -39,8 +39,8 @@ struct TestFriend {
 #if !defined(__ANDROID__)
     return new FirestoreInternal(
         app, database_id,
-        absl::make_shared<credentials::EmptyAuthCredentialsProvider>(),
-        absl::make_shared<credentials::EmptyAppCheckCredentialsProvider>());
+        std::make_shared<credentials::EmptyAuthCredentialsProvider>(),
+        std::make_shared<credentials::EmptyAppCheckCredentialsProvider>());
 #else
     return new FirestoreInternal(app, database_id);
 #endif  // !defined(__ANDROID__)

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include "absl/memory/memory.h"
+#include <memory>
+
 #include "firestore/src/main/app_check_credentials_provider_desktop.h"
 #include "firestore/src/main/create_credentials_provider.h"
 
@@ -25,7 +26,7 @@ using credentials::AppCheckCredentialsProvider;
 
 std::shared_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
     App& app) {
-  return absl::make_shared<CppAppCheckCredentialsProvider>(app);
+  return std::make_shared<CppAppCheckCredentialsProvider>(app);
 }
 
 }  // namespace firestore
