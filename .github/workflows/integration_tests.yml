@@ -370,8 +370,9 @@ jobs:
           elif [[ "${GITHUB_EVENT_INPUTS_FIRESTORE_DEP_SOURCE}" ]]; then
             additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=${GITHUB_EVENT_INPUTS_FIRESTORE_DEP_SOURCE})
           fi
+          CLEAN_APIS=$(echo ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS} | tr -d "'" | tr -d "\"")
           VERBOSE=1 python scripts/gha/build_testapps.py --p Desktop \
-            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS} \
+            --t ${CLEAN_APIS} \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}" \
             --noadd_timestamp \
@@ -529,8 +530,9 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
+          CLEAN_APIS=$(echo ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS} | tr -d "'" | tr -d "\"")
           python scripts/gha/build_testapps.py --p Android \
-            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}  \
+            --t ${CLEAN_APIS}  \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "android-${MATRIX_OS}" \
             --noadd_timestamp \
@@ -648,8 +650,9 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
+          CLEAN_APIS=$(echo ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS} | tr -d "'" | tr -d "\"")
           python scripts/gha/build_testapps.py --p iOS \
-            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}  \
+            --t ${CLEAN_APIS}  \
             --output_directory "${{ github.workspace }}" \
             --ios_sdk ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_MOBILE_TEST_ON} \
             --artifact_name "ios-${{ matrix.os }}" \
@@ -765,8 +768,9 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
+          CLEAN_APIS=$(echo ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS} | tr -d "'" | tr -d "\"")
           python scripts/gha/build_testapps.py --p tvOS \
-            --t ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}  \
+            --t ${CLEAN_APIS}  \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "tvos-${{ matrix.os }}" \
             --noadd_timestamp \
