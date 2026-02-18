@@ -39,7 +39,7 @@ std::shared_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
   FIRApp* ios_app = app.GetPlatformApp();
   auto ios_app_check = FIR_COMPONENT(FIRAppCheckInterop, ios_app.container);
   return std::make_shared<FirebaseAppCheckCredentialsProvider>(ios_app,
-                                                                ios_app_check);
+                                                               ios_app_check);
 }
 
 }  // namespace firestore
