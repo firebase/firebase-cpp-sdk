@@ -23,9 +23,9 @@ namespace firestore {
 
 using credentials::AppCheckCredentialsProvider;
 
-std::unique_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
+std::shared_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
     App& app) {
-  return absl::make_unique<CppAppCheckCredentialsProvider>(app);
+  return absl::make_shared<CppAppCheckCredentialsProvider>(app);
 }
 
 }  // namespace firestore

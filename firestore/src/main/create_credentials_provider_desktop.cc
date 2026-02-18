@@ -26,8 +26,8 @@ namespace firestore {
 using credentials::AuthCredentialsProvider;
 using firebase::auth::Auth;
 
-std::unique_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
-  return std::make_unique<FirebaseCppCredentialsProvider>(app);
+std::shared_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
+  return std::make_shared<FirebaseCppCredentialsProvider>(app);
 }
 
 }  // namespace firestore
