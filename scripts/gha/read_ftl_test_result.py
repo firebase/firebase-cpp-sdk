@@ -56,7 +56,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
 
-  test_result = json.loads(FLAGS.test_result)
+  test_result = json.loads(FLAGS.test_result.strip("'"))
   tests = []
   for app in test_result.get("apps"):
     app_path = app.get("testapp_path")

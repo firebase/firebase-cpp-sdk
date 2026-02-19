@@ -1056,7 +1056,7 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
-          python scripts/gha/read_ftl_test_result.py --test_result ${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY} \
+          python scripts/gha/read_ftl_test_result.py --test_result '${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY}' \
             --output_path testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log
         env:
           STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: ${{ steps.ftl_test.outputs.test_summary }}
@@ -1247,7 +1247,7 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
-          python scripts/gha/read_ftl_test_result.py --test_result ${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY} \
+          python scripts/gha/read_ftl_test_result.py --test_result '${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY}' \
             --output_path testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log
         env:
           STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: ${{ steps.ftl_test.outputs.test_summary }}
