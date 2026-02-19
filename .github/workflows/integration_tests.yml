@@ -651,10 +651,11 @@ jobs:
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
           CLEAN_APIS=$(echo ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS} | tr -d "'" | tr -d "\"")
+          CLEAN_MOBILE_TEST_ON=$(echo ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_MOBILE_TEST_ON} | tr -d "'" | tr -d "\"")
           python scripts/gha/build_testapps.py --p iOS \
             --t ${CLEAN_APIS}  \
             --output_directory "${{ github.workspace }}" \
-            --ios_sdk ${NEEDS_CHECK_AND_PREPARE_OUTPUTS_MOBILE_TEST_ON} \
+            --ios_sdk ${CLEAN_MOBILE_TEST_ON} \
             --artifact_name "ios-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
@@ -1055,7 +1056,7 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
-          python scripts/gha/read_ftl_test_result.py --test_result '${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY}' \
+          python scripts/gha/read_ftl_test_result.py --test_result ${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY} \
             --output_path testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log
         env:
           STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: ${{ steps.ftl_test.outputs.test_summary }}
@@ -1246,7 +1247,7 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
-          python scripts/gha/read_ftl_test_result.py --test_result '${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY}' \
+          python scripts/gha/read_ftl_test_result.py --test_result ${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY} \
             --output_path testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log
         env:
           STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: ${{ steps.ftl_test.outputs.test_summary }}
