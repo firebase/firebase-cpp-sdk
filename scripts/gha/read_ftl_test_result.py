@@ -56,6 +56,9 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
 
+  print("=-=-=-=-=")
+  print(FLAGS.test_result)
+  print("=-=-=-=-=")
   test_result = json.loads(FLAGS.test_result.strip("'"))
   tests = []
   for app in test_result.get("apps"):
