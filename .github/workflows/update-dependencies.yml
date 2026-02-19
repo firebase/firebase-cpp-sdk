@@ -193,11 +193,11 @@ jobs:
             date_str=$(date "+%a %b %d %Y")
             commit_title="Update ${CHOSEN_DEPS} dependencies - ${date_str}"
             commit_body=
-            if [[ -n '${GITHUB_EVENT_INPUTS_COMMENT}' ]]; then
+            if [[ -n "${GITHUB_EVENT_INPUTS_COMMENT}" ]]; then
               # If a comment was provided, start with that instead of blank.
-              commit_body='${GITHUB_EVENT_INPUTS_COMMENT}
+              commit_body="${GITHUB_EVENT_INPUTS_COMMENT}
 
-            '
+            "
             fi
             commit_body="${commit_body}$(cat ${UPDATE_LOGFILE_PROCESSED})
 

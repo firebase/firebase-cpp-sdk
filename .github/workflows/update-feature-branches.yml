@@ -37,8 +37,8 @@ jobs:
         id: get-branches
         run: |
             branch_pattern='origin/${{ env.defaultBranchPattern }}'
-            if [[ -n '${GITHUB_EVENT_INPUTS_BRANCH_PATTERNS}' ]]; then
-              branch_pattern=origin/$(echo '${GITHUB_EVENT_INPUTS_BRANCH_PATTERNS}' | sed 's| | origin/|g')
+            if [[ -n "${GITHUB_EVENT_INPUTS_BRANCH_PATTERNS}" ]]; then
+              branch_pattern=origin/$(echo "${GITHUB_EVENT_INPUTS_BRANCH_PATTERNS}" | sed 's| | origin/|g')
             fi
             git remote update
             echo "Branch pattern: ${branch_pattern}"
@@ -104,8 +104,8 @@ jobs:
             git config core.commentChar "%"  # so we can use # in git commit messages
 
             main_branch='${{ env.defaultMainBranch }}'
-            if [[ -n '${GITHUB_EVENT_INPUTS_MAIN_BRANCH}' ]]; then
-              main_branch='${GITHUB_EVENT_INPUTS_MAIN_BRANCH}'
+            if [[ -n "${GITHUB_EVENT_INPUTS_MAIN_BRANCH}" ]]; then
+              main_branch="${GITHUB_EVENT_INPUTS_MAIN_BRANCH}"
             fi
             # Attempt a merge, then check if any files changed.
             git merge --no-commit --no-ff "origin/${main_branch}" || true

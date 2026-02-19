@@ -41,7 +41,7 @@ jobs:
 
       - name: Run test failure retry script
         run: |
-          python scripts/gha/retry_test_failures.py --token '${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN}' --run_id '${GITHUB_EVENT_INPUTS_RUN_ID}'
+          python scripts/gha/retry_test_failures.py --token "${STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN}" --run_id "${GITHUB_EVENT_INPUTS_RUN_ID}"
         env:
           STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN: ${{ steps.generate-token.outputs.token }}
           GITHUB_EVENT_INPUTS_RUN_ID: ${{ github.event.inputs.run_id }}

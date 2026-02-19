@@ -916,10 +916,7 @@ jobs:
         env:
           USE_FIRESTORE_EMULATOR: true
           NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS: ${{ needs.check_and_prepare.outputs.apis }}
-          MATRIX_OS: ${{ matrix.os }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
-          LOGFILE_NAME: "desktop-${MATRIX_OS}-${MATRIX_ARCH}-${MATRIX_SSL_VARIANT}"
+          LOGFILE_NAME: "desktop-${{matrix.os}}-${{matrix.arch}}-${{matrix.ssl_variant}}"
         shell: bash
         run: |
           if [[ "${NEEDS_CHECK_AND_PREPARE_OUTPUTS_APIS}" == *"firestore"* ]]; then
@@ -1248,10 +1245,10 @@ jobs:
         if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
-          python scripts/gha/read_ftl_test_result.py --test_result ${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY} \
+          python scripts/gha/read_ftl_test_result.py --test_result "${STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY}" \
             --output_path testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log
         env:
-          STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: '${{ steps.ftl_test.outputs.test_summary }}'
+          STEPS_FTL_TEST_OUTPUTS_TEST_SUMMARY: ${{ steps.ftl_test.outputs.test_summary }}
           MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}

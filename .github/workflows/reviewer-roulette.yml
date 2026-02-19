@@ -43,7 +43,7 @@ jobs:
           # completed reviews.
           requested_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
           completed_reviewers='${{ join(fromJSON(env.PR_REVIEWS).*.user.login, ' ') }} '
-          author='${GITHUB_EVENT_PULL_REQUEST_USER_LOGIN}'
+          author="${GITHUB_EVENT_PULL_REQUEST_USER_LOGIN}"
           echo "Requested reviewers: ${requested_reviewers}"
           echo "Completed reviewers: ${completed_reviewers}"
           echo "Author: ${author}"
