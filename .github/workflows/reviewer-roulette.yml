@@ -22,7 +22,7 @@ jobs:
       - name: Get PR reviews
         # Put the JSON string for all the PR's completed reviews into env.PR_REVIEWS
         run: |
-          url="${{ github.event.pull_request.url }}/reviews"
+          url="${GITHUB_EVENT_PULL_REQUEST_URL}/reviews"
           echo "${url}"
           response=$(curl -s -X GET \
             -H 'Accept: application/vnd.github.v3+json' \
@@ -32,6 +32,8 @@ jobs:
           echo "PR_REVIEWS<<EOF" >> $GITHUB_ENV
           echo "${response}" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+        env:
+          GITHUB_EVENT_PULL_REQUEST_URL: ${{ github.event.pull_request.url }}
 
       - name: Create reviewer list
         id: get-reviewers
@@ -41,7 +43,7 @@ jobs:
           # completed reviews.
           requested_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
           completed_reviewers='${{ join(fromJSON(env.PR_REVIEWS).*.user.login, ' ') }} '
-          author='${{ github.event.pull_request.user.login }}'
+          author="${GITHUB_EVENT_PULL_REQUEST_USER_LOGIN}"
           echo "Requested reviewers: ${requested_reviewers}"
           echo "Completed reviewers: ${completed_reviewers}"
           echo "Author: ${author}"
@@ -68,6 +70,8 @@ jobs:
           if [[ "${reviewer_list}" == "[]" ]]; then
             echo "::warning ::No reviewers available"
           fi
+        env:
+          GITHUB_EVENT_PULL_REQUEST_USER_LOGIN: ${{ github.event.pull_request.user.login }}
 
       - name: Choose random reviewer
         if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
