@@ -34,10 +34,10 @@ namespace firestore {
 using credentials::AuthCredentialsProvider;
 using credentials::FirebaseAuthCredentialsProvider;
 
-std::unique_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
+std::shared_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
   FIRApp* ios_app = app.GetPlatformApp();
   auto ios_auth = FIR_COMPONENT(FIRAuthInterop, ios_app.container);
-  return std::make_unique<FirebaseAuthCredentialsProvider>(ios_app, ios_auth);
+  return std::make_shared<FirebaseAuthCredentialsProvider>(ios_app, ios_auth);
 }
 
 }  // namespace firestore
