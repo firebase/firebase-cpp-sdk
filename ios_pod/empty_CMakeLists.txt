@@ -14,7 +14,7 @@
 
 # Stub cmake project to enable pod files to be installed against
 
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.5)
 
 project (GetPods CXX)
 add_library(GetPods empty.cc)
