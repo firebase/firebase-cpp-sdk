@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "firestore/src/main/create_credentials_provider.h"
-
 #include <memory>
+
+#include "firestore/src/main/create_credentials_provider.h"
 
 #import "FIRAppInternal.h"
 #import "FIRComponent.h"
