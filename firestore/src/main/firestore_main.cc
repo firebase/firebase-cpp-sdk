@@ -109,8 +109,8 @@ FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id)
 FirestoreInternal::FirestoreInternal(
     App* app,
     const std::string& database_id,
-    std::unique_ptr<AuthCredentialsProvider> auth_credentials,
-    std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials)
+    std::shared_ptr<AuthCredentialsProvider> auth_credentials,
+    std::shared_ptr<AppCheckCredentialsProvider> app_check_credentials)
     : app_(NOT_NULL(app)),
       firestore_core_(CreateFirestore(app,
                                       database_id,
@@ -137,8 +137,8 @@ FirestoreInternal::~FirestoreInternal() {
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
     App* app,
     const std::string& database_id,
-    std::unique_ptr<AuthCredentialsProvider> auth_credentials,
-    std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials) {
+    std::shared_ptr<AuthCredentialsProvider> auth_credentials,
+    std::shared_ptr<AppCheckCredentialsProvider> app_check_credentials) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id(), database_id}, app->name(),

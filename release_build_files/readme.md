@@ -616,6 +616,7 @@ code.
 ### Upcoming
 -   Changes
     - App Check: Add in support for Limited Use Tokens.
+    - Firestore (iOS): Fix crash when using Auth or App Check Credentials.
 
 ### 13.4.0
 -   Changes
