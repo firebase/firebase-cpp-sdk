@@ -21,7 +21,7 @@ import shutil
 import re
 from retry import retry
 
-GSUTIL = shutil.which("gsutil")
+GSUTIL = shutil.which("gcloud")
 
 def validate(test_summary):
   if not test_summary:
@@ -77,7 +77,7 @@ def _get_testapp_log_text_from_gcs(gcs_path):
 @retry(subprocess.CalledProcessError, tries=10, delay=5, backoff=1.5)
 def _gcs_list_dir(gcs_path):
   """Recursively returns a list of contents for a directory on GCS."""
-  args = [GSUTIL, "ls", "-r", gcs_path]
+  args = [GSUTIL, "storage", "ls", "--recursive", gcs_path]
   logging.info("Listing GCS contents: %s", " ".join(args))
   try:
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
@@ -97,7 +97,7 @@ def _gcs_list_dir(gcs_path):
 @retry(subprocess.CalledProcessError, tries=10, delay=5, backoff=1.5)
 def _gcs_read_file(gcs_path):
   """Extracts the contents of a file on GCS."""
-  args = [GSUTIL, "cat", gcs_path]
+  args = [GSUTIL, "storage", "cat", gcs_path]
   logging.info("Reading GCS file: %s", " ".join(args))
   try:
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
