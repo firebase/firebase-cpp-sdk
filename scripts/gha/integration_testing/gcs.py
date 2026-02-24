@@ -110,4 +110,3 @@ def _verify_gcloud_sdk_command_line_tools():
   if not GCLOUD or not GSUTIL:
     raise RuntimeError("Could not find required gCloud SDK tool(s)")
   subprocess.run([GCLOUD, "version"], check=True)
-  subprocess.run([GCLOUD, "-v"], check=True)
