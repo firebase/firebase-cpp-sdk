@@ -85,7 +85,7 @@ def main(argv):
   for artifact in artifacts:
     dest = _local_path_to_gcs_uri(gcs_prefix, artifact, testapp_dir)
     logging.info("Creating %s", dest)
-    subprocess.run(["gcloud", "storage", "cp", artifact, dest], check=True)
+    subprocess.run([gcs.GCLOUD, "storage", "cp", artifact, dest], check=True)
   logging.info("Finished uploading to %s", gcs_prefix)
   logging.info(
       "Use 'gcloud storage cp <gs_uri> <local_path>' to copy an artifact locally.\n"
