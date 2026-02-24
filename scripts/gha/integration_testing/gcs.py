@@ -28,7 +28,6 @@ from absl import logging
 # Note: this kind of thing (among others) could likely be simplified by using
 # the gCloud Python API instead of the command line tools.
 GCLOUD = shutil.which("gcloud")
-GSUTIL = shutil.which("gsutil")
 
 PROJECT_ID = "games-auto-release-testing"
 
@@ -102,11 +101,9 @@ def get_gsutil_tips():
 
 def _verify_gcloud_sdk_command_line_tools():
   """Verifies the presence of the gCloud SDK's command line tools."""
-  logging.info("Looking for gcloud and gsutil tools...")
+  logging.info("Looking for gcloud tools...")
   if not GCLOUD:
     logging.error("gcloud not on path")
-  if not GSUTIL:
-    logging.error("gsutil not on path")
-  if not GCLOUD or not GSUTIL:
+  if not GCLOUD:
     raise RuntimeError("Could not find required gCloud SDK tool(s)")
   subprocess.run([GCLOUD, "version"], check=True)
