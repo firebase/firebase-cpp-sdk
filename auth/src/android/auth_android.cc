@@ -670,6 +670,12 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
   SetEmulatorJni(auth_data_, host.c_str(), port);
 }
 
+AuthError Auth::UseUserAccessGroup(const char* access_group) {
+  (void)access_group;  // Unused on Android.
+  // This is an iOS-only feature, so it's a no-op on Android.
+  return kAuthErrorNone;
+}
+
 // Not implemented for Android.
 void EnableTokenAutoRefresh(AuthData* auth_data) {}
 void DisableTokenAutoRefresh(AuthData* auth_data) {}

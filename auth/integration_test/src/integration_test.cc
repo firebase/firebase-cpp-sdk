@@ -1033,6 +1033,29 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
   EXPECT_EQ(auth_->current_user().email(), kCustomTestEmail);
 }
 
+TEST_F(FirebaseAuthTest, TestUseUserAccessGroupDoesNotCrash) {
+  firebase::auth::AuthError error =
+      auth_->UseUserAccessGroup("com.google.firebase.test.accessgroup");
+#if TARGET_OS_IPHONE
+  // On iOS, this might return an error if keychain sharing isn't set up
+  // for the test app, but it shouldn't crash. We accept kAuthErrorNone or
+  // kAuthErrorKeychainError.
+  EXPECT_THAT(error, AnyOf(firebase::auth::kAuthErrorNone,
+                           firebase::auth::kAuthErrorKeychainError));
+#else
+  // On other platforms, it should be a no-op and return kAuthErrorNone.
+  EXPECT_EQ(error, firebase::auth::kAuthErrorNone);
+#endif
+
+  error = auth_->UseUserAccessGroup(nullptr);
+#if TARGET_OS_IPHONE
+  EXPECT_THAT(error, AnyOf(firebase::auth::kAuthErrorNone,
+                           firebase::auth::kAuthErrorKeychainError));
+#else
+  EXPECT_EQ(error, firebase::auth::kAuthErrorNone);
+#endif
+}
+
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
   // Automated test is disabled on linux due to the need to unlock the keystore.
   SKIP_TEST_ON_LINUX;

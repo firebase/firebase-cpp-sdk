@@ -502,6 +502,23 @@ class Auth {
   /// Gets the App this auth object is connected to.
   App& app();
 
+  /// @brief Modifies this Auth instance to use the specified keychain access
+  /// group.
+  ///
+  /// For more details on how to configure keychain access groups and capabilities
+  /// on iOS, please refer to the Firebase iOS SDK documentation and Apple's
+  /// documentation on keychain services.
+  ///
+  /// @note This method is only functional on iOS. On other platforms, it's a
+  /// no-op and will return kAuthErrorNone.
+  ///
+  /// @param[in] access_group The keychain access group to use. Set to @c nullptr
+  /// to use the default app bundle ID access group.
+  ///
+  /// @return kAuthErrorNone on success, or an AuthError code if an error
+  /// occurred (iOS only).
+  AuthError UseUserAccessGroup(const char* access_group);
+
   /// Returns the Auth object for an App. Creates the Auth if required.
   ///
   /// To get the Auth object for the default app, use,
