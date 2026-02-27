@@ -18,6 +18,7 @@ __pycache__/
 ### IDE generated files
 .vscode/
 **/.vs/
+.cache/
 
 # Unencrypted secret files
 google-services.json
