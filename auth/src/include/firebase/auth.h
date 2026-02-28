@@ -147,6 +147,13 @@ class Auth {
 
   ~Auth();
 
+#if defined(__swift__)
+#if FIREBASE_PLATFORM_WINDOWS
+  // TODO(apple/swift#67288) support trivial C++ types with non-trivial dtors
+  Auth(const Auth&) noexcept;
+#endif
+#endif
+
   /// Synchronously gets the cached current user, or returns an object where
   /// is_valid() == false if there is none.
   ///
