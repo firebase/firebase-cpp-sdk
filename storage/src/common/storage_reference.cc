@@ -15,6 +15,8 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #include "app/src/assert.h"
+#include "firebase/storage/list_result.h"
+#include "storage/src/include/firebase/storage/future_details.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -247,6 +249,30 @@ Future<Metadata> StorageReference::PutFileLastResult() {
 }
 
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
+
+Future<ListResult> StorageReference::List(int32_t max_results) {
+  if (!internal_) return Future<ListResult>();
+  return internal_->List(max_results);
+}
+
+Future<ListResult> StorageReference::List(int32_t max_results,
+                                          const char* page_token) {
+  if (!internal_) return Future<ListResult>();
+  // Pass an empty string if page_token is nullptr, as internal methods
+  // might expect a non-null, though possibly empty, string.
+  return internal_->List(max_results, page_token ? page_token : "");
+}
+
+Future<ListResult> StorageReference::ListAll() {
+  if (!internal_) return Future<ListResult>();
+  return internal_->ListAll();
+}
+
+Future<ListResult> StorageReference::ListLastResult() {
+  if (!internal_) return Future<ListResult>();
+  return static_cast<const Future<ListResult>&>(
+      internal_->future()->LastResult(kStorageReferenceFnList));
+}
 
 }  // namespace storage
 }  // namespace firebase
