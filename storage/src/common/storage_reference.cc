@@ -15,9 +15,17 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #include "app/src/assert.h"
+#include "app/src/future_manager.h"
+#include "app/src/include/firebase/internal/platform.h"
+#include "firebase/storage/list_result.h"
+
+// Platform-specific ListResultInternal definition is no longer needed here,
+// as StorageReferenceInternal (platform-specific) now handles ListResult
+// creation.
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
+// Platform-specific StorageReferenceInternal is included below.
 #endif  // __APPLE__
 
 // StorageReference is defined in these 3 files, one implementation for each OS.
@@ -247,6 +255,21 @@ Future<Metadata> StorageReference::PutFileLastResult() {
 }
 
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
+
+Future<ListResult> StorageReference::ListAll() {
+  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
+  return internal_->ListAll();
+}
+
+Future<ListResult> StorageReference::List(const char* page_token) {
+  FIREBASE_ASSERT_RETURN(Future<ListResult>(), internal_->is_valid());
+  return internal_->List(page_token);
+}
+
+Future<ListResult> StorageReference::List() {
+  // Simply call the List method that takes a page_token, with a nullptr.
+  return List(nullptr);
+}
 
 }  // namespace storage
 }  // namespace firebase
