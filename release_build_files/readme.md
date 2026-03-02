@@ -613,8 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 13.5.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 34.10.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.10.0.
     - App Check: Add in support for Limited Use Tokens.
     - Firestore (iOS): Fix crash when using Auth or App Check Credentials.
 
