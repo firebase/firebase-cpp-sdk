@@ -127,8 +127,9 @@ _FAILURE_TEXT = "Failure"
 _FLAKY_TEXT = "Pass (flaky)"
 _MISSING_TEXT = "Missing"
 
-general_test_time = ' 09:0'
-firestore_test_time = ' 10:0'
+general_test_hour = 9
+firestore_test_hour = 10
+test_time_minute_range = 20
 
 def rename_key(old_dict,old_name,new_name):
     """Rename a key in a dictionary, preserving the order."""
@@ -386,8 +387,10 @@ def main(argv):
         if run['status'] != 'completed': continue
         if run['day'] < start_date or run['day'] > end_date: continue
         run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
-        compare_test_time = firestore_test_time if FLAGS.firestore else general_test_time
-        if compare_test_time in str(run['date']):
+        compare_test_hour = firestore_test_hour if FLAGS.firestore else general_test_hour
+        # The general test should start at 9:00, and firestore at 10:00, but we give it a range
+        # because the tests can take a few minutes before starting.
+        if run['date'].hour == compare_test_hour and run['date'].minute <= test_time_minute_range:
           source_tests[day] = run
           all_days.add(day)
 
