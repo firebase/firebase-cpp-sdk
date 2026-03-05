@@ -186,6 +186,30 @@ Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
   return MakeFuture(future(), handle);
 }
 
+Future<std::string> AppCheckInternal::GetLimitedUseAppCheckTokenStringInternal() {
+  auto handle =
+      future()->SafeAlloc<std::string>(kAppCheckFnGetLimitedUseAppCheckStringInternal);
+
+  AppCheckProvider* provider = GetProvider();
+  if (provider != nullptr) {
+    auto token_callback{
+        [this, handle](firebase::app_check::AppCheckToken token,
+                       int error_code, const std::string& error_message) {
+          if (error_code == firebase::app_check::kAppCheckErrorNone) {
+            future()->CompleteWithResult(handle, 0, token.token);
+          } else {
+            future()->Complete(handle, error_code, error_message.c_str());
+          }
+        }};
+    provider->GetLimitedUseToken(token_callback);
+  } else {
+    future()->Complete(
+        handle, firebase::app_check::kAppCheckErrorInvalidConfiguration,
+        "No AppCheckProvider installed.");
+  }
+  return MakeFuture(future(), handle);
+}
+
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
   if (listener) {
     token_listeners_.push_back(listener);
@@ -212,6 +236,9 @@ void AppCheckInternal::InitRegistryCalls() {
         ::firebase::internal::FnAppCheckGetTokenAsync,
         AppCheckInternal::GetAppCheckTokenAsyncForRegistry);
     app_->function_registry()->RegisterFunction(
+        ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync,
+        AppCheckInternal::GetLimitedUseAppCheckTokenAsyncForRegistry);
+    app_->function_registry()->RegisterFunction(
         ::firebase::internal::FnAppCheckAddListener,
         AppCheckInternal::AddAppCheckListenerForRegistry);
     app_->function_registry()->RegisterFunction(
@@ -226,6 +253,8 @@ void AppCheckInternal::CleanupRegistryCalls() {
   if (g_app_check_registry_count == 0) {
     app_->function_registry()->UnregisterFunction(
         ::firebase::internal::FnAppCheckGetTokenAsync);
+    app_->function_registry()->UnregisterFunction(
+        ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync);
     app_->function_registry()->UnregisterFunction(
         ::firebase::internal::FnAppCheckAddListener);
     app_->function_registry()->UnregisterFunction(
@@ -245,6 +274,24 @@ bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
   AppCheck* app_check = AppCheck::GetInstance(app);
   if (app_check && app_check->internal_) {
     *out_future = app_check->internal_->GetAppCheckTokenStringInternal();
+    return true;
+  }
+  return false;
+}
+
+// static
+bool AppCheckInternal::GetLimitedUseAppCheckTokenAsyncForRegistry(App* app,
+                                                                 void* /*unused*/,
+                                                                 void* out) {
+  Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
+  if (!app || !out_future) {
+    return false;
+  }
+
+  AppCheck* app_check = AppCheck::GetInstance(app);
+  if (app_check && app_check->internal_) {
+    *out_future =
+        app_check->internal_->GetLimitedUseAppCheckTokenStringInternal();
     return true;
   }
   return false;

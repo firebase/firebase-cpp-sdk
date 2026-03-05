@@ -35,8 +35,16 @@ namespace internal {
     "(Ljava/lang/String;)"                                              \
     "Lcom/google/firebase/functions/HttpsCallableReference;",           \
     util::kMethodTypeInstance),                                         \
+  X(GetHttpsCallableWithOptions, "getHttpsCallable",                    \
+    "(Ljava/lang/String;Lcom/google/firebase/functions/HttpsCallableOptions;)" \
+    "Lcom/google/firebase/functions/HttpsCallableReference;",           \
+    util::kMethodTypeInstance),                                         \
   X(GetHttpsCallableFromURL, "getHttpsCallableFromUrl",                 \
     "(Ljava/net/URL;)"                                                  \
+    "Lcom/google/firebase/functions/HttpsCallableReference;",           \
+    util::kMethodTypeInstance),                                         \
+  X(GetHttpsCallableFromURLWithOptions, "getHttpsCallableFromUrl",      \
+    "(Ljava/net/URL;Lcom/google/firebase/functions/HttpsCallableOptions;)" \
     "Lcom/google/firebase/functions/HttpsCallableReference;",           \
     util::kMethodTypeInstance),                                         \
   X(UseFunctionsEmulator, "useFunctionsEmulator",                       \
@@ -49,6 +57,21 @@ METHOD_LOOKUP_DEFINITION(firebase_functions,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/functions/FirebaseFunctions",
                          FIREBASE_FUNCTIONS_METHODS)
+
+// clang-format off
+#define CALLABLE_OPTIONS_METHODS(X)                                            \
+  X(BuilderConstructor, "<init>", "()V"),                                      \
+  X(SetLimitedUseAppCheckTokens, "setLimitedUseAppCheckTokens",                \
+    "(Z)Lcom/google/firebase/functions/HttpsCallableOptions$Builder;"),        \
+  X(Build, "build", "()Lcom/google/firebase/functions/HttpsCallableOptions;")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(callable_options_builder, CALLABLE_OPTIONS_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    callable_options_builder,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/functions/HttpsCallableOptions$Builder",
+    CALLABLE_OPTIONS_METHODS)
 
 // clang-format off
 #define FUNCTIONS_EXCEPTION_METHODS(X)                                    \
@@ -125,6 +148,7 @@ bool FunctionsInternal::Initialize(App* app) {
           functions_exception::CacheMethodIds(env, activity) &&
           functions_exception_code::CacheMethodIds(env, activity) &&
           functions_exception_code::CacheFieldIds(env, activity) &&
+          callable_options_builder::CacheMethodIds(env, activity) &&
           // Call Initialize on all other Functions internal classes.
           HttpsCallableReferenceInternal::Initialize(app))) {
       return false;
@@ -144,6 +168,7 @@ void FunctionsInternal::Terminate(App* app) {
     firebase_functions::ReleaseClass(env);
     functions_exception::ReleaseClass(env);
     functions_exception_code::ReleaseClass(env);
+    callable_options_builder::ReleaseClass(env);
 
     // Call Terminate on all other Functions internal classes.
     HttpsCallableReferenceInternal::Terminate(app);
@@ -186,14 +211,37 @@ Error FunctionsInternal::ErrorFromJavaFunctionsException(
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
     const char* name) const {
+  return GetHttpsCallable(name, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
+    const char* name, const HttpsCallableOptions& options) const {
   FIREBASE_ASSERT_RETURN(nullptr, name != nullptr);
   JNIEnv* env = app_->GetJNIEnv();
+
+  // Create HttpsCallableOptions
+  jobject builder = env->NewObject(
+      callable_options_builder::GetClass(),
+      callable_options_builder::GetMethodId(callable_options_builder::kBuilderConstructor));
+  jobject builder2 = env->CallObjectMethod(
+      builder,
+      callable_options_builder::GetMethodId(callable_options_builder::kSetLimitedUseAppCheckTokens),
+      options.limited_use_app_check_token);
+  env->DeleteLocalRef(builder);
+  builder = builder2;
+  jobject java_options = env->CallObjectMethod(
+      builder,
+      callable_options_builder::GetMethodId(callable_options_builder::kBuild));
+  env->DeleteLocalRef(builder);
+
   jobject name_string = env->NewStringUTF(name);
   jobject callable_reference_obj = env->CallObjectMethod(
       obj_,
-      firebase_functions::GetMethodId(firebase_functions::kGetHttpsCallable),
-      name_string);
+      firebase_functions::GetMethodId(firebase_functions::kGetHttpsCallableWithOptions),
+      name_string, java_options);
   env->DeleteLocalRef(name_string);
+  env->DeleteLocalRef(java_options);
+
   if (util::LogException(env, kLogLevelError,
                          "Functions::GetHttpsCallable() (name = %s) failed",
                          name)) {
@@ -208,15 +256,38 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
     const char* url) const {
+  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
+    const char* url, const HttpsCallableOptions& options) const {
   FIREBASE_ASSERT_RETURN(nullptr, url != nullptr);
   JNIEnv* env = app_->GetJNIEnv();
+
+  // Create HttpsCallableOptions
+  jobject builder = env->NewObject(
+      callable_options_builder::GetClass(),
+      callable_options_builder::GetMethodId(callable_options_builder::kBuilderConstructor));
+  jobject builder2 = env->CallObjectMethod(
+      builder,
+      callable_options_builder::GetMethodId(callable_options_builder::kSetLimitedUseAppCheckTokens),
+      options.limited_use_app_check_token);
+  env->DeleteLocalRef(builder);
+  builder = builder2;
+  jobject java_options = env->CallObjectMethod(
+      builder,
+      callable_options_builder::GetMethodId(callable_options_builder::kBuild));
+  env->DeleteLocalRef(builder);
+
   jobject url_object = util::CharsToURL(env, url);
   jobject callable_reference_obj =
       env->CallObjectMethod(obj_,
                             firebase_functions::GetMethodId(
-                                firebase_functions::kGetHttpsCallableFromURL),
-                            url_object);
+                                firebase_functions::kGetHttpsCallableFromURLWithOptions),
+                            url_object, java_options);
   env->DeleteLocalRef(url_object);
+  env->DeleteLocalRef(java_options);
+
   if (util::LogException(
           env, kLogLevelError,
           "Functions::GetHttpsCallableFromURL() (url = %s) failed", url)) {

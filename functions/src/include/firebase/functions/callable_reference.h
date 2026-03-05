@@ -34,6 +34,14 @@ class HttpsCallableReferenceInternal;
 }  // namespace internal
 /// @endcond
 
+struct HttpsCallableOptions {
+  // Whether to request a limited-use App Check token for this request.
+  // This is useful for replay protection.
+  bool limited_use_app_check_token;
+
+  HttpsCallableOptions() : limited_use_app_check_token(false) {}
+};
+
 #ifndef SWIG
 /// Represents a reference to a Cloud Functions object.
 /// Developers can call HTTPS Callable Functions.
