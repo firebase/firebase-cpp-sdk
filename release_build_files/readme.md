@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes 
+    - Functions (general): Add in support for Limited Use Tokens.
+
 ### 13.5.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 34.10.0.
