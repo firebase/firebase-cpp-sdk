@@ -380,4 +380,54 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURL) {
   EXPECT_EQ(result.map()["operationResult"], 6);
 }
 
+TEST_F(FirebaseFunctionsTest, TestFunctionWithLimitedUseAppCheckToken) {
+  SignIn();
+
+  // addNumbers(5, 7) = 12
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 5;
+  data.map()["secondNumber"] = 7;
+
+  firebase::functions::HttpsCallableOptions options;
+  options.limited_use_app_check_token = true;
+
+  LogDebug("Calling addNumbers with Limited Use App Check Token");
+  firebase::functions::HttpsCallableReference ref =
+      functions_->GetHttpsCallable("addNumbers", options);
+
+  firebase::Variant result =
+      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())
+          .result()
+          ->data();
+  EXPECT_TRUE(result.is_map());
+  EXPECT_EQ(result.map()["operationResult"], 12);
+}
+
+TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
+  SignIn();
+
+  // addNumbers(4, 2) = 6
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 4;
+  data.map()["secondNumber"] = 2;
+
+  std::string proj = app_->options().project_id();
+  std::string url =
+      "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
+
+  firebase::functions::HttpsCallableOptions options;
+  options.limited_use_app_check_token = true;
+
+  LogDebug("Calling by URL %s with Limited Use App Check Token", url.c_str());
+  firebase::functions::HttpsCallableReference ref =
+      functions_->GetHttpsCallableFromURL(url.c_str(), options);
+
+  firebase::Variant result =
+      TestFunctionHelper(url.c_str(), ref, &data, firebase::Variant::Null())
+          .result()
+          ->data();
+  EXPECT_TRUE(result.is_map());
+  EXPECT_EQ(result.map()["operationResult"], 6);
+}
+
 }  // namespace firebase_testapp_automated
