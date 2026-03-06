@@ -34,9 +34,12 @@ class HttpsCallableReferenceInternal;
 }  // namespace internal
 /// @endcond
 
+/// @brief Options for configuring the callable function.
+/// These properties are immutable once a callable function reference is
+/// instantiated.
 struct HttpsCallableOptions {
-  // Whether to request a limited-use App Check token for this request.
-  // This is useful for replay protection.
+  /// @brief Whether to request a limited-use App Check token for this request.
+  /// This is useful for replay protection.
   bool limited_use_app_check_token;
 
   HttpsCallableOptions() : limited_use_app_check_token(false) {}

@@ -92,8 +92,8 @@ class Functions {
 
   /// @brief Get a FunctionsReference for the specified path with the given
   /// options.
-  HttpsCallableReference GetHttpsCallable(const char* name,
-                                          const HttpsCallableOptions& options) const;
+  HttpsCallableReference GetHttpsCallable(
+      const char* name, const HttpsCallableOptions& options) const;
 
   /// @brief Get a FunctionsReference for the specified URL.
   HttpsCallableReference GetHttpsCallableFromURL(const char* url) const;

@@ -220,12 +220,14 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
   JNIEnv* env = app_->GetJNIEnv();
 
   // Create HttpsCallableOptions
-  jobject builder = env->NewObject(
-      callable_options_builder::GetClass(),
-      callable_options_builder::GetMethodId(callable_options_builder::kBuilderConstructor));
+  jobject builder =
+      env->NewObject(callable_options_builder::GetClass(),
+                     callable_options_builder::GetMethodId(
+                         callable_options_builder::kBuilderConstructor));
   jobject builder2 = env->CallObjectMethod(
       builder,
-      callable_options_builder::GetMethodId(callable_options_builder::kSetLimitedUseAppCheckTokens),
+      callable_options_builder::GetMethodId(
+          callable_options_builder::kSetLimitedUseAppCheckTokens),
       options.limited_use_app_check_token);
   env->DeleteLocalRef(builder);
   builder = builder2;
@@ -237,7 +239,8 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
   jobject name_string = env->NewStringUTF(name);
   jobject callable_reference_obj = env->CallObjectMethod(
       obj_,
-      firebase_functions::GetMethodId(firebase_functions::kGetHttpsCallableWithOptions),
+      firebase_functions::GetMethodId(
+          firebase_functions::kGetHttpsCallableWithOptions),
       name_string, java_options);
   env->DeleteLocalRef(name_string);
   env->DeleteLocalRef(java_options);
@@ -265,12 +268,14 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
   JNIEnv* env = app_->GetJNIEnv();
 
   // Create HttpsCallableOptions
-  jobject builder = env->NewObject(
-      callable_options_builder::GetClass(),
-      callable_options_builder::GetMethodId(callable_options_builder::kBuilderConstructor));
+  jobject builder =
+      env->NewObject(callable_options_builder::GetClass(),
+                     callable_options_builder::GetMethodId(
+                         callable_options_builder::kBuilderConstructor));
   jobject builder2 = env->CallObjectMethod(
       builder,
-      callable_options_builder::GetMethodId(callable_options_builder::kSetLimitedUseAppCheckTokens),
+      callable_options_builder::GetMethodId(
+          callable_options_builder::kSetLimitedUseAppCheckTokens),
       options.limited_use_app_check_token);
   env->DeleteLocalRef(builder);
   builder = builder2;
@@ -280,11 +285,11 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
   env->DeleteLocalRef(builder);
 
   jobject url_object = util::CharsToURL(env, url);
-  jobject callable_reference_obj =
-      env->CallObjectMethod(obj_,
-                            firebase_functions::GetMethodId(
-                                firebase_functions::kGetHttpsCallableFromURLWithOptions),
-                            url_object, java_options);
+  jobject callable_reference_obj = env->CallObjectMethod(
+      obj_,
+      firebase_functions::GetMethodId(
+          firebase_functions::kGetHttpsCallableFromURLWithOptions),
+      url_object, java_options);
   env->DeleteLocalRef(url_object);
   env->DeleteLocalRef(java_options);
 

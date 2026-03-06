@@ -186,26 +186,27 @@ Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
   return MakeFuture(future(), handle);
 }
 
-Future<std::string> AppCheckInternal::GetLimitedUseAppCheckTokenStringInternal() {
-  auto handle =
-      future()->SafeAlloc<std::string>(kAppCheckFnGetLimitedUseAppCheckStringInternal);
+Future<std::string>
+AppCheckInternal::GetLimitedUseAppCheckTokenStringInternal() {
+  auto handle = future()->SafeAlloc<std::string>(
+      kAppCheckFnGetLimitedUseAppCheckStringInternal);
 
   AppCheckProvider* provider = GetProvider();
   if (provider != nullptr) {
-    auto token_callback{
-        [this, handle](firebase::app_check::AppCheckToken token,
-                       int error_code, const std::string& error_message) {
-          if (error_code == firebase::app_check::kAppCheckErrorNone) {
-            future()->CompleteWithResult(handle, 0, token.token);
-          } else {
-            future()->Complete(handle, error_code, error_message.c_str());
-          }
-        }};
+    auto token_callback{[this, handle](firebase::app_check::AppCheckToken token,
+                                       int error_code,
+                                       const std::string& error_message) {
+      if (error_code == firebase::app_check::kAppCheckErrorNone) {
+        future()->CompleteWithResult(handle, 0, token.token);
+      } else {
+        future()->Complete(handle, error_code, error_message.c_str());
+      }
+    }};
     provider->GetLimitedUseToken(token_callback);
   } else {
-    future()->Complete(
-        handle, firebase::app_check::kAppCheckErrorInvalidConfiguration,
-        "No AppCheckProvider installed.");
+    future()->Complete(handle,
+                       firebase::app_check::kAppCheckErrorInvalidConfiguration,
+                       "No AppCheckProvider installed.");
   }
   return MakeFuture(future(), handle);
 }
@@ -280,9 +281,8 @@ bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
 }
 
 // static
-bool AppCheckInternal::GetLimitedUseAppCheckTokenAsyncForRegistry(App* app,
-                                                                 void* /*unused*/,
-                                                                 void* out) {
+bool AppCheckInternal::GetLimitedUseAppCheckTokenAsyncForRegistry(
+    App* app, void* /*unused*/, void* out) {
   Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
   if (!app || !out_future) {
     return false;

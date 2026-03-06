@@ -104,7 +104,8 @@ class AppCheckInternal {
   static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/,
                                                void* out_future);
 
-  static bool GetLimitedUseAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/,
+  static bool GetLimitedUseAppCheckTokenAsyncForRegistry(App* app,
+                                                         void* /*unused*/,
                                                          void* out_future);
 
   static bool AddAppCheckListenerForRegistry(App* app, void* callback,
