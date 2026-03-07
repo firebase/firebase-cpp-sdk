@@ -1,5 +1,39 @@
+---
+ cmake/external/grpc.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/cmake/external/grpc.cmake b/cmake/external/grpc.cmake
+index 21d970a8d..cc7a038a5 100644
+--- a/cmake/external/grpc.cmake
++++ b/cmake/external/grpc.cmake
+@@ -18,7 +18,7 @@ if(TARGET grpc)
+   return()
+ endif()
+ 
+-set(version 1.62.0)
++set(version 1.69.0)
+ 
+ ExternalProject_Add(
+   grpc
+@@ -26,7 +26,7 @@ ExternalProject_Add(
+   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+   DOWNLOAD_NAME grpc-${version}.tar.gz
+   URL https://github.com/grpc/grpc/archive/v${version}.tar.gz
+-  URL_HASH SHA256=f40bde4ce2f31760f65dc49a2f50876f59077026494e67dccf23992548b1b04f
++  URL_HASH SHA256=cd256d91781911d46a57506978b3979bfee45d5086a1b6668a3ae19c5e77f8dc
+ 
+   PREFIX ${PROJECT_BINARY_DIR}
+   SOURCE_DIR ${PROJECT_BINARY_DIR}/src/grpc
+-- 
+2.51.0.710.ga91ca5db03-goog
+
+
+---
+ cmake/external/leveldb.cmake | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
 diff --git a/cmake/external/leveldb.cmake b/cmake/external/leveldb.cmake
-index 920bf2928..c5c9cc7ee 100644
+index 81ed8e6f1..32f1993c0 100644
 --- a/cmake/external/leveldb.cmake
 +++ b/cmake/external/leveldb.cmake
 @@ -24,7 +24,10 @@ if(TARGET leveldb)
@@ -14,3 +48,58 @@ index 920bf2928..c5c9cc7ee 100644
  
  ExternalProject_Get_property(snappy SOURCE_DIR)
  set(snappy_source_dir "${SOURCE_DIR}")
+-- 
+2.51.0.710.ga91ca5db03-goog
+
+
+---
+ Firestore/core/CMakeLists.txt | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/Firestore/core/CMakeLists.txt b/Firestore/core/CMakeLists.txt
+index cb4050748..90cd4af47 100644
+--- a/Firestore/core/CMakeLists.txt
++++ b/Firestore/core/CMakeLists.txt
+@@ -245,6 +245,15 @@ target_include_directories(
+   ${PROJECT_SOURCE_DIR}/Firestore/core/include
+ )
+ 
++# Add the gRPC include directories as SYSTEM directories to silence warnings
++target_include_directories(
++  firestore_core
++  SYSTEM       # The SYSTEM keyword applies to all directories in this block
++  PUBLIC
++    # This generator expression automatically gets the correct include path(s) from the grpc++ target
++    $<TARGET_PROPERTY:grpc++,INTERFACE_INCLUDE_DIRECTORIES>
++)
++
+ target_link_libraries(
+   firestore_core PUBLIC
+   LevelDB::LevelDB
+-- 
+2.51.0.710.ga91ca5db03-goog
+
+
+---
+ cmake/compiler_setup.cmake | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/cmake/compiler_setup.cmake b/cmake/compiler_setup.cmake
+index 00e96033..0bfa1e40 100644
+--- a/cmake/compiler_setup.cmake
++++ b/cmake/compiler_setup.cmake
+@@ -17,9 +17,9 @@ include(CheckCXXCompilerFlag)
+ # C++ Compiler setup
+ 
+ # We use C++14
+-set(CMAKE_CXX_STANDARD 14)
+-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+-set(CMAKE_CXX_EXTENSIONS OFF)
++# set(CMAKE_CXX_STANDARD 14)
++# set(CMAKE_CXX_STANDARD_REQUIRED ON)
++# set(CMAKE_CXX_EXTENSIONS OFF)
+ 
+ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+   set(CXX_CLANG ON)
+-- 
+2.51.0.710.ga91ca5db03-goog
