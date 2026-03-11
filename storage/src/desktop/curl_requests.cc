@@ -300,7 +300,7 @@ void ReturnedListResponse::MarkCompleted() {
             if (item_map.find(Variant("name")) != item_map.end() &&
                 item_map[Variant("name")].is_string()) {
               items.push_back(storage_reference_.storage()->GetReference(
-                  item_map[Variant("name")].string_value().c_str()));
+                  item_map[Variant("name")].string_value()));
             }
           }
         }
