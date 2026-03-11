@@ -17,6 +17,8 @@
 
 #include <vector>
 
+#include "firebase/internal/common.h"
+
 namespace firebase {
 namespace storage {
 
