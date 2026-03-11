@@ -233,6 +233,19 @@ class GetFileResponse : public BlockingResponse {
   size_t bytes_written_;
 };
 
+class ReturnedListResponse : public BlockingResponse {
+ public:
+  ReturnedListResponse(SafeFutureHandle<StorageListResult> handle,
+                       ReferenceCountedFutureImpl* ref_future,
+                       const StorageReference& storage_reference);
+  bool ProcessBody(const char* buffer, size_t length) override;
+  void MarkCompleted() override;
+
+ private:
+  std::string buffer_;
+  StorageReference storage_reference_;
+};
+
 // Response for any operation that returns a blob of text that we need
 // to interpret as metadata.
 class ReturnedMetadataResponse : public BlockingResponse {

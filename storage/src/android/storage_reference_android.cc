@@ -34,6 +34,18 @@ namespace storage {
 namespace internal {
 
 // clang-format off
+#define LIST_RESULT_METHODS(X)                                                 \
+  X(GetPrefixes, "getPrefixes", "()Ljava/util/List;"),                         \
+  X(GetItems, "getItems", "()Ljava/util/List;"),                               \
+  X(GetPageToken, "getPageToken", "()Ljava/lang/String;")
+METHOD_LOOKUP_DECLARATION(list_result, LIST_RESULT_METHODS)
+METHOD_LOOKUP_DEFINITION(list_result,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/storage/ListResult",
+                         LIST_RESULT_METHODS)
+// clang-format on
+
+// clang-format off
 #define STORAGE_REFERENCE_METHODS(X)                                           \
   X(Child, "child",                                                            \
     "(Ljava/lang/String;)"                                                     \
@@ -61,6 +73,8 @@ namespace internal {
   X(PutFileWithMetadata, "putFile",                                            \
     "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;)"         \
     "Lcom/google/firebase/storage/UploadTask;"),                               \
+  X(List, "list",                                                              \
+    "(ILjava/lang/String;)Lcom/google/android/gms/tasks/Task;"),               \
   X(PutFileWithMetadataAndUri, "putFile",                                      \
     "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;"          \
     "Landroid/net/Uri;)Lcom/google/firebase/storage/UploadTask;"),             \
@@ -105,17 +119,20 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
+  kStorageReferenceFnList,
   kStorageReferenceFnCount,
 };
 
 bool StorageReferenceInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();
-  return storage_reference::CacheMethodIds(env, activity);
+  return list_result::CacheMethodIds(env, activity) &&
+         storage_reference::CacheMethodIds(env, activity);
 }
 
 void StorageReferenceInternal::Terminate(App* app) {
   JNIEnv* env = app->GetJNIEnv();
+  list_result::ReleaseClass(env);
   storage_reference::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 }
@@ -249,9 +266,59 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
       // is returned.
       data->impl->CompleteWithResult(data->handle, code, message.c_str(),
                                      Metadata(nullptr));
+    } else if (data->func == kStorageReferenceFnList) {
+      data->impl->CompleteWithResult(data->handle, code, message.c_str(),
+                                     StorageListResult(nullptr));
     } else {
       data->impl->Complete(data->handle, code, message.c_str());
     }
+  } else if (result && env->IsInstanceOf(result, list_result::GetClass())) {
+    // result is a ListResult.
+    SafeFutureHandle<StorageListResult> handle(data->handle);
+    jobject prefixes_list = env->CallObjectMethod(
+        result, list_result::GetMethodId(list_result::kGetPrefixes));
+    jobject items_list = env->CallObjectMethod(
+        result, list_result::GetMethodId(list_result::kGetItems));
+    jstring page_token_jstring = static_cast<jstring>(env->CallObjectMethod(
+        result, list_result::GetMethodId(list_result::kGetPageToken)));
+
+    std::vector<StorageReference> prefixes;
+    if (prefixes_list) {
+      jint size = env->CallIntMethod(
+          prefixes_list, list::GetMethodId(list::kSize));
+      for (jint i = 0; i < size; ++i) {
+        jobject prefix_obj = env->CallObjectMethod(
+            prefixes_list, list::GetMethodId(list::kGet), i);
+        prefixes.push_back(
+            StorageReference(new StorageReferenceInternal(data->storage, prefix_obj)));
+        env->DeleteLocalRef(prefix_obj);
+      }
+      env->DeleteLocalRef(prefixes_list);
+    }
+
+    std::vector<StorageReference> items;
+    if (items_list) {
+      jint size = env->CallIntMethod(
+          items_list, list::GetMethodId(list::kSize));
+      for (jint i = 0; i < size; ++i) {
+        jobject item_obj = env->CallObjectMethod(
+            items_list, list::GetMethodId(list::kGet), i);
+        items.push_back(
+            StorageReference(new StorageReferenceInternal(data->storage, item_obj)));
+        env->DeleteLocalRef(item_obj);
+      }
+      env->DeleteLocalRef(items_list);
+    }
+
+    std::string page_token;
+    if (page_token_jstring) {
+      page_token = util::JniStringToString(env, page_token_jstring);
+      env->DeleteLocalRef(page_token_jstring);
+    }
+
+    StorageListResultInternal* list_internal =
+        new StorageListResultInternal(prefixes, items, page_token);
+    data->impl->CompleteWithResult(handle, kErrorNone, StorageListResult(list_internal));
   } else if (result && env->IsInstanceOf(result, util::string::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a String.");
     // Complete a Future<std::string> from a Java String object.
@@ -685,6 +752,38 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
 Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
   return static_cast<const Future<Metadata>&>(
       future()->LastResult(kStorageReferenceFnPutFile));
+}
+
+Future<StorageListResult> StorageReferenceInternal::List(int max_results_per_page,
+                                                         const char *page_token) {
+  JNIEnv* env = storage_->app()->GetJNIEnv();
+  ReferenceCountedFutureImpl* future_impl = future();
+  FutureHandle handle =
+      future_impl->Alloc<StorageListResult>(kStorageReferenceFnList);
+
+  jstring java_page_token = page_token ? env->NewStringUTF(page_token) : nullptr;
+  jobject task = env->CallObjectMethod(
+      obj_, storage_reference::GetMethodId(storage_reference::kList),
+      max_results_per_page, java_page_token);
+
+  if (java_page_token) {
+      env->DeleteLocalRef(java_page_token);
+  }
+
+  util::RegisterCallbackOnTask(
+      env, task, FutureCallback,
+      // FutureCallback will delete the newed FutureCallbackData.
+      reinterpret_cast<void*>(new FutureCallbackData(handle, future(), storage_,
+                                                     kStorageReferenceFnList)),
+      storage_->jni_task_id());
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(task);
+  return ListLastResult();
+}
+
+Future<StorageListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<StorageListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
 }
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {

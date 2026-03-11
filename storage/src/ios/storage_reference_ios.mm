@@ -27,6 +27,7 @@
 #include "storage/src/ios/metadata_ios.h"
 #include "storage/src/ios/storage_ios.h"
 #include "storage/src/ios/util_ios.h"
+#include "storage/src/common/list_result_internal.h"
 
 namespace firebase {
 namespace storage {
@@ -42,6 +43,7 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
+  kStorageReferenceFnList,
   kStorageReferenceFnCount,
 };
 
@@ -454,6 +456,57 @@ Future<Metadata> StorageReferenceInternal::PutFile(
 
 Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
   return static_cast<const Future<Metadata>&>(future()->LastResult(kStorageReferenceFnPutFile));
+}
+
+Future<StorageListResult> StorageReferenceInternal::List(int max_results_per_page,
+                                                         const char *page_token) {
+  SafeFutureHandle<StorageListResult> handle =
+      future()->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
+  ReferenceCountedFutureImpl* future_impl = future();
+  StorageInternal* storage = storage_;
+
+  FIRStorageListOptions *options = [[FIRStorageListOptions alloc] init];
+  options.maxResults = max_results_per_page;
+  if (page_token != nullptr) {
+      options.pageToken = @(page_token);
+  }
+
+  [impl_ listWithOptions:options
+              completion:^(FIRStorageListResult * _Nullable result, NSError * _Nullable error) {
+    if (error != nil) {
+      future_impl->Complete(handle, storage->ErrorFromNSError(error),
+                            storage->ErrorMessageFromNSError(error));
+    } else {
+      std::vector<StorageReference> prefixes;
+      if (result.prefixes) {
+        for (FIRStorageReference *prefix in result.prefixes) {
+          prefixes.push_back(StorageReference(new StorageReferenceInternal(storage, prefix)));
+        }
+      }
+
+      std::vector<StorageReference> items;
+      if (result.items) {
+        for (FIRStorageReference *item in result.items) {
+          items.push_back(StorageReference(new StorageReferenceInternal(storage, item)));
+        }
+      }
+
+      std::string next_page_token;
+      if (result.pageToken) {
+        next_page_token = [result.pageToken UTF8String];
+      }
+
+      StorageListResultInternal* list_internal =
+          new StorageListResultInternal(prefixes, items, next_page_token);
+      future_impl->CompleteWithResult(handle, kErrorNone,
+                                      StorageListResult(list_internal));
+    }
+  }];
+  return ListLastResult();
+}
+
+Future<StorageListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<StorageListResult>&>(future()->LastResult(kStorageReferenceFnList));
 }
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {

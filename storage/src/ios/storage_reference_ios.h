@@ -160,6 +160,13 @@ class StorageReferenceInternal {
   // Returns the result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
 
+  // List items (files) and prefixes (folders) under this StorageReference.
+  Future<StorageListResult> List(int max_results_per_page,
+                                 const char *page_token);
+
+  // Returns the result of the most recent call to List();
+  Future<StorageListResult> ListLastResult();
+
   // StorageInternal instance we are associated with.
   StorageInternal* _Nullable storage_internal() const { return storage_; }
 

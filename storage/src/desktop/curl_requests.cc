@@ -23,6 +23,7 @@
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/metadata.h"
+#include "storage/src/common/list_result_internal.h"
 
 namespace firebase {
 namespace storage {
@@ -246,6 +247,83 @@ ReturnedMetadataResponse::ReturnedMetadataResponse(
     const StorageReference& storage_reference)
     : BlockingResponse(handle.get(), ref_future),
       storage_reference_(storage_reference) {}
+
+ReturnedListResponse::ReturnedListResponse(
+    SafeFutureHandle<StorageListResult> handle,
+    ReferenceCountedFutureImpl* ref_future,
+    const StorageReference& storage_reference)
+    : BlockingResponse(handle.get(), ref_future),
+      storage_reference_(storage_reference) {}
+
+bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
+  buffer_ += std::string(buffer, length);
+  NotifyProgress();
+  return true;
+}
+
+void ReturnedListResponse::MarkCompleted() {
+  BlockingResponse::MarkCompleted();
+  SafeFutureHandle<StorageListResult> handle(handle_);
+  if (status() == rest::util::HttpSuccess) {
+    rest::util::JsonData data;
+    if (data.Parse(buffer_.c_str()) && data.root().is_map()) {
+      std::vector<StorageReference> prefixes;
+      std::vector<StorageReference> items;
+      std::string next_page_token;
+
+      auto map = data.root().map();
+      if (map.find(Variant("nextPageToken")) != map.end() &&
+          map[Variant("nextPageToken")].is_string()) {
+        next_page_token = map[Variant("nextPageToken")].string_value();
+      }
+
+      if (map.find(Variant("prefixes")) != map.end() &&
+          map[Variant("prefixes")].is_vector()) {
+        for (const auto& var : map[Variant("prefixes")].vector()) {
+          if (var.is_string()) {
+            std::string path = var.string_value();
+            if (!path.empty() && path.back() == '/') {
+              path.pop_back();
+            }
+            prefixes.push_back(storage_reference_.storage()->GetReference(path.c_str()));
+          }
+        }
+      }
+
+      if (map.find(Variant("items")) != map.end() &&
+          map[Variant("items")].is_vector()) {
+        for (const auto& var : map[Variant("items")].vector()) {
+          if (var.is_map()) {
+            auto item_map = var.map();
+            if (item_map.find(Variant("name")) != item_map.end() &&
+                item_map[Variant("name")].is_string()) {
+              items.push_back(storage_reference_.storage()->GetReference(
+                  item_map[Variant("name")].string_value().c_str()));
+            }
+          }
+        }
+      }
+
+      StorageListResultInternal* list_internal =
+          new StorageListResultInternal(prefixes, items, next_page_token);
+      ref_future_->CompleteWithResult(handle, kErrorNone,
+                                      StorageListResult(list_internal));
+    } else {
+      ref_future_->Complete(handle, kErrorUnknown, kInvalidJsonResponse);
+    }
+  } else {
+    StorageNetworkError response;
+    if (response.Parse(buffer_.c_str())) {
+      ref_future_->Complete(handle, HttpToErrorCode(status()),
+                            response.error_message().c_str());
+    } else {
+      ref_future_->Complete(handle, HttpToErrorCode(status()),
+                            kInvalidJsonResponse);
+    }
+  }
+  NotifyProgress();
+  BlockingResponse::NotifyComplete();
+}
 
 bool ReturnedMetadataResponse::ProcessBody(const char* buffer, size_t length) {
   buffer_ += std::string(buffer, length);

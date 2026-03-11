@@ -246,6 +246,16 @@ Future<Metadata> StorageReference::PutFileLastResult() {
   return internal_ ? internal_->PutFileLastResult() : Future<Metadata>();
 }
 
+Future<StorageListResult> StorageReference::List(int max_results_per_page,
+                                                 const char *page_token) {
+  return internal_ ? internal_->List(max_results_per_page, page_token)
+                   : Future<StorageListResult>();
+}
+
+Future<StorageListResult> StorageReference::ListLastResult() {
+  return internal_ ? internal_->ListLastResult() : Future<StorageListResult>();
+}
+
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
 
 }  // namespace storage

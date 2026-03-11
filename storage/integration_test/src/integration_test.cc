@@ -1644,4 +1644,84 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
   InitializeAppAndAuth();
 }
 
+TEST_F(FirebaseStorageTest, TestList) {
+  SignIn();
+
+  firebase::storage::StorageReference root = CreateFolder();
+
+  // Create some files and folders
+  std::vector<std::string> file_paths = {
+      "folderA/file1.txt",
+      "folderA/file2.txt",
+      "folderB/file3.txt",
+      "folderC/file4.txt",
+      "rootFile.txt"
+  };
+
+  for (const std::string& path : file_paths) {
+    firebase::storage::StorageReference ref = root.Child(path);
+    WaitForCompletion(RunWithRetry([&]() {
+      return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+    }), "PutBytes List Test");
+  }
+
+  // Allow some time for index to catch up
+  ProcessEvents(1000);
+
+  // List all at the root of the test folder
+  firebase::Future<firebase::storage::StorageListResult> list_future;
+  WaitForCompletion(RunWithRetry([&]() {
+    list_future = root.List(1000);
+    return list_future;
+  }), "ListRoot");
+
+  EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
+
+  auto list_result = list_future.result();
+  ASSERT_NE(list_result, nullptr);
+
+  // Check prefixes (folders)
+  auto prefixes = list_result->prefixes();
+  EXPECT_EQ(prefixes.size(), 3);
+  int found_prefixes = 0;
+  for (auto& prefix : prefixes) {
+    std::string name = prefix.name();
+    if (name == "folderA" || name == "folderB" || name == "folderC") {
+      found_prefixes++;
+    }
+  }
+  EXPECT_EQ(found_prefixes, 3);
+
+  // Check items (files)
+  auto items = list_result->items();
+  EXPECT_EQ(items.size(), 1);
+  EXPECT_EQ(items[0].name(), "rootFile.txt");
+
+  EXPECT_EQ(list_result->next_page_token(), nullptr);
+
+  // Test pagination
+  firebase::storage::StorageReference folderA = root.Child("folderA");
+  WaitForCompletion(RunWithRetry([&]() {
+    list_future = folderA.List(1);
+    return list_future;
+  }), "ListFolderA_Page1");
+
+  EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
+  list_result = list_future.result();
+  EXPECT_EQ(list_result->items().size(), 1);
+  EXPECT_NE(list_result->next_page_token(), nullptr);
+
+  std::string next_token = list_result->next_page_token();
+
+  WaitForCompletion(RunWithRetry([&]() {
+    list_future = folderA.List(1, next_token.c_str());
+    return list_future;
+  }), "ListFolderA_Page2");
+
+  EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
+  list_result = list_future.result();
+  EXPECT_EQ(list_result->items().size(), 1);
+  EXPECT_EQ(list_result->next_page_token(), nullptr);
+}
+
 }  // namespace firebase_testapp_automated
