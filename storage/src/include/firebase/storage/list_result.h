@@ -40,10 +40,10 @@ class StorageListResult {
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor.
-  StorageListResult(StorageListResult&& other);
+  StorageListResult(StorageListResult&& other) noexcept;
 
   /// @brief Move assignment operator.
-  StorageListResult& operator=(StorageListResult&& other);
+  StorageListResult& operator=(StorageListResult&& other) noexcept;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief The prefixes (folders) returned by the List operation.

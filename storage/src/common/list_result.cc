@@ -44,12 +44,12 @@ StorageListResult& StorageListResult::operator=(
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-StorageListResult::StorageListResult(StorageListResult&& other) {
+StorageListResult::StorageListResult(StorageListResult&& other) noexcept {
   internal_ = other.internal_;
   other.internal_ = nullptr;
 }
 
-StorageListResult& StorageListResult::operator=(StorageListResult&& other) {
+StorageListResult& StorageListResult::operator=(StorageListResult&& other) noexcept {
   if (this == &other) {
     return *this;
   }
