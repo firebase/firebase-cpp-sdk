@@ -284,13 +284,13 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
 
     std::vector<StorageReference> prefixes;
     if (prefixes_list) {
-      jint size = env->CallIntMethod(
-          prefixes_list, list::GetMethodId(list::kSize));
+      jint size =
+          env->CallIntMethod(prefixes_list, list::GetMethodId(list::kSize));
       for (jint i = 0; i < size; ++i) {
         jobject prefix_obj = env->CallObjectMethod(
             prefixes_list, list::GetMethodId(list::kGet), i);
-        prefixes.push_back(
-            StorageReference(new StorageReferenceInternal(data->storage, prefix_obj)));
+        prefixes.push_back(StorageReference(
+            new StorageReferenceInternal(data->storage, prefix_obj)));
         env->DeleteLocalRef(prefix_obj);
       }
       env->DeleteLocalRef(prefixes_list);
@@ -298,13 +298,13 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
 
     std::vector<StorageReference> items;
     if (items_list) {
-      jint size = env->CallIntMethod(
-          items_list, list::GetMethodId(list::kSize));
+      jint size =
+          env->CallIntMethod(items_list, list::GetMethodId(list::kSize));
       for (jint i = 0; i < size; ++i) {
-        jobject item_obj = env->CallObjectMethod(
-            items_list, list::GetMethodId(list::kGet), i);
-        items.push_back(
-            StorageReference(new StorageReferenceInternal(data->storage, item_obj)));
+        jobject item_obj =
+            env->CallObjectMethod(items_list, list::GetMethodId(list::kGet), i);
+        items.push_back(StorageReference(
+            new StorageReferenceInternal(data->storage, item_obj)));
         env->DeleteLocalRef(item_obj);
       }
       env->DeleteLocalRef(items_list);
@@ -318,7 +318,8 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
 
     StorageListResultInternal* list_internal =
         new StorageListResultInternal(prefixes, items, page_token);
-    data->impl->CompleteWithResult(handle, kErrorNone, StorageListResult(list_internal));
+    data->impl->CompleteWithResult(handle, kErrorNone,
+                                   StorageListResult(list_internal));
   } else if (result && env->IsInstanceOf(result, util::string::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a String.");
     // Complete a Future<std::string> from a Java String object.
@@ -754,20 +755,21 @@ Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
       future()->LastResult(kStorageReferenceFnPutFile));
 }
 
-Future<StorageListResult> StorageReferenceInternal::List(int max_results_per_page,
-                                                         const char *page_token) {
+Future<StorageListResult> StorageReferenceInternal::List(
+    int max_results_per_page, const char* page_token) {
   JNIEnv* env = storage_->app()->GetJNIEnv();
   ReferenceCountedFutureImpl* future_impl = future();
   FutureHandle handle =
       future_impl->Alloc<StorageListResult>(kStorageReferenceFnList);
 
-  jstring java_page_token = page_token ? env->NewStringUTF(page_token) : nullptr;
+  jstring java_page_token =
+      page_token ? env->NewStringUTF(page_token) : nullptr;
   jobject task = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kList),
       max_results_per_page, java_page_token);
 
   if (java_page_token) {
-      env->DeleteLocalRef(java_page_token);
+    env->DeleteLocalRef(java_page_token);
   }
 
   util::RegisterCallbackOnTask(

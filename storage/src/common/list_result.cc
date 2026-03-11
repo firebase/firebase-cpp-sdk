@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "storage/src/include/firebase/storage/list_result.h"
+
 #include "storage/src/common/list_result_internal.h"
 
 namespace firebase {
@@ -26,14 +27,19 @@ StorageListResult::~StorageListResult() {
 }
 
 StorageListResult::StorageListResult(const StorageListResult& other)
-    : internal_(other.internal_ ? new internal::StorageListResultInternal(*other.internal_) : nullptr) {}
+    : internal_(other.internal_
+                    ? new internal::StorageListResultInternal(*other.internal_)
+                    : nullptr) {}
 
-StorageListResult& StorageListResult::operator=(const StorageListResult& other) {
+StorageListResult& StorageListResult::operator=(
+    const StorageListResult& other) {
   if (this == &other) {
     return *this;
   }
   delete internal_;
-  internal_ = other.internal_ ? new internal::StorageListResultInternal(*other.internal_) : nullptr;
+  internal_ = other.internal_
+                  ? new internal::StorageListResultInternal(*other.internal_)
+                  : nullptr;
   return *this;
 }
 
@@ -68,7 +74,8 @@ const char* StorageListResult::next_page_token() const {
   return internal_ ? internal_->next_page_token() : nullptr;
 }
 
-StorageListResult::StorageListResult(internal::StorageListResultInternal* internal)
+StorageListResult::StorageListResult(
+    internal::StorageListResultInternal* internal)
     : internal_(internal) {}
 
 }  // namespace storage

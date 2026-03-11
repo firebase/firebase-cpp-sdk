@@ -331,17 +331,19 @@ class StorageReference {
   /// @returns The result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
 
-  // Android's maximum limit is 1000, so use this as the default max results.
+  /// @brief Android's maximum limit is 1000, so use this as the default max results.
   static const int kDefaultListMaxResultsPerPage = 1000;
 
-  /// @brief List items (files) and prefixes (folders) under this StorageReference.
+  /// @brief List items (files) and prefixes (folders) under this
+  /// StorageReference.
   ///
   /// @param[in] max_results_per_page The maximum number of results to return.
   /// @param[in] page_token A page token returned from a previous List call.
   ///
   /// @returns A Future containing a StorageListResult.
-  Future<StorageListResult> List(int max_results_per_page = kDefaultListMaxResultsPerPage,
-                                 const char *page_token = nullptr);
+  Future<StorageListResult> List(
+      int max_results_per_page = kDefaultListMaxResultsPerPage,
+      const char* page_token = nullptr);
 
   /// @brief Returns the result of the most recent call to List();
   ///

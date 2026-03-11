@@ -19,11 +19,11 @@
 #include <string>
 
 #include "app/rest/util.h"
+#include "storage/src/common/list_result_internal.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/metadata.h"
-#include "storage/src/common/list_result_internal.h"
 
 namespace firebase {
 namespace storage {
@@ -285,7 +285,8 @@ void ReturnedListResponse::MarkCompleted() {
             if (!path.empty() && path.back() == '/') {
               path.pop_back();
             }
-            prefixes.push_back(storage_reference_.storage()->GetReference(path.c_str()));
+            prefixes.push_back(
+                storage_reference_.storage()->GetReference(path.c_str()));
           }
         }
       }

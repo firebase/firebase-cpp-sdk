@@ -31,11 +31,17 @@ class StorageListResult {
  public:
   StorageListResult();
   ~StorageListResult();
+  /// @brief Copy constructor.
   StorageListResult(const StorageListResult& other);
+
+  /// @brief Copy assignment operator.
   StorageListResult& operator=(const StorageListResult& other);
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  /// @brief Move constructor.
   StorageListResult(StorageListResult&& other);
+
+  /// @brief Move assignment operator.
   StorageListResult& operator=(StorageListResult&& other);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 

@@ -247,7 +247,7 @@ Future<Metadata> StorageReference::PutFileLastResult() {
 }
 
 Future<StorageListResult> StorageReference::List(int max_results_per_page,
-                                                 const char *page_token) {
+                                                 const char* page_token) {
   return internal_ ? internal_->List(max_results_per_page, page_token)
                    : Future<StorageListResult>();
 }

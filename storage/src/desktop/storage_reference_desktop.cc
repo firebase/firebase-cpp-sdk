@@ -694,60 +694,62 @@ StorageReferenceInternal* StorageReferenceInternal::GetParent() {
   return new StorageReferenceInternal(storageUri_.GetParent(), storage_);
 }
 
-Future<StorageListResult> StorageReferenceInternal::List(int max_results_per_page,
-                                                         const char *page_token) {
+Future<StorageListResult> StorageReferenceInternal::List(
+    int max_results_per_page, const char* page_token) {
   auto* future_api = future();
-  auto handle = future_api->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
+  auto handle =
+      future_api->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
 
   std::string token_str = page_token ? page_token : "";
-  auto send_request_funct{[&, max_results_per_page, token_str]() -> BlockingResponse* {
-    auto* future_api = future();
-    auto handle = future_api->SafeAlloc<StorageListResult>(kStorageReferenceFnListInternal);
-    ReturnedListResponse* response =
-        new ReturnedListResponse(handle, future_api, AsStorageReference());
+  auto send_request_funct{
+      [&, max_results_per_page, token_str]() -> BlockingResponse* {
+        auto* future_api = future();
+        auto handle = future_api->SafeAlloc<StorageListResult>(
+            kStorageReferenceFnListInternal);
+        ReturnedListResponse* response =
+            new ReturnedListResponse(handle, future_api, AsStorageReference());
 
-    storage::internal::Request* request = new storage::internal::Request();
+        storage::internal::Request* request = new storage::internal::Request();
 
-    // NOTE: The backend expects the base url for list to be the bucket, not the object.
-    // So we reconstruct it.
-    std::string list_url = storage_->get_scheme();
-    list_url += "://";
-    list_url += storage_->get_host();
-    list_url += ":";
-    list_url += std::to_string(storage_->get_port());
-    list_url += "/v0/b/";
-    list_url += bucket();
-    list_url += "/o";
+        // NOTE: The backend expects the base url for list to be the bucket, not
+        // the object. So we reconstruct it.
+        std::string list_url = storage_->get_scheme();
+        list_url += "://";
+        list_url += storage_->get_host();
+        list_url += ":";
+        list_url += std::to_string(storage_->get_port());
+        list_url += "/v0/b/";
+        list_url += bucket();
+        list_url += "/o";
 
-    std::string path = storageUri_.GetPath().str();
-    if (!path.empty() && path.back() != '/') {
-        path += '/';
-    }
+        std::string path = storageUri_.GetPath().str();
+        if (!path.empty() && path.back() != '/') {
+          path += '/';
+        }
 
-    list_url += "?prefix=";
-    if (!path.empty()) {
-        list_url += rest::util::EncodeUrl(path);
-    }
-    list_url += "&delimiter=";
-    list_url += rest::util::EncodeUrl("/");
-    if (!token_str.empty()) {
-        list_url += "&pageToken=";
-        list_url += rest::util::EncodeUrl(token_str);
-    }
-    list_url += "&maxResults=";
-    list_url += std::to_string(max_results_per_page);
+        list_url += "?prefix=";
+        if (!path.empty()) {
+          list_url += rest::util::EncodeUrl(path);
+        }
+        list_url += "&delimiter=";
+        list_url += rest::util::EncodeUrl("/");
+        if (!token_str.empty()) {
+          list_url += "&pageToken=";
+          list_url += rest::util::EncodeUrl(token_str);
+        }
+        list_url += "&maxResults=";
+        list_url += std::to_string(max_results_per_page);
 
-    PrepareRequestBlocking(request, list_url.c_str(), rest::util::kGet);
+        PrepareRequestBlocking(request, list_url.c_str(), rest::util::kGet);
 
-    RestCall(request, request->notifier(), response, handle.get(), nullptr,
-             nullptr);
+        RestCall(request, request->notifier(), response, handle.get(), nullptr,
+                 nullptr);
 
-    return response;
-  }};
+        return response;
+      }};
 
-  SendRequestWithRetry(kStorageReferenceFnListInternal,
-                       send_request_funct, handle,
-                       storage_->max_operation_retry_time());
+  SendRequestWithRetry(kStorageReferenceFnListInternal, send_request_funct,
+                       handle, storage_->max_operation_retry_time());
   return ListLastResult();
 }
 

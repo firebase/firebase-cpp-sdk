@@ -1651,18 +1651,16 @@ TEST_F(FirebaseStorageTest, TestList) {
 
   // Create some files and folders
   std::vector<std::string> file_paths = {
-      "folderA/file1.txt",
-      "folderA/file2.txt",
-      "folderB/file3.txt",
-      "folderC/file4.txt",
-      "rootFile.txt"
-  };
+      "folderA/file1.txt", "folderA/file2.txt", "folderB/file3.txt",
+      "folderC/file4.txt", "rootFile.txt"};
 
   for (const std::string& path : file_paths) {
     firebase::storage::StorageReference ref = root.Child(path);
     WaitForCompletion(RunWithRetry([&]() {
-      return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
-    }), "PutBytes List Test");
+                        return ref.PutBytes(&kSimpleTestFile[0],
+                                            kSimpleTestFile.size());
+                      }),
+                      "PutBytes List Test");
   }
 
   // Allow some time for index to catch up
@@ -1671,9 +1669,10 @@ TEST_F(FirebaseStorageTest, TestList) {
   // List all at the root of the test folder
   firebase::Future<firebase::storage::StorageListResult> list_future;
   WaitForCompletion(RunWithRetry([&]() {
-    list_future = root.List(1000);
-    return list_future;
-  }), "ListRoot");
+                      list_future = root.List(1000);
+                      return list_future;
+                    }),
+                    "ListRoot");
 
   EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
 
@@ -1702,9 +1701,10 @@ TEST_F(FirebaseStorageTest, TestList) {
   // Test pagination
   firebase::storage::StorageReference folderA = root.Child("folderA");
   WaitForCompletion(RunWithRetry([&]() {
-    list_future = folderA.List(1);
-    return list_future;
-  }), "ListFolderA_Page1");
+                      list_future = folderA.List(1);
+                      return list_future;
+                    }),
+                    "ListFolderA_Page1");
 
   EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
   list_result = list_future.result();
@@ -1714,9 +1714,10 @@ TEST_F(FirebaseStorageTest, TestList) {
   std::string next_token = list_result->next_page_token();
 
   WaitForCompletion(RunWithRetry([&]() {
-    list_future = folderA.List(1, next_token.c_str());
-    return list_future;
-  }), "ListFolderA_Page2");
+                      list_future = folderA.List(1, next_token.c_str());
+                      return list_future;
+                    }),
+                    "ListFolderA_Page2");
 
   EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
   list_result = list_future.result();
