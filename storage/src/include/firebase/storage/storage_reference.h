@@ -331,7 +331,8 @@ class StorageReference {
   /// @returns The result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
 
-  /// @brief Android's maximum limit is 1000, so use this as the default max results.
+  /// @brief Android's maximum limit is 1000, so use this as the default max
+  /// results.
   static const int kDefaultListMaxResultsPerPage = 1000;
 
   /// @brief List items (files) and prefixes (folders) under this
