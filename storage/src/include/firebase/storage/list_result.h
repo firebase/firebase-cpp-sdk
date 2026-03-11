@@ -25,6 +25,7 @@ namespace storage {
 class StorageReference;
 
 namespace internal {
+class ReturnedListResponse;
 class StorageListResultInternal;
 class StorageReferenceInternal;
 }  // namespace internal
@@ -64,6 +65,7 @@ class StorageListResult {
   /// @cond FIREBASE_APP_INTERNAL
   friend class StorageReference;
   friend class internal::StorageReferenceInternal;
+  friend class internal::ReturnedListResponse;
 
   StorageListResult(internal::StorageListResultInternal* internal);
 
