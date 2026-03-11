@@ -24,6 +24,7 @@ class StorageReference;
 
 namespace internal {
 class StorageListResultInternal;
+class StorageReferenceInternal;
 }  // namespace internal
 
 /// @brief Represents the result of calling List on a StorageReference.
