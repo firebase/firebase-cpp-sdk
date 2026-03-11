@@ -49,7 +49,8 @@ StorageListResult::StorageListResult(StorageListResult&& other) noexcept {
   other.internal_ = nullptr;
 }
 
-StorageListResult& StorageListResult::operator=(StorageListResult&& other) noexcept {
+StorageListResult& StorageListResult::operator=(
+    StorageListResult&& other) noexcept {
   if (this == &other) {
     return *this;
   }
