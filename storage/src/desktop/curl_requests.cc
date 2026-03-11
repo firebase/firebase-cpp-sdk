@@ -22,8 +22,8 @@
 #include "storage/src/common/list_result_internal.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/rest_operation.h"
-#include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage.h"
+#include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 
 namespace firebase {
