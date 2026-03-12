@@ -18,9 +18,11 @@
 
 #include "app/src/util_ios.h"
 #include "storage/src/common/common_internal.h"
+#include "storage/src/common/list_result_internal.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/controller.h"
+#include "storage/src/include/firebase/storage/list_result.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 #include "storage/src/ios/controller_ios.h"
 #include "storage/src/ios/listener_ios.h"
@@ -42,6 +44,7 @@ enum StorageReferenceFn {
   kStorageReferenceFnUpdateMetadata,
   kStorageReferenceFnPutBytes,
   kStorageReferenceFnPutFile,
+  kStorageReferenceFnList,
   kStorageReferenceFnCount,
 };
 
@@ -454,6 +457,60 @@ Future<Metadata> StorageReferenceInternal::PutFile(
 
 Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
   return static_cast<const Future<Metadata>&>(future()->LastResult(kStorageReferenceFnPutFile));
+}
+
+Future<StorageListResult> StorageReferenceInternal::List(int max_results_per_page,
+                                                         const char* page_token) {
+  ReferenceCountedFutureImpl* future_impl = future();
+  SafeFutureHandle<StorageListResult> handle =
+      future_impl->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
+  StorageInternal* storage = storage_;
+
+  auto completion = ^(FIRStorageListResult* _Nullable result, NSError* _Nullable error) {
+    Error error_code = NSErrorToErrorCode(error);
+    const char* error_string = GetErrorMessage(error_code);
+    if (error == nil) {
+      std::vector<StorageReference> prefixes;
+      std::vector<StorageReference> items;
+      NSString* next_page_token = result.pageToken;
+
+      for (FIRStorageReference* prefix_ref in result.prefixes) {
+        prefixes.push_back(
+            StorageReference(new StorageReferenceInternal(
+                storage, std::make_unique<FIRStorageReferencePointer>(prefix_ref))));
+      }
+      for (FIRStorageReference* item_ref in result.items) {
+        items.push_back(
+            StorageReference(new StorageReferenceInternal(
+                storage, std::make_unique<FIRStorageReferencePointer>(item_ref))));
+      }
+
+      internal::StorageListResultInternal* list_result_internal = new internal::StorageListResultInternal(
+          prefixes, items, next_page_token ? [next_page_token UTF8String] : "");
+      future_impl->CompleteWithResult(handle, error_code, error_string, internal::StorageListResultInternal::AsStorageListResult(list_result_internal));
+    } else {
+      future_impl->CompleteWithResult(handle, error_code, error_string, StorageListResult());
+    }
+  };
+
+  FIRStorageReference* my_impl = impl();
+  NSString* page_token_ns = page_token ? @(page_token) : nil;
+
+  util::DispatchAsyncSafeMainQueue(^() {
+    if (page_token_ns) {
+      [my_impl listWithMaxResults:max_results_per_page
+                        pageToken:page_token_ns
+                       completion:completion];
+    } else {
+      [my_impl listWithMaxResults:max_results_per_page completion:completion];
+    }
+  });
+
+  return ListLastResult();
+}
+
+Future<StorageListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<StorageListResult>&>(future()->LastResult(kStorageReferenceFnList));
 }
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {

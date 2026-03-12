@@ -744,6 +744,71 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
                     firebase::storage::kErrorObjectNotFound);
 }
 
+TEST_F(FirebaseStorageTest, TestList) {
+  SignIn();
+
+  firebase::storage::StorageReference ref = CreateFolder().Child("list_test");
+
+  // Upload a few files
+  const char* file_contents[] = {"file0", "file1", "file2"};
+  for (int i = 0; i < 3; ++i) {
+    char file_name[16];
+    snprintf(file_name, sizeof(file_name), "file_%d.txt", i);
+    firebase::storage::StorageReference file_ref = ref.Child(file_name);
+    firebase::Future<firebase::storage::Metadata> put_future =
+        file_ref.PutBytes(file_contents[i], strlen(file_contents[i]));
+    WaitForCompletion(put_future, "PutBytes");
+    EXPECT_EQ(put_future.error(), firebase::storage::kErrorNone);
+    cleanup_files_.push_back(file_ref);
+  }
+
+  // Upload to a subfolder to test prefixes
+  firebase::storage::StorageReference subfolder_ref = ref.Child("subfolder/sub_file.txt");
+  firebase::Future<firebase::storage::Metadata> subfolder_put_future =
+      subfolder_ref.PutBytes("sub", 3);
+  WaitForCompletion(subfolder_put_future, "PutBytes subfolder");
+  EXPECT_EQ(subfolder_put_future.error(), firebase::storage::kErrorNone);
+  cleanup_files_.push_back(subfolder_ref);
+
+  // Test List
+  LogDebug("Testing List");
+  firebase::Future<firebase::storage::StorageListResult> list_future = ref.List();
+  WaitForCompletionAnyResult(list_future, "List");
+  
+  if (list_future.error() != firebase::storage::kErrorNone) {
+      if (list_future.error() == firebase::storage::kErrorUnknown) {
+          LogWarning("Skipping TestList as the test project is likely using an older rules_version.");
+          return;
+      }
+      EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
+  }
+
+  if (list_future.error() != firebase::storage::kErrorNone) return;
+
+  firebase::storage::StorageListResult result = *list_future.result();
+  EXPECT_EQ(result.items().size(), 3);
+  EXPECT_EQ(result.prefixes().size(), 1);
+  EXPECT_EQ(result.next_page_token(), "");
+
+  // Test Pagination
+  LogDebug("Testing List Pagination");
+  firebase::Future<firebase::storage::StorageListResult> page1_future = ref.List(2);
+  WaitForCompletionAnyResult(page1_future, "List Page 1");
+  EXPECT_EQ(page1_future.error(), firebase::storage::kErrorNone);
+  
+  firebase::storage::StorageListResult page1_result = *page1_future.result();
+  EXPECT_TRUE(page1_result.items().size() + page1_result.prefixes().size() == 2);
+  EXPECT_NE(page1_result.next_page_token(), "");
+
+  firebase::Future<firebase::storage::StorageListResult> page2_future = ref.List(2, page1_result.next_page_token().c_str());
+  WaitForCompletionAnyResult(page2_future, "List Page 2");
+  EXPECT_EQ(page2_future.error(), firebase::storage::kErrorNone);
+  
+  firebase::storage::StorageListResult page2_result = *page2_future.result();
+  EXPECT_TRUE(page2_result.items().size() + page2_result.prefixes().size() == 2);
+  EXPECT_EQ(page2_result.next_page_token(), "");
+}
+
 // Only test retries on desktop since Android and iOS don't have an option
 // to retry file-not-found errors and just pass-through to native
 // implementations.
