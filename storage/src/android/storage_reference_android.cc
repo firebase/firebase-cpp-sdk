@@ -285,8 +285,8 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
 
     std::vector<StorageReference> prefixes;
     if (prefixes_list) {
-      jint size =
-          env->CallIntMethod(prefixes_list, util::list::GetMethodId(util::list::kSize));
+      jint size = env->CallIntMethod(
+          prefixes_list, util::list::GetMethodId(util::list::kSize));
       for (jint i = 0; i < size; ++i) {
         jobject prefix_obj = env->CallObjectMethod(
             prefixes_list, util::list::GetMethodId(util::list::kGet), i);
@@ -299,11 +299,11 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
 
     std::vector<StorageReference> items;
     if (items_list) {
-      jint size =
-          env->CallIntMethod(items_list, util::list::GetMethodId(util::list::kSize));
+      jint size = env->CallIntMethod(
+          items_list, util::list::GetMethodId(util::list::kSize));
       for (jint i = 0; i < size; ++i) {
-        jobject item_obj =
-            env->CallObjectMethod(items_list, util::list::GetMethodId(util::list::kGet), i);
+        jobject item_obj = env->CallObjectMethod(
+            items_list, util::list::GetMethodId(util::list::kGet), i);
         items.push_back(StorageReference(
             new StorageReferenceInternal(data->storage, item_obj)));
         env->DeleteLocalRef(item_obj);
