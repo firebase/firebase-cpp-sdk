@@ -342,20 +342,26 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     std::string page_token = util::JStringToString(env, page_token_jstr);
 
     if (prefixes_list) {
-      int size = env->CallIntMethod(prefixes_list, util::list::GetMethodId(util::list::kSize));
+      int size = env->CallIntMethod(prefixes_list,
+                                    util::list::GetMethodId(util::list::kSize));
       for (int i = 0; i < size; ++i) {
-        jobject ref_obj = env->CallObjectMethod(prefixes_list, util::list::GetMethodId(util::list::kGet), i);
-        prefixes.push_back(StorageReference(new StorageReferenceInternal(data->storage, ref_obj)));
+        jobject ref_obj = env->CallObjectMethod(
+            prefixes_list, util::list::GetMethodId(util::list::kGet), i);
+        prefixes.push_back(StorageReference(
+            new StorageReferenceInternal(data->storage, ref_obj)));
         env->DeleteLocalRef(ref_obj);
       }
       env->DeleteLocalRef(prefixes_list);
     }
 
     if (items_list) {
-      int size = env->CallIntMethod(items_list, util::list::GetMethodId(util::list::kSize));
+      int size = env->CallIntMethod(items_list,
+                                    util::list::GetMethodId(util::list::kSize));
       for (int i = 0; i < size; ++i) {
-        jobject ref_obj = env->CallObjectMethod(items_list, util::list::GetMethodId(util::list::kGet), i);
-        items.push_back(StorageReference(new StorageReferenceInternal(data->storage, ref_obj)));
+        jobject ref_obj = env->CallObjectMethod(
+            items_list, util::list::GetMethodId(util::list::kGet), i);
+        items.push_back(StorageReference(
+            new StorageReferenceInternal(data->storage, ref_obj)));
         env->DeleteLocalRef(ref_obj);
       }
       env->DeleteLocalRef(items_list);
@@ -366,9 +372,12 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     data->impl->Complete<StorageListResult>(
         data->handle, kErrorNone, status_message,
         [prefixes, items, page_token](StorageListResult* list_result) {
-          internal::StorageListResultInternal* list_result_internal = new internal::StorageListResultInternal(
-              prefixes, items, page_token);
-          *list_result = internal::StorageListResultInternal::AsStorageListResult(list_result_internal);
+          internal::StorageListResultInternal* list_result_internal =
+              new internal::StorageListResultInternal(prefixes, items,
+                                                      page_token);
+          *list_result =
+              internal::StorageListResultInternal::AsStorageListResult(
+                  list_result_internal);
         });
   } else {
     LogDebug("FutureCallback: Completing a Future from a default result.");
@@ -605,7 +614,8 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadataLastResult() {
 Future<StorageListResult> StorageReferenceInternal::List(
     int max_results_per_page, const char* page_token) {
   ReferenceCountedFutureImpl* future_impl = future();
-  FutureHandle handle = future_impl->Alloc<StorageListResult>(kStorageReferenceFnList);
+  FutureHandle handle =
+      future_impl->Alloc<StorageListResult>(kStorageReferenceFnList);
 
   JNIEnv* env = storage_->app()->GetJNIEnv();
   jstring page_token_string =

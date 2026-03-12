@@ -317,8 +317,8 @@ void ReturnedListResponse::MarkCompleted() {
             if (!prefix_str.empty() && prefix_str.back() == '/') {
               prefix_str.pop_back();
             }
-            prefixes.push_back(
-                storage_->GetReference(prefix_str.c_str())->AsStorageReference());
+            prefixes.push_back(storage_->GetReference(prefix_str.c_str())
+                                   ->AsStorageReference());
           }
         }
       }
@@ -330,10 +330,11 @@ void ReturnedListResponse::MarkCompleted() {
             auto& item_map = item_variant.map();
             if (item_map.find(Variant("name")) != item_map.end() &&
                 item_map.at(Variant("name")).is_string()) {
-              items.push_back(storage_
-                                  ->GetReference(
-                                      item_map.at(Variant("name")).string_value())
-                                  ->AsStorageReference());
+              items.push_back(
+                  storage_
+                      ->GetReference(
+                          item_map.at(Variant("name")).string_value())
+                      ->AsStorageReference());
             }
           }
         }
@@ -345,16 +346,19 @@ void ReturnedListResponse::MarkCompleted() {
       }
 
       internal::StorageListResultInternal* result_internal =
-          new internal::StorageListResultInternal(prefixes, items, next_page_token);
+          new internal::StorageListResultInternal(prefixes, items,
+                                                  next_page_token);
       ref_future_->CompleteWithResult(
           handle, kErrorNone, "",
-          internal::StorageListResultInternal::AsStorageListResult(result_internal));
+          internal::StorageListResultInternal::AsStorageListResult(
+              result_internal));
     } else {
       LogWarning("Failed to parse list response. Buffer: %s", buffer_.c_str());
       ref_future_->Complete(handle, kErrorUnknown, kInvalidJsonResponse);
     }
   } else {
-    LogWarning("List request failed with status %d. Buffer: %s", status(), buffer_.c_str());
+    LogWarning("List request failed with status %d. Buffer: %s", status(),
+               buffer_.c_str());
     StorageNetworkError response;
     if (response.Parse(buffer_.c_str())) {
       ref_future_->Complete(handle, HttpToErrorCode(status()),

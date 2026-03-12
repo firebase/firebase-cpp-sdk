@@ -31,9 +31,7 @@ class StorageListResultInternal {
   StorageListResultInternal(const std::vector<StorageReference>& prefixes,
                             const std::vector<StorageReference>& items,
                             const std::string& next_page_token)
-      : prefixes_(prefixes),
-        items_(items),
-        next_page_token_(next_page_token) {}
+      : prefixes_(prefixes), items_(items), next_page_token_(next_page_token) {}
 
   static StorageListResult AsStorageListResult(
       StorageListResultInternal* internal) {

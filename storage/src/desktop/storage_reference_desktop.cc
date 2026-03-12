@@ -644,54 +644,56 @@ Future<StorageListResult> StorageReferenceInternal::List(
       future_api->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
 
   std::string page_token_str = page_token ? page_token : "";
-  auto send_request_funct{[&, max_results_per_page,
-                           page_token_str]() -> BlockingResponse* {
-    auto* future_api = future();
-    auto handle = future_api->SafeAlloc<StorageListResult>(
-        kStorageReferenceFnListInternal);
+  auto send_request_funct{
+      [&, max_results_per_page, page_token_str]() -> BlockingResponse* {
+        auto* future_api = future();
+        auto handle = future_api->SafeAlloc<StorageListResult>(
+            kStorageReferenceFnListInternal);
 
-    ReturnedListResponse* response =
-        new ReturnedListResponse(handle, future_api, storage_);
+        ReturnedListResponse* response =
+            new ReturnedListResponse(handle, future_api, storage_);
 
-    storage::internal::Request* request = new storage::internal::Request();
-    
-    // For listing, we need the bucket URL: [scheme]://[host]/v0/b/[bucket]/o
-    // We cannot use storageUri_.AsHttpMetadataUrl() directly because it appends the encoded path
-    std::string url = storage_->get_scheme();
-    url += "://";
-    url += storage_->get_host();
-    url += ":";
-    url += std::to_string(storage_->get_port());
-    url += "/v0/b/";
-    url += bucket();
-    url += "/o";
+        storage::internal::Request* request = new storage::internal::Request();
 
-    // The prefix must end with a slash to be treated as a directory by the REST
-    // API.
-    std::string prefix = storageUri_.GetPath().str();
-    if (!prefix.empty() && prefix.back() != '/') {
-      prefix += "/";
-    }
+        // For listing, we need the bucket URL:
+        // [scheme]://[host]/v0/b/[bucket]/o We cannot use
+        // storageUri_.AsHttpMetadataUrl() directly because it appends the
+        // encoded path
+        std::string url = storage_->get_scheme();
+        url += "://";
+        url += storage_->get_host();
+        url += ":";
+        url += std::to_string(storage_->get_port());
+        url += "/v0/b/";
+        url += bucket();
+        url += "/o";
 
-    // Append query parameters
-    std::string delimiter = "/";
-    url += "?delimiter=" + delimiter;
-    if (!prefix.empty()) {
-      url += "&prefix=" + rest::util::EncodeUrl(prefix);
-    }
-    if (max_results_per_page > 0) {
-      url += "&maxResults=" + std::to_string(max_results_per_page);
-    }
-    if (!page_token_str.empty()) {
-      url += "&pageToken=" + rest::util::EncodeUrl(page_token_str);
-    }
+        // The prefix must end with a slash to be treated as a directory by the
+        // REST API.
+        std::string prefix = storageUri_.GetPath().str();
+        if (!prefix.empty() && prefix.back() != '/') {
+          prefix += "/";
+        }
 
-    PrepareRequestBlocking(request, url.c_str(), rest::util::kGet);
+        // Append query parameters
+        std::string delimiter = "/";
+        url += "?delimiter=" + delimiter;
+        if (!prefix.empty()) {
+          url += "&prefix=" + rest::util::EncodeUrl(prefix);
+        }
+        if (max_results_per_page > 0) {
+          url += "&maxResults=" + std::to_string(max_results_per_page);
+        }
+        if (!page_token_str.empty()) {
+          url += "&pageToken=" + rest::util::EncodeUrl(page_token_str);
+        }
 
-    RestCall(request, request->notifier(), response, handle.get(), nullptr,
-             nullptr);
-    return response;
-  }};
+        PrepareRequestBlocking(request, url.c_str(), rest::util::kGet);
+
+        RestCall(request, request->notifier(), response, handle.get(), nullptr,
+                 nullptr);
+        return response;
+      }};
 
   SendRequestWithRetry(kStorageReferenceFnListInternal, send_request_funct,
                        handle, storage_->max_operation_retry_time());

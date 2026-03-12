@@ -763,7 +763,8 @@ TEST_F(FirebaseStorageTest, TestList) {
   }
 
   // Upload to a subfolder to test prefixes
-  firebase::storage::StorageReference subfolder_ref = ref.Child("subfolder/sub_file.txt");
+  firebase::storage::StorageReference subfolder_ref =
+      ref.Child("subfolder/sub_file.txt");
   firebase::Future<firebase::storage::Metadata> subfolder_put_future =
       subfolder_ref.PutBytes("sub", 3);
   WaitForCompletion(subfolder_put_future, "PutBytes subfolder");
@@ -772,15 +773,18 @@ TEST_F(FirebaseStorageTest, TestList) {
 
   // Test List
   LogDebug("Testing List");
-  firebase::Future<firebase::storage::StorageListResult> list_future = ref.List();
+  firebase::Future<firebase::storage::StorageListResult> list_future =
+      ref.List();
   WaitForCompletionAnyResult(list_future, "List");
-  
+
   if (list_future.error() != firebase::storage::kErrorNone) {
-      if (list_future.error() == firebase::storage::kErrorUnknown) {
-          LogWarning("Skipping TestList as the test project is likely using an older rules_version.");
-          return;
-      }
-      EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
+    if (list_future.error() == firebase::storage::kErrorUnknown) {
+      LogWarning(
+          "Skipping TestList as the test project is likely using an older "
+          "rules_version.");
+      return;
+    }
+    EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
   }
 
   if (list_future.error() != firebase::storage::kErrorNone) return;
@@ -792,20 +796,24 @@ TEST_F(FirebaseStorageTest, TestList) {
 
   // Test Pagination
   LogDebug("Testing List Pagination");
-  firebase::Future<firebase::storage::StorageListResult> page1_future = ref.List(2);
+  firebase::Future<firebase::storage::StorageListResult> page1_future =
+      ref.List(2);
   WaitForCompletionAnyResult(page1_future, "List Page 1");
   EXPECT_EQ(page1_future.error(), firebase::storage::kErrorNone);
-  
+
   firebase::storage::StorageListResult page1_result = *page1_future.result();
-  EXPECT_TRUE(page1_result.items().size() + page1_result.prefixes().size() == 2);
+  EXPECT_TRUE(page1_result.items().size() + page1_result.prefixes().size() ==
+              2);
   EXPECT_NE(page1_result.next_page_token(), "");
 
-  firebase::Future<firebase::storage::StorageListResult> page2_future = ref.List(2, page1_result.next_page_token().c_str());
+  firebase::Future<firebase::storage::StorageListResult> page2_future =
+      ref.List(2, page1_result.next_page_token().c_str());
   WaitForCompletionAnyResult(page2_future, "List Page 2");
   EXPECT_EQ(page2_future.error(), firebase::storage::kErrorNone);
-  
+
   firebase::storage::StorageListResult page2_result = *page2_future.result();
-  EXPECT_TRUE(page2_result.items().size() + page2_result.prefixes().size() == 2);
+  EXPECT_TRUE(page2_result.items().size() + page2_result.prefixes().size() ==
+              2);
   EXPECT_EQ(page2_result.next_page_token(), "");
 }
 
