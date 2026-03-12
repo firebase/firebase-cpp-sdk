@@ -25,9 +25,9 @@
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
+#include "storage/src/common/list_result_internal.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
-#include "storage/src/common/list_result_internal.h"
 #include "storage/storage_resources.h"
 
 namespace firebase {
