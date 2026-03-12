@@ -268,8 +268,8 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
       data->impl->CompleteWithResult(data->handle, code, message.c_str(),
                                      Metadata(nullptr));
     } else if (data->func == kStorageReferenceFnList) {
-      data->impl->CompleteWithResult(data->handle, code, message.c_str(),
-                                     StorageListResult(nullptr));
+      data->impl->CompleteWithResult<StorageListResult>(
+          data->handle, code, message.c_str(), StorageListResult(nullptr));
     } else {
       data->impl->Complete(data->handle, code, message.c_str());
     }
@@ -319,8 +319,8 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
 
     StorageListResultInternal* list_internal =
         new StorageListResultInternal(prefixes, items, page_token);
-    data->impl->CompleteWithResult(handle, kErrorNone,
-                                   StorageListResult(list_internal));
+    data->impl->CompleteWithResult<StorageListResult>(
+        handle, kErrorNone, "", StorageListResult(list_internal));
   } else if (result && env->IsInstanceOf(result, util::string::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a String.");
     // Complete a Future<std::string> from a Java String object.
