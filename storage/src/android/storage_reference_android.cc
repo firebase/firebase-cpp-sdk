@@ -27,6 +27,7 @@
 #include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
+#include "storage/src/common/list_result_internal.h"
 #include "storage/storage_resources.h"
 
 namespace firebase {
@@ -285,10 +286,10 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     std::vector<StorageReference> prefixes;
     if (prefixes_list) {
       jint size =
-          env->CallIntMethod(prefixes_list, list::GetMethodId(list::kSize));
+          env->CallIntMethod(prefixes_list, util::list::GetMethodId(util::list::kSize));
       for (jint i = 0; i < size; ++i) {
         jobject prefix_obj = env->CallObjectMethod(
-            prefixes_list, list::GetMethodId(list::kGet), i);
+            prefixes_list, util::list::GetMethodId(util::list::kGet), i);
         prefixes.push_back(StorageReference(
             new StorageReferenceInternal(data->storage, prefix_obj)));
         env->DeleteLocalRef(prefix_obj);
@@ -299,10 +300,10 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     std::vector<StorageReference> items;
     if (items_list) {
       jint size =
-          env->CallIntMethod(items_list, list::GetMethodId(list::kSize));
+          env->CallIntMethod(items_list, util::list::GetMethodId(util::list::kSize));
       for (jint i = 0; i < size; ++i) {
         jobject item_obj =
-            env->CallObjectMethod(items_list, list::GetMethodId(list::kGet), i);
+            env->CallObjectMethod(items_list, util::list::GetMethodId(util::list::kGet), i);
         items.push_back(StorageReference(
             new StorageReferenceInternal(data->storage, item_obj)));
         env->DeleteLocalRef(item_obj);
