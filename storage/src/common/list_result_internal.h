@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "firebase/storage/list_result.h"
 #include "firebase/storage/storage_reference.h"
 
 namespace firebase {

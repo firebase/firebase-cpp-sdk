@@ -25,6 +25,7 @@
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
+#include "storage/src/common/list_result_internal.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/storage_resources.h"
@@ -129,12 +130,14 @@ enum StorageReferenceFn {
 bool StorageReferenceInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();
-  return storage_reference::CacheMethodIds(env, activity);
+  return storage_reference::CacheMethodIds(env, activity) &&
+         list_result::CacheMethodIds(env, activity);
 }
 
 void StorageReferenceInternal::Terminate(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   storage_reference::ReleaseClass(env);
+  list_result::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 }
 
@@ -631,13 +634,12 @@ Future<StorageListResult> StorageReferenceInternal::List(
     future_impl->Complete(handle, kErrorUnknown, "Call to list() failed.");
   } else {
     util::RegisterCallbackOnTask(
-        env, task,
-        reinterpret_cast<util::TaskFinishedCallback>(
-            StorageReferenceInternal::FutureCallback),
-        new FutureCallbackData(handle, future_impl, storage_,
-                               kStorageReferenceFnList),
-        storage_resources::GetClass(storage_resources::kApiExecutor));
+        env, task, FutureCallback,
+        reinterpret_cast<void*>(new FutureCallbackData(
+            handle, future_impl, storage_, kStorageReferenceFnList)),
+        storage_->jni_task_id());
   }
+  util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
 
   return ListLastResult();
