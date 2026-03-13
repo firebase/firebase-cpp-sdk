@@ -785,9 +785,8 @@ TEST_F(FirebaseStorageTest, TestList) {
       return;
     }
     EXPECT_EQ(list_future.error(), firebase::storage::kErrorNone);
+    return;
   }
-
-  if (list_future.error() != firebase::storage::kErrorNone) return;
 
   firebase::storage::StorageListResult result = *list_future.result();
   EXPECT_EQ(result.items().size(), 3);

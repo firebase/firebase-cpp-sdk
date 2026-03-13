@@ -474,16 +474,15 @@ Future<StorageListResult> StorageReferenceInternal::List(int max_results_per_pag
       std::vector<StorageReference> items;
       NSString* next_page_token = result.pageToken;
 
-      for (FIRStorageReference* prefix_ref in result.prefixes) {
-        prefixes.push_back(
-            StorageReference(new StorageReferenceInternal(
-                storage, std::make_unique<FIRStorageReferencePointer>(prefix_ref))));
-      }
-      for (FIRStorageReference* item_ref in result.items) {
-        items.push_back(
-            StorageReference(new StorageReferenceInternal(
-                storage, std::make_unique<FIRStorageReferencePointer>(item_ref))));
-      }
+      auto process_refs = [&](NSArray<FIRStorageReference*>* refs,
+                              std::vector<StorageReference>& out_vec) {
+        for (FIRStorageReference* ref in refs) {
+          out_vec.push_back(StorageReference(new StorageReferenceInternal(
+              storage, std::make_unique<FIRStorageReferencePointer>(ref))));
+        }
+      };
+      process_refs(result.prefixes, prefixes);
+      process_refs(result.items, items);
 
       internal::StorageListResultInternal* list_result_internal = new internal::StorageListResultInternal(
           prefixes, items, next_page_token ? [next_page_token UTF8String] : "");

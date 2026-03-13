@@ -341,31 +341,24 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     std::vector<StorageReference> items;
     std::string page_token = util::JStringToString(env, page_token_jstr);
 
-    if (prefixes_list) {
-      int size = env->CallIntMethod(prefixes_list,
-                                    util::list::GetMethodId(util::list::kSize));
-      for (int i = 0; i < size; ++i) {
-        jobject ref_obj = env->CallObjectMethod(
-            prefixes_list, util::list::GetMethodId(util::list::kGet), i);
-        prefixes.push_back(StorageReference(
-            new StorageReferenceInternal(data->storage, ref_obj)));
-        env->DeleteLocalRef(ref_obj);
+    auto process_list = [&](jobject list_obj,
+                            std::vector<StorageReference>& out_vec) {
+      if (list_obj) {
+        int size = env->CallIntMethod(
+            list_obj, util::list::GetMethodId(util::list::kSize));
+        for (int i = 0; i < size; ++i) {
+          jobject ref_obj = env->CallObjectMethod(
+              list_obj, util::list::GetMethodId(util::list::kGet), i);
+          out_vec.push_back(StorageReference(
+              new StorageReferenceInternal(data->storage, ref_obj)));
+          env->DeleteLocalRef(ref_obj);
+        }
+        env->DeleteLocalRef(list_obj);
       }
-      env->DeleteLocalRef(prefixes_list);
-    }
+    };
 
-    if (items_list) {
-      int size = env->CallIntMethod(items_list,
-                                    util::list::GetMethodId(util::list::kSize));
-      for (int i = 0; i < size; ++i) {
-        jobject ref_obj = env->CallObjectMethod(
-            items_list, util::list::GetMethodId(util::list::kGet), i);
-        items.push_back(StorageReference(
-            new StorageReferenceInternal(data->storage, ref_obj)));
-        env->DeleteLocalRef(ref_obj);
-      }
-      env->DeleteLocalRef(items_list);
-    }
+    process_list(prefixes_list, prefixes);
+    process_list(items_list, items);
 
     if (page_token_jstr) env->DeleteLocalRef(page_token_jstr);
 
