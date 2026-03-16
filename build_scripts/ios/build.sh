@@ -40,7 +40,7 @@ cmakeBuild=true
 
 # check options
 IFS=',' # split options on ',' characters
-while getopts ":b:s:a:t:g:ch" opt; do
+while getopts ":b:s:p:a:t:g:ch" opt; do
     case $opt in
         h)
             usage
@@ -121,17 +121,19 @@ frameworkspath="frameworks/ios"
 if ${generateMakefiles}; then
     for platform in ${platforms[@]}; do 
         for arch in ${architectures[@]}; do 
+            sysroot_arg=""
             if [[ "${platform}" == "device" && " ${DEVICE_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                toolchain="cmake/toolchains/ios.cmake"
+                sysroot_arg="" # Default iphoneos sysroot is correct for iOS devices
             elif [[ "${platform}" == "simulator" && " ${SIMULATOR_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                toolchain="cmake/toolchains/ios_simulator.cmake"
+                sysroot_arg="-DCMAKE_OSX_SYSROOT=iphonesimulator" # Must specify sysroot for simulator, especially for x86_64
             else
-                continue
+                continue # Skip invalid platform/OS combinations
             fi
 
             echo "generate Makefiles start"
             mkdir -p ${buildpath}/ios_build_file/${platform}-${arch} && cd ${buildpath}/ios_build_file/${platform}-${arch}
-            cmake -DCMAKE_TOOLCHAIN_FILE=${sourcepath}/${toolchain} \
+            cmake -DCMAKE_SYSTEM_NAME=iOS \
+                ${sysroot_arg} \
                 -DCMAKE_OSX_ARCHITECTURES=${arch} \
                 -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
                 ${sourcepath}

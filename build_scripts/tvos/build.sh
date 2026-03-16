@@ -40,7 +40,7 @@ cmakeBuild=true
 
 # check options
 IFS=',' # split options on ',' characters
-while getopts ":b:s:a:t:g:ch" opt; do
+while getopts ":b:s:p:a:t:g:ch" opt; do
     case $opt in
         h)
             usage
@@ -123,18 +123,20 @@ if ${generateMakefiles}; then
     for platform in ${platforms[@]}; do 
         for arch in ${architectures[@]}; do 
             if [[ "${platform}" == "device" && " ${DEVICE_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                toolchain="cmake/toolchains/apple.toolchain.cmake"
+                # Device build
+                :
             elif [[ "${platform}" == "simulator" && " ${SIMULATOR_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                toolchain="cmake/toolchains/apple.toolchain.cmake"
                 tvos_toolchain_platform="SIMULATOR_TVOS"
+                sysroot_arg="-DCMAKE_OSX_SYSROOT=appletvsimulator"
             else
                 continue
             fi
 
             echo "generate Makefiles start"
             mkdir -p ${buildpath}/tvos_build_file/${platform}-${arch} && cd ${buildpath}/tvos_build_file/${platform}-${arch}
-            cmake -DCMAKE_TOOLCHAIN_FILE=${sourcepath}/${toolchain} \
-                  -DPLATFORM=${tvos_toolchain_platform} \
+            cmake -DCMAKE_SYSTEM_NAME=tvOS \
+                  -DCMAKE_OSX_ARCHITECTURES=${arch} \
+                  ${sysroot_arg} \
                   -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
                 ${sourcepath}
             echo "generate Makefiles end"
