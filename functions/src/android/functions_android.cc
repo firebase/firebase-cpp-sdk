@@ -220,17 +220,16 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
   JNIEnv* env = app_->GetJNIEnv();
 
   // Create HttpsCallableOptions
-  jobject builder =
+  jobject empty_builder =
       env->NewObject(callable_options_builder::GetClass(),
                      callable_options_builder::GetMethodId(
                          callable_options_builder::kBuilderConstructor));
-  jobject builder2 = env->CallObjectMethod(
-      builder,
+  jobject builder = env->CallObjectMethod(
+      empty_builder,
       callable_options_builder::GetMethodId(
           callable_options_builder::kSetLimitedUseAppCheckTokens),
       options.limited_use_app_check_token);
-  env->DeleteLocalRef(builder);
-  builder = builder2;
+  env->DeleteLocalRef(empty_builder);
   jobject java_options = env->CallObjectMethod(
       builder,
       callable_options_builder::GetMethodId(callable_options_builder::kBuild));
@@ -268,17 +267,16 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
   JNIEnv* env = app_->GetJNIEnv();
 
   // Create HttpsCallableOptions
-  jobject builder =
+  jobject empty_builder =
       env->NewObject(callable_options_builder::GetClass(),
                      callable_options_builder::GetMethodId(
                          callable_options_builder::kBuilderConstructor));
-  jobject builder2 = env->CallObjectMethod(
-      builder,
+  jobject builder = env->CallObjectMethod(
+      empty_builder,
       callable_options_builder::GetMethodId(
           callable_options_builder::kSetLimitedUseAppCheckTokens),
       options.limited_use_app_check_token);
-  env->DeleteLocalRef(builder);
-  builder = builder2;
+  env->DeleteLocalRef(empty_builder);
   jobject java_options = env->CallObjectMethod(
       builder,
       callable_options_builder::GetMethodId(callable_options_builder::kBuild));
