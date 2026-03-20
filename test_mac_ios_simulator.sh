@@ -27,7 +27,7 @@ cd mac_ios_simulator_build
 
 # Configure cmake with tests enabled
 # and disable use of libsecret due to not working on kokoro builders
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios_simulator.cmake .. -DCLANG_ENABLE_MODULES=YES -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON "$@"
+cmake -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator .. -DCLANG_ENABLE_MODULES=YES -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON "$@"
 
 # Build the SDK and the tests
 cpus=$(sysctl -n hw.ncpu)
