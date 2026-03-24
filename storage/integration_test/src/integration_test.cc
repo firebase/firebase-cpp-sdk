@@ -750,8 +750,9 @@ TEST_F(FirebaseStorageTest, TestList) {
   firebase::storage::StorageReference ref = CreateFolder().Child("list_test");
 
   // Upload a few files
+  const int kNumFiles = 3;
   const char* file_contents[] = {"file0", "file1", "file2"};
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < kNumFiles; ++i) {
     char file_name[16];
     snprintf(file_name, sizeof(file_name), "file_%d.txt", i);
     firebase::storage::StorageReference file_ref = ref.Child(file_name);
@@ -789,7 +790,7 @@ TEST_F(FirebaseStorageTest, TestList) {
   }
 
   firebase::storage::StorageListResult result = *list_future.result();
-  EXPECT_EQ(result.items().size(), 3);
+  EXPECT_EQ(result.items().size(), kNumFiles);
   EXPECT_EQ(result.prefixes().size(), 1);
   EXPECT_EQ(result.next_page_token(), "");
 
