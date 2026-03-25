@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Changes
+    - Storage: Added `List` API for all platforms, which gets the list of items under a `StorageReference`.
+
 ### 13.5.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 34.10.0.
