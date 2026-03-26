@@ -22,6 +22,8 @@
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
+#include "firebase/app_check.h"
+#include "firebase/app_check/debug_provider.h"
 #include "firebase/auth.h"
 #include "firebase/functions.h"
 #include "firebase/util.h"
@@ -48,6 +50,10 @@ using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 
 const char kIntegrationTestRootPath[] = "integration_test_data";
+
+// Your Firebase project's Debug token goes here.
+// You can get this from Firebase Console, in the App Check settings.
+const char kAppCheckDebugToken[] = "CD369669-D1E5-4997-9E8D-7D440909F503";
 
 class FirebaseFunctionsTest : public FirebaseTest {
  public:
@@ -119,7 +125,16 @@ void FirebaseFunctionsTest::TearDown() {
 void FirebaseFunctionsTest::Initialize() {
   if (initialized_) return;
 
+  LogDebug("Initializing Firebase App Check with Debug Provider");
+  firebase::app_check::DebugAppCheckProviderFactory::GetInstance()
+      ->SetDebugToken(kAppCheckDebugToken);
+  firebase::app_check::AppCheck::SetAppCheckProviderFactory(
+      firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
+
   InitializeApp();
+
+  // Create the AppCheck instance so it's available for the tests.
+  ::firebase::app_check::AppCheck::GetInstance(app_);
 
   LogDebug("Initializing Firebase Auth and Firebase Functions.");
 
@@ -174,6 +189,17 @@ void FirebaseFunctionsTest::Terminate() {
     delete auth_;
     auth_ = nullptr;
   }
+
+  if (app_) {
+    ::firebase::app_check::AppCheck* app_check =
+        ::firebase::app_check::AppCheck::GetInstance(app_);
+    if (app_check) {
+      LogDebug("Shutdown App Check.");
+      delete app_check;
+    }
+  }
+
+  firebase::app_check::AppCheck::SetAppCheckProviderFactory(nullptr);
 
   TerminateApp();
 
@@ -412,6 +438,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
   data.map()["secondNumber"] = 2;
 
   std::string proj = app_->options().project_id();
+  // V2 functions can still be addressed via the V1 URL schema which handles internal routing
   std::string url =
       "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
 
@@ -428,6 +455,29 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
           ->data();
   EXPECT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 6);
+}
+
+TEST_F(FirebaseFunctionsTest, TestV1FunctionWithLimitedUseAppCheckToken) {
+  SignIn();
+
+  // addNumbers(5, 7) = 12
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 5;
+  data.map()["secondNumber"] = 7;
+
+  firebase::functions::HttpsCallableOptions options;
+  options.limited_use_app_check_token = true;
+
+  LogDebug("Calling addNumbers with Limited Use App Check Token");
+  firebase::functions::HttpsCallableReference ref =
+      functions_->GetHttpsCallable("addNumbers", options);
+
+  firebase::Variant result =
+      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())
+          .result()
+          ->data();
+  EXPECT_TRUE(result.is_map());
+  EXPECT_EQ(result.map()["operationResult"], 12);
 }
 
 }  // namespace firebase_testapp_automated
