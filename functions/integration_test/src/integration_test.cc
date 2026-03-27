@@ -438,7 +438,8 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
   data.map()["secondNumber"] = 2;
 
   std::string proj = app_->options().project_id();
-  // V2 functions can still be addressed via the V1 URL schema which handles internal routing
+  // V2 functions can still be addressed via the V1 URL schema which handles
+  // internal routing
   std::string url =
       "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
 
