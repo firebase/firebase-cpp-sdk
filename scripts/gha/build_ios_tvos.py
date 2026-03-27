@@ -56,11 +56,9 @@ CONFIG = {
                            'firebase_storage', 'firebase_ump'),
     'device': {
       'architectures' : ['arm64'],
-      'toolchain' : 'cmake/toolchains/ios.cmake',
     },
     'simulator': {
       'architectures' : ['arm64', 'x86_64'],
-      'toolchain': 'cmake/toolchains/ios_simulator.cmake',
     }
   },
 
@@ -72,13 +70,9 @@ CONFIG = {
                            'firebase_storage'),
     'device': {
       'architectures' : ['arm64'],
-      'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
-      'toolchain_platform': 'TVOS',
     },
     'simulator': {
       'architectures' : ['x86_64'],
-      'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
-      'toolchain_platform': 'SIMULATOR_TVOS'
     }
   },
 }
@@ -448,7 +442,8 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
 
 
 def cmake_configure(source_path, build_path, toolchain, archive_output_path,
-                    architecture=None, toolchain_platform=None):
+                    architecture=None, apple_os=None,
+                    platform_variant=None):
   """CMake configure which sets up the build project.
 
   Args:
@@ -457,20 +452,24 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
       toolchain (str): Path to CMake toolchain file. Differs based on os and/or
         platform.
       archive_output_path (str): Path to build and save libraries/frameworks to.
-      targets (list(str)): CMake build targets. (eg: firebase_auth, etc)
       architecture (str, optional): Architecture passed onto the cmake build
-        system. Used when building for ios only. (eg:'arm64', 'x86_64')
-      toolchain_platform (str, optional): Platform cmake option passed for tvos
-        builds only. Accepts all platforms supported by the tvos toolchain.
-        (eg: 'TVOS', 'SIMULATOR_TVOS' etc)
+        system. Used when building for ios/tvos. (eg:'arm64', 'x86_64')
+      apple_os (str, optional): The Apple OS to build for.
   """
   cmd = ['cmake', '-S', source_path, '-B', build_path]
-  cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain))
+  if toolchain:
+    cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain))
+  elif apple_os == 'ios':
+    cmd.append('-DCMAKE_SYSTEM_NAME=iOS')
+    if platform_variant == 'simulator':
+      cmd.append('-DCMAKE_OSX_SYSROOT=iphonesimulator')
+  elif apple_os == 'tvos':
+    cmd.append('-DCMAKE_SYSTEM_NAME=tvOS')
+    if platform_variant == 'simulator':
+      cmd.append('-DCMAKE_OSX_SYSROOT=appletvsimulator')
   cmd.append('-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   if architecture:
     cmd.append('-DCMAKE_OSX_ARCHITECTURES={0}'.format(architecture))
-  elif toolchain_platform:
-    cmd.append('-DPLATFORM={0}'.format(toolchain_platform))
   utils.run_command(cmd)
 
 
@@ -532,18 +531,13 @@ def main():
         build_path = os.path.join(args.build_dir,
                                   '{0}_cmake_build'.format(apple_os),
                                   platform_architecture_token)
-        # For ios builds, we specify architecture to cmake configure.
-        architecture = architecture if apple_os == 'ios' else None
-        # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
-        toolchain_platform = os_platform_variant_config['toolchain_platform'] \
-                             if apple_os == 'tvos' else None
         # CMake configure was having all sorts of issues when run in parallel.
         # It might be the Cocoapods that are downloaded in parallel into a
         # single cache directory.
         cmake_configure(args.source_dir, build_path,
-                        os_platform_variant_config['toolchain'],
+                        os_platform_variant_config.get('toolchain'),
                         archive_output_path, architecture,
-                        toolchain_platform)
+                        apple_os, platform_variant)
         process = multiprocessing.Process(target=cmake_build,
                                           args=(build_path, supported_targets))
         processes.append((process, archive_output_path))
