@@ -61,8 +61,8 @@ python3 scripts/format_code.py -f path/to/file1.cc -f path/to/file2.h
 ### 4. Dry Run (Check without Formatting)
 
 If you only want to detect the number of files that _need_ formatting without
-actually modifying them, append the `-fnoformat_file` flag:
+actually modifying them, append the `--noformat_file` flag:
 
 ```bash
-python3 scripts/format_code.py -git_diff -fnoformat_file
+python3 scripts/format_code.py -git_diff --noformat_file
 ```
