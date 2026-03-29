@@ -103,3 +103,14 @@ Common targets include:
 - `firebase_messaging`
 - `firebase_remote_config`
 - `firebase_storage`
+
+## Product Naming Disambiguation (`firebase_auth` vs `auth`)
+
+Different build tools use different naming conventions for products in this repository:
+
+- **CMake Targets (Desktop/iOS)**: Typically prefixed with `firebase_` (e.g., `firebase_auth`).
+- **Gradle Subprojects (Android)**: Typically use the raw module name (e.g., `:auth:build`).
+- **Python Scripts** (e.g., `build_desktop.py`, `build_testapps.py`): Typically use the raw module name (e.g., `--t auth`).
+
+> [!TIP]
+> If you are unsure about the exact product name or supported flags, run Python scripts with `--help` (e.g., `build_desktop.py --help`). For shell scripts, run without parameters (Android) or with `-h` (iOS) to see usage.
