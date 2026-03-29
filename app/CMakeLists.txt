@@ -515,6 +515,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/common.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/controller.h
+    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/list_result.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/listener.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/metadata.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/storage_reference.h)

@@ -248,6 +248,21 @@ class ReturnedMetadataResponse : public BlockingResponse {
   StorageReference storage_reference_;
 };
 
+// Response for any operation that returns a blob of text that we need
+// to interpret as a list result.
+class ReturnedListResponse : public BlockingResponse {
+ public:
+  ReturnedListResponse(SafeFutureHandle<StorageListResult> handle,
+                       ReferenceCountedFutureImpl* ref_future,
+                       StorageInternal* storage);
+  bool ProcessBody(const char* buffer, size_t length) override;
+  void MarkCompleted() override;
+
+ private:
+  std::string buffer_;
+  StorageInternal* storage_;
+};
+
 // Utility class for parsing a Storage REST error response (in JSON form) and
 // deserializing it into usable data.  The input buffer (json_response) does not
 // need to remain valid after the constructor has run. The expected JSON should
