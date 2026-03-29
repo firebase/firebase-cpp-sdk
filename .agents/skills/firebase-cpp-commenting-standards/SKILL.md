@@ -70,7 +70,7 @@ Objective-C wrappers should also follow standard Doxygen conventions, especially
 
 ---
 
-## checklist
+## Checklist
 - [ ] Are you using `///` for public API comments?
 - [ ] Do you have a `@brief` for the method?
 - [ ] Are all parameters documented with `@param`?

@@ -12,6 +12,12 @@ This skill provides instructions on how to build the Firebase C++ SDK directly
 from source, specifically tailored for building individual products (like
 `firebase_auth`, `firebase_database`, etc.).
 
+## Prerequisites
+
+Before building, ensure that your Python environment is set up with all required dependencies, especially if you plan to use helper scripts:
+
+- **Python Dependencies**: Run `pip install -r scripts/gha/python_requirements.txt` to install required libraries (such as `attrs`, `absl-py`, etc.).
+
 ## 1. Desktop Builds (Mac, Linux, Windows)
 
 The easiest way to build for Desktop is to use the Python helper script from the

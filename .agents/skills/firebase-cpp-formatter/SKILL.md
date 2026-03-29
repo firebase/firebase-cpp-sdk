@@ -12,6 +12,12 @@ This skill provides instructions on how to properly format C++ and Objective-C
 code before creating a pull request or committing changes in the
 `firebase-cpp-sdk` repository. The primary tool is `scripts/format_code.py`.
 
+## Prerequisites
+
+Before running the formatting script, ensure that your Python environment is set up with all required dependencies:
+
+- **Python Dependencies**: Run `pip install -r scripts/gha/python_requirements.txt` to install the required libraries (such as `attrs`, `absl-py`, etc.).
+
 ## Workflows
 
 ### 1. Formatting Specific Changed Files (Git Diff)

@@ -14,16 +14,11 @@ platforms.
 
 ## Prerequisites
 
-Before building integration tests, ensure that you have the private Google
-Services configuration files present in the `integration_test/` directory of the
-product you are testing:
+Before building integration tests, ensure that your Python environment is set up with all required dependencies, and that you have the private Google Services configuration files present:
 
-- **Android and Desktop**: `google-services.json` must be present.
-- **iOS**: `GoogleService-Info.plist` must be present.
-
-_Note:_ If you are testing `auth`, you would place these files in
-`auth/integration_test/google-services.json` and
-`auth/integration_test/GoogleService-Info.plist`.
+- **Python Dependencies**: Run `pip install -r scripts/gha/python_requirements.txt` to install the required libraries (such as `attrs`, `absl-py`, etc.).
+- **Android and Desktop Config Files**: `google-services.json` must be present in `<product>/integration_test/`.
+- **iOS Config Files**: `GoogleService-Info.plist` must be present in `<product>/integration_test/`.
 
 ## Using the `build_testapps.py` Helper Script
 
@@ -57,16 +52,13 @@ tests successfully.
 
 ### Building for Desktop
 
-You can use `build_testapps.py` or the provided platform-specific convenience
-scripts for Desktop.
-
-Alternatively, if you want to build the SDK manually via CMake:
+To build a desktop integration test application for a specific product (e.g., `auth`), run the following command from the repository root:
 
 ```bash
-python3 scripts/gha/build_desktop.py -a <arch> --build_dir <dir>
+python3 scripts/gha/build_testapps.py --p Desktop --t auth
 ```
 
-Use `python3 scripts/gha/build_desktop.py --help` for more options.
+You can specify the architecture with the `--arch` flag (e.g., `--arch x64`, `--arch x86`, or `--arch arm64`).
 
 ## Manual Integration Test Builds (Alternative)
 
@@ -88,7 +80,7 @@ export FIREBASE_CPP_SDK_DIR=path_to_cpp_git_repo
 cd <product>/integration_test
 cp path_to_google_services_files/google-services.json .
 mkdir desktop_build && cd desktop_build
-cmake .. && cmake --build . -j
+cmake .. -DFIREBASE_CPP_SDK_DIR=/path/to/firebase_cpp_sdk && cmake --build . -j
 ```
 
 Once the build is finished, run the generated `integration_test` binary.
