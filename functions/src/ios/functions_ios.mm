@@ -48,7 +48,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
     const char* name, const HttpsCallableOptions& options) const {
   FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
-      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
+      initWithRequireLimitedUseAppCheckToken:options.limited_use_app_check_token];
 
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   return new HttpsCallableReferenceInternal(
@@ -65,7 +65,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
     const char* url, const HttpsCallableOptions& options) const {
   FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
-      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
+      initWithRequireLimitedUseAppCheckToken:options.limited_use_app_check_token];
 
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   NSURL *nsurl = [NSURL URLWithString:@(url)];
