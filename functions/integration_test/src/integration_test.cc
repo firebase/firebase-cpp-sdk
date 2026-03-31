@@ -53,7 +53,7 @@ const char kIntegrationTestRootPath[] = "integration_test_data";
 
 // Your Firebase project's Debug token goes here.
 // You can get this from Firebase Console, in the App Check settings.
-const char kAppCheckDebugToken[] = "CD369669-D1E5-4997-9E8D-7D440909F503";
+const char kAppCheckDebugToken[] = "REPLACE_WITH_APP_CHECK_TOKEN";
 
 class FirebaseFunctionsTest : public FirebaseTest {
  public:
