@@ -614,8 +614,9 @@ code.
 
 ## Release Notes
 ### Upcoming
--   Changes
-    - Storage: Added `List` API for all platforms, which gets the list of items under a `StorageReference`.
+- Changes 
+    - Functions (general): Add in support for Limited Use Tokens.
+    - Storage: Added `List` API for all platforms, which gets the list of items under a `StorageReference`
 
 ### 13.5.0
 -   Changes
