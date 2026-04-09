@@ -72,7 +72,8 @@ set(android_SRCS
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/analytics_ios.mm)
+    src/analytics_ios.mm
+    src/ios/swift/StoreKit2Bridge.swift)
 
 # Source files used by the desktop / stub implementation.
 set(desktop_SRCS
@@ -88,8 +89,12 @@ if(ANDROID)
   set(analytics_platform_SRCS
       "${android_SRCS}")
 elseif(IOS)
+  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+    message(FATAL_ERROR "Swift is not supported by the 'Unix Makefiles' generator on iOS. Please use the Xcode generator (-G Xcode) or Ninja (-G Ninja).")
+  endif()
   set(analytics_platform_SRCS
       "${ios_SRCS}")
+  
 else()
   set(analytics_platform_SRCS
       "${desktop_SRCS}")
@@ -98,6 +103,9 @@ endif()
 add_library(firebase_analytics STATIC
     ${common_SRCS}
     ${analytics_platform_SRCS})
+
+
+add_dependencies(firebase_analytics FIREBASE_ANALYTICS_GENERATED_HEADERS)
 
 set_property(TARGET firebase_analytics PROPERTY FOLDER "Firebase Cpp")
 
@@ -123,19 +131,73 @@ target_compile_definitions(firebase_analytics
 )
 # Automatically include headers that might not be declared.
 if(MSVC)
-  add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
+  target_compile_options(firebase_analytics PRIVATE
+    $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:/FI"assert.h">
+    $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:/FI"string.h">
+    $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:/FI"stdint.h">)
 else()
-  add_definitions(-include assert.h -include string.h)
+  target_compile_options(firebase_analytics PRIVATE
+    $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:SHELL:-include assert.h -include string.h>
+  )
 endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(analytics)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  # Enable Automatic Reference Counting (ARC) and Bitcode specifically for Objective-C++ files.
+  # Note: -fembed-bitcode is placed here for src/analytics_ios.mm so that it is not passed
+  # to the Swift compiler, which does not support the flag.
+  set_source_files_properties(src/analytics_ios.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc;-fembed-bitcode")
+
+  target_include_directories(firebase_analytics
+    PRIVATE
+      "$(DERIVED_FILE_DIR)"
+  )
+ 
+if(IOS OR TVOS)
+  # Swift needs to find the FirebaseAnalytics module from CocoaPods
+  set(pods_dir "${FIREBASE_POD_DIR}/Pods")
+  
+  # Point to the base directories containing the .xcframework folders.
+  # Xcode natively handles XCFrameworks and will pick the right slice automatically.
+  # Determine the xcframework architecture slice based on the target platform
+  # and if it is running on simulator or device.
+  if(IOS)
+    string(TOLOWER "${CMAKE_OSX_SYSROOT}" sysroot_lower)
+    if(sysroot_lower MATCHES "simulator")
+      set(analytics_slice "ios-arm64_x86_64-simulator")
+    else()
+      set(analytics_slice "ios-arm64")
+    endif()
+  elseif(TVOS)
+    string(TOLOWER "${CMAKE_OSX_SYSROOT}" sysroot_lower)
+    if(sysroot_lower MATCHES "simulator")
+      set(analytics_slice "tvos-arm64_x86_64-simulator")
+    else()
+      set(analytics_slice "tvos-arm64")
+    endif()
+  endif()
+
+  set(analytics_framework_dir "${pods_dir}/FirebaseAnalytics/Frameworks/FirebaseAnalytics.xcframework/${analytics_slice}")
+  set(measurement_framework_dir "${pods_dir}/GoogleAppMeasurement/Frameworks/GoogleAppMeasurement.xcframework/${analytics_slice}")
+  
   target_compile_options(firebase_analytics
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_analytics
-                        PUBLIC "-fembed-bitcode")
+    PRIVATE
+      $<$<COMPILE_LANGUAGE:Swift>:-F${analytics_framework_dir}>
+      $<$<COMPILE_LANGUAGE:Swift>:-F${measurement_framework_dir}>
+  )
+  
+  target_link_options(firebase_analytics
+    PUBLIC
+      "-F${analytics_framework_dir}"
+      "-F${measurement_framework_dir}"
+  )
+  
+  # Prevent Xcode from trying to build or evaluate headers for unused architectures
+  set_target_properties(firebase_analytics PROPERTIES
+    XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "YES"
+  )
+endif()
 
   setup_pod_headers(
     firebase_analytics
