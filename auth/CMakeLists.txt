@@ -154,11 +154,9 @@ else()
       firebase_rest_lib)
 endif()
 
-add_library(firebase_auth STATIC
+add_firebase_sdk_target(firebase_auth "FirebaseAuth"
     ${common_SRCS}
     ${auth_platform_SRCS})
-
-set_property(TARGET firebase_auth PROPERTY FOLDER "Firebase Cpp")
 
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_auth
