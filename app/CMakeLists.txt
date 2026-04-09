@@ -367,11 +367,17 @@ target_link_libraries(firebase_app
     ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
 )
+if(APPLE)
   target_compile_options(firebase_app PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>"
     "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include assert.h>"
     "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include string.h>")
+else()
+  target_compile_options(firebase_app PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>")
+endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(app)
