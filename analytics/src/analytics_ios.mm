@@ -20,9 +20,12 @@
 #import "FIRAnalytics+OnDevice.h"
 #import "FIRAnalytics.h"
 
+#include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
 
-#include "analytics/src/analytics_common.h"
+// Include the generated Swift header for the C++ bridge.
+#include <firebase_analytics/firebase_analytics-Swift.h>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
@@ -229,6 +232,55 @@ void LogEvent(const char* name, const char* parameter_name, const int parameter_
 void LogEvent(const char* name) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   [FIRAnalytics logEventWithName:@(name) parameters:@{}];
+}
+
+extern "C" {
+void CompleteLogAppleTransaction(const void* context, bool success) {
+  FIREBASE_ASSERT_RETURN_VOID(context != nullptr);
+  auto* handle_ptr = static_cast<SafeFutureHandle<void>*>(const_cast<void*>(context));
+
+  MutexLock lock(g_mutex);
+  if (!internal::IsInitialized()) {
+    delete handle_ptr;
+    return;
+  }
+
+  auto* api = internal::FutureData::Get()->api();
+  if (success) {
+    api->Complete(*handle_ptr, 0, "");
+  } else {
+    api->Complete(*handle_ptr, -1, "StoreKit 2 transaction not found.");
+  }
+  delete handle_ptr;
+}
+}
+
+Future<void> LogAppleTransaction(const char* transaction_id) {
+  MutexLock lock(g_mutex);
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+
+  auto* api = internal::FutureData::Get()->api();
+  const auto future_handle = api->SafeAlloc<void>(internal::kAnalyticsFnLogAppleTransaction);
+
+  if (!transaction_id) {
+    api->Complete(future_handle, -1, "Transaction ID is null");
+    return Future<void>(api, future_handle.get());
+  }
+
+  SafeFutureHandle<void>* handle_ptr = new SafeFutureHandle<void>(future_handle);
+
+  [StoreKit2Bridge logTransaction:SafeString(transaction_id)
+                          context:handle_ptr
+                       completion:CompleteLogAppleTransaction];
+
+  return Future<void>(api, future_handle.get());
+}
+
+Future<void> LogAppleTransactionLastResult() {
+  MutexLock lock(g_mutex);
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  return static_cast<const Future<void>&>(
+      internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnLogAppleTransaction));
 }
 
 // Declared here so that it can be used, defined below.

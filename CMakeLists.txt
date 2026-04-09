@@ -96,8 +96,14 @@ set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 project (firebase NONE)
+
+set(CMAKE_Swift_LANGUAGE_VERSION 5.9)
+
 enable_language(C)
 enable_language(CXX)
+if (IOS)
+  enable_language(Swift)
+endif()
 
 if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
   find_program(CCACHE_PROGRAM ccache)
