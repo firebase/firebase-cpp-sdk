@@ -100,12 +100,7 @@ target_compile_definitions(firebase_messaging
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
-# Automatically include headers that might not be declared.
-if(MSVC)
-  add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
-else()
-  add_definitions(-include assert.h -include string.h)
-endif()
+
 
 if(ANDROID)
   firebase_cpp_proguard_file(messaging)
@@ -136,11 +131,10 @@ elseif(IOS)
       FirebaseMessaging
   )
 
-  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
-    set_target_properties(firebase_messaging PROPERTIES
-      FRAMEWORK TRUE
-    )
-  endif()
+  set_target_properties(firebase_messaging PROPERTIES
+    OUTPUT_NAME "FirebaseMessaging"
+    FRAMEWORK TRUE
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

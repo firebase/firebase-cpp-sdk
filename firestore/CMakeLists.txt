@@ -440,11 +440,10 @@ elseif(IOS)
       FirebaseCoreExtension/FirebaseCore/Extension
   )
 
-  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
-    set_target_properties(firebase_firestore PROPERTIES
-      FRAMEWORK TRUE
-    )
-  endif()
+  set_target_properties(firebase_firestore PROPERTIES
+    OUTPUT_NAME "FirebaseFirestore"
+    FRAMEWORK TRUE
+  )
 endif()
 
 cpp_pack_library(firebase_firestore "")

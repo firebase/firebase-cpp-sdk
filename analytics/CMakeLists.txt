@@ -121,12 +121,6 @@ target_compile_definitions(firebase_analytics
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
-# Automatically include headers that might not be declared.
-if(MSVC)
-  add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
-else()
-  add_definitions(-include assert.h -include string.h)
-endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(analytics)
@@ -144,11 +138,11 @@ elseif(IOS)
       FirebaseAnalytics
   )
 
-  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
-    set_target_properties(firebase_analytics PROPERTIES
-      FRAMEWORK TRUE
-    )
-  endif()
+  # Enforce standard framework bundling and Apple casing natively
+  set_target_properties(firebase_analytics PROPERTIES
+    FRAMEWORK TRUE
+    OUTPUT_NAME "FirebaseAnalytics"
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

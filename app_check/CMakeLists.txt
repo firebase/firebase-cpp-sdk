@@ -161,12 +161,7 @@ target_compile_definitions(firebase_app_check
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
-# Automatically include headers that might not be declared.
-if(MSVC)
-  add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
-else()
-  add_definitions(-include assert.h -include string.h)
-endif()
+
 
 if(ANDROID)
   firebase_cpp_proguard_file(app_check)
@@ -186,11 +181,10 @@ elseif(IOS)
       INCLUDE_PRIVATE_HEADERS
   )
 
-  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
-    set_target_properties(firebase_app_check PROPERTIES
-      FRAMEWORK TRUE
-    )
-  endif()
+  set_target_properties(firebase_app_check PROPERTIES
+    OUTPUT_NAME "FirebaseAppCheck"
+    FRAMEWORK TRUE
+  )
 endif()
 
 cpp_pack_library(firebase_app_check "")

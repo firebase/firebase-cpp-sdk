@@ -321,6 +321,8 @@ add_library(firebase_app STATIC
     ${app_flatbuffers_srcs})
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
+set_target_properties(firebase_app PROPERTIES OUTPUT_NAME "firebase")
+
 
 # Disable exceptions in std
 if (MSVC)
@@ -410,12 +412,10 @@ if (NOT ANDROID AND NOT IOS)
 endif()
 
 if (IOS)
-  # IOS build framework
-  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
-    set_target_properties(firebase_app PROPERTIES
-      FRAMEWORK TRUE
-    )
-  endif()
+  # Enforce native framework bundling properties unconditionally
+  set_target_properties(firebase_app PROPERTIES
+    FRAMEWORK TRUE
+  )
 
   # Generate the analytics header file
   # Copy from analytics/CMakeList.txt
