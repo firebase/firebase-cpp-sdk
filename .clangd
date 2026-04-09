@@ -1,0 +1,6 @@
+# Standardized Clangd LSP Configuration for Firebase C++ SDK
+# Enforces perfect automated header hygiene directly inside developer IDEs!
+
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
