@@ -165,7 +165,6 @@ elseif(IOS)
       "$(DERIVED_FILE_DIR)"
   )
  
-if(IOS OR TVOS)
   # Swift needs to find the FirebaseAnalytics module from CocoaPods
   set(pods_dir "${FIREBASE_POD_DIR}/Pods")
   
@@ -173,19 +172,18 @@ if(IOS OR TVOS)
   # Xcode natively handles XCFrameworks and will pick the right slice automatically.
   # Determine the xcframework architecture slice based on the target platform
   # and if it is running on simulator or device.
-  if(IOS)
-    string(TOLOWER "${CMAKE_OSX_SYSROOT}" sysroot_lower)
-    if(sysroot_lower MATCHES "simulator")
-      set(analytics_slice "ios-arm64_x86_64-simulator")
-    else()
-      set(analytics_slice "ios-arm64")
-    endif()
-  elseif(TVOS)
-    string(TOLOWER "${CMAKE_OSX_SYSROOT}" sysroot_lower)
+  string(TOLOWER "${CMAKE_OSX_SYSROOT}" sysroot_lower)
+  if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
     if(sysroot_lower MATCHES "simulator")
       set(analytics_slice "tvos-arm64_x86_64-simulator")
     else()
       set(analytics_slice "tvos-arm64")
+    endif()
+  else()
+    if(sysroot_lower MATCHES "simulator")
+      set(analytics_slice "ios-arm64_x86_64-simulator")
+    else()
+      set(analytics_slice "ios-arm64")
     endif()
   endif()
 
@@ -208,7 +206,6 @@ if(IOS OR TVOS)
   set_target_properties(firebase_analytics PROPERTIES
     XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "YES"
   )
-endif()
 
   setup_pod_headers(
     firebase_analytics
