@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/cleanup_notifier.h"
 
 #include "gmock/gmock.h"

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firebase/ump/consent_info.h"
 
 #include "app/src/assert.h"

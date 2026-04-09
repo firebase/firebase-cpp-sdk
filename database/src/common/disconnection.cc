@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "database/src/include/firebase/database/disconnection.h"
 
 #include "app/src/include/firebase/internal/platform.h"

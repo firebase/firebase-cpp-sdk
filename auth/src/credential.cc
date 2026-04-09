@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "auth/src/include/firebase/auth/credential.h"
 
 #include "auth/src/common.h"

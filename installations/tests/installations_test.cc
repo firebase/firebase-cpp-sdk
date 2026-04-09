@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <unistd.h>
 #define __ANDROID__
 #include <jni.h>

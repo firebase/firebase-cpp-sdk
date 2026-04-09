@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "absl/strings/string_view.h"
 #include "app/src/base64.h"
 #include "app/src/log.h"

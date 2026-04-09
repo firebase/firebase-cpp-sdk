@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <string>
 
 #include "firebase/app_check/debug_provider.h"

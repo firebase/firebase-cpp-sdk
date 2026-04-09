@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/rest/request_json.h"
 
 #include "app/rest/sample_generated.h"

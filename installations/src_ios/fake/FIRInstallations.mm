@@ -17,6 +17,9 @@
 #import "installations/src_ios/fake/FIRInstallations.h"
 #import "installations/src_ios/fake/FIRInstallationsAuthTokenResult.h"
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "testing/reporter_impl.h"
 
 static dispatch_semaphore_t gThreadStarted;

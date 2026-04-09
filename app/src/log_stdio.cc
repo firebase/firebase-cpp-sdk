@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>

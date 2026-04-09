@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "ump/src/android/consent_info_internal_android.h"
 
 #include <jni.h>

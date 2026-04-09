@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
 

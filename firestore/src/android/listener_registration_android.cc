@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/listener_registration_android.h"
 
 #include "app/src/assert.h"

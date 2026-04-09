@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "database/src/desktop/core/sparse_snapshot_tree.h"
 
 #include "app/src/variant_util.h"

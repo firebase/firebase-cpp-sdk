@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "functions/src/ios/callable_reference_ios.h"
 
 #include "app/src/util_ios.h"

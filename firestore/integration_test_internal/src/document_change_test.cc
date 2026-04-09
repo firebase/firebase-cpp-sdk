@@ -15,6 +15,9 @@
  */
 
 #if defined(__ANDROID__)
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/document_change_android.h"
 #endif  // defined(__ANDROID__)
 

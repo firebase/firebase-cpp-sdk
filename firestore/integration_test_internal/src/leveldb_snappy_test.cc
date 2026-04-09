@@ -20,6 +20,9 @@
 #error "This test should not be included in Android."
 #endif
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <array>
 #include <fstream>
 #include <functional>

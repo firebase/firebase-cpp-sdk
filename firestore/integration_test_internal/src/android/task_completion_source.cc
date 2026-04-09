@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "android/task_completion_source.h"
 
 #include "firestore/src/jni/env.h"

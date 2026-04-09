@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/jni/hash_map.h"
 
 #include "app/src/util_android.h"

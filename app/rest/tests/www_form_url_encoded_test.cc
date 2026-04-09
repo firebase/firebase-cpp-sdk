@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/rest/www_form_url_encoded.h"
 
 #include "app/rest/util.h"

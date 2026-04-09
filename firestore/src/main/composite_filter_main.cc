@@ -18,6 +18,9 @@
 #error "This header should not be used on Android."
 #endif
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <utility>
 #include <vector>
 

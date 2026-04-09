@@ -19,6 +19,9 @@
 //          unannounced modification to the public.
 
 // [START functions_includes]
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firebase/app.h"
 #include "firebase/functions.h"
 // [END functions_includes]

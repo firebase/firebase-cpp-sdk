@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #include "app/src/assert.h"

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/common/wrapper_assertions.h"
 
 #if defined(__ANDROID__)

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "auth/src/android/common_android.h"
 
 #include "app/src/include/firebase/internal/common.h"

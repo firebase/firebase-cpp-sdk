@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/include/firebase/internal/common.h"
 #include "firebase/firestore.h"
 #include "firestore/src/common/futures.h"

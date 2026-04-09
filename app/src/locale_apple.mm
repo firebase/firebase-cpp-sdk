@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/locale.h"
 

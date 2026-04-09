@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/main/document_reference_main.h"
 
 #include "Firestore/core/src/api/listener_registration.h"

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/load_bundle_task_android.h"
 
 #include "firestore/src/jni/env.h"

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <memory>
 
 #include "firestore/src/main/create_firebase_metadata_provider.h"

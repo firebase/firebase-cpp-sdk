@@ -16,6 +16,9 @@
 
 #import <UIKit/UIApplication.h>
 #import <XCTest/XCTest.h>
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/util_ios.h"
 
 @interface SwizzlingTests : XCTestCase

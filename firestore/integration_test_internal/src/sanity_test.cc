@@ -21,6 +21,9 @@
 // the most critical mechanism of gtest. We also print information to stdout
 // for debugging if anything goes wrong.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 

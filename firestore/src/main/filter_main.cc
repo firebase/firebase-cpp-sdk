@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <vector>
 
 #include "firestore/src/main/composite_filter_main.h"

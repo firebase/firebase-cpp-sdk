@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/log.h"
 
 #if !defined(FIREBASE_ANDROID_FOR_DESKTOP)

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/geo_point_android.h"
 
 #include "android/firestore_integration_test_android.h"

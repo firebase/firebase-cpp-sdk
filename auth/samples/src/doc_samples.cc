@@ -21,6 +21,9 @@
 //          unannounced modification to the public.
 
 // [START auth_includes]
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firebase/app.h"
 #include "firebase/auth.h"
 // [END auth_includes]

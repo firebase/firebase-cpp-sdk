@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "database/src/desktop/core/info_listen_provider.h"
 
 #include "database/src/common/query_spec.h"

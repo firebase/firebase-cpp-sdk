@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/rest/request.h"
 
 #include "app/rest/tests/request_test.h"

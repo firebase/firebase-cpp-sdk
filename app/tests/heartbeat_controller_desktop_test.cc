@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 
 #include <string>

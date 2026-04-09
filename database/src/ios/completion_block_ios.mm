@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "database/src/ios/completion_block_ios.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/src/ios/util_ios.h"

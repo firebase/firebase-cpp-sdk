@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "auth/src/common.h"

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "installations/src/include/firebase/installations.h"
 
 #include "app/src/cleanup_notifier.h"

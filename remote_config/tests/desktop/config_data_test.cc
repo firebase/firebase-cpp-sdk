@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "remote_config/src/desktop/config_data.h"
 
 #include "gmock/gmock.h"

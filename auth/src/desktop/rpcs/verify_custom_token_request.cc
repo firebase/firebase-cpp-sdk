@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "auth/src/desktop/rpcs/verify_custom_token_request.h"
 
 #include <string>

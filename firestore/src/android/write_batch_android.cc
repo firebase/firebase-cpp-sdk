@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/write_batch_android.h"
 
 #include "firestore/src/android/document_reference_android.h"

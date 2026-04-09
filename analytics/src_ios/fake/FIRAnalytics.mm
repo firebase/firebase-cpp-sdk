@@ -16,6 +16,9 @@
 
 #import "analytics/src_ios/fake/FIRAnalytics.h"
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "testing/reporter_impl.h"
 
 @implementation FIRAnalytics

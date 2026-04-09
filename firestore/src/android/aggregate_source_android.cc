@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/aggregate_source_android.h"
 
 #include "firestore/src/jni/env.h"

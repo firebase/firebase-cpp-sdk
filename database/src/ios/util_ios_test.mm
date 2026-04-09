@@ -16,6 +16,9 @@
 
 #import <XCTest/XCTest.h>
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/util_ios.h"
 
 using ::firebase::Variant;

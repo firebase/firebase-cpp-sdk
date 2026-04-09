@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/metadata_changes_android.h"
 
 #include "firestore/src/jni/env.h"

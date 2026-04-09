@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 
 #include <utility>

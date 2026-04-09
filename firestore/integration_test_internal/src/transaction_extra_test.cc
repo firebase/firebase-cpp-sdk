@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/time.h"
 #include "firebase/firestore.h"
 #include "firebase/firestore/firestore_errors.h"

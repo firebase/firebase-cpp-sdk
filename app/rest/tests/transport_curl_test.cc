@@ -17,6 +17,9 @@
 // This is a large test that starts a local http server and tests transport_curl
 // with actual http connection.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/rest/transport_curl.h"
 
 #include <cstdint>

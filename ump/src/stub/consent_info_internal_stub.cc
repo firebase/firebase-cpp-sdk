@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "ump/src/stub/consent_info_internal_stub.h"
 
 #include "app/src/thread.h"

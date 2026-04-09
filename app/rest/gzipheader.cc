@@ -15,6 +15,9 @@
 // Author: Neal Cardwell
 //
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/rest/gzipheader.h"
 
 #include <assert.h>

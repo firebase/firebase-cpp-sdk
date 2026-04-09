@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/transaction_options_android.h"
 
 #include "firestore/src/jni/declaration.h"

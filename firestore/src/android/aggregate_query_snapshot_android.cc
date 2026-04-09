@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/aggregate_query_snapshot_android.h"
 
 #include "firestore/src/android/aggregate_query_android.h"

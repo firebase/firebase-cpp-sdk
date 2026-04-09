@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 
 #include "firestore/src/jni/env.h"

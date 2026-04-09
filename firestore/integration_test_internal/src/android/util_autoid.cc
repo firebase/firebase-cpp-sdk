@@ -16,6 +16,9 @@
 
 // Android-specific implementation of AutoId, since core library is
 // not used on Android.
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "android/util_autoid.h"
 
 #include <random>

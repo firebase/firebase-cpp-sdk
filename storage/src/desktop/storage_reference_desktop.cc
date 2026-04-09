@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "storage/src/desktop/storage_reference_desktop.h"
 
 #include <chrono>  // NOLINT

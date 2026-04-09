@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <chrono>  // NOLINT(build/c++11)
 #include <memory>
 #include <thread>  // NOLINT(build/c++11)

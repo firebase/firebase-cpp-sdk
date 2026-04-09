@@ -22,6 +22,9 @@
 
 // TODO(b/138615769): remove this file.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <cmath>
 #include <iostream>
 #include <sstream>

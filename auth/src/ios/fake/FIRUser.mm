@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "testing/config_ios.h"
 #include "testing/ticker_ios.h"
 #include "testing/util_ios.h"

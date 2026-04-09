@@ -22,6 +22,9 @@
 // This needs to be after the FIRAuthInterop import
 #import "FirebaseAuth-Swift.h"
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"

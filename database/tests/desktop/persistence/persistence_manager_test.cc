@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "database/src/desktop/persistence/persistence_manager.h"
 
 #include "database/tests/desktop/test/mock_cache_policy.h"

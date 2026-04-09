@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "auth/src/desktop/rpcs/sign_up_request.h"
 
 #include <memory>

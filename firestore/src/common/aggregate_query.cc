@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/futures.h"

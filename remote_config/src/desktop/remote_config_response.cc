@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "remote_config/src/desktop/remote_config_response.h"
 
 namespace firebase {

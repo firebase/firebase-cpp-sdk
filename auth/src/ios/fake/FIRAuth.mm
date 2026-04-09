@@ -20,6 +20,9 @@
 #import "auth/src/ios/fake/FIRAuthUIDelegate.h"
 #import "auth/src/ios/fake/FIRUser.h"
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <regex>
 #include <string>
 #include "testing/util_ios.h"

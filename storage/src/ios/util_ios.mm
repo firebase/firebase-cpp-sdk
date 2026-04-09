@@ -15,6 +15,9 @@
 #import <Foundation/Foundation.h>
 
 #import "FirebaseStorage-Swift.h"
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/ios/util_ios.h"
 

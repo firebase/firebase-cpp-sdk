@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include "remote_config/src/include/firebase/remote_config/config_update_listener_registration.h"
 
 #include <utility>

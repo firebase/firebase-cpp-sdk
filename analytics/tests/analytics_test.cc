@@ -16,6 +16,9 @@
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #define __ANDROID__
+#include <cstring>
+#include <cassert>
+#include <cstdint>
 #include <jni.h>
 
 #include "testing/run_all_tests.h"
