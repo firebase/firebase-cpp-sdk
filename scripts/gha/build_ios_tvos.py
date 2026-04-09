@@ -85,6 +85,26 @@ def arrange_frameworks(archive_output_path):
       archive_output_path (str): Output path containing frameworks.
         Subdirectories should be the various target frameworks.
   """
+  if not os.path.exists(archive_output_path):
+    logging.warning('Skipping arrange_frameworks for missing path: ' + archive_output_path)
+    return
+
+  # Pull output out of Debug subdirectory if using multi-configuration generator (Xcode)
+  for entry in os.listdir(archive_output_path):
+    if entry.startswith('Debug') and os.path.isdir(os.path.join(archive_output_path, entry)):
+      debug_path = os.path.join(archive_output_path, entry)
+      logging.info('Pulling output out of subdirectory ' + debug_path)
+      for sub_entry in os.listdir(debug_path):
+        src = os.path.join(debug_path, sub_entry)
+        dest = os.path.join(archive_output_path, sub_entry)
+        if os.path.exists(dest):
+          if os.path.isdir(dest):
+            shutil.rmtree(dest)
+          else:
+            os.remove(dest)
+        shutil.move(src, archive_output_path)
+      os.rmdir(debug_path)
+
   archive_output_dir_entries = os.listdir(archive_output_path)
   if not 'firebase.framework' in archive_output_dir_entries:
     # Rename firebase_app path to firebase path
@@ -176,6 +196,8 @@ def build_universal_framework(frameworks_path, targets):
     platform_variant_architecture_dirs = os.listdir(framework_os_path)
     platform_variant_arch_map = defaultdict(list)
     for variant_architecture in platform_variant_architecture_dirs:
+      if '-' not in variant_architecture:
+        continue
       logging.debug('Inspecting ' + variant_architecture)
       platform_variant, architecture = variant_architecture.split('-')
       platform_variant_arch_map[platform_variant].append(architecture)
@@ -199,9 +221,9 @@ def build_universal_framework(frameworks_path, targets):
       return
 
     # Pick any of the platform-arch directories as a reference candidate mainly
-    # for obtaining a list of contained targets.
-    reference_dir_path = os.path.join(framework_os_path,
-                                      platform_variant_architecture_dirs[0])
+    # for obtaining a list of contained targets. Skip 'universal' if it's there.
+    valid_dirs = [d for d in platform_variant_architecture_dirs if d != 'universal']
+    reference_dir_path = os.path.join(framework_os_path, valid_dirs[0])
     logging.debug('Using {0} as reference path for scanning '
                   'targets'.format(reference_dir_path))
     # Filter only .framework directories and make sure the framework is
@@ -218,9 +240,7 @@ def build_universal_framework(frameworks_path, targets):
       # Eg: split firebase_auth.framework -> firebase_auth, .framework
       target, _ = os.path.splitext(target_framework)
       for variant_architecture_dir in platform_variant_architecture_dirs:
-        # Since we have arm64 for both device and simulator, lipo cannot combine
-        # them in the same fat file. We ignore simulator-arm64.
-        if variant_architecture_dir == 'simulator-arm64':
+        if variant_architecture_dir == 'simulator-arm64' or variant_architecture_dir == 'universal':
           continue
         # <build_dir>/<apple_os>/frameworks/<platform-arch>/
         # <target>.framework/target
@@ -233,7 +253,7 @@ def build_universal_framework(frameworks_path, targets):
       universal_target_path = os.path.join(framework_os_path, 'universal',
                                           target_framework)
       logging.debug('Ensuring all directories exist: ' + universal_target_path)
-      os.makedirs(universal_target_path)
+      os.makedirs(universal_target_path, exist_ok=True)
       # <build_dir>/<apple_os>/frameworks/universal/<target>.framework/<target>
       universal_target_library_path = os.path.join(universal_target_path,
                                                    target)
@@ -259,7 +279,8 @@ def build_universal_framework(frameworks_path, targets):
                                                   'Headers')
 
     shutil.copytree(firebase_framework_headers_path,
-                    universal_firebase_framework_headers_path)
+                    universal_firebase_framework_headers_path,
+                    dirs_exist_ok=True)
 
 
 def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
@@ -389,7 +410,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                                           xcframework_key,
                                           '{0}.framework'.format(target))
         logging.debug('Ensuring all directories exist: ' + library_output_dir)
-        os.makedirs(library_output_dir)
+        os.makedirs(library_output_dir, exist_ok=True)
         cmd = ['lipo', '-create']
         cmd.extend(xcframework_libraries)
         cmd.append('-output')
@@ -456,7 +477,7 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
         system. Used when building for ios/tvos. (eg:'arm64', 'x86_64')
       apple_os (str, optional): The Apple OS to build for.
   """
-  cmd = ['cmake', '-S', source_path, '-B', build_path]
+  cmd = ['cmake', '-S', source_path, '-B', build_path, '-G', 'Xcode']
   if toolchain:
     cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain))
   elif apple_os == 'ios':
@@ -468,6 +489,8 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
     if platform_variant == 'simulator':
       cmd.append('-DCMAKE_OSX_SYSROOT=appletvsimulator')
   cmd.append('-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
+  cmd.append('-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
+  cmd.append('-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   if architecture:
     cmd.append('-DCMAKE_OSX_ARCHITECTURES={0}'.format(architecture))
   utils.run_command(cmd)
