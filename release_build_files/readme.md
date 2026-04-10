@@ -265,8 +265,10 @@ the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
 Note: Parts of the Firebase iOS SDK are written in Swift. If your application
-does not use any Swift code, you may need to add an empty .swift file to your
-Xcode project to ensure that the Swift runtime is included in your app.
+does not use any Swift code, you may need to add a .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app. To
+ensure compatibility with Swift Concurrency on iOS 15 and 16, this file should
+contain a dummy async function: `func _firebase_sdk_dummy_async() async {}`.
 
 #### Libraries
 
@@ -324,8 +326,10 @@ the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
 Note: Parts of the Firebase iOS SDK are written in Swift. If your application
-does not use any Swift code, you may need to add an empty .swift file to your
-Xcode project to ensure that the Swift runtime is included in your app.
+does not use any Swift code, you may need to add a .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app. To
+ensure compatibility with Swift Concurrency on iOS 15 and 16, this file should
+contain a dummy async function: `func _firebase_sdk_dummy_async() async {}`.
 
 ### Desktop Implementation Dependencies
 
