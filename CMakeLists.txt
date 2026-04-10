@@ -104,7 +104,7 @@ set(CMAKE_Swift_LANGUAGE_VERSION 5.9)
 
 enable_language(C)
 enable_language(CXX)
-if (IOS)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
   enable_language(Swift)
 endif()
 
