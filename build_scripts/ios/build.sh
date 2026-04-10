@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+export LANG=en_US.UTF-8
+
 # Copyright 2020 Google LLC
 #
 # Script to build iOS XCFrameworks
@@ -123,7 +125,7 @@ if ${generateMakefiles}; then
         for arch in ${architectures[@]}; do 
             sysroot_arg=""
             if [[ "${platform}" == "device" && " ${DEVICE_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                sysroot_arg="" # Default iphoneos sysroot is correct for iOS devices
+                sysroot_arg="-DCMAKE_OSX_SYSROOT=iphoneos"
             elif [[ "${platform}" == "simulator" && " ${SIMULATOR_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
                 sysroot_arg="-DCMAKE_OSX_SYSROOT=iphonesimulator" # Must specify sysroot for simulator, especially for x86_64
             else
@@ -132,10 +134,12 @@ if ${generateMakefiles}; then
 
             echo "generate Makefiles start"
             mkdir -p ${buildpath}/ios_build_file/${platform}-${arch} && cd ${buildpath}/ios_build_file/${platform}-${arch}
-            cmake -DCMAKE_SYSTEM_NAME=iOS \
+            cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS \
                 ${sysroot_arg} \
                 -DCMAKE_OSX_ARCHITECTURES=${arch} \
                 -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
+                -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG=${buildpath}/${frameworkspath}/${platform}-${arch} \
+                -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE=${buildpath}/${frameworkspath}/${platform}-${arch} \
                 ${sourcepath}
             echo "generate Makefiles end"
         done

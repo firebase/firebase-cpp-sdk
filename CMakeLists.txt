@@ -18,6 +18,9 @@ cmake_minimum_required(VERSION 3.22)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_compile_definitions(_GNU_SOURCE)
+endif()
 
 # Turn on virtual folders for visual studio
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -96,8 +99,14 @@ set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 project (firebase NONE)
+
+set(CMAKE_Swift_LANGUAGE_VERSION 5.9)
+
 enable_language(C)
 enable_language(CXX)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+  enable_language(Swift)
+endif()
 
 if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
   find_program(CCACHE_PROGRAM ccache)
