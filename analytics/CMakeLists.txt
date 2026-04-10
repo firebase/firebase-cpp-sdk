@@ -73,7 +73,7 @@ set(android_SRCS
 # Source files used by the iOS implementation.
 set(ios_SRCS
     src/analytics_ios.mm
-    src/ios/swift/StoreKit2Bridge.swift)
+    src/ios/swift/AppleTransactionVerifier.swift)
 
 # Source files used by the desktop / stub implementation.
 set(desktop_SRCS

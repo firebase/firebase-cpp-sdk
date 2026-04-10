@@ -161,6 +161,7 @@ if(DESKTOP AND APPLE)
 endif()
 
 if(APPLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -D_LIBCPP_HAS_NO_VERBOSE_ABORT")
   # For iOS and macOS, disable nullability completeness warning, as it makes the
   # build output for our Objective-C++ files much too verbose.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nullability-completeness")
@@ -365,6 +366,7 @@ endif()
 # Include Firestore's external build early to resolve conflicts on packages.
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   if(APPLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -D_LIBCPP_HAS_NO_VERBOSE_ABORT")
     # On Apple, set GRPC_BAZEL_BUILD to fix an issue with __thread.
     # Setting this define makes gRPC use pthread's thread-local storage
     # instead of GCC's.
@@ -486,6 +488,7 @@ if(DESKTOP)
         -DUSE_LIBUV=1
       )
     elseif(APPLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -D_LIBCPP_HAS_NO_VERBOSE_ABORT")
       set(websockets_additional_defines
         ${websockets_additional_defines}
         -DUSE_LIBUV=1
