@@ -72,7 +72,8 @@ set(android_SRCS
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/analytics_ios.mm)
+    src/analytics_ios.mm
+    src/ios/swift/StoreKit2Bridge.swift)
 
 # Source files used by the desktop / stub implementation.
 set(desktop_SRCS
@@ -159,14 +160,10 @@ elseif(IOS)
   # to the Swift compiler, which does not support the flag.
   set_source_files_properties(src/analytics_ios.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc;-fembed-bitcode")
 
-  add_library(firebase_analytics_swift OBJECT src/ios/swift/StoreKit2Bridge.swift)
-  target_link_libraries(firebase_analytics PUBLIC firebase_analytics_swift)
-
   if(CMAKE_GENERATOR STREQUAL "Xcode")
     target_include_directories(firebase_analytics PRIVATE "$(DERIVED_FILE_DIR)")
     target_compile_options(firebase_analytics PRIVATE 
       "-I$(OBJECT_FILE_DIR_normal)/$(CURRENT_ARCH)"
-      "-I$(BUILD_DIR)/firebase_analytics_swift.build/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/DerivedSources"
     )
   else()
     target_include_directories(firebase_analytics PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -197,7 +194,7 @@ elseif(IOS)
   set(analytics_framework_dir "${pods_dir}/FirebaseAnalytics/Frameworks/FirebaseAnalytics.xcframework/${analytics_slice}")
   set(measurement_framework_dir "${pods_dir}/GoogleAppMeasurement/Frameworks/GoogleAppMeasurement.xcframework/${analytics_slice}")
   
-  target_compile_options(firebase_analytics_swift
+  target_compile_options(firebase_analytics
     PRIVATE
       $<$<COMPILE_LANGUAGE:Swift>:-F${analytics_framework_dir}>
       $<$<COMPILE_LANGUAGE:Swift>:-F${measurement_framework_dir}>
@@ -208,7 +205,7 @@ elseif(IOS)
       "-F${analytics_framework_dir}"
       "-F${measurement_framework_dir}"
   )
-  
+
   # Prevent Xcode from trying to build or evaluate headers for unused architectures
   set_target_properties(firebase_analytics PROPERTIES
     XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "YES"
