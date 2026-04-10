@@ -265,10 +265,16 @@ the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
 Note: Parts of the Firebase iOS SDK are written in Swift. If your application
-does not use any Swift code, you may need to add a .swift file to your
-Xcode project to ensure that the Swift runtime is included in your app. To
-ensure compatibility with Swift Concurrency on iOS 15 and 16, this file should
-contain a dummy async function: `func _firebase_sdk_dummy_async() async {}`.
+does not use any Swift code, you may need to add an empty .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app.
+
+Additionally, to resolve known Xcode 15+ crashes when deploying to iOS 15 or 16,
+you must add `-Wl,-weak-lswift_Concurrency` to your `OTHER_LDFLAGS` (Other
+Linker Flags). If your application crashes with a 'Symbol not found' error for
+`__libcpp_verbose_abort`, you should also add
+`-D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY` to your
+`OTHER_CPLUSPLUSFLAGS` (Other C++ Flags), or provide a fallback implementation
+in your code (e.g., `extern "C" void __libcpp_verbose_abort(const char* f, ...) { abort(); }`).
 
 #### Libraries
 
@@ -326,10 +332,16 @@ the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
 Note: Parts of the Firebase iOS SDK are written in Swift. If your application
-does not use any Swift code, you may need to add a .swift file to your
-Xcode project to ensure that the Swift runtime is included in your app. To
-ensure compatibility with Swift Concurrency on iOS 15 and 16, this file should
-contain a dummy async function: `func _firebase_sdk_dummy_async() async {}`.
+does not use any Swift code, you may need to add an empty .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app.
+
+Additionally, to resolve known Xcode 15+ crashes when deploying to iOS 15 or 16,
+you must add `-Wl,-weak-lswift_Concurrency` to your `OTHER_LDFLAGS` (Other
+Linker Flags). If your application crashes with a 'Symbol not found' error for
+`__libcpp_verbose_abort`, you should also add
+`-D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY` to your
+`OTHER_CPLUSPLUSFLAGS` (Other C++ Flags), or provide a fallback implementation
+in your code (e.g., `extern "C" void __libcpp_verbose_abort(const char* f, ...) { abort(); }`).
 
 ### Desktop Implementation Dependencies
 
@@ -624,6 +636,7 @@ code.
     - Functions (general): Add in support for Limited Use Tokens.
     - Storage: Added `List` API for all platforms, which gets the list of items under a `StorageReference`
     - Analytics: Add in `LogAppleTransaction` for logging Storekit 2 transactions on iOS.
+    - General (iOS): Added `-Wl,-weak-lswift_Concurrency` and `-D_LIBCPP_HAS_NO_VERBOSE_ABORT` flags to resolve Xcode 15+ launch crashes on iOS 15 and 16.
 
 ### 13.5.0
 -   Changes

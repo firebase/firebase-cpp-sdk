@@ -15,6 +15,9 @@
 #include "app_framework.h"  // NOLINT
 
 #include <inttypes.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 
 #include <algorithm>
@@ -22,6 +25,24 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+
+#if defined(__APPLE__)
+// Workaround for Xcode 15 / Swift 5.10 Concurrency and C++ verbose abort
+// crash on older iOS versions (iOS 15/16).
+// By providing these symbols in our own binary, we prevent dyld from
+// crashing when they are missing from the system libraries on older OSs.
+namespace std {
+inline namespace __1 {
+__attribute__((weak)) void __libcpp_verbose_abort(const char* format, ...) {
+  va_list list;
+  va_start(list, format);
+  vfprintf(stderr, format, list);
+  va_end(list);
+  abort();
+}
+}  // namespace __1
+}  // namespace std
+#endif
 
 namespace app_framework {
 

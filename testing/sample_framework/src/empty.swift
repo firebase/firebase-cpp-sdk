@@ -13,13 +13,3 @@
 // limitations under the License.
 
 // This empty Swift file is needed to ensure the Swift runtime is included.
-// along with forcing the swift async libraries to be linked on older versions of iOS/tvOS
-
-import Foundation
-
-// This dummy async function forces Xcode to automatically link the 
-// Swift Concurrency backwards-compatibility libraries (libswift_Concurrency) 
-// on older iOS versions (iOS 15/16).
-@available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
-func _firebase_sdk_dummy_async_func() async {
-}
