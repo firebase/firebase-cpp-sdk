@@ -24,7 +24,7 @@
 #include "analytics/src/include/firebase/analytics.h"
 
 // Include the generated Swift header for the C++ bridge.
-#include "firebase_analytics_swift-Swift.h"
+#include "firebase_analytics-Swift.h"
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
