@@ -615,6 +615,8 @@ code.
 ## Release Notes
 ### 13.6.0
 - Changes
+    - General (Android): Update to Firebase Android BoM version 34.12.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.12.0.
     - Functions (general): Add in support for Limited Use Tokens.
     - Storage: Added `List` API for all platforms, which gets the list of items under a `StorageReference`
 
