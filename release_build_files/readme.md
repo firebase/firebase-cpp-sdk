@@ -613,8 +613,8 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
-- Changes 
+### 13.6.0
+- Changes
     - Functions (general): Add in support for Limited Use Tokens.
     - Storage: Added `List` API for all platforms, which gets the list of items under a `StorageReference`
 
