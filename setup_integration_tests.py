@@ -57,6 +57,3 @@ for dest in destinations:
     for src in FRAMEWORK_DIRECTORIES:
         print('Copying %s to %s' % (src, dest))
         copy_tree(src, dest, update=1)
-
-
-
