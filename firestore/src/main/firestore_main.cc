@@ -23,6 +23,7 @@
 
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/api/settings.h"
 #include "Firestore/core/src/credentials/empty_credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
@@ -32,16 +33,19 @@
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/log.h"
 #include "Firestore/core/src/util/status.h"
+#include "Firestore/core/src/util/warnings.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_version.h"
+#include "firebase/firestore/settings.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/include/firebase/firestore/local_cache_settings.h"
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/create_app_check_credentials_provider.h"
 #include "firestore/src/main/create_credentials_provider.h"
@@ -49,6 +53,7 @@
 #include "firestore/src/main/document_reference_main.h"
 #include "firestore/src/main/document_snapshot_main.h"
 #include "firestore/src/main/listener_main.h"
+#include "firestore/src/main/local_cache_settings_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -193,8 +198,16 @@ Settings FirestoreInternal::settings() const {
   const api::Settings& from = firestore_core_->settings();
   result.set_host(from.host());
   result.set_ssl_enabled(from.ssl_enabled());
+
+  // TODO(wuandy): We use the deprecated API for default settings, but mark
+  // `cache_settings_source_` as `kNew` such that new settings API is not
+  // rejected by runtime checks. This should be removed when legacy API is
+  // removed.
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
   result.set_persistence_enabled(from.persistence_enabled());
   result.set_cache_size_bytes(from.cache_size_bytes());
+  SUPPRESS_END()
+  result.cache_settings_source_ = Settings::CacheSettingsSource::kNone;
 
   return result;
 }
@@ -203,8 +216,16 @@ void FirestoreInternal::set_settings(Settings from) {
   api::Settings settings;
   settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
-  settings.set_persistence_enabled(from.is_persistence_enabled());
-  settings.set_cache_size_bytes(from.cache_size_bytes());
+  // TODO(wuandy): Checking `from.local_cache_settings_` is required, because
+  // FirestoreInternal::settings() overrides used_legacy_cache_settings_. All
+  // this special logic should go away when legacy cache config is removed.
+  if (from.cache_settings_source_ == Settings::CacheSettingsSource::kNew) {
+    settings.set_local_cache_settings(
+        from.local_cache_settings().internal().core_settings());
+  } else {
+    settings.set_persistence_enabled(from.is_persistence_enabled());
+    settings.set_cache_size_bytes(from.cache_size_bytes());
+  }
   firestore_core_->set_settings(settings);
 
   std::unique_ptr<Executor> user_executor = from.CreateExecutor();
