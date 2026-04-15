@@ -42,7 +42,7 @@ internal struct AppleTransactionWorker {
     // Notice: To avoid C-pointer ABI layout issues across Swift boundaries, 
     // this interface relies purely on a standard Swift closure. The calling 
     // C++ layer captures any necessary pointers within an Objective-C block.
-    @objc public static func verify(transactionId: String, completion: @escaping (Bool) -> Void) {
+    @objc public static func verify(transactionId: String, completion: @escaping @Sendable (Bool) -> Void) {
         if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
             // Create a pure Swift String copy of the transaction ID.
             // This ensures we do not rely on the memory of the bridged Objective-C

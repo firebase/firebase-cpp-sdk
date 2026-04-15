@@ -58,17 +58,5 @@ for dest in destinations:
         print('Copying %s to %s' % (src, dest))
         copy_tree(src, dest, update=1)
 
-        # Workaround for Xcode 15 / Swift 5.10 Concurrency crash on iOS 15 and 16
-        pbxproj_path = os.path.join(dest, "integration_test.xcodeproj", "project.pbxproj")
-        if os.path.exists(pbxproj_path):
-            with open(pbxproj_path, "r") as f:
-                pbx_content = f.read()
-            if "-Wl,-weak-lswift_Concurrency" not in pbx_content:
-                pbx_content = pbx_content.replace(
-                    "buildSettings = {",
-                    "buildSettings = {\n\t\t\t\tOTHER_CPLUSPLUSFLAGS = \"$(inherited) -D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY\";\n\t\t\t\tOTHER_LDFLAGS = \"-Wl,-weak-lswift_Concurrency\";"
-                )
-                with open(pbxproj_path, "w") as f:
-                    f.write(pbx_content)
-                print("Patched " + pbxproj_path + " for Swift Concurrency backwards compatibility.")
+
 
