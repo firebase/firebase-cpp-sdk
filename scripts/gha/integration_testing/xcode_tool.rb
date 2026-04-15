@@ -88,7 +88,17 @@ def main
   end
 
   framework_dir = "#@xcode_project_dir/Frameworks"
-  set_build_setting('FRAMEWORK_SEARCH_PATHS', ['${inherited}', framework_dir])
+  framework_search_paths = ['${inherited}', framework_dir]
+  
+  @frameworks.each do |framework|
+    framework_name = File.basename(framework)
+    if framework_name.end_with?('.xcframework')
+      framework_search_paths << "#{framework_dir}/#{framework_name}/ios-arm64_x86_64-simulator"
+    end
+  end
+
+  set_build_setting('FRAMEWORK_SEARCH_PATHS', framework_search_paths)
+
   if !@include_path.nil?
     append_to_build_setting('HEADER_SEARCH_PATHS', @include_path)
   end
@@ -163,6 +173,9 @@ def add_custom_framework(framework_path)
   local_framework_path = "Frameworks/#{framework_name}"
   # Add the lib file as a reference
   libRef = @project['Frameworks'].new_file(framework_path)
+  if framework_name.end_with?('.xcframework')
+    libRef.last_known_file_type = 'wrapper.xcframework'
+  end
   # Add it to the build phase
   @target.frameworks_build_phase.add_file_reference(libRef)
   puts 'Finished adding framework.'

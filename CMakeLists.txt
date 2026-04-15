@@ -100,7 +100,7 @@ set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 project (firebase NONE)
 
-set(CMAKE_Swift_LANGUAGE_VERSION 5.9)
+set(CMAKE_Swift_LANGUAGE_VERSION 6.2)
 
 enable_language(C)
 enable_language(CXX)
