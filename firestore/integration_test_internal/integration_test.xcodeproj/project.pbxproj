@@ -703,8 +703,6 @@
 		529226F71C85F68000C89379 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CPLUSPLUSFLAGS = "$(inherited) -D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY";
-				OTHER_LDFLAGS = "$(inherited) -Wl,-weak-lswift_Concurrency";
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -748,8 +746,6 @@
 		529226F81C85F68000C89379 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CPLUSPLUSFLAGS = "$(inherited) -D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY";
-				OTHER_LDFLAGS = "$(inherited) -Wl,-weak-lswift_Concurrency";
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -788,8 +784,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = AA66DDF2F9BB2D8480FAB9BD /* Pods-integration_test.debug.xcconfig */;
 			buildSettings = {
-				OTHER_CPLUSPLUSFLAGS = "$(inherited) -D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY";
-				OTHER_LDFLAGS = "$(inherited) -Wl,-weak-lswift_Concurrency";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ENABLE_MODULES = YES;
@@ -840,8 +834,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5FB592CD6A6DDFBF795F22C1 /* Pods-integration_test.release.xcconfig */;
 			buildSettings = {
-				OTHER_CPLUSPLUSFLAGS = "$(inherited) -D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY";
-				OTHER_LDFLAGS = "$(inherited) -Wl,-weak-lswift_Concurrency";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ENABLE_MODULES = YES;
@@ -891,8 +883,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = F64F2CE3EB5EF07EA247CB71 /* Pods-integration_test_tvos.debug.xcconfig */;
 			buildSettings = {
-				OTHER_CPLUSPLUSFLAGS = "$(inherited) -D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY";
-				OTHER_LDFLAGS = "$(inherited) -Wl,-weak-lswift_Concurrency";
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -966,8 +956,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3DE393E827F88B06CD3C39CD /* Pods-integration_test_tvos.release.xcconfig */;
 			buildSettings = {
-				OTHER_CPLUSPLUSFLAGS = "$(inherited) -D_LIBCPP_HAS_NO_VERBOSE_ABORT -D_LIBCPP_DISABLE_AVAILABILITY";
-				OTHER_LDFLAGS = "$(inherited) -Wl,-weak-lswift_Concurrency";
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
