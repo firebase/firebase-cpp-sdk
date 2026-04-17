@@ -88,16 +88,7 @@ def main
   end
 
   framework_dir = "#@xcode_project_dir/Frameworks"
-  framework_search_paths = ['${inherited}', framework_dir]
-  
-  @frameworks.each do |framework|
-    framework_name = File.basename(framework)
-    if framework_name.end_with?('.xcframework')
-      framework_search_paths << "#{framework_dir}/#{framework_name}/ios-arm64_x86_64-simulator"
-    end
-  end
-
-  set_build_setting('FRAMEWORK_SEARCH_PATHS', framework_search_paths)
+  set_build_setting('FRAMEWORK_SEARCH_PATHS', ['${inherited}', framework_dir])
 
   if !@include_path.nil?
     append_to_build_setting('HEADER_SEARCH_PATHS', @include_path)

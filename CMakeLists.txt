@@ -18,9 +18,6 @@ cmake_minimum_required(VERSION 3.22)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  add_compile_definitions(_GNU_SOURCE)
-endif()
 
 # Turn on virtual folders for visual studio
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -486,7 +483,7 @@ if(DESKTOP)
         -DUSE_LIBUV=1
       )
     elseif(APPLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -D_LIBCPP_HAS_NO_VERBOSE_ABORT")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY")
       set(websockets_additional_defines
         ${websockets_additional_defines}
         -DUSE_LIBUV=1

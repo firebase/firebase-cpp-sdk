@@ -457,39 +457,35 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/mutable_data.h
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/query.h
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/transaction.h)
-  if (EXISTS "${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal")
-    set(firestore_HDRS
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query_snapshot.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_source.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/filter.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/load_bundle_task_progress.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/map_field_value.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/metadata_changes.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query_snapshot.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/set_options.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/settings.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/snapshot_metadata.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/source.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
-      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_errors.h
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_version.h
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/geo_point.h
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/timestamp.h)
-  else()
-    set(firestore_HDRS "")
-  endif()
+  set(firestore_HDRS
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_source.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/filter.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/load_bundle_task_progress.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/map_field_value.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/metadata_changes.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/set_options.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/settings.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/snapshot_metadata.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/source.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_errors.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_version.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/geo_point.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/timestamp.h)
   set(functions_HDRS
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
