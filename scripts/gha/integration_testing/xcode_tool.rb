@@ -163,9 +163,6 @@ def add_custom_framework(framework_path)
   local_framework_path = "Frameworks/#{framework_name}"
   # Add the lib file as a reference
   libRef = @project['Frameworks'].new_file(framework_path)
-  if framework_name.end_with?('.xcframework')
-    libRef.last_known_file_type = 'wrapper.xcframework'
-  end
   # Add it to the build phase
   @target.frameworks_build_phase.add_file_reference(libRef)
   puts 'Finished adding framework.'
