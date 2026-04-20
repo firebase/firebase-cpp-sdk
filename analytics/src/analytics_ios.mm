@@ -273,8 +273,7 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
   // We capture the C++ handle_ptr inside the Objective-C block. Swift never sees it.
   [AppleTransactionVerifier verifyWithTransactionId:SafeString(transaction_id) 
                                        completion:^(BOOL isFound) {
-      // 3. We are back in C++ land on the Main Thread. 
-      // Call your completion logic directly.
+      // 3. We are back in C++ land. Call your completion logic directly.
       CompleteLogAppleTransaction(handle_ptr, isFound == YES);
   }];
 

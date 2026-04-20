@@ -24,7 +24,7 @@ namespace analytics {
 namespace internal {
 
 enum AnalyticsFn {
-  kAnalyticsFnGetAnalyticsInstanceId = 0,
+  kAnalyticsFnGetAnalyticsInstanceId,
   kAnalyticsFnGetSessionId,
   kAnalyticsFnLogAppleTransaction,
   kAnalyticsFnCount,
