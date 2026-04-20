@@ -33,7 +33,8 @@
 // crashing when they are missing from the system libraries on older OSs.
 namespace std {
 inline namespace __1 {
-__attribute__((weak)) void __libcpp_verbose_abort(const char* format, ...) noexcept {
+__attribute__((weak)) void __libcpp_verbose_abort(const char* format,
+                                                  ...) noexcept {
   va_list list;
   va_start(list, format);
   vfprintf(stderr, format, list);

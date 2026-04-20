@@ -246,18 +246,19 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
     return Future<void>(api, future_handle.get());
   }
 
-  [AppleTransactionVerifier verifyWithTransactionId:SafeString(transaction_id) 
-                                       completion:^(BOOL isFound) {
-    MutexLock lock(g_mutex);
-    if (!internal::IsInitialized()) return;
+  [AppleTransactionVerifier
+      verifyWithTransactionId:SafeString(transaction_id)
+                   completion:^(BOOL isFound) {
+                     MutexLock lock(g_mutex);
+                     if (!internal::IsInitialized()) return;
 
-    auto* api = internal::FutureData::Get()->api();
-    if (isFound) {
-      api->Complete(future_handle, 0, "");
-    } else {
-      api->Complete(future_handle, -1, "StoreKit 2 transaction not found.");
-    }
-  }];
+                     auto* api = internal::FutureData::Get()->api();
+                     if (isFound) {
+                       api->Complete(future_handle, 0, "");
+                     } else {
+                       api->Complete(future_handle, -1, "StoreKit 2 transaction not found.");
+                     }
+                   }];
 
   return Future<void>(api, future_handle.get());
 }
