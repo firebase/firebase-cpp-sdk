@@ -234,27 +234,6 @@ void LogEvent(const char* name) {
   [FIRAnalytics logEventWithName:@(name) parameters:@{}];
 }
 
-extern "C" {
-void CompleteLogAppleTransaction(const void* context, bool success) {
-  FIREBASE_ASSERT_RETURN_VOID(context != nullptr);
-  auto* handle_ptr = static_cast<SafeFutureHandle<void>*>(const_cast<void*>(context));
-
-  MutexLock lock(g_mutex);
-  if (!internal::IsInitialized()) {
-    delete handle_ptr;
-    return;
-  }
-
-  auto* api = internal::FutureData::Get()->api();
-  if (success) {
-    api->Complete(*handle_ptr, 0, "");
-  } else {
-    api->Complete(*handle_ptr, -1, "StoreKit 2 transaction not found.");
-  }
-  delete handle_ptr;
-}
-}
-
 Future<void> LogAppleTransaction(const char* transaction_id) {
   MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
@@ -267,14 +246,17 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
     return Future<void>(api, future_handle.get());
   }
 
-  SafeFutureHandle<void>* handle_ptr = new SafeFutureHandle<void>(future_handle);
-
-  // 2. Call Swift using a standard Objective-C block.
-  // We capture the C++ handle_ptr inside the Objective-C block. Swift never sees it.
   [AppleTransactionVerifier verifyWithTransactionId:SafeString(transaction_id) 
                                        completion:^(BOOL isFound) {
-      // 3. We are back in C++ land. Call your completion logic directly.
-      CompleteLogAppleTransaction(handle_ptr, isFound == YES);
+    MutexLock lock(g_mutex);
+    if (!internal::IsInitialized()) return;
+
+    auto* api = internal::FutureData::Get()->api();
+    if (isFound) {
+      api->Complete(future_handle, 0, "");
+    } else {
+      api->Complete(future_handle, -1, "StoreKit 2 transaction not found.");
+    }
   }];
 
   return Future<void>(api, future_handle.get());

@@ -89,7 +89,6 @@ def main
 
   framework_dir = "#@xcode_project_dir/Frameworks"
   set_build_setting('FRAMEWORK_SEARCH_PATHS', ['${inherited}', framework_dir])
-
   if !@include_path.nil?
     append_to_build_setting('HEADER_SEARCH_PATHS', @include_path)
   end

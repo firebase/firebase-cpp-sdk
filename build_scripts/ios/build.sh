@@ -1,7 +1,5 @@
 #!/bin/bash -e
 
-export LANG=en_US.UTF-8
-
 # Copyright 2020 Google LLC
 #
 # Script to build iOS XCFrameworks
@@ -125,7 +123,7 @@ if ${generateMakefiles}; then
         for arch in ${architectures[@]}; do 
             sysroot_arg=""
             if [[ "${platform}" == "device" && " ${DEVICE_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                sysroot_arg="-DCMAKE_OSX_SYSROOT=iphoneos"
+                sysroot_arg="" # Default iphoneos sysroot is correct for iOS devices
             elif [[ "${platform}" == "simulator" && " ${SIMULATOR_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
                 sysroot_arg="-DCMAKE_OSX_SYSROOT=iphonesimulator" # Must specify sysroot for simulator, especially for x86_64
             else
