@@ -367,17 +367,22 @@ target_link_libraries(firebase_app
     ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
 )
+# Automatically include headers that might not be declared.
+# We use add_compile_options (instead of target_compile_options) so these
+# implicit includes apply globally to all targets in this directory,
+# including tests. Generator expressions ($<$<COMPILE_LANGUAGE:...>) are
+# used to ensure these C/C++ headers are not passed to the Swift compiler.
 if(MSVC)
-  target_compile_options(firebase_app PRIVATE
+  add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:/FI"assert.h" /FI"string.h" /FI"stdint.h">)
 elseif(APPLE)
-  target_compile_options(firebase_app PRIVATE
+  add_compile_options(
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>"
     "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include assert.h>"
     "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include string.h>")
 else()
-  target_compile_options(firebase_app PRIVATE
+  add_compile_options(
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>")
 endif()
@@ -385,7 +390,6 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(app)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
   # Enable Automatic Reference Counting (ARC) for Objective-C/Swift interop
   target_compile_options(firebase_app
                          PUBLIC $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:-fobjc-arc>)
@@ -429,13 +433,14 @@ if (IOS)
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     if (FIREBASE_INCLUDE_ANALYTICS)
       set(analytics_HDRS
-      ${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h
-      ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/event_names.h
-      ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/parameter_names.h
-      ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/user_property_names.h)
+        ${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h
+        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/event_names.h
+        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/parameter_names.h
+        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/user_property_names.h)
     else()
       set(analytics_HDRS "")
     endif()
+  endif()
   set(app_check_HDRS
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check.h
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h
@@ -550,5 +555,4 @@ if (IOS)
   # to destination dir "Headers/google_play_services/*"
   set_property(SOURCE "src/include/google_play_services/availability.h" PROPERTY 
                   MACOSX_PACKAGE_LOCATION Headers/google_play_services)
-  endif() # framework_HDRS
 endif()
