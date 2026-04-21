@@ -315,7 +315,9 @@ endif()
 # used to ensure these C/C++ headers are not passed to the Swift compiler.
 if(MSVC)
   add_compile_options(
-    $<$<COMPILE_LANGUAGE:CXX>:/FI"assert.h" /FI"string.h" /FI"stdint.h">)
+    $<$<COMPILE_LANGUAGE:CXX>:/FI"assert.h">
+    $<$<COMPILE_LANGUAGE:CXX>:/FI"string.h">
+    $<$<COMPILE_LANGUAGE:CXX>:/FI"stdint.h">)
 elseif(APPLE)
   add_compile_options(
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
