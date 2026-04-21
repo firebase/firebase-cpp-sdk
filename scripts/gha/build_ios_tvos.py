@@ -85,6 +85,26 @@ def arrange_frameworks(archive_output_path):
       archive_output_path (str): Output path containing frameworks.
         Subdirectories should be the various target frameworks.
   """
+  if not os.path.exists(archive_output_path):
+    logging.warning('Skipping arrange_frameworks for missing path: ' + archive_output_path)
+    return
+
+  # Pull output out of Debug subdirectory if using multi-configuration generator (Xcode)
+  for entry in os.listdir(archive_output_path):
+    if entry.startswith('Debug') and os.path.isdir(os.path.join(archive_output_path, entry)):
+      debug_path = os.path.join(archive_output_path, entry)
+      logging.info('Pulling output out of subdirectory ' + debug_path)
+      for sub_entry in os.listdir(debug_path):
+        src = os.path.join(debug_path, sub_entry)
+        dest = os.path.join(archive_output_path, sub_entry)
+        if os.path.exists(dest):
+          if os.path.isdir(dest):
+            shutil.rmtree(dest)
+          else:
+            os.remove(dest)
+        shutil.move(src, archive_output_path)
+      os.rmdir(debug_path)
+
   archive_output_dir_entries = os.listdir(archive_output_path)
   if not 'firebase.framework' in archive_output_dir_entries:
     # Rename firebase_app path to firebase path
@@ -456,7 +476,7 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
         system. Used when building for ios/tvos. (eg:'arm64', 'x86_64')
       apple_os (str, optional): The Apple OS to build for.
   """
-  cmd = ['cmake', '-S', source_path, '-B', build_path]
+  cmd = ['cmake', '-S', source_path, '-B', build_path, '-G', 'Xcode']
   if toolchain:
     cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain))
   elif apple_os == 'ios':
@@ -468,6 +488,8 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
     if platform_variant == 'simulator':
       cmd.append('-DCMAKE_OSX_SYSROOT=appletvsimulator')
   cmd.append('-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
+  cmd.append('-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
+  cmd.append('-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   if architecture:
     cmd.append('-DCMAKE_OSX_ARCHITECTURES={0}'.format(architecture))
   utils.run_command(cmd)

@@ -308,6 +308,28 @@ else()
   set(app_flatbuffers_lib flatbuffers)
 endif()
 
+# Automatically include headers that might not be declared.
+# We use add_compile_options (instead of target_compile_options) so these
+# implicit includes apply globally to all targets in this directory,
+# including tests. Generator expressions ($<$<COMPILE_LANGUAGE:...>) are
+# used to ensure these C/C++ headers are not passed to the Swift compiler.
+if(MSVC)
+  add_compile_options(
+    $<$<COMPILE_LANGUAGE:CXX>:/FI"assert.h">
+    $<$<COMPILE_LANGUAGE:CXX>:/FI"string.h">
+    $<$<COMPILE_LANGUAGE:CXX>:/FI"stdint.h">)
+elseif(APPLE)
+  add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>"
+    "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include assert.h>"
+    "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include string.h>")
+else()
+  add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>")
+endif()
+
 add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
@@ -319,6 +341,9 @@ add_library(firebase_app STATIC
     ${app_platform_HDRS}
     ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
     ${app_flatbuffers_srcs})
+
+add_dependencies(firebase_app FIREBASE_APP_GENERATED_HEADERS)
+add_dependencies(firebase_app app_generated_google_services_includes)
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 
@@ -364,22 +389,15 @@ target_link_libraries(firebase_app
     ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
 )
-# Automatically include headers that might not be declared.
-if(MSVC)
-  add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
-else()
-  add_definitions(-include assert.h -include string.h)
-endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(app)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  # Enable Automatic Reference Counting (ARC) for Objective-C/Swift interop.
+  # Note: Bitcode (-fembed-bitcode) was removed because it was deprecated in
+  # Xcode 14 and is completely unsupported by modern Swift toolchains.
   target_compile_options(firebase_app
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_app
-                        PUBLIC "-fembed-bitcode")
-
+                         PUBLIC $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:-fobjc-arc>)
   # Add empty include path to get root include folder '.'
   setup_pod_headers(
     firebase_app
@@ -417,38 +435,17 @@ if (IOS)
     )
   endif()
 
-  # Generate the analytics header file
-  # Copy from analytics/CMakeList.txt
-  function(generate_analytics_header OBJC_FILE CPP_FILE)
-    add_custom_command(
-      OUTPUT ${CPP_FILE}
-      COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SOURCE_DIR}/analytics/generate_constants.py"
-        "--objc_header=${OBJC_FILE}"
-        "--cpp_header=${CPP_FILE}"
-      DEPENDS ${OBJC_FILE}
-      COMMENT "Generating ${CPP_FILE}"
-    )
-  endfunction()
-  set(analytics_generated_headers_dir
-    ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics)
-  file(MAKE_DIRECTORY ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics)
-  generate_analytics_header(
-    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIREventNames.h"
-    "${analytics_generated_headers_dir}/event_names.h"
-  )
-  generate_analytics_header(
-    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIRParameterNames.h"
-    "${analytics_generated_headers_dir}/parameter_names.h"
-  )
-  generate_analytics_header(
-    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIRUserPropertyNames.h"
-    "${analytics_generated_headers_dir}/user_property_names.h"
-  )
-  set(analytics_HDRS
-    ${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h
-    ${analytics_generated_headers_dir}/event_names.h
-    ${analytics_generated_headers_dir}/parameter_names.h
-    ${analytics_generated_headers_dir}/user_property_names.h)
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    if (FIREBASE_INCLUDE_ANALYTICS)
+      set(analytics_HDRS
+        ${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h
+        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/event_names.h
+        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/parameter_names.h
+        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/user_property_names.h)
+    else()
+      set(analytics_HDRS "")
+    endif()
+  endif()
   set(app_check_HDRS
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check.h
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h

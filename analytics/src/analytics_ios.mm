@@ -20,9 +20,12 @@
 #import "FIRAnalytics+OnDevice.h"
 #import "FIRAnalytics.h"
 
+#include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
 
-#include "analytics/src/analytics_common.h"
+// Include the generated Swift header for the C++ bridge.
+#include "firebase_analytics-Swift.h"
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
@@ -229,6 +232,42 @@ void LogEvent(const char* name, const char* parameter_name, const int parameter_
 void LogEvent(const char* name) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   [FIRAnalytics logEventWithName:@(name) parameters:@{}];
+}
+
+Future<void> LogAppleTransaction(const char* transaction_id) {
+  MutexLock lock(g_mutex);
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+
+  auto* api = internal::FutureData::Get()->api();
+  const auto future_handle = api->SafeAlloc<void>(internal::kAnalyticsFnLogAppleTransaction);
+
+  if (!transaction_id) {
+    api->Complete(future_handle, -1, "Transaction ID is null");
+    return Future<void>(api, future_handle.get());
+  }
+
+  [AppleTransactionVerifier
+      verifyWithTransactionId:SafeString(transaction_id)
+                   completion:^(BOOL isFound) {
+                     MutexLock lock(g_mutex);
+                     if (!internal::IsInitialized()) return;
+
+                     auto* api = internal::FutureData::Get()->api();
+                     if (isFound) {
+                       api->Complete(future_handle, 0, "");
+                     } else {
+                       api->Complete(future_handle, -1, "StoreKit 2 transaction not found.");
+                     }
+                   }];
+
+  return Future<void>(api, future_handle.get());
+}
+
+Future<void> LogAppleTransactionLastResult() {
+  MutexLock lock(g_mutex);
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  return static_cast<const Future<void>&>(
+      internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnLogAppleTransaction));
 }
 
 // Declared here so that it can be used, defined below.

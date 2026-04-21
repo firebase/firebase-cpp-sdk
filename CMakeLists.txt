@@ -96,8 +96,14 @@ set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 project (firebase NONE)
+
+set(CMAKE_Swift_LANGUAGE_VERSION 6.2)
+
 enable_language(C)
 enable_language(CXX)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+  enable_language(Swift)
+endif()
 
 if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
   find_program(CCACHE_PROGRAM ccache)
@@ -477,6 +483,7 @@ if(DESKTOP)
         -DUSE_LIBUV=1
       )
     elseif(APPLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY")
       set(websockets_additional_defines
         ${websockets_additional_defines}
         -DUSE_LIBUV=1

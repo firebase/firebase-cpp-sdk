@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes 
+    - Analytics: Add in `LogAppleTransaction` for logging Storekit 2 transactions on iOS.
+
 ### 13.6.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.12.0.
