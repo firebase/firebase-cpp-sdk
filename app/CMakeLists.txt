@@ -308,6 +308,26 @@ else()
   set(app_flatbuffers_lib flatbuffers)
 endif()
 
+# Automatically include headers that might not be declared.
+# We use add_compile_options (instead of target_compile_options) so these
+# implicit includes apply globally to all targets in this directory,
+# including tests. Generator expressions ($<$<COMPILE_LANGUAGE:...>) are
+# used to ensure these C/C++ headers are not passed to the Swift compiler.
+if(MSVC)
+  add_compile_options(
+    $<$<COMPILE_LANGUAGE:CXX>:/FI"assert.h" /FI"string.h" /FI"stdint.h">)
+elseif(APPLE)
+  add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>"
+    "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include assert.h>"
+    "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include string.h>")
+else()
+  add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>")
+endif()
+
 add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
@@ -367,25 +387,6 @@ target_link_libraries(firebase_app
     ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
 )
-# Automatically include headers that might not be declared.
-# We use add_compile_options (instead of target_compile_options) so these
-# implicit includes apply globally to all targets in this directory,
-# including tests. Generator expressions ($<$<COMPILE_LANGUAGE:...>) are
-# used to ensure these C/C++ headers are not passed to the Swift compiler.
-if(MSVC)
-  add_compile_options(
-    $<$<COMPILE_LANGUAGE:CXX>:/FI"assert.h" /FI"string.h" /FI"stdint.h">)
-elseif(APPLE)
-  add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
-    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>"
-    "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include assert.h>"
-    "$<$<COMPILE_LANGUAGE:OBJCXX>:SHELL:-include string.h>")
-else()
-  add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include assert.h>"
-    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string.h>")
-endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(app)
