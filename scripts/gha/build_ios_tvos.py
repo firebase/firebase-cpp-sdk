@@ -253,7 +253,7 @@ def build_universal_framework(frameworks_path, targets):
       universal_target_path = os.path.join(framework_os_path, 'universal',
                                           target_framework)
       logging.debug('Ensuring all directories exist: ' + universal_target_path)
-      os.makedirs(universal_target_path, exist_ok=True)
+      os.makedirs(universal_target_path)
       # <build_dir>/<apple_os>/frameworks/universal/<target>.framework/<target>
       universal_target_library_path = os.path.join(universal_target_path,
                                                    target)
@@ -279,8 +279,7 @@ def build_universal_framework(frameworks_path, targets):
                                                   'Headers')
 
     shutil.copytree(firebase_framework_headers_path,
-                    universal_firebase_framework_headers_path,
-                    dirs_exist_ok=True)
+                    universal_firebase_framework_headers_path)
 
 
 def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
@@ -410,7 +409,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                                           xcframework_key,
                                           '{0}.framework'.format(target))
         logging.debug('Ensuring all directories exist: ' + library_output_dir)
-        os.makedirs(library_output_dir, exist_ok=True)
+        os.makedirs(library_output_dir)
         cmd = ['lipo', '-create']
         cmd.extend(xcframework_libraries)
         cmd.append('-output')
