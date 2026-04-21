@@ -390,7 +390,9 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(app)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) for Objective-C/Swift interop
+  # Enable Automatic Reference Counting (ARC) for Objective-C/Swift interop.
+  # Note: Bitcode (-fembed-bitcode) was removed because it was deprecated in
+  # Xcode 14 and is completely unsupported by modern Swift toolchains.
   target_compile_options(firebase_app
                          PUBLIC $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:-fobjc-arc>)
   # Add empty include path to get root include folder '.'
