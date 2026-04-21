@@ -196,8 +196,6 @@ def build_universal_framework(frameworks_path, targets):
     platform_variant_architecture_dirs = os.listdir(framework_os_path)
     platform_variant_arch_map = defaultdict(list)
     for variant_architecture in platform_variant_architecture_dirs:
-      if '-' not in variant_architecture:
-        continue
       logging.debug('Inspecting ' + variant_architecture)
       platform_variant, architecture = variant_architecture.split('-')
       platform_variant_arch_map[platform_variant].append(architecture)
@@ -221,9 +219,9 @@ def build_universal_framework(frameworks_path, targets):
       return
 
     # Pick any of the platform-arch directories as a reference candidate mainly
-    # for obtaining a list of contained targets. Skip 'universal' if it's there.
-    valid_dirs = [d for d in platform_variant_architecture_dirs if d != 'universal']
-    reference_dir_path = os.path.join(framework_os_path, valid_dirs[0])
+    # for obtaining a list of contained targets.
+    reference_dir_path = os.path.join(framework_os_path,
+                                      platform_variant_architecture_dirs[0])
     logging.debug('Using {0} as reference path for scanning '
                   'targets'.format(reference_dir_path))
     # Filter only .framework directories and make sure the framework is
@@ -240,7 +238,9 @@ def build_universal_framework(frameworks_path, targets):
       # Eg: split firebase_auth.framework -> firebase_auth, .framework
       target, _ = os.path.splitext(target_framework)
       for variant_architecture_dir in platform_variant_architecture_dirs:
-        if variant_architecture_dir == 'simulator-arm64' or variant_architecture_dir == 'universal':
+        # Since we have arm64 for both device and simulator, lipo cannot combine
+        # them in the same fat file. We ignore simulator-arm64.
+        if variant_architecture_dir == 'simulator-arm64':
           continue
         # <build_dir>/<apple_os>/frameworks/<platform-arch>/
         # <target>.framework/target

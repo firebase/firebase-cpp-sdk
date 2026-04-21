@@ -78,7 +78,7 @@ The manual test will involve running the integration test: `firebase_analytics_t
       - Choose a Non-Consumable in app purchase product. 
       - Give it a Reference name of your choice (e.g. "ReferenceAppleIapProduct").
       - Give it a Product ID of your choice (e.g. "com.example.nonconsumable").
-    - Make the app use the store kit file. In the top bar go to Product > Scheme > Edit Scheme... >
+    - Make the app use the store kit file. In the top bar go to Product > Scheme > Edit Scheme...
       - In the left hand menu select Run
       - Select the Options tab on the right
       - Set the StoreKit Configuration dropdown to your new .storekit file.
