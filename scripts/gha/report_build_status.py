@@ -129,7 +129,7 @@ _MISSING_TEXT = "Missing"
 
 general_test_hour = 9
 firestore_test_hour = 10
-test_time_minute_range = 20
+test_time_minute_range = 59
 
 def rename_key(old_dict,old_name,new_name):
     """Rename a key in a dictionary, preserving the order."""
