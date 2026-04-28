@@ -129,7 +129,6 @@ _MISSING_TEXT = "Missing"
 
 general_test_hour = 9
 firestore_test_hour = 10
-test_time_minute_range = 59
 
 def rename_key(old_dict,old_name,new_name):
     """Rename a key in a dictionary, preserving the order."""
@@ -388,9 +387,9 @@ def main(argv):
         if run['day'] < start_date or run['day'] > end_date: continue
         run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
         compare_test_hour = firestore_test_hour if FLAGS.firestore else general_test_hour
-        # The general test should start at 9:00, and firestore at 10:00, but we give it a range
-        # because the tests can take a few minutes before starting.
-        if run['date'].hour == compare_test_hour and run['date'].minute <= test_time_minute_range:
+        # The scheduled time is at the top of the hour (e.g. 09:00 or 10:00).
+        # We allow for some delay in GitHub Actions starting the job, as long as it starts in the same hour.
+        if run['date'].hour == compare_test_hour:
           source_tests[day] = run
           all_days.add(day)
 
