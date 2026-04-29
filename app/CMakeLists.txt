@@ -435,16 +435,15 @@ if (IOS)
     )
   endif()
 
-  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
-    if (FIREBASE_INCLUDE_ANALYTICS)
-      set(analytics_HDRS
-        ${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h
-        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/event_names.h
-        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/parameter_names.h
-        ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/user_property_names.h)
-    else()
-      set(analytics_HDRS "")
-    endif()
+  if (FIREBASE_INCLUDE_ANALYTICS)
+    set(analytics_HDRS
+      ${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h
+      ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/event_names.h
+      ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/parameter_names.h
+      ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics/user_property_names.h)
+    add_dependencies(firebase_app FIREBASE_ANALYTICS_GENERATED_HEADERS)
+  else()
+    set(analytics_HDRS "")
   endif()
   set(app_check_HDRS
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check.h
