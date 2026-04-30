@@ -174,19 +174,19 @@ BUILD_CONFIGS = {
 TEST_DEVICES = {
   "android_target": [
       {"type": "ftl", "device": "model=blueline,version=28"}, # Pixel 3
-      {"type": "ftl", "device": "model=gts3lltevzw,version=28"},  # Galaxy Tab S3
+      {"type": "ftl", "device": "model=gts8wifi,version=34"},  # Galaxy Tab S8
       {"type": "ftl", "device": "model=SH-01L,version=28"},  # AQUOS sense2 SH-01L
   ],
   "android_latest": [
-      {"type": "ftl", "device": "model=oriole,version=33"},  # Pixel 6
-      {"type": "ftl", "device": "model=panther,version=33"},  # Pixel 7
-      {"type": "ftl", "device": "model=lynx,version=33"},  # Pixel 7a
-      {"type": "ftl", "device": "model=cheetah,version=33"},  # Pixel 7 Pro
-      {"type": "ftl", "device": "model=felix,version=33"},  # Pixel Fold
+      {"type": "ftl", "device": "model=tokay,version=36"},  # Pixel 9
+      {"type": "ftl", "device": "model=frankel,version=36"},  # Pixel 10
+      {"type": "ftl", "device": "model=stallion,version=36"},  # Pixel 10a
+      {"type": "ftl", "device": "model=mustang,version=36"},  # Pixel 10 Pro XL
+      {"type": "ftl", "device": "model=rango,version=36"},  # Pixel 10 Pro Fold
       {"type": "ftl", "device": "model=tangorpro,version=33"},  # Pixel Tablet
-      {"type": "ftl", "device": "model=gts8uwifi,version=33"},  # Galaxy Tab S8 Ultra
-      {"type": "ftl", "device": "model=b0q,version=33"},  # Galaxy S22 Ultra
-      {"type": "ftl", "device": "model=b4q,version=33"},  # Galaxy Z Flip4
+      {"type": "ftl", "device": "model=gts9wifi,version=34"},  # Galaxy Tab S9
+      {"type": "ftl", "device": "model=pa3q,version=36"},  # Galaxy S25 Ultra
+      {"type": "ftl", "device": "model=b6q,version=34"},  # Galaxy Z Flip6
   ],
   "emulator_ftl_target": [
       {"type": "ftl", "device": "model=Pixel2,version=28"},
