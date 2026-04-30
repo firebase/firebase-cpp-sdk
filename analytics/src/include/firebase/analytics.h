@@ -455,6 +455,37 @@ void LogEvent(const char* name, const char* parameter_name,
 /// @endif
 void LogEvent(const char* name);
 
+/// @brief Logs an in-app purchase transaction specifically for Apple's
+/// StoreKit 2.
+///
+/// This function is intended for developers on iOS who process transactions
+/// via custom native plugins or engines and need to securely log those
+/// transactions natively through Google Analytics. The provided ID must map 1:1
+/// with the native Apple `Transaction.id`. If a matching transaction is not
+/// found in the Apple device's purchase history, nothing will be logged to
+/// Analytics.
+///
+/// @note Finished consumable transactions are removed from the local
+///       transaction history and cannot be retrieved by this function once
+///       finished. Developers should either call this function before finishing
+///       the transaction or use `FirebaseAnalytics.LogEvent` directly as a
+///       fallback.
+///
+/// @param transaction_id The native Apple transaction identifier as a
+///                       null-terminated string.
+///
+/// @returns A Future<void> that completes successfully when the native
+///          StoreKit 2 transaction is found and logged. If the transaction
+///          cannot be found, the Future will complete with a non-zero error().
+Future<void> LogAppleTransaction(const char* transaction_id);
+
+/// @brief Get the result of the most recent LogAppleTransaction() call.
+///
+/// @returns A Future<void> that completes successfully when the native
+///          StoreKit 2 transaction is found and logged. If the transaction
+///          cannot be found, the Future will complete with a non-zero error().
+Future<void> LogAppleTransactionLastResult();
+
 /// @brief Log an event with associated parameters.
 ///
 /// An Event is an important occurrence in your app that you want to

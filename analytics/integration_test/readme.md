@@ -64,6 +64,37 @@ Building and Running the sample
     "Analytics" tab accessible from
     [https://firebase.google.com/console/](https://firebase.google.com/console/).
 
+#### iOS Testing LogAppleTransaction
+
+To test the log apple transaction function, you should use the existing test app and xcode's simulated transactions.
+The manual test will involve running the integration test: `firebase_analytics_test/TestLogAppleTransaction` and verifying that it logs a transaction to the console.
+
+  - Step 1: Set up the Local Xcode Environment
+    - In Xcode, go to File > New > File from Template and create a StoreKit Configuration File (.storekit).
+      - Give the configuration any name.
+      - Target both integration_test and integration_test_tvos
+    - Add at least one dummy product to this file. 
+      - Do this by selecting the file in xcode and clicking the + button in the bottom left corner.
+      - Choose a Non-Consumable in app purchase product. 
+      - Give it a Reference name of your choice (e.g. "ReferenceAppleIapProduct").
+      - Give it a Product ID of your choice (e.g. "com.example.nonconsumable").
+    - Make the app use the store kit file. In the top bar go to Product > Scheme > Edit Scheme...
+      - In the left hand menu select Run
+      - Select the Options tab on the right
+      - Set the StoreKit Configuration dropdown to your new .storekit file.
+  - Step 2: Validate logging transactions
+    - Try running the test app with the dummy transaction ID. It should return an error from the
+      LogAppleTransactions function.
+    - After runnign the app once you can create a simulated transaction for testing.
+    - To create a simulated transaction ID:
+        - Go to Debug > StoreKit > Manage Transactions.
+        - Click the + button in the bottom left corner.
+        - Select the Non-Consumable in app purchase product.
+        - Copy the transaction ID to the test case and replace 'dummy_transaction_id' with your new transaction ID. e.g. '0'
+        - Make sure to update the testcase to now expect success. 
+    - Then try running the test app again with the simulated transaction ID.
+      - It should log the transaction to the console. Both the Xcode console and firebase console should show a log for an in app purchase. 
+
 ### Android
   - Register your Android app with Firebase.
     - Create a new app on the [Firebase console](https://firebase.google.com/console/), and attach
