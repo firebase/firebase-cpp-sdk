@@ -15,6 +15,7 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -425,19 +426,52 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
                     ElementsAre("", Not(""), Not(""), Not(""), "")));
 }
 
-static std::string GenerateEmailAddress() {
+#if FIREBASE_PLATFORM_ANDROID
+#define INTEGRATION_TEST_PLATFORM_NAME "Android"
+#elif FIREBASE_PLATFORM_IOS
+#define INTEGRATION_TEST_PLATFORM_NAME "iOS"
+#elif FIREBASE_PLATFORM_TVOS
+#define INTEGRATION_TEST_PLATFORM_NAME "tvOS"
+#elif FIREBASE_PLATFORM_OSX
+#define INTEGRATION_TEST_PLATFORM_NAME "MacOS"
+#elif FIREBASE_PLATFORM_WINDOWS
+#define INTEGRATION_TEST_PLATFORM_NAME "Windows"
+#elif FIREBASE_PLATFORM_LINUX
+#define INTEGRATION_TEST_PLATFORM_NAME "Linux"
+#else
+#define INTEGRATION_TEST_PLATFORM_NAME "Unknown"
+#endif
+
+static std::string GenerateEmailAddress(const std::string& test_name) {
   char time_string[22];
   snprintf(time_string, sizeof(time_string), "%lld",
            app_framework::GetCurrentTimeInMicroseconds());
-  std::string email = "random_user_";
+
+  std::string sanitized_test_name = test_name;
+  for (char& c : sanitized_test_name) {
+    if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_') {
+      c = '_';
+    }
+  }
+
+  if (sanitized_test_name.length() > 25) {
+    sanitized_test_name = sanitized_test_name.substr(0, 25);
+  }
+
+  std::string email = "user_";
+  email.append(INTEGRATION_TEST_PLATFORM_NAME);
+  email.append("_");
+  email.append(sanitized_test_name);
+  email.append("_");
   email.append(time_string);
   email.append("@gmail.com");
+
   LogDebug("Generated email address: %s", email.c_str());
   return email;
 }
 
 TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("EmailAndPasswordSignin");
   // Register a random email and password. This signs us in as that user.
   std::string password = kTestPassword;
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
@@ -529,7 +563,7 @@ TEST_F(FirebaseAuthTest, TestCopyUser) {
 }
 
 TEST_F(FirebaseAuthTest, TestRetainedUser) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("RetainedUser");
   // Register a random email and password. This signs us in as that user.
   std::string password = kTestPassword;
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
@@ -546,7 +580,7 @@ TEST_F(FirebaseAuthTest, TestRetainedUser) {
   EXPECT_EQ(retained_user.email(), "");
 
   // Sign in a new account.
-  email = GenerateEmailAddress();
+  email = GenerateEmailAddress("RetainedUserNew");
   auth_result_future =
       auth_->CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
   WaitForCompletion(auth_result_future, "CreateUserWithEmailAndPassword");
@@ -587,7 +621,8 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
 
   firebase::auth::Credential email_cred =
       firebase::auth::EmailAuthProvider::GetCredential(
-          GenerateEmailAddress().c_str(), kTestPasswordUpdated);
+          GenerateEmailAddress("InvalidUserReauth").c_str(),
+          kTestPasswordUpdated);
   LogDebug("Reauthenticate");
   void_future = invalid_user.Reauthenticate(email_cred);
   WaitForCompletionOrInvalidStatus(void_future, "Reauthenticate");
@@ -606,7 +641,7 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
 
   LogDebug("SendEmailVerificationBeforeUpdatingEmail");
   void_future = invalid_user.SendEmailVerificationBeforeUpdatingEmail(
-      GenerateEmailAddress().c_str());
+      GenerateEmailAddress("InvalidUserVerify").c_str());
   WaitForCompletionOrInvalidStatus(void_future,
                                    "SendEmailVerificationBeforeUpdatingEmail");
   EXPECT_NE(void_future.error(), firebase::auth::kAuthErrorNone);
@@ -639,7 +674,7 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
 }
 
 TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("UpdateUserProfile");
   firebase::Future<firebase::auth::AuthResult> create_user =
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
@@ -670,7 +705,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
 }
 
 TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("UpdateUserProfileNull");
   firebase::Future<firebase::auth::AuthResult> create_user =
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
@@ -712,7 +747,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
 }
 
 TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("UpdateUserProfileEmpty");
   firebase::Future<firebase::auth::AuthResult> create_user =
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
@@ -754,7 +789,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
 }
 
 TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("UpdateEmailAndPassword");
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
@@ -773,7 +808,7 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
 }
 
 TEST_F(FirebaseAuthTest, TestVerifyBeforeUpdatingEmail) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("VerifyBeforeUpdatingEmail");
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
@@ -796,7 +831,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
 
   firebase::auth::User user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("LinkAnonEmail");
   firebase::auth::Credential credential =
       firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                        kTestPassword);
@@ -806,7 +841,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
-  std::string email1 = GenerateEmailAddress();
+  std::string email1 = GenerateEmailAddress("LinkAnonEmail1");
   firebase::auth::Credential credential1 =
       firebase::auth::EmailAuthProvider::GetCredential(email1.c_str(),
                                                        kTestPassword);
@@ -815,7 +850,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
 
-  std::string email2 = GenerateEmailAddress();
+  std::string email2 = GenerateEmailAddress("LinkAnonEmail2");
   firebase::auth::Credential credential2 =
       firebase::auth::EmailAuthProvider::GetCredential(email2.c_str(),
                                                        kTestPassword);
@@ -855,7 +890,7 @@ TEST_F(FirebaseAuthTest, TestSignInWithBadEmailFails) {
 }
 
 TEST_F(FirebaseAuthTest, TestSignInWithBadPasswordFails) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("SignInBadPassword");
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
@@ -875,7 +910,7 @@ TEST_F(FirebaseAuthTest, TestSignInWithBadPasswordFails) {
 }
 
 TEST_F(FirebaseAuthTest, TestCreateUserWithExistingEmailFails) {
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("CreateUserExistingEmail");
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword 1");
@@ -996,7 +1031,7 @@ TEST_F(FirebaseAuthTest, TestGameCenterSignIn) {
 
 TEST_F(FirebaseAuthTest, TestSendPasswordResetEmail) {
   // Test Auth::SendPasswordResetEmail().
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("SendPasswordResetEmail");
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
@@ -1059,7 +1094,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
 
   FLAKY_TEST_SECTION_BEGIN();
 
-  std::string email = GenerateEmailAddress();
+  std::string email = GenerateEmailAddress("AuthPersistenceEmail");
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
