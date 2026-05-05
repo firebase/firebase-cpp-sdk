@@ -445,9 +445,7 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 #endif
 
 static std::string GenerateEmailAddress(const std::string& test_name) {
-  char time_string[22];
-  snprintf(time_string, sizeof(time_string), "%lld",
-           app_framework::GetCurrentTimeInMicroseconds());
+  std::string time_string = std::to_string(app_framework::GetCurrentTimeInMicroseconds());
 
   std::string sanitized_test_name = test_name;
   for (char& c : sanitized_test_name) {
@@ -460,14 +458,11 @@ static std::string GenerateEmailAddress(const std::string& test_name) {
     sanitized_test_name = sanitized_test_name.substr(0, 25);
   }
 
-  std::string email = "user_";
-  email.append(INTEGRATION_TEST_PLATFORM_NAME);
-  email.append("_");
-  email.append(sanitized_test_name);
-  email.append("_");
-  email.append(time_string);
-  email.append("@gmail.com");
+  std::string email = "user_" + std::string(INTEGRATION_TEST_PLATFORM_NAME) + "_" +
+                 sanitized_test_name + "_" + time_string + "@gmail.com";
 
+  // The backend generally returns the string as lowercase, so just make it lowercase
+  // to avoid confusion when comparing later.
   std::transform(email.begin(), email.end(), email.begin(),
                  [](unsigned char c) { return std::tolower(c); });
 
