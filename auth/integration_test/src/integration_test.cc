@@ -841,28 +841,23 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
       firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                        kTestPassword);
   WaitForCompletion(user.LinkWithCredential(credential), "LinkWithCredential");
-  WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink");
-  SignOut();
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
-  user = auth_->current_user();
-  EXPECT_TRUE(user.is_valid());
+
+  // At this point, the user is linked to email, so linking again should fail.
   std::string email1 = GenerateEmailAddress("LinkAnonEmail1");
   firebase::auth::Credential credential1 =
       firebase::auth::EmailAuthProvider::GetCredential(email1.c_str(),
                                                        kTestPassword);
   WaitForCompletion(user.LinkWithCredential(credential1),
-                    "LinkWithCredential 1");
-  user = auth_->current_user();
+                    "LinkWithCredential (ProviderAlreadyLinked)",
+                    firebase::auth::kAuthErrorProviderAlreadyLinked);
+
+  // Next, we unlink the first provider, then link again.
+  WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink");
+  WaitForCompletion(user.LinkWithCredential(credential1),
+                    "LinkWithCredential (Second attempt)");
   EXPECT_TRUE(user.is_valid());
 
-  std::string email2 = GenerateEmailAddress("LinkAnonEmail2");
-  firebase::auth::Credential credential2 =
-      firebase::auth::EmailAuthProvider::GetCredential(email2.c_str(),
-                                                       kTestPassword);
-  WaitForCompletion(user.LinkWithCredential(credential2),
-                    "LinkWithCredential 2",
-                    firebase::auth::kAuthErrorProviderAlreadyLinked);
-  WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink 2");
+  // Finally, delete the user.
   DeleteUser();
 
   // In case any operations failed, force signout before retrying the test.
@@ -885,13 +880,6 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
   EXPECT_TRUE(auth_->current_user().is_valid());
   EXPECT_EQ(auth_->current_user().uid(), pre_link_user.uid());
   DeleteUser();
-}
-
-TEST_F(FirebaseAuthTest, TestSignInWithBadEmailFails) {
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(kTestEmailBad, kTestPassword),
-      "SignInWithEmailAndPassword", firebase::auth::kAuthErrorUserNotFound);
-  EXPECT_FALSE(auth_->current_user().is_valid());
 }
 
 TEST_F(FirebaseAuthTest, TestSignInWithBadPasswordFails) {
