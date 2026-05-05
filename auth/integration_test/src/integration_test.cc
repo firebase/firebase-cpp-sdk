@@ -297,6 +297,8 @@ void FirebaseAuthTest::DeleteUser() {
     FirebaseTest::WaitForCompletion(auth_->current_user().Delete(),
                                     "Delete User");
     ProcessEvents(100);
+  } else {
+    LogDebug("Failed to Delete User, not Signed In");
   }
 }
 
@@ -465,6 +467,9 @@ static std::string GenerateEmailAddress(const std::string& test_name) {
   email.append("_");
   email.append(time_string);
   email.append("@gmail.com");
+
+  std::transform(email.begin(), email.end(), email.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
 
   LogDebug("Generated email address: %s", email.c_str());
   return email;
