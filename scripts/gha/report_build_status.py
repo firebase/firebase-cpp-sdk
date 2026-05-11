@@ -482,8 +482,13 @@ def main(argv):
           sorted_artifacts = sorted(artifacts, key=lambda art: dateutil.parser.parse(art['created_at']), reverse=True)
 
           with tempfile.TemporaryDirectory() as tmpdir:
+            downloaded_artifact_names = set()
             for a in sorted_artifacts: # Iterate over sorted artifacts
               if 'log-artifact' in a['name']:
+                if a['name'] in downloaded_artifact_names:
+                  logging.debug("Skipping older attempt of artifact: %s (ID: %s, Created: %s)", a['name'], a['id'], a['created_at'])
+                  continue
+                downloaded_artifact_names.add(a['name'])
                 logging.debug("Attempting to download artifact: %s (ID: %s, Created: %s)", a['name'], a['id'], a['created_at'])
                 # Pass tmpdir to download_artifact to save directly
                 artifact_downloaded_path = os.path.join(tmpdir, f"{a['id']}.zip")
