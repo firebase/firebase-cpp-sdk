@@ -73,35 +73,35 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-14"],
+      "os": ["ubuntu-22.04", "macos-26"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["16.2"],
+      "xcode_version": ["26.2"],
       "python_version": ["3.9"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
-        "xcode_version": ["16.2"],
+        "os": ["ubuntu-22.04", "macos-26", "windows-latest"],
+        "xcode_version": ["26.2"],
       }
     }
   },
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-26", "windows-latest"],
       "architecture": ["x64", "arm64"],
       "python_version": ["3.9"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-14", "windows-latest"]
+        "os": ["ubuntu-22.04", "macos-26", "windows-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-26", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_ftl_target"],
@@ -113,7 +113,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["16.2"],  # only the first one is used
+      "xcode_version": ["26.2"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -141,10 +141,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["16.2"],
+      "xcode_version": ["26.2"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["16.2"]
+        "xcode_version": ["26.2"]
       }
     }
   },
