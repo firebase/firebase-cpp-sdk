@@ -19,7 +19,8 @@ set(CTEST_CUSTOM_TESTS_IGNORE
     uv_test
     uv_test_a
     # Tests from zlib, that can't be disabled normally.
-    zlib
+    example
+    example64
     # Disabling specific firestore tests
     # objc_spec test doesn't fail locally but fails consistently on 
     # github runners
