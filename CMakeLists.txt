@@ -162,6 +162,9 @@ if(APPLE)
   # build output for our Objective-C++ files much too verbose.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nullability-completeness")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nullability-completeness")
+  # On Apple platforms, disable the target os macros, as they cause problems with zlib
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-define-target-os-macros")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-define-target-os-macros")
   if(DESKTOP)
     # Mac desktop Firestore build requires -Wno-deprecated-declarations
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
