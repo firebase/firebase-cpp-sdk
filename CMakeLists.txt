@@ -394,9 +394,6 @@ set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
 # Disable LevelDB build tests
 set(LEVELDB_BUILD_TESTS OFF CACHE BOOL "")
 
-# Disable zlib build tests
-set(ZLIB_BUILD_TESTING OFF CACHE BOOL "")
-
 # Disable building flatc if cross compiling
 if(IOS OR ANDROID OR CMAKE_CROSSCOMPILING)
   set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
