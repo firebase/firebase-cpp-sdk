@@ -22,9 +22,9 @@ ExternalProject_Add(
   zlib
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME zlib-v1.2.11.tar.gz
-  URL https://github.com/madler/zlib/archive/v1.2.11.tar.gz
-  URL_HASH SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff
+  DOWNLOAD_NAME zlib-v1.3.2.tar.gz
+  URL https://github.com/madler/zlib/archive/v1.3.2.tar.gz
+  URL_HASH SHA256=b99a0b86c0ba9360ec7e78c4f1e43b1cbdf1e6936c8fa0f6835c0cd694a495a1
 
   PREFIX ${PROJECT_BINARY_DIR}
 
