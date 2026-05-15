@@ -35,8 +35,10 @@
 
 // In Xcode 16, libc++ removed the noexcept specifier from
 // __libcpp_verbose_abort.
-#if defined(__apple_build_version__) && __apple_build_version__ >= 16000000 && \
-    __apple_build_version__ < 20000000
+#if defined(_LIBCPP_VERBOSE_ABORT_NOEXCEPT)
+#define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT _LIBCPP_VERBOSE_ABORT_NOEXCEPT
+#elif defined(__apple_build_version__) && \
+    __apple_build_version__ >= 16000000 && __apple_build_version__ < 20000000
 #define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT
 #else
 #define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT noexcept
