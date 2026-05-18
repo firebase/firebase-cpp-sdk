@@ -46,11 +46,7 @@ gradleparams="-Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false\
  -Dmaven.wagon.httpconnectionManager.ttlSeconds=120"
 for retry in {1..10} error; do
     if [[ $retry == "error" ]]; then exit 5; fi
-    if [[ $(uname) == "Darwin" ]]; then
-        ./gradlew assembleRelease "${gradleparams}" "-Pandroid.externalNativeBuild.cmake.arguments=-DCMAKE_AR=/usr/bin/ar -DCMAKE_RANLIB=/usr/bin/ranlib" && break
-    else
-        ./gradlew assembleRelease "${gradleparams}" && break
-    fi
+    ./gradlew assembleRelease "${gradleparams}" && break
     sleep 300
 done
 set -e
