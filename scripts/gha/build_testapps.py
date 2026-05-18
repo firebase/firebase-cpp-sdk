@@ -527,7 +527,8 @@ def _build_android(project_dir, sdk_dir):
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   extra_args = []
   if platform.system() == "Darwin":
-    extra_args.append("-Pandroid.externalNativeBuild.cmake.arguments=-DCMAKE_AR=/usr/bin/ar -DCMAKE_RANLIB=/usr/bin/ranlib")
+    overrides_path = os.path.join(sdk_dir, "cmake", "android_mac_overrides.cmake")
+    extra_args.append(f"-Pandroid.externalNativeBuild.cmake.arguments=-DCMAKE_PROJECT_INCLUDE={overrides_path}")
   _run([gradlew, "assembleDebug", "--stacktrace"] + extra_args)
 
 
