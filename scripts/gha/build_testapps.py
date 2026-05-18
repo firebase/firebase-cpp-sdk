@@ -525,7 +525,10 @@ def _build_android(project_dir, sdk_dir):
     f.write("maven.wagon.httpconnectionManager.ttlSeconds=120")
   # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
-  _run([gradlew, "assembleDebug", "--stacktrace"])
+  extra_args = []
+  if platform.system() == "Darwin":
+    extra_args.append("-Pandroid.externalNativeBuild.cmake.arguments=-DCMAKE_AR=/usr/bin/ar -DCMAKE_RANLIB=/usr/bin/ranlib")
+  _run([gradlew, "assembleDebug", "--stacktrace"] + extra_args)
 
 
 def _validate_android_environment_variables():
