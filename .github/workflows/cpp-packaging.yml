@@ -82,13 +82,13 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-26]
+        os: [ubuntu-22.04, macos-16]
         include:
         - os: ubuntu-22.04
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
-        - os: macos-26
+        - os: macos-16
           tools_platform: darwin
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
@@ -191,7 +191,7 @@ jobs:
 
   build_and_package_ios_tvos:
     name: build-and-package-ios-tvos
-    runs-on: macos-26
+    runs-on: macos-16
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
       - uses: lukka/get-cmake@latest
@@ -320,7 +320,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04, macos-26]
+        os: [windows-latest, ubuntu-22.04, macos-16]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
@@ -338,7 +338,7 @@ jobs:
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
           sdk_platform: "linux"
-        - os: macos-26
+        - os: macos-16
           vcpkg_triplet_suffix: "osx"
           additional_build_flags: "--target_format libraries"
           sdk_platform: "darwin"
@@ -346,13 +346,13 @@ jobs:
         exclude:
         - os: windows-latest
           linux_abi: "c++11"
-        - os: macos-26
+        - os: macos-16
           architecture: "x86"
-        - os: macos-26
+        - os: macos-16
           msvc_runtime: "dynamic"
-        - os: macos-26
+        - os: macos-16
           linux_abi: "c++11"
-        - os: macos-26
+        - os: macos-16
           build_type: "Debug"
         - os: ubuntu-22.04
           msvc_runtime: "dynamic"
@@ -509,7 +509,7 @@ jobs:
           suffix: '-x64-Debug-dynamic'
           runs_on_platform: ubuntu-22.04
         - sdk_platform: darwin
-          runs_on_platform: macos-26
+          runs_on_platform: macos-16
         exclude:
         - sdk_platform: windows
           suffix: ''
