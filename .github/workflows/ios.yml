@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'macos-14' ]
+        os: [ 'macos-15' ]
         xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
       - uses: lukka/get-cmake@latest
