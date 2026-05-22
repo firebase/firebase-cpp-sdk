@@ -20,12 +20,18 @@
 #include <string>
 
 #include "app/src/app_common.h"
+#include "app/src/function_registry.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firebase/log.h"
+
+namespace {
+const int kAppCheckTokenTimeoutMs = 10000;
+}  // namespace
 
 namespace firebase {
 namespace auth {
@@ -48,6 +54,19 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
         add_header(app_common::kApiClientHeader, payload.c_str());
         add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
       }
+    }
+  }
+
+  // Add AppCheck attestation token if available.
+  // This is required when AppCheck enforcement is enabled on the project.
+  Future<std::string> app_check_future;
+  bool succeeded = app.function_registry()->CallFunction(
+      ::firebase::internal::FnAppCheckGetTokenAsync, &app, nullptr,
+      &app_check_future);
+  if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
+    const std::string* token = app_check_future.Await(kAppCheckTokenTimeoutMs);
+    if (token) {
+      add_header("X-Firebase-AppCheck", token->c_str());
     }
   }
 }
