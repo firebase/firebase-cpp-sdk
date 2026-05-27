@@ -18,12 +18,14 @@
 namespace firebase {
 namespace app_check {
 
-RecaptchaEnterpriseProviderFactory* RecaptchaEnterpriseProviderFactory::GetInstance() {
+RecaptchaEnterpriseProviderFactory*
+RecaptchaEnterpriseProviderFactory::GetInstance() {
   LogError("Recaptcha Enterprise is not supported on this platform.");
   return nullptr;
 }
 
-RecaptchaEnterpriseProviderFactory::RecaptchaEnterpriseProviderFactory() {}
+RecaptchaEnterpriseProviderFactory::RecaptchaEnterpriseProviderFactory()
+    : internal_(nullptr) {}
 
 RecaptchaEnterpriseProviderFactory::~RecaptchaEnterpriseProviderFactory() {}
 

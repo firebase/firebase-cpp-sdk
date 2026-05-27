@@ -29,9 +29,10 @@ class RecaptchaEnterpriseProviderFactoryInternal;
 class RecaptchaEnterpriseProviderFactory : public AppCheckProviderFactory {
  public:
 #if !defined(DOXYGEN)
-  RecaptchaEnterpriseProviderFactory(const RecaptchaEnterpriseProviderFactory&) = delete;
-  RecaptchaEnterpriseProviderFactory& operator=(const RecaptchaEnterpriseProviderFactory&) =
-      delete;
+  RecaptchaEnterpriseProviderFactory(
+      const RecaptchaEnterpriseProviderFactory&) = delete;
+  RecaptchaEnterpriseProviderFactory& operator=(
+      const RecaptchaEnterpriseProviderFactory&) = delete;
 #endif  // !defined(DOXYGEN)
 
   /// Gets an instance of this class for installation into a

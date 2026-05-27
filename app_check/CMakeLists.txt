@@ -24,7 +24,7 @@ set(common_SRCS
   src/include/firebase/app_check/play_integrity_provider.h
   src/include/firebase/app_check/device_check_provider.h
   src/include/firebase/app_check/app_attest_provider.h
-  src/include/firebase/recaptcha_enterprise_provider.h
+  src/include/firebase/app_check/recaptcha_enterprise_provider.h
 )
 
 # Run gradle command to make jar
