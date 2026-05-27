@@ -121,7 +121,7 @@ jobs:
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
           mkdir /tmp/binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix=/tmp/binutils-output
+          ./configure --enable-targets=all --with-system-zlib --prefix=/tmp/binutils-output
           make -j2
           make install
           cd -
