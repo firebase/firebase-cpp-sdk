@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_RECAPTCHA_ENTERPRISE_PROVIDER_H_
-#define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_RECAPTCHA_ENTERPRISE_PROVIDER_H_
+#ifndef FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_RECAPTCHA_PROVIDER_H_
+#define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_RECAPTCHA_PROVIDER_H_
 
 #include "firebase/app_check.h"
 
@@ -21,23 +21,23 @@ namespace firebase {
 namespace app_check {
 
 namespace internal {
-class RecaptchaEnterpriseProviderFactoryInternal;
+class RecaptchaProviderFactoryInternal;
 }
 
 /// Implementation of an {@link AppCheckProviderFactory} that builds
-/// RecaptchaEnterpriseProviders. This is the default implementation.
-class RecaptchaEnterpriseProviderFactory : public AppCheckProviderFactory {
+/// RecaptchaProviders. This is the default implementation.
+class RecaptchaProviderFactory : public AppCheckProviderFactory {
  public:
 #if !defined(DOXYGEN)
-  RecaptchaEnterpriseProviderFactory(
-      const RecaptchaEnterpriseProviderFactory&) = delete;
-  RecaptchaEnterpriseProviderFactory& operator=(
-      const RecaptchaEnterpriseProviderFactory&) = delete;
+  RecaptchaProviderFactory(
+      const RecaptchaProviderFactory&) = delete;
+  RecaptchaProviderFactory& operator=(
+      const RecaptchaProviderFactory&) = delete;
 #endif  // !defined(DOXYGEN)
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
-  static RecaptchaEnterpriseProviderFactory* GetInstance();
+  static RecaptchaProviderFactory* GetInstance();
 
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
@@ -45,13 +45,13 @@ class RecaptchaEnterpriseProviderFactory : public AppCheckProviderFactory {
   firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
  private:
-  RecaptchaEnterpriseProviderFactory();
-  ~RecaptchaEnterpriseProviderFactory() override;
+  RecaptchaProviderFactory();
+  ~RecaptchaProviderFactory() override;
 
-  internal::RecaptchaEnterpriseProviderFactoryInternal* internal_;
+  internal::RecaptchaProviderFactoryInternal* internal_;
 };
 
 }  // namespace app_check
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_RECAPTCHA_ENTERPRISE_PROVIDER_H_
+#endif  // FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_RECAPTCHA_PROVIDER_H_

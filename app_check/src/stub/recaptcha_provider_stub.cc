@@ -13,23 +13,22 @@
 // limitations under the License.
 
 #include "app/src/log.h"
-#include "firebase/app_check/recaptcha_enterprise_provider.h"
+#include "firebase/app_check/recaptcha_provider.h"
 
 namespace firebase {
 namespace app_check {
 
-RecaptchaEnterpriseProviderFactory*
-RecaptchaEnterpriseProviderFactory::GetInstance() {
-  LogError("Recaptcha Enterprise is not supported on this platform.");
+RecaptchaProviderFactory* RecaptchaProviderFactory::GetInstance() {
+  LogError("Recaptcha is not supported on this platform.");
   return nullptr;
 }
 
-RecaptchaEnterpriseProviderFactory::RecaptchaEnterpriseProviderFactory()
+RecaptchaProviderFactory::RecaptchaProviderFactory()
     : internal_(nullptr) {}
 
-RecaptchaEnterpriseProviderFactory::~RecaptchaEnterpriseProviderFactory() {}
+RecaptchaProviderFactory::~RecaptchaProviderFactory() {}
 
-AppCheckProvider* RecaptchaEnterpriseProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* RecaptchaProviderFactory::CreateProvider(App* app) {
   return nullptr;
 }
 

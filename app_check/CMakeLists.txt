@@ -24,7 +24,7 @@ set(common_SRCS
   src/include/firebase/app_check/play_integrity_provider.h
   src/include/firebase/app_check/device_check_provider.h
   src/include/firebase/app_check/app_attest_provider.h
-  src/include/firebase/app_check/recaptcha_enterprise_provider.h
+  src/include/firebase/app_check/recaptcha_provider.h
 )
 
 # Run gradle command to make jar
@@ -47,11 +47,11 @@ set(android_SRCS
   src/android/debug_provider_android.h
   src/android/play_integrity_provider_android.cc
   src/android/play_integrity_provider_android.h
+  src/android/recaptcha_provider_android.cc
+  src/android/recaptcha_provider_android.h
   # Unsupported providers
   src/stub/app_attest_provider_stub.cc
   src/stub/device_check_provider_stub.cc
-  # TODO: Move when implemented
-  src/stub/recaptcha_enterprise_provider_stub.cc
 )
 
 # Source files used by the iOS implementation.
@@ -68,7 +68,7 @@ set(ios_SRCS
   # Unsupported providers
   src/stub/play_integrity_provider_stub.cc
   # TODO: Move when implemented
-  src/stub/recaptcha_enterprise_provider_stub.cc
+  src/stub/recaptcha_provider_stub.cc
 )
 
 # Flatbuffer resource files used by desktop
@@ -119,7 +119,7 @@ set(desktop_SRCS
   src/stub/app_attest_provider_stub.cc
   src/stub/device_check_provider_stub.cc
   src/stub/play_integrity_provider_stub.cc
-  src/stub/recaptcha_enterprise_provider_stub.cc
+  src/stub/recaptcha_provider_stub.cc
 )
 
 if(ANDROID)
