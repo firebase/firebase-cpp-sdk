@@ -34,7 +34,7 @@ namespace internal {
 #define APP_CHECK_PROVIDER_METHODS(X)                                 \
   X(GetToken, "getToken",                                             \
     "()Lcom/google/android/gms/tasks/Task;"),                         \
-  X(GetToken, "getLimitedUseToken",                                             \
+  X(GetLimitedUseToken, "getLimitedUseToken",                         \
     "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 
