@@ -62,11 +62,12 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
   ::firebase::internal::FunctionRegistry* registry = app.function_registry();
   if (registry) {
     Future<std::string> app_check_future;
-    bool succeeded = registry->CallFunction(
-        ::firebase::internal::FnAppCheckGetTokenAsync, &app, nullptr,
-        &app_check_future);
+    bool succeeded =
+        registry->CallFunction(::firebase::internal::FnAppCheckGetTokenAsync,
+                               &app, nullptr, &app_check_future);
     if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-      const std::string* token = app_check_future.Await(kAppCheckTokenTimeoutMs);
+      const std::string* token =
+          app_check_future.Await(kAppCheckTokenTimeoutMs);
       if (token && app_check_future.error() == 0 && !token->empty()) {
         add_header("X-Firebase-AppCheck", token->c_str());
       }
