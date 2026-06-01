@@ -117,10 +117,10 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetLimitedUseToken(
 static const JNINativeMethod kNativeJniAppCheckProviderMethods[] = {
     {"nativeGetToken",
      "(JLcom/google/android/gms/tasks/TaskCompletionSource;)V",
-     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetToken)}
+     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetToken)},
     {"nativeGetLimitedUseToken",
      "(JLcom/google/android/gms/tasks/TaskCompletionSource;)V",
-     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetLimitedUseToken)},};
+     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetLimitedUseToken)}};
 
 // clang-format off
 #define JNI_APP_CHECK_LISTENER_METHODS(X)                              \
