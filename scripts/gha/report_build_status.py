@@ -379,17 +379,16 @@ def main(argv):
         run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
         run['day'] = run['date'].date()
         day = str(run['date'].date())
-        if not FLAGS.firestore and day in source_tests: continue
-        if day in source_tests:
-          prev_date = source_tests[day]['date'].date()
-          # Non-Firestore wants to keep the earliest, otherwise the latest
-          if not FLAGS.firestore and prev_date < run['date'].date():
-            continue
-          elif FLAGS.firestore and prev_date > run['date'].date():
-            continue
         if run['event'] != 'schedule': continue
         if run['status'] != 'completed': continue
         if run['day'] < start_date or run['day'] > end_date: continue
+        if day in source_tests:
+          prev_date = source_tests[day]['date']
+          # Non-Firestore wants to keep the earliest, otherwise the latest
+          if not FLAGS.firestore and prev_date < run['date']:
+            continue
+          elif FLAGS.firestore and prev_date > run['date']:
+            continue
         run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
         source_tests[day] = run
         all_days.add(day)
