@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_USER_DESKTOP_H_
 
 #include <firebase/auth.h>
+#include <stdint.h>
 
 #include <ctime>
 #include <memory>

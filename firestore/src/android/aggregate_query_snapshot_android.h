@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_AGGREGATE_QUERY_SNAPSHOT_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_AGGREGATE_QUERY_SNAPSHOT_ANDROID_H_
 
+#include <stdint.h>
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
 #include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"

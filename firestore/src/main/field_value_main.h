@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_
 
+#include <assert.h>
 #include <cstdint>
 #include <string>
 #include <utility>

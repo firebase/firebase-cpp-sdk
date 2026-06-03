@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <cassert>
+#include <cstring>
 #include "app/src/include/firebase/app.h"
 
 #include <dispatch/dispatch.h>

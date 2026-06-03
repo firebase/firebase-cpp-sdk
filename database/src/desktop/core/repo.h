@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_REPO_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_REPO_H_
 
+#include <stdint.h>
+
 #include <memory>
 #include <vector>
 

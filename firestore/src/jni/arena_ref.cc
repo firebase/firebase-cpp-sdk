@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "firestore/src/jni/arena_ref.h"
+#include <cassert>
 
 #include <jni.h>
 

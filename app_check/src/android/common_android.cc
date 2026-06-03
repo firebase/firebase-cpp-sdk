@@ -14,6 +14,7 @@
 
 #include "app_check/src/android/common_android.h"
 
+#include <cstdint>
 #include <string>
 
 #include "app/src/app_common.h"

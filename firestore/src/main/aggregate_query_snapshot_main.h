@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_SNAPSHOT_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_SNAPSHOT_MAIN_H_
 
+#include <stdint.h>
 #include <cstddef>
 #include <vector>
 

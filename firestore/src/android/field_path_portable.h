@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_PATH_PORTABLE_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_PATH_PORTABLE_H_
 
+#include <assert.h>
 #include <string>
 #include <vector>
 

@@ -18,6 +18,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <cstring>
+
 #include "app/src/filesystem.h"
 #include "app/src/util.h"
 

@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/sync_tree.h"
 
+#include <cassert>
+#include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>

@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_SERVER_VALUES_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_SERVER_VALUES_H_
 
+#include <stdint.h>
+
 #include "app/src/include/firebase/variant.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/core/sparse_snapshot_tree.h"

@@ -17,8 +17,10 @@
 #ifndef FIREBASE_APP_SRC_UTIL_ANDROID_H_
 #define FIREBASE_APP_SRC_UTIL_ANDROID_H_
 
+#include <assert.h>
 #include <jni.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include <map>
 #include <string>

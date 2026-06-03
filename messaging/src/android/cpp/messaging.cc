@@ -25,6 +25,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <cstring>
 #include <set>
 #include <string>
 

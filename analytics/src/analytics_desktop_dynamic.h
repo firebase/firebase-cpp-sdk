@@ -23,8 +23,8 @@
 
 // --- Copied from original header ---
 #include <stdbool.h>
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
 

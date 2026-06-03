@@ -16,6 +16,7 @@
 
 #include <stddef.h>
 
+#include <cassert>
 #include <string>
 
 #include "app/src/include/firebase/internal/common.h"

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cassert>
 #include "ump/src/ios/consent_info_internal_ios.h"
 
 #include "app/src/assert.h"

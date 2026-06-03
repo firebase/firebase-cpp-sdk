@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/user_desktop.h"
 
+#include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <memory>
 #include <utility>

@@ -14,6 +14,8 @@
 
 #include "storage/src/include/firebase/storage/metadata.h"
 
+#include <cstdint>
+
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "storage/src/include/firebase/storage.h"

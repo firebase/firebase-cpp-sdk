@@ -15,6 +15,8 @@
 #ifndef FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_METADATA_H_
 #define FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_METADATA_H_
 
+#include <stdint.h>
+
 #include <cassert>
 #include <map>
 #include <string>

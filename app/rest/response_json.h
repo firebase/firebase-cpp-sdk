@@ -17,6 +17,9 @@
 #ifndef FIREBASE_APP_REST_RESPONSE_JSON_H_
 #define FIREBASE_APP_REST_RESPONSE_JSON_H_
 
+#include <assert.h>
+#include <string.h>
+
 #include <string>
 #include <utility>
 

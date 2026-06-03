@@ -16,7 +16,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>

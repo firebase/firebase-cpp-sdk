@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 

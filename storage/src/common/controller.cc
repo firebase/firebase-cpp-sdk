@@ -14,6 +14,8 @@
 
 #include "storage/src/include/firebase/storage/controller.h"
 
+#include <cstdint>
+
 #include "app/src/include/firebase/internal/platform.h"
 
 // Controller is defined in these 3 files, one implementation for each OS.

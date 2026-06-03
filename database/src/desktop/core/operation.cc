@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/operation.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/desktop/util_desktop.h"

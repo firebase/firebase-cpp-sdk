@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/wrapper.h"
+#include <cassert>
 
 #include <iterator>
 

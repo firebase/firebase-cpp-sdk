@@ -15,6 +15,8 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
+#include <stdint.h>
+
 #include <string>
 #include <utility>
 

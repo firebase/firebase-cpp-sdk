@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_REST_REQUEST_JSON_H_
 #define FIREBASE_APP_REST_REQUEST_JSON_H_
 
+#include <assert.h>
+
 #include <string>
 
 #include "app/rest/request.h"
