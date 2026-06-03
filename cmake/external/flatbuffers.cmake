@@ -18,9 +18,8 @@ if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
   return()
 endif()
 
-set(version 99aa1ef21dd9dc3f9d4fb0eb82f4b59d0bb5e4c5)
-set(patch_file
-  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/flatbuffers/0001-remove-unused-var.patch)
+# Commit corresponds to Tag v25.12.19-2026-02-06-03fffb2
+set(version 95fda8c23e6e30ebd975892b5fad01efa53e039c)
 
 ExternalProject_Add(
   flatbuffers
@@ -29,7 +28,6 @@ ExternalProject_Add(
     COMMAND git init flatbuffers
     COMMAND cd flatbuffers && git fetch --depth=1 https://github.com/google/flatbuffers.git ${version} && git reset --hard FETCH_HEAD
 
-  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
   PREFIX ${PROJECT_BINARY_DIR}
 
   CONFIGURE_COMMAND ""

@@ -37,10 +37,14 @@ namespace internal {
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
                                                  const firebase::App& app) {
   std::string app_data_prefix =
-      std::string(app.options().package_name()) + "/" + app.name();
-  std::string file_path =
-      AppDataDir(app_data_prefix.c_str(), /*should_create=*/true) + "/" +
-      filename;
+      std::string(app.options().package_name()) + "/remote_config";
+  std::string error;
+  std::string app_dir =
+      AppDataDir(app_data_prefix.c_str(), /*should_create=*/true, &error);
+  std::string file_path;
+  if (error.empty() && !app_dir.empty()) {
+    file_path = app_dir + "/" + app.name() + "_" + filename;
+  }
 #if FIREBASE_PLATFORM_WINDOWS
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_to_wstring;
   file_path_ = utf8_to_wstring.from_bytes(file_path);
@@ -50,7 +54,13 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
 }
 
 bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {
+  if (file_path_.empty()) {
+    return false;
+  }
   std::fstream input(file_path_, std::ios::in | std::ios::binary);
+  if (!input) {
+    return false;
+  }
   std::stringstream ss;
   ss << input.rdbuf();
   configs->Deserialize(ss.str());
@@ -58,8 +68,14 @@ bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {
 }
 
 bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
+  if (file_path_.empty()) {
+    return false;
+  }
   std::string buffer = configs.Serialize();
   std::fstream output(file_path_, std::ios::out | std::ios::binary);
+  if (!output) {
+    return false;
+  }
   output.write(buffer.c_str(), buffer.size());
   return true;
 }
