@@ -86,12 +86,6 @@ target_link_libraries(firebase_rest_lib
     zlibstatic
     ${CMAKE_DL_LIBS}
 )
-# Automatically include headers that might not be declared.
-if(MSVC)
-  add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
-else()
-  add_definitions(-include assert.h -include string.h)
-endif()
 
 # Add shared definitions across all platforms, and then platform specific ones.
 add_definitions(
