@@ -27,6 +27,7 @@
 #include "app_check/src/android/common_android.h"
 #include "app_check/src/android/debug_provider_android.h"
 #include "app_check/src/android/play_integrity_provider_android.h"
+#include "app_check/src/android/recaptcha_provider_android.h"
 #include "app_check/src/common/common.h"
 
 namespace firebase {
