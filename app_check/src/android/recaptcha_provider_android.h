@@ -26,7 +26,7 @@ namespace internal {
 // Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheRecaptchaProviderMethodIds(JNIEnv* env, jobject activity);
 
-// Release provider classes cached by CachePlayIntegrityProviderMethodIds().
+// Release provider classes cached by CacheRecaptchaProviderMethodIds().
 void ReleaseRecaptchaProviderClasses(JNIEnv* env);
 
 class RecaptchaProviderFactoryInternal : public AppCheckProviderFactory {

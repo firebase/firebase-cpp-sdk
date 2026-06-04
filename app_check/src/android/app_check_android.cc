@@ -190,6 +190,7 @@ static void ReleaseClasses(JNIEnv* env) {
   ReleaseCommonAndroidClasses(env);
   ReleaseDebugProviderClasses(env);
   ReleasePlayIntegrityProviderClasses(env);
+  ReleaseRecaptchaProviderClasses(env);
 }
 
 // Anonymous namespace for code that is only relevant to this file.
@@ -299,6 +300,7 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
         // Each provider is optional as a user may or may not use it.
         CacheDebugProviderMethodIds(env, activity, embedded_files);
         CachePlayIntegrityProviderMethodIds(env, activity);
+        CacheRecaptchaProviderMethodIds(env, activity);
         g_initialized_count++;
       }
     }
