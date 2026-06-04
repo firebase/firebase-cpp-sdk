@@ -19,6 +19,7 @@ set(common_SRCS
     src/common/common.cc
     src/common/controller.cc
     src/common/listener.cc
+    src/common/list_result.cc
     src/common/metadata.cc
     src/common/storage.cc
     src/common/storage_reference.cc

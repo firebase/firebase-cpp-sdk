@@ -19,9 +19,13 @@
 #include <string>
 
 #include "app/rest/util.h"
+#include "app/src/variant_util.h"
+#include "storage/src/common/list_result_internal.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/rest_operation.h"
+#include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage/common.h"
+#include "storage/src/include/firebase/storage/list_result.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 
 namespace firebase {
@@ -268,6 +272,93 @@ void ReturnedMetadataResponse::MarkCompleted() {
       delete metadata_internal;
     }
   } else {
+    StorageNetworkError response;
+    if (response.Parse(buffer_.c_str())) {
+      ref_future_->Complete(handle, HttpToErrorCode(status()),
+                            response.error_message().c_str());
+    } else {
+      ref_future_->Complete(handle, HttpToErrorCode(status()),
+                            kInvalidJsonResponse);
+    }
+  }
+  NotifyProgress();
+  BlockingResponse::NotifyComplete();
+}
+
+ReturnedListResponse::ReturnedListResponse(
+    SafeFutureHandle<StorageListResult> handle,
+    ReferenceCountedFutureImpl* ref_future, StorageInternal* storage)
+    : BlockingResponse(handle.get(), ref_future), storage_(storage) {}
+
+bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
+  buffer_ += std::string(buffer, length);
+  NotifyProgress();
+  return true;
+}
+
+void ReturnedListResponse::MarkCompleted() {
+  BlockingResponse::MarkCompleted();
+  SafeFutureHandle<StorageListResult> handle(handle_);
+  if (status() == rest::util::HttpSuccess) {
+    Variant response_variant = util::JsonToVariant(buffer_.c_str());
+    if (response_variant.is_map()) {
+      auto& map = response_variant.map();
+      std::vector<StorageReference> prefixes;
+      std::vector<StorageReference> items;
+      std::string next_page_token;
+
+      if (map.find(Variant("prefixes")) != map.end() &&
+          map.at(Variant("prefixes")).is_vector()) {
+        for (auto& prefix_variant : map.at(Variant("prefixes")).vector()) {
+          if (prefix_variant.is_string()) {
+            std::string prefix_str = prefix_variant.string_value();
+            // The prefix returned from GCS/Firebase Storage is a path relative
+            // to the bucket root.
+            if (!prefix_str.empty() && prefix_str.back() == '/') {
+              prefix_str.pop_back();
+            }
+            prefixes.push_back(storage_->GetReference(prefix_str.c_str())
+                                   ->AsStorageReference());
+          }
+        }
+      }
+
+      if (map.find(Variant("items")) != map.end() &&
+          map.at(Variant("items")).is_vector()) {
+        for (auto& item_variant : map.at(Variant("items")).vector()) {
+          if (item_variant.is_map()) {
+            auto& item_map = item_variant.map();
+            if (item_map.find(Variant("name")) != item_map.end() &&
+                item_map.at(Variant("name")).is_string()) {
+              items.push_back(
+                  storage_
+                      ->GetReference(
+                          item_map.at(Variant("name")).string_value())
+                      ->AsStorageReference());
+            }
+          }
+        }
+      }
+
+      if (map.find(Variant("nextPageToken")) != map.end() &&
+          map.at(Variant("nextPageToken")).is_string()) {
+        next_page_token = map.at(Variant("nextPageToken")).string_value();
+      }
+
+      internal::StorageListResultInternal* result_internal =
+          new internal::StorageListResultInternal(prefixes, items,
+                                                  next_page_token);
+      ref_future_->CompleteWithResult(
+          handle, kErrorNone, "",
+          internal::StorageListResultInternal::AsStorageListResult(
+              result_internal));
+    } else {
+      LogWarning("Failed to parse list response. Buffer: %s", buffer_.c_str());
+      ref_future_->Complete(handle, kErrorUnknown, kInvalidJsonResponse);
+    }
+  } else {
+    LogWarning("List request failed with status %d. Buffer: %s", status(),
+               buffer_.c_str());
     StorageNetworkError response;
     if (response.Parse(buffer_.c_str())) {
       ref_future_->Complete(handle, HttpToErrorCode(status()),

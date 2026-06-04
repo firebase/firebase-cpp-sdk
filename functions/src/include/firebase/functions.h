@@ -90,8 +90,18 @@ class Functions {
   /// @brief Get a FunctionsReference for the specified path.
   HttpsCallableReference GetHttpsCallable(const char* name) const;
 
+  /// @brief Get a FunctionsReference for the specified path with the given
+  /// options.
+  HttpsCallableReference GetHttpsCallable(
+      const char* name, const HttpsCallableOptions& options) const;
+
   /// @brief Get a FunctionsReference for the specified URL.
   HttpsCallableReference GetHttpsCallableFromURL(const char* url) const;
+
+  /// @brief Get a FunctionsReference for the specified URL with the given
+  /// options.
+  HttpsCallableReference GetHttpsCallableFromURL(
+      const char* url, const HttpsCallableOptions& options) const;
 
   /// @brief Sets an origin for a Cloud Functions emulator to use.
   void UseFunctionsEmulator(const char* origin);

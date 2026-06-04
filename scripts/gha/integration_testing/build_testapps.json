@@ -80,6 +80,7 @@
       "testapp_path": "functions/integration_test",
       "frameworks": [
         "firebase_auth.xcframework",
+        "firebase_app_check.xcframework",
         "firebase_functions.xcframework",
         "firebase.xcframework"
       ],

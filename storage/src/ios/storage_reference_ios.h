@@ -20,6 +20,8 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
+#include "storage/src/include/firebase/storage/list_result.h"
+#include "storage/src/include/firebase/storage/storage_reference.h"
 #include "storage/src/ios/storage_ios.h"
 
 #ifdef __OBJC__
@@ -159,6 +161,13 @@ class StorageReferenceInternal {
 
   // Returns the result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
+
+  // List items (files) and prefixes (folders) under this StorageReference.
+  Future<StorageListResult> List(int max_results_per_page,
+                                 const char* _Nullable page_token);
+
+  // Returns the result of the most recent call to List();
+  Future<StorageListResult> ListLastResult();
 
   // StorageInternal instance we are associated with.
   StorageInternal* _Nullable storage_internal() const { return storage_; }

@@ -34,8 +34,9 @@ enum CallableReferenceFn {
 };
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    FunctionsInternal* functions, const char* url)
-    : functions_(functions), url_(url) {
+    FunctionsInternal* functions, const char* url,
+    const HttpsCallableOptions& options)
+    : functions_(functions), url_(url), options_(options) {
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
   rest::InitTransportCurl();
   transport_.set_is_async(true);
@@ -48,7 +49,7 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
-    : functions_(other.functions_), url_(other.url_) {
+    : functions_(other.functions_), url_(other.url_), options_(other.options_) {
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
   rest::InitTransportCurl();
   transport_.set_is_async(true);
@@ -58,13 +59,16 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& other) {
   functions_ = other.functions_;
   url_ = other.url_;
+  options_ = other.options_;
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other)
-    : functions_(other.functions_), url_(std::move(other.url_)) {
+    : functions_(other.functions_),
+      url_(std::move(other.url_)),
+      options_(other.options_) {
   other.functions_ = nullptr;
   functions_->future_manager().MoveFutureApi(&other, this);
   rest::InitTransportCurl();
@@ -76,6 +80,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   functions_ = other.functions_;
   other.functions_ = nullptr;
   url_ = std::move(other.url_);
+  options_ = other.options_;
   functions_->future_manager().MoveFutureApi(&other, this);
   return *this;
 }
@@ -333,9 +338,12 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
 
   // Check for App Check token function
   Future<std::string> app_check_future;
+  ::firebase::internal::FunctionId token_function_id =
+      options_.limited_use_app_check_token
+          ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
+          : ::firebase::internal::FnAppCheckGetTokenAsync;
   bool succeeded = functions_->app()->function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckGetTokenAsync, functions_->app(), nullptr,
-      &app_check_future);
+      token_function_id, functions_->app(), nullptr, &app_check_future);
   if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
     // Perform the transform request on a completion
     app_check_future.OnCompletion([&](const Future<std::string>& future_token) {

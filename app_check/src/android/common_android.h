@@ -31,8 +31,10 @@ namespace internal {
 // Used to setup the cache of AppCheckProvider interface method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
-#define APP_CHECK_PROVIDER_METHODS(X)                                                        \
-  X(GetToken, "getToken",                                                          \
+#define APP_CHECK_PROVIDER_METHODS(X)                                 \
+  X(GetToken, "getToken",                                             \
+    "()Lcom/google/android/gms/tasks/Task;"),                         \
+  X(GetLimitedUseToken, "getLimitedUseToken",                         \
     "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 

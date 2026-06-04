@@ -167,28 +167,22 @@ Currently, the third party libraries that can be provided this way are:
 | ZLIB |
 
 #### Building with CMake for iOS
-The Firebase C++ SDK comes with a CMake config file to build the library for
-iOS platforms, [cmake/toolchains/ios.cmake](/cmake/toolchains/ios.cmake).  In
-order to build with it, when running the CMake configuration pass it in with
-the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Auth
-library for iOS, you could run the following commands:
+Starting with CMake 3.14, iOS is supported natively by CMake. To build for iOS, set the `CMAKE_SYSTEM_NAME` to `iOS`.
+For example, to build the Auth library for iOS, you could run the following commands:
 
 ``` bash
 mkdir ios_build && cd ios_build
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake ..
+cmake -DCMAKE_SYSTEM_NAME=iOS ..
 cmake --build . --target firebase_auth
 ```
 
 #### Building with CMake for tvOS
-The Firebase C++ SDK comes with a CMake config file to build the library for
-tvOS platforms, [cmake/toolchains/apple.toolchain.cmake](/cmake/toolchains/apple.toolchain.cmake).  In
-order to build with it, when running the CMake configuration pass it in with
-the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Auth
-library for tvOS, you could run the following commands:
+Starting with CMake 3.14, tvOS is supported natively by CMake. To build for tvOS, set the `CMAKE_SYSTEM_NAME` to `tvOS`.
+For example, to build the Auth library for tvOS, you could run the following commands:
 
 ``` bash
 mkdir tvos_build && cd tvos_build
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/apple.toolchain.cmake -DPLATFORM=TVOS ..
+cmake -DCMAKE_SYSTEM_NAME=tvOS ..
 cmake --build . --target firebase_auth
 ```
 

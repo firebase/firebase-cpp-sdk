@@ -70,6 +70,10 @@ class AppCheckInternal {
   // internal methods to not conflict with the publicly returned future.
   Future<std::string> GetAppCheckTokenStringInternal();
 
+  // Gets the limited-use App Check token as just the string, to be used by
+  // internal methods to not conflict with the publicly returned future.
+  Future<std::string> GetLimitedUseAppCheckTokenStringInternal();
+
   void AddAppCheckListener(AppCheckListener* listener);
 
   void RemoveAppCheckListener(AppCheckListener* listener);
@@ -99,6 +103,10 @@ class AppCheckInternal {
   // Gets a Future<AppCheckToken> for the given App, stored in the out_future.
   static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/,
                                                void* out_future);
+
+  static bool GetLimitedUseAppCheckTokenAsyncForRegistry(App* app,
+                                                         void* /*unused*/,
+                                                         void* out_future);
 
   static bool AddAppCheckListenerForRegistry(App* app, void* callback,
                                              void* context);

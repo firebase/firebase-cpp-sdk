@@ -85,11 +85,11 @@ def main(argv):
   for artifact in artifacts:
     dest = _local_path_to_gcs_uri(gcs_prefix, artifact, testapp_dir)
     logging.info("Creating %s", dest)
-    subprocess.run([gcs.GSUTIL, "cp", artifact, dest], check=True)
+    subprocess.run([gcs.GCLOUD, "storage", "cp", artifact, dest], check=True)
   logging.info("Finished uploading to %s", gcs_prefix)
   logging.info(
-      "Use 'gsutil cp <gs_uri> <local_path>' to copy an artifact locally.\n"
-      "Use 'gsutil -m cp -r %s <local_path>' to copy everything.", gcs_prefix)
+      "Use 'gcloud storage cp <gs_uri> <local_path>' to copy an artifact locally.\n"
+      "Use 'gcloud storage cp --recursive %s <local_path>' to copy everything.", gcs_prefix)
 
 
 def _local_path_to_gcs_uri(gcs_prefix, path, testapp_dir):

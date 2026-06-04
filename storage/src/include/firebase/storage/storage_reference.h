@@ -20,6 +20,7 @@
 
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
+#include "firebase/storage/list_result.h"
 #include "firebase/storage/metadata.h"
 
 namespace firebase {
@@ -226,6 +227,29 @@ class StorageReference {
   ///
   /// @returns The result of the most recent call to UpdateMetadata();
   Future<Metadata> UpdateMetadataLastResult();
+
+  /// @brief List items (files) and prefixes (folders) under this
+  /// StorageReference.
+  ///
+  /// "/" is treated as a path delimiter. Storage does not support unsupported
+  /// object paths that end with "/" or contain two consecutive "/"s. All
+  /// invalid objects in GCS will be filtered.
+  ///
+  /// @param[in] max_results_per_page The maximum number of results to return
+  /// in a single page. Must be greater than 0 and at most 1000.
+  /// @param[in] page_token A page token from a previous call to List, or
+  /// nullptr if this is the first call.
+  ///
+  /// @returns A Future result, which will complete when the operation either
+  /// succeeds or fails. When the Future is completed, if its Error is
+  /// kErrorNone, the operation succeeded and the StorageListResult is returned.
+  Future<StorageListResult> List(int max_results_per_page = 1000,
+                                 const char* page_token = nullptr);
+
+  /// @brief Returns the result of the most recent call to List();
+  ///
+  /// @returns The result of the most recent call to List();
+  Future<StorageListResult> ListLastResult();
 
   /// @brief Returns the short name of this object.
   ///

@@ -42,18 +42,38 @@ FunctionsInternal::~FunctionsInternal() {
 const char* FunctionsInternal::region() const { return region_.c_str(); }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* name) const {
+  return GetHttpsCallable(name, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
+    const char* name, const HttpsCallableOptions& options) const {
+  FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
+      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
+
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithName:@(name)]));
+      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
+          HTTPSCallableWithName:@(name)
+                        options:firOptions]));
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const char* url) const {
+  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
+    const char* url, const HttpsCallableOptions& options) const {
+  FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
+      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
+
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   NSURL *nsurl = [NSURL URLWithString:@(url)];
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithURL:nsurl]));
+      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
+          HTTPSCallableWithURL:nsurl
+                       options:firOptions]));
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {

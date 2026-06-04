@@ -14,7 +14,7 @@
 
 # Cmake file for a single C++ integration test build.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.22)
 
 find_program(FIREBASE_PYTHON_EXECUTABLE
   NAMES python3 python
@@ -236,7 +236,7 @@ endif()
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 # Note that firebase_app needs to be last in the list.
-set(firebase_libs firebase_functions firebase_auth firebase_app)
+set(firebase_libs firebase_app_check firebase_functions firebase_auth firebase_app)
 set(gtest_libs gtest gmock)
 target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})

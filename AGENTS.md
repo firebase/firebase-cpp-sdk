@@ -60,7 +60,7 @@ The SDK uses CMake for C++ compilation and Gradle for Android-specific parts.
 2.  Run CMake to configure: `cmake ..`
     *   For Desktop: Run as is. You can use BORINGSSL instead of OpenSSL (for fewer
         system dependencies with the `-DFIREBASE_USE_BORINGSSL=YES` parameter.
-    *   For iOS, include the `-DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake`
+    *   For iOS, include the `-DCMAKE_SYSTEM_NAME=iOS`
         parameter. This requires running on a Mac build machine.
 3.  Build specific targets: `cmake --build . --target firebase_analytics`
     (replace `firebase_analytics` with the desired library).

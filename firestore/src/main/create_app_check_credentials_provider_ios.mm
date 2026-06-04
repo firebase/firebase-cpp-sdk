@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <memory>
+
 #include "firestore/src/main/create_credentials_provider.h"
 
 #import "FIRAppInternal.h"
@@ -24,7 +26,6 @@
 #import "FirebaseCore.h"
 
 #include "Firestore/core/src/credentials/firebase_app_check_credentials_provider_apple.h"
-#include "absl/memory/memory.h"
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
@@ -33,12 +34,12 @@ namespace firestore {
 using credentials::AppCheckCredentialsProvider;
 using credentials::FirebaseAppCheckCredentialsProvider;
 
-std::unique_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
+std::shared_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
     App& app) {
   FIRApp* ios_app = app.GetPlatformApp();
   auto ios_app_check = FIR_COMPONENT(FIRAppCheckInterop, ios_app.container);
-  return absl::make_unique<FirebaseAppCheckCredentialsProvider>(ios_app,
-                                                                ios_app_check);
+  return std::make_shared<FirebaseAppCheckCredentialsProvider>(ios_app,
+                                                               ios_app_check);
 }
 
 }  // namespace firestore

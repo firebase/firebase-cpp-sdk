@@ -31,7 +31,7 @@ class App;
 
 namespace firestore {
 
-std::unique_ptr<credentials::AuthCredentialsProvider> CreateCredentialsProvider(
+std::shared_ptr<credentials::AuthCredentialsProvider> CreateCredentialsProvider(
     App& app);
 
 }  // namespace firestore
