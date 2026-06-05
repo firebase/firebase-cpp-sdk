@@ -15,8 +15,7 @@
 #ifndef FIREBASE_APP_SRC_SECURE_USER_SECURE_MANAGER_H_
 #define FIREBASE_APP_SRC_SECURE_USER_SECURE_MANAGER_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>

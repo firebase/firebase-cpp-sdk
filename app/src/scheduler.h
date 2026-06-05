@@ -17,8 +17,7 @@
 #ifndef FIREBASE_APP_SRC_SCHEDULER_H_
 #define FIREBASE_APP_SRC_SCHEDULER_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <memory>
 #include <queue>
 

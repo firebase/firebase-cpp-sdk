@@ -17,11 +17,11 @@
 #ifndef FIREBASE_APP_SRC_UTIL_ANDROID_H_
 #define FIREBASE_APP_SRC_UTIL_ANDROID_H_
 
-#include <assert.h>
 #include <jni.h>
-#include <stddef.h>
-#include <stdint.h>
 
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <unordered_set>
@@ -193,7 +193,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 
 // Used to populate an array of MethodNameSignature.
 #define METHOD_NAME_SIGNATURE_5(id, name, signature, method_type, optional) \
-  { name, signature, method_type, optional }
+  {name, signature, method_type, optional}
 #define METHOD_NAME_SIGNATURE_4(id, name, signature, method_type) \
   METHOD_NAME_SIGNATURE_5(                                        \
       id, name, signature, method_type,                           \

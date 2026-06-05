@@ -18,7 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_JNI_TRAITS_H_
 
 #include <jni.h>
-#include <stdint.h>
+#include <cstdint>
 
 #include <cstddef>
 

@@ -17,14 +17,15 @@
 #ifndef FIREBASE_APP_SRC_PTHREAD_CONDVAR_H_
 #define FIREBASE_APP_SRC_PTHREAD_CONDVAR_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "app/src/include/firebase/internal/platform.h"
 
 #if !FIREBASE_PLATFORM_WINDOWS
 
-#include <errno.h>
 #include <pthread.h>
+
+#include <cerrno>
 
 #include "app/src/time.h"
 

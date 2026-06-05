@@ -15,8 +15,7 @@
 #ifndef FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 #define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <string>
 
 #include "firebase/app.h"

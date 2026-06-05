@@ -17,8 +17,7 @@
 #ifndef FIREBASE_APP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_
 #define FIREBASE_APP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_
 
-#include <assert.h>
-
+#include <cassert>
 #include <functional>
 #include <map>
 #include <vector>

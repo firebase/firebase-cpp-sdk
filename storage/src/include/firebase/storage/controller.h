@@ -15,7 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_CONTROLLER_H_
 #define FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_CONTROLLER_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "firebase/storage/storage_reference.h"
 

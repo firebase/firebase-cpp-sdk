@@ -15,9 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 
-#include <stdint.h>
-
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <sstream>
 

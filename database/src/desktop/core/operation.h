@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_OPERATION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_OPERATION_H_
 
-#include <assert.h>
+#include <cassert>
 
 #include "app/src/assert.h"
 #include "app/src/optional.h"
