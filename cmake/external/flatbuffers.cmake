@@ -20,6 +20,8 @@ endif()
 
 # Commit corresponds to Tag v25.12.19-2026-02-06-03fffb2
 set(version 95fda8c23e6e30ebd975892b5fad01efa53e039c)
+set(patch_file
+  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/flatbuffers/0001-fix-error-macro.patch)
 
 ExternalProject_Add(
   flatbuffers
@@ -28,6 +30,7 @@ ExternalProject_Add(
     COMMAND git init flatbuffers
     COMMAND cd flatbuffers && git fetch --depth=1 https://github.com/google/flatbuffers.git ${version} && git reset --hard FETCH_HEAD
 
+  PATCH_COMMAND git apply ${patch_file}
   PREFIX ${PROJECT_BINARY_DIR}
 
   CONFIGURE_COMMAND ""
