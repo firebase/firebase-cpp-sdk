@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - Remote Config (Desktop): Updated Flatbuffers to latest version to support buffer verification. Added flexbuffer integrity checks before parsing to prevent crashes on invalid/malformed data.
+
 ### 13.9.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.15.0.
