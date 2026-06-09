@@ -619,6 +619,7 @@ code.
     - General (iOS): Update to Firebase Cocoapods version 12.14.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 26.2.
+    - Auth (Windows): Fixes Auth requests when Appcheck is enabled.
 
 ### 13.7.0
 - Changes 
