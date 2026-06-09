@@ -21,7 +21,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-22.04,windows-latest,macos-15'
+        default: 'ubuntu-22.04,windows-2022,macos-15'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
@@ -278,7 +278,7 @@ jobs:
         # places.
         exclude:
         # Do not attempt to use arm64 on Windows or Linux.
-        - os: windows-latest
+        - os: windows-2022
           arch: arm64
         - os: ubuntu-22.04
           arch: arm64
@@ -289,7 +289,7 @@ jobs:
         # system's openssl when cross-compiling, except on Linux. Builds on Linux
         # happen on x64 machines, so x86 is technically cross-compiling. Builds on
         # Mac happen on arm64 machines, so x64 is technically cross-compiling.
-        - os: windows-latest
+        - os: windows-2022
           ssl_variant: openssl
           arch: x86
         - os: macos-15
@@ -848,7 +848,7 @@ jobs:
         # places.
         exclude:
         # Do not attempt to use arm64 on Windows or Linux.
-        - os: windows-latest
+        - os: windows-2022
           arch: arm64
         - os: ubuntu-22.04
           arch: arm64
@@ -859,7 +859,7 @@ jobs:
         # system's openssl when cross-compiling, except on Linux. Builds on Linux
         # happen on x64 machines, so x86 is technically cross-compiling. Builds on
         # Mac happen on arm64 machines, so x64 is technically cross-compiling.
-        - os: windows-latest
+        - os: windows-2022
           ssl_variant: openssl
           arch: x86
         - os: macos-15
