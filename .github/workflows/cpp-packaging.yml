@@ -320,17 +320,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04, macos-15]
+        os: [windows-2022, ubuntu-22.04, macos-15]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
         linux_abi: ["legacy", "c++11"]
         python_version: [3.9]
         include:
-        - os: windows-latest
+        - os: windows-2022
           vcpkg_triplet_suffix: "windows-static"
           sdk_platform: "windows"
-        - os: windows-latest
+        - os: windows-2022
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
           sdk_platform: "windows"
@@ -344,7 +344,7 @@ jobs:
           sdk_platform: "darwin"
 
         exclude:
-        - os: windows-latest
+        - os: windows-2022
           linux_abi: "c++11"
         - os: macos-15
           architecture: "x86"
@@ -360,7 +360,7 @@ jobs:
           build_type: "Debug"
         - os: ubuntu-22.04
           architecture: "arm64"
-        - os: windows-latest
+        - os: windows-2022
           architecture: "arm64"
 
     steps:

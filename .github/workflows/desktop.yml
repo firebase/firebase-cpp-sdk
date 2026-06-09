@@ -60,11 +60,11 @@ jobs:
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         include:
           # More Windows combinations are in the expanded matrix. 
-          - os: windows-latest
+          - os: windows-2022
             build_type: "Release"
             architecture: "x64"
             msvc_runtime: "static"
-          - os: windows-latest
+          - os: windows-2022
             build_type: "Debug"
             architecture: "x86"
             msvc_runtime: "dynamic"
@@ -82,16 +82,16 @@ jobs:
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-22.04
             xcode_version: "11.7"
-          - os: windows-latest
+          - os: windows-2022
             xcode_version: "11.7"
           - os: ubuntu-22.04
             xcode_version: "12.5.1"
-          - os: windows-latest
+          - os: windows-2022
             xcode_version: "12.5.1"
           # arm64 is only for macos
           - os: ubuntu-22.04
             architecture: "arm64"
-          - os: windows-latest
+          - os: windows-2022
             architecture: "arm64"
           # arm64 can't be built on Xcode 11
           - xcode_version: "11.7"
@@ -189,6 +189,7 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
+
 
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
