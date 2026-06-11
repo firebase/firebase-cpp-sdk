@@ -4,7 +4,8 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
 
-permissions: write-all
+permissions:
+  contents: read
 
 env:
   triggerLabelFull: "tests-requested: full"
@@ -44,6 +45,9 @@ jobs:
   check_integration_test_labels:
     # This check fails if integration tests are queued, in progress, or failed.
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
     - uses: docker://index.docker.io/agilepathway/pull-request-label-checker@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61 # ratchet:docker://agilepathway/pull-request-label-checker:latest
       with:
@@ -53,6 +57,9 @@ jobs:
   generated_docs_check:
     # This check succeeds if Doxygen documentation generates without errors.
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:

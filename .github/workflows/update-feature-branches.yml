@@ -13,7 +13,8 @@ on:
   schedule:
     - cron: "0 16 * * 1"  # Mondays, 4pm UTC = 9am PST / 10am PDT
 
-permissions: write-all
+permissions:
+  contents: read
 
 env:
   defaultBranchPattern: "feature_branch/*"
@@ -64,6 +65,8 @@ jobs:
     name: create-merge-pr-${{ matrix.branch_name }}
     needs: [ list_feature_branches ]
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     if: ${{ needs.list_feature_branches.outputs.branch_list != '[]' }}
     strategy:
       fail-fast: false

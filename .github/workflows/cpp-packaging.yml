@@ -566,7 +566,7 @@ jobs:
             tools_platform=darwin
           fi
           verbose_flag=
-          if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
+          if [[ -n "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" && "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" -ne 0 ]]; then
             verbose_flag=-v
           fi
           declare -a additional_flags
@@ -606,6 +606,8 @@ jobs:
           fi
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
+        env:
+          GITHUB_EVENT_INPUTS_VERBOSEBUILD: ${{ github.event.inputs.verboseBuild }}
 
       - name: Print package contents
         shell: bash

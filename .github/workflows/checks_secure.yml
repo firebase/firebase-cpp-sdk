@@ -2,6 +2,9 @@ name: Checks (secure)
 # These are run on base branch with read/write access.
 
 on:
+  # This trigger is only safe-ish to use if steps are gated behind the
+  # action-has-permission check.
+  # zizmor: ignore[dangerous-triggers]
   pull_request_target:
     types: [synchronize]
 

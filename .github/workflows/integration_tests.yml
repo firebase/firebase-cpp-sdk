@@ -42,7 +42,8 @@ on:
       firestore_dep_source:
         description: 'Optional: Where to get firestore iOS SDK from: "RELEASED", "TIP" or "<git-commit> from firestore-ios-sdk"'
 
-permissions: write-all
+permissions:
+  contents: read
 
 env:
   triggerLabelPrefix: "tests-requested: "
@@ -57,6 +58,10 @@ env:
 jobs:
   check_and_prepare:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: write
     outputs:
       trigger: ${{ steps.set_outputs.outputs.trigger }}
       github_ref: ${{ steps.set_outputs.outputs.github_ref }}
@@ -265,6 +270,9 @@ jobs:
     name: build-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: write
     # Skip this if there is an empty matrix (which can happen if "auto" was set above).
     # But check cancelled() && !failure() so it runs even if check_trigger was skipped.
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') && needs.check_and_prepare.outputs.apis != '' && !cancelled() && !failure()
@@ -462,6 +470,9 @@ jobs:
     name: build-android-${{ matrix.os }}
     needs: [check_and_prepare]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: write
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Android') && needs.check_and_prepare.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
@@ -604,6 +615,9 @@ jobs:
     name: build-ios-${{ matrix.os }}
     needs: [check_and_prepare]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: write
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
@@ -724,6 +738,9 @@ jobs:
     name: build-tvos-${{ matrix.os }}
     needs: [check_and_prepare]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: write
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
@@ -841,6 +858,9 @@ jobs:
     name: test-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: write
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -986,6 +1006,9 @@ jobs:
     name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_android]
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Android') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -1130,6 +1153,9 @@ jobs:
     name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_ios]
     runs-on: macos-15
+    permissions:
+      contents: read
+      pull-requests: write
 
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
@@ -1317,6 +1343,9 @@ jobs:
     name: test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
     needs: [check_and_prepare, build_tvos]
     runs-on: macos-15
+    permissions:
+      contents: read
+      pull-requests: write
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -1468,6 +1497,10 @@ jobs:
     name: "summarize-results"
     needs: [check_and_prepare, test_desktop, test_android, test_ios, test_tvos]
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
@@ -1546,6 +1579,8 @@ jobs:
     name: "attempt-retry"
     needs: [check_and_prepare, summarize_results]
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
