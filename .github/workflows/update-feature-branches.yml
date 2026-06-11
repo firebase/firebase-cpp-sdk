@@ -32,6 +32,8 @@ jobs:
       - name: Check out repo (if needed)
         if: ${{ github.event.inputs.branch_list == '' }}
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Get list of feature branches
         id: get-branches
@@ -85,6 +87,7 @@ jobs:
           ref: ${{ matrix.branch_name }}
           fetch-depth: 0
           submodules: false
+          persist-credentials: false
 
       - name: Install prerequisites
         run: |

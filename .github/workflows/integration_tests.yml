@@ -153,6 +153,7 @@ jobs:
         ref: ${{steps.set_outputs.outputs.github_ref}}
         fetch-depth: 0
         submodules: false
+        persist-credentials: false
     - name: Setup python
       uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
       with:
@@ -303,6 +304,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+          persist-credentials: false
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
@@ -473,6 +475,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+          persist-credentials: false
       - run: df -h
       - name: Free Disk Space (Ubuntu)
         if: runner.os == 'Linux'
@@ -614,6 +617,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+          persist-credentials: false
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
@@ -733,6 +737,7 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+          persist-credentials: false
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
@@ -869,6 +874,7 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          persist-credentials: false
       - name: Download Desktop integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
@@ -996,6 +1002,7 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          persist-credentials: false
       - name: Download Android integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
@@ -1138,6 +1145,7 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          persist-credentials: false
       - name: Download iOS integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
@@ -1320,6 +1328,7 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          persist-credentials: false
       - name: Download tvOS integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
@@ -1465,6 +1474,7 @@ jobs:
         with:
 
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          persist-credentials: false
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
@@ -1542,6 +1552,7 @@ jobs:
         with:
 
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          persist-credentials: false
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:

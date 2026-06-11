@@ -46,6 +46,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.baseBranch }}
+          persist-credentials: false
 
       - name: Install prerequisites
         run: |
