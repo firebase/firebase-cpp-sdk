@@ -1523,11 +1523,13 @@ jobs:
       # Use a different token to remove the "in-progress" label,
       # to allow the removal to trigger the "Check Labels" workflow.
       - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@32691ba7c9e7063bd457bd8f2a5703138591fa58 # ratchet:tibdex/github-app-token@v1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v1
         id: generate-token
         with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          # we should migrate to client-id
+          app-id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private-key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number }}
         shell: bash
@@ -1596,11 +1598,13 @@ jobs:
         run: pip install -r scripts/gha/python_requirements.txt
       # The default token can't run workflows, so get an alternate token.
       - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@32691ba7c9e7063bd457bd8f2a5703138591fa58 # ratchet:tibdex/github-app-token@v1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v1
         id: generate-token
         with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          # we should migrate to client-id
+          app-id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private-key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          permission-actions: write
       - name: Retry failed tests
         run: |
           echo "::warning ::Attempting to retry failed tests"
