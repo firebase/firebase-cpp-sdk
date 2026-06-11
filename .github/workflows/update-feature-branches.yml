@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: Check out repo (if needed)
         if: ${{ github.event.inputs.branch_list == '' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
 
       - name: Get list of feature branches
         id: get-branches
@@ -69,18 +69,18 @@ jobs:
         branch_name: ${{ fromJson(needs.list_feature_branches.outputs.branch_list) }}
     steps:
       - name: Get token for firebase-workflow-trigger
-        uses: tibdex/github-app-token@v1
+        uses: tibdex/github-app-token@32691ba7c9e7063bd457bd8f2a5703138591fa58 # ratchet:tibdex/github-app-token@v1
         id: generate-token
         with:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{ matrix.branch_name }}
           fetch-depth: 0
@@ -137,7 +137,7 @@ jobs:
           STEPS_GENERATE_TOKEN_OUTPUTS_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Set test trigger label.
-        uses: actions-ecosystem/action-add-labels@v1
+        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf # ratchet:actions-ecosystem/action-add-labels@v1
         if: ${{ steps.create-pr.outputs.created_pr_number }}
         with:
           github_token: ${{ steps.generate-token.outputs.token }}

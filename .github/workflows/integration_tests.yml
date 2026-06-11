@@ -76,7 +76,7 @@ jobs:
     steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
-      uses: lannonbr/repo-permission-check-action@2.0.0
+      uses: lannonbr/repo-permission-check-action@b23b656f0dfb810f0c5e224a264d621a92a6f271 # ratchet:lannonbr/repo-permission-check-action@2.0.0
       with:
         permission: "admin"
     ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
@@ -137,7 +137,7 @@ jobs:
     ### e.g. Triggered by non-"test-request" label; triggered by not merged PR close event.
     - name: Cancel workflow
       if: ${{ !steps.set_outputs.outputs.trigger }}
-      uses: andymckay/cancel-action@0.2
+      uses: andymckay/cancel-action@8f8510d9dea52fcc8eb6ca10d6ce47fd5fc43cd8 # ratchet:andymckay/cancel-action@0.2
     - name: Wait for workflow cancellation
       if: ${{ !steps.set_outputs.outputs.trigger }}
       run: |
@@ -145,20 +145,20 @@ jobs:
         exit 1  # fail out if the cancellation above somehow failed.
     - name: Cancel previous runs on the same PR
       if: steps.set_outputs.outputs.trigger == 'label_trigger'
-      uses: styfle/cancel-workflow-action@0.8.0
+      uses: styfle/cancel-workflow-action@3d86a7cc43670094ac248017207be0295edbc31d # ratchet:styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
       with:
         ref: ${{steps.set_outputs.outputs.github_ref}}
         fetch-depth: 0
         submodules: false
     - name: Setup python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
       with:
         python-version: ${{ env.pythonVersion }}
     - name: Install python deps
-      uses: nick-invision/retry@v2
+      uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
       with:
         timeout_minutes: 1
         max_attempts: 3
@@ -296,15 +296,15 @@ jobs:
           ssl_variant: openssl
           arch: x64
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
@@ -314,7 +314,7 @@ jobs:
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
       - name: Install Desktop SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 15
@@ -322,15 +322,15 @@ jobs:
           command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506 # ratchet:microsoft/setup-msbuild@v1.1
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -390,7 +390,7 @@ jobs:
           MATRIX_ARCH: ${{ matrix.arch }}
           MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
       - name: Upload Desktop Cmake
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: cmake-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -409,14 +409,14 @@ jobs:
           MATRIX_ARCH: ${{ matrix.arch }}
           MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
       - name: Upload Desktop integration tests artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload Desktop build results artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -424,7 +424,7 @@ jobs:
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-build-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -466,10 +466,10 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
@@ -492,26 +492,26 @@ jobs:
         run: echo "JAVA_HOME=${JAVA_HOME_11_arm64}" >> $GITHUB_ENV
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506 # ratchet:microsoft/setup-msbuild@v1.1
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ matrix.os }}-r21e
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install Android SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 10
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Android
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -553,14 +553,14 @@ jobs:
         env:
           MATRIX_OS: ${{ matrix.os }}
       - name: Upload Android integration tests artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-android-${{ matrix.os }}
           path: testapps-android-${{ matrix.os }}
           retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload Android build results artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-android-${{ matrix.os }}
@@ -568,7 +568,7 @@ jobs:
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-build-android-${{ matrix.os }}
@@ -607,15 +607,15 @@ jobs:
       matrix:
         os: [macos-15]
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
@@ -625,13 +625,13 @@ jobs:
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
       - name: Install iOS SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           timeout_minutes: 3
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p iOS
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -673,14 +673,14 @@ jobs:
             echo "__SUMMARY_MISSING__" > build-results-ios-${{ matrix.os }}.log.json
           fi
       - name: Upload iOS integration tests artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-ios-${{ matrix.os }}
           path: testapps-ios-${{ matrix.os }}
           retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload iOS build results artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-ios-${{ matrix.os }}
@@ -688,7 +688,7 @@ jobs:
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-build-ios-${{ matrix.os }}
@@ -726,15 +726,15 @@ jobs:
       matrix:
         os: [macos-15]
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
@@ -744,13 +744,13 @@ jobs:
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
       - name: Install tvOS SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           timeout_minutes: 3
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS
       - name: Fetch prebuilt packaged SDK from previous run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -789,14 +789,14 @@ jobs:
             echo "__SUMMARY_MISSING__" > build-results-tvos-${{ matrix.os }}.log.json
           fi
       - name: Upload tvOS integration tests artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: testapps-tvos-${{ matrix.os }}
           path: testapps-tvos-${{ matrix.os }}
           retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload tvOS build results artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: log-artifact-build-tvos-${{ matrix.os }}
@@ -804,7 +804,7 @@ jobs:
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-build-tvos-${{ matrix.os }}
@@ -866,16 +866,16 @@ jobs:
           ssl_variant: openssl
           arch: x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
@@ -885,18 +885,18 @@ jobs:
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 15
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -t true -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Set up Node (18)
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # ratchet:actions/setup-node@v3
         with:
           node-version: 18.x
       - name: Setup Firestore Emulator
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 5
@@ -908,7 +908,7 @@ jobs:
           echo "$(npm root)" >> $GITHUB_PATH
           echo "$(npm root)/.bin" >> $GITHUB_PATH
       - name: Setup java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # ratchet:actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -938,14 +938,14 @@ jobs:
           MATRIX_SSL_VARIANT: ${{ matrix.ssl_variant }}
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: log-artifact-test-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-test-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
@@ -993,20 +993,20 @@ jobs:
           -  android_device: "android_latest"
              test_type: "uitest"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Android integration tests artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: testapps/testapps-android-${{ matrix.build_os }}
           name: testapps-android-${{ matrix.build_os }}
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 5
@@ -1020,7 +1020,7 @@ jobs:
         env:
           MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
       - name: Setup java 11 for test_simulator.py
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # ratchet:actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '11'
@@ -1038,7 +1038,7 @@ jobs:
           MATRIX_BUILD_OS: ${{ matrix.build_os }}
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
+        uses: FirebaseExtended/github-actions/firebase-test-lab@41c787c37157e4c5932b951e531c041efa5bb7a4 # ratchet:FirebaseExtended/github-actions/firebase-test-lab@v1.4
         timeout-minutes: 240
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
@@ -1063,38 +1063,34 @@ jobs:
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
-        run: |
-          # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-android-${MATRIX_BUILD_OS}" ] && [ ! -f "testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log.json"
-          fi
+        run: "# If testapps do not exist, then it's a build error not test error. \nif [ -d \"testapps/testapps-android-${MATRIX_BUILD_OS}\" ] && [ ! -f \"testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log.json\" ]; then\n  mkdir -p testapps && echo \"__SUMMARY_MISSING__\" > \"testapps/test-results-android-${MATRIX_BUILD_OS}-${MATRIX_ANDROID_DEVICE}-${{ matrix.test_type }}.log.json\"\nfi\n"
         env:
           MATRIX_BUILD_OS: ${{ matrix.build_os }}
           MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
       - name: Upload Android test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: log-artifact-test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}*
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Upload Android test video artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/video-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Upload Android test logcat artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-logcat-artifact-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
           path: testapps/logcat-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.txt
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
@@ -1123,11 +1119,11 @@ jobs:
           MATRIX_BUILD_OS: ${{ matrix.build_os }}
           MATRIX_ANDROID_DEVICE: ${{ matrix.android_device }}
           JOB_STATUS: ${{ job.status }}
-
   test_ios:
     name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_ios]
     runs-on: macos-15
+
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -1139,16 +1135,16 @@ jobs:
              test_type: "uitest"
         build_os: [macos-15]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download iOS integration tests artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: testapps/testapps-ios-${{ matrix.build_os }}
           name: testapps-ios-${{ matrix.build_os }}
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
@@ -1158,7 +1154,7 @@ jobs:
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           timeout_minutes: 3
           max_attempts: 3
@@ -1171,17 +1167,17 @@ jobs:
         env:
           MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - name: Set up Node (18)
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # ratchet:actions/setup-node@v3
         with:
           node-version: 18.x
       - name: Setup java for Firestore emulator
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # ratchet:actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
       - name: Setup Firestore Emulator
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 5
@@ -1229,7 +1225,7 @@ jobs:
           MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'ftl'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.4
+        uses: FirebaseExtended/github-actions/firebase-test-lab@41c787c37157e4c5932b951e531c041efa5bb7a4 # ratchet:FirebaseExtended/github-actions/firebase-test-lab@v1.4
         timeout-minutes: 180
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
@@ -1253,11 +1249,7 @@ jobs:
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
-        run: |
-          # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log.json"
-          fi
+        run: "# If testapps do not exist, then it's a build error not test error. \nif [ -d \"testapps/testapps-ios-${{ matrix.build_os }}\" ] && [ ! -f \"testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log.json\" ]; then\n  mkdir -p testapps && echo \"__SUMMARY_MISSING__\" > \"testapps/test-results-ios-${{ matrix.build_os }}-${MATRIX_IOS_DEVICE}-${{ matrix.test_type }}.log.json\"\nfi\n"
         env:
           MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
       - name: Delete keychain (macOS Simulator)
@@ -1271,21 +1263,21 @@ jobs:
           security delete-keychain tmp-keychain || true
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: log-artifact-test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
           path: testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}*
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Upload iOS test video artifact
         if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
           path: testapps/video-*-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
@@ -1313,7 +1305,6 @@ jobs:
         env:
           MATRIX_IOS_DEVICE: ${{ matrix.ios_device }}
           JOB_STATUS: ${{ job.status }}
-
   test_tvos:
     name: test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
     needs: [check_and_prepare, build_tvos]
@@ -1322,19 +1313,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+
         tvos_device: ${{ fromJson(needs.check_and_prepare.outputs.tvos_device) }}
         build_os: [macos-15]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download tvOS integration tests artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: testapps/testapps-tvos-${{ matrix.build_os }}
           name: testapps-tvos-${{ matrix.build_os }}
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: setup default Xcode version (macos)
@@ -1344,19 +1336,19 @@ jobs:
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
       - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           timeout_minutes: 3
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS  -t true
       - name: Setup java for Firestore emulator
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # ratchet:actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
       - name: Setup Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 5
@@ -1421,21 +1413,21 @@ jobs:
           security delete-keychain tmp-keychain || true
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: log-artifact-test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
           path: testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}*
           retention-days: ${{ env.logArtifactRetentionDays }}
       - name: Upload tvOS test video artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: mobile-simulator-test-video-artifact-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
           path: testapps/video-*-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.mp4
           retention-days: ${{ env.binaryArtifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           name: log-artifact-test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
@@ -1463,24 +1455,24 @@ jobs:
         env:
           MATRIX_TVOS_DEVICE: ${{ matrix.tvos_device }}
           JOB_STATUS: ${{ job.status }}
-
   summarize_results:
     name: "summarize-results"
     needs: [check_and_prepare, test_desktop, test_android, test_ios, test_tvos]
     runs-on: ubuntu-22.04
     if: ${{ !cancelled() }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/python_requirements.txt
       - name: Download log artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: test_results
           pattern: log-artifact-*
@@ -1488,7 +1480,7 @@ jobs:
       # Use a different token to remove the "in-progress" label,
       # to allow the removal to trigger the "Check Labels" workflow.
       - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@v1
+        uses: tibdex/github-app-token@32691ba7c9e7063bd457bd8f2a5703138591fa58 # ratchet:tibdex/github-app-token@v1
         id: generate-token
         with:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
@@ -1540,25 +1532,25 @@ jobs:
           NEEDS_CHECK_AND_PREPARE_OUTPUTS_GITHUB_REF: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
-
   attempt_retry:
     name: "attempt-retry"
     needs: [check_and_prepare, summarize_results]
     runs-on: ubuntu-22.04
     if: ${{ failure() && needs.check_and_prepare.outputs.trigger == 'scheduled_trigger' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/python_requirements.txt
       # The default token can't run workflows, so get an alternate token.
       - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@v1
+        uses: tibdex/github-app-token@32691ba7c9e7063bd457bd8f2a5703138591fa58 # ratchet:tibdex/github-app-token@v1
         id: generate-token
         with:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
