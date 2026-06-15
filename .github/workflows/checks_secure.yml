@@ -2,6 +2,9 @@ name: Checks (secure)
 # These are run on base branch with read/write access.
 
 on:
+  # This trigger is only safe-ish to use if steps are gated behind the
+  # action-has-permission check.
+  # zizmor: ignore[dangerous-triggers]
   pull_request_target:
     types: [synchronize]
 
@@ -19,19 +22,20 @@ jobs:
     steps:
       - name: Check user permission
         id: check
-        uses: scherermichael-oss/action-has-permission@1.0.6
+        uses: scherermichael-oss/action-has-permission@136e061bfe093832d87f090dd768e14e27a740d3 # ratchet:scherermichael-oss/action-has-permission@1.0.6
         # This action sets outputs.has-permission to '1' or ''
         with:
           required-permission: write
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         with:
           submodules: false
+          persist-credentials: false
       - name: Setup python
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Install prerequisites
