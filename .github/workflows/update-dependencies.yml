@@ -30,14 +30,12 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Get token for firebase-workflow-trigger
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v1
+        uses: tibdex/github-app-token@v1
         id: generate-token
         with:
           # we should migrate to client-id
-          app-id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private-key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
-          permission-contents: write
-          permission-pull-requests: write
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
 
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
