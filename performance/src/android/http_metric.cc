@@ -4,6 +4,8 @@
 
 #include <jni.h>
 
+#include <cassert>
+#include <cstdint>
 #include <string>
 
 #include "app/src/assert.h"

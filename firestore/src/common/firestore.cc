@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/include/firebase/firestore.h"
+#include <cstdint>
 
 #include <cassert>
 #include <cstring>

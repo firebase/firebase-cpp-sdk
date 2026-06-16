@@ -16,6 +16,7 @@
 
 #include <chrono>  // NOLINT
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <sstream>
 #include <utility>

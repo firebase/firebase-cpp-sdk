@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/document_change_android.h"
+#include <cstdint>
 
 #include "firestore/src/android/document_change_type_android.h"
 #include "firestore/src/android/document_snapshot_android.h"

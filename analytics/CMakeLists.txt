@@ -129,28 +129,8 @@ target_compile_definitions(firebase_analytics
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
-# Automatically include headers that might not be declared.
-if(IOS)
-  if(MSVC)
-    target_compile_options(firebase_analytics PRIVATE
-      $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:/FI"assert.h">
-      $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:/FI"string.h">
-      $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:/FI"stdint.h">)
-  else()
-    target_compile_options(firebase_analytics PRIVATE
-      $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:SHELL:-include assert.h -include string.h>
-    )
-  endif()
-else()
-  if(MSVC)
-    target_compile_options(firebase_analytics PRIVATE
-      /FI"assert.h" /FI"string.h" /FI"stdint.h")
-  else()
-    target_compile_options(firebase_analytics PRIVATE
-      SHELL:-include assert.h -include string.h
-    )
-  endif()
-endif()
+
+
 
 if(ANDROID)
   firebase_cpp_proguard_file(analytics)

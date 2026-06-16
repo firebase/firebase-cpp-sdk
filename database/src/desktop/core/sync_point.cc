@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/core/sync_point.h"
 
+#include <cassert>
 #include <memory>
 #include <set>
 #include <utility>

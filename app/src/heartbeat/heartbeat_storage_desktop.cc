@@ -17,6 +17,7 @@
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 
 #include <codecvt>
+#include <cstdint>
 #include <fstream>
 #include <locale>
 #include <regex>

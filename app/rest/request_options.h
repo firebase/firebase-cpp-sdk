@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_REST_REQUEST_OPTIONS_H_
 #define FIREBASE_APP_REST_REQUEST_OPTIONS_H_
 
+#include <stdint.h>
+
 #include <map>
 #include <string>
 

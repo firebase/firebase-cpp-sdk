@@ -14,6 +14,7 @@
 
 #include "remote_config/src/desktop/metadata.h"
 
+#include <cstdint>
 #include <map>
 #include <string>
 

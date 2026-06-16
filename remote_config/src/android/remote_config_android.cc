@@ -16,6 +16,8 @@
 
 #include <assert.h>
 
+#include <cstdint>
+#include <cstring>
 #include <set>
 #include <string>
 

@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_STRING_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_STRING_H_
 
+#include <stdint.h>
 #include "firestore/src/jni/object.h"
 
 namespace firebase {

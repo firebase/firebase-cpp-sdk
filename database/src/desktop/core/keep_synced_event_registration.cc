@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/core/keep_synced_event_registration.h"
 
+#include <cassert>
 #include <memory>
 
 #include "app/src/assert.h"

@@ -14,6 +14,7 @@
 
 #include "remote_config/src/include/firebase/remote_config.h"
 
+#include <cassert>
 #include <cstdint>
 
 #include "app/src/cleanup_notifier.h"

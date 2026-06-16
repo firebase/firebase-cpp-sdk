@@ -15,6 +15,8 @@
  */
 #include <windows.h>
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"

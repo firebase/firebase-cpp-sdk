@@ -16,6 +16,8 @@
 
 #include <string.h>
 
+#include <cassert>
+
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"

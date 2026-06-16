@@ -16,6 +16,8 @@
 
 #include <stdint.h>
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "auth/src/data.h"
 #include "auth/src/include/firebase/auth.h"

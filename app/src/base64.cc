@@ -16,6 +16,7 @@
 
 #include "app/src/base64.h"
 
+#include <cassert>
 #include <cstdint>
 
 #include "app/src/assert.h"

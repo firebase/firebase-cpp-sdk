@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/persistence/flatbuffer_conversions.h"
 
+#include <cstdint>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/variant_util.h"
 #include "database/src/common/query_spec.h"

@@ -14,6 +14,8 @@
 
 #include "remote_config/src/desktop/config_data.h"
 
+#include <cstdint>
+
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/desktop/metadata.h"
 

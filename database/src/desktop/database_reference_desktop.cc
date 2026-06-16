@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 
+#include <cstdint>
 #include <sstream>
 
 #include "app/rest/util.h"

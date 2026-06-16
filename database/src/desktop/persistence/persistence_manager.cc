@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/persistence/persistence_manager.h"
 
+#include <cassert>
+#include <cstdint>
 #include <iostream>
 #include <set>
 #include <string>

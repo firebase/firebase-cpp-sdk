@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_IN_MEMORY_PERSISTENCE_STORAGE_ENGINE_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_IN_MEMORY_PERSISTENCE_STORAGE_ENGINE_H_
 
+#include <stdint.h>
+
 #include <memory>
 
 #include "app/src/include/firebase/variant.h"

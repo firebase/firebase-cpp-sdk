@@ -16,6 +16,8 @@
 
 #include <assert.h>
 
+#include <cstring>
+
 #include "app/src/time.h"
 #include "auth/src/android/common_android.h"
 

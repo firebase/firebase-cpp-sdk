@@ -17,6 +17,7 @@
 #include "app/rest/transport_curl.h"
 
 #include <cassert>
+#include <cstdint>
 #include <deque>
 #include <map>
 

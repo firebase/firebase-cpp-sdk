@@ -3,6 +3,7 @@
 #import "performance/src_ios/fake/FIRTrace.h"
 
 #import "performance/src_ios/fake/FIRPerformance.h"
+#include <cstdint>
 #include "testing/reporter_impl.h"
 
 @interface FIRPerformance (Private_Methods)

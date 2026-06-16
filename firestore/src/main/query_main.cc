@@ -15,6 +15,8 @@
  */
 
 #include "firestore/src/main/query_main.h"
+#include <cassert>
+#include <cstdint>
 
 #include <utility>
 

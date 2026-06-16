@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/tracked_query_manager.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <ctime>
 #include <map>

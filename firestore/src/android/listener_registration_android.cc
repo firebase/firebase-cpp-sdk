@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/listener_registration_android.h"
+#include <cassert>
 
 #include "app/src/assert.h"
 #include "firestore/src/android/firestore_android.h"

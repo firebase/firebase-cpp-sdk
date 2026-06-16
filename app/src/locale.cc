@@ -16,6 +16,9 @@
 
 #include "app/src/locale.h"
 
+#include <cstdint>
+#include <cstring>
+
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/log.h"
 

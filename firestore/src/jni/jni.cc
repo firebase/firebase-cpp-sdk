@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/jni/jni.h"
+#include <cassert>
 
 #include <pthread.h>
 
