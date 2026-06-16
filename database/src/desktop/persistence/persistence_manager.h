@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_PERSISTENCE_MANAGER_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_PERSISTENCE_MANAGER_H_
 
+#include <stdint.h>
+
 #include <functional>
 #include <memory>
 #include <set>

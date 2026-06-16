@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <sstream>
 

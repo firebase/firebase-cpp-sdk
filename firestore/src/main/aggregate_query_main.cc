@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cstdint>
 #include <utility>
 
 #include "firestore/src/main/aggregate_query_main.h"

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Unset label
-        uses: buildsville/add-remove-label@v1
+        uses: buildsville/add-remove-label@6008d7bd99d3baeb7c04033584e68f8ec80b198b # ratchet:buildsville/add-remove-label@v1
         with:
           token: ${{ github.token }}
           label: "${{ github.event.label.name }}"
@@ -41,8 +41,8 @@ jobs:
           # Get the current reviewers and the author of the PR, to exclude them from the list.
           # Duplicates don't matter, so get the list of requested reviewers *and* the list of
           # completed reviews.
-          requested_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
-          completed_reviewers='${{ join(fromJSON(env.PR_REVIEWS).*.user.login, ' ') }} '
+          requested_reviewers='${REQUESTED_REVIEWERS} '
+          completed_reviewers='${COMPLETED_REVIEWERS} '
           author="${GITHUB_EVENT_PULL_REQUEST_USER_LOGIN}"
           echo "Requested reviewers: ${requested_reviewers}"
           echo "Completed reviewers: ${completed_reviewers}"
@@ -71,18 +71,20 @@ jobs:
             echo "::warning ::No reviewers available"
           fi
         env:
+          COMPLETED_REVIEWERS: ${{ join(fromJSON(env.PR_REVIEWS).*.user.login, ' ') }}
+          REQUESTED_REVIEWERS: ${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }}
           GITHUB_EVENT_PULL_REQUEST_USER_LOGIN: ${{ github.event.pull_request.user.login }}
 
       - name: Choose random reviewer
         if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
         id: choose-random
-        uses: KhannaAbhinav/random-selector-action@v1
+        uses: KhannaAbhinav/random-selector-action@1a64ecbd9aac544c4607fcb59ddb59f65e71e3ff # ratchet:KhannaAbhinav/random-selector-action@v1
         with:
           data: ${{ steps.get-reviewers.outputs.reviewer_list }}
 
       - name: Assign Reviewers to PR
         if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
-        uses: itsOliverBott/assign-pr-reviewers@release
+        uses: itsOliverBott/assign-pr-reviewers@bfe99c76aab72b700a61b84a2703e923a16d9390 # ratchet:itsOliverBott/assign-pr-reviewers@release
         with:
           token: ${{ github.token }}
           users: ${{ fromJSON(steps.choose-random.outputs.selectedValuesList)[0] }}

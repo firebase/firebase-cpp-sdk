@@ -14,6 +14,9 @@
 
 #include "messaging/src/include/firebase/messaging.h"
 
+#include <cassert>
+#include <cstdint>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"

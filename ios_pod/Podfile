@@ -17,5 +17,4 @@ target 'GetPods' do
   pod 'Firebase/Messaging', '12.15.0'
   pod 'Firebase/RemoteConfig', '12.15.0'
   pod 'Firebase/Storage', '12.15.0'
-
 end

@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/main/field_value_main.h"
+#include <cstdint>
 
 #include <utility>
 

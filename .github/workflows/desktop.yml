@@ -29,9 +29,10 @@ jobs:
       matrix_xcode_version: ${{ steps.export-result.outputs.xcode_version }}
       matrix_python_version: ${{ steps.export-result.outputs.python_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: false
+          persist-credentials: false
       - name: Use expanded matrix
         if: github.event.inputs.expanded_matrix == '1'
         run: |
@@ -60,11 +61,11 @@ jobs:
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         include:
           # More Windows combinations are in the expanded matrix. 
-          - os: windows-latest
+          - os: windows-2022
             build_type: "Release"
             architecture: "x64"
             msvc_runtime: "static"
-          - os: windows-latest
+          - os: windows-2022
             build_type: "Debug"
             architecture: "x86"
             msvc_runtime: "dynamic"
@@ -82,22 +83,22 @@ jobs:
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-22.04
             xcode_version: "11.7"
-          - os: windows-latest
+          - os: windows-2022
             xcode_version: "11.7"
           - os: ubuntu-22.04
             xcode_version: "12.5.1"
-          - os: windows-latest
+          - os: windows-2022
             xcode_version: "12.5.1"
           # arm64 is only for macos
           - os: ubuntu-22.04
             architecture: "arm64"
-          - os: windows-latest
+          - os: windows-2022
             architecture: "arm64"
           # arm64 can't be built on Xcode 11
           - xcode_version: "11.7"
             architecture: "arm64"
     steps:                
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
@@ -115,9 +116,10 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: true
+          persist-credentials: false
       
       - name: Set env vars (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
@@ -163,7 +165,7 @@ jobs:
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{ env.VCPKG_EXTRA_HASH }}
@@ -171,27 +173,28 @@ jobs:
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}${{ env.VCPKG_EXTRA_HASH }}
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         if: startsWith(matrix.os, 'ubuntu')
         with:
           python-version: ${{ matrix.python_version }}
           architecture: x64
 
       - name: Setup python (Mac)
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         if: startsWith(matrix.os, 'macos')
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
 
+
       - name: Install Desktop SDK prerequisites
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           timeout_minutes: 15
           max_attempts: 3
@@ -295,7 +298,7 @@ jobs:
           sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :
 
       - name: Archive crashes and binaries (linux)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
@@ -304,7 +307,7 @@ jobs:
             /tmp/bins/*
 
       - name: Archive crashes (mac)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.xcode_version }}
@@ -321,30 +324,31 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+          persist-credentials: false
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Cache ccache files
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: ccache_dir
           key: local-integration-tests-linux-openssl-ccache
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
       - name: Prepare for integration tests
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 15
@@ -374,18 +378,18 @@ jobs:
         env:
           JOB_STATUS: ${{ job.status }}
       - name: Set up Node (18)
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # ratchet:actions/setup-node@v3
         with:
           node-version: 18.x
       - name: Setup Firestore Emulator
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           shell: bash
           timeout_minutes: 5
           max_attempts: 3
           command: npm install -g firebase-tools     
       - name: Setup java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # ratchet:actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'

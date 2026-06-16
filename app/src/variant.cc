@@ -19,6 +19,9 @@
 #include <limits.h>
 #include <stdlib.h>
 
+#include <cassert>
+#include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <sstream>
 

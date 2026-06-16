@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/include/firebase/firestore/field_value.h"
+#include <cstdint>
 
 #include <iomanip>
 #include <ostream>

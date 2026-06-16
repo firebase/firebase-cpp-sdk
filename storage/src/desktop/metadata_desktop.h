@@ -15,6 +15,8 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_
 
+#include <stdint.h>
+
 #include <list>
 #include <map>
 #include <string>

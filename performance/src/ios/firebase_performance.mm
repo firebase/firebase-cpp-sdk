@@ -4,6 +4,7 @@
 
 #import "FIRPerformance.h"
 
+#include <cassert>
 #include "app/src/assert.h"
 #include "performance/src/include/firebase/performance.h"
 #include "performance/src/performance_common.h"

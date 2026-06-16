@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/persistence/noop_persistence_manager.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 
 #define VERIFY_INSIDE_TRANSACTION() \

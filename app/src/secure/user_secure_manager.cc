@@ -14,6 +14,7 @@
 
 #include "app/src/secure/user_secure_manager.h"
 
+#include <cstdint>
 #include <utility>
 
 #include "app/src/base64.h"

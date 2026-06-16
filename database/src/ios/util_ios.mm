@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cassert>
 #include "database/src/ios/util_ios.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cstdint>
 #include "app/src/time.h"
 #include "auth/src/ios/common_ios.h"
 

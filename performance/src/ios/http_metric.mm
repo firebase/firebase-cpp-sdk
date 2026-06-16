@@ -5,6 +5,8 @@
 #import "FIRHTTPMetric.h"
 #import "FIRPerformance.h"
 
+#include <cassert>
+#include <cstdint>
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "performance/src/include/firebase/performance.h"

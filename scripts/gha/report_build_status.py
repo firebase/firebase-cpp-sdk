@@ -127,9 +127,6 @@ _FAILURE_TEXT = "Failure"
 _FLAKY_TEXT = "Pass (flaky)"
 _MISSING_TEXT = "Missing"
 
-general_test_hour = 9
-firestore_test_hour = 10
-
 def rename_key(old_dict,old_name,new_name):
     """Rename a key in a dictionary, preserving the order."""
     new_dict = {}
@@ -382,16 +379,19 @@ def main(argv):
         run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
         run['day'] = run['date'].date()
         day = str(run['date'].date())
-        if day in source_tests: continue
+        if run['event'] != 'schedule': continue
         if run['status'] != 'completed': continue
         if run['day'] < start_date or run['day'] > end_date: continue
+        if day in source_tests:
+          prev_date = source_tests[day]['date']
+          # Non-Firestore wants to keep the earliest, otherwise the latest
+          if not FLAGS.firestore and prev_date < run['date']:
+            continue
+          elif FLAGS.firestore and prev_date > run['date']:
+            continue
         run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
-        compare_test_hour = firestore_test_hour if FLAGS.firestore else general_test_hour
-        # The scheduled time is at the top of the hour (e.g. 09:00 or 10:00).
-        # We allow for some delay in GitHub Actions starting the job, as long as it starts in the same hour.
-        if run['date'].hour == compare_test_hour:
-          source_tests[day] = run
-          all_days.add(day)
+        source_tests[day] = run
+        all_days.add(day)
 
       workflow_id = _WORKFLOW_PACKAGING
       all_runs = firebase_github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)

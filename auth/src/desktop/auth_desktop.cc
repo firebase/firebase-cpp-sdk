@@ -14,6 +14,9 @@
 
 #include "auth/src/desktop/auth_desktop.h"
 
+#include <cassert>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>

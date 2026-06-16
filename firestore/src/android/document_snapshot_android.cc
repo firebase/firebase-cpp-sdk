@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/document_snapshot_android.h"
+#include <cstdint>
 
 #include <utility>
 

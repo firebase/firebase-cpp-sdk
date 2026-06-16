@@ -81,7 +81,7 @@ PARAMETERS = {
       "python_version": ["3.9"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-15", "windows-latest"],
+        "os": ["ubuntu-22.04", "macos-15", "windows-2022"],
         "xcode_version": ["26.2"],
       }
     }
@@ -89,19 +89,19 @@ PARAMETERS = {
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-15", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-15", "windows-2022"],
       "architecture": ["x64", "arm64"],
       "python_version": ["3.9"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-15", "windows-latest"]
+        "os": ["ubuntu-22.04", "macos-15", "windows-2022"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-15", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-15", "windows-2022"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_ftl_target"],
