@@ -16,8 +16,7 @@ jobs:
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v1
         id: generate-token
         with:
-          # we should migrate to client-id
-          app-id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          client-id: ${{ secrets.WORKFLOW_TRIGGER_CLIENT_ID }}
           private-key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
           permission-actions: write
 
