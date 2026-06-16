@@ -30,7 +30,6 @@ jobs:
           ref: ${{ matrix.branch_name }}
           fetch-depth: 0
           submodules: false
-          persist-credentials: false
 
       - name: Install prerequisites
         run: |

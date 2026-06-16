@@ -32,7 +32,6 @@ jobs:
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         with:
           submodules: false
-          persist-credentials: false
       - name: Setup python
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4

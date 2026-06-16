@@ -144,7 +144,6 @@ jobs:
           repository: llvm/llvm-project
           path: llvm-src
           ref: ${{ env.llvmVer }}
-          persist-credentials: false
 
       - name: Build LLVM (Mac only) 
         # Only build LLVM if we don't already have binaries from the cache.
@@ -167,7 +166,6 @@ jobs:
           repository: nico/demumble
           path: demumble-src
           ref: ${{ env.demumbleVer }}
-          persist-credentials: false
 
       - name: build demumble
         run: |
@@ -214,7 +212,6 @@ jobs:
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           path: sdk-src
-          persist-credentials: false
 
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
@@ -270,7 +267,6 @@ jobs:
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           path: sdk-src
-          persist-credentials: false
 
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
@@ -385,7 +381,6 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: true
-          persist-credentials: false
 
       - name: Set env variables for subsequent steps (all)
         shell: bash
@@ -529,7 +524,6 @@ jobs:
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           path: sdk-src
-          persist-credentials: false
 
       - name: download packaging-tool artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
@@ -740,7 +734,6 @@ jobs:
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           path: sdk-src
-          persist-credentials: false
 
       - name: download artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
@@ -866,8 +859,6 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
-      with:
-        persist-credentials: false
 
     - name: Setup python
       uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
@@ -942,8 +933,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
-        with:
-          persist-credentials: false
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
