@@ -472,7 +472,9 @@ def main():
               gen_string(root, 'google_maps_key',
                          maps_api_key[k].get('maps_api_key'))
 
-    gen_string(root, 'recaptcha_site_key', selected_client.get('recaptcha_site_key'))
+    recaptcha_site_key = selected_client.get('recaptcha_site_key')
+    if recaptcha_site_key:
+      gen_string(root, 'recaptcha_site_key', recaptcha_site_key)
 
   tree = ElementTree.ElementTree(root)
 
