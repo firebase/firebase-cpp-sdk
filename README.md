@@ -176,6 +176,8 @@ cmake -DCMAKE_SYSTEM_NAME=iOS ..
 cmake --build . --target firebase_auth
 ```
 
+> **Note**: By default, CocoaPods is used to manage the underlying iOS native SDK dependencies. If you prefer to use Swift Package Manager (SPM), please see the detailed instructions in [SPM_INTEGRATION.md](SPM_INTEGRATION.md).
+
 #### Building with CMake for tvOS
 Starting with CMake 3.14, tvOS is supported natively by CMake. To build for tvOS, set the `CMAKE_SYSTEM_NAME` to `tvOS`.
 For example, to build the Auth library for tvOS, you could run the following commands:
@@ -185,6 +187,8 @@ mkdir tvos_build && cd tvos_build
 cmake -DCMAKE_SYSTEM_NAME=tvOS ..
 cmake --build . --target firebase_auth
 ```
+
+> **Note**: Similarly to iOS, you can also use Swift Package Manager instead of CocoaPods by passing `-DFIREBASE_IOS_USE_SPM=ON` to the CMake configuration step. See [SPM_INTEGRATION.md](SPM_INTEGRATION.md) for details.
 
 #### Building XCFrameworks for both iOS and tvOS
 The Firebase C++ SDK comes with a helper Python script to build XCFrameworks
