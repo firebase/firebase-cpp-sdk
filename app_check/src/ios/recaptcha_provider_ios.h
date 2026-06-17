@@ -49,7 +49,7 @@ class RecaptchaProviderFactoryInternal : public AppCheckProviderFactory {
 #endif  // __OBJC__
 
   // Object lifetime managed by Objective C ARC.
-  std::unique_ptr<FIRRecaptchaProviderFactory> ios_provider_factory_;
+  std::unique_ptr<FIRRecaptchaProviderFactoryPointer> ios_provider_factory_;
 
   std::map<App*, AppCheckProvider*> created_providers_;
 };

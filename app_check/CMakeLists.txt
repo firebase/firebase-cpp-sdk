@@ -65,11 +65,20 @@ set(ios_SRCS
   src/ios/debug_provider_ios.mm
   src/ios/debug_provider_ios.h
   src/ios/device_check_provider_ios.mm
-  src/ios/recaptcha_provider_ios.mm
-  src/ios/recaptcha_provider_ios.h
   # Unsupported providers
   src/stub/play_integrity_provider_stub.cc
 )
+
+# Check tvOS first, because for historical reasons IOS includes tvOS
+if (tvOS)
+  # Recaptcha isn't supported on tvOS
+  set(ios_recaptcha_SRCS
+    src/stub/recaptcha_provider_stub.cc)
+else()
+  set(ios_recaptcha_SRCS
+    src/ios/recaptcha_provider_ios.mm
+    src/ios/recaptcha_provider_ios.h)
+endif()
 
 # Flatbuffer resource files used by desktop
 binary_to_array("debug_token_request_resource"
@@ -127,7 +136,8 @@ if(ANDROID)
       "${android_SRCS}")
 elseif(IOS)
   set(app_check_platform_SRCS
-      "${ios_SRCS}")
+      "${ios_SRCS}"
+      "%{ios_recaptcha_SRCS}")
 else()
   set(app_check_platform_SRCS
       "${desktop_SRCS}")
