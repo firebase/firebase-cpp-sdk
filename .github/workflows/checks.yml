@@ -4,7 +4,8 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
 
-permissions: write-all
+permissions:
+  contents: read
 
 env:
   triggerLabelFull: "tests-requested: full"
@@ -21,11 +22,11 @@ jobs:
   file_format_check:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: false
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Install prerequisites
@@ -43,8 +44,11 @@ jobs:
   check_integration_test_labels:
     # This check fails if integration tests are queued, in progress, or failed.
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
-    - uses: docker://agilepathway/pull-request-label-checker:latest
+    - uses: docker://index.docker.io/agilepathway/pull-request-label-checker@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61 # ratchet:docker://agilepathway/pull-request-label-checker:latest
       with:
         none_of: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
         repo_token: ${{ github.token }}
@@ -52,15 +56,18 @@ jobs:
   generated_docs_check:
     # This check succeeds if Doxygen documentation generates without errors.
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: false
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Install prerequisites
@@ -95,7 +102,7 @@ jobs:
     # Check for Google copyright in each file.
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: false
       - name: Run check_copyright.sh
@@ -107,7 +114,7 @@ jobs:
     # Check that the readme was updated, unless the PR has a specific label set (env.skipReleaseNotesLabel).
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
         if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) && (github.event.pull_request.base.ref == 'main')}}
         with:

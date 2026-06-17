@@ -16,6 +16,7 @@
 
 #import <Foundation/Foundation.h>
 
+#include <cstdint>
 #include "storage/src/ios/metadata_ios.h"
 
 extern NSString* const kFIRStorageMetadataSize;

@@ -17,6 +17,7 @@
 #include <jni.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cstring>
 
 #include "app/src/app_common.h"

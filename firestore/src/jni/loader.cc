@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/jni/loader.h"
+#include <cassert>
 
 #include <utility>
 #include "app/src/assert.h"

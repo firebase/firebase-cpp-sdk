@@ -15,6 +15,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_GET_ADDITIONAL_USER_INFO_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_GET_ADDITIONAL_USER_INFO_H_
 
+#include <assert.h>
+
 #include <map>
 #include <string>
 

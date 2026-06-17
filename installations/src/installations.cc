@@ -14,6 +14,8 @@
 
 #include "installations/src/include/firebase/installations.h"
 
+#include <cstdint>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "installations/src/installations_internal.h"

@@ -20,6 +20,8 @@
 #import "FIRAnalytics+OnDevice.h"
 #import "FIRAnalytics.h"
 
+#include <cassert>
+#include <cstdint>
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
 

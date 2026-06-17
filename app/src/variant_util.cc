@@ -16,6 +16,9 @@
 
 #include "app/src/variant_util.h"
 
+#include <cassert>
+#include <cstdint>
+#include <cstring>
 #include <sstream>
 
 #include "app/src/assert.h"

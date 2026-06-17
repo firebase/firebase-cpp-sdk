@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cassert>
 #include "app/src/assert.h"
 #include "app/src/util_ios.h"
 #include "auth/src/ios/common_ios.h"

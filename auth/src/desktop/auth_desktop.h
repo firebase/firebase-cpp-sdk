@@ -15,6 +15,7 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_DESKTOP_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_DESKTOP_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 

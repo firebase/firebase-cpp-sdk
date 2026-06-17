@@ -15,6 +15,7 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
+#include <stdint.h>
 #include <functional>
 #include <memory>
 #include <string>

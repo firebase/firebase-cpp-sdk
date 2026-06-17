@@ -15,6 +15,7 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_UTIL_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_UTIL_H_
 
+#include <cassert>
 #include <memory>
 #include <vector>
 

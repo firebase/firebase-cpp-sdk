@@ -15,6 +15,7 @@
 #include "app_check/src/desktop/app_check_desktop.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <ctime>
 #include <string>
 

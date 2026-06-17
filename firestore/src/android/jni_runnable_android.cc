@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/jni_runnable_android.h"
+#include <cassert>
 
 #include "app/src/assert.h"
 #include "app/src/util_android.h"

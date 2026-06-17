@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/timestamp_android.h"
+#include <cstdint>
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"

@@ -15,6 +15,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_USER_VIEW_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_USER_VIEW_H_
 
+#include <assert.h>
+
 #include <memory>
 #include <utility>
 

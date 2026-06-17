@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>

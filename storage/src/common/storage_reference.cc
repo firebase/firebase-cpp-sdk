@@ -14,6 +14,8 @@
 
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 
 #ifdef __APPLE__

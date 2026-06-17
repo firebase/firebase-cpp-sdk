@@ -15,6 +15,8 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_REST_OPERATION_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_REST_OPERATION_H_
 
+#include <stdint.h>
+
 #include <memory>
 
 #include "app/rest/controller_interface.h"

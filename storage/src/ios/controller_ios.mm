@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include "storage/src/ios/controller_ios.h"
 
 #import "FirebaseStorage-Swift.h"

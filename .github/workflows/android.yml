@@ -27,7 +27,7 @@ jobs:
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
       matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: false
       - name: Use expanded matrix
@@ -52,7 +52,7 @@ jobs:
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         exclude:
         # Do not attempt to use arm64 on Windows or Linux.
-        - os: windows-latest
+        - os: windows-2022
           architecture: arm64
         - os: ubuntu-22.04
           architecture: arm64
@@ -60,7 +60,7 @@ jobs:
         - os: macos-15
           architecture: x64
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
       - name: setup Xcode version (macos)
@@ -91,7 +91,7 @@ jobs:
           echo "Enabling expanded build and test matrix."
           echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           submodules: true
 
@@ -105,18 +105,18 @@ jobs:
           MATRIX_ARCHITECTURE: ${{ matrix.architecture }}
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
 
       - name: Add msbuild to PATH
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506 # ratchet:microsoft/setup-msbuild@v1.1
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ matrix.os }}-r21e
@@ -161,7 +161,7 @@ jobs:
 
       - name: Cache ccache files
         id: cache_ccache
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}

@@ -16,6 +16,8 @@
 
 #include <jni.h>
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"

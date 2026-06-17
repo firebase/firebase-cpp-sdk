@@ -19,6 +19,7 @@
 #include <jni.h>
 #include <string.h>
 
+#include <cassert>
 #include <string>
 #include <vector>
 

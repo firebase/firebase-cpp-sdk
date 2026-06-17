@@ -14,6 +14,7 @@
 
 #import "messaging/src/ios/fake/FIRMessaging.h"
 
+#include <cstdint>
 #include "testing/reporter_impl.h"
 
 NS_ASSUME_NONNULL_BEGIN

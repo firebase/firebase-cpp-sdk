@@ -15,6 +15,8 @@
  */
 
 #include "app/src/util_ios.h"
+#include <cstdint>
+#include <cstring>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"

@@ -14,6 +14,7 @@
 
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 
+#include <cassert>
 #include <string>
 
 #include "app/src/assert.h"

@@ -30,19 +30,21 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Get token for firebase-workflow-trigger
-        uses: tibdex/github-app-token@v1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v1
         id: generate-token
         with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          client-id: ${{ secrets.WORKFLOW_TRIGGER_CLIENT_ID }}
+          private-key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
 
       - name: Check out base branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.baseBranch }}
@@ -226,7 +228,7 @@ jobs:
           GITHUB_EVENT_INPUTS_BASEBRANCH: ${{ github.event.inputs.baseBranch }}
 
       - name: Set test trigger label.
-        uses: actions-ecosystem/action-add-labels@v1
+        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf # ratchet:actions-ecosystem/action-add-labels@v1
         if: ${{ github.event.inputs.triggerTests == 1 && steps.push-branch.outputs.branch_pushed == 1 }}
         with:
           github_token: ${{ steps.generate-token.outputs.token }}

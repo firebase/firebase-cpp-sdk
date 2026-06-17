@@ -26,14 +26,14 @@ jobs:
       if: ${{ matrix.test_set == 'firestore' }}
       run: sleep 300
     - name: Setup python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
       with:
         python-version: 3.9
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
       with:
         fetch-depth: 0
     - name: Install Desktop SDK prerequisites
-      uses: nick-invision/retry@v2
+      uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
       with:
         timeout_minutes: 15
         max_attempts: 3
@@ -41,7 +41,7 @@ jobs:
           python3 scripts/gha/install_prereqs_desktop.py --gha_build
           python3 -m pip install requests python-dateutil progress attrs
     - name: Fetch GitHub jobs (with retry)
-      uses: nick-invision/retry@v2
+      uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
       with:
         timeout_minutes: 20
         max_attempts: 3
@@ -53,7 +53,7 @@ jobs:
           fi
           python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --write_cache build_status_short.cache ${extra_flags}
     - name: Fetch extended GitHub jobs (with retry)
-      uses: nick-invision/retry@v2
+      uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
       with:
         timeout_minutes: 80
         max_attempts: 3
@@ -103,7 +103,7 @@ jobs:
       run: |
         cat comment.md
     - name: Update GitHub issue (with retry)
-      uses: nick-invision/retry@v2
+      uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
       with:
         timeout_minutes: 5
         max_attempts: 3

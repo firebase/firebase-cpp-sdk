@@ -14,6 +14,8 @@
 
 #include "database/src/include/firebase/database/database_reference.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/common/database_reference.h"

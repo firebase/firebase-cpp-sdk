@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/repo.h"
 
+#include <cassert>
+#include <cstdint>
 #include <string>
 #include <utility>
 

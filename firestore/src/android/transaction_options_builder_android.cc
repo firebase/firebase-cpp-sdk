@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/transaction_options_builder_android.h"
+#include <cstdint>
 
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"

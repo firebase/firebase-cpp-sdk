@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_LISTENER_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_LISTENER_IOS_H_
 
+#include <stdint.h>
 #include <memory>
 #include "app/src/util_ios.h"
 #include "storage/src/include/firebase/storage/listener.h"

@@ -14,6 +14,8 @@
 
 #include "database/src/include/firebase/database/mutable_data.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 

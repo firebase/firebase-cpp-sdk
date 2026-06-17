@@ -14,6 +14,9 @@
 
 #include "database/src/desktop/persistence/in_memory_persistence_storage_engine.h"
 
+#include <cassert>
+#include <cstdint>
+#include <cstring>
 #include <functional>
 #include <set>
 #include <string>

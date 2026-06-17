@@ -15,6 +15,8 @@
  */
 
 #include "firestore/src/android/query_android.h"
+#include <cassert>
+#include <cstdint>
 
 #include <string>
 #include <utility>

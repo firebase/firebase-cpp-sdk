@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cassert>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "auth/src/desktop/auth_desktop.h"

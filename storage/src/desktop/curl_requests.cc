@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 
+#include <cstring>
 #include <string>
 
 #include "app/rest/util.h"
