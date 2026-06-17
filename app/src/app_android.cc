@@ -97,6 +97,9 @@ METHOD_LOOKUP_DEFINITION(app,
   X(SetProjectId, "setProjectId",                                              \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
     util::kMethodTypeInstance, util::kMethodOptional),                         \
+  X(SetRecaptchaSiteKey, "setRecaptchaSiteKey",                                \
+    "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
+    util::kMethodTypeInstance, util::kMethodOptional),                         \
   X(Build, "build",                                                            \
     "()Lcom/google/firebase/FirebaseOptions;")
 // clang-format on
@@ -123,7 +126,9 @@ METHOD_LOOKUP_DEFINITION(options_builder,
   X(GetStorageBucket, "getStorageBucket", "()Ljava/lang/String;",              \
     util::kMethodTypeInstance),                                                \
   X(GetProjectId, "getProjectId", "()Ljava/lang/String;",                      \
-    util::kMethodTypeInstance)
+    util::kMethodTypeInstance),                                                \
+  X(GetRecaptchaSiteKey, "getRecaptchaSiteKey", "()Ljava/lang/String;",        \
+    util::kMethodTypeInstance, util::kMethodOptional)
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(options, FIREBASE_OPTIONS_METHODS)
@@ -201,9 +206,11 @@ void ReleaseClasses(JNIEnv* env) {
 static void PlatformOptionsBuilderSetString(JNIEnv* jni_env, jobject builder,
                                             const char* value,
                                             options_builder::Method setter_id) {
+  jmethodID method_id = options_builder::GetMethodId(setter_id);
+  if (method_id == nullptr) return;
   jstring string_value = jni_env->NewStringUTF(value);
-  jobject builder_discard = jni_env->CallObjectMethod(
-      builder, options_builder::GetMethodId(setter_id), string_value);
+  jobject builder_discard =
+      jni_env->CallObjectMethod(builder, method_id, string_value);
   util::LogException(jni_env, kLogLevelWarning, "Failed to set AppOption");
   if (builder_discard) jni_env->DeleteLocalRef(builder_discard);
   jni_env->DeleteLocalRef(string_value);
@@ -242,6 +249,11 @@ static jobject AppOptionsToPlatformOptions(JNIEnv* jni_env,
   if (strlen(app_options.project_id())) {
     PlatformOptionsBuilderSetString(jni_env, builder, app_options.project_id(),
                                     options_builder::kSetProjectId);
+  }
+  if (strlen(app_options.recaptcha_site_key())) {
+    PlatformOptionsBuilderSetString(jni_env, builder,
+                                    app_options.recaptcha_site_key(),
+                                    options_builder::kSetRecaptchaSiteKey);
   }
   // Call builder.build() and release the builder.
   jobject firebase_options = jni_env->CallObjectMethod(
@@ -304,6 +316,15 @@ static void PlatformOptionsToAppOptions(JNIEnv* jni_env,
     if (!util::CheckAndClearJniExceptions(jni_env)) {
       app_options->set_project_id(
           util::JniStringToString(jni_env, project_id).c_str());
+    }
+  }
+  if (options::GetMethodId(options::kGetRecaptchaSiteKey) != nullptr &&
+      !strlen(app_options->recaptcha_site_key())) {
+    jobject recaptcha_site_key = jni_env->CallObjectMethod(
+        firebase_options, options::GetMethodId(options::kGetRecaptchaSiteKey));
+    if (!util::CheckAndClearJniExceptions(jni_env) && recaptcha_site_key) {
+      app_options->set_recaptcha_site_key(
+          util::JniStringToString(jni_env, recaptcha_site_key).c_str());
     }
   }
 }

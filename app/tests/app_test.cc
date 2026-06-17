@@ -227,6 +227,12 @@ TEST_F(AppTest, TestSetProjectId) {
   EXPECT_STREQ("myproject-123", options.project_id());
 }
 
+TEST_F(AppTest, TestSetRecaptchaSiteKey) {
+  AppOptions options;
+  options.set_recaptcha_site_key("my_recaptcha_site_key_123");
+  EXPECT_STREQ("my_recaptcha_site_key_123", options.recaptcha_site_key());
+}
+
 TEST_F(AppTest, LoadDefault) {
   AppOptions options;
   EXPECT_EQ(&options, AppOptions::LoadDefault(

@@ -277,6 +277,14 @@ class AppOptions {
   /// </SWIG>
   const char* project_id() const { return project_id_.c_str(); }
 
+  /// Set the reCAPTCHA site key.
+  void set_recaptcha_site_key(const char* recaptcha_site_key) {
+    recaptcha_site_key_ = recaptcha_site_key;
+  }
+
+  /// Get the reCAPTCHA site key.
+  const char* recaptcha_site_key() const { return recaptcha_site_key_.c_str(); }
+
 #ifdef INTERNAL_EXPERIMENTAL
   /// @brief set the iOS client ID.
   ///
@@ -334,7 +342,9 @@ class AppOptions {
             fcm_sender_id_ == options.fcm_sender_id_) &&
            (storage_bucket_.empty() ||
             storage_bucket_ == options.storage_bucket_) &&
-           (project_id_.empty() || project_id_ == options.project_id_);
+           (project_id_.empty() || project_id_ == options.project_id_) &&
+           (recaptcha_site_key_.empty() ||
+            recaptcha_site_key_ == options.recaptcha_site_key_);
   }
 #endif  // INTERNAL_EXPERIMENTAL
 
@@ -422,6 +432,8 @@ class AppOptions {
   std::string storage_bucket_;
   /// Google Cloud project ID.
   std::string project_id_;
+  /// reCAPTCHA site key.
+  std::string recaptcha_site_key_;
   /// @endcond
 };
 

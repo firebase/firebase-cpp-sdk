@@ -25,8 +25,8 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// Used to setup the cache of RecaptchaAppCheckProviderFactory class method IDs to
-// reduce time spent looking up methods by string.
+// Used to setup the cache of RecaptchaAppCheckProviderFactory class method IDs
+// to reduce time spent looking up methods by string.
 // clang-format off
 #define RECAPTCHA_PROVIDER_FACTORY_METHODS(X)                                      \
   X(GetInstance, "getInstance",                                                \
@@ -52,8 +52,7 @@ const char kMethodsNotCachedError[] =
 
 bool CacheRecaptchaProviderMethodIds(JNIEnv* env, jobject activity) {
   // Cache the RecaptchaProvider classes.
-  g_methods_cached =
-      recaptcha_provider_factory::CacheMethodIds(env, activity);
+  g_methods_cached = recaptcha_provider_factory::CacheMethodIds(env, activity);
   return g_methods_cached;
 }
 
@@ -77,8 +76,7 @@ RecaptchaProviderFactoryInternal::~RecaptchaProviderFactoryInternal() {
   }
 }
 
-AppCheckProvider* RecaptchaProviderFactoryInternal::CreateProvider(
-    App* app) {
+AppCheckProvider* RecaptchaProviderFactoryInternal::CreateProvider(App* app) {
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
                                  kMethodsNotCachedError);
 

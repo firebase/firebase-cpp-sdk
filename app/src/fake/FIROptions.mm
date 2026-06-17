@@ -30,6 +30,7 @@
   options.databaseURL = @"fake database url from resource";
   options.deepLinkURLScheme = @"fake deep link url scheme from resource";
   options.storageBucket = @"fake storage bucket from resource";
+  options.recaptchaSiteKey = @"fake recaptcha site key from resource";
   return options;
 }
 
@@ -59,6 +60,7 @@
     newOptions.deepLinkURLScheme = self.deepLinkURLScheme;
     newOptions.storageBucket = self.storageBucket;
     newOptions.appGroupID = self.appGroupID;
+    newOptions.recaptchaSiteKey = self.recaptchaSiteKey;
   }
   return newOptions;
 }

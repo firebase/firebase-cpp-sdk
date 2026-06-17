@@ -43,6 +43,8 @@
 
 @property(nonatomic, copy) NSString *appGroupID;
 
+@property(nonatomic, copy) NSString *recaptchaSiteKey;
+
 + (FIROptions *)defaultOptions;
 
 - (instancetype)initWithGoogleAppID:(NSString *)googleAppID

@@ -85,6 +85,12 @@ static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions
     const char* value = platform_options.clientID.UTF8String;
     if (value) app_options->set_client_id(value);
   }
+  if ([platform_options respondsToSelector:@selector(recaptchaSiteKey)]) {
+    NSString* value = [platform_options valueForKey:@"recaptchaSiteKey"];
+    if (value && !strlen(app_options->recaptcha_site_key())) {
+      app_options->set_recaptcha_site_key(value.UTF8String);
+    }
+  }
 }
 
 // Copy AppOptions into a FIROptions instance.
@@ -113,6 +119,11 @@ static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
   }
   if (strlen(app_options.client_id())) {
     platform_options.clientID = @(app_options.client_id());
+  }
+  if (strlen(app_options.recaptcha_site_key())) {
+    if ([platform_options respondsToSelector:@selector(setRecaptchaSiteKey:)]) {
+      [platform_options setValue:@(app_options.recaptcha_site_key()) forKey:@"recaptchaSiteKey"];
+    }
   }
   return platform_options;
 }

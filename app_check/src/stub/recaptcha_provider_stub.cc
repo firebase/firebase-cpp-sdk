@@ -23,8 +23,7 @@ RecaptchaProviderFactory* RecaptchaProviderFactory::GetInstance() {
   return nullptr;
 }
 
-RecaptchaProviderFactory::RecaptchaProviderFactory()
-    : internal_(nullptr) {}
+RecaptchaProviderFactory::RecaptchaProviderFactory() : internal_(nullptr) {}
 
 RecaptchaProviderFactory::~RecaptchaProviderFactory() {}
 

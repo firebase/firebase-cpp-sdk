@@ -48,8 +48,7 @@ class RecaptchaProvider : public AppCheckProvider {
   FIRRecaptchaProvider* ios_provider_;
 };
 
-RecaptchaProvider::RecaptchaProvider(FIRRecaptchaProvider* provider)
-    : ios_provider_(provider) {}
+RecaptchaProvider::RecaptchaProvider(FIRRecaptchaProvider* provider) : ios_provider_(provider) {}
 
 RecaptchaProvider::~RecaptchaProvider() {}
 
