@@ -65,10 +65,10 @@ set(ios_SRCS
   src/ios/debug_provider_ios.mm
   src/ios/debug_provider_ios.h
   src/ios/device_check_provider_ios.mm
+  src/ios/recaptcha_provider_ios.mm
+  src/ios/recaptcha_provider_ios.h
   # Unsupported providers
   src/stub/play_integrity_provider_stub.cc
-  # TODO: Move when implemented
-  src/stub/recaptcha_provider_stub.cc
 )
 
 # Flatbuffer resource files used by desktop
