@@ -103,7 +103,7 @@ AppCheckProvider* RecaptchaProviderFactoryInternal::CreateProvider(App* app) {
 }  // namespace internal
 
 RecaptchaProviderFactory* RecaptchaProviderFactory::GetInstance() {
-  static RecaptchaProviderProviderFactory g_recaptcha_provider_factory;
+  static RecaptchaProviderFactory g_recaptcha_provider_factory;
   return &g_recaptcha_provider_factory;
 }
 
