@@ -69,15 +69,14 @@ set(ios_SRCS
   src/stub/play_integrity_provider_stub.cc
 )
 
-# Check tvOS first, because for historical reasons IOS includes tvOS
-if (tvOS)
-  # Recaptcha isn't supported on tvOS
-  set(ios_recaptcha_SRCS
-    src/stub/recaptcha_provider_stub.cc)
-else()
+# Recaptcha is only available on iOS proper (aka, not tvOS)
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
   set(ios_recaptcha_SRCS
     src/ios/recaptcha_provider_ios.mm
     src/ios/recaptcha_provider_ios.h)
+else()
+  set(ios_recaptcha_SRCS
+    src/stub/recaptcha_provider_stub.cc)
 endif()
 
 # Flatbuffer resource files used by desktop
