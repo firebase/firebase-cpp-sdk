@@ -137,7 +137,7 @@ if(ANDROID)
 elseif(IOS)
   set(app_check_platform_SRCS
       "${ios_SRCS}"
-      "%{ios_recaptcha_SRCS}")
+      "${ios_recaptcha_SRCS}")
 else()
   set(app_check_platform_SRCS
       "${desktop_SRCS}")
