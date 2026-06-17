@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
+#define MTL4RenderPassDescriptor MTLRenderPassDescriptor
+
 #include "app/src/assert.h"
 #include "app/src/util_ios.h"
 #include "auth/src/ios/common_ios.h"
 
 #import <GameKit/GameKit.h>
 #import <UIKit/UIKit.h>
+#include <cassert>
 
 #import "FIREmailAuthProvider.h"
 #import "FIRFacebookAuthProvider.h"

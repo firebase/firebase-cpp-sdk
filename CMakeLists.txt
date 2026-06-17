@@ -15,6 +15,7 @@
 # Top level CMake file that defines the entire Firebase C++ SDK build.
 
 cmake_minimum_required(VERSION 3.22)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version" FORCE)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
@@ -74,6 +75,8 @@ option(FIREBASE_USE_BORINGSSL
        "Build against BoringSSL instead of using your system's OpenSSL." OFF)
 option(FIREBASE_USE_LINUX_CXX11_ABI
        "Build Linux SDK using the C++11 ABI instead of the legacy ABI." OFF)
+option(FIREBASE_IOS_USE_SPM
+       "Use Swift Package Manager to fetch iOS dependencies instead of CocoaPods." OFF)
 
 # This should only be enabled by the GitHub Action build script.
 option(FIREBASE_GITHUB_ACTION_BUILD
@@ -574,7 +577,7 @@ else()
   add_custom_command(
     OUTPUT ${firebase_external_flatc}
     COMMAND cd ${firebase_external_flatc_build_dir} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} ${FIREBASE_FLATC_CMAKE_COMMAND} ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
+            ${ENV_COMMAND} ${FIREBASE_FLATC_CMAKE_COMMAND} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
             ${ENV_COMMAND} ${FIREBASE_FLATC_CMAKE_COMMAND} --build . --target flatc
     COMMENT "Building flatc (the FlatBuffer schema compiler)")
 

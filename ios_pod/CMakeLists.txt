@@ -45,15 +45,81 @@ file(
     "${FIREBASE_POD_DIR}/CMakeLists.txt"
 )
 
-message("Downloading CocoaPods...")
+if(FIREBASE_IOS_USE_SPM)
+  message(STATUS "Fetching iOS dependencies via Swift Package Manager...")
 
-execute_process(
-  COMMAND /bin/bash -c
-          "mkdir -p ${FIREBASE_POD_DIR} && cd ${FIREBASE_POD_DIR} && cmake . -G Xcode && pod install"
-  OUTPUT_VARIABLE pods_output
+  # Dynamically generate a Package.swift mirroring the Podfile dependencies
+  file(WRITE "${FIREBASE_POD_DIR}/Package.swift"
+"// swift-tools-version:5.5
+import PackageDescription
+
+let package = Package(
+    name: \"FirebaseCPlusPlusSDK\",
+    dependencies: [
+        .package(url: \"https://github.com/firebase/firebase-ios-sdk.git\", .exact(\"12.14.0\")),
+        .package(url: \"https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git\", .exact(\"2.3.0\"))
+    ],
+    targets: [
+        .target(
+            name: \"FirebaseCPlusPlusSDK\",
+            dependencies: [
+                .product(name: \"FirebaseAnalytics\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseAppCheck\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseAuth\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseCrashlytics\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseDatabase\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseFirestore\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseFunctions\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseInstallations\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseMessaging\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseRemoteConfig\", package: \"firebase-ios-sdk\"),
+                .product(name: \"FirebaseStorage\", package: \"firebase-ios-sdk\"),
+                .product(name: \"GoogleUserMessagingPlatform\", package: \"swift-package-manager-google-user-messaging-platform\")
+            ],
+            path: \".\"
+        )
+    ]
 )
+"
+  )
 
-message("${pods_output}")
+  # Create an empty source file so the target is valid
+  file(WRITE "${FIREBASE_POD_DIR}/empty.swift" "// Empty source file for SPM target\n")
+
+  execute_process(
+    COMMAND /bin/bash -c "cd ${FIREBASE_POD_DIR} && swift package resolve"
+    OUTPUT_VARIABLE spm_output
+    RESULT_VARIABLE spm_result
+  )
+
+  if(NOT spm_result EQUAL 0)
+    message(FATAL_ERROR "Swift Package Manager resolution failed:\n${spm_output}")
+  endif()
+
+  message("${spm_output}")
+
+  # Find all 'Public' and 'include' directories inside the downloaded SPM checkouts
+  # This flawlessly captures all headers for transitive dependencies (like PromisesObjC, nanopb, GoogleUtilities).
+  file(GLOB_RECURSE SPM_ALL_DIRS LIST_DIRECTORIES true "${FIREBASE_POD_DIR}/.build/checkouts/*")
+  set(SPM_INCLUDE_DIRS "")
+  foreach(dir ${SPM_ALL_DIRS})
+    if(IS_DIRECTORY "${dir}" AND (dir MATCHES "/Public$" OR dir MATCHES "/include$"))
+      list(APPEND SPM_INCLUDE_DIRS "${dir}")
+    endif()
+  endforeach()
+  set(FIREBASE_SPM_INCLUDE_DIRS ${SPM_INCLUDE_DIRS} CACHE STRING "")
+
+else()
+  message(STATUS "Downloading CocoaPods...")
+
+  execute_process(
+    COMMAND /bin/bash -c
+            "mkdir -p ${FIREBASE_POD_DIR} && cd ${FIREBASE_POD_DIR} && cmake . -G Xcode && pod install"
+    OUTPUT_VARIABLE pods_output
+  )
+
+  message("${pods_output}")
+endif()
 
 
 
@@ -89,10 +155,15 @@ function(setup_pod_headers target_name)
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
           ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Public
           ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Public/${pod}
-          ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Source/Library/Public
           ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Source/Library/Public/${pod}
           ${FIREBASE_POD_DIR}/Pods/${pod}/Public
+          ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/${pod}/Sources/Public
+          ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/${pod}/Sources/Public/${pod}
         )
+      
+      if(FIREBASE_IOS_USE_SPM)
+        target_include_directories(${target_name} PUBLIC ${FIREBASE_SPM_INCLUDE_DIRS})
+      endif()
       if("${SETUP_POD_HEADERS_INCLUDE_PRIVATE_HEADERS}")
         # Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
         # we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
