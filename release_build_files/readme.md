@@ -613,13 +613,18 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### 13.9.0
+- Changes
+    - General (Android): Update to Firebase Android BoM version 34.15.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.15.0.
+    - Auth (Desktop): Fixes Auth requests when App Check is enabled.
+
 ### 13.8.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.14.0.
     - General (iOS): Update to Firebase Cocoapods version 12.14.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 26.2.
-    - Auth (Windows): Fixes Auth requests when Appcheck is enabled.
 
 ### 13.7.0
 - Changes 
