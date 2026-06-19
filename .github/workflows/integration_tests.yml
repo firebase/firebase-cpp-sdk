@@ -321,6 +321,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
+          # Free up disk space by removing unused Xcode versions
+          for app in /Applications/Xcode_*.app; do
+            if [ "$app" != "/Applications/Xcode_${{ env.xcodeVersion }}.app" ]; then
+              sudo rm -rf "$app" || true
+            fi
+          done
+          # Free up disk space by removing unused tools
+          sudo rm -rf /usr/local/share/dotnet || true
+          sudo rm -rf /Users/runner/hostedtoolcache/CodeQL || true
+          sudo rm -rf /Users/runner/Library/Android/sdk || true
       - name: Install Desktop SDK & integration tests prerequisites
         uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
@@ -638,6 +648,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
+          # Free up disk space by removing unused Xcode versions
+          for app in /Applications/Xcode_*.app; do
+            if [ "$app" != "/Applications/Xcode_${{ env.xcodeVersion }}.app" ]; then
+              sudo rm -rf "$app" || true
+            fi
+          done
+          # Free up disk space by removing unused tools
+          sudo rm -rf /usr/local/share/dotnet || true
+          sudo rm -rf /Users/runner/hostedtoolcache/CodeQL || true
+          sudo rm -rf /Users/runner/Library/Android/sdk || true
       - name: Install iOS SDK & integration tests prerequisites
         uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
@@ -760,6 +780,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
+          # Free up disk space by removing unused Xcode versions
+          for app in /Applications/Xcode_*.app; do
+            if [ "$app" != "/Applications/Xcode_${{ env.xcodeVersion }}.app" ]; then
+              sudo rm -rf "$app" || true
+            fi
+          done
+          # Free up disk space by removing unused tools
+          sudo rm -rf /usr/local/share/dotnet || true
+          sudo rm -rf /Users/runner/hostedtoolcache/CodeQL || true
+          sudo rm -rf /Users/runner/Library/Android/sdk || true
       - name: Install tvOS SDK & integration tests prerequisites
         uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
@@ -904,6 +934,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
+          # Free up disk space by removing unused Xcode versions
+          for app in /Applications/Xcode_*.app; do
+            if [ "$app" != "/Applications/Xcode_${{ env.xcodeVersion }}.app" ]; then
+              sudo rm -rf "$app" || true
+            fi
+          done
+          # Free up disk space by removing unused tools
+          sudo rm -rf /usr/local/share/dotnet || true
+          sudo rm -rf /Users/runner/hostedtoolcache/CodeQL || true
+          sudo rm -rf /Users/runner/Library/Android/sdk || true
       - name: Install prerequisites for testing
         uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
@@ -1179,6 +1219,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
+          # Free up disk space by removing unused Xcode versions
+          for app in /Applications/Xcode_*.app; do
+            if [ "$app" != "/Applications/Xcode_${{ env.xcodeVersion }}.app" ]; then
+              sudo rm -rf "$app" || true
+            fi
+          done
+          # Free up disk space by removing unused tools
+          sudo rm -rf /usr/local/share/dotnet || true
+          sudo rm -rf /Users/runner/hostedtoolcache/CodeQL || true
+          sudo rm -rf /Users/runner/Library/Android/sdk || true
       - name: Install prerequisites for testing
         uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
@@ -1364,6 +1414,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
           # Remove default Xcode version to prevent the wrong SDK from being used.
           rm -rf /Applications/Xcode.app
+          # Free up disk space by removing unused Xcode versions
+          for app in /Applications/Xcode_*.app; do
+            if [ "$app" != "/Applications/Xcode_${{ env.xcodeVersion }}.app" ]; then
+              sudo rm -rf "$app" || true
+            fi
+          done
+          # Free up disk space by removing unused tools
+          sudo rm -rf /usr/local/share/dotnet || true
+          sudo rm -rf /Users/runner/hostedtoolcache/CodeQL || true
+          sudo rm -rf /Users/runner/Library/Android/sdk || true
       - name: Install prerequisites for testing
         uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
