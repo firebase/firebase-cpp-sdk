@@ -149,42 +149,7 @@ elseif(IOS)
     target_include_directories(firebase_analytics PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
   endif()
  
-  # Swift needs to find the FirebaseAnalytics module from CocoaPods
-  set(pods_dir "${FIREBASE_POD_DIR}/Pods")
-  
-  # Point to the base directories containing the .xcframework folders.
-  # Xcode natively handles XCFrameworks and will pick the right slice automatically.
-  # Determine the xcframework architecture slice based on the target platform
-  # and if it is running on simulator or device.
-  string(TOLOWER "${CMAKE_OSX_SYSROOT}" sysroot_lower)
-  if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
-    if(sysroot_lower MATCHES "simulator")
-      set(analytics_slice "tvos-arm64_x86_64-simulator")
-    else()
-      set(analytics_slice "tvos-arm64")
-    endif()
-  else()
-    if(sysroot_lower MATCHES "simulator")
-      set(analytics_slice "ios-arm64_x86_64-simulator")
-    else()
-      set(analytics_slice "ios-arm64")
-    endif()
-  endif()
 
-  set(analytics_framework_dir "${pods_dir}/FirebaseAnalytics/Frameworks/FirebaseAnalytics.xcframework/${analytics_slice}")
-  set(measurement_framework_dir "${pods_dir}/GoogleAppMeasurement/Frameworks/GoogleAppMeasurement.xcframework/${analytics_slice}")
-  
-  target_compile_options(firebase_analytics
-    PRIVATE
-      $<$<COMPILE_LANGUAGE:Swift>:-F${analytics_framework_dir}>
-      $<$<COMPILE_LANGUAGE:Swift>:-F${measurement_framework_dir}>
-  )
-  
-  target_link_options(firebase_analytics
-    PUBLIC
-      "-F${analytics_framework_dir}"
-      "-F${measurement_framework_dir}"
-  )
 
   # Prevent Xcode from trying to build or evaluate headers for unused architectures
   set_target_properties(firebase_analytics PROPERTIES

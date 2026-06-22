@@ -30,7 +30,7 @@
 #include "app/src/util.h"
 #include "app/src/util_ios.h"
 
-#include "FIROptions.h"
+#import <FirebaseCore/FIROptions.h>
 
 @interface FIRApp ()
 // Optionally use the private method isDefaultAppConfigured to determine whether a default

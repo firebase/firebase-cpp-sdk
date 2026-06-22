@@ -333,45 +333,21 @@ target_include_directories(firebase_firestore
 )
 
 # Additional public headers come from the Firestore core
-if(IOS)
-  target_include_directories(firebase_firestore
-    PUBLIC
-      # The Firestore core on iOS comes via the FirebaseFirestore CocoaPod, and
-      # public headers should come from there.
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/Protos/nanopb
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb
-    PRIVATE
-      # Additionally, the core C++ API is not declared publicly within the
-      # FirebaseFirestore pod, so depend on headers available in the source
-      # distribution.
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal
-  )
-  set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
-    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include
-  )
-  
-else()
-  # Desktop and Android get their public headers from the CMake build in
-  # firebase-ios-sdk.
-  target_include_directories(firebase_firestore
-    PUBLIC
-      ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
-      ${FIRESTORE_SOURCE_DIR}/Firestore/Protos/nanopb
-    PRIVATE
-      ${FIRESTORE_SOURCE_DIR}
-  )
-  set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
+target_include_directories(firebase_firestore
+  PUBLIC
     ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
+    ${FIRESTORE_SOURCE_DIR}/Firestore/Protos/nanopb
+  PRIVATE
+    ${FIRESTORE_SOURCE_DIR}
+)
+set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
+  ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
+)
+if(DESKTOP)
+  target_include_directories(firebase_firestore
+    PRIVATE
+      ${FLATBUFFERS_SOURCE_DIR}/include
   )
-  if(DESKTOP)
-    target_include_directories(firebase_firestore
-      PRIVATE
-        ${FLATBUFFERS_SOURCE_DIR}/include
-    )
-  endif()
 endif()
 
 set(firestore_generated_headers_dir

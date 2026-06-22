@@ -597,7 +597,25 @@ if(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
-add_subdirectory(ios_pod)
+if(IOS)
+  # Define dummy functions to replace CocoaPods header setup
+  function(setup_pod_headers target_name)
+    # No-op since SPM handles headers natively in Xcode
+  endfunction()
+
+  function(symlink_pod_headers target_name pod_name dir_name)
+    # No-op since SPM handles headers natively in Xcode
+  endfunction()
+
+  # Add a custom target to run the Xcode project SPM patcher script post-configure
+  add_custom_target(patch_xcode_spm ALL
+    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/scripts/add_swift_packages.py"
+            "--project_path=${CMAKE_BINARY_DIR}"
+            "--sdk_version=12.15.0"
+    COMMENT "Patching Xcode project for Swift Package Manager dependencies"
+  )
+endif()
+
 
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.
