@@ -85,8 +85,9 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
     const char* key_str = settings.Keys()[i].AsKey();
     if (!key_str) continue;
     char* endptr = nullptr;
+    errno = 0;
     long raw_key = std::strtol(key_str, &endptr, 10);
-    if (endptr == key_str || *endptr != '\0') {
+    if (endptr == key_str || *endptr != '\0' || errno == ERANGE) {
       continue;
     }
     if (raw_key < std::numeric_limits<int>::min() ||
