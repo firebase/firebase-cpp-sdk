@@ -30,7 +30,7 @@
 
 #ifdef __OBJC__
 
-#import "FirebaseStorage-Swift.h"
+#import <FirebaseStorage/FirebaseStorage-Swift.h>
 
 // Some missing typedefs not included in Swift header.
 typedef NSString *FIRStorageHandle;

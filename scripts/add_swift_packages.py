@@ -60,6 +60,19 @@ class PbxprojPatcher:
         self.package_ref_uuid = None
         self.product_to_uuid = {}
 
+    def _get_products_for_target(self, target_name):
+        """Resolves the required Swift Package products for a given target name,
+        supporting both base targets and their associated integration test targets.
+        """
+        if target_name in TARGET_TO_PRODUCTS:
+            return TARGET_TO_PRODUCTS[target_name]
+        
+        # Match test targets, e.g., firebase_app_log_test -> firebase_app
+        for base_target, products in TARGET_TO_PRODUCTS.items():
+            if target_name.startswith(base_target) and (target_name.endswith("_test") or "_test_" in target_name):
+                return products
+        return []
+
     def patch(self):
         """Executes the patching process and writes changes back if modified."""
         print(f"Patching Xcode project file: {self.file_path}")
@@ -76,17 +89,17 @@ class PbxprojPatcher:
         # 3. Resolve or create product dependency objects for needed products
         needed_products = set()
         for target_name in targets:
-            if target_name in TARGET_TO_PRODUCTS:
-                needed_products.update(TARGET_TO_PRODUCTS[target_name])
+            products = self._get_products_for_target(target_name)
+            needed_products.update(products)
 
         for product in sorted(needed_products):
             self._resolve_product_dependency(product)
 
-        # 4. Associate product dependencies with the C++ targets
+        # 4. Associate product dependencies with the targets
         modified = False
         for target_name, target_uuid in targets.items():
-            if target_name in TARGET_TO_PRODUCTS:
-                products = TARGET_TO_PRODUCTS[target_name]
+            products = self._get_products_for_target(target_name)
+            if products:
                 product_uuids = [self.product_to_uuid[p] for p in products]
                 if self._add_dependencies_to_target(target_uuid, target_name, product_uuids):
                     modified = True

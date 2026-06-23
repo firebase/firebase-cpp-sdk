@@ -23,7 +23,7 @@
 #include "storage/src/ios/storage_reference_ios.h"
 
 #ifdef __OBJC__
-#import "FirebaseStorage-Swift.h"
+#import <FirebaseStorage/FirebaseStorage-Swift.h>
 
 // Obj-C object that provides a handle to ListenerInternal.  This is used to
 // synchronize callbacks from blocks with the potential destruction of the

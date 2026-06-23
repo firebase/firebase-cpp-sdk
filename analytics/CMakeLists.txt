@@ -156,12 +156,7 @@ elseif(IOS)
     XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "YES"
   )
 
-  setup_pod_headers(
-    firebase_analytics
-    POD_NAMES
-      FirebaseCore
-      FirebaseAnalytics
-  )
+
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_analytics PROPERTIES

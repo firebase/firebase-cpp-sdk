@@ -21,7 +21,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "functions/src/ios/callable_reference_ios.h"
 
-#import "FirebaseFunctions-Swift.h"
+#import <FirebaseFunctions/FirebaseFunctions-Swift.h>
 
 namespace firebase {
 namespace functions {

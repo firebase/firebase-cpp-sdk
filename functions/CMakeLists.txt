@@ -73,9 +73,7 @@ target_link_libraries(firebase_functions
 target_include_directories(firebase_functions
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
-  PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${FIREBASE_CPP_SDK_ROOT_DIR}/ios_pod/swift_headers
 )
 target_compile_definitions(firebase_functions
   PRIVATE
@@ -91,12 +89,7 @@ elseif(IOS)
   target_link_libraries(firebase_functions
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
-    firebase_functions
-    POD_NAMES
-      FirebaseCore
-      FirebaseFunctions
-  )
+
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_functions PROPERTIES

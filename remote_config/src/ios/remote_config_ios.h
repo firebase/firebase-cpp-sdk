@@ -30,7 +30,7 @@
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef __OBJC__
-#import "FIRRemoteConfig.h"
+#import <FirebaseRemoteConfig/FIRRemoteConfig.h>
 #endif  // __OBJC__
 
 namespace firebase {

@@ -22,12 +22,12 @@
 #import <GameKit/GameKit.h>
 #import <UIKit/UIKit.h>
 
-#import "FIREmailAuthProvider.h"
-#import "FIRFacebookAuthProvider.h"
-#import "FIRFederatedAuthProvider.h"
-#import "FIRGameCenterAuthProvider.h"
-#import "FIRGitHubAuthProvider.h"
-#import "FIRGoogleAuthProvider.h"
+#import <FirebaseAuth/FIREmailAuthProvider.h>
+#import <FirebaseAuth/FIRFacebookAuthProvider.h>
+#import <FirebaseAuth/FIRFederatedAuthProvider.h>
+#import <FirebaseAuth/FIRGameCenterAuthProvider.h>
+#import <FirebaseAuth/FIRGitHubAuthProvider.h>
+#import <FirebaseAuth/FIRGoogleAuthProvider.h>
 #import "FirebaseAuthInterop/FIRAuthInterop.h"
 // This needs to be after the FIRAuthInterop import
 #import "FirebaseAuth-Swift.h"
@@ -35,10 +35,10 @@
 #if FIREBASE_PLATFORM_IOS
 // PhoneAuth is not supported on non-iOS Apple platforms (eg: tvOS).
 // We are using stub implementation for these platforms (just like on desktop).
-#import "FIRPhoneAuthProvider.h"
+#import <FirebaseAuth/FIRPhoneAuthProvider.h>
 #endif  // FIREBASE_PLATFORM_IOS
 
-#import "FIRTwitterAuthProvider.h"
+#import <FirebaseAuth/FIRTwitterAuthProvider.h>
 
 #if FIREBASE_PLATFORM_IOS
 // This object is shared between the PhoneAuthProvider::Listener and the blocks in

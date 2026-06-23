@@ -16,8 +16,8 @@
 
 #import <UIKit/UIKit.h>
 
-#import "FIRAuthErrors.h"
-#import "FIROptions.h"
+#import <FirebaseAuth/FIRAuthErrors.h>
+#import <FirebaseCore/FIROptions.h>
 #import "FirebaseAuthInterop/FIRAuthInterop.h"
 // This needs to be after the FIRAuthInterop import
 #import "FirebaseAuth-Swift.h"

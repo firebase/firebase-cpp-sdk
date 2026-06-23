@@ -24,7 +24,7 @@
 #include "firebase/internal/common.h"
 
 #ifdef __OBJC__
-#import "FIRInstallations.h"
+#import <FirebaseInstallations/FIRInstallations.h>
 #endif  // __OBJC__
 
 namespace firebase {

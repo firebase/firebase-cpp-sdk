@@ -30,7 +30,7 @@
 #include "database/src/ios/query_ios.h"
 
 #ifdef __OBJC__
-#import "FIRDatabase.h"
+#import <FirebaseDatabase/FIRDatabase.h>
 #endif  // __OBJC__
 
 namespace firebase {

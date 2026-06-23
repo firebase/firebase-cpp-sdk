@@ -26,7 +26,7 @@
 #include "database/src/include/firebase/database/data_snapshot.h"
 
 #ifdef __OBJC__
-#import "FIRDatabase.h"
+#import <FirebaseDatabase/FIRDatabase.h>
 #endif  // __OBJC__
 
 namespace firebase {

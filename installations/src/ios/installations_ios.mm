@@ -19,7 +19,7 @@
 #include "installations/src/common.h"
 
 #ifdef __OBJC__
-#import "FIRInstallationsAuthTokenResult.h"
+#import <FirebaseInstallations/FIRInstallationsAuthTokenResult.h>
 #endif  // __OBJC__
 
 namespace firebase {

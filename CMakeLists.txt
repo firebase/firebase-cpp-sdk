@@ -598,14 +598,7 @@ if(MSVC)
 endif()
 
 if(IOS)
-  # Define dummy functions to replace CocoaPods header setup
-  function(setup_pod_headers target_name)
-    # No-op since SPM handles headers natively in Xcode
-  endfunction()
 
-  function(symlink_pod_headers target_name pod_name dir_name)
-    # No-op since SPM handles headers natively in Xcode
-  endfunction()
 
   # Add a custom target to run the Xcode project SPM patcher script post-configure
   add_custom_target(patch_xcode_spm ALL

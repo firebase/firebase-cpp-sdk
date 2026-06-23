@@ -401,20 +401,7 @@ elseif(IOS)
   target_link_libraries(firebase_firestore
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
-    firebase_firestore
-    INCLUDE_PRIVATE_HEADERS
-    POD_NAMES
-      FirebaseCore
-      FirebaseFirestore
-      FirebaseFirestoreInternal
-      abseil
-      nanopb
-      gRPC-C++
-      gRPC-Core
-      FirebaseAuthInterop/FirebaseAuth/Interop
-      FirebaseCoreExtension/FirebaseCore/Extension
-  )
+
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_firestore PROPERTIES

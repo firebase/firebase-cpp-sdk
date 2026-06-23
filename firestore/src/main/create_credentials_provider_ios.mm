@@ -18,12 +18,12 @@
 
 #include <memory>
 
-#import "FIRAppInternal.h"
-#import "FIRComponent.h"
-#import "FIRComponentContainer.h"
-#import "FIRComponentType.h"
+#import <FirebaseCore/FIRAppInternal.h>
+#import <FirebaseCore/FIRComponent.h>
+#import <FirebaseCore/FIRComponentContainer.h>
+#import <FirebaseCore/FIRComponentType.h>
 #import "FirebaseAuthInterop/FIRAuthInterop.h"
-#import "FirebaseCore.h"
+#import <FirebaseCore/FirebaseCore.h>
 
 #include "Firestore/core/src/credentials/firebase_auth_credentials_provider_apple.h"
 #include "app/src/include/firebase/app.h"

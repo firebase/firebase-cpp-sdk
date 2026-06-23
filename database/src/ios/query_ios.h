@@ -27,7 +27,7 @@
 #ifdef __OBJC__
 #include <Foundation/Foundation.h>
 
-#import "FIRDatabase.h"
+#import <FirebaseDatabase/FIRDatabase.h>
 #endif  // __OBJC__
 
 #ifdef __OBJC__

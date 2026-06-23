@@ -377,13 +377,7 @@ elseif(IOS)
   target_compile_options(firebase_app
                          PUBLIC $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:-fobjc-arc>)
   # Add empty include path to get root include folder '.'
-  setup_pod_headers(
-    firebase_app
-    POD_NAMES
-      .
-      FirebaseCore
-      FirebaseInstanceID
-  )
+
 else()
   target_link_libraries(firebase_app
     PRIVATE zlibstatic)

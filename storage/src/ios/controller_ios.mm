@@ -15,7 +15,7 @@
 #include <cstdint>
 #include "storage/src/ios/controller_ios.h"
 
-#import "FirebaseStorage-Swift.h"
+#import <FirebaseStorage/FirebaseStorage-Swift.h>
 
 #include "app/src/util_ios.h"
 

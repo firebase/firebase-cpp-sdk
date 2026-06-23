@@ -172,9 +172,7 @@ target_link_libraries(firebase_auth
 target_include_directories(firebase_auth
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
-  PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${FIREBASE_CPP_SDK_ROOT_DIR}/ios_pod/swift_headers
     ${additional_include_DIR}
 )
 target_compile_definitions(firebase_auth
@@ -191,13 +189,7 @@ elseif(IOS)
   target_link_libraries(firebase_auth
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
-    firebase_auth
-    POD_NAMES
-      FirebaseCore
-      FirebaseAuth
-      FirebaseAuthInterop/FirebaseAuth/Interop
-  )
+
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_auth PROPERTIES
       FRAMEWORK TRUE

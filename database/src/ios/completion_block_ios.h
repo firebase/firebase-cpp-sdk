@@ -19,7 +19,7 @@
 #include "app/src/reference_counted_future_impl.h"
 
 #ifdef __OBJC__
-#import "FIRDatabase.h"
+#import <FirebaseDatabase/FIRDatabase.h>
 #endif  // __OBJC__
 
 namespace firebase {

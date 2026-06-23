@@ -24,7 +24,7 @@
 #include "database/src/ios/database_reference_ios.h"
 #include "database/src/ios/util_ios.h"
 
-#import "FIRDatabase.h"
+#import <FirebaseDatabase/FIRDatabase.h>
 
 @implementation FIRCPPDatabaseQueryCallbackState
 NSMutableArray* _observers;

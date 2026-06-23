@@ -72,39 +72,10 @@ endfunction()
 # in the parent scope. These variables should be passed to target_link_libraries
 # for linking the final app.
 function(ios_test_add_frameworks name)
-  set(multi CUSTOM_FRAMEWORKS)
-  cmake_parse_arguments(ios_test_add_frameworks "" "" "${multi}" ${ARGN})
-
-  if(NOT DEFINED ${FIREBASE_IOS_SDK_DIR})
-    set(FIREBASE_IOS_SDK_DIR
-        "${CMAKE_BINARY_DIR}/external/firebase_ios_sdk/Firebase")
-  endif()
-
-  set(SDK_FRAMEWORK_DIR_NAMES FirebaseABTesting FirebaseAnalytics FirebaseAuth
-                              FirebaseDatabase
-                              FirebaseFunctions FirebaseMessaging
-                              FirebaseRemoteConfig FirebaseStorage
-                              GoogleSignIn )
-
-  foreach(FRAMEWORK IN LISTS SDK_FRAMEWORK_DIR_NAMES)
-    LIST(APPEND DIRS "-F ${FIREBASE_IOS_SDK_DIR}/${FRAMEWORK}")
-  endforeach()
-
-  # All Firebase SDK modules require the Firebase Analytics Frameworks
-  # so include them by default:
-  set(DEFAULT_FRAMEWORKS FIRAnalyticsConnector FirebaseAnalytics FirebaseCore
-                         FirebaseCoreDiagnostics FirebaseInstanceID
-                         GTMSessionFetcher GoogleAppMeasurement
-                         GoogleDataTransport GoogleDataTransportCCTSupport
-                         GoogleUtilities nanopb )
-
-  foreach(FRAMEWORK IN LISTS DEFAULT_FRAMEWORKS
-          ios_test_add_frameworks_CUSTOM_FRAMEWORKS)
-    LIST(APPEND INCLUDES "-framework ${FRAMEWORK}")
-  endforeach()
-
-  set(FRAMEWORK_DIRS ${DIRS} PARENT_SCOPE)
-  set(FRAMEWORK_INCLUDES ${INCLUDES} PARENT_SCOPE)
+  # No-op under Swift Package Manager: Xcode natively resolves, compiles,
+  # and links the package product dependencies specified for the test targets.
+  set(FRAMEWORK_DIRS "" PARENT_SCOPE)
+  set(FRAMEWORK_INCLUDES "" PARENT_SCOPE)
 endfunction()
 
 # firebase_cpp_cc_test_on_ios(

@@ -149,12 +149,7 @@ elseif(IOS)
   target_link_libraries(firebase_remote_config
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
-    firebase_remote_config
-    POD_NAMES
-      FirebaseCore
-      FirebaseRemoteConfig
-  )
+
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_remote_config PROPERTIES

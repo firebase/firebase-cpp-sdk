@@ -16,9 +16,9 @@
 
 #import <Foundation/Foundation.h>
 
-#import "FIRAnalytics+Consent.h"
-#import "FIRAnalytics+OnDevice.h"
-#import "FIRAnalytics.h"
+#import <FirebaseAnalytics/FIRAnalytics+Consent.h>
+#import <FirebaseAnalytics/FIRAnalytics+OnDevice.h>
+#import <FirebaseAnalytics/FIRAnalytics.h>
 
 #include <cassert>
 #include <cstdint>

@@ -153,9 +153,7 @@ target_link_libraries(firebase_app_check
 target_include_directories(firebase_app_check
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
-  PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${FIREBASE_CPP_SDK_ROOT_DIR}/ios_pod/swift_headers
 )
 target_compile_definitions(firebase_app_check
   PRIVATE
@@ -171,14 +169,7 @@ elseif(IOS)
   target_link_libraries(firebase_app_check
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
-    firebase_app_check
-    POD_NAMES
-      FirebaseCore
-      FirebaseAppCheck
-      FirebaseAppCheckInterop/FirebaseAppCheck/Interop
-      INCLUDE_PRIVATE_HEADERS
-  )
+
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_app_check PROPERTIES

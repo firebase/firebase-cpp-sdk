@@ -35,7 +35,7 @@
 #include "app/src/util_ios.h"
 #include "messaging/src/common.h"
 
-#import "FIRMessaging.h"
+#import <FirebaseMessaging/FIRMessaging.h>
 
 // This implements the messaging protocol so that we can receive notifcatons from Messaging.
 NS_ASSUME_NONNULL_BEGIN

@@ -19,7 +19,7 @@
 #include "functions/src/include/firebase/functions/common.h"
 #include "functions/src/ios/functions_ios.h"
 
-#import "FirebaseFunctions-Swift.h"
+#import <FirebaseFunctions/FirebaseFunctions-Swift.h>
 
 namespace firebase {
 namespace functions {

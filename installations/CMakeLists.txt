@@ -74,12 +74,7 @@ elseif(IOS)
   target_link_libraries(firebase_installations
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
-    firebase_installations
-    POD_NAMES
-      FirebaseCore
-      FirebaseInstallations
-  )
+
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_installations PROPERTIES

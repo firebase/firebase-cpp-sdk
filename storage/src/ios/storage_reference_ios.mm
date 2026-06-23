@@ -16,7 +16,7 @@
 #include <cstring>
 #include "storage/src/ios/storage_reference_ios.h"
 
-#import "FirebaseStorage-Swift.h"
+#import <FirebaseStorage/FirebaseStorage-Swift.h>
 
 #include "app/src/util_ios.h"
 #include "storage/src/common/common_internal.h"

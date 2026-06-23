@@ -22,7 +22,7 @@
 #include "app/src/util_ios.h"
 #include "database/src/ios/database_reference_ios.h"
 
-#import "FIRDatabase.h"
+#import <FirebaseDatabase/FIRDatabase.h>
 
 namespace firebase {
 namespace database {
