@@ -18,8 +18,8 @@ if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
   return()
 endif()
 
-# Commit corresponds to Tag v25.12.19-2026-02-06-03fffb2
-set(version 95fda8c23e6e30ebd975892b5fad01efa53e039c)
+# Pinned to the official v25.12.19 release commit to ensure stability.
+set(version 7e163021e59cca4f8e1e35a7c828b5c6b7915953)
 set(patch_file
   ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/flatbuffers/0001-fix-error-macro.patch)
 
