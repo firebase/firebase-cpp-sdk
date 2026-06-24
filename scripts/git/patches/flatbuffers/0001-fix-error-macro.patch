@@ -23,8 +23,8 @@ index 95fda8c2..6da1c6e3 100644
  #include <algorithm>
  #include <functional>
  #include <map>
-@@ -1325,4 +1331,9 @@ extern bool GenerateTSGRPC(const Parser& parser, const std::string& path,
-                            const std::string& file_name);
+@@ -1300,4 +1306,9 @@ extern bool GenerateTSGRPC(const Parser &parser, const std::string &path,
+                            const std::string &file_name);
  }  // namespace flatbuffers
  
 +#ifdef FLATBUFFERS_POP_ERROR_MACRO
