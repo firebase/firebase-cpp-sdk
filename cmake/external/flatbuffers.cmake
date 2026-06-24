@@ -18,8 +18,8 @@ if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
   return()
 endif()
 
-# Pinned to the official v25.12.19 release commit to ensure stability.
-set(version 7e163021e59cca4f8e1e35a7c828b5c6b7915953)
+# Pinned to the official v25.2.10 release commit to ensure stability and match Java library.
+set(version 1c514626e83c20fffa8557e75641848e1e15cd5e)
 set(patch_file
   ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/flatbuffers/0001-fix-error-macro.patch)
 
