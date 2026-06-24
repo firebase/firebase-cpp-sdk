@@ -615,7 +615,8 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
-    - Remote Config (Desktop): Updated Flatbuffers to latest version to support buffer verification. Added flexbuffer integrity checks before parsing to prevent crashes on invalid/malformed data.
+    - General: Upgraded FlatBuffers dependency to v25.2.10 across both native C++ and Java/Android components.
+    - Remote Config (Desktop): Added flexbuffer integrity checks before parsing to prevent crashes on invalid/malformed data.
 
 ### 13.9.0
 - Changes
