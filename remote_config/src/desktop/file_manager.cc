@@ -57,7 +57,7 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
 }
 
 bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {
-  if (file_path_.empty()) {
+  if (!configs || file_path_.empty()) {
     return false;
   }
   std::fstream input(file_path_, std::ios::in | std::ios::binary);
