@@ -26,37 +26,7 @@
 #include <cstring>
 #include <ctime>
 
-#if defined(__APPLE__)
-#include <TargetConditionals.h>
-// Workaround for Xcode 15 / Swift 5.10 Concurrency and C++ verbose abort
-// crash on older iOS versions (iOS 15/16).
-// By providing these symbols in our own binary, we prevent dyld from
-// crashing when they are missing from the system libraries on older OSs.
 
-// In Xcode 16, libc++ removed the noexcept specifier from
-// __libcpp_verbose_abort.
-#if defined(_LIBCPP_VERBOSE_ABORT_NOEXCEPT)
-#define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT _LIBCPP_VERBOSE_ABORT_NOEXCEPT
-#elif defined(__apple_build_version__) && \
-    __apple_build_version__ >= 16000000 && __apple_build_version__ < 20000000
-#define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT
-#else
-#define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT noexcept
-#endif
-
-namespace std {
-inline namespace __1 {
-__attribute__((weak)) void __libcpp_verbose_abort(const char* format, ...)
-    FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT {
-  va_list list;
-  va_start(list, format);
-  vfprintf(stderr, format, list);
-  va_end(list);
-  abort();
-}
-}  // namespace __1
-}  // namespace std
-#endif
 
 namespace app_framework {
 
