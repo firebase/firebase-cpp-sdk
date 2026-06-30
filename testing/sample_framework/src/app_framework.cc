@@ -26,8 +26,6 @@
 #include <cstring>
 #include <ctime>
 
-
-
 namespace app_framework {
 
 // Base logging methods, implemented by platform-specific files.

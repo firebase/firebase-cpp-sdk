@@ -30,9 +30,9 @@
 #include "app/src/util.h"
 #include "app/src/util_ios.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 // Workaround for Xcode 15+ / Swift 5.10+ Concurrency and C++ verbose abort
 // crash on older iOS versions (iOS 15/16).
@@ -40,24 +40,28 @@
 // crashing when it is missing from the system libc++ on older OSs.
 #if defined(_LIBCPP_VERBOSE_ABORT_NOEXCEPT)
 #define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT _LIBCPP_VERBOSE_ABORT_NOEXCEPT
-#elif defined(__apple_build_version__) && \
-    __apple_build_version__ >= 16000000 && __apple_build_version__ < 20000000
+#elif defined(__apple_build_version__) && __apple_build_version__ >= 16000000 && \
+    __apple_build_version__ < 20000000
 #define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT
 #else
 #define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT noexcept
 #endif
 
+#ifndef _LIBCPP_ABI_NAMESPACE
+#define _LIBCPP_ABI_NAMESPACE __1
+#endif
+
 namespace std {
-inline namespace __1 {
-__attribute__((weak)) void __libcpp_verbose_abort(const char* format, ...)
-    FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT {
-  va_list list;
+inline namespace _LIBCPP_ABI_NAMESPACE {
+__attribute__((weak)) void __libcpp_verbose_abort(const char* format,
+                                                  ...) FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT {
+  std::va_list list;
   va_start(list, format);
-  vfprintf(stderr, format, list);
+  std::vfprintf(stderr, format, list);
   va_end(list);
-  abort();
+  std::abort();
 }
-}  // namespace __1
+}  // namespace _LIBCPP_ABI_NAMESPACE
 }  // namespace std
 
 #include "FIROptions.h"
