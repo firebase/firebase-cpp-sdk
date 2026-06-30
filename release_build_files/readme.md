@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General (iOS): Fixed a startup crash on iOS 15 and 16 due to a missing `__libcpp_verbose_abort` symbol.
+
 ### 13.9.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.15.0.
