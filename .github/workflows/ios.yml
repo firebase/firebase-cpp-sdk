@@ -13,6 +13,9 @@ on:
 env:
   GITHUB_TOKEN: ${{ github.token }}
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
@@ -57,7 +60,9 @@ jobs:
 
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer
+        env:
+          XCODE_VERSION: ${{ matrix.xcode_version }}
 
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:

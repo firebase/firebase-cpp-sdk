@@ -7,6 +7,9 @@ on:
         default: ''
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   check_results_and_retry_if_needed:
     name: check-results-and-retry-if-needed

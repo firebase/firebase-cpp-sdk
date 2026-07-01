@@ -19,6 +19,9 @@ on:
 env:
   GITHUB_TOKEN: ${{ github.token }}
 
+permissions:
+  contents: read
+
 jobs:
   update_custom_runners:
     name: update-custom-runner-${{ matrix.runner_hostname }}
