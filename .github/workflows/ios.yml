@@ -25,6 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           submodules: false
       - name: Use expanded matrix
         if: github.event.inputs.use_expanded_matrix == '1'
@@ -60,6 +61,7 @@ jobs:
 
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           submodules: true
 
       - name: Setup python

@@ -155,6 +155,7 @@ jobs:
         access_token: ${{ github.token }}
     - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
       with:
+        persist-credentials: true # zizmor: ignore[artipacked]
         ref: ${{steps.set_outputs.outputs.github_ref}}
         fetch-depth: 0
         submodules: false
@@ -309,6 +310,7 @@ jobs:
           cmakeVersion: "~3.31.0"
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
@@ -482,6 +484,7 @@ jobs:
           cmakeVersion: "~3.31.0"
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - run: df -h
@@ -626,6 +629,7 @@ jobs:
           cmakeVersion: "~3.31.0"
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
@@ -748,6 +752,7 @@ jobs:
           cmakeVersion: "~3.31.0"
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
@@ -888,6 +893,7 @@ jobs:
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
@@ -1018,6 +1024,7 @@ jobs:
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Android integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
@@ -1163,6 +1170,7 @@ jobs:
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download iOS integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
@@ -1348,6 +1356,7 @@ jobs:
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download tvOS integration tests artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
@@ -1496,6 +1505,7 @@ jobs:
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
 
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Setup python
@@ -1576,6 +1586,7 @@ jobs:
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
 
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Setup python
