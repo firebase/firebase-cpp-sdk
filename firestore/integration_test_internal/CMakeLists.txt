@@ -236,7 +236,7 @@ include_directories(${ABSEIL_CPP_ROOT})
 add_definitions(-DINTERNAL_EXPERIMENTAL)
 
 # Firebase C++ SDK requires C++14.
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Download and unpack googletest (and googlemock) at configure time
