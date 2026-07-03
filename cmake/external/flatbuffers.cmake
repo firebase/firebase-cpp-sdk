@@ -18,9 +18,10 @@ if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
   return()
 endif()
 
-set(version 99aa1ef21dd9dc3f9d4fb0eb82f4b59d0bb5e4c5)
+# Pinned to the official v25.2.10 release commit to ensure stability and match Java library.
+set(version 1c514626e83c20fffa8557e75641848e1e15cd5e)
 set(patch_file
-  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/flatbuffers/0001-remove-unused-var.patch)
+  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/flatbuffers/0001-fix-error-macro.patch)
 
 ExternalProject_Add(
   flatbuffers
@@ -29,7 +30,7 @@ ExternalProject_Add(
     COMMAND git init flatbuffers
     COMMAND cd flatbuffers && git fetch --depth=1 https://github.com/google/flatbuffers.git ${version} && git reset --hard FETCH_HEAD
 
-  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
+  PATCH_COMMAND git apply ${patch_file}
   PREFIX ${PROJECT_BINARY_DIR}
 
   CONFIGURE_COMMAND ""

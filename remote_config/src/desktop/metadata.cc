@@ -14,7 +14,10 @@
 
 #include "remote_config/src/desktop/metadata.h"
 
+#include <cerrno>
 #include <cstdint>
+#include <cstdlib>
+#include <limits>
 #include <map>
 #include <string>
 
@@ -59,6 +62,9 @@ std::string RemoteConfigMetadata::Serialize() const {
 void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buffer.data());
   size_t size = buffer.size();
+  if (!flexbuffers::VerifyBuffer(data, size)) {
+    return;
+  }
   auto struct_map = flexbuffers::GetRoot(data, size).AsMap();
 
   flexbuffers::Map info = struct_map["info"].AsMap();
@@ -76,7 +82,19 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
   settings_.clear();
   flexbuffers::Map settings = struct_map["settings"].AsMap();
   for (int i = 0, n = settings.size(); i < n; ++i) {
-    int int_key = std::stoi(settings.Keys()[i].AsKey());
+    const char* key_str = settings.Keys()[i].AsKey();
+    if (!key_str) continue;
+    char* endptr = nullptr;
+    errno = 0;
+    long raw_key = std::strtol(key_str, &endptr, 10);
+    if (endptr == key_str || *endptr != '\0' || errno == ERANGE) {
+      continue;
+    }
+    if (raw_key < std::numeric_limits<int>::min() ||
+        raw_key > std::numeric_limits<int>::max()) {
+      continue;
+    }
+    int int_key = static_cast<int>(raw_key);
     settings_[static_cast<ConfigSetting>(int_key)] =
         settings.Values()[i].AsString().c_str();
   }
