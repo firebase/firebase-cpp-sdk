@@ -189,15 +189,16 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=b6q,version=34"},  # Galaxy Z Flip6
   ],
   "emulator_ftl_target": [
-      {"type": "ftl", "device": "model=Pixel2.arm,version=26"},
-      {"type": "ftl", "device": "model=MediumPhone.arm,version=26"},
-      {"type": "ftl", "device": "model=MediumTablet.arm,version=26"},
-      {"type": "ftl", "device": "model=SmallPhone.arm,version=26"},
+      {"type": "ftl", "device": "model=Pixel2.arm,version=28"},
+      {"type": "ftl", "device": "model=MediumPhone.arm,version=28"},
+      {"type": "ftl", "device": "model=MediumTablet.arm,version=28"},
+      {"type": "ftl", "device": "model=SmallPhone.arm,version=28"},
   ],
   "emulator_ftl_latest": [
-      {"type": "ftl", "device": "model=MediumPhone.arm,version=35"},
-      {"type": "ftl", "device": "model=MediumTablet.arm,version=35"},
-      {"type": "ftl", "device": "model=SmallPhone.arm,version=35"},
+      {"type": "ftl", "device": "model=Pixel2.arm,version=32"},
+      {"type": "ftl", "device": "model=MediumPhone.arm,version=32"},
+      {"type": "ftl", "device": "model=MediumTablet.arm,version=32"},
+      {"type": "ftl", "device": "model=SmallPhone.arm,version=32"},
   ],
   "emulator_target": [ {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"} ],
   "emulator_latest": [ {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"} ],
