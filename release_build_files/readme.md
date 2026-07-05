@@ -613,6 +613,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General: Upgraded FlatBuffers dependency to v25.2.10 across both native C++ and Java/Android components.
+    - Remote Config (Desktop): Added flexbuffer integrity checks before parsing to prevent crashes on invalid/malformed data.
+
 ### 13.9.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.15.0.

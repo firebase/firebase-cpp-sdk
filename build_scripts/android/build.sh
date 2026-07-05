@@ -81,6 +81,5 @@ if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
 else
   # rsync has to be specifically installed on windows bash (including github runners)
   # Also, rsync with absolute destination path doesn't work on Windows.
-  # Using a simple copy instead of rsync on Windows.
-  cp -R --parents "${paths[@]}" "${absbuildpath}"
+  cp -RL --parents "${paths[@]}" "${absbuildpath}"
 fi

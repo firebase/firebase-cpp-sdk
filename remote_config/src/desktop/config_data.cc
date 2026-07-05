@@ -51,6 +51,9 @@ std::string NamespacedConfigData::Serialize() const {
 void NamespacedConfigData::Deserialize(const std::string& buffer) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buffer.data());
   size_t size = buffer.size();
+  if (!flexbuffers::VerifyBuffer(data, size)) {
+    return;
+  }
   auto struct_map = flexbuffers::GetRoot(data, size).AsMap();
   flexbuffers::Map ns_config_map = struct_map["config_"].AsMap();
   for (int i = 0, in = ns_config_map.size(); i < in; ++i) {
@@ -144,6 +147,9 @@ std::string LayeredConfigs::Serialize() const {
 void LayeredConfigs::Deserialize(const std::string& buffer) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buffer.data());
   size_t size = buffer.size();
+  if (!flexbuffers::VerifyBuffer(data, size)) {
+    return;
+  }
   auto struct_map = flexbuffers::GetRoot(data, size).AsMap();
   fetched.Deserialize(struct_map["fetched"].AsString().str());
   active.Deserialize(struct_map["active"].AsString().str());
