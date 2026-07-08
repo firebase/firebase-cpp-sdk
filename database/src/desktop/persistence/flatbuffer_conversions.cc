@@ -103,6 +103,11 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
     case flexbuffers::FBT_BLOB:
       LogError("Flexbuffers containing blobs are not supported.");
       break;
+    case flexbuffers::FBT_MAX_TYPE:
+    default:
+      LogError("Unknown or unsupported flexbuffer type: %d",
+               static_cast<int>(ref.GetType()));
+      break;
   }
   return Variant::Null();
 }

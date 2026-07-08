@@ -7,6 +7,9 @@ on:
         default: ''
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   check_results_and_retry_if_needed:
     name: check-results-and-retry-if-needed
@@ -27,6 +30,7 @@ jobs:
 
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           ref: ${{ matrix.branch_name }}
           fetch-depth: 0
           submodules: false

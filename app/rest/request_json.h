@@ -66,7 +66,7 @@ class RequestJson : public Request {
     // Generate JSON string.
     std::string json;
     bool generate_status =
-        GenerateText(*parser_, builder.GetBufferPointer(), &json);
+        GenerateText(*parser_, builder.GetBufferPointer(), &json) == nullptr;
     FIREBASE_ASSERT_RETURN_VOID(generate_status);
 
     set_post_fields(json.c_str());

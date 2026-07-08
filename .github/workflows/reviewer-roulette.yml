@@ -7,10 +7,16 @@ on:
 env:
   reviewerList: "jonsimantov a-maurice cynthiajoan chkuang-g AlmostMatt"
 
+permissions:
+  contents: read
+
 jobs:
   assign_random_reviewer:
     if: github.event.action == 'labeled' && github.event.label.name == 'reviewer-roulette'
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Unset label
         uses: buildsville/add-remove-label@6008d7bd99d3baeb7c04033584e68f8ec80b198b # ratchet:buildsville/add-remove-label@v1

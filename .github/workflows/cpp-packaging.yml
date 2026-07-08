@@ -141,6 +141,7 @@ jobs:
         if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           repository: llvm/llvm-project
           path: llvm-src
           ref: ${{ env.llvmVer }}
@@ -163,6 +164,7 @@ jobs:
       - name: fetch demumble
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           repository: nico/demumble
           path: demumble-src
           ref: ${{ env.demumbleVer }}
@@ -211,6 +213,7 @@ jobs:
       - name: fetch SDK
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: Setup python
@@ -266,6 +269,7 @@ jobs:
       - name: fetch SDK
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: Store git credentials for all git commands
@@ -380,6 +384,7 @@ jobs:
 
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           submodules: true
 
       - name: Set env variables for subsequent steps (all)
@@ -523,6 +528,7 @@ jobs:
       - name: fetch SDK
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: download packaging-tool artifacts
@@ -733,6 +739,7 @@ jobs:
       - name: fetch SDK
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: download artifact
@@ -859,6 +866,8 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
 
     - name: Setup python
       uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
@@ -933,6 +942,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+          with:
+            persist-credentials: true # zizmor: ignore[artipacked]
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:

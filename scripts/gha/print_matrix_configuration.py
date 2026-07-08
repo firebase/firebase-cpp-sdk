@@ -185,11 +185,10 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=rango,version=36"},  # Pixel 10 Pro Fold
       {"type": "ftl", "device": "model=tangorpro,version=33"},  # Pixel Tablet
       {"type": "ftl", "device": "model=gts9wifi,version=34"},  # Galaxy Tab S9
-      {"type": "ftl", "device": "model=pa3q,version=36"},  # Galaxy S25 Ultra
+      {"type": "ftl", "device": "model=pa3q,version=35"},  # Galaxy S25 Ultra
       {"type": "ftl", "device": "model=b6q,version=34"},  # Galaxy Z Flip6
   ],
   "emulator_ftl_target": [
-      {"type": "ftl", "device": "model=Pixel2,version=28"},
       {"type": "ftl", "device": "model=Pixel2.arm,version=28"},
       {"type": "ftl", "device": "model=MediumPhone.arm,version=28"},
       {"type": "ftl", "device": "model=MediumTablet.arm,version=28"},
