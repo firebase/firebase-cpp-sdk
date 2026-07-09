@@ -615,6 +615,7 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - General (iOS): Fixed a startup crash on iOS 15 and 16 due to a missing `__libcpp_verbose_abort` symbol.
     - General: Upgraded FlatBuffers dependency to v25.2.10 across both native C++ and Java/Android components.
     - Remote Config (Desktop): Added flexbuffer integrity checks before parsing to prevent crashes on invalid/malformed data.
 
