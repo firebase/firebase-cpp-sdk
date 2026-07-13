@@ -613,8 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 13.10.0
 - Changes
+    - General (Android): Update to Firebase Android BoM version 34.16.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.16.0.
     - General (iOS): Fixed a startup crash on iOS 15 and 16 due to a missing `__libcpp_verbose_abort` symbol.
     - General: Upgraded FlatBuffers dependency to v25.2.10 across both native C++ and Java/Android components.
     - Remote Config (Desktop): Added flexbuffer integrity checks before parsing to prevent crashes on invalid/malformed data.
