@@ -39,9 +39,6 @@ env:
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
   GITHUB_TOKEN: ${{ github.token }}
 
-permissions:
-  contents: read
-
 jobs:
   log_inputs:
     name: log-inputs
