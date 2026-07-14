@@ -207,6 +207,7 @@ else()
       "-framework CoreFoundation"
       "-framework Foundation"
       "-framework GSS"
+      "-framework Network"
       "-framework Security"
       "-framework SystemConfiguration"
     )
