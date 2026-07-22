@@ -61,7 +61,20 @@ public class RegistrationIntentService extends JobIntentService {
 
   /** Write token to internal storage so it can be accessed by the C++ layer. */
   public static void writeTokenToInternalStorage(Context context, String token) {
-    byte[] buffer = generateTokenByteBuffer(token);
+    writeBufferToInternalStorage(context, generateTokenByteBuffer(token));
+  }
+
+  /** Write registration installation ID to internal storage so it can be accessed by the C++ layer. */
+  public static void writeRegistrationToInternalStorage(Context context, String installationId) {
+    writeBufferToInternalStorage(context, generateRegistrationByteBuffer(installationId));
+  }
+
+  /** Write unregistration installation ID to internal storage so it can be accessed by the C++ layer. */
+  public static void writeUnregistrationToInternalStorage(Context context, String installationId) {
+    writeBufferToInternalStorage(context, generateUnregistrationByteBuffer(installationId));
+  }
+
+  private static void writeBufferToInternalStorage(Context context, byte[] buffer) {
     ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
     // Write out the buffer length into the first four bytes.
     sizeBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -94,6 +107,42 @@ public class RegistrationIntentService extends JobIntentService {
     SerializedEvent.startSerializedEvent(builder);
     SerializedEvent.addEventType(builder, SerializedEventUnion.SerializedTokenReceived);
     SerializedEvent.addEvent(builder, tokenReceivedOffset);
+    builder.finish(SerializedEvent.endSerializedEvent(builder));
+
+    return builder.sizedByteArray();
+  }
+
+  private static byte[] generateRegistrationByteBuffer(String installationId) {
+    FlatBufferBuilder builder = new FlatBufferBuilder(0);
+
+    int idOffset = builder.createString(installationId != null ? installationId : "");
+
+    SerializedRegistrationReceived.startSerializedRegistrationReceived(builder);
+    SerializedRegistrationReceived.addInstallationId(builder, idOffset);
+    int registrationReceivedOffset =
+        SerializedRegistrationReceived.endSerializedRegistrationReceived(builder);
+
+    SerializedEvent.startSerializedEvent(builder);
+    SerializedEvent.addEventType(builder, SerializedEventUnion.SerializedRegistrationReceived);
+    SerializedEvent.addEvent(builder, registrationReceivedOffset);
+    builder.finish(SerializedEvent.endSerializedEvent(builder));
+
+    return builder.sizedByteArray();
+  }
+
+  private static byte[] generateUnregistrationByteBuffer(String installationId) {
+    FlatBufferBuilder builder = new FlatBufferBuilder(0);
+
+    int idOffset = builder.createString(installationId != null ? installationId : "");
+
+    SerializedUnregistrationReceived.startSerializedUnregistrationReceived(builder);
+    SerializedUnregistrationReceived.addInstallationId(builder, idOffset);
+    int unregistrationReceivedOffset =
+        SerializedUnregistrationReceived.endSerializedUnregistrationReceived(builder);
+
+    SerializedEvent.startSerializedEvent(builder);
+    SerializedEvent.addEventType(builder, SerializedEventUnion.SerializedUnregistrationReceived);
+    SerializedEvent.addEvent(builder, unregistrationReceivedOffset);
     builder.finish(SerializedEvent.endSerializedEvent(builder));
 
     return builder.sizedByteArray();

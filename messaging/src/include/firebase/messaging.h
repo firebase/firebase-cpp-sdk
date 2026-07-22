@@ -376,7 +376,25 @@ class Listener {
   /// firebase::messaging::Initialize(...).
   ///
   /// @param[in] token The registration token.
-  virtual void OnTokenReceived(const char* token) = 0;
+  /// @deprecated Use OnRegistrationReceived(const char*) instead.
+  FIREBASE_DEPRECATED virtual void OnTokenReceived(const char* token);
+
+  /// @brief Called on the client when the current app instance has been
+  /// successfully registered with FCM.
+  ///
+  /// This callback provides the unique Firebase Installation ID (FID), which
+  /// should be used to target this app instance for direct-send messaging.
+  ///
+  /// @param[in] installationId The Firebase Installation ID used for sending
+  /// messages to the current app instance.
+  virtual void OnRegistrationReceived(const char* installationId);
+
+  /// @brief Called on the client when the current app instance has been
+  /// successfully unregistered from FCM via a call to Unregister().
+  ///
+  /// @param[in] installationId The Firebase Installation ID of the current app
+  /// instance that was unregistered with FCM.
+  virtual void OnUnregistrationReceived(const char* installationId);
 };
 
 /// @brief Initialize Firebase Cloud Messaging.
@@ -417,10 +435,61 @@ InitResult Initialize(const App& app, Listener* listener,
 /// @note On Android, the services will not be shut down by this method.
 void Terminate();
 
+/// @brief Determines if automatic registration during initialization is enabled.
+///
+/// @return true if auto registration is enabled and false if disabled.
+bool IsRegistrationOnInitEnabled();
+
+/// @brief Enable or disable registration during initialization of Firebase Cloud
+/// Messaging.
+///
+/// The installation ID returned is what identifies the user to Firebase, so
+/// disabling this avoids creating any new identity and automatically sending
+/// it to Firebase, unless consent has been granted.
+///
+/// If this setting is enabled, it triggers the registration refresh
+/// immediately. This setting is persisted across app restarts and overrides the
+/// setting "firebase_messaging_auto_init_enabled" specified in your Android
+/// manifest (on Android) or Info.plist (on iOS and tvOS).
+///
+/// <p>By default, registration during initialization is enabled.
+///
+/// The registration happens before you can programmatically disable it, so
+/// if you need to change the default, (for example, because you want to prompt
+/// the user before FCM generates/refreshes a registration on app
+/// startup), add to your application’s manifest:
+///
+/// @if NOT_DOXYGEN
+///   <meta-data android:name="firebase_messaging_auto_init_enabled"
+///   android:value="false" />
+/// @else
+/// @code
+///   &lt;meta-data android:name="firebase_messaging_auto_init_enabled"
+///   android:value="false" /&gt;
+/// @endcode
+/// @endif
+///
+/// or on iOS or tvOS to your Info.plist:
+///
+/// @if NOT_DOXYGEN
+///   <key>FirebaseMessagingAutoInitEnabled</key>
+///   <false/>
+/// @else
+/// @code
+///   &lt;key&gt;FirebaseMessagingAutoInitEnabled&lt;/key&gt;
+///   &lt;false/&gt;
+/// @endcode
+/// @endif
+///
+/// @param enable sets if a registration should be requested on
+/// initialization.
+void SetRegistrationOnInitEnabled(bool enable);
+
 /// Determines if automatic token registration during initalization is enabled.
 ///
 /// @return true if auto token registration is enabled and false if disabled.
-bool IsTokenRegistrationOnInitEnabled();
+/// @deprecated Use IsRegistrationOnInitEnabled() instead.
+FIREBASE_DEPRECATED bool IsTokenRegistrationOnInitEnabled();
 
 /// Enable or disable token registration during initialization of Firebase Cloud
 /// Messaging.
@@ -466,7 +535,8 @@ bool IsTokenRegistrationOnInitEnabled();
 ///
 /// @param enable sets if a registration token should be requested on
 /// initialization.
-void SetTokenRegistrationOnInitEnabled(bool enable);
+/// @deprecated Use SetRegistrationOnInitEnabled(bool) instead.
+FIREBASE_DEPRECATED void SetTokenRegistrationOnInitEnabled(bool enable);
 
 #ifndef SWIG
 /// @brief Set the listener for events from the Firebase Cloud Messaging
@@ -573,17 +643,52 @@ bool DeliveryMetricsExportToBigQueryEnabled();
 ///            delivery metrics to BigQuery.
 void SetDeliveryMetricsExportToBigQuery(bool enable);
 
+/// @brief Registers the current Firebase app instance with the Firebase Cloud
+/// Messaging (FCM) backend to receive messages.
+///
+/// This creates a Firebase Installations ID (FID), if one does not exist, and
+/// sends information about the application and the device where it's running to
+/// the Firebase backend.
+///
+/// Upon completion, `OnRegistrationReceived` will be triggered with the current
+/// FID. Calling this function when already registered will still invoke the
+/// `OnRegistrationReceived` callback with the existing FID.
+///
+/// @return A future that completes when the registration is completed.
+Future<void> Register();
+
+/// @brief Gets the result of the most recent call to Register().
+///
+/// @return Result of the most recent call to Register().
+Future<void> RegisterLastResult();
+
+/// @brief Unregisters the current app instance with FCM.
+///
+/// Note that this does not delete the Firebase Installations ID that may have
+/// been created during registration. See Installations.Delete() for
+/// deleting that.
+///
+/// @return A future that completes when the unregistration is completed.
+Future<void> Unregister();
+
+/// @brief Gets the result of the most recent call to Unregister().
+///
+/// @return Result of the most recent call to Unregister().
+Future<void> UnregisterLastResult();
+
 /// @brief This creates a Firebase Installations ID, if one does not exist, and
 /// sends information about the application and the device where it's running to
 /// the Firebase backend.
 ///
 /// @return A future with the token.
-Future<std::string> GetToken();
+/// @deprecated Use Register() instead.
+FIREBASE_DEPRECATED Future<std::string> GetToken();
 
 /// @brief Gets the result of the most recent call to GetToken();
 ///
 /// @return Result of the most recent call to GetToken().
-Future<std::string> GetTokenLastResult();
+/// @deprecated Use RegisterLastResult() instead.
+FIREBASE_DEPRECATED Future<std::string> GetTokenLastResult();
 
 /// @brief Deletes the default token for this Firebase project.
 ///
@@ -592,40 +697,26 @@ Future<std::string> GetTokenLastResult();
 /// deleting that.
 ///
 /// @return A future that completes when the token is deleted.
-Future<void> DeleteToken();
+/// @deprecated Use Unregister() instead.
+FIREBASE_DEPRECATED Future<void> DeleteToken();
 
 /// @brief Gets the result of the most recent call to DeleteToken();
 ///
 /// @return Result of the most recent call to DeleteToken().
-Future<void> DeleteTokenLastResult();
+/// @deprecated Use UnregisterLastResult() instead.
+FIREBASE_DEPRECATED Future<void> DeleteTokenLastResult();
 
 class PollableListenerImpl;
 
-/// @brief A listener that can be polled to consume pending `Message`s.
+/// @brief A listener that can be polled to consume pending `Message`s and registration events.
 ///
 /// This class is intended to be used with applications that have a main loop
 /// that frequently updates, such as in the case of a game that has a main
 /// loop that updates 30 to 60 times a second. Rather than respond to incoming
-/// messages and tokens via the `OnMessage` virtual function, this class will
-/// queue up the message internally in a thread-safe manner so that it can be
-/// consumed with `PollMessage`. For example:
-///
-///     ::firebase::messaging::PollableListener listener;
-///     ::firebase::messaging::Initialize(app, &listener);
-///
-///     while (true) {
-///       std::string token;
-///       if (listener.PollRegistrationToken(&token)) {
-///         LogMessage("Received a registration token");
-///       }
-///
-///       ::firebase::messaging::Message message;
-///       while (listener.PollMessage(&message)) {
-///         LogMessage("Received a new message");
-///       }
-///
-///       // Remainder of application logic...
-///     }
+/// messages and registration events via the `OnMessage`, `OnRegistrationReceived`,
+/// or `OnUnregistrationReceived` virtual functions, this class will queue up events
+/// internally in a thread-safe manner so that they can be consumed with `PollMessage`,
+/// `PollRegistration`, or `PollUnregistration`.
 class PollableListener : public Listener {
  public:
   /// @brief The default constructor.
@@ -634,13 +725,22 @@ class PollableListener : public Listener {
   /// @brief The required virtual destructor.
   virtual ~PollableListener();
 
-  /// @brief An implementation of `OnMessage` which adds the incoming messages
+  /// @brief An implementation of `OnMessage` which adds incoming messages
   /// to a queue, which can be consumed by calling `PollMessage`.
-  virtual void OnMessage(const Message& message);
+  virtual void OnMessage(const Message& message) override;
 
   /// @brief An implementation of `OnTokenReceived` which stores the incoming
   /// token so that it can be consumed by calling `PollRegistrationToken`.
-  virtual void OnTokenReceived(const char* token);
+  /// @deprecated Use OnRegistrationReceived(const char*) instead.
+  FIREBASE_DEPRECATED virtual void OnTokenReceived(const char* token) override;
+
+  /// @brief An implementation of `OnRegistrationReceived` which stores the incoming
+  /// installation ID so that it can be consumed by calling `PollRegistration`.
+  virtual void OnRegistrationReceived(const char* installationId) override;
+
+  /// @brief An implementation of `OnUnregistrationReceived` which stores the incoming
+  /// installation ID so that it can be consumed by calling `PollUnregistration`.
+  virtual void OnUnregistrationReceived(const char* installationId) override;
 
   /// @brief Returns the first message queued up, if any.
   ///
@@ -648,12 +748,7 @@ class PollableListener : public Listener {
   /// queue will be popped and used to populate the `message` argument and the
   /// function will return `true`. If there are no pending messages, `false` is
   /// returned. This function should be called in a loop until all messages have
-  /// been consumed, like so:
-  ///
-  ///     ::firebase::messaging::Message message;
-  ///     while (listener.PollMessage(&message)) {
-  ///       LogMessage("Received a new message");
-  ///     }
+  /// been consumed.
   ///
   /// @param[out] message The `Message` struct to be populated. If there were no
   /// pending messages, `message` is not modified.
@@ -662,23 +757,8 @@ class PollableListener : public Listener {
   bool PollMessage(Message* message);
 
   /// @brief Returns the registration key, if a new one has been received.
-  ///
-  /// When a new registration token is received, it is cached internally and can
-  /// be retrieved by calling `PollRegistrationToken`. The cached registration
-  /// token will be used to populate the `token` argument, then the cache will
-  /// be cleared and the function will return `true`. If there is no cached
-  /// registration token this function retuns `false`.
-  ///
-  ///     std::string token;
-  ///     if (listener.PollRegistrationToken(&token)) {
-  ///       LogMessage("Received a registration token");
-  ///     }
-  ///
-  /// @param[out] token A string to be populated with the new token if one has
-  /// been received. If there were no new token, the string is left unmodified.
-  ///
-  /// @return Returns `true` if there was a new token, `false` otherwise.
-  bool PollRegistrationToken(std::string* token) {
+  /// @deprecated Use PollRegistration(std::string*) instead.
+  FIREBASE_DEPRECATED bool PollRegistrationToken(std::string* token) {
     bool got_token;
     std::string token_received = PollRegistrationToken(&got_token);
     if (got_token) {
@@ -687,8 +767,48 @@ class PollableListener : public Listener {
     return got_token;
   }
 
+  /// @brief Returns the registration installation ID, if a new one has been received.
+  ///
+  /// When a new registration installation ID is received, it is cached internally and can
+  /// be retrieved by calling `PollRegistration`. The cached installation ID will be used
+  /// to populate the `installation_id` argument, then the cache will be cleared and the
+  /// function will return `true`. If there is no cached registration installation ID,
+  /// this function returns `false`.
+  ///
+  /// @param[out] installation_id A string to be populated with the new installation ID.
+  /// @return Returns `true` if there was a new installation ID, `false` otherwise.
+  bool PollRegistration(std::string* installation_id) {
+    bool got_registration;
+    std::string id_received = PollRegistration(&got_registration);
+    if (got_registration) {
+      *installation_id = id_received;
+    }
+    return got_registration;
+  }
+
+  /// @brief Returns the unregistration installation ID, if an unregistration has occurred.
+  ///
+  /// When an unregistration event is received, it is cached internally and can
+  /// be retrieved by calling `PollUnregistration`. The cached unregistration installation ID
+  /// will be used to populate the `installation_id` argument, then the cache will
+  /// be cleared and the function will return `true`. If there is no cached
+  /// unregistration installation ID, this function returns `false`.
+  ///
+  /// @param[out] installation_id A string to be populated with the unregistered installation ID.
+  /// @return Returns `true` if there was an unregistration event, `false` otherwise.
+  bool PollUnregistration(std::string* installation_id) {
+    bool got_unregistration;
+    std::string id_received = PollUnregistration(&got_unregistration);
+    if (got_unregistration) {
+      *installation_id = id_received;
+    }
+    return got_unregistration;
+  }
+
  private:
   std::string PollRegistrationToken(bool* got_token);
+  std::string PollRegistration(bool* got_registration);
+  std::string PollUnregistration(bool* got_unregistration);
 
   // The implementation of the `PollableListener`.
   PollableListenerImpl* impl_;

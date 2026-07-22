@@ -45,9 +45,17 @@ using com::google::firebase::messaging::cpp::FinishSerializedEventBuffer;
 using com::google::firebase::messaging::cpp::SerializedEventUnion;
 using com::google::firebase::messaging::cpp::SerializedEventUnion_MAX;
 using com::google::firebase::messaging::cpp::
+    CreateSerializedRegistrationReceived;
+using com::google::firebase::messaging::cpp::
+    CreateSerializedUnregistrationReceived;
+using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedMessage;
 using com::google::firebase::messaging::cpp::
+    SerializedEventUnion_SerializedRegistrationReceived;
+using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedTokenReceived;
+using com::google::firebase::messaging::cpp::
+    SerializedEventUnion_SerializedUnregistrationReceived;
 using flatbuffers::FlatBufferBuilder;
 
 class MessageReaderTest : public ::testing::Test {
@@ -57,6 +65,8 @@ class MessageReaderTest : public ::testing::Test {
   void TearDown() override {
     messages_received_.clear();
     tokens_received_.clear();
+    registrations_received_.clear();
+    unregistrations_received_.clear();
   }
 
   // Stores the message in this class.
@@ -73,11 +83,31 @@ class MessageReaderTest : public ::testing::Test {
     test->tokens_received_.push_back(std::string(token));
   }
 
+  // Stores the registration installation ID in this class.
+  static void RegistrationReceived(const char* installationId,
+                                   void* callback_data) {
+    MessageReaderTest* test =
+        reinterpret_cast<MessageReaderTest*>(callback_data);
+    test->registrations_received_.push_back(std::string(installationId));
+  }
+
+  // Stores the unregistration installation ID in this class.
+  static void UnregistrationReceived(const char* installationId,
+                                     void* callback_data) {
+    MessageReaderTest* test =
+        reinterpret_cast<MessageReaderTest*>(callback_data);
+    test->unregistrations_received_.push_back(std::string(installationId));
+  }
+
  protected:
   // Messages received by MessageReceived().
   std::vector<Message> messages_received_;
   // Tokens received by TokenReceived().
   std::vector<std::string> tokens_received_;
+  // Registrations received by RegistrationReceived().
+  std::vector<std::string> registrations_received_;
+  // Unregistrations received by UnregistrationReceived().
+  std::vector<std::string> unregistrations_received_;
 };
 
 TEST_F(MessageReaderTest, Construct) {
@@ -279,10 +309,70 @@ TEST_F(MessageReaderTest, ReadFromBufferInvalidEventType) {
   AppendFlatBufferToString(&buffer, fbb);
 
   MessageReader reader(MessageReaderTest::MessageReceived, this,
-                       MessageReaderTest::TokenReceived, this);
+                       MessageReaderTest::TokenReceived, this,
+                       MessageReaderTest::RegistrationReceived, this,
+                       MessageReaderTest::UnregistrationReceived, this);
   reader.ReadFromBuffer(buffer);
   EXPECT_EQ(0, messages_received_.size());
   EXPECT_EQ(0, tokens_received_.size());
+  EXPECT_EQ(0, registrations_received_.size());
+  EXPECT_EQ(0, unregistrations_received_.size());
+}
+
+// Read registration events from a buffer.
+TEST_F(MessageReaderTest, ReadFromBufferRegistrationReceived) {
+  std::string buffer;
+  std::string reg_ids[2] = {"install_id_1", "install_id_2"};
+  for (size_t i = 0; i < 2; ++i) {
+    FlatBufferBuilder fbb;
+    FinishSerializedEventBuffer(
+        fbb, CreateSerializedEvent(
+                 fbb, SerializedEventUnion_SerializedRegistrationReceived,
+                 CreateSerializedRegistrationReceived(
+                     fbb, fbb.CreateString(reg_ids[i]))
+                     .Union()));
+    AppendFlatBufferToString(&buffer, fbb);
+  }
+
+  MessageReader reader(MessageReaderTest::MessageReceived, this,
+                       MessageReaderTest::TokenReceived, this,
+                       MessageReaderTest::RegistrationReceived, this,
+                       MessageReaderTest::UnregistrationReceived, this);
+  reader.ReadFromBuffer(buffer);
+  EXPECT_EQ(0, messages_received_.size());
+  EXPECT_EQ(0, tokens_received_.size());
+  EXPECT_EQ(2, registrations_received_.size());
+  EXPECT_EQ(reg_ids[0], registrations_received_[0]);
+  EXPECT_EQ(reg_ids[1], registrations_received_[1]);
+  EXPECT_EQ(0, unregistrations_received_.size());
+}
+
+// Read unregistration events from a buffer.
+TEST_F(MessageReaderTest, ReadFromBufferUnregistrationReceived) {
+  std::string buffer;
+  std::string unreg_ids[2] = {"unreg_id_1", "unreg_id_2"};
+  for (size_t i = 0; i < 2; ++i) {
+    FlatBufferBuilder fbb;
+    FinishSerializedEventBuffer(
+        fbb, CreateSerializedEvent(
+                 fbb, SerializedEventUnion_SerializedUnregistrationReceived,
+                 CreateSerializedUnregistrationReceived(
+                     fbb, fbb.CreateString(unreg_ids[i]))
+                     .Union()));
+    AppendFlatBufferToString(&buffer, fbb);
+  }
+
+  MessageReader reader(MessageReaderTest::MessageReceived, this,
+                       MessageReaderTest::TokenReceived, this,
+                       MessageReaderTest::RegistrationReceived, this,
+                       MessageReaderTest::UnregistrationReceived, this);
+  reader.ReadFromBuffer(buffer);
+  EXPECT_EQ(0, messages_received_.size());
+  EXPECT_EQ(0, tokens_received_.size());
+  EXPECT_EQ(0, registrations_received_.size());
+  EXPECT_EQ(2, unregistrations_received_.size());
+  EXPECT_EQ(unreg_ids[0], unregistrations_received_[0]);
+  EXPECT_EQ(unreg_ids[1], unregistrations_received_[1]);
 }
 
 }  // namespace internal

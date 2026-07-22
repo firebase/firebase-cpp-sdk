@@ -190,6 +190,10 @@ Future<void> RequestPermissionLastResult() {
   return GetLastResultFuture(kMessagingFnRequestPermission);
 }
 
+bool IsRegistrationOnInitEnabled() { return true; }
+
+void SetRegistrationOnInitEnabled(bool /*enable*/) {}
+
 bool IsTokenRegistrationOnInitEnabled() { return true; }
 
 void SetTokenRegistrationOnInitEnabled(bool /*enable*/) {}
@@ -197,6 +201,24 @@ void SetTokenRegistrationOnInitEnabled(bool /*enable*/) {}
 bool DeliveryMetricsExportToBigQueryEnabled() { return false; }
 
 void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {}
+
+Future<void> Register() {
+  NotifyListenerOnRegistrationReceived("StubRegistrationId");
+  return CreateAndCompleteStubFuture(kMessagingFnRegister);
+}
+
+Future<void> RegisterLastResult() {
+  return GetLastResultFuture(kMessagingFnRegister);
+}
+
+Future<void> Unregister() {
+  NotifyListenerOnUnregistrationReceived("StubRegistrationId");
+  return CreateAndCompleteStubFuture(kMessagingFnUnregister);
+}
+
+Future<void> UnregisterLastResult() {
+  return GetLastResultFuture(kMessagingFnUnregister);
+}
 
 Future<std::string> GetToken() {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();

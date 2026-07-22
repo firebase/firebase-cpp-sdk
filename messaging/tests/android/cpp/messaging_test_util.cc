@@ -29,13 +29,21 @@
 
 using ::com::google::firebase::messaging::cpp::CreateDataPair;
 using ::com::google::firebase::messaging::cpp::CreateSerializedEvent;
+using ::com::google::firebase::messaging::cpp::
+    CreateSerializedRegistrationReceived;
 using ::com::google::firebase::messaging::cpp::CreateSerializedTokenReceived;
+using ::com::google::firebase::messaging::cpp::
+    CreateSerializedUnregistrationReceived;
 using ::com::google::firebase::messaging::cpp::DataPair;
 using ::com::google::firebase::messaging::cpp::SerializedEventUnion;
 using ::com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedMessage;
 using ::com::google::firebase::messaging::cpp::
+    SerializedEventUnion_SerializedRegistrationReceived;
+using ::com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedTokenReceived;
+using ::com::google::firebase::messaging::cpp::
+    SerializedEventUnion_SerializedUnregistrationReceived;
 using ::com::google::firebase::messaging::cpp::SerializedMessageBuilder;
 using ::com::google::firebase::messaging::cpp::SerializedNotification;
 using ::com::google::firebase::messaging::cpp::SerializedNotificationBuilder;
@@ -92,6 +100,28 @@ void OnTokenReceived(const char* tokenstr) {
   auto event = CreateSerializedEvent(
       builder, SerializedEventUnion_SerializedTokenReceived,
       tokenreceived.Union());
+  builder.Finish(event);
+  WriteBuffer(builder);
+}
+
+void OnRegistrationReceived(const char* registration_id) {
+  flatbuffers::FlatBufferBuilder builder;
+  auto reg = builder.CreateString(registration_id);
+  auto regreceived = CreateSerializedRegistrationReceived(builder, reg);
+  auto event = CreateSerializedEvent(
+      builder, SerializedEventUnion_SerializedRegistrationReceived,
+      regreceived.Union());
+  builder.Finish(event);
+  WriteBuffer(builder);
+}
+
+void OnUnregistrationReceived(const char* registration_id) {
+  flatbuffers::FlatBufferBuilder builder;
+  auto unreg = builder.CreateString(registration_id);
+  auto unregreceived = CreateSerializedUnregistrationReceived(builder, unreg);
+  auto event = CreateSerializedEvent(
+      builder, SerializedEventUnion_SerializedUnregistrationReceived,
+      unregreceived.Union());
   builder.Finish(event);
   WriteBuffer(builder);
 }

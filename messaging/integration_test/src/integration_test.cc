@@ -535,4 +535,28 @@ TEST_F(FirebaseMessagingTest, DeliverMetricsToBigQuery) {
 #endif
 }
 
+TEST_F(FirebaseMessagingTest, TestRegistrationOnInitEnabled) {
+  bool initial_val = firebase::messaging::IsRegistrationOnInitEnabled();
+  EXPECT_TRUE(initial_val);
+
+  firebase::messaging::SetRegistrationOnInitEnabled(false);
+  EXPECT_FALSE(firebase::messaging::IsRegistrationOnInitEnabled());
+
+  firebase::messaging::SetRegistrationOnInitEnabled(true);
+  EXPECT_TRUE(firebase::messaging::IsRegistrationOnInitEnabled());
+}
+
+TEST_F(FirebaseMessagingTest, TestRegisterAndUnregister) {
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
+  EXPECT_TRUE(RequestPermission());
+
+  firebase::Future<void> reg_future = firebase::messaging::Register();
+  EXPECT_TRUE(WaitForCompletion(reg_future, "Register"));
+  EXPECT_EQ(reg_future.error(), 0);
+
+  firebase::Future<void> unreg_future = firebase::messaging::Unregister();
+  EXPECT_TRUE(WaitForCompletion(unreg_future, "Unregister"));
+  EXPECT_EQ(unreg_future.error(), 0);
+}
+
 }  // namespace firebase_testapp_automated

@@ -48,20 +48,38 @@ class MessagingTestListener : public Listener {
  public:
   void OnMessage(const Message& message) override;
   void OnTokenReceived(const char* token) override;
+  void OnRegistrationReceived(const char* registration_id) override;
+  void OnUnregistrationReceived(const char* registration_id) override;
 
   const Message& GetMessage() const { return message_; }
 
   const std::string& GetToken() const { return token_; }
 
+  const std::string& GetRegistrationId() const { return registration_id_; }
+
+  const std::string& GetUnregistrationId() const { return unregistration_id_; }
+
   int GetOnTokenReceivedCount() const { return on_token_received_count_; }
 
   int GetOnMessageReceivedCount() const { return on_message_received_count_; }
 
+  int GetOnRegistrationReceivedCount() const {
+    return on_registration_received_count_;
+  }
+
+  int GetOnUnregistrationReceivedCount() const {
+    return on_unregistration_received_count_;
+  }
+
  private:
   Message message_;
   std::string token_;
+  std::string registration_id_;
+  std::string unregistration_id_;
   int on_token_received_count_ = 0;
   int on_message_received_count_ = 0;
+  int on_registration_received_count_ = 0;
+  int on_unregistration_received_count_ = 0;
 };
 
 class MessagingTest : public ::testing::Test {
@@ -111,6 +129,17 @@ void MessagingTestListener::OnMessage(const Message& message) {
 void MessagingTestListener::OnTokenReceived(const char* token) {
   token_ = token;
   on_token_received_count_++;
+}
+
+void MessagingTestListener::OnRegistrationReceived(const char* registration_id) {
+  registration_id_ = registration_id;
+  on_registration_received_count_++;
+}
+
+void MessagingTestListener::OnUnregistrationReceived(
+    const char* registration_id) {
+  unregistration_id_ = registration_id;
+  on_unregistration_received_count_++;
 }
 
 // Tests only run on Android for now.
@@ -367,6 +396,79 @@ TEST_F(MessagingTest, TestDeleteToken) {
   Future<void> result = DeleteToken();
   SleepMessagingTest(1);
   AddExpectationAndroid("FirebaseMessaging.deleteToken", {});
+}
+
+TEST_F(MessagingTest, TestRegister) {
+  Future<void> result = Register();
+  SleepMessagingTest(1);
+  EXPECT_EQ(result.status(), kFutureStatusComplete);
+  EXPECT_EQ(result.error(), 0);
+  AddExpectationAndroid("FirebaseMessaging.register", {});
+}
+
+TEST_F(MessagingTest, TestUnregister) {
+  Future<void> result = Unregister();
+  SleepMessagingTest(1);
+  EXPECT_EQ(result.status(), kFutureStatusComplete);
+  EXPECT_EQ(result.error(), 0);
+  AddExpectationAndroid("FirebaseMessaging.unregister", {});
+}
+
+TEST_F(MessagingTest, TestRegistrationOnInitEnabled) {
+  EXPECT_TRUE(IsRegistrationOnInitEnabled());
+  SetRegistrationOnInitEnabled(false);
+  EXPECT_FALSE(IsRegistrationOnInitEnabled());
+  SetRegistrationOnInitEnabled(true);
+  EXPECT_TRUE(IsRegistrationOnInitEnabled());
+}
+
+TEST_F(MessagingTest, TestRegistrationReceived) {
+  OnRegistrationReceived("my_installation_id");
+  SleepMessagingTest(1);
+  EXPECT_THAT(listener_.GetRegistrationId(), StrEq("my_installation_id"));
+  EXPECT_EQ(listener_.GetOnRegistrationReceivedCount(), 1);
+}
+
+TEST_F(MessagingTest, TestUnregistrationReceived) {
+  OnUnregistrationReceived("my_installation_id");
+  SleepMessagingTest(1);
+  EXPECT_THAT(listener_.GetUnregistrationId(), StrEq("my_installation_id"));
+  EXPECT_EQ(listener_.GetOnUnregistrationReceivedCount(), 1);
+}
+
+TEST_F(MessagingTest, TestRegistrationReceivedBeforeInitialize) {
+  Terminate();
+  OnRegistrationReceived("my_installation_id");
+  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+  SleepMessagingTest(1);
+  EXPECT_THAT(listener_.GetRegistrationId(), StrEq("my_installation_id"));
+}
+
+TEST_F(MessagingTest, TestTwoRegistrationsReceivedBeforeInitialize) {
+  Terminate();
+  OnRegistrationReceived("my_installation_id1");
+  OnRegistrationReceived("my_installation_id2");
+  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+  SleepMessagingTest(1);
+  EXPECT_THAT(listener_.GetRegistrationId(), StrEq("my_installation_id2"));
+}
+
+TEST_F(MessagingTest, TestTwoRegistrationsReceivedAfterInitialize) {
+  OnRegistrationReceived("my_installation_id1");
+  OnRegistrationReceived("my_installation_id2");
+  SleepMessagingTest(1);
+  EXPECT_THAT(listener_.GetRegistrationId(), StrEq("my_installation_id2"));
+  EXPECT_EQ(listener_.GetOnRegistrationReceivedCount(), 2);
+}
+
+TEST_F(MessagingTest, TestUnregistrationClearsCachedRegistration) {
+  Terminate();
+  OnRegistrationReceived("my_installation_id");
+  OnUnregistrationReceived("my_installation_id");
+  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+  SleepMessagingTest(1);
+  EXPECT_THAT(listener_.GetRegistrationId(), StrEq(""));
+  EXPECT_THAT(listener_.GetUnregistrationId(), StrEq("my_installation_id"));
 }
 
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)

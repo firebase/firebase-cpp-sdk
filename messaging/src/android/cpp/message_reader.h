@@ -35,13 +35,29 @@ class MessageReader {
   // Notify the currently set listener of a new token.
   typedef void (*TokenCallback)(const char* token, void* callback_data);
 
+  // Notify the currently set listener of a new registration installation ID.
+  typedef void (*RegistrationCallback)(const char* installationId,
+                                       void* callback_data);
+
+  // Notify the currently set listener of an unregistration installation ID.
+  typedef void (*UnregistrationCallback)(const char* installationId,
+                                         void* callback_data);
+
   // Construct a reader with message and token callbacks.
   MessageReader(MessageCallback message_callback, void* message_callback_data,
-                TokenCallback token_callback, void* token_callback_data)
+                TokenCallback token_callback, void* token_callback_data,
+                RegistrationCallback registration_callback = nullptr,
+                void* registration_callback_data = nullptr,
+                UnregistrationCallback unregistration_callback = nullptr,
+                void* unregistration_callback_data = nullptr)
       : message_callback_(message_callback),
         message_callback_data_(message_callback_data),
         token_callback_(token_callback),
-        token_callback_data_(token_callback_data) {}
+        token_callback_data_(token_callback_data),
+        registration_callback_(registration_callback),
+        registration_callback_data_(registration_callback_data),
+        unregistration_callback_(unregistration_callback),
+        unregistration_callback_data_(unregistration_callback_data) {}
 
   // Read messages or tokens from a buffer, calling message_callback and
   // token_callback (set on construction) on each message or token respectively.
@@ -58,6 +74,18 @@ class MessageReader {
   void ConsumeTokenReceived(
       const com::google::firebase::messaging::cpp::SerializedTokenReceived*
           serialized_token_received) const;
+
+  // Convert the SerializedRegistrationReceived to an installation ID and calls the registered
+  // registration_callback.
+  void ConsumeRegistrationReceived(
+      const com::google::firebase::messaging::cpp::SerializedRegistrationReceived*
+          serialized_registration_received) const;
+
+  // Convert the SerializedUnregistrationReceived to an installation ID and calls the registered
+  // unregistration_callback.
+  void ConsumeUnregistrationReceived(
+      const com::google::firebase::messaging::cpp::SerializedUnregistrationReceived*
+          serialized_unregistration_received) const;
 
   // Get the message callback function.
   MessageCallback message_callback() const { return message_callback_; }
@@ -81,6 +109,10 @@ class MessageReader {
   void* message_callback_data_;
   TokenCallback token_callback_;
   void* token_callback_data_;
+  RegistrationCallback registration_callback_;
+  void* registration_callback_data_;
+  UnregistrationCallback unregistration_callback_;
+  void* unregistration_callback_data_;
 };
 
 }  // namespace internal

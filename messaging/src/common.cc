@@ -51,6 +51,11 @@ static std::string* g_prev_token_received = nullptr;
 // Keep track if that token was receieved without a listener set.
 static bool g_has_pending_token = false;
 
+// Keep track of the most recent registration installation ID received.
+static std::string* g_prev_registration_received = nullptr;
+// Keep track if that registration was received without a listener set.
+static bool g_has_pending_registration = false;
+
 namespace internal {
 
 const char kMessagingModuleName[] = "messaging";
@@ -92,6 +97,9 @@ Listener* SetListener(Listener* listener) {
   if (listener && !g_prev_token_received) {
     g_prev_token_received = new std::string;
   }
+  if (listener && !g_prev_registration_received) {
+    g_prev_registration_received = new std::string;
+  }
   g_listener = listener;
   // If we have a pending token, send it before notifying other systems about
   // the listener.
@@ -99,12 +107,26 @@ Listener* SetListener(Listener* listener) {
     g_listener->OnTokenReceived(g_prev_token_received->c_str());
     g_has_pending_token = false;
   }
+  // If we have a pending registration installation ID, send it as well.
+  if (g_listener && g_has_pending_registration &&
+      g_prev_registration_received) {
+    g_listener->OnRegistrationReceived(g_prev_registration_received->c_str());
+    g_has_pending_registration = false;
+  }
   NotifyListenerSet(listener);
-  if (!listener && g_prev_token_received) {
-    std::string* ptr = g_prev_token_received;
-    g_prev_token_received = nullptr;
-    delete ptr;
-    g_has_pending_token = false;
+  if (!listener) {
+    if (g_prev_token_received) {
+      std::string* ptr = g_prev_token_received;
+      g_prev_token_received = nullptr;
+      delete ptr;
+      g_has_pending_token = false;
+    }
+    if (g_prev_registration_received) {
+      std::string* ptr = g_prev_registration_received;
+      g_prev_registration_received = nullptr;
+      delete ptr;
+      g_has_pending_registration = false;
+    }
   }
   return previous_listener;
 }
@@ -144,9 +166,43 @@ void NotifyListenerOnTokenReceived(const char* token) {
   }
 }
 
+void NotifyListenerOnRegistrationReceived(const char* installationId) {
+  MutexLock lock(g_listener_lock);
+  if (g_prev_registration_received &&
+      *g_prev_registration_received == installationId) {
+    return;
+  }
+
+  if (!g_prev_registration_received)
+    g_prev_registration_received = new std::string;
+  *g_prev_registration_received = installationId;
+
+  if (g_listener) {
+    g_listener->OnRegistrationReceived(installationId);
+  } else {
+    g_has_pending_registration = true;
+  }
+}
+
+void NotifyListenerOnUnregistrationReceived(const char* installationId) {
+  MutexLock lock(g_listener_lock);
+  // If the unregistration is for a pending registration that we haven't sent to a
+  // listener yet, clear the pending state.
+  if (g_prev_registration_received &&
+      *g_prev_registration_received == installationId) {
+    delete g_prev_registration_received;
+    g_prev_registration_received = nullptr;
+    g_has_pending_registration = false;
+  }
+  if (g_listener) {
+    g_listener->OnUnregistrationReceived(installationId);
+  }
+}
+
 class PollableListenerImpl {
  public:
-  PollableListenerImpl() : token_(), messages_() {}
+  PollableListenerImpl()
+      : token_(), registration_id_(), unregistration_id_(), messages_() {}
 
   void OnMessage(const Message& message) {
     // Since locking can potentially take a while, especially given that we
@@ -173,6 +229,16 @@ class PollableListenerImpl {
     token_ = token;
   }
 
+  void OnRegistrationReceived(const char* installationId) {
+    MutexLock lock(mutex_);
+    registration_id_ = installationId;
+  }
+
+  void OnUnregistrationReceived(const char* installationId) {
+    MutexLock lock(mutex_);
+    unregistration_id_ = installationId;
+  }
+
   bool PollMessage(Message* message) {
     MutexLock lock(mutex_);
     if (messages_.empty()) {
@@ -193,19 +259,40 @@ class PollableListenerImpl {
     return true;
   }
 
+  bool PollRegistration(std::string* installation_id) {
+    MutexLock lock(mutex_);
+    if (registration_id_.empty()) {
+      return false;
+    }
+    *installation_id = registration_id_;
+    registration_id_.clear();
+    return true;
+  }
+
+  bool PollUnregistration(std::string* installation_id) {
+    MutexLock lock(mutex_);
+    if (unregistration_id_.empty()) {
+      return false;
+    }
+    *installation_id = unregistration_id_;
+    unregistration_id_.clear();
+    return true;
+  }
+
  private:
-  // Mutex to prevent race conditions when
+  // Mutex to prevent race conditions
   Mutex mutex_;
 
-  // The newest registration token to be received. Once this valud has been
-  // polled, it is cleared until a new registration token is received.
+  // The newest registration token to be received.
   std::string token_;
 
-  // A queue of all enqueued messages. This is not expected to be large as in
-  // an app that has many incoming messages it would be unusual to receive lots
-  // of them in the same frame before they are consumed by PollMessage.
-  // TODO(amablue): Make this an actual contiguous ring buffer instead of an
-  // std::queue.
+  // The newest registration installation ID to be received.
+  std::string registration_id_;
+
+  // The newest unregistration installation ID to be received.
+  std::string unregistration_id_;
+
+  // A queue of all enqueued messages.
   std::queue<Message> messages_;
 };
 
@@ -221,6 +308,14 @@ void PollableListener::OnTokenReceived(const char* token) {
   impl_->OnTokenReceived(token);
 }
 
+void PollableListener::OnRegistrationReceived(const char* installationId) {
+  impl_->OnRegistrationReceived(installationId);
+}
+
+void PollableListener::OnUnregistrationReceived(const char* installationId) {
+  impl_->OnUnregistrationReceived(installationId);
+}
+
 bool PollableListener::PollMessage(Message* out_message) {
   return impl_->PollMessage(out_message);
 }
@@ -229,6 +324,18 @@ std::string PollableListener::PollRegistrationToken(bool* got_token) {
   std::string out_token;
   *got_token = impl_->PollRegistrationToken(&out_token);
   return out_token;
+}
+
+std::string PollableListener::PollRegistration(bool* got_registration) {
+  std::string out_registration;
+  *got_registration = impl_->PollRegistration(&out_registration);
+  return out_registration;
+}
+
+std::string PollableListener::PollUnregistration(bool* got_unregistration) {
+  std::string out_unregistration;
+  *got_unregistration = impl_->PollUnregistration(&out_unregistration);
+  return out_unregistration;
 }
 
 FutureData* FutureData::s_future_data_;

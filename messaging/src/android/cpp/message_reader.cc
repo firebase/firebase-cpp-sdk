@@ -32,10 +32,16 @@ using com::google::firebase::messaging::cpp::SerializedEventUnion;
 using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedMessage;
 using com::google::firebase::messaging::cpp::
+    SerializedEventUnion_SerializedRegistrationReceived;
+using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedTokenReceived;
+using com::google::firebase::messaging::cpp::
+    SerializedEventUnion_SerializedUnregistrationReceived;
 using com::google::firebase::messaging::cpp::SerializedMessage;
 using com::google::firebase::messaging::cpp::SerializedNotification;
+using com::google::firebase::messaging::cpp::SerializedRegistrationReceived;
 using com::google::firebase::messaging::cpp::SerializedTokenReceived;
+using com::google::firebase::messaging::cpp::SerializedUnregistrationReceived;
 using com::google::firebase::messaging::cpp::VerifySerializedEventBuffer;
 
 static const char kMessageReadError[] =
@@ -94,6 +100,21 @@ void MessageReader::ReadFromBuffer(const std::string& buffer) const {
             static_cast<const SerializedTokenReceived*>(
                 serialized_event->event());
         ConsumeTokenReceived(serialized_token_received);
+        break;
+      }
+      case SerializedEventUnion_SerializedRegistrationReceived: {
+        const SerializedRegistrationReceived* serialized_registration_received =
+            static_cast<const SerializedRegistrationReceived*>(
+                serialized_event->event());
+        ConsumeRegistrationReceived(serialized_registration_received);
+        break;
+      }
+      case SerializedEventUnion_SerializedUnregistrationReceived: {
+        const SerializedUnregistrationReceived*
+            serialized_unregistration_received =
+                static_cast<const SerializedUnregistrationReceived*>(
+                    serialized_event->event());
+        ConsumeUnregistrationReceived(serialized_unregistration_received);
         break;
       }
       default: {
@@ -203,6 +224,30 @@ void MessageReader::ConsumeTokenReceived(
     const SerializedTokenReceived* serialized_token_received) const {
   const char* token = SafeFlatbufferString(serialized_token_received->token());
   token_callback_(token, token_callback_data_);
+}
+
+// Convert the SerializedRegistrationReceived to an installation ID and calls the registered
+// callback.
+void MessageReader::ConsumeRegistrationReceived(
+    const SerializedRegistrationReceived* serialized_registration_received)
+    const {
+  const char* installation_id =
+      SafeFlatbufferString(serialized_registration_received->installation_id());
+  if (registration_callback_) {
+    registration_callback_(installation_id, registration_callback_data_);
+  }
+}
+
+// Convert the SerializedUnregistrationReceived to an installation ID and calls the registered
+// callback.
+void MessageReader::ConsumeUnregistrationReceived(
+    const SerializedUnregistrationReceived* serialized_unregistration_received)
+    const {
+  const char* installation_id = SafeFlatbufferString(
+      serialized_unregistration_received->installation_id());
+  if (unregistration_callback_) {
+    unregistration_callback_(installation_id, unregistration_callback_data_);
+  }
 }
 
 }  // namespace internal
