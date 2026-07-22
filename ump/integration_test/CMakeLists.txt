@@ -85,7 +85,7 @@ set(FIREBASE_INTEGRATION_TEST_SRCS
 include_directories(src)
 
 # Firebase C++ SDK requires C++14.
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Download and unpack googletest (and googlemock) at configure time
