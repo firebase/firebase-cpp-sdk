@@ -85,7 +85,7 @@ Building and Running the integration test
             the build settings. Scroll down to "Search Paths", and add
             your path to "Framework Search Paths".
   - In XCode, build & run the sample on an iOS device or simulator.
-  - The integration test has no interativity. The output of the app can be
+  - The integration test has no interactivity. The output of the app can be
     viewed via the console or on the device's display.  In Xcode, select "View
     --> Debug Area --> Activate Console" from the menu to view the console.
 
