@@ -429,11 +429,25 @@ TEST_F(MessagingTest, TestRegistrationReceived) {
   EXPECT_EQ(listener_.GetOnRegistrationReceivedCount(), 1);
 }
 
+TEST_F(MessagingTest, TestNullRegistrationReceived) {
+  OnRegistrationReceived(nullptr);
+  OnRegistrationReceived("");
+  SleepMessagingTest(1);
+  EXPECT_EQ(listener_.GetOnRegistrationReceivedCount(), 0);
+}
+
 TEST_F(MessagingTest, TestUnregistrationReceived) {
   OnUnregistrationReceived("my_installation_id");
   SleepMessagingTest(1);
   EXPECT_THAT(listener_.GetUnregistrationId(), StrEq("my_installation_id"));
   EXPECT_EQ(listener_.GetOnUnregistrationReceivedCount(), 1);
+}
+
+TEST_F(MessagingTest, TestNullUnregistrationReceived) {
+  OnUnregistrationReceived(nullptr);
+  OnUnregistrationReceived("");
+  SleepMessagingTest(1);
+  EXPECT_EQ(listener_.GetOnUnregistrationReceivedCount(), 0);
 }
 
 TEST_F(MessagingTest, TestRegistrationReceivedBeforeInitialize) {
