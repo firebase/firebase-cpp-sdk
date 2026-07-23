@@ -226,8 +226,8 @@ void MessageReader::ConsumeTokenReceived(
   token_callback_(token, token_callback_data_);
 }
 
-// Convert the SerializedRegistrationReceived to an installation ID and calls the registered
-// callback.
+// Convert the SerializedRegistrationReceived to an installation ID and calls
+// the registered callback.
 void MessageReader::ConsumeRegistrationReceived(
     const SerializedRegistrationReceived* serialized_registration_received)
     const {
@@ -238,8 +238,8 @@ void MessageReader::ConsumeRegistrationReceived(
   }
 }
 
-// Convert the SerializedUnregistrationReceived to an installation ID and calls the registered
-// callback.
+// Convert the SerializedUnregistrationReceived to an installation ID and calls
+// the registered callback.
 void MessageReader::ConsumeUnregistrationReceived(
     const SerializedUnregistrationReceived* serialized_unregistration_received)
     const {

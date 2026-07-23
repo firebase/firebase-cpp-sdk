@@ -64,12 +64,17 @@ public class RegistrationIntentService extends JobIntentService {
     writeBufferToInternalStorage(context, generateTokenByteBuffer(token));
   }
 
-  /** Write registration installation ID to internal storage so it can be accessed by the C++ layer. */
+  /**
+   * Write registration installation ID to internal storage so it can be accessed by the C++ layer.
+   */
   public static void writeRegistrationToInternalStorage(Context context, String installationId) {
     writeBufferToInternalStorage(context, generateRegistrationByteBuffer(installationId));
   }
 
-  /** Write unregistration installation ID to internal storage so it can be accessed by the C++ layer. */
+  /**
+   * Write unregistration installation ID to internal storage so it can be accessed by the C++
+   * layer.
+   */
   public static void writeUnregistrationToInternalStorage(Context context, String installationId) {
     writeBufferToInternalStorage(context, generateUnregistrationByteBuffer(installationId));
   }
@@ -81,11 +86,11 @@ public class RegistrationIntentService extends JobIntentService {
     sizeBuffer.putInt(buffer.length);
 
     try (FileOutputStream lockFileStream = context.openFileOutput(MessageWriter.LOCK_FILE, 0);
-         // Acquire lock. This prevents the C++ code from consuming and clearing the file while we
-         // append to it.
-         FileLock lock = lockFileStream.getChannel().lock();
-         FileOutputStream outputStream =
-             context.openFileOutput(MessageWriter.STORAGE_FILE, Context.MODE_APPEND)) {
+        // Acquire lock. This prevents the C++ code from consuming and clearing the file while we
+        // append to it.
+        FileLock lock = lockFileStream.getChannel().lock();
+        FileOutputStream outputStream =
+            context.openFileOutput(MessageWriter.STORAGE_FILE, Context.MODE_APPEND)) {
       // We send both the buffer length and the buffer itself so that we can potentially
       // process more than one event in the case where they get queued up.
       outputStream.write(sizeBuffer.array());

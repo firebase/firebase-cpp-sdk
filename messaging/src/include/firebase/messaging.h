@@ -435,13 +435,14 @@ InitResult Initialize(const App& app, Listener* listener,
 /// @note On Android, the services will not be shut down by this method.
 void Terminate();
 
-/// @brief Determines if automatic registration during initialization is enabled.
+/// @brief Determines if automatic registration during initialization is
+/// enabled.
 ///
 /// @return true if auto registration is enabled and false if disabled.
 bool IsRegistrationOnInitEnabled();
 
-/// @brief Enable or disable registration during initialization of Firebase Cloud
-/// Messaging.
+/// @brief Enable or disable registration during initialization of Firebase
+/// Cloud Messaging.
 ///
 /// The installation ID returned is what identifies the user to Firebase, so
 /// disabling this avoids creating any new identity and automatically sending
@@ -708,15 +709,17 @@ FIREBASE_DEPRECATED Future<void> DeleteTokenLastResult();
 
 class PollableListenerImpl;
 
-/// @brief A listener that can be polled to consume pending `Message`s and registration events.
+/// @brief A listener that can be polled to consume pending `Message`s and
+/// registration events.
 ///
 /// This class is intended to be used with applications that have a main loop
 /// that frequently updates, such as in the case of a game that has a main
 /// loop that updates 30 to 60 times a second. Rather than respond to incoming
-/// messages and registration events via the `OnMessage`, `OnRegistrationReceived`,
-/// or `OnUnregistrationReceived` virtual functions, this class will queue up events
-/// internally in a thread-safe manner so that they can be consumed with `PollMessage`,
-/// `PollRegistration`, or `PollUnregistration`.
+/// messages and registration events via the `OnMessage`,
+/// `OnRegistrationReceived`, or `OnUnregistrationReceived` virtual functions,
+/// this class will queue up events internally in a thread-safe manner so that
+/// they can be consumed with `PollMessage`, `PollRegistration`, or
+/// `PollUnregistration`.
 class PollableListener : public Listener {
  public:
   /// @brief The default constructor.
@@ -734,12 +737,14 @@ class PollableListener : public Listener {
   /// @deprecated Use OnRegistrationReceived(const char*) instead.
   FIREBASE_DEPRECATED virtual void OnTokenReceived(const char* token) override;
 
-  /// @brief An implementation of `OnRegistrationReceived` which stores the incoming
-  /// installation ID so that it can be consumed by calling `PollRegistration`.
+  /// @brief An implementation of `OnRegistrationReceived` which stores the
+  /// incoming installation ID so that it can be consumed by calling
+  /// `PollRegistration`.
   virtual void OnRegistrationReceived(const char* installationId) override;
 
-  /// @brief An implementation of `OnUnregistrationReceived` which stores the incoming
-  /// installation ID so that it can be consumed by calling `PollUnregistration`.
+  /// @brief An implementation of `OnUnregistrationReceived` which stores the
+  /// incoming installation ID so that it can be consumed by calling
+  /// `PollUnregistration`.
   virtual void OnUnregistrationReceived(const char* installationId) override;
 
   /// @brief Returns the first message queued up, if any.
@@ -767,16 +772,20 @@ class PollableListener : public Listener {
     return got_token;
   }
 
-  /// @brief Returns the registration installation ID, if a new one has been received.
+  /// @brief Returns the registration installation ID, if a new one has been
+  /// received.
   ///
-  /// When a new registration installation ID is received, it is cached internally and can
-  /// be retrieved by calling `PollRegistration`. The cached installation ID will be used
-  /// to populate the `installation_id` argument, then the cache will be cleared and the
-  /// function will return `true`. If there is no cached registration installation ID,
-  /// this function returns `false`.
+  /// When a new registration installation ID is received, it is cached
+  /// internally and can be retrieved by calling `PollRegistration`. The cached
+  /// installation ID will be used to populate the `installation_id` argument,
+  /// then the cache will be cleared and the function will return `true`. If
+  /// there is no cached registration installation ID, this function returns
+  /// `false`.
   ///
-  /// @param[out] installation_id A string to be populated with the new installation ID.
-  /// @return Returns `true` if there was a new installation ID, `false` otherwise.
+  /// @param[out] installation_id A string to be populated with the new
+  /// installation ID.
+  /// @return Returns `true` if there was a new installation ID, `false`
+  /// otherwise.
   bool PollRegistration(std::string* installation_id) {
     bool got_registration;
     std::string id_received = PollRegistration(&got_registration);
@@ -786,16 +795,20 @@ class PollableListener : public Listener {
     return got_registration;
   }
 
-  /// @brief Returns the unregistration installation ID, if an unregistration has occurred.
+  /// @brief Returns the unregistration installation ID, if an unregistration
+  /// has occurred.
   ///
   /// When an unregistration event is received, it is cached internally and can
-  /// be retrieved by calling `PollUnregistration`. The cached unregistration installation ID
-  /// will be used to populate the `installation_id` argument, then the cache will
-  /// be cleared and the function will return `true`. If there is no cached
-  /// unregistration installation ID, this function returns `false`.
+  /// be retrieved by calling `PollUnregistration`. The cached unregistration
+  /// installation ID will be used to populate the `installation_id` argument,
+  /// then the cache will be cleared and the function will return `true`. If
+  /// there is no cached unregistration installation ID, this function returns
+  /// `false`.
   ///
-  /// @param[out] installation_id A string to be populated with the unregistered installation ID.
-  /// @return Returns `true` if there was an unregistration event, `false` otherwise.
+  /// @param[out] installation_id A string to be populated with the unregistered
+  /// installation ID.
+  /// @return Returns `true` if there was an unregistration event, `false`
+  /// otherwise.
   bool PollUnregistration(std::string* installation_id) {
     bool got_unregistration;
     std::string id_received = PollUnregistration(&got_unregistration);

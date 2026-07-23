@@ -192,8 +192,8 @@ void NotifyListenerOnUnregistrationReceived(const char* installationId) {
     return;
   }
   MutexLock lock(g_listener_lock);
-  // If the unregistration is for a pending registration that we haven't sent to a
-  // listener yet, clear the pending state.
+  // If the unregistration is for a pending registration that we haven't sent to
+  // a listener yet, clear the pending state.
   if (g_prev_registration_received &&
       *g_prev_registration_received == installationId) {
     delete g_prev_registration_received;

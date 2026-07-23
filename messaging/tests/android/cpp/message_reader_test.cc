@@ -39,15 +39,15 @@ using com::google::firebase::messaging::cpp::CreateDataPairDirect;
 using com::google::firebase::messaging::cpp::CreateSerializedEvent;
 using com::google::firebase::messaging::cpp::CreateSerializedMessageDirect;
 using com::google::firebase::messaging::cpp::CreateSerializedNotificationDirect;
+using com::google::firebase::messaging::cpp::
+    CreateSerializedRegistrationReceived;
 using com::google::firebase::messaging::cpp::CreateSerializedTokenReceived;
+using com::google::firebase::messaging::cpp::
+    CreateSerializedUnregistrationReceived;
 using com::google::firebase::messaging::cpp::DataPair;
 using com::google::firebase::messaging::cpp::FinishSerializedEventBuffer;
 using com::google::firebase::messaging::cpp::SerializedEventUnion;
 using com::google::firebase::messaging::cpp::SerializedEventUnion_MAX;
-using com::google::firebase::messaging::cpp::
-    CreateSerializedRegistrationReceived;
-using com::google::firebase::messaging::cpp::
-    CreateSerializedUnregistrationReceived;
 using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedMessage;
 using com::google::firebase::messaging::cpp::

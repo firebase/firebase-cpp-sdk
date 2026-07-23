@@ -131,7 +131,8 @@ void MessagingTestListener::OnTokenReceived(const char* token) {
   on_token_received_count_++;
 }
 
-void MessagingTestListener::OnRegistrationReceived(const char* registration_id) {
+void MessagingTestListener::OnRegistrationReceived(
+    const char* registration_id) {
   registration_id_ = registration_id;
   on_registration_received_count_++;
 }

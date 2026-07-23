@@ -1055,10 +1055,9 @@ Future<void> Register() {
 
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
-    util::RegisterCallbackOnTask(
-        env, task, CompleteVoidCallback,
-        reinterpret_cast<void*>(handle.get().id()),
-        kApiIdentifier);
+    util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
+                                 reinterpret_cast<void*>(handle.get().id()),
+                                 kApiIdentifier);
   } else {
     api->Complete(handle, -1, error.c_str());
   }
@@ -1089,10 +1088,9 @@ Future<void> Unregister() {
 
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
-    util::RegisterCallbackOnTask(
-        env, task, CompleteVoidCallback,
-        reinterpret_cast<void*>(handle.get().id()),
-        kApiIdentifier);
+    util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
+                                 reinterpret_cast<void*>(handle.get().id()),
+                                 kApiIdentifier);
   } else {
     api->Complete(handle, -1, error.c_str());
   }
@@ -1159,8 +1157,8 @@ Future<void> DeleteToken() {
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
     util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
-        reinterpret_cast<void*>(handle.get().id()),
-        kApiIdentifier);
+                                 reinterpret_cast<void*>(handle.get().id()),
+                                 kApiIdentifier);
   } else {
     api->Complete(handle, -1, error.c_str());
   }
