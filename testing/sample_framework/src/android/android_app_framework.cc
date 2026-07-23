@@ -56,13 +56,14 @@ bool ProcessEvents(int msec) {
   do {
     struct android_poll_source* source = nullptr;
     int events;
-    looperId = ALooper_pollAll(msec, nullptr, &events,
-                               reinterpret_cast<void**>(&source));
+    looperId = ALooper_pollOnce(msec, nullptr, &events,
+                                reinterpret_cast<void**>(&source));
     if (looperId >= 0 && source) {
       source->process(g_app_state, source);
     }
-  } while (looperId != ALOOPER_POLL_TIMEOUT && !g_destroy_requested &&
-           !g_restarted);
+    msec = 0;
+  } while ((looperId >= 0 || looperId == ALOOPER_POLL_CALLBACK) &&
+           !g_destroy_requested && !g_restarted);
   return g_destroy_requested | g_restarted;
 }
 
