@@ -62,7 +62,8 @@ bool ProcessEvents(int msec) {
       source->process(g_app_state, source);
     }
     msec = 0;
-  } while (looperId >= 0 && !g_destroy_requested && !g_restarted);
+  } while ((looperId >= 0 || looperId == ALOOPER_POLL_CALLBACK) &&
+           !g_destroy_requested && !g_restarted);
   return g_destroy_requested | g_restarted;
 }
 
