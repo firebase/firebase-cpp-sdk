@@ -19,14 +19,13 @@
 #include "database/src/desktop/core/listen_provider.h"
 #include "database/src/desktop/core/tag.h"
 #include "database/src/desktop/util_desktop.h"
-#include "database/src/desktop/view/view.h"
 
 namespace firebase {
 namespace database {
 namespace internal {
 
 void InfoListenProvider::StartListening(const QuerySpec& query_spec,
-                                        const Tag& tag, const View* view) {
+                                        const Tag& tag) {
   repo_->scheduler().Schedule([this, query_spec]() {
     const Variant& value = VariantGetChild(info_data_, query_spec.path);
     if (!VariantIsEmpty(value)) {
