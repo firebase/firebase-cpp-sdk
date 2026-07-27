@@ -56,12 +56,12 @@ void OnTokenReceived(const char *tokenstr) {
 
 void OnRegistrationReceived(const char *registration_id) {
   [[FIRMessaging messaging].delegate messaging:[FIRMessaging messaging]
-                        didReceiveRegistration:@(registration_id)];
+                        didReceiveRegistration:registration_id ? @(registration_id) : nil];
 }
 
 void OnUnregistrationReceived(const char *registration_id) {
   [[FIRMessaging messaging].delegate messaging:[FIRMessaging messaging]
-                                 didUnregister:@(registration_id)];
+                                 didUnregister:registration_id ? @(registration_id) : nil];
 }
 
 void SleepMessagingTest(double seconds) {

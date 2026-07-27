@@ -106,7 +106,7 @@ void OnTokenReceived(const char* tokenstr) {
 
 void OnRegistrationReceived(const char* registration_id) {
   flatbuffers::FlatBufferBuilder builder;
-  auto reg = builder.CreateString(registration_id);
+  auto reg = builder.CreateString(registration_id ? registration_id : "");
   auto regreceived = CreateSerializedRegistrationReceived(builder, reg);
   auto event = CreateSerializedEvent(
       builder, SerializedEventUnion_SerializedRegistrationReceived,
@@ -117,7 +117,7 @@ void OnRegistrationReceived(const char* registration_id) {
 
 void OnUnregistrationReceived(const char* registration_id) {
   flatbuffers::FlatBufferBuilder builder;
-  auto unreg = builder.CreateString(registration_id);
+  auto unreg = builder.CreateString(registration_id ? registration_id : "");
   auto unregreceived = CreateSerializedUnregistrationReceived(builder, unreg);
   auto event = CreateSerializedEvent(
       builder, SerializedEventUnion_SerializedUnregistrationReceived,
