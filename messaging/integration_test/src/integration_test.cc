@@ -127,6 +127,8 @@ class FirebaseMessagingTest : public FirebaseTest {
   static firebase::messaging::PollableListener* shared_listener_;
   static std::string* shared_token_;
   static bool is_desktop_stub_;
+  // Used to track if the newer registration method is being used.
+  static bool is_new_registration_id_;
 
   static firebase::functions::Functions* functions_;
 };
@@ -138,6 +140,7 @@ firebase::App* FirebaseMessagingTest::shared_app_ = nullptr;
 firebase::messaging::PollableListener* FirebaseMessagingTest::shared_listener_ =
     nullptr;
 bool FirebaseMessagingTest::is_desktop_stub_;
+bool FirebaseMessagingTest::is_new_registration_id_ = false;
 firebase::functions::Functions* FirebaseMessagingTest::functions_ = nullptr;
 
 void FirebaseMessagingTest::SetUpTestSuite() {
@@ -287,7 +290,16 @@ bool FirebaseMessagingTest::WaitForToken(int timeout) {
     if (shared_listener_->PollRegistrationToken(&new_token)) {
       if (!new_token.empty()) {
         *shared_token_ = new_token;
-        LogInfo("Got token: %s", shared_token_->c_str());
+        is_new_registration_id_ = false;
+        LogInfo("Got FCM Token: %s", shared_token_->c_str());
+        return true;
+      }
+    }
+    if (shared_listener_->PollRegistration(&new_token)) {
+      if (!new_token.empty()) {
+        *shared_token_ = new_token;
+        is_new_registration_id_ = true;
+        LogInfo("Got FIS: %s", shared_token_->c_str());
         return true;
       }
     }
@@ -550,13 +562,28 @@ TEST_F(FirebaseMessagingTest, TestRegisterAndUnregister) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   EXPECT_TRUE(RequestPermission());
 
-  firebase::Future<void> reg_future = firebase::messaging::Register();
-  EXPECT_TRUE(WaitForCompletion(reg_future, "Register"));
-  EXPECT_EQ(reg_future.error(), 0);
+  // Note that these methods should only work if the newer registration
+  // method is enabled. Otherwise, it returns an error.
+  int expected_error =
+      is_new_registration_id_ ? 0 : firebase::messaging::kErrorUnknown;
 
-  firebase::Future<void> unreg_future = firebase::messaging::Unregister();
-  EXPECT_TRUE(WaitForCompletion(unreg_future, "Unregister"));
-  EXPECT_EQ(unreg_future.error(), 0);
+  if (is_new_registration_id_) {
+    firebase::Future<void> reg_future = firebase::messaging::Register();
+    EXPECT_TRUE(WaitForCompletion(reg_future, "Register"));
+    EXPECT_EQ(reg_future.error(), 0);
+
+    firebase::Future<void> unreg_future = firebase::messaging::Unregister();
+    EXPECT_TRUE(WaitForCompletion(unreg_future, "Unregister"));
+    EXPECT_EQ(unreg_future.error(), 0);
+  } else {
+    firebase::Future<void> reg_future = firebase::messaging::Register();
+    EXPECT_TRUE(WaitForCompletion(reg_future, "Register",
+                                  {firebase::messaging::kErrorUnknown}));
+
+    firebase::Future<void> unreg_future = firebase::messaging::Unregister();
+    EXPECT_TRUE(WaitForCompletion(unreg_future, "Unregister",
+                                  {firebase::messaging::kErrorUnknown}));
+  }
 }
 
 }  // namespace firebase_testapp_automated
