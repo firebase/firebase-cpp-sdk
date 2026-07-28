@@ -148,7 +148,7 @@ class SyncTree {
  private:
   // For a given new listen, manage the de-duplication of outstanding
   // subscriptions.
-  void SetupListener(const QuerySpec& query_spec, const View* view);
+  void SetupListener(const QuerySpec& query_spec);
 
   // Recursive helper for ApplyOperationToSyncPoints
   std::vector<Event> ApplyOperationHelper(const Operation& operation,
