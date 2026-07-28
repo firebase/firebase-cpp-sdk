@@ -616,6 +616,8 @@ code.
 ### Upcoming
 - Changes
     - Realtime Database (Desktop): Fixed an intermittent use-after-free crash (`ACCESS_VIOLATION`) when detaching a listener while a WebSocket listen response is pending.
+    - Messaging: Added new Registration methods using Installation Ids.
+    Deprecated old Token based methods.
 
 ### 13.10.0
 - Changes
