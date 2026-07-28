@@ -231,6 +231,7 @@ void MessageReader::ConsumeTokenReceived(
 void MessageReader::ConsumeRegistrationReceived(
     const SerializedRegistrationReceived* serialized_registration_received)
     const {
+  if (!serialized_registration_received) return;
   const char* installation_id =
       SafeFlatbufferString(serialized_registration_received->installation_id());
   if (registration_callback_) {
@@ -243,6 +244,7 @@ void MessageReader::ConsumeRegistrationReceived(
 void MessageReader::ConsumeUnregistrationReceived(
     const SerializedUnregistrationReceived* serialized_unregistration_received)
     const {
+  if (!serialized_unregistration_received) return;
   const char* installation_id = SafeFlatbufferString(
       serialized_unregistration_received->installation_id());
   if (unregistration_callback_) {
