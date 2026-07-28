@@ -730,22 +730,22 @@ class PollableListener : public Listener {
 
   /// @brief An implementation of `OnMessage` which adds incoming messages
   /// to a queue, which can be consumed by calling `PollMessage`.
-  virtual void OnMessage(const Message& message) override;
+  void OnMessage(const Message& message) override;
 
   /// @brief An implementation of `OnTokenReceived` which stores the incoming
   /// token so that it can be consumed by calling `PollRegistrationToken`.
   /// @deprecated Use OnRegistrationReceived(const char*) instead.
-  FIREBASE_DEPRECATED virtual void OnTokenReceived(const char* token) override;
+  FIREBASE_DEPRECATED void OnTokenReceived(const char* token) override;
 
   /// @brief An implementation of `OnRegistrationReceived` which stores the
   /// incoming installation ID so that it can be consumed by calling
   /// `PollRegistration`.
-  virtual void OnRegistrationReceived(const char* installationId) override;
+  void OnRegistrationReceived(const char* installationId) override;
 
   /// @brief An implementation of `OnUnregistrationReceived` which stores the
   /// incoming installation ID so that it can be consumed by calling
   /// `PollUnregistration`.
-  virtual void OnUnregistrationReceived(const char* installationId) override;
+  void OnUnregistrationReceived(const char* installationId) override;
 
   /// @brief Returns the first message queued up, if any.
   ///

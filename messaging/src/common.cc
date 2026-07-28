@@ -17,6 +17,7 @@
 #include <assert.h>
 
 #include <queue>
+#include <string>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"

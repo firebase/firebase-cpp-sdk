@@ -564,9 +564,6 @@ TEST_F(FirebaseMessagingTest, TestRegisterAndUnregister) {
 
   // Note that these methods should only work if the newer registration
   // method is enabled. Otherwise, it returns an error.
-  int expected_error =
-      is_new_registration_id_ ? 0 : firebase::messaging::kErrorUnknown;
-
   if (is_new_registration_id_) {
     firebase::Future<void> reg_future = firebase::messaging::Register();
     EXPECT_TRUE(WaitForCompletion(reg_future, "Register"));

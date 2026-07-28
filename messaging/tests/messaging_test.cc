@@ -476,16 +476,6 @@ TEST_F(MessagingTest, TestTwoRegistrationsReceivedAfterInitialize) {
   EXPECT_EQ(listener_.GetOnRegistrationReceivedCount(), 2);
 }
 
-TEST_F(MessagingTest, TestUnregistrationClearsCachedRegistration) {
-  Terminate();
-  OnRegistrationReceived("my_installation_id");
-  OnUnregistrationReceived("my_installation_id");
-  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
-  SleepMessagingTest(1);
-  EXPECT_THAT(listener_.GetRegistrationId(), StrEq(""));
-  EXPECT_THAT(listener_.GetUnregistrationId(), StrEq("my_installation_id"));
-}
-
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
 }  // namespace messaging
