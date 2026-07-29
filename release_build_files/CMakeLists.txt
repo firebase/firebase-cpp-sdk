@@ -102,7 +102,6 @@ add_firebase_target(firebase_messaging)
 add_firebase_target(firebase_performance)
 add_firebase_target(firebase_remote_config)
 add_firebase_target(firebase_storage)
-add_firebase_target(firebase_testlab)
 add_firebase_target(firebase_ump)
 
 # Auth on Linux desktop has an additional dependency on libsecret,
