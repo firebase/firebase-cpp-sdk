@@ -35,7 +35,6 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf'],
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
-  'testlab' : [],
   'ump' : ['com.google.android.ump:user-messaging-platform:4.0.0']
 ]
 

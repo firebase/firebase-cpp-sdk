@@ -181,19 +181,6 @@
         "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
-    },
-    {
-      "name": "test_lab",
-      "full_name": "FirebaseTestLab",
-      "bundle_id": "com.google.ios.testlab.testapp",
-      "ios_target": "integration_test",
-      "tvos_target": "",
-      "testapp_path": "testlab/integration_test",
-      "frameworks": [
-        "firebase_testlab.xcframework",
-        "firebase.xcframework"
-      ],
-      "provision": "Google_Development.mobileprovision"
     }
   ],
   "apple_team_id": "REPLACE_ME_TEMP_INVALID_ID",
@@ -250,8 +237,7 @@
     "'com.google.firebase:firebase-messaging:[0,)'],",
     "'performance' : ['com.google.firebase:firebase-perf:[0,)'],",
     "'remote_config' : ['com.google.firebase:firebase-config:[0,)'],",
-    "'storage' : ['com.google.firebase:firebase-storage:[0,)'],",
-    "'testlab' : []",
+    "'storage' : ['com.google.firebase:firebase-storage:[0,)']",
     "]"
   ]
 }
