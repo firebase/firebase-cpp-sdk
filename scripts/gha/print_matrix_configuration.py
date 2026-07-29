@@ -189,10 +189,10 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=b6q,version=34"},  # Galaxy Z Flip6
   ],
   "emulator_ftl_target": [
-      {"type": "ftl", "device": "model=Pixel2.arm,version=28"},
-      {"type": "ftl", "device": "model=MediumPhone.arm,version=28"},
-      {"type": "ftl", "device": "model=MediumTablet.arm,version=28"},
-      {"type": "ftl", "device": "model=SmallPhone.arm,version=28"},
+      {"type": "ftl", "device": "model=Pixel2.arm,version=30"},
+      {"type": "ftl", "device": "model=MediumPhone.arm,version=30"},
+      {"type": "ftl", "device": "model=MediumTablet.arm,version=30"},
+      {"type": "ftl", "device": "model=SmallPhone.arm,version=30"},
   ],
   "emulator_ftl_latest": [
       {"type": "ftl", "device": "model=Pixel2.arm,version=32"},
