@@ -74,6 +74,7 @@ class RemoteConfigREST {
   friend class RemoteConfigRESTTest;
   FRIEND_TEST(RemoteConfigRESTTest, Setup);
   FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequest);
+  FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequestWithCustomSignals);
   FRIEND_TEST(RemoteConfigRESTTest, Fetch);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseProtoFailure);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseSuccess);

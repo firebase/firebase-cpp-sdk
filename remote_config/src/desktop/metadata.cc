@@ -53,6 +53,12 @@ std::string RemoteConfigMetadata::Serialize() const {
         fbb.String(std::to_string(setting.first).c_str(), setting.second);
       }
     });
+
+    fbb.Map("custom_signals", [&]() {
+      for (const auto& signal : custom_signals_) {
+        fbb.String(signal.first.c_str(), signal.second);
+      }
+    });
   });
   fbb.Finish();
   const std::vector<uint8_t>& buffer = fbb.GetBuffer();
@@ -98,6 +104,10 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
     settings_[static_cast<ConfigSetting>(int_key)] =
         settings.Values()[i].AsString().c_str();
   }
+
+  custom_signals_.clear();
+  flexbuffers::Map custom_signals = struct_map["custom_signals"].AsMap();
+  DeserializeMap(&custom_signals_, custom_signals);
 }
 
 void RemoteConfigMetadata::AddSetting(const ConfigSetting& setting,
@@ -116,6 +126,7 @@ std::string RemoteConfigMetadata::GetSetting(
 bool RemoteConfigMetadata::operator==(const RemoteConfigMetadata& right) const {
   return digest_by_namespace_ == right.digest_by_namespace_ &&
          settings_ == right.settings_ &&
+         custom_signals_ == right.custom_signals_ &&
          info_.fetch_time == right.info_.fetch_time &&
          info_.last_fetch_status == right.info_.last_fetch_status &&
          info_.last_fetch_failure_reason ==

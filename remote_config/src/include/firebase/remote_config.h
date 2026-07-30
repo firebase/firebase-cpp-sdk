@@ -405,7 +405,6 @@ class RemoteConfig {
   /// @return The future result from the last call to SetCustomSignals().
   Future<void> SetCustomSignalsLastResult();
 
-
   /// @brief Returns the value associated with a key, converted to a bool.
   ///
   /// Values of "1", "true", "t", "yes", "y" and "on" are interpreted (case

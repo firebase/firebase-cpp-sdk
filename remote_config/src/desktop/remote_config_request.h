@@ -87,7 +87,22 @@ class RemoteConfigRequest
         std::move(analytics_user_properties);
   }
 
+  void SetCustomSignals(
+      std::map<std::string, std::string> custom_signals) {
+    custom_signals_ = std::move(custom_signals);
+  }
+
+  const std::map<std::string, std::string>& custom_signals() const {
+    return custom_signals_;
+  }
+
   void UpdatePost() { UpdatePostFields(); }
+
+ protected:
+  void UpdatePostFields() override;
+
+ private:
+  std::map<std::string, std::string> custom_signals_;
 };
 
 }  // namespace internal

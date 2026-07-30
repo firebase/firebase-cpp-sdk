@@ -138,6 +138,7 @@ void RemoteConfigREST::SetupRestRequest(
   rc_request_.SetPackageName(app_package_name_);
   rc_request_.SetSdkVersion(std::to_string(
       SDK_MAJOR_VERSION * 10000 + SDK_MINOR_VERSION * 100 + SDK_PATCH_VERSION));
+  rc_request_.SetCustomSignals(configs_.metadata.custom_signals());
 
   rc_request_.UpdatePost();
 }

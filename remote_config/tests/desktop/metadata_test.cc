@@ -39,6 +39,8 @@ TEST(RemoteConfigMetadataTest, Serialization) {
   remote_config_metadata.set_digest_by_namespace(
       MetaDigestMap({{"namespace1", "digest1"}, {"namespace2", "digest2"}}));
   remote_config_metadata.AddSetting(kConfigSettingDeveloperMode, "0");
+  remote_config_metadata.set_custom_signals(
+      MetaCustomSignalsMap({{"sig1", "val1"}, {"sig2", "123"}}));
 
   std::string buffer = remote_config_metadata.Serialize();
   RemoteConfigMetadata new_remote_config_metadata;
@@ -94,6 +96,15 @@ TEST(RemoteConfigMetadataTest, SetAndsettings) {
   m.AddSetting(kConfigSettingDeveloperMode, "1");
   map[kConfigSettingDeveloperMode] = "1";
   EXPECT_EQ(m.settings(), map);
+}
+
+TEST(RemoteConfigMetadataTest, SetAndGetCustomSignals) {
+  RemoteConfigMetadata m;
+  EXPECT_TRUE(m.custom_signals().empty());
+
+  MetaCustomSignalsMap signals = {{"key1", "val1"}, {"key2", "42"}};
+  m.set_custom_signals(signals);
+  EXPECT_EQ(m.custom_signals(), signals);
 }
 
 }  // namespace internal

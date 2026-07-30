@@ -390,13 +390,14 @@ static jobject ConfigKeyValueVariantArrayToHashMap(
   return hash_map;
 }
 
-// Convert a std::map<std::string, Variant> into a Java CustomSignals object.
-static jobject CustomSignalsFromMap(
-    JNIEnv* env, const std::map<std::string, Variant>& map) {
-  jobject builder =
-      env->NewObject(custom_signals_builder::GetClass(),
-                     custom_signals_builder::GetMethodId(
-                         custom_signals_builder::kConstructor));
+// Convert a std::map<std::string, Variant> into a Java CustomSignals object
+// using CustomSignals.Builder to populate String, Long, and Double signal
+// entries.
+static jobject CustomSignalsFromMap(JNIEnv* env,
+                                    const std::map<std::string, Variant>& map) {
+  jobject builder = env->NewObject(custom_signals_builder::GetClass(),
+                                   custom_signals_builder::GetMethodId(
+                                       custom_signals_builder::kConstructor));
   if (util::CheckAndClearJniExceptions(env)) return nullptr;
 
   for (const auto& kv : map) {
@@ -404,24 +405,23 @@ static jobject CustomSignalsFromMap(
     jobject result_builder = nullptr;
     if (kv.second.is_string()) {
       jstring str_val = env->NewStringUTF(kv.second.string_value());
-      result_builder = env->CallObjectMethod(
-          builder,
-          custom_signals_builder::GetMethodId(
-              custom_signals_builder::kPutString),
-          key, str_val);
+      result_builder =
+          env->CallObjectMethod(builder,
+                                custom_signals_builder::GetMethodId(
+                                    custom_signals_builder::kPutString),
+                                key, str_val);
       env->DeleteLocalRef(str_val);
     } else if (kv.second.is_int64()) {
       result_builder = env->CallObjectMethod(
           builder,
-          custom_signals_builder::GetMethodId(
-              custom_signals_builder::kPutLong),
+          custom_signals_builder::GetMethodId(custom_signals_builder::kPutLong),
           key, kv.second.int64_value());
     } else if (kv.second.is_double()) {
-      result_builder = env->CallObjectMethod(
-          builder,
-          custom_signals_builder::GetMethodId(
-              custom_signals_builder::kPutDouble),
-          key, kv.second.double_value());
+      result_builder =
+          env->CallObjectMethod(builder,
+                                custom_signals_builder::GetMethodId(
+                                    custom_signals_builder::kPutDouble),
+                                key, kv.second.double_value());
     } else {
       LogError(
           "Remote Config: Invalid Variant type for SetCustomSignals() key %s.",
@@ -435,8 +435,8 @@ static jobject CustomSignalsFromMap(
   }
 
   jobject custom_signals = env->CallObjectMethod(
-      builder, custom_signals_builder::GetMethodId(
-                   custom_signals_builder::kBuild));
+      builder,
+      custom_signals_builder::GetMethodId(custom_signals_builder::kBuild));
   if (util::CheckAndClearJniExceptions(env)) custom_signals = nullptr;
   env->DeleteLocalRef(builder);
   return custom_signals;

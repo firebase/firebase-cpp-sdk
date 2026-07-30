@@ -68,6 +68,10 @@ class RemoteConfigInternal {
   FRIEND_TEST(RemoteConfigDesktopTest, SetDefaultsKeyValue);
   FRIEND_TEST(RemoteConfigDesktopTest, ActivateFetched);
   FRIEND_TEST(RemoteConfigDesktopTest, Fetch);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignals);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsMergeAndRemove);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsValidation);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsPersistence);
 #endif  // FIREBASE_TESTING
 
   explicit RemoteConfigInternal(const firebase::App& app,
@@ -239,7 +243,6 @@ class RemoteConfigInternal {
   RemoteConfigREST rest_;
   bool initialized_;
   ConfigSettings config_settings_;
-  std::map<std::string, Variant> custom_signals_;
 };
 
 }  // namespace internal
