@@ -87,8 +87,7 @@ class RemoteConfigRequest
         std::move(analytics_user_properties);
   }
 
-  void SetCustomSignals(
-      std::map<std::string, std::string> custom_signals) {
+  void SetCustomSignals(std::map<std::string, std::string> custom_signals) {
     custom_signals_ = std::move(custom_signals);
   }
 

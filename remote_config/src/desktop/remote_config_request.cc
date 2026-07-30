@@ -38,7 +38,8 @@ void RemoteConfigRequest::UpdatePostFields() {
       GenerateText(*parser_, builder.GetBufferPointer(), &json) == nullptr;
   FIREBASE_ASSERT_RETURN_VOID(generate_status);
 
-  // If custom signals are set, inject them into the POST request body JSON payload.
+  // If custom signals are set, inject them into the POST request body JSON
+  // payload.
   if (!custom_signals_.empty()) {
     std::map<Variant, Variant> variant_map;
     for (const auto& kv : custom_signals_) {
@@ -46,7 +47,8 @@ void RemoteConfigRequest::UpdatePostFields() {
     }
     std::string custom_signals_json = util::VariantToJson(variant_map);
 
-    // Insert the "custom_signals" field before the closing brace of the JSON object.
+    // Insert the "custom_signals" field before the closing brace of the JSON
+    // object.
     size_t last_brace = json.rfind('}');
     if (last_brace != std::string::npos) {
       size_t first_brace = json.find('{');
