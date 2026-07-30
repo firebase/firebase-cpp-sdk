@@ -93,6 +93,10 @@ void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   }
   std::string port_str = origin_str.substr(pos+1, std::string::npos);
   int port = atoi(port_str.c_str());
+  if (port <= 0 || port > 65535) {
+    LogError("Functions::UseFunctionsEmulator: Invalid port specified: %d", port);
+    return;
+  }
   [impl_.get()->get() useEmulatorWithHost:@(host.c_str()) port:port];
 }
 
