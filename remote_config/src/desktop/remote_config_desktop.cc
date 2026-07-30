@@ -226,6 +226,23 @@ ConfigSettings RemoteConfigInternal::GetConfigSettings() {
   return config_settings_;
 }
 
+Future<void> RemoteConfigInternal::SetCustomSignals(
+    const std::map<std::string, Variant>& custom_signals) {
+  const auto handle =
+      future_impl_.SafeAlloc<void>(kRemoteConfigFnSetCustomSignals);
+  {
+    MutexLock lock(internal_mutex_);
+    custom_signals_ = custom_signals;
+  }
+  future_impl_.Complete(handle, kFutureStatusSuccess);
+  return MakeFuture<void>(&future_impl_, handle);
+}
+
+Future<void> RemoteConfigInternal::SetCustomSignalsLastResult() {
+  return static_cast<const Future<void>&>(
+      future_impl_.LastResult(kRemoteConfigFnSetCustomSignals));
+}
+
 void RemoteConfigInternal::AsyncSaveToFile() {
   save_thread_ = std::thread([this]() {
     while (save_channel_.Get()) {

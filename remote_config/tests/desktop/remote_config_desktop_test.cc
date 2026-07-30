@@ -520,6 +520,20 @@ TEST_F(RemoteConfigDesktopTest, TestIsDouble) {
   EXPECT_FALSE(RemoteConfigInternal::IsDouble("."));
 }
 
+TEST_F(RemoteConfigDesktopTest, SetCustomSignals) {
+  std::map<std::string, Variant> signals = {
+      {"key_string", Variant("val")},
+      {"key_int", Variant(123)},
+      {"key_double", Variant(45.6)}};
+  Future<void> future = instance_->SetCustomSignals(signals);
+  EXPECT_EQ(future.status(), kFutureStatusComplete);
+  EXPECT_EQ(future.error(), kFutureStatusSuccess);
+
+  Future<void> last_result = instance_->SetCustomSignalsLastResult();
+  EXPECT_EQ(last_result.status(), kFutureStatusComplete);
+  EXPECT_EQ(last_result.error(), kFutureStatusSuccess);
+}
+
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

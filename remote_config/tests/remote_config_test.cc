@@ -100,6 +100,16 @@ TEST_F(RemoteConfigTest, SetDefaultsWithNullConfigKeyValueVariant) {
   SetDefaults(keyvalues, 0);
 }
 
+TEST_F(RemoteConfigTest, SetCustomSignals) {
+  REPORT_EXPECT("CustomSignals.Builder.build", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfig.setCustomSignals", "",
+                {"{color=black, height=120}"});
+  std::map<std::string, Variant> custom_signals = {
+      {"color", Variant("black")},
+      {"height", Variant(120)}};
+  SetCustomSignals(custom_signals);
+}
+
 TEST_F(RemoteConfigTest, SetDefaultsWithConfigKeyValueVariant) {
   REPORT_EXPECT("FirebaseRemoteConfig.setDefaultsAsync", "",
                 {"{color=black, height=120}"});

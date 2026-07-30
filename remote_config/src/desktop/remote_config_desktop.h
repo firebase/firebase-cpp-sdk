@@ -93,6 +93,10 @@ class RemoteConfigInternal {
   Future<void> SetConfigSettingsLastResult();
   ConfigSettings GetConfigSettings();
 
+  Future<void> SetCustomSignals(
+      const std::map<std::string, Variant>& custom_signals);
+  Future<void> SetCustomSignalsLastResult();
+
 #ifndef SWIG
   Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,
                            size_t number_of_defaults);
@@ -235,6 +239,7 @@ class RemoteConfigInternal {
   RemoteConfigREST rest_;
   bool initialized_;
   ConfigSettings config_settings_;
+  std::map<std::string, Variant> custom_signals_;
 };
 
 }  // namespace internal

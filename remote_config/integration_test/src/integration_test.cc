@@ -273,9 +273,8 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   // Check if the config has default values. If not, we have cached data
   // from a previous test run, and auto-fetch will not happen.
   EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
-  bool validated_defaults = true;
   firebase::remote_config::ValueInfo value_info;
-  bool bool_value = rc_->GetBoolean("TestBoolean", &value_info);
+  rc_->GetBoolean("TestBoolean", &value_info);
   bool has_cached_data =
       value_info.source != firebase::remote_config::kValueSourceDefaultValue;
 
@@ -506,5 +505,24 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
   EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
 
   FLAKY_TEST_SECTION_END();
+}
+
+TEST_F(FirebaseRemoteConfigTest, TestSetCustomSignals) {
+  ASSERT_NE(rc_, nullptr);
+
+  std::map<std::string, firebase::Variant> custom_signals = {
+      {"test_string", firebase::Variant("alpha")},
+      {"test_int", firebase::Variant(42)},
+      {"test_double", firebase::Variant(3.14)}};
+
+  EXPECT_TRUE(WaitForCompletion(rc_->SetCustomSignals(custom_signals),
+                                "SetCustomSignals"));
+  EXPECT_EQ(rc_->SetCustomSignalsLastResult().error(), 0);
+
+  // Clear custom signals
+  std::map<std::string, firebase::Variant> empty_signals;
+  EXPECT_TRUE(WaitForCompletion(rc_->SetCustomSignals(empty_signals),
+                                "SetCustomSignals (Clear)"));
+  EXPECT_EQ(rc_->SetCustomSignalsLastResult().error(), 0);
 }
 }  // namespace firebase_testapp_automated
