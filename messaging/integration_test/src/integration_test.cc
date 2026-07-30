@@ -204,7 +204,8 @@ void FirebaseMessagingTest::SetUpTestSuite() {
     if (!emulator_host.empty()) {
       std::string origin = emulator_host;
 #if defined(__ANDROID__) || (!defined(__APPLE__) && !defined(TARGET_OS_IPHONE))
-      if (origin.find("http://") == std::string::npos && origin.find("https://") == std::string::npos) {
+      if (origin.find("http://") == std::string::npos &&
+          origin.find("https://") == std::string::npos) {
         origin = "http://" + origin;
       }
 #endif

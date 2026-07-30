@@ -60,7 +60,7 @@ async function main() {
 
   // Wait for the emulator to be ready
   console.log('Waiting for emulator to start...');
-  const ready = await waitForPort(5005, '127.0.0.1', 30);
+  const ready = await waitForPort(5005, '127.0.0.1', 30, child);
   if (!ready) {
     console.error('Emulator failed to start within 30 seconds.');
     if (fs.existsSync(logFile)) {
@@ -106,8 +106,8 @@ function runCommand(command, args, options) {
   });
 }
 
-function waitForPort(port, host, retries) {
-  const check = () => new Promise((resolve, reject) => {
+function waitForPort(port, host, retries, child) {
+  const check = () => new Promise((resolve) => {
     const s = new net.Socket();
     s.setTimeout(1000);
     s.on('connect', () => { s.destroy(); resolve(true); });
@@ -118,7 +118,15 @@ function waitForPort(port, host, retries) {
 
   return new Promise(async (resolve) => {
     for (let i = 0; i < retries; i++) {
+      if (child && child.exitCode !== null) {
+        resolve(false);
+        return;
+      }
       if (await check()) {
+        if (child && child.exitCode !== null) {
+          resolve(false);
+          return;
+        }
         resolve(true);
         return;
       }
