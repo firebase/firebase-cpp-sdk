@@ -388,9 +388,9 @@ class RemoteConfig {
   /// @brief Sets custom signals to be sent with fetch requests.
   ///
   /// Custom signals are custom key-value pairs used for targeting in Remote
-  /// Config. Values can be strings, integers, doubles, or booleans represented
-  /// as firebase::Variant. Setting custom signals replaces all previously set
-  /// signals. Passing an empty map clears all custom signals.
+  /// Config. Values can be strings, integers, or doubles represented as
+  /// firebase::Variant, or a null Variant to remove a signal.
+  /// Setting custom signals merges with previously set signals.
   ///
   /// @param[in] custom_signals Map of custom signal keys to Variant values.
   ///
