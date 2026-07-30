@@ -207,8 +207,7 @@ std::vector<Event> SyncTree::AddEventRegistration(
                                               writes_cache, server_cache,
                                               persistence_manager_.get());
     if (!view_already_exists && !found_ancestor_default_view) {
-      const View* view = sync_point->ViewForQuery(query_spec);
-      SetupListener(query_spec, view);
+      SetupListener(query_spec);
     }
     return true;
   });
@@ -547,11 +546,10 @@ static QuerySpec QuerySpecForListening(const QuerySpec& query_spec) {
   }
 }
 
-void SyncTree::SetupListener(const QuerySpec& query_spec, const View* view) {
+void SyncTree::SetupListener(const QuerySpec& query_spec) {
   const Path& path = query_spec.path;
   const Tag& tag = TagForQuerySpec(query_spec);
-  listen_provider_->StartListening(QuerySpecForListening(query_spec), tag,
-                                   view);
+  listen_provider_->StartListening(QuerySpecForListening(query_spec), tag);
 
   Tree<SyncPoint>* subtree = sync_point_tree_.GetChild(path);
 
@@ -663,7 +661,7 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
           for (const View* view : new_views) {
             QuerySpec new_query = view->query_spec();
             listen_provider_->StartListening(QuerySpecForListening(new_query),
-                                             TagForQuerySpec(new_query), view);
+                                             TagForQuerySpec(new_query));
           }
         } else {
           // There's nothing below us, so nothing we need to start listening on

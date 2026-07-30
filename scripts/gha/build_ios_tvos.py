@@ -483,10 +483,14 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
     cmd.append('-DCMAKE_SYSTEM_NAME=iOS')
     if platform_variant == 'simulator':
       cmd.append('-DCMAKE_OSX_SYSROOT=iphonesimulator')
+    elif platform_variant == 'device':
+      cmd.append('-DCMAKE_OSX_SYSROOT=iphoneos')
   elif apple_os == 'tvos':
     cmd.append('-DCMAKE_SYSTEM_NAME=tvOS')
     if platform_variant == 'simulator':
       cmd.append('-DCMAKE_OSX_SYSROOT=appletvsimulator')
+    elif platform_variant == 'device':
+      cmd.append('-DCMAKE_OSX_SYSROOT=appletvos')
   cmd.append('-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   cmd.append('-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   cmd.append('-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={0}'.format(archive_output_path))

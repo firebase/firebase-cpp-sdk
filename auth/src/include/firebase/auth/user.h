@@ -195,7 +195,7 @@ class User : public UserInfoInterface {
   /// operations.
   bool is_valid() const;
 
-  /// The Java Web Token (JWT) that can be used to identify the user to
+  /// The JSON Web Token (JWT) that can be used to identify the user to
   /// the backend.
   ///
   /// If a current ID token is still believed to be valid (i.e. it has not yet

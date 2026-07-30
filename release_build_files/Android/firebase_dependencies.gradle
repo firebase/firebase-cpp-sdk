@@ -35,7 +35,6 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf'],
   'remote_config' : ['com.google.firebase:firebase-config'],
   'storage' : ['com.google.firebase:firebase-storage'],
-  'testlab' : [],
   'ump' : ['com.google.android.ump:user-messaging-platform:4.0.0']
 ]
 
@@ -83,9 +82,6 @@ class Dependencies {
   def getStorage() {
     libSet.add('storage')
   }
-  def getTestlab() {
-    libSet.add('testlab')
-  }
   def getUmp() {
     libSet.add('ump')
   }
@@ -123,7 +119,7 @@ project.afterEvaluate {
 
       // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:34.15.0')
+      implementation platform('com.google.firebase:firebase-bom:34.16.0')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Messaging includes an aar, which to be depended on properly requires
