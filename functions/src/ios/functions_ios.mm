@@ -78,7 +78,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   std::string origin_str(origin);
-  // origin is in the format localhost:5005
+  // origin is in the format localhost:5005 or http://localhost:5005
   size_t pos = origin_str.rfind(":");
   if (pos == std::string::npos) {
     LogError("Functions::UseFunctionsEmulator: You must specify host:port");
@@ -86,6 +86,11 @@ void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   }
 
   std::string host = origin_str.substr(0, pos);
+  if (host.find("http://") == 0) {
+    host = host.substr(7);
+  } else if (host.find("https://") == 0) {
+    host = host.substr(8);
+  }
   std::string port_str = origin_str.substr(pos+1, std::string::npos);
   int port = atoi(port_str.c_str());
   [impl_.get()->get() useEmulatorWithHost:@(host.c_str()) port:port];
