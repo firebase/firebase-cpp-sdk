@@ -16,8 +16,11 @@
 
 #ifndef FIREBASE_UMP_SRC_IOS_CONSENT_INFO_INTERNAL_IOS_H_
 #define FIREBASE_UMP_SRC_IOS_CONSENT_INFO_INTERNAL_IOS_H_
-
+#if __has_include(<UserMessagingPlatform/UserMessagingPlatform.h>)
 #include <UserMessagingPlatform/UserMessagingPlatform.h>
+#else
+#include "UserMessagingPlatform.h"
+#endif
 
 #include "firebase/internal/mutex.h"
 #include "ump/src/common/consent_info_internal.h"

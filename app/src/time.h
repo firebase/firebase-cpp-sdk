@@ -25,7 +25,11 @@
 #include <windows.h>
 #else  // !FIREBASE_PLATFORM_WINDOWS
 #include <sys/time.h>
+#if defined(__clang__) || defined(__GNUC__)
+#include_next <time.h>
+#else
 #include <time.h>
+#endif
 #include <unistd.h>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 

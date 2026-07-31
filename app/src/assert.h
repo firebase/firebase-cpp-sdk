@@ -17,6 +17,9 @@
 #ifndef FIREBASE_APP_SRC_ASSERT_H_
 #define FIREBASE_APP_SRC_ASSERT_H_
 
+#if defined(__clang__) || defined(__GNUC__)
+#include_next <assert.h>
+#endif
 #include <cstdlib>
 
 #include "app/src/log.h"

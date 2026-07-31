@@ -437,6 +437,11 @@ elseif(IOS)
       gRPC-C++
       gRPC-Core
       FirebaseAuthInterop/FirebaseAuth/Interop
+      absl
+      grpcpp
+      grpc
+      openssl_grpc
+
       FirebaseCoreExtension/FirebaseCore/Extension
   )
 

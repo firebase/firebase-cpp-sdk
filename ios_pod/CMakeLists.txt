@@ -45,11 +45,10 @@ file(
     "${FIREBASE_POD_DIR}/CMakeLists.txt"
 )
 
-if(FIREBASE_IOS_USE_SPM)
-  message(STATUS "Fetching iOS dependencies via Swift Package Manager...")
+message(STATUS "Fetching iOS dependencies via Swift Package Manager...")
 
-  # Dynamically generate a Package.swift mirroring the Podfile dependencies
-  file(WRITE "${FIREBASE_POD_DIR}/Package.swift"
+# Dynamically generate a Package.swift mirroring the Podfile dependencies
+file(WRITE "${FIREBASE_POD_DIR}/Package.swift"
 "// swift-tools-version:5.5
 import PackageDescription
 
@@ -81,45 +80,39 @@ let package = Package(
     ]
 )
 "
-  )
+)
 
-  # Create an empty source file so the target is valid
-  file(WRITE "${FIREBASE_POD_DIR}/empty.swift" "// Empty source file for SPM target\n")
+# Create an empty source file so the target is valid
+file(WRITE "${FIREBASE_POD_DIR}/empty.swift" "// Empty source file for SPM target\n")
 
-  execute_process(
-    COMMAND /bin/bash -c "cd ${FIREBASE_POD_DIR} && swift package resolve"
-    OUTPUT_VARIABLE spm_output
-    RESULT_VARIABLE spm_result
-  )
+execute_process(
+  COMMAND /bin/bash -c "cd ${FIREBASE_POD_DIR} && swift package resolve"
+  OUTPUT_VARIABLE spm_output
+  RESULT_VARIABLE spm_result
+)
 
-  if(NOT spm_result EQUAL 0)
-    message(FATAL_ERROR "Swift Package Manager resolution failed:\n${spm_output}")
-  endif()
-
-  message("${spm_output}")
-
-  # Find all 'Public' and 'include' directories inside the downloaded SPM checkouts
-  # This flawlessly captures all headers for transitive dependencies (like PromisesObjC, nanopb, GoogleUtilities).
-  file(GLOB_RECURSE SPM_ALL_DIRS LIST_DIRECTORIES true "${FIREBASE_POD_DIR}/.build/checkouts/*")
-  set(SPM_INCLUDE_DIRS "")
-  foreach(dir ${SPM_ALL_DIRS})
-    if(IS_DIRECTORY "${dir}" AND (dir MATCHES "/Public$" OR dir MATCHES "/include$"))
-      list(APPEND SPM_INCLUDE_DIRS "${dir}")
-    endif()
-  endforeach()
-  set(FIREBASE_SPM_INCLUDE_DIRS ${SPM_INCLUDE_DIRS} CACHE STRING "")
-
-else()
-  message(STATUS "Downloading CocoaPods...")
-
-  execute_process(
-    COMMAND /bin/bash -c
-            "mkdir -p ${FIREBASE_POD_DIR} && cd ${FIREBASE_POD_DIR} && cmake . -G Xcode && pod install"
-    OUTPUT_VARIABLE pods_output
-  )
-
-  message("${pods_output}")
+if(NOT spm_result EQUAL 0)
+  message(FATAL_ERROR "Swift Package Manager resolution failed:\n${spm_output}")
 endif()
+
+message("${spm_output}")
+
+# Find all 'Public' and 'include' directories inside the downloaded SPM checkouts
+# This flawlessly captures all headers for transitive dependencies (like PromisesObjC, nanopb, GoogleUtilities).
+file(GLOB_RECURSE SPM_ALL_DIRS LIST_DIRECTORIES true "${FIREBASE_POD_DIR}/.build/checkouts/*")
+set(SPM_INCLUDE_DIRS "")
+foreach(dir ${SPM_ALL_DIRS})
+  if(IS_DIRECTORY "${dir}" AND (dir MATCHES "/Public$" OR dir MATCHES "/include$" OR dir MATCHES "/Headers$" OR dir MATCHES "/spm_headers$"))
+    list(APPEND SPM_INCLUDE_DIRS "${dir}")
+  endif()
+endforeach()
+list(APPEND SPM_INCLUDE_DIRS
+  "${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk"
+  "${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/Protos/nanopb"
+  "${FIREBASE_POD_DIR}/.build/checkouts/nanopb/spm_headers"
+)
+list(REMOVE_DUPLICATES SPM_INCLUDE_DIRS)
+set(FIREBASE_SPM_INCLUDE_DIRS ${SPM_INCLUDE_DIRS} CACHE STRING "" FORCE)
 
 
 
@@ -142,6 +135,8 @@ function(setup_pod_headers target_name)
   # Parse the arguments into SETUP_POD_HEADERS_POD_NAMES.
   cmake_parse_arguments(SETUP_POD_HEADERS "${options}" "" "${multi}" ${ARGN})
 
+  target_include_directories(${target_name} PUBLIC ${FIREBASE_SPM_INCLUDE_DIRS})
+
   if(NOT "${SETUP_POD_HEADERS_POD_NAMES}" STREQUAL "")
     foreach (pod ${SETUP_POD_HEADERS_POD_NAMES})
       # Add pod name twice as some frameworks moved includes inside a folder with
@@ -159,11 +154,10 @@ function(setup_pod_headers target_name)
           ${FIREBASE_POD_DIR}/Pods/${pod}/Public
           ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/${pod}/Sources/Public
           ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/${pod}/Sources/Public/${pod}
+          ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/${pod}/Source/Library/Public
+          ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/${pod}/Source/Library/Public/${pod}
         )
       
-      if(FIREBASE_IOS_USE_SPM)
-        target_include_directories(${target_name} PUBLIC ${FIREBASE_SPM_INCLUDE_DIRS})
-      endif()
       if("${SETUP_POD_HEADERS_INCLUDE_PRIVATE_HEADERS}")
         # Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
         # we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
@@ -179,6 +173,10 @@ function(setup_pod_headers target_name)
             ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Private
             ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources
             ${FIREBASE_POD_DIR}/Pods/${pod}/Source
+            ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk
+            ${FIREBASE_POD_DIR}/.build/checkouts/nanopb/spm_headers
+            ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/Protos/nanopb
+            ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/FirebaseCore/Extension
         )
       endif()
 
@@ -215,7 +213,9 @@ function(symlink_pod_headers target_name pod_name dir_name)
   endif()
 
   set(gen_file ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/gen_${dir_name}.txt)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links)
   set(symlink_dir ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/${dir_name})
+  file(MAKE_DIRECTORY ${symlink_dir})
   set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*/*.framework/Headers")
 
   file(GLOB framework_dir ${glob_dir})
@@ -261,27 +261,65 @@ function(symlink_pod_headers target_name pod_name dir_name)
     endif()
   endif()
 
+
+  # SPM ARTIFACTS PATH FOR BINARY TARGETS
+  if(NOT EXISTS ${framework_dir})
+    # SPM downloads binary targets as .xcframeworks in .build/artifacts
+    set(glob_dir "${FIREBASE_POD_DIR}/.build/artifacts/*/*/*.xcframework/*/*.framework/Headers")
+    file(GLOB framework_dirs ${glob_dir})
+    
+    foreach(fdir ${framework_dirs})
+      string(FIND "${fdir}" "/${dir_name}.xcframework/" idx1)
+      string(FIND "${fdir}" "/${pod_name}.xcframework/" idx2)
+      string(FIND "${fdir}" "/${dir_name}.framework/" idx3)
+      string(FIND "${fdir}" "/${pod_name}.framework/" idx4)
+      if(NOT idx1 EQUAL -1 OR NOT idx2 EQUAL -1 OR NOT idx3 EQUAL -1 OR NOT idx4 EQUAL -1)
+        set(framework_dir "${fdir}")
+        break()
+      endif()
+    endforeach()
+  endif()
+
   # Maybe this pod is not a framework, continue
   if(NOT EXISTS ${framework_dir})
     return()
   endif()
 
+  
+  # Also create a symlink to the full framework directory for Swift to resolve modules
+  # framework_dir is .../FirebaseAnalytics.framework/Headers
+  # so we want to link .../FirebaseAnalytics.framework
+  string(REPLACE "/Headers" "" full_framework_dir "${framework_dir}")
+  set(framework_symlink_dir ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/Frameworks/${dir_name}.framework)
+  
   add_custom_command(
     OUTPUT "${gen_file}"
     COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links
             && rm -fr ${symlink_dir}
             && ln -sf ${framework_dir} ${symlink_dir}
+            && mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/Frameworks
+            && rm -fr ${framework_symlink_dir}
+            && ln -sf ${full_framework_dir} ${framework_symlink_dir}
             && touch ${gen_file}
     DEPENDS ${FIREBASE_POD_HEADER_DIR}
-    COMMENT "Sym linking pod framework '${framework_dir}' to '${symlink_dir}'"
+    COMMENT "Sym linking pod framework '${framework_dir}' to '${symlink_dir}' and framework to '${framework_symlink_dir}'"
   )
+
 
   add_custom_target(${target_name}_symlink_${dir_name} DEPENDS ${gen_file})
   add_dependencies(${target_name} ${target_name}_symlink_${dir_name})
+
 
   target_include_directories(${target_name}
     PRIVATE
       ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links
       ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/${dir_name}
   )
+  
+  # Also add to framework search paths so Swift can import modules!
+  # And add to target_compile_options just in case for clang modules!
+  set_property(TARGET ${target_name} APPEND PROPERTY XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS "${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/Frameworks")
+
+  target_compile_options(${target_name} PUBLIC -F${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/Frameworks)
+
 endfunction()

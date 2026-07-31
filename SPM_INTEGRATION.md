@@ -10,14 +10,14 @@ Here is how we handle this integration.
 
 The Firebase C++ SDK CMake system provides a mechanism to automatically generate a `Package.swift` file, resolve its dependencies via `swift package resolve`, and link the resulting headers and libraries against your C++ targets. This completely bypasses the need for `pod install` or CocoaPods installations on the developer's machine.
 
-### Enabling SPM Integration
+### Using SPM Integration
 
-When configuring the project for iOS using CMake, pass the `-DFIREBASE_IOS_USE_SPM=ON` flag:
+When configuring the project for iOS using CMake, SPM is used automatically without requiring any flags:
 
 ```bash
 mkdir -p mac_ios_build_xcode
 cd mac_ios_build_xcode
-cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS .. -DFIREBASE_IOS_USE_SPM=ON
+cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS ..
 ```
 
 *Note: The Xcode generator (`-G Xcode`) is required for proper Swift and Apple platform support within CMake.*
@@ -26,22 +26,8 @@ cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS .. -DFIREBASE_IOS_USE_SPM=ON
 
 1. **Package.swift Generation**: Instead of forcing CMake to read a predefined `Package.swift` file, the `ios_pod/CMakeLists.txt` file reads the required iOS SDK versions (e.g., Firebase 12.14.0 and UMP 2.3.0) and dynamically writes a `Package.swift` manifest into the build directory.
 2. **Package Resolution**: During the configure step, CMake executes `swift package resolve`. This fetches the source code of the `firebase-ios-sdk` and all of its transitive dependencies (such as `GoogleUtilities`, `PromisesObjC`, and `abseil`) directly into the `.build/checkouts/` folder.
-3. **Header Discovery**: Instead of manually mapping each header path, CMake recursively globs the `.build/checkouts/` directory for any `/Public` or `/include` paths, and appends them to the C++ SDK's include directories.
-4. **Header Overrides**: Files like `app/CMakeLists.txt` which historically hardcoded specific CocoaPods paths (e.g. `Pods/FirebaseFirestoreInternal/Firestore/core/`) now conditionally point to the SPM `.build/checkouts/` paths.
-
-## Method 2: Legacy CocoaPods Build
-
-If you are not yet ready to migrate your project's CI pipeline to SPM, you can continue to use the legacy CocoaPods integration. 
-
-By simply omitting the `-DFIREBASE_IOS_USE_SPM=ON` flag, the CMake configuration will fallback to generating a `Podfile` and running `pod install`.
-
-```bash
-mkdir -p mac_ios_build_xcode
-cd mac_ios_build_xcode
-cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS ..
-```
-
-*Note: CocoaPods integration is considered legacy and will be fully deprecated in the future.*
+3. **Header Discovery**: CMake discovers public header directories across `.build/checkouts/` and explicitly includes required root and proto paths (such as `Firestore/Protos/nanopb`), appending them to the C++ SDK's include search paths.
+4. **Binary Target Support**: For binary `.xcframework` dependencies (such as `absl` and `grpcpp`), CMake symlinks framework headers to match CocoaPods include conventions without duplicating architecture slices in search paths.
 
 ## Unity SDK Considerations
 

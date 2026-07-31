@@ -564,12 +564,12 @@ def main():
                                           args=(build_path, supported_targets))
         processes.append((process, archive_output_path))
 
-  # Launch all cmake build processes in parallel.
-  for process, _ in processes:
-    process.start()
-
+  # Launch sequentially to avoid xcodebuild database locks
   for process, archive_output_path in processes:
+    process.start()
     process.join()
+    if process.exitcode != 0:
+      raise ValueError("Build process failed with exit code " + str(process.exitcode))
     # Reorganize frameworks (renaming, copying over headers etc)
     arrange_frameworks(archive_output_path)
 

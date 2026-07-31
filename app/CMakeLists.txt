@@ -493,21 +493,12 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
   )
 
-  if(FIREBASE_IOS_USE_SPM)
-    list(APPEND firestore_HDRS
-      ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_errors.h
-      ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_version.h
-      ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h
-      ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/timestamp.h
-    )
-  else()
-    list(APPEND firestore_HDRS
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_errors.h
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/firestore_version.h
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/geo_point.h
-      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestoreInternal/Firestore/core/include/firebase/firestore/timestamp.h
-    )
-  endif()
+  list(APPEND firestore_HDRS
+    ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_errors.h
+    ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_version.h
+    ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h
+    ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/timestamp.h
+  )
   set(functions_HDRS
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h

@@ -16,8 +16,8 @@
 
 #ifndef FIREBASE_APP_SRC_APP_IOS_H_
 #define FIREBASE_APP_SRC_APP_IOS_H_
-#include "FIRApp.h"
-#include "FIRConfiguration.h"
+#import <FirebaseCore/FIRApp.h>
+#import <FirebaseCore/FIRConfiguration.h>
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_ios.h"
 

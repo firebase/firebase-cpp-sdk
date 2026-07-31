@@ -20,8 +20,8 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import "FIRAuth.h"
-#import "FIRUser.h"
+#import <FirebaseAuth/FIRAuth.h>
+#import <FirebaseAuth/FIRUser.h>
 #import "FirebaseAuthInterop/FIRAuthInterop.h"
 // This needs to be after the FIRAuthInterop import
 #import "FirebaseAuth-Swift.h"

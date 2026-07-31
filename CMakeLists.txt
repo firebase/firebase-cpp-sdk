@@ -75,8 +75,6 @@ option(FIREBASE_USE_BORINGSSL
        "Build against BoringSSL instead of using your system's OpenSSL." OFF)
 option(FIREBASE_USE_LINUX_CXX11_ABI
        "Build Linux SDK using the C++11 ABI instead of the legacy ABI." OFF)
-option(FIREBASE_IOS_USE_SPM
-       "Use Swift Package Manager to fetch iOS dependencies instead of CocoaPods." OFF)
 
 # This should only be enabled by the GitHub Action build script.
 option(FIREBASE_GITHUB_ACTION_BUILD
