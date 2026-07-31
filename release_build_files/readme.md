@@ -616,6 +616,7 @@ code.
 ### Upcoming
 - Changes
     - Realtime Database (Desktop): Fixed an intermittent use-after-free crash (`ACCESS_VIOLATION`) when detaching a listener while a WebSocket listen response is pending.
+    - Remote Config: Add support for setting Custom Signals.
 
 ### 13.10.0
 - Changes
