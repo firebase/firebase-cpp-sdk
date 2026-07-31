@@ -185,7 +185,12 @@ TEST_F(RemoteConfigRESTTest, SetupRESTRequest) {
   std::string locale = firebase::internal::GetLocale();
   EXPECT_EQ(rest.rc_request_.application_data_->languageCode, locale);
 
-  // TODO(cynthiajiang) Set Country code and verify installations id and token.
+  if (locale.length() > 0) {
+    EXPECT_EQ(rest.rc_request_.application_data_->countryCode,
+              locale.substr(0, 2));
+  }
+
+  // TODO(cynthiajiang) verify installations id and token.
 }
 
 TEST_F(RemoteConfigRESTTest, SetupRESTRequestWithCustomSignals) {
