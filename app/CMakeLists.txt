@@ -491,9 +491,6 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
-  )
-
-  list(APPEND firestore_HDRS
     ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_errors.h
     ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_version.h
     ${FIREBASE_POD_DIR}/.build/checkouts/firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h
