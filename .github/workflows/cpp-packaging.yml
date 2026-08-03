@@ -127,7 +127,7 @@ jobs:
                 break 2
               fi
             done
-            sleep 10
+            sleep 30
           done
           if [[ "${download_success}" != "true" ]]; then
             echo "Failed to download binutils after multiple retries."
@@ -724,7 +724,7 @@ jobs:
             if [[ $retry == "error" ]]; then exit 5; fi
             rm -f firebase_cpp_sdk.zip
             curl -f -L --connect-timeout 30 --max-time 300 https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}.zip --output firebase_cpp_sdk.zip && break
-            sleep 10
+            sleep 30
           done
           set -e
         env:

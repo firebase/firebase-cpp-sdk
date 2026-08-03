@@ -26,7 +26,7 @@ else
         curl -f -LSs \
              "https://download.sysinternals.com/files/Strings.zip" \
              --output Strings.zip && break
-        sleep 10
+        sleep 30
     done
     set -e
     unzip -q Strings.zip && rm -f Strings.zip
@@ -81,7 +81,7 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 21\." "${NDK_ROOT}/source.p
                 curl -f --http1.1 -LSs \
                     "https://dl.google.com/android/repository/android-ndk-r21e-${platform}-x86_64.zip" \
                     --output /tmp/android-ndk-r21e.zip && break
-                sleep 10
+                sleep 30
             done
             set -e
             (cd /tmp && unzip -oq android-ndk-r21e.zip && rm -f android-ndk-r21e.zip)
