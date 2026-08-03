@@ -16,6 +16,9 @@
 
 #include "remote_config/src/desktop/remote_config_request.h"
 
+#include <map>
+#include <string>
+
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/variant_util.h"
@@ -43,7 +46,7 @@ void RemoteConfigRequest::UpdatePostFields() {
   if (!custom_signals_.empty()) {
     std::map<Variant, Variant> variant_map;
     for (const auto& kv : custom_signals_) {
-      variant_map[Variant(kv.first)] = Variant(kv.second);
+      variant_map[Variant(kv.first)] = kv.second;
     }
     std::string custom_signals_json = util::VariantToJson(variant_map);
 

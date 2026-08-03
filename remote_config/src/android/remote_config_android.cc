@@ -392,7 +392,7 @@ static jobject ConfigKeyValueVariantArrayToHashMap(
 
 // Convert a std::map<std::string, Variant> into a Java CustomSignals object
 // using CustomSignals.Builder to populate String, Long, and Double signal
-// entries.
+// entries, or null values to clear signals.
 static jobject CustomSignalsFromMap(JNIEnv* env,
                                     const std::map<std::string, Variant>& map) {
   jobject builder = env->NewObject(custom_signals_builder::GetClass(),
@@ -403,7 +403,13 @@ static jobject CustomSignalsFromMap(JNIEnv* env,
   for (const auto& kv : map) {
     jstring key = env->NewStringUTF(kv.first.c_str());
     jobject result_builder = nullptr;
-    if (kv.second.is_string()) {
+    if (kv.second.is_null()) {
+      result_builder =
+          env->CallObjectMethod(builder,
+                                custom_signals_builder::GetMethodId(
+                                    custom_signals_builder::kPutString),
+                                key, nullptr);
+    } else if (kv.second.is_string()) {
       jstring str_val = env->NewStringUTF(kv.second.string_value());
       result_builder =
           env->CallObjectMethod(builder,

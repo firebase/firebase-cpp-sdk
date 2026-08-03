@@ -274,22 +274,16 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
 
     // Merge incoming signals with existing metadata:
     // - Null variants remove the existing signal entry.
-    // - Numeric and string types are converted and stored as string
-    // representations.
+    // - Non-null variants (String, Int64, Double) are stored with their
+    // original type preserved.
     for (const auto& kv : custom_signals) {
       const std::string& key = kv.first;
       const Variant& value = kv.second;
 
       if (value.is_null()) {
         updated_signals.erase(key);
-      } else if (value.is_string()) {
-        updated_signals[key] = value.string_value();
-      } else if (value.is_int64()) {
-        updated_signals[key] = std::to_string(value.int64_value());
-      } else if (value.is_double()) {
-        std::ostringstream ss;
-        ss << value.double_value();
-        updated_signals[key] = ss.str();
+      } else {
+        updated_signals[key] = value;
       }
     }
 

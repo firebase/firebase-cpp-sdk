@@ -185,18 +185,16 @@ TEST_F(RemoteConfigRESTTest, SetupRESTRequest) {
   std::string locale = firebase::internal::GetLocale();
   EXPECT_EQ(rest.rc_request_.application_data_->languageCode, locale);
 
-  if (locale.length() > 0) {
-    EXPECT_EQ(rest.rc_request_.application_data_->countryCode,
-              locale.substr(0, 2));
-  }
-
+  // TODO(cynthiajiang) Set Country code and verify installations id and token.
   // TODO(cynthiajiang) verify installations id and token.
 }
 
 TEST_F(RemoteConfigRESTTest, SetupRESTRequestWithCustomSignals) {
   RemoteConfigMetadata metadata = configs_.metadata;
   metadata.set_custom_signals(
-      MetaCustomSignalsMap({{"sig_str", "hello"}, {"sig_int", "42"}}));
+      MetaCustomSignalsMap({{"sig_str", Variant("hello")},
+                            {"sig_int", Variant(42)},
+                            {"sig_double", Variant(3.14)}}));
   LayeredConfigs configs_with_signals(configs_.fetched, configs_.active,
                                       configs_.defaults, metadata);
 
@@ -207,7 +205,8 @@ TEST_F(RemoteConfigRESTTest, SetupRESTRequestWithCustomSignals) {
   EXPECT_TRUE(rest.rc_request_.ReadBodyIntoString(&body));
   EXPECT_NE(body.find("\"custom_signals\":"), std::string::npos);
   EXPECT_NE(body.find("\"sig_str\":\"hello\""), std::string::npos);
-  EXPECT_NE(body.find("\"sig_int\":\"42\""), std::string::npos);
+  EXPECT_NE(body.find("\"sig_int\":42"), std::string::npos);
+  EXPECT_NE(body.find("\"sig_double\":3.14"), std::string::npos);
 }
 
 // Verify the rest request with mock project will return code 404

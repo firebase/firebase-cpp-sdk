@@ -519,9 +519,9 @@ TEST_F(RemoteConfigDesktopTest, SetCustomSignals) {
   const MetaCustomSignalsMap& stored_signals =
       instance_->configs_.metadata.custom_signals();
   EXPECT_EQ(stored_signals.size(), 3);
-  EXPECT_EQ(stored_signals.at("key_string"), "val");
-  EXPECT_EQ(stored_signals.at("key_int"), "123");
-  EXPECT_EQ(stored_signals.at("key_double"), "45.6");
+  EXPECT_EQ(stored_signals.at("key_string"), Variant("val"));
+  EXPECT_EQ(stored_signals.at("key_int"), Variant(123));
+  EXPECT_EQ(stored_signals.at("key_double"), Variant(45.6));
 }
 
 TEST_F(RemoteConfigDesktopTest, SetCustomSignalsMergeAndRemove) {
@@ -542,9 +542,9 @@ TEST_F(RemoteConfigDesktopTest, SetCustomSignalsMergeAndRemove) {
   const MetaCustomSignalsMap& stored_signals =
       instance_->configs_.metadata.custom_signals();
   EXPECT_EQ(stored_signals.size(), 3);
-  EXPECT_EQ(stored_signals.at("key1"), "val1");
-  EXPECT_EQ(stored_signals.at("key2"), "200");
-  EXPECT_EQ(stored_signals.at("key4"), "new_val");
+  EXPECT_EQ(stored_signals.at("key1"), Variant("val1"));
+  EXPECT_EQ(stored_signals.at("key2"), Variant(200));
+  EXPECT_EQ(stored_signals.at("key4"), Variant("new_val"));
   EXPECT_EQ(stored_signals.find("key3"), stored_signals.end());
 }
 
@@ -591,8 +591,8 @@ TEST_F(RemoteConfigDesktopTest, SetCustomSignalsPersistence) {
   const MetaCustomSignalsMap& loaded_signals =
       new_instance.configs_.metadata.custom_signals();
   EXPECT_EQ(loaded_signals.size(), 2);
-  EXPECT_EQ(loaded_signals.at("persisted_key"), "persisted_val");
-  EXPECT_EQ(loaded_signals.at("persisted_num"), "999");
+  EXPECT_EQ(loaded_signals.at("persisted_key"), Variant("persisted_val"));
+  EXPECT_EQ(loaded_signals.at("persisted_num"), Variant(999));
 }
 
 }  // namespace internal

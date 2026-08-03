@@ -18,6 +18,7 @@
 #include <map>
 #include <string>
 
+#include "firebase/variant.h"
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
@@ -27,7 +28,7 @@ namespace internal {
 
 typedef std::map<std::string, std::string> MetaDigestMap;
 typedef std::map<ConfigSetting, std::string> MetaSettingsMap;
-typedef std::map<std::string, std::string> MetaCustomSignalsMap;
+typedef std::map<std::string, Variant> MetaCustomSignalsMap;
 
 // Contains different data about Remote Config Client.
 //

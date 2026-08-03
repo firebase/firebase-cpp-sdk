@@ -20,6 +20,7 @@
 #include <limits>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/include/firebase/remote_config.h"
@@ -56,7 +57,15 @@ std::string RemoteConfigMetadata::Serialize() const {
 
     fbb.Map("custom_signals", [&]() {
       for (const auto& signal : custom_signals_) {
-        fbb.String(signal.first.c_str(), signal.second);
+        const std::string& key = signal.first;
+        const Variant& val = signal.second;
+        if (val.is_string()) {
+          fbb.String(key.c_str(), val.string_value());
+        } else if (val.is_int64()) {
+          fbb.Int(key.c_str(), val.int64_value());
+        } else if (val.is_double()) {
+          fbb.Double(key.c_str(), val.double_value());
+        }
       }
     });
   });
@@ -107,7 +116,19 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
 
   custom_signals_.clear();
   flexbuffers::Map custom_signals = struct_map["custom_signals"].AsMap();
-  DeserializeMap(&custom_signals_, custom_signals);
+  for (int i = 0, n = custom_signals.size(); i < n; ++i) {
+    const char* key_str = custom_signals.Keys()[i].AsKey();
+    if (!key_str) continue;
+    flexbuffers::Reference val_ref = custom_signals.Values()[i];
+    if (val_ref.IsString()) {
+      custom_signals_[key_str] =
+          Variant(std::string(val_ref.AsString().c_str()));
+    } else if (val_ref.IsInt()) {
+      custom_signals_[key_str] = Variant(val_ref.AsInt64());
+    } else if (val_ref.IsFloat()) {
+      custom_signals_[key_str] = Variant(val_ref.AsDouble());
+    }
+  }
 }
 
 void RemoteConfigMetadata::AddSetting(const ConfigSetting& setting,

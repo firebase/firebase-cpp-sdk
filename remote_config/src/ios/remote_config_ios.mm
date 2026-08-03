@@ -407,11 +407,17 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
   NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithCapacity:custom_signals.size()];
   for (const auto& pair : custom_signals) {
     const char* key = pair.first.c_str();
-    id value = VariantToNSObject(pair.second);
-    if (value) {
-      dict[@(key)] = value;
+    if (pair.second.is_null()) {
+      dict[@(key)] = [NSNull null];
     } else {
-      LogError("Remote Config: Invalid Variant type for SetCustomSignals() key %s", key);
+      id value = VariantToNSObject(pair.second);
+      if (value) {
+        dict[@(key)] = value;
+      } else {
+        LogError(
+            "Remote Config: Invalid Variant type for SetCustomSignals() key %s",
+            key);
+      }
     }
   }
   [impl() setCustomSignals:dict
