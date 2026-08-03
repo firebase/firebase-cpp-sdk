@@ -398,10 +398,14 @@ static jobject CustomSignalsFromMap(JNIEnv* env,
   jobject builder = env->NewObject(custom_signals_builder::GetClass(),
                                    custom_signals_builder::GetMethodId(
                                        custom_signals_builder::kConstructor));
-  if (util::CheckAndClearJniExceptions(env)) return nullptr;
+  if (util::CheckAndClearJniExceptions(env) || !builder) return nullptr;
 
   for (const auto& kv : map) {
     jstring key = env->NewStringUTF(kv.first.c_str());
+    if (util::CheckAndClearJniExceptions(env) || !key) {
+      env->DeleteLocalRef(builder);
+      return nullptr;
+    }
     jobject result_builder = nullptr;
     if (kv.second.is_null()) {
       result_builder =
@@ -411,6 +415,11 @@ static jobject CustomSignalsFromMap(JNIEnv* env,
                                 key, nullptr);
     } else if (kv.second.is_string()) {
       jstring str_val = env->NewStringUTF(kv.second.string_value());
+      if (util::CheckAndClearJniExceptions(env) || !str_val) {
+        env->DeleteLocalRef(key);
+        env->DeleteLocalRef(builder);
+        return nullptr;
+      }
       result_builder =
           env->CallObjectMethod(builder,
                                 custom_signals_builder::GetMethodId(
@@ -432,18 +441,33 @@ static jobject CustomSignalsFromMap(JNIEnv* env,
       LogError(
           "Remote Config: Invalid Variant type for SetCustomSignals() key %s.",
           kv.first.c_str());
+      env->DeleteLocalRef(key);
+      env->DeleteLocalRef(builder);
+      return nullptr;
     }
-    if (util::CheckAndClearJniExceptions(env)) result_builder = nullptr;
-    if (result_builder) {
-      env->DeleteLocalRef(result_builder);
+
+    if (util::CheckAndClearJniExceptions(env) || !result_builder) {
+      if (result_builder) {
+        env->DeleteLocalRef(result_builder);
+      }
+      env->DeleteLocalRef(key);
+      env->DeleteLocalRef(builder);
+      return nullptr;
     }
+
     env->DeleteLocalRef(key);
+    env->DeleteLocalRef(result_builder);
   }
 
   jobject custom_signals = env->CallObjectMethod(
       builder,
       custom_signals_builder::GetMethodId(custom_signals_builder::kBuild));
-  if (util::CheckAndClearJniExceptions(env)) custom_signals = nullptr;
+  if (util::CheckAndClearJniExceptions(env) || !custom_signals) {
+    if (custom_signals) {
+      env->DeleteLocalRef(custom_signals);
+    }
+    custom_signals = nullptr;
+  }
   env->DeleteLocalRef(builder);
   return custom_signals;
 }
