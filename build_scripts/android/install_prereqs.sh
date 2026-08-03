@@ -22,10 +22,11 @@ else
     # Github runners.
     for retry in {1..10} error; do
         if [[ $retry == "error" ]]; then exit 5; fi
-        curl -LSs \
+        rm -f Strings.zip
+        curl -f -LSs \
              "https://download.sysinternals.com/files/Strings.zip" \
              --output Strings.zip && break
-        sleep 300
+        sleep 10
     done
     set -e
     unzip -q Strings.zip && rm -f Strings.zip
@@ -76,10 +77,11 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 21\." "${NDK_ROOT}/source.p
             # Github runners.
             for retry in {1..10} error; do
                 if [[ $retry == "error" ]]; then exit 5; fi
-                curl --http1.1 -LSs \
+                rm -f /tmp/android-ndk-r21e.zip
+                curl -f --http1.1 -LSs \
                     "https://dl.google.com/android/repository/android-ndk-r21e-${platform}-x86_64.zip" \
                     --output /tmp/android-ndk-r21e.zip && break
-                sleep 300
+                sleep 10
             done
             set -e
             (cd /tmp && unzip -oq android-ndk-r21e.zip && rm -f android-ndk-r21e.zip)

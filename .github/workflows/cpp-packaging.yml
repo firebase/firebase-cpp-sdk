@@ -111,13 +111,28 @@ jobs:
       - name: Fetch and build binutils
         run: |
           set +e
-          # Retry up to 10 times because Curl has a tendency to timeout on
-          # Github runners.
-          for retry in {1..10} error; do
-          if [[ $retry == "error" ]]; then exit 5; fi
-            curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ matrix.binutils_version }}.tar.xz --output binutils.tar.xz && break
-            sleep 300
+          # Retry up to 10 times with fallback mirrors and fail on HTTP errors.
+          urls=(
+            "https://ftpmirror.gnu.org/binutils/binutils-${{ matrix.binutils_version }}.tar.xz"
+            "https://ftp.gnu.org/gnu/binutils/binutils-${{ matrix.binutils_version }}.tar.xz"
+            "https://mirrors.kernel.org/gnu/binutils/binutils-${{ matrix.binutils_version }}.tar.xz"
+          )
+          download_success=false
+          for retry in {1..10}; do
+            for url in "${urls[@]}"; do
+              rm -f binutils.tar.xz
+              echo "Attempting to download binutils from ${url} (attempt ${retry})..."
+              if curl -f -L --connect-timeout 30 --max-time 300 "${url}" --output binutils.tar.xz; then
+                download_success=true
+                break 2
+              fi
+            done
+            sleep 10
           done
+          if [[ "${download_success}" != "true" ]]; then
+            echo "Failed to download binutils after multiple retries."
+            exit 5
+          fi
           set -e
 
           tar -xf binutils.tar.xz
@@ -706,9 +721,10 @@ jobs:
           # Retry up to 10 times because Curl has a tendency to timeout on
           # Github runners.
           for retry in {1..10} error; do
-          if [[ $retry == "error" ]]; then exit 5; fi
-            curl -L https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}.zip --output firebase_cpp_sdk.zip && break
-            sleep 300
+            if [[ $retry == "error" ]]; then exit 5; fi
+            rm -f firebase_cpp_sdk.zip
+            curl -f -L --connect-timeout 30 --max-time 300 https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}.zip --output firebase_cpp_sdk.zip && break
+            sleep 10
           done
           set -e
         env:
