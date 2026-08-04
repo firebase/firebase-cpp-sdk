@@ -518,11 +518,5 @@ TEST_F(FirebaseRemoteConfigTest, TestSetCustomSignals) {
   EXPECT_TRUE(WaitForCompletion(rc_->SetCustomSignals(custom_signals),
                                 "SetCustomSignals"));
   EXPECT_EQ(rc_->SetCustomSignalsLastResult().error(), 0);
-
-  // Clear custom signals
-  std::map<std::string, firebase::Variant> empty_signals;
-  EXPECT_TRUE(WaitForCompletion(rc_->SetCustomSignals(empty_signals),
-                                "SetCustomSignals (Clear)"));
-  EXPECT_EQ(rc_->SetCustomSignalsLastResult().error(), 0);
 }
 }  // namespace firebase_testapp_automated

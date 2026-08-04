@@ -522,6 +522,15 @@ TEST_F(RemoteConfigDesktopTest, SetCustomSignals) {
   EXPECT_EQ(stored_signals.at("key_string"), Variant("val"));
   EXPECT_EQ(stored_signals.at("key_int"), Variant(123));
   EXPECT_EQ(stored_signals.at("key_double"), Variant(45.6));
+
+  // Verify that rest_ holds a reference to configs_ and immediately reflects
+  // the updated signals.
+  const MetaCustomSignalsMap& rest_signals =
+      instance_->rest_.metadata().custom_signals();
+  EXPECT_EQ(rest_signals.size(), 3);
+  EXPECT_EQ(rest_signals.at("key_string"), Variant("val"));
+  EXPECT_EQ(rest_signals.at("key_int"), Variant(123));
+  EXPECT_EQ(rest_signals.at("key_double"), Variant(45.6));
 }
 
 TEST_F(RemoteConfigDesktopTest, SetCustomSignalsMergeAndRemove) {

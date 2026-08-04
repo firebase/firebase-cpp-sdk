@@ -81,7 +81,7 @@ class RemoteConfigREST {
 #endif  // FIREBASE_TESTING
 
   RemoteConfigREST(const firebase::AppOptions& app_options,
-                   const LayeredConfigs& configs, const std::string namespaces);
+                   LayeredConfigs& configs, const std::string namespaces);
 
   ~RemoteConfigREST();
 
@@ -127,7 +127,7 @@ class RemoteConfigREST {
   std::string api_key_;
   std::string namespaces_;
 
-  LayeredConfigs configs_;
+  LayeredConfigs& configs_;
 
   // Instance Id data
   std::string app_instance_id_;
