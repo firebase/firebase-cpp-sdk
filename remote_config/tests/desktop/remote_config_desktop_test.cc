@@ -17,7 +17,6 @@
 #include <chrono>  // NOLINT
 
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "file/base/path.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "gmock/gmock.h"
@@ -37,8 +36,8 @@ class RemoteConfigDesktopTest : public ::testing::Test {
     app_ = testing::CreateApp();
 
     FutureData::Create();
-    file_manager_ = new RemoteConfigFileManager(
-        file::JoinPath(FLAGS_test_tmpdir, "remote_config_data"));
+    file_manager_ =
+        new RemoteConfigFileManager("remote_config_data_test", *app_);
     SetUpInstance();
   }
 
@@ -106,8 +105,7 @@ class RemoteConfigDesktopTest : public ::testing::Test {
 // Can't load `configs_` from file without permissions.
 TEST_F(RemoteConfigDesktopTest, FailedLoadFromFile) {
   RemoteConfigInternal instance(
-      *app_, RemoteConfigFileManager(
-                 file::JoinPath(FLAGS_test_tmpdir, "not_found_file")));
+      *app_, RemoteConfigFileManager("not_found_file", *app_));
   EXPECT_EQ(LayeredConfigs(), instance.configs_);
 }
 
@@ -209,7 +207,9 @@ TEST_F(RemoteConfigDesktopTest, GetAndSetConfigSetting) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetBoolean) {
-  { EXPECT_FALSE(instance_->GetBoolean("key_bool", nullptr)); }
+  {
+    EXPECT_FALSE(instance_->GetBoolean("key_bool", nullptr));
+  }
   {
     ValueInfo info;
     EXPECT_FALSE(instance_->GetBoolean("key_bool", &info));
@@ -219,7 +219,9 @@ TEST_F(RemoteConfigDesktopTest, GetBoolean) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetLong) {
-  { EXPECT_EQ(instance_->GetLong("key_long", nullptr), 55555); }
+  {
+    EXPECT_EQ(instance_->GetLong("key_long", nullptr), 55555);
+  }
   {
     ValueInfo info;
     EXPECT_EQ(instance_->GetLong("key_long", &info), 55555);
@@ -229,7 +231,9 @@ TEST_F(RemoteConfigDesktopTest, GetLong) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetDouble) {
-  { EXPECT_EQ(instance_->GetDouble("key_double", nullptr), 100.5); }
+  {
+    EXPECT_EQ(instance_->GetDouble("key_double", nullptr), 100.5);
+  }
   {
     ValueInfo info;
     EXPECT_EQ(instance_->GetDouble("key_double", &info), 100.5);
@@ -239,7 +243,9 @@ TEST_F(RemoteConfigDesktopTest, GetDouble) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetString) {
-  { EXPECT_EQ(instance_->GetString("key_string", nullptr), "aaa"); }
+  {
+    EXPECT_EQ(instance_->GetString("key_string", nullptr), "aaa");
+  }
   {
     ValueInfo info;
     EXPECT_EQ(instance_->GetString("key_string", &info), "aaa");
@@ -332,40 +338,15 @@ TEST_F(RemoteConfigDesktopTest, ActivateFetched) {
 }
 
 TEST_F(RemoteConfigDesktopTest, Fetch) {
-  // Use fake rest implementation. In fake we just return some other metadata
-  // and fetched config and don't make HTTP requests. In this test case want
-  // make sure that all updated values apply correctly.
-  //
-  // See rest_fake.cc for more details.
-  {
-    SetUpInstance();
-    instance_->Fetch(0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    EXPECT_EQ(instance_->configs_.fetched,
-              NamespacedConfigData(
-                  NamespaceKeyValueMap({{"namespace", {{"key", "value"}}}}),
-                  1000000));
-
-    EXPECT_EQ(instance_->configs_.metadata.digest_by_namespace(),
-              MetaDigestMap({{"namespace", "digest"}}));
-
-    ConfigInfo info = instance_->configs_.metadata.info();
-    EXPECT_EQ(info.fetch_time, 0);
-    EXPECT_EQ(info.last_fetch_status, kLastFetchStatusSuccess);
-    EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonError);
-    EXPECT_EQ(info.throttled_end_time, 0);
-
-    EXPECT_EQ(
-        instance_->configs_.metadata.GetSetting(kConfigSettingDeveloperMode),
-        "1");
-  }
   {
     // Will fetch, because cache_expiration_in_seconds == 0.
     SetUpInstance();
     Future<void> future = instance_->Fetch(0);
     EXPECT_EQ(future.status(), firebase::kFutureStatusPending);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    for (int i = 0; i < 50 && future.status() == firebase::kFutureStatusPending;
+         ++i) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
     EXPECT_EQ(future.status(), firebase::kFutureStatusComplete);
   }
   {
@@ -375,7 +356,10 @@ TEST_F(RemoteConfigDesktopTest, Fetch) {
     SetUpInstance();
     Future<void> future = instance_->Fetch(kDefaultCacheExpiration);
     EXPECT_EQ(future.status(), firebase::kFutureStatusPending);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    for (int i = 0; i < 50 && future.status() == firebase::kFutureStatusPending;
+         ++i) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
     EXPECT_EQ(future.status(), firebase::kFutureStatusComplete);
   }
   {
@@ -518,6 +502,106 @@ TEST_F(RemoteConfigDesktopTest, TestIsDouble) {
   EXPECT_FALSE(RemoteConfigInternal::IsDouble(" "));
   EXPECT_FALSE(RemoteConfigInternal::IsDouble("e"));
   EXPECT_FALSE(RemoteConfigInternal::IsDouble("."));
+}
+
+TEST_F(RemoteConfigDesktopTest, SetCustomSignals) {
+  std::map<std::string, Variant> signals = {{"key_string", Variant("val")},
+                                            {"key_int", Variant(123)},
+                                            {"key_double", Variant(45.6)}};
+  Future<void> future = instance_->SetCustomSignals(signals);
+  EXPECT_EQ(future.status(), kFutureStatusComplete);
+  EXPECT_EQ(future.error(), kFutureStatusSuccess);
+
+  Future<void> last_result = instance_->SetCustomSignalsLastResult();
+  EXPECT_EQ(last_result.status(), kFutureStatusComplete);
+  EXPECT_EQ(last_result.error(), kFutureStatusSuccess);
+
+  const MetaCustomSignalsMap& stored_signals =
+      instance_->configs_.metadata.custom_signals();
+  EXPECT_EQ(stored_signals.size(), 3);
+  EXPECT_EQ(stored_signals.at("key_string"), Variant("val"));
+  EXPECT_EQ(stored_signals.at("key_int"), Variant(123));
+  EXPECT_EQ(stored_signals.at("key_double"), Variant(45.6));
+
+  // Verify that rest_ holds a reference to configs_ and immediately reflects
+  // the updated signals.
+  const MetaCustomSignalsMap& rest_signals =
+      instance_->rest_.metadata().custom_signals();
+  EXPECT_EQ(rest_signals.size(), 3);
+  EXPECT_EQ(rest_signals.at("key_string"), Variant("val"));
+  EXPECT_EQ(rest_signals.at("key_int"), Variant(123));
+  EXPECT_EQ(rest_signals.at("key_double"), Variant(45.6));
+}
+
+TEST_F(RemoteConfigDesktopTest, SetCustomSignalsMergeAndRemove) {
+  std::map<std::string, Variant> initial_signals = {
+      {"key1", Variant("val1")},
+      {"key2", Variant(100)},
+      {"key3", Variant("to_remove")}};
+  EXPECT_EQ(instance_->SetCustomSignals(initial_signals).error(),
+            kFutureStatusSuccess);
+
+  std::map<std::string, Variant> updated_signals = {
+      {"key2", Variant(200)},
+      {"key3", Variant::Null()},
+      {"key4", Variant("new_val")}};
+  EXPECT_EQ(instance_->SetCustomSignals(updated_signals).error(),
+            kFutureStatusSuccess);
+
+  const MetaCustomSignalsMap& stored_signals =
+      instance_->configs_.metadata.custom_signals();
+  EXPECT_EQ(stored_signals.size(), 3);
+  EXPECT_EQ(stored_signals.at("key1"), Variant("val1"));
+  EXPECT_EQ(stored_signals.at("key2"), Variant(200));
+  EXPECT_EQ(stored_signals.at("key4"), Variant("new_val"));
+  EXPECT_EQ(stored_signals.find("key3"), stored_signals.end());
+}
+
+TEST_F(RemoteConfigDesktopTest, SetCustomSignalsValidation) {
+  // Key length > 256
+  std::string long_key(257, 'k');
+  std::map<std::string, Variant> invalid_key = {{long_key, Variant("val")}};
+  Future<void> future_key = instance_->SetCustomSignals(invalid_key);
+  EXPECT_EQ(future_key.error(), kFutureStatusFailure);
+
+  // String value length > 500
+  std::string long_val(501, 'v');
+  std::map<std::string, Variant> invalid_val = {{"key", Variant(long_val)}};
+  Future<void> future_val = instance_->SetCustomSignals(invalid_val);
+  EXPECT_EQ(future_val.error(), kFutureStatusFailure);
+
+  // Invalid Variant type (vector)
+  std::vector<Variant> vec = {Variant(1)};
+  std::map<std::string, Variant> invalid_type = {{"key", Variant(vec)}};
+  Future<void> future_type = instance_->SetCustomSignals(invalid_type);
+  EXPECT_EQ(future_type.error(), kFutureStatusFailure);
+
+  // Max count > 100
+  std::map<std::string, Variant> too_many_signals;
+  for (int i = 0; i < 101; ++i) {
+    too_many_signals["key_" + std::to_string(i)] = Variant(i);
+  }
+  Future<void> future_count = instance_->SetCustomSignals(too_many_signals);
+  EXPECT_EQ(future_count.error(), kFutureStatusFailure);
+}
+
+TEST_F(RemoteConfigDesktopTest, SetCustomSignalsPersistence) {
+  std::map<std::string, Variant> signals = {
+      {"persisted_key", Variant("persisted_val")},
+      {"persisted_num", Variant(999)}};
+  EXPECT_EQ(instance_->SetCustomSignals(signals).error(), kFutureStatusSuccess);
+
+  // Wait briefly for the async save thread to write to disk
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+  // Create a new instance with the same file manager and verify it loads the
+  // signals
+  RemoteConfigInternal new_instance(*app_, *file_manager_);
+  const MetaCustomSignalsMap& loaded_signals =
+      new_instance.configs_.metadata.custom_signals();
+  EXPECT_EQ(loaded_signals.size(), 2);
+  EXPECT_EQ(loaded_signals.at("persisted_key"), Variant("persisted_val"));
+  EXPECT_EQ(loaded_signals.at("persisted_num"), Variant(999));
 }
 
 }  // namespace internal

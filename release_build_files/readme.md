@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - Remote Config: Add support for setting Custom Signals.
+
 ### 13.11.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.17.0.

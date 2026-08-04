@@ -226,6 +226,91 @@ ConfigSettings RemoteConfigInternal::GetConfigSettings() {
   return config_settings_;
 }
 
+// Validation limits for custom signals, aligned with backend and iOS/Android
+// SDKs.
+const size_t kMaxCustomSignalsKeyLength = 256;
+const size_t kMaxCustomSignalsStringValueLength = 500;
+const size_t kMaxCustomSignalsCount = 100;
+
+Future<void> RemoteConfigInternal::SetCustomSignals(
+    const std::map<std::string, Variant>& custom_signals) {
+  const auto handle =
+      future_impl_.SafeAlloc<void>(kRemoteConfigFnSetCustomSignals);
+
+  // Validate keys, values, and types before modifying stored state.
+  for (const auto& kv : custom_signals) {
+    const std::string& key = kv.first;
+    const Variant& value = kv.second;
+
+    // Custom signals support String, Int64, Double, or Null (used to clear a
+    // key).
+    if (!value.is_null() && !value.is_string() && !value.is_int64() &&
+        !value.is_double()) {
+      future_impl_.Complete(
+          handle, kFutureStatusFailure,
+          "Invalid value type. Must be String, Int, Double, or Null.");
+      return MakeFuture<void>(&future_impl_, handle);
+    }
+
+    if (key.length() > kMaxCustomSignalsKeyLength) {
+      future_impl_.Complete(
+          handle, kFutureStatusFailure,
+          "Custom signal keys must be 256 characters or less.");
+      return MakeFuture<void>(&future_impl_, handle);
+    }
+
+    if (value.is_string() &&
+        strlen(value.string_value()) > kMaxCustomSignalsStringValueLength) {
+      future_impl_.Complete(
+          handle, kFutureStatusFailure,
+          "Custom signal string values must be 500 characters or less.");
+      return MakeFuture<void>(&future_impl_, handle);
+    }
+  }
+
+  {
+    MutexLock lock(internal_mutex_);
+    MetaCustomSignalsMap updated_signals = configs_.metadata.custom_signals();
+
+    // Merge incoming signals with existing metadata:
+    // - Null variants remove the existing signal entry.
+    // - Non-null variants (String, Int64, Double) are stored with their
+    // original type preserved.
+    for (const auto& kv : custom_signals) {
+      const std::string& key = kv.first;
+      const Variant& value = kv.second;
+
+      if (value.is_null()) {
+        updated_signals.erase(key);
+      } else {
+        updated_signals[key] = value;
+      }
+    }
+
+    // Verify the merged map size does not exceed the maximum allowed count.
+    if (updated_signals.size() > kMaxCustomSignalsCount) {
+      future_impl_.Complete(handle, kFutureStatusFailure,
+                            "Custom signals count exceeds the limit of 100.");
+      return MakeFuture<void>(&future_impl_, handle);
+    }
+
+    // If signals were modified, update metadata and notify the background
+    // thread to persist.
+    if (updated_signals != configs_.metadata.custom_signals()) {
+      configs_.metadata.set_custom_signals(updated_signals);
+      save_channel_.Put();
+    }
+  }
+
+  future_impl_.Complete(handle, kFutureStatusSuccess);
+  return MakeFuture<void>(&future_impl_, handle);
+}
+
+Future<void> RemoteConfigInternal::SetCustomSignalsLastResult() {
+  return static_cast<const Future<void>&>(
+      future_impl_.LastResult(kRemoteConfigFnSetCustomSignals));
+}
+
 void RemoteConfigInternal::AsyncSaveToFile() {
   save_thread_ = std::thread([this]() {
     while (save_channel_.Get()) {

@@ -35,3 +35,40 @@ firebase_cpp_cc_test(
     firebase_remote_config
     firebase_testing
 )
+
+firebase_cpp_cc_test(
+  firebase_remote_config_desktop_test
+  SOURCES
+    desktop/remote_config_desktop_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_remote_config
+    firebase_testing
+  DEFINES
+    -DFIREBASE_TESTING
+)
+
+firebase_cpp_cc_test(
+  firebase_remote_config_metadata_test
+  SOURCES
+    desktop/metadata_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_remote_config
+    firebase_testing
+  DEFINES
+    -DFIREBASE_TESTING
+)
+
+firebase_cpp_cc_test(
+  firebase_remote_config_rest_test
+  SOURCES
+    desktop/rest_test.cc
+    ${FIREBASE_CPP_SDK_ROOT_DIR}/app/rest/transport_mock.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_remote_config
+    firebase_testing
+  DEFINES
+    -DFIREBASE_TESTING
+)
