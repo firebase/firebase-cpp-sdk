@@ -618,6 +618,7 @@ code.
     - General (Android): Update to Firebase Android BoM version 34.17.0.
     - General (iOS): Update to Firebase Cocoapods version 12.17.0.
     - Realtime Database (Desktop): Fixed an intermittent use-after-free crash (`ACCESS_VIOLATION`) when detaching a listener while a WebSocket listen response is pending.
+    - Functions: Added local Functions emulator support to client SDK integration tests (enabling local testing via `FUNCTIONS_EMULATOR_HOST` environment variable or `--functions_emulator_host` command line option) and stripped protocol schemes from host strings on iOS to ensure clean emulator initialization.
 
 ### 13.10.0
 - Changes
