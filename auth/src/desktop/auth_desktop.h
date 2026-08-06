@@ -15,6 +15,7 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_DESKTOP_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_DESKTOP_H_
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -179,6 +180,49 @@ struct AuthImpl {
 const int kMinutesPerTokenRefresh = 58;
 const int kMsPerTokenRefresh =
     kMinutesPerTokenRefresh * internal::kMillisecondsPerMinute;
+// Exponential backoff parameters when token refresh fails (e.g. network
+// outage), matching Android DefaultTokenRefresher.
+const int kMinRetryBackoffMs = 30 * 1000;       // 30 seconds base delay
+const int kMaxRetryBackoffMs = 16 * 60 * 1000;  // 16 minutes max delay
+
+// Encapsulates deterministic exponential backoff parameters and calculation
+// when token refresh fails (e.g. network outage), matching Android
+// DefaultTokenRefresher (30s initial, doubling up to 16m max).
+class ExponentialBackoff {
+ public:
+  explicit ExponentialBackoff(int min_delay_ms = kMinRetryBackoffMs,
+                              int max_delay_ms = kMaxRetryBackoffMs,
+                              double multiplier = 2.0)
+      : min_delay_ms_(std::max(0, min_delay_ms)),
+        max_delay_ms_(std::max(min_delay_ms_, max_delay_ms)),
+        multiplier_(std::max(1.0, multiplier)),
+        current_delay_ms_(min_delay_ms_) {}
+
+  // Resets the backoff delay to the initial minimum delay.
+  void Reset() { current_delay_ms_ = min_delay_ms_; }
+
+  // Returns the delay to wait for the current retry attempt, and advances
+  // the internal delay for subsequent attempts up to max_delay_ms.
+  int NextDelayMs() {
+    int delay = current_delay_ms_;
+    if (static_cast<double>(current_delay_ms_) * multiplier_ >=
+        static_cast<double>(max_delay_ms_)) {
+      current_delay_ms_ = max_delay_ms_;
+    } else {
+      current_delay_ms_ = static_cast<int>(current_delay_ms_ * multiplier_);
+    }
+    return delay;
+  }
+
+  // Returns the current delay without advancing it.
+  int current_delay_ms() const { return current_delay_ms_; }
+
+ private:
+  int min_delay_ms_;
+  int max_delay_ms_;
+  double multiplier_;
+  int current_delay_ms_;
+};
 
 void InitializeUserDataPersist(AuthData* auth_data);
 void DestroyUserDataPersist(AuthData* auth_data);
