@@ -14,6 +14,7 @@
 
 #include "auth/src/desktop/auth_desktop.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -92,6 +93,19 @@ void* CreatePlatformAuth(App* const app) {
   AuthImpl* const auth = new AuthImpl();
   auth->api_key = app->options().api_key();
   auth->app_name = app->name();
+
+  // Check environment variables for emulator if set.
+  if (std::getenv("USE_AUTH_EMULATOR") != nullptr) {
+    auth->assigned_emulator_url.append(kEmulatorLocalHost);
+    auth->assigned_emulator_url.append(":");
+    if (std::getenv("AUTH_EMULATOR_PORT") == nullptr) {
+      auth->assigned_emulator_url.append(kEmulatorPort);
+    } else {
+      auth->assigned_emulator_url.append(std::getenv("AUTH_EMULATOR_PORT"));
+    }
+    LogInfo("Using Auth Emulator: %s", auth->assigned_emulator_url.c_str());
+  }
+
   return auth;
 }
 
@@ -576,6 +590,7 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
   auth_impl->assigned_emulator_url.append(host);
   auth_impl->assigned_emulator_url.append(":");
   auth_impl->assigned_emulator_url.append(std::to_string(port));
+  LogInfo("Using Auth Emulator: %s", auth_impl->assigned_emulator_url.c_str());
 }
 
 void InitializeTokenRefresher(AuthData* auth_data) {
@@ -667,6 +682,8 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
   thread_ = firebase::Thread(
       [](IdTokenRefreshThread* refresh_thread) {
         Auth* auth = refresh_thread->auth;
+        ExponentialBackoff backoff;
+
         while (!refresh_thread->is_shutting_down()) {
           // Note:  Make sure to always make future_impl.mutex the innermost
           // lock, to prevent deadlocks!
@@ -700,8 +717,19 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
               // is completed.
               future_sem.Wait();
 
-              // (We don't actually care about the results of the token request.
-              // The token listener will handle that.)
+              if (future.error() != 0) {
+                // Token refresh failed (e.g. network outage). Wait with
+                // exponential backoff to prevent tight retry loops and avoid
+                // overloading backend servers upon reconnect. Matches Android
+                // DefaultTokenRefresher (30s initial, doubling up to 16m max).
+                if (!refresh_thread->is_shutting_down()) {
+                  refresh_thread->wakeup_sem_.TimedWait(backoff.NextDelayMs());
+                }
+                continue;
+              } else {
+                // Refresh succeeded! Reset backoff to minimum interval.
+                backoff.Reset();
+              }
             } else {
               auth->auth_data_->future_impl.mutex().Release();
               refresh_thread->ref_count_mutex_.Release();
