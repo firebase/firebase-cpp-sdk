@@ -25,7 +25,7 @@ set -x
 mkdir -p mac_ios_simulator_build
 cd mac_ios_simulator_build
 
-cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator .. -DCLANG_ENABLE_MODULES=YES -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON "$@"
+cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_SYSROOT=iphonesimulator .. -DCLANG_ENABLE_MODULES=YES -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON "$@"
 
 # Build the SDK and the tests
 cmake --build .
