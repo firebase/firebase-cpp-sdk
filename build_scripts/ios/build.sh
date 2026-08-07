@@ -134,6 +134,7 @@ if ${generateMakefiles}; then
             mkdir -p ${buildpath}/ios_build_file/${platform}-${arch} && cd ${buildpath}/ios_build_file/${platform}-${arch}
             cmake -G Xcode -DCMAKE_SYSTEM_NAME=iOS \
                 ${sysroot_arg} \
+                -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
                 -DCMAKE_OSX_ARCHITECTURES=${arch} \
                 -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
                 -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG=${buildpath}/${frameworkspath}/${platform}-${arch} \

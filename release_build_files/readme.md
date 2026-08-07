@@ -613,6 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General (iOS): Fixed an issue where prebuilt iOS/tvOS frameworks had an incorrect minimum deployment target (minos), which caused linker warnings.
+
 ### 13.11.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.17.0.

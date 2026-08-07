@@ -494,6 +494,7 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
   cmd.append('-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   cmd.append('-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   cmd.append('-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
+  cmd.append('-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0')
   if architecture:
     cmd.append('-DCMAKE_OSX_ARCHITECTURES={0}'.format(architecture))
   utils.run_command(cmd)

@@ -27,7 +27,7 @@ cd mac_ios_build
 
 # Configure cmake with tests enabled
 # and disable use of libsecret due to not working on kokoro builders
-cmake -DCMAKE_SYSTEM_NAME=iOS .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON "$@"
+cmake -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON "$@"
 
 # Build the SDK and the tests
 cpus=$(sysctl -n hw.ncpu)
