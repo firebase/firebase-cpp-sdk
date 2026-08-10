@@ -613,13 +613,16 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - Messaging: Added new Registration methods using Installation Ids.
+      Deprecated old Token based methods.
+
 ### 13.11.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.17.0.
     - General (iOS): Update to Firebase Cocoapods version 12.17.0.
     - Realtime Database (Desktop): Fixed an intermittent use-after-free crash (`ACCESS_VIOLATION`) when detaching a listener while a WebSocket listen response is pending.
-    - Messaging: Added new Registration methods using Installation Ids.
-    Deprecated old Token based methods.
 
 ### 13.10.0
 - Changes
