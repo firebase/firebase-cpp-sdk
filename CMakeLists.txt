@@ -426,6 +426,8 @@ endif()
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
   # Build curl as a static library
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libraries")
+  set(BUILD_CURL_EXE OFF CACHE BOOL "Disable curl executable")
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
     # Enable Windows native SSL/TLS in libcurl.
