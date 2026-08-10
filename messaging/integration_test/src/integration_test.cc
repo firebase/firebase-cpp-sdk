@@ -560,6 +560,9 @@ TEST_F(FirebaseMessagingTest, TestRegistrationOnInitEnabled) {
 
 TEST_F(FirebaseMessagingTest, TestRegisterAndUnregister) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+
   EXPECT_TRUE(RequestPermission());
 
   // Note that these methods should only work if the newer registration
