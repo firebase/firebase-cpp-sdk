@@ -37,6 +37,12 @@ void TerminateMessagingTest();
 // Simulate a token received/refresh event from the OS-level implementation.
 void OnTokenReceived(const char* tokenstr);
 
+// Simulate a registration event from the OS-level implementation.
+void OnRegistrationReceived(const char* registration_id);
+
+// Simulate an unregistration event from the OS-level implementation.
+void OnUnregistrationReceived(const char* registration_id);
+
 void OnDeletedMessages();
 
 void OnMessageReceived(const Message& message);

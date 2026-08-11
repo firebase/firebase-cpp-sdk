@@ -616,6 +616,8 @@ code.
 ### Upcoming
 - Changes
     - Auth (Desktop): Fixed log spam and high CPU utilization when offline by moving `USE_AUTH_EMULATOR` environment variable check to initialization and eliminating per-request logging (#1629).
+    - Messaging: Added new Registration methods using Installation Ids.
+      Deprecated old Token based methods.
 
 ### 13.11.0
 - Changes

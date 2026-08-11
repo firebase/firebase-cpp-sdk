@@ -21,5 +21,11 @@ namespace messaging {
 // to prevent its vtable being emitted in each translation unit.
 Listener::~Listener() {}
 
+void Listener::OnTokenReceived(const char* /*token*/) {}
+
+void Listener::OnRegistrationReceived(const char* /*installationId*/) {}
+
+void Listener::OnUnregistrationReceived(const char* /*installationId*/) {}
+
 }  // namespace messaging
 }  // namespace firebase
