@@ -135,7 +135,6 @@ if ${generateMakefiles}; then
             echo "generate Makefiles start"
             mkdir -p ${buildpath}/tvos_build_file/${platform}-${arch} && cd ${buildpath}/tvos_build_file/${platform}-${arch}
             cmake -DCMAKE_SYSTEM_NAME=tvOS \
-                  -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
                   -DCMAKE_OSX_ARCHITECTURES=${arch} \
                   ${sysroot_arg} \
                   -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
