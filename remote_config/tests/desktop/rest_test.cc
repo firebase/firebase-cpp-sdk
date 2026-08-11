@@ -203,10 +203,10 @@ TEST_F(RemoteConfigRESTTest, SetupRESTRequestWithCustomSignals) {
 
   std::string body;
   EXPECT_TRUE(rest.rc_request_.ReadBodyIntoString(&body));
-  EXPECT_NE(body.find("\"custom_signals\":"), std::string::npos);
+  EXPECT_NE(body.find("\"customSignals\":"), std::string::npos);
   EXPECT_NE(body.find("\"sig_str\":\"hello\""), std::string::npos);
-  EXPECT_NE(body.find("\"sig_int\":42"), std::string::npos);
-  EXPECT_NE(body.find("\"sig_double\":3.14"), std::string::npos);
+  EXPECT_NE(body.find("\"sig_int\":\"42\""), std::string::npos);
+  EXPECT_NE(body.find("\"sig_double\":\"3.14\""), std::string::npos);
 }
 
 // Verify the rest request with mock project will return code 404

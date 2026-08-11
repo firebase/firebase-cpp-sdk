@@ -46,11 +46,21 @@ void RemoteConfigRequest::UpdatePostFields() {
   if (!custom_signals_.empty()) {
     std::map<Variant, Variant> variant_map;
     for (const auto& kv : custom_signals_) {
-      variant_map[Variant(kv.first)] = kv.second;
+      const Variant& val = kv.second;
+      if (val.is_string()) {
+        variant_map[Variant(kv.first)] = Variant(val.string_value());
+      } else if (val.is_int64()) {
+        variant_map[Variant(kv.first)] =
+            Variant(std::to_string(val.int64_value()));
+      } else if (val.is_double()) {
+        std::ostringstream ss;
+        ss << val.double_value();
+        variant_map[Variant(kv.first)] = Variant(ss.str());
+      }
     }
     std::string custom_signals_json = util::VariantToJson(variant_map);
 
-    // Insert the "custom_signals" field before the closing brace of the JSON
+    // Insert the "customSignals" field before the closing brace of the JSON
     // object.
     size_t last_brace = json.rfind('}');
     if (last_brace != std::string::npos) {
@@ -58,9 +68,9 @@ void RemoteConfigRequest::UpdatePostFields() {
       std::string insertion;
       if (first_brace != std::string::npos &&
           json.find_first_not_of(" \t\n\r", first_brace + 1) != last_brace) {
-        insertion = ",\n  \"custom_signals\": " + custom_signals_json + "\n";
+        insertion = ",\n  \"customSignals\": " + custom_signals_json + "\n";
       } else {
-        insertion = "\n  \"custom_signals\": " + custom_signals_json + "\n";
+        insertion = "\n  \"customSignals\": " + custom_signals_json + "\n";
       }
       json.insert(last_brace, insertion);
     }
