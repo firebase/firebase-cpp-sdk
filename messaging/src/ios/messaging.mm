@@ -47,11 +47,14 @@ NS_ASSUME_NONNULL_BEGIN
 // messaging:didReceiveRegistrationToken: is called.
 @property(nonatomic, readwrite, nullable) FIRMessaging *cachedMessaging;
 @property(nonatomic, readwrite, nullable) NSString *cachedFCMToken;
+@property(nonatomic, readwrite, nullable) NSString *cachedRegistrationId;
 
 // If a listener is set, this will notify Messaging of the token as normal.
 // If no listener is set yet, the data will be cached until one is.
 // NOLINTNEXTLINE
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(nullable NSString *)FCMToken;
+- (void)messaging:(FIRMessaging *)messaging didReceiveRegistration:(nullable NSString *)installationId;
+- (void)messaging:(FIRMessaging *)messaging didUnregister:(nullable NSString *)installationId;
 
 // Once the listener is registered, process cached token (if there is one).
 // This will call messaging:didReceiveRegistrationToken:, passing in the cached values:
@@ -281,6 +284,7 @@ void Terminate() {
     g_delegate.isListenerSet = NO;
     g_delegate.cachedMessaging = nil;
     g_delegate.cachedFCMToken = nil;
+    g_delegate.cachedRegistrationId = nil;
   }
   SetListener(nullptr);
   g_app = nullptr;
@@ -793,6 +797,12 @@ void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {
   LogWarning("SetDeliveryMetricsExportToBigQuery is not currently implemented on iOS");
 }
 
+bool IsRegistrationOnInitEnabled() { return IsTokenRegistrationOnInitEnabled(); }
+
+void SetRegistrationOnInitEnabled(bool enable) {
+  SetTokenRegistrationOnInitEnabled(enable);
+}
+
 bool IsTokenRegistrationOnInitEnabled() { return [FIRMessaging messaging].autoInitEnabled; }
 
 void SetTokenRegistrationOnInitEnabled(bool enable) {
@@ -805,6 +815,50 @@ void SetTokenRegistrationOnInitEnabled(bool enable) {
     [g_delegate processCachedRegistrationToken];
     RetrieveRegistrationToken();
   }
+}
+
+Future<void> Register() {
+  FIREBASE_ASSERT_RETURN(RegisterLastResult(), internal::IsInitialized());
+
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnRegister);
+
+  [[FIRMessaging messaging] registerWithCompletion:^(NSError *_Nullable error) {
+    api->Complete(handle,
+                  error == nullptr ? kErrorNone : kErrorUnknown,
+                  util::NSStringToString(error.localizedDescription).c_str());
+  }];
+
+  return MakeFuture(api, handle);
+}
+
+Future<void> RegisterLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnRegister));
+}
+
+Future<void> Unregister() {
+  FIREBASE_ASSERT_RETURN(UnregisterLastResult(), internal::IsInitialized());
+
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnregister);
+
+  [[FIRMessaging messaging] unregisterWithCompletion:^(NSError *_Nullable error) {
+    api->Complete(handle,
+                  error == nullptr ? kErrorNone : kErrorUnknown,
+                  util::NSStringToString(error.localizedDescription).c_str());
+  }];
+
+  return MakeFuture(api, handle);
+}
+
+Future<void> UnregisterLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnUnregister));
 }
 
 Future<std::string> GetToken() {
@@ -934,21 +988,49 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   }
 }
 
+- (void)messaging:(FIRMessaging *)messaging didReceiveRegistration:(NSString *)installationId {
+  ::firebase::messaging::g_delegate_mutex.Acquire();
+  if (_isListenerSet) {
+    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::LogInfo("FCM: registration installation ID received.");
+    ::firebase::messaging::NotifyListenerOnRegistrationReceived(installationId.UTF8String);
+  } else {
+    _cachedMessaging = messaging;
+    _cachedRegistrationId = installationId;
+    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::LogInfo(
+        "FCM: registration installation ID received, but no listener set yet - cached the ID.");
+  }
+}
+
+- (void)messaging:(FIRMessaging *)messaging didUnregister:(NSString *)installationId {
+  ::firebase::LogInfo("FCM: unregistration received.");
+  ::firebase::messaging::NotifyListenerOnUnregistrationReceived(installationId.UTF8String);
+}
+
 - (void)processCachedRegistrationToken {
   FIRMessaging *msg;
   NSString *token;
+  NSString *regId;
   {
     firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
     // TODO(butterfield): What if there's no cached message but there is a cached token?
     // The user may never get notified of the old token before a new one is registered.
-    if (!_isListenerSet || !_cachedMessaging || !_cachedFCMToken) {
+    if (!_isListenerSet) {
       return;
     }
     msg = _cachedMessaging;
     token = _cachedFCMToken;
+    regId = _cachedRegistrationId;
     _cachedFCMToken = nil;
+    _cachedRegistrationId = nil;
     _cachedMessaging = nil;
   }
-  [self messaging:msg didReceiveRegistrationToken:token];
+  if (token) {
+    [self messaging:msg didReceiveRegistrationToken:token];
+  }
+  if (regId) {
+    [self messaging:msg didReceiveRegistration:regId];
+  }
 }
 @end
