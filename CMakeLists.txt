@@ -132,6 +132,9 @@ endif()
 
 # CMake 3.14+ native iOS support sets CMAKE_SYSTEM_NAME to iOS, 3.21+ for tvOS
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+  if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum OS X deployment version")
+  endif()
   set(IOS ON CACHE BOOL "")
   set(FIREBASE_IOS_BUILD ON CACHE BOOL "")
 endif()
