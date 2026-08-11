@@ -548,6 +548,9 @@ TEST_F(FirebaseMessagingTest, DeliverMetricsToBigQuery) {
 }
 
 TEST_F(FirebaseMessagingTest, TestRegistrationOnInitEnabled) {
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+
   bool initial_val = firebase::messaging::IsRegistrationOnInitEnabled();
   EXPECT_TRUE(initial_val);
 
