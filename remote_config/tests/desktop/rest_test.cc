@@ -14,6 +14,7 @@
 
 #include "remote_config/src/desktop/rest.h"
 
+#include <chrono>  // NOLINT
 #include <map>
 #include <string>
 
