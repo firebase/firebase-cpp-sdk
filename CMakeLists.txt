@@ -132,6 +132,9 @@ endif()
 
 # CMake 3.14+ native iOS support sets CMAKE_SYSTEM_NAME to iOS, 3.21+ for tvOS
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+  if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum OS X deployment version")
+  endif()
   set(IOS ON CACHE BOOL "")
   set(FIREBASE_IOS_BUILD ON CACHE BOOL "")
 endif()
@@ -426,10 +429,12 @@ endif()
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
   # Build curl as a static library
-  set(CURL_STATICLIB ON CACHE BOOL "")
+  set(BUILD_SHARED_LIBS OFF)
+  set(BUILD_CURL_EXE OFF)
+  set(CURL_STATICLIB ON)
   if (WIN32)
     # Enable Windows native SSL/TLS in libcurl.
-    set(CMAKE_USE_SCHANNEL ON CACHE BOOL "")
+    set(CMAKE_USE_SCHANNEL ON)
   endif()
 
   # Current Curl library defaults to requiring some dependencies we don't need, disable them.
