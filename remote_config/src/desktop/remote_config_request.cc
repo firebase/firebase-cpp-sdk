@@ -17,6 +17,7 @@
 #include "remote_config/src/desktop/remote_config_request.h"
 
 #include <map>
+#include <sstream>
 #include <string>
 
 #include "app/src/app_common.h"

@@ -116,7 +116,7 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
 
   custom_signals_.clear();
   flexbuffers::Map custom_signals = struct_map["custom_signals"].AsMap();
-  for (int i = 0, n = custom_signals.size(); i < n; ++i) {
+  for (size_t i = 0, n = custom_signals.size(); i < n; ++i) {
     const char* key_str = custom_signals.Keys()[i].AsKey();
     if (!key_str) continue;
     flexbuffers::Reference val_ref = custom_signals.Values()[i];
