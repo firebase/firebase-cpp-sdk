@@ -491,7 +491,6 @@ if(DESKTOP)
         -DUSE_LIBUV=1
       )
     elseif(APPLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY")
       set(websockets_additional_defines
         ${websockets_additional_defines}
         -DUSE_LIBUV=1
