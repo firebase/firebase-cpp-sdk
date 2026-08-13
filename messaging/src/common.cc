@@ -172,11 +172,6 @@ void NotifyListenerOnRegistrationReceived(const char* installationId) {
     return;
   }
   MutexLock lock(g_listener_lock);
-  if (g_prev_registration_received &&
-      *g_prev_registration_received == installationId) {
-    return;
-  }
-
   if (!g_prev_registration_received)
     g_prev_registration_received = new std::string;
   *g_prev_registration_received = installationId;
