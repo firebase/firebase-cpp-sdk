@@ -47,7 +47,7 @@ const int SDK_PATCH_VERSION = 0;
 const char kTokenScope[] = "*";
 
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
-                                   const LayeredConfigs& configs,
+                                   LayeredConfigs& configs,
                                    const std::string namespaces)
     : app_package_name_(app_options.package_name()),
       app_gmp_project_id_(app_options.app_id()),
@@ -138,6 +138,7 @@ void RemoteConfigREST::SetupRestRequest(
   rc_request_.SetPackageName(app_package_name_);
   rc_request_.SetSdkVersion(std::to_string(
       SDK_MAJOR_VERSION * 10000 + SDK_MINOR_VERSION * 100 + SDK_PATCH_VERSION));
+  rc_request_.SetCustomSignals(configs_.metadata.custom_signals());
 
   rc_request_.UpdatePost();
 }

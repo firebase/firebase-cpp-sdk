@@ -17,6 +17,10 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_
 
+#include <map>
+#include <string>
+#include <utility>
+
 #include "app/rest/request_json.h"
 #include "remote_config/request_generated.h"
 #include "remote_config/request_resource.h"
@@ -87,7 +91,21 @@ class RemoteConfigRequest
         std::move(analytics_user_properties);
   }
 
+  void SetCustomSignals(std::map<std::string, Variant> custom_signals) {
+    custom_signals_ = std::move(custom_signals);
+  }
+
+  const std::map<std::string, Variant>& custom_signals() const {
+    return custom_signals_;
+  }
+
   void UpdatePost() { UpdatePostFields(); }
+
+ protected:
+  void UpdatePostFields() override;
+
+ private:
+  std::map<std::string, Variant> custom_signals_;
 };
 
 }  // namespace internal

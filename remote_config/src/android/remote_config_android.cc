@@ -60,6 +60,9 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
   X(SetConfigSettingsAsync, "setConfigSettingsAsync",                      \
     "(Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;)"    \
     "Lcom/google/android/gms/tasks/Task;"),                                \
+  X(SetCustomSignalsAsync, "setCustomSignals",                             \
+    "(Lcom/google/firebase/remoteconfig/CustomSignals;)"                   \
+    "Lcom/google/android/gms/tasks/Task;"),                                \
   X(GetLong, "getLong", "(Ljava/lang/String;)J"),                          \
   X(GetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;"),     \
   X(GetBoolean, "getBoolean", "(Ljava/lang/String;)Z"),                    \
@@ -149,6 +152,30 @@ METHOD_LOOKUP_DEFINITION(
     PROGUARD_KEEP_CLASS
     "com/google/firebase/remoteconfig/FirebaseRemoteConfigSettings$Builder",
     REMOTE_CONFIG_SETTINGS_BUILDER_METHODS)
+
+// Methods of CustomSignals.Builder
+// clang-format off
+#define CUSTOM_SIGNALS_BUILDER_METHODS(X)                                 \
+  X(Constructor, "<init>", "()V"),                                        \
+  X(PutString, "put",                                                     \
+    "(Ljava/lang/String;Ljava/lang/String;)"                              \
+    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;"),          \
+  X(PutLong, "put",                                                       \
+    "(Ljava/lang/String;J)"                                               \
+    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;"),          \
+  X(PutDouble, "put",                                                     \
+    "(Ljava/lang/String;D)"                                               \
+    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;"),          \
+  X(Build, "build",                                                       \
+    "()Lcom/google/firebase/remoteconfig/CustomSignals;")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(custom_signals_builder,
+                          CUSTOM_SIGNALS_BUILDER_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    custom_signals_builder,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/remoteconfig/CustomSignals$Builder",
+    CUSTOM_SIGNALS_BUILDER_METHODS)
 
 // Methods of FirebaseRemoteConfigFetchThrottledException.
 // clang-format off
@@ -248,6 +275,7 @@ static bool CacheJNIMethodIds(
           config_info::CacheMethodIds(env, activity) &&
           config_settings::CacheMethodIds(env, activity) &&
           config_settings_builder::CacheMethodIds(env, activity) &&
+          custom_signals_builder::CacheMethodIds(env, activity) &&
           throttled_exception::CacheMethodIds(env, activity) &&
           config_update::CacheMethodIds(env, activity) &&
           config_update_listener_registration::CacheMethodIds(env, activity));
@@ -260,6 +288,7 @@ static void ReleaseClasses(JNIEnv* env) {
   config_info::ReleaseClass(env);
   config_settings::ReleaseClass(env);
   config_settings_builder::ReleaseClass(env);
+  custom_signals_builder::ReleaseClass(env);
   throttled_exception::ReleaseClass(env);
   config_update::ReleaseClass(env);
   config_update_listener_registration::ReleaseClass(env);
@@ -359,6 +388,88 @@ static jobject ConfigKeyValueVariantArrayToHashMap(
     env->DeleteLocalRef(key);
   }
   return hash_map;
+}
+
+// Convert a std::map<std::string, Variant> into a Java CustomSignals object
+// using CustomSignals.Builder to populate String, Long, and Double signal
+// entries, or null values to clear signals.
+static jobject CustomSignalsFromMap(JNIEnv* env,
+                                    const std::map<std::string, Variant>& map) {
+  jobject builder = env->NewObject(custom_signals_builder::GetClass(),
+                                   custom_signals_builder::GetMethodId(
+                                       custom_signals_builder::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !builder) return nullptr;
+
+  for (const auto& kv : map) {
+    jstring key = env->NewStringUTF(kv.first.c_str());
+    if (util::CheckAndClearJniExceptions(env) || !key) {
+      env->DeleteLocalRef(builder);
+      return nullptr;
+    }
+    jobject result_builder = nullptr;
+    if (kv.second.is_null()) {
+      result_builder =
+          env->CallObjectMethod(builder,
+                                custom_signals_builder::GetMethodId(
+                                    custom_signals_builder::kPutString),
+                                key, nullptr);
+    } else if (kv.second.is_string()) {
+      jstring str_val = env->NewStringUTF(kv.second.string_value());
+      if (util::CheckAndClearJniExceptions(env) || !str_val) {
+        env->DeleteLocalRef(key);
+        env->DeleteLocalRef(builder);
+        return nullptr;
+      }
+      result_builder =
+          env->CallObjectMethod(builder,
+                                custom_signals_builder::GetMethodId(
+                                    custom_signals_builder::kPutString),
+                                key, str_val);
+      env->DeleteLocalRef(str_val);
+    } else if (kv.second.is_int64()) {
+      result_builder = env->CallObjectMethod(
+          builder,
+          custom_signals_builder::GetMethodId(custom_signals_builder::kPutLong),
+          key, kv.second.int64_value());
+    } else if (kv.second.is_double()) {
+      result_builder =
+          env->CallObjectMethod(builder,
+                                custom_signals_builder::GetMethodId(
+                                    custom_signals_builder::kPutDouble),
+                                key, kv.second.double_value());
+    } else {
+      LogError(
+          "Remote Config: Invalid Variant type for SetCustomSignals() key %s.",
+          kv.first.c_str());
+      env->DeleteLocalRef(key);
+      env->DeleteLocalRef(builder);
+      return nullptr;
+    }
+
+    if (util::CheckAndClearJniExceptions(env) || !result_builder) {
+      if (result_builder) {
+        env->DeleteLocalRef(result_builder);
+      }
+      env->DeleteLocalRef(key);
+      env->DeleteLocalRef(builder);
+      return nullptr;
+    }
+
+    env->DeleteLocalRef(key);
+    env->DeleteLocalRef(result_builder);
+  }
+
+  jobject custom_signals = env->CallObjectMethod(
+      builder,
+      custom_signals_builder::GetMethodId(custom_signals_builder::kBuild));
+  if (util::CheckAndClearJniExceptions(env) || !custom_signals) {
+    if (custom_signals) {
+      env->DeleteLocalRef(custom_signals);
+    }
+    custom_signals = nullptr;
+  }
+  env->DeleteLocalRef(builder);
+  return custom_signals;
 }
 
 // Check pending exceptions following a key fetch and log an error if a
@@ -957,6 +1068,40 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void>&>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+Future<void> RemoteConfigInternal::SetCustomSignals(
+    const std::map<std::string, Variant>& custom_signals) {
+  const auto handle =
+      future_impl_.SafeAlloc<void>(kRemoteConfigFnSetCustomSignals);
+  JNIEnv* env = app_.GetJNIEnv();
+  jobject j_custom_signals = CustomSignalsFromMap(env, custom_signals);
+  if (!j_custom_signals) {
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetCustomSignals native function fails");
+    return MakeFuture<void>(&future_impl_, handle);
+  }
+  jobject task = env->CallObjectMethod(
+      internal_obj_, config::GetMethodId(config::kSetCustomSignalsAsync),
+      j_custom_signals);
+  if (util::CheckAndClearJniExceptions(env)) {
+    task = nullptr;
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetCustomSignals native function fails");
+  } else {
+    auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this);
+    util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
+                                 reinterpret_cast<void*>(data_handle),
+                                 jni_task_id_.c_str());
+  }
+  env->DeleteLocalRef(task);
+  env->DeleteLocalRef(j_custom_signals);
+  return MakeFuture<void>(&future_impl_, handle);
+}
+
+Future<void> RemoteConfigInternal::SetCustomSignalsLastResult() {
+  return static_cast<const Future<void>&>(
+      future_impl_.LastResult(kRemoteConfigFnSetCustomSignals));
 }
 
 ConfigSettings RemoteConfigInternal::GetConfigSettings() {

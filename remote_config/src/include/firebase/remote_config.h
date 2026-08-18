@@ -385,6 +385,26 @@ class RemoteConfig {
   /// @return The future result from the last call to SetConfigSettings().
   Future<void> SetConfigSettingsLastResult();
 
+  /// @brief Sets custom signals to be sent with fetch requests.
+  ///
+  /// Custom signals are custom key-value pairs used for targeting in Remote
+  /// Config. Values can be strings, integers, or doubles represented as
+  /// firebase::Variant, or a null Variant to remove a signal.
+  /// Setting custom signals merges with previously set signals.
+  ///
+  /// @param[in] custom_signals Map of custom signal keys to Variant values.
+  ///
+  /// @return A Future which can be used to determine when the operation is
+  /// complete.
+  Future<void> SetCustomSignals(
+      const std::map<std::string, Variant>& custom_signals);
+
+  /// @brief Get the (possibly still pending) results of the most recent
+  /// SetCustomSignals() call.
+  ///
+  /// @return The future result from the last call to SetCustomSignals().
+  Future<void> SetCustomSignalsLastResult();
+
   /// @brief Returns the value associated with a key, converted to a bool.
   ///
   /// Values of "1", "true", "t", "yes", "y" and "on" are interpreted (case

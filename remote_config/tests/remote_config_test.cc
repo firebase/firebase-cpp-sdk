@@ -100,6 +100,33 @@ TEST_F(RemoteConfigTest, SetDefaultsWithNullConfigKeyValueVariant) {
   SetDefaults(keyvalues, 0);
 }
 
+TEST_F(RemoteConfigTest, SetCustomSignals) {
+  REPORT_EXPECT("CustomSignals.Builder.build", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfig.setCustomSignals", "",
+                {"{color=black, height=120}"});
+  std::map<std::string, Variant> custom_signals = {{"color", Variant("black")},
+                                                   {"height", Variant(120)}};
+  SetCustomSignals(custom_signals);
+}
+
+TEST_F(RemoteConfigTest, SetCustomSignalsWithNull) {
+  REPORT_EXPECT("CustomSignals.Builder.build", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfig.setCustomSignals", "",
+                {"{color=black, to_clear=null}"});
+  std::map<std::string, Variant> custom_signals = {
+      {"color", Variant("black")}, {"to_clear", Variant::Null()}};
+  SetCustomSignals(custom_signals);
+}
+
+TEST_F(RemoteConfigTest, SetCustomSignalsWithInvalidType) {
+  std::vector<Variant> vec = {Variant(1)};
+  std::map<std::string, Variant> invalid_signals = {
+      {"invalid_key", Variant(vec)}};
+  Future<void> future = SetCustomSignals(invalid_signals);
+  EXPECT_EQ(future.status(), kFutureStatusComplete);
+  EXPECT_EQ(future.error(), kFutureStatusFailure);
+}
+
 TEST_F(RemoteConfigTest, SetDefaultsWithConfigKeyValueVariant) {
   REPORT_EXPECT("FirebaseRemoteConfig.setDefaultsAsync", "",
                 {"{color=black, height=120}"});

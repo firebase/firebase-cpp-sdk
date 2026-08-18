@@ -180,6 +180,15 @@ Future<void> RemoteConfig::SetConfigSettingsLastResult() {
   return internal_->SetConfigSettingsLastResult();
 }
 
+Future<void> RemoteConfig::SetCustomSignals(
+    const std::map<std::string, Variant>& custom_signals) {
+  return internal_->SetCustomSignals(custom_signals);
+}
+
+Future<void> RemoteConfig::SetCustomSignalsLastResult() {
+  return internal_->SetCustomSignalsLastResult();
+}
+
 bool RemoteConfig::GetBoolean(const char* key) {
   return GetBoolean(key, static_cast<ValueInfo*>(nullptr));
 }
