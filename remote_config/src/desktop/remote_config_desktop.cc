@@ -255,7 +255,9 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
     if (key.length() > kMaxCustomSignalsKeyLength) {
       future_impl_.Complete(
           handle, kFutureStatusFailure,
-          "Custom signal keys must be 256 characters or less.");
+          ("Custom signal keys must be " +
+           std::to_string(kMaxCustomSignalsKeyLength) + " characters or less.")
+              .c_str());
       return MakeFuture<void>(&future_impl_, handle);
     }
 
@@ -263,7 +265,10 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
         strlen(value.string_value()) > kMaxCustomSignalsStringValueLength) {
       future_impl_.Complete(
           handle, kFutureStatusFailure,
-          "Custom signal string values must be 500 characters or less.");
+          ("Custom signal string values must be " +
+           std::to_string(kMaxCustomSignalsStringValueLength) +
+           " characters or less.")
+              .c_str());
       return MakeFuture<void>(&future_impl_, handle);
     }
   }
@@ -290,7 +295,9 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
     // Verify the merged map size does not exceed the maximum allowed count.
     if (updated_signals.size() > kMaxCustomSignalsCount) {
       future_impl_.Complete(handle, kFutureStatusFailure,
-                            "Custom signals count exceeds the limit of 100.");
+                            ("Custom signals count exceeds the limit of " +
+                             std::to_string(kMaxCustomSignalsCount) + ".")
+                                .c_str());
       return MakeFuture<void>(&future_impl_, handle);
     }
 
