@@ -164,6 +164,10 @@ void DebugAppCheckProvider::GetTokenInternal(
           "Or using the Firebase CLI: \n" +
           "firebase appcheck:debugtokens:create " + debug_token_ + " --app " +
           app_id + "\n\n" +
+          "This debug token will regenerate every time the application is run.\n" +
+          "For more persistent methods of setting the debug token, please review the \n" +
+          "\"Debug & test providers\" section of the Firebase App Check documentation:\n" +
+          "https://firebase.google.com/docs/app-check\n\n" +
           "Note: To keep your project secure, please revoke and delete this "
           "token using the \n" +
           "Firebase Console or the CLI (`firebase "
@@ -171,10 +175,6 @@ void DebugAppCheckProvider::GetTokenInternal(
           "when you finish debugging.\n\n" +
           "Warning: This debug token is a secret and should not be shared or "
           "uploaded to source code.\n\n" +
-          "Note: This debug token will regenerate every time the application is run.\n" +
-          "For more persistent methods of setting the debug token, please review the \n" +
-          "\"Debug & test providers\" section of the Firebase App Check documentation:\n" +
-          "https://firebase.google.com/docs/app-check\n\n" +
           "Debug Token Guide: "
           "https://firebase.google.com/docs/app-check/ios/debug-provider\n" +
           "Firebase CLI install instructions: "
