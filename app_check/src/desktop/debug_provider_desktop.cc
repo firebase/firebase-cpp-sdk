@@ -171,6 +171,10 @@ void DebugAppCheckProvider::GetTokenInternal(
           "when you finish debugging.\n\n" +
           "Warning: This debug token is a secret and should not be shared or "
           "uploaded to source code.\n\n" +
+          "Note: This debug token will regenerate every time the application is run.\n" +
+          "For more persistent methods of setting the debug token, please review the \n" +
+          "\"Debug & test providers\" section of the Firebase App Check documentation:\n" +
+          "https://firebase.google.com/docs/app-check\n\n" +
           "Debug Token Guide: "
           "https://firebase.google.com/docs/app-check/ios/debug-provider\n" +
           "Firebase CLI install instructions: "
