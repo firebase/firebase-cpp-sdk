@@ -1,0 +1,353 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+  }
+}    classpath 'com.google.gms:google-services:4.3.3'    "utm_source": null,
+    "utm_medium": null,
+    "utm_term": null,
+    "utm_content": null,
+    "utm_campaign": null,
+    "browser_version": "90.0.4430.93",
+    "browser_name": "Chrome",
+    "os_name": "Macintosh",
+    "os_version": "10.15.7",
+    "screen_height": "900",
+    "screen_width": "1440",
+    "ip_city": "Paris",
+    "ip_country_code": "FR",
+    "ip_country_name": "France",
+    "password_key": "w68d21e717ae84ec4915d4",
+    "fields": {},
+    "connection_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0/live?email=john%40doe.com&key=w68d21e717ae84ec4915d4"
+  },
+  "webinar": {
+    "identify": "a695w8cb-8467-4a95-b259-75b622bd91b0",
+    "title": "Product demo",
+    "slug": "product-demo",
+    "created_at": "2021-05-18T08:43:25.304Z",
+    "estimated_duration": 1800,
+    "registration_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0",
+    "published_at": "2021-05-18T08:43:31.433Z",
+    "nb_registered": 2,
+    "room_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0/live?s=fqa1475e-fe2d-4egd-a007-6c27364bfeba",
+    "estimated_started_at": "2021-05-18T10:00:00.000Z"
+  }
+}
+Event starts
+{
+  "webinar": {
+    "identify": "a695b8cb-8467-4a95-b259-75b622bd91b0",
+    "title": "Product demo",
+    "slug": "product-demo",
+    "created_at": "2021-05-18T08:43:25.304Z",
+    "estimated_duration": 1800,
+    "registration_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0",
+    "published_at": "2021-05-18T08:43:31.433Z",
+    "nb_registered": 2,
+    "room_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0/live?s=w0a1475e-fe2d-4wad-a007-6c27364bfeba",
+    "estimated_started_at": "2021-05-18T10:00:00.000Z",
+    "started_at": "2021-05-18T08:46:33.377Z"
+  }
+}
+Event ends
+{
+  "webinar": {
+    "identify": "a695b8cb-8467-4a95-b259-75b622bd91b0",
+    "title": "Product demo",
+    "slug": "product-demo",
+    "created_at": "2021-05-18T08:43:25.304Z",
+    "estimated_duration": 1800,
+    "registration_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0",
+    "published_at": "2021-05-18T08:43:31.433Z",
+    "nb_registered": 2,
+    "room_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0/live?s=w0a1475e-fe2d-4wad-a007-6c27364bfeba",
+    "estimated_started_at": "2021-05-18T10:00:00.000Z",
+    "started_at": "2021-05-18T08:46:33.377Z",
+    "ended_at": "2021-05-18T08:48:04.528Z",
+    "duration": 91,
+    "nb_attended": 1,
+    "attendees": [
+      {
+        "identify": "13982e6b-c6a2-497d-acfd-0cb2d00b6636",
+        "created_at": "2021-03-12T09:26:43.700Z",
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john@doe.com",
+        "avatar_link": null,
+        "referrer": null,
+        "utm_source": null,
+        "utm_medium": null,
+        "utm_term": null,
+        "utm_content": null,
+        "utm_campaign": null,
+        "browser_version": "90.0.4430.93",
+        "browser_name": "Chrome",
+        "os_name": "Macintosh",
+        "os_version": "10.15.7",
+        "screen_height": "900",
+        "screen_width": "1440",
+        "ip_city": "Paris",
+        "ip_country_code": "FR",
+        "ip_country_name": "France",
+        "password_key": "e68s21e717be84ec4915d4",
+        "fields": {},
+        "connection_link": "https://app.livestorm.co/p/a695b8cb-8467-4a95-b259-75b622bd91b0/live?email=pierre%2Bregistrant1%40livestorm.co&key=e68s21e717be84ec4915d4",
+        "is_attendance": true,
+        "attendance_rate": 100,
+        "attendance_duration": 181,
+        "messages_count": 0,
+        "questions_count": 0,
+        "votes_count": 0,
+        "up_votes_count": 0
+      }
+    ]
+  }
+      }{
+  "data": {
+    "id": "29e88fxb-7370-47ce-9589-a691c7l272of",
+    "type": "events",
+    "attributes": {
+      "title": "New event webhook",
+      "slug": "new-event-webhook",
+      "registration_link": "https://app.livestorm.co/p/79e88fxb-6370-47ce-9589-a691c7l272of",
+      "estimated_duration": 30,
+      "registration_page_enabled": true,
+      "everyone_can_speak": false,
+      "description": null,
+      "status": "draft",
+      "light_registration_page_enabled": true,
+      "recording_enabled": true,
+      "recording_public": true,
+      "show_in_company_page": false,
+      "chat_enabled": true,
+      "polls_enabled": true,
+      "questions_enabled": true,
+      "language": "en",
+      "published_at": 0,
+      "scheduling_status": "draft",
+      "created_at": 1643710217,
+      "updated_at": 1643710219,
+      "owner": {
+        "id": "a850c828-b9a0-416d-ae13-8b672bch11e2",
+        "type": "people",
+        "attributes": {
+          "role": "team_member",
+          "created_at": 1599990459,
+          "updated_at": 1643710219,
+          "timezone": "Europe/Paris",
+          "first_name": "James",
+          "last_name": "Doe",
+          "email": "james.doe@livestorm.co",
+          "avatar_link": null
+        }
+      },
+      "sessions_count": 1,
+      "fields": [{
+        "id": "email",
+        "type": "text",
+        "order": 0,
+        "required": true
+      }, {
+        "id": "first_name",
+        "type": "text",
+        "order": 1,
+        "required": true
+      }, {
+        "id": "last_name",
+        "type": "text",
+        "order": 2,
+        "required": true
+      }]
+    },
+    "meta": {
+      "webhook": {
+        "id": "b836c804-8696-4946-a8c8-ece61da0ecd6",
+        "event": "event.created",
+        "organization_id": "030ed9d5-73d8-4dcb-a059-ece61da0ecd6"
+      }
+    }
+  }
+}{
+  "data": {
+    "id": "1e9d9b14-f990-4e19-a436-9a7dd6a5780a",
+    "type": "sessions",
+    "attributes": {
+      "event_id": "71cfa73b-6fbe-4f55-b219-28f4b195ae94",
+      "status": "draft",
+      "timezone": "Europe/Paris",
+      "room_link": "https://app.livestorm.co/p/71cfa73b-6fbe-4f55-b219-28f4b195ae94/live?s=1e9d9b14-f990-4e19-a436-9a7dd6a5780a",
+      "attendees_count": 0,
+      "duration": null,
+      "estimated_started_at": 1645459200,
+      "started_at": 0,
+      "ended_at": 0,
+      "canceled_at": 0,
+      "created_at": 1644845096,
+      "updated_at": 1644845096,
+      "registrants_count": 1,
+      "breakout_room_parent_session_id": null
+    },
+    "meta": {
+      "webhook": {
+        "id": "86c06b1c-440e-4693-90bc-f68ba21036f3",
+        "event": "session.created",
+        "organization_id": "030ed9d5-73d8-4dcb-a059-ece61da0ecd6"
+      }
+    }
+  }
+}{
+  "data": {
+    "id": "9d28f3fa-97a0-47fb-8112-c426e595ff75",
+    "type": "events",
+    "attributes": {
+      "title": "Test webhook",
+      "slug": "test-webhook",
+      "registration_link": "https://app.livestorm.co/p/9d28f3fa-97a0-47fb-8112-c426es95ff75",
+      "estimated_duration": 30,
+      "registration_page_enabled": true,
+      "description": null,
+      "status": "published",
+      "scheduling_status": "ended",
+      "light_registration_page_enabled": true,
+      "recording_enabled": true,
+      "recording_public": true,
+      "show_in_company_page": false,
+      "chat_enabled": true,
+      "polls_enabled": true,
+      "questions_enabled": true,
+      "language": "en",
+      "published_at": 1611569968,
+      "created_at": 1611569964,
+      "updated_at": 1611569968,
+      "owner": {
+        "id": "e880f828-b6a0-416d-as13-8b672bc883e2",
+        "type": "people",
+        "attributes": {
+          "role": "team_member",
+          "created_at": 1599990459,
+          "updated_at": 1611569968,
+          "timezone": "Europe/Paris",
+          "first_name": "John",
+          "last_name": "Doe",
+          "email": "john@doe.com",
+          "avatar_link": null
+        }
+      },
+      "sessions_count": 1,
+      "fields": [
+        {
+          "id": "email",
+          "type": "text",
+          "order": 0,
+          "required": true
+        },
+        {
+          "id": "first_name",
+          "type": "text",
+          "order": 1,
+          "required": true
+        },
+        {
+          "id": "last_name",
+          "type": "text",
+          "order": 2,
+          "required": true
+        },
+        {
+          "id": "avatar",
+          "type": "file",
+          "order": 3,
+          "required": false
+        }
+      ]
+    },
+    "meta": {
+      "webhook": {
+        "id": "7deb90bf-ac41-qb27-ab0d-e2200b3a1b60",
+        "event": "event.published",
+        "organization_id": "030ed9d5-73d8-4dcb-a059-ece61da0ecd6"
+      }
+    }
+  }
+}{
+  "data": {
+    "id": "d6497e8b-dc77-4a2f-saf7-737f8f5ad301",
+    "type": "people",
+    "attributes": {
+      "role": "participant",
+      "created_at": 1611569996,
+      "updated_at": 1611569997,
+      "timezone": "Europe/Paris",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@doe.com",
+      "avatar_link": null,
+      "registrant_detail": {
+        "event_id": "9d28f3qa-97a0-47fb-8112-c426e595ff75",
+        "session_id": "26b4qf06-16d1-49b4-9225-14d80f18c93f",
+        "created_at": 1611569996,
+        "updated_at": 1611570008,
+        "fields": [
+          {
+            "id": "email",
+            "type": "text",
+            "value": "john@doe.com",
+            "required": true
+          },
+          {
+            "id": "first_name",
+            "type": "text",
+            "value": "John",
+            "required": true
+          },
+          {
+            "id": "last_name",
+            "type": "text",
+            "value": "Doe",
+            "required": true
+          },
+          {
+            "id": "avatar",
+            "type": "file",
+            "value": null,
+            "required": false
+          }
+        ],
+        "referrer": null,
+        "utm_source": null,
+        "utm_medium": null,
+        "utm_term": null,
+        "utm_content": null,
+        "utm_campaign": null,
+        "browser_version": "87.0.4280.141",
+        "browser_name": "Chrome",
+        "os_name": "Macintosh",
+        "os_version": "11.1.0",
+        "screen_height": "900",
+        "screen_width": "1440",
+        "ip_city": null,
+        "ip_country_code": null,
+        "ip_country_name": null,
+        "password_key": "8781",
+        "connection_link": "https://app.livestorm.co/p/9d2sf3fa-97a0-47fb-8112-c426e5s5ff75/live?email=john%40doe.com&key=8781&s=26b43f06-16d1-49b4-9225-1sd80f18c93f",
+        "attended": false,
+        "attendance_rate": null,
+        "attendance_duration": 0,
+        "has_viewed_replay": false,
+        "is_highlighted": false,
+        "is_guest_speaker": false
+      },
+      "messages_count": 0,
+      "questions_count": 0,
+      "votes_count": 0,
+      "up_votes_count": 0
+    },
+    "meta": {
+      "webhook": {
+        "id": "cece3c3c-7699-4446-q482-315ad7625402",
+        "event": "people.registered",
+        "organization_id": "030ed9d5-73d8-4dcb-a059-ece61da0ecd6"
+      }
+    }
+  }
+}
