@@ -164,9 +164,12 @@ void DebugAppCheckProvider::GetTokenInternal(
           "Or using the Firebase CLI: \n" +
           "firebase appcheck:debugtokens:create " + debug_token_ + " --app " +
           app_id + "\n\n" +
-          "This debug token will regenerate every time the application is run.\n" +
-          "For more persistent methods of setting the debug token, please review the \n" +
-          "\"Debug & test providers\" section of the Firebase App Check documentation:\n" +
+          "This debug token will regenerate every time the application is "
+          "run.\n" +
+          "For more persistent methods of setting the debug token, please "
+          "review the \n" +
+          "\"Debug & test providers\" section of the Firebase App Check "
+          "documentation:\n" +
           "https://firebase.google.com/docs/app-check\n\n" +
           "Note: To keep your project secure, please revoke and delete this "
           "token using the \n" +
