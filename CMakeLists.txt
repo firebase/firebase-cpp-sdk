@@ -639,6 +639,10 @@ else()
   )
 endif()
 
+if (IOS)
+  add_dependencies(firebase_app patch_xcode_spm)
+endif()
+
 if (FIREBASE_INCLUDE_ANALYTICS)
   add_subdirectory(analytics)
   add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_ANALYTICS_GENERATED_HEADERS)
