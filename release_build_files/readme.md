@@ -613,8 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 13.12.0
 - Changes
+    - General (Android): Update to Firebase Android BoM version 34.18.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.18.0.
     - App Check (Desktop): The App Check Debug Provider will now automatically generate a local debug token if one isn't provided, and print instructions for registering it via the Firebase Console or CLI.
     - General (iOS): Fixed an issue where prebuilt iOS/tvOS frameworks had an incorrect minimum deployment target (minos), which caused linker warnings.
     - Auth (Desktop): Fixed log spam and high CPU utilization when offline by moving `USE_AUTH_EMULATOR` environment variable check to initialization and eliminating per-request logging (#1629).
