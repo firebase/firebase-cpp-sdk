@@ -123,7 +123,7 @@ if ${generateMakefiles}; then
         for arch in ${architectures[@]}; do 
             sysroot_arg=""
             if [[ "${platform}" == "device" && " ${DEVICE_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                sysroot_arg="" # Default iphoneos sysroot is correct for iOS devices
+                sysroot_arg="-DCMAKE_OSX_SYSROOT=iphoneos"
             elif [[ "${platform}" == "simulator" && " ${SIMULATOR_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
                 sysroot_arg="-DCMAKE_OSX_SYSROOT=iphonesimulator" # Must specify sysroot for simulator, especially for x86_64
             else
@@ -183,13 +183,13 @@ if ${cmakeBuild}; then
             if [[ ! -d "${platform}-${arch}/firebase.framework" ]]; then
                 mv ${platform}-${arch}/firebase_app.framework ${platform}-${arch}/firebase.framework
                 mv ${platform}-${arch}/firebase.framework/firebase_app ${platform}-${arch}/firebase.framework/firebase
-                rm ${platform}-${arch}/firebase.framework/Info.plist
+                rm -f ${platform}-${arch}/firebase.framework/Info.plist
             fi
 
             # delete useless Info.plist
             for target in ${targets[@]}; do
                 if [[ -f "${platform}-${arch}/${target}.framework/Info.plist" ]]; then
-                    rm ${platform}-${arch}/${target}.framework/Info.plist
+                    rm -f ${platform}-${arch}/${target}.framework/Info.plist
                 fi
             done
 

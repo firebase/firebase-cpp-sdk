@@ -108,9 +108,9 @@ class PbxprojPatcher:
         if self._add_package_to_project():
             modified = True
 
-        # 6. Strip legacy build settings (SYMROOT/OBJROOT) to enable SPM
-        if self._strip_legacy_build_settings():
-            modified = True
+        # 6. Do not strip SYMROOT/OBJROOT so all packages share the CMake build directory
+        # if self._strip_legacy_build_settings():
+        #     modified = True
 
         if modified:
             with open(self.file_path, "w", encoding="utf-8") as f:
@@ -255,7 +255,9 @@ class PbxprojPatcher:
                 dep_items += f"\t\t\t\t{p_uuid} /* {prod_name} */,\n"
             
             dep_list = f"\t\t\tpackageProductDependencies = (\n{dep_items}\t\t\t);\n\t\t}};"
-            target_block = target_block.replace("\t\t};", dep_list)
+            last_idx = target_block.rfind("\t\t};")
+            if last_idx != -1:
+                target_block = target_block[:last_idx] + dep_list + target_block[last_idx + len("\t\t};"):]
 
         if target_block != original_block:
             self.content = self.content.replace(original_block, target_block)
@@ -290,7 +292,9 @@ class PbxprojPatcher:
         else:
             # Create packageReferences list right before the closing }; of PBXProject
             pkg_list = f"\t\t\tpackageReferences = (\n\t\t\t\t{self.package_ref_uuid} /* {PACKAGE_NAME} */,\n\t\t\t);\n\t\t}};"
-            project_block = project_block.replace("\t\t};", pkg_list)
+            last_idx = project_block.rfind("\t\t};")
+            if last_idx != -1:
+                project_block = project_block[:last_idx] + pkg_list + project_block[last_idx + len("\t\t};"):]
 
         if project_block != original_block:
             self.content = self.content.replace(original_block, project_block)

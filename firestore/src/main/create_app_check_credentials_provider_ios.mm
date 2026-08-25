@@ -22,8 +22,8 @@
 #import <FirebaseCore/FIRComponent.h>
 #import <FirebaseCore/FIRComponentContainer.h>
 #import <FirebaseCore/FIRComponentType.h>
-#import "FirebaseAuthInterop/FIRAuthInterop.h"
 #import <FirebaseCore/FirebaseCore.h>
+#import "FirebaseAuthInterop/FIRAuthInterop.h"
 
 #include "Firestore/core/src/credentials/firebase_app_check_credentials_provider_apple.h"
 #include "app/src/include/firebase/app.h"

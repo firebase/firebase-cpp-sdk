@@ -220,12 +220,12 @@ target_compile_definitions(firebase_database
 if(ANDROID)
   firebase_cpp_proguard_file(database)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
-  target_compile_options(firebase_database
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_database
-                        PUBLIC "-fembed-bitcode")
-
+  setup_pod_headers(
+    firebase_database
+    POD_NAMES
+      FirebaseCore
+      FirebaseDatabase
+  )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_database PROPERTIES

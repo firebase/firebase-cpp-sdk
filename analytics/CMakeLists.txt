@@ -149,14 +149,20 @@ elseif(IOS)
     target_include_directories(firebase_analytics PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
   endif()
  
-
+  setup_pod_headers(
+    firebase_analytics
+    POD_NAMES
+      FirebaseCore
+  )
+  target_include_directories(firebase_analytics
+    PUBLIC
+      ${CMAKE_CURRENT_LIST_DIR}/ios_headers
+  )
 
   # Prevent Xcode from trying to build or evaluate headers for unused architectures
   set_target_properties(firebase_analytics PROPERTIES
     XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "YES"
   )
-
-
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_analytics PROPERTIES

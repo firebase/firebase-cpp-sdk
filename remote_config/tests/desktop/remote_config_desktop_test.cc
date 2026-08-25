@@ -209,7 +209,9 @@ TEST_F(RemoteConfigDesktopTest, GetAndSetConfigSetting) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetBoolean) {
-  { EXPECT_FALSE(instance_->GetBoolean("key_bool", nullptr)); }
+  {
+    EXPECT_FALSE(instance_->GetBoolean("key_bool", nullptr));
+  }
   {
     ValueInfo info;
     EXPECT_FALSE(instance_->GetBoolean("key_bool", &info));
@@ -219,7 +221,9 @@ TEST_F(RemoteConfigDesktopTest, GetBoolean) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetLong) {
-  { EXPECT_EQ(instance_->GetLong("key_long", nullptr), 55555); }
+  {
+    EXPECT_EQ(instance_->GetLong("key_long", nullptr), 55555);
+  }
   {
     ValueInfo info;
     EXPECT_EQ(instance_->GetLong("key_long", &info), 55555);
@@ -229,7 +233,9 @@ TEST_F(RemoteConfigDesktopTest, GetLong) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetDouble) {
-  { EXPECT_EQ(instance_->GetDouble("key_double", nullptr), 100.5); }
+  {
+    EXPECT_EQ(instance_->GetDouble("key_double", nullptr), 100.5);
+  }
   {
     ValueInfo info;
     EXPECT_EQ(instance_->GetDouble("key_double", &info), 100.5);
@@ -239,7 +245,9 @@ TEST_F(RemoteConfigDesktopTest, GetDouble) {
 }
 
 TEST_F(RemoteConfigDesktopTest, GetString) {
-  { EXPECT_EQ(instance_->GetString("key_string", nullptr), "aaa"); }
+  {
+    EXPECT_EQ(instance_->GetString("key_string", nullptr), "aaa");
+  }
   {
     ValueInfo info;
     EXPECT_EQ(instance_->GetString("key_string", &info), "aaa");

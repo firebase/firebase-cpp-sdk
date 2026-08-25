@@ -598,15 +598,54 @@ if(MSVC)
 endif()
 
 if(IOS)
+  # Set up pre-generated Swift headers directory structure
+  set(FIREBASE_SWIFT_HEADERS_DIR "${CMAKE_BINARY_DIR}/swift_headers")
+  file(MAKE_DIRECTORY "${FIREBASE_SWIFT_HEADERS_DIR}")
+  
+  set(SWIFT_HDR_SRC "${CMAKE_CURRENT_LIST_DIR}/ios_pod/swift_headers")
+  if(EXISTS "${SWIFT_HDR_SRC}")
+    # Copy Swift headers into module subdirectories (e.g. FirebaseFunctions/FirebaseFunctions-Swift.h)
+    file(GLOB swift_header_files "${SWIFT_HDR_SRC}/*.h")
+    foreach(hdr_file ${swift_header_files})
+      get_filename_component(hdr_name ${hdr_file} NAME)
+      string(REGEX REPLACE "-Swift\\.h$" "" mod_name "${hdr_name}")
+      file(MAKE_DIRECTORY "${FIREBASE_SWIFT_HEADERS_DIR}/${mod_name}")
+      file(COPY "${hdr_file}" DESTINATION "${FIREBASE_SWIFT_HEADERS_DIR}/${mod_name}")
+    endforeach()
+  endif()
 
+  # Sets up a target to have the correct include paths to the Firebase iOS SDK headers
+  function(setup_pod_headers target_name)
+    set(multi POD_NAMES)
+    cmake_parse_arguments(SETUP_POD_HEADERS "" "" "${multi}" ${ARGN})
 
-  # Add a custom target to run the Xcode project SPM patcher script post-configure
-  add_custom_target(patch_xcode_spm ALL
-    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/scripts/add_swift_packages.py"
-            "--project_path=${CMAKE_BINARY_DIR}"
-            "--sdk_version=12.15.0"
-    COMMENT "Patching Xcode project for Swift Package Manager dependencies"
-  )
+    target_compile_options(${target_name}
+      PUBLIC $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:-fobjc-arc>)
+
+    target_include_directories(${target_name}
+      PUBLIC
+        ${FIREBASE_SWIFT_HEADERS_DIR}
+        ${FIRESTORE_SOURCE_DIR}/FirebaseCore/Sources/Public
+        ${FIRESTORE_SOURCE_DIR}/FirebaseCore/Extension
+    )
+
+    if(NOT "${SETUP_POD_HEADERS_POD_NAMES}" STREQUAL "")
+      foreach(pod ${SETUP_POD_HEADERS_POD_NAMES})
+        if(EXISTS "${FIRESTORE_SOURCE_DIR}/${pod}/Sources/Public")
+          target_include_directories(${target_name} PUBLIC "${FIRESTORE_SOURCE_DIR}/${pod}/Sources/Public")
+        endif()
+        if(EXISTS "${FIRESTORE_SOURCE_DIR}/${pod}/Source/Library/Public")
+          target_include_directories(${target_name} PUBLIC "${FIRESTORE_SOURCE_DIR}/${pod}/Source/Library/Public")
+        endif()
+        if(EXISTS "${FIRESTORE_SOURCE_DIR}/${pod}/Sources")
+          target_include_directories(${target_name} PUBLIC "${FIRESTORE_SOURCE_DIR}/${pod}/Sources")
+        endif()
+        if(EXISTS "${FIRESTORE_SOURCE_DIR}/${pod}/Interop/Public")
+          target_include_directories(${target_name} PUBLIC "${FIRESTORE_SOURCE_DIR}/${pod}/Interop/Public")
+        endif()
+      endforeach()
+    endif()
+  endfunction()
 endif()
 
 
@@ -637,10 +676,6 @@ else()
     IMPORTED_LOCATION "${APP_BINARY_DIR}/libfirebase_app.a"
     INTERFACE_INCLUDE_DIRECTORIES "${app_include_dirs}"
   )
-endif()
-
-if (IOS)
-  add_dependencies(firebase_app patch_xcode_spm)
 endif()
 
 if (FIREBASE_INCLUDE_ANALYTICS)

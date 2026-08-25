@@ -19,7 +19,7 @@ std::vector<std::string> GetArguments() {
   return arguments;
 }
 
-}  // firebase
-}  // test_lab
-}  // game_loop
-}  // internal
+}  // namespace internal
+}  // namespace game_loop
+}  // namespace test_lab
+}  // namespace firebase
