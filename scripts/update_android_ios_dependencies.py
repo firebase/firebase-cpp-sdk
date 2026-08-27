@@ -162,235 +162,161 @@ def get_files(dirs_and_files, file_extension, file_name=None,
 # Regex to match versions with just digits (ignoring things like -alpha, -beta)
 RE_NON_EXPERIMENTAL_VERSION = re.compile('[0-9.]+$')
 
-##########  iOS pods versions update #######################################
+##########  iOS Swift packages versions update ##############################
 
-# Cocoapods github repo from where we scan available pods and their versions.
-PODSPEC_REPOSITORY = 'https://github.com/CocoaPods/Specs.git'
+IOS_PACKAGE_REPOSITORIES = {
+  'firebase-ios-sdk': 'https://github.com/firebase/firebase-ios-sdk.git',
+  'swift-package-manager-google-user-messaging-platform': 'https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git',
+}
 
-# List of Pods that we are interested in.
-PODS = [
-  'Firebase',
-  'FirebaseCore',
-  'FirebaseAnalytics',
-  'FirebaseAuth',
-  'FirebaseCrashlytics',
-  'FirebaseDatabase',
-  'FirebaseFirestore',
-  'FirebaseFunctions',
-  'FirebaseInstallations',
-  'FirebaseInstanceID',
-  'FirebaseMessaging',
-  'FirebaseRemoteConfig',
-  'FirebaseStorage',
-]
-
-def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None,
-                     allow_experimental=False):
-  """Get available pods and their versions from the specs repo
+def get_git_tag_versions(repo_url, allow_experimental=False):
+  """Get available semantic versions from git tags for a repository.
 
   Args:
-      local_repo_dir (str): Directory mirroring Cocoapods specs repo
-      pods (iterable(str), optional): List of pods whose versions we need.
-        Defaults to PODS.
-      ignore_pods (list[str], optional): Case insensitive list of substrings
-        If any of these substrings are present in the pod name, it will not be
-        updated.
-        Eg: ['foo', 'bar'] will ignore all pods that have 'foo' or
-        'bar' in their name. For example, 'test_foo', 'test_foo_baz'
+      repo_url (str): Remote git repository URL.
       allow_experimental (bool): Allow experimental versions.
-        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
-  Returns:
-      dict: Map of the form {<str>:list(str)}
-        Containing a mapping of podnames to available versions.
-  """
-  if ignore_pods is None:
-    ignore_pods = []
 
-  all_versions = defaultdict(list)
-  logging.info('Fetching pod versions from Specs repo...')
-  podspec_files = get_files_from_directory(specs_repo,
-                                           file_extension='.podspec.json')
-  for podspec_file in podspec_files:
-    filename = os.path.basename(podspec_file)
-    # Example: FirebaseAuth.podspec.json --> FirebaseAuth
-    podname = filename.split('.')[0]
-    if podname not in pods:
+  Returns:
+      list(str): List of versions sorted semantically.
+  """
+  cmd = ['git', 'ls-remote', '--tags', '--refs', repo_url]
+  logging.info('Fetching tags from %s...', repo_url)
+  out = subprocess.check_output(cmd).decode('utf-8')
+  versions = []
+  for line in out.strip().split('\n'):
+    if not line:
       continue
-    if any(ignore_pod.lower() in podname.lower() for ignore_pod in ignore_pods):
-      continue
-    parent_dir = os.path.dirname(podspec_file)
-    version = os.path.basename(parent_dir)
-    if not allow_experimental and '-cppsdk' not in version:
-      if not re.match(RE_NON_EXPERIMENTAL_VERSION, version):
+    tag = line.split('refs/tags/')[-1]
+    tag_clean = tag.lstrip('v')
+    if not allow_experimental and '-cppsdk' not in tag_clean:
+      if not re.match(RE_NON_EXPERIMENTAL_VERSION, tag_clean):
         continue
-    all_versions[podname].append(version)
+    try:
+      parsed = packaging.version.parse(tag_clean)
+      versions.append((parsed, tag_clean))
+    except Exception:
+      continue
+  versions.sort(key=lambda x: x[0])
+  return [v[1] for v in versions]
 
-  return all_versions
 
-
-def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None,
-                            allow_experimental=None):
-  """Get latest versions for specified pods.
+def get_latest_ios_package_versions(ignore_packages=None, allow_experimental=False):
+  """Get latest versions for iOS Swift packages.
 
   Args:
-      pods (iterable(str) optional): Pods for which we need latest version.
-        Defaults to PODS.
-      specs_repo (str optional): Local checkout of Cocoapods specs repo.
-      ignore_pods (list[str], optional): Case insensitive list of substrings
-        If any of these substrings are present in the pod name, it will not be
-        updated.
-        Eg: ['Foo', 'bar'] will ignore all pods that have 'foo' or
-        'bar' in their name. For example, 'test_foo', 'test_foo_baz'
+      ignore_packages (list[str], optional): Case insensitive list of substrings to ignore.
       allow_experimental (bool): Allow experimental versions.
-        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
 
   Returns:
-      dict: Map of the form {<str>:<str>} containing a mapping of podnames to
-        latest version.
+      dict: Mapping of package name / alias to latest version string.
   """
-  if ignore_pods is None:
-    ignore_pods = []
-
-  cleanup_required = False
-  if specs_repo is None:
-    specs_repo = tempfile.mkdtemp(suffix='pods')
-    logging.info('Cloning podspecs git repo...')
-    git_clone_cmd = ['git', 'clone', '-q', '--depth', '1',
-                        PODSPEC_REPOSITORY, specs_repo]
-    subprocess.run(git_clone_cmd)
-    # Temporary directory should be cleaned up after use.
-    cleanup_required = True
-
-  all_versions = get_pod_versions(specs_repo, pods, ignore_pods,
-                                  allow_experimental)
-  if cleanup_required:
-    shutil.rmtree(specs_repo)
+  if ignore_packages is None:
+    ignore_packages = []
 
   latest_versions = {}
-  for pod in all_versions:
-    # all_versions map is in the following format:
-    #  { 'PodnameA' : ['1.0.1', '2.0.4'], 'PodnameB': ['3.0.4', '1.0.2'] }
-    # Convert string version numbers to semantic version objects
-    # for easier comparison and get the latest version.
-    parsed_versions = []
-    for v in all_versions[pod]:
-      try:
-        parsed_versions.append(packaging.version.parse(v))
-      except:
-        # Sometimes version numbers don't parse; ignore them.
-        continue
-    latest_version = max(parsed_versions)
-    # Replace the list of versions with just the latest version
-    latest_versions[pod] = latest_version.base_version
-  print("Latest pod versions retreived from cocoapods specs repo: \n")
+  for pkg_name, repo_url in IOS_PACKAGE_REPOSITORIES.items():
+    if any(ignore_pkg.lower() in pkg_name.lower() for ignore_pkg in ignore_packages):
+      continue
+    versions = get_git_tag_versions(repo_url, allow_experimental)
+    if versions:
+      latest_version = versions[-1]
+      latest_versions[pkg_name] = latest_version
+      # Also add aliases for readme/podfile backward compatibility
+      if pkg_name == 'firebase-ios-sdk':
+        latest_versions['Firebase'] = latest_version
+        latest_versions['FirebaseCore'] = latest_version
+        latest_versions['FirebaseAnalytics'] = latest_version
+        latest_versions['FirebaseAuth'] = latest_version
+        latest_versions['FirebaseDatabase'] = latest_version
+        latest_versions['FirebaseFirestore'] = latest_version
+        latest_versions['FirebaseFunctions'] = latest_version
+        latest_versions['FirebaseInstallations'] = latest_version
+        latest_versions['FirebaseMessaging'] = latest_version
+        latest_versions['FirebaseRemoteConfig'] = latest_version
+        latest_versions['FirebaseStorage'] = latest_version
+      elif pkg_name == 'swift-package-manager-google-user-messaging-platform':
+        latest_versions['GoogleUserMessagingPlatform'] = latest_version
+        latest_versions['UserMessagingPlatform'] = latest_version
+
+  print("Latest iOS Swift package versions retrieved: \n")
   pprint.pprint(latest_versions)
   print()
   return latest_versions
 
 
-def get_pod_files(dirs_and_files):
-  """Get final list of podfiles to update.
-
-  If a directory is passed, it is searched recursively.
-
-  Args:
-      dirs_and_files (iterable(str)): List of paths which could be files or
-        directories.
-
-  Returns:
-      iterable(str): Final list of podfiles after recursively searching dirs.
-  """
-  pod_files = []
+def get_package_swift_files(dirs_and_files):
+  """Get final list of Package.swift files to update."""
+  package_files = []
   for entry in dirs_and_files:
     abspath = os.path.abspath(entry)
     if not os.path.exists(abspath):
       continue
     if os.path.isdir(abspath):
-      pod_files = pod_files + get_files_from_directory(abspath,
-                                                       file_extension='',
-                                                       file_name='Podfile')
+      package_files = package_files + get_files_from_directory(
+          abspath, file_extension='', file_name='Package.swift'
+      )
     elif os.path.isfile(abspath):
-      pod_files.append(abspath)
+      package_files.append(abspath)
+  return package_files
 
-    return pod_files
 
-# Look for lines like,  pod 'Firebase/Core', '7.11.0'
-RE_PODFILE_VERSION = re.compile(
-  r"\s+pod '(?P<pod_name>.+)', '(?P<version>.+)'\n")
+# Regex to match lines like:
+# .package(url: "https://github.com/firebase/firebase-ios-sdk.git", exact: "12.18.0"),
+RE_PACKAGE_SWIFT_DEPENDENCY = re.compile(
+    r'(?P<prefix>\.package\(url:\s*\"https://github\.com/[^/]+/(?P<pkg_name>[a-zA-Z0-9._-]+)\.git\",\s*exact:\s*\")(?P<version>[0-9.]+)(?P<suffix>\"\))'
+)
 
-def modify_pod_file(pod_file, pod_version_map, dryrun=True, ignore_ios_versions=[]):
-  """Update pod versions in specified podfile.
-
-  Args:
-      pod_file (str): Absolute path to a podfile.
-      pod_version_map (dict): Map of podnames to their respective version.
-      dryrun (bool, optional): Just print the substitutions.
-                               Do not write to file. Defaults to True.
-      ignore_ios_versions (set): If the old version number for a pod
-                                 matches one of these, don't update it.
-  """
+def modify_package_swift_file(package_swift_file, version_map, dryrun=True,
+                              ignore_ios_versions=[]):
+  """Update Swift package versions in specified Package.swift file."""
   global logfile_lines
   to_update = False
   existing_lines = []
-  with open(pod_file, "r") as podfile:
-    existing_lines = podfile.readlines()
+  with open(package_swift_file, "r") as f:
+    existing_lines = f.readlines()
   if not existing_lines:
-    logging.fatal('Update failed. ' +
-                  'Could not read contents from pod file {0}.'.format(podfile))
+    logging.fatal('Update failed. Could not read contents from file {0}.'.format(package_swift_file))
 
-  logging.debug('Checking if update is required for {0}'.format(pod_file))
+  logging.debug('Checking if update is required for {0}'.format(package_swift_file))
 
   substituted_pairs = []
   for idx, line in enumerate(existing_lines):
-    match = re.match(RE_PODFILE_VERSION, line)
+    match = re.search(RE_PACKAGE_SWIFT_DEPENDENCY, line)
     if match:
-      pod_name = match['pod_name']
-      skip_line = False
-      # Check if the old version matches anything in ignore_ios_versions
-      for ignore_version in ignore_ios_versions:
-        if ignore_version in match['version']:
-          skip_line = True
-      # Firebase/Auth -> Firestore (due to being a subspec)
-      pod_name_key = re.sub(r'/.*$', '', pod_name)
-      if pod_name_key in pod_version_map and not skip_line:
-        latest_version = pod_version_map[pod_name_key]
-        substituted_line = line.replace(match['version'], latest_version)
-        if substituted_line != line:
+      pkg_name = match.group('pkg_name')
+      old_version = match.group('version')
+      if any(ignore_ver in old_version for ignore_ver in ignore_ios_versions):
+        continue
+      if pkg_name in version_map:
+        latest_version = version_map[pkg_name]
+        if latest_version != old_version:
+          substituted_line = line[:match.start('version')] + latest_version + line[match.end('version'):]
           substituted_pairs.append((line, substituted_line))
           existing_lines[idx] = substituted_line
           to_update = True
-          logfile_lines.add('iOS: %s → %s' % (pod_name, latest_version))
+          logfile_lines.add('iOS: %s → %s' % (pkg_name, latest_version))
 
   if to_update:
-    print('Updating contents of {0}'.format(pod_file))
+    print('Updating contents of {0}'.format(package_swift_file))
     for original, substituted in substituted_pairs:
       print('(-) ' + original + '(+) ' + substituted)
 
     if not dryrun:
-      with open(pod_file, "w") as podfile:
-        podfile.writelines(existing_lines)
+      with open(package_swift_file, "w") as f:
+        f.writelines(existing_lines)
     print()
 
 
 # Regex to match lines like:
 # |                          | Firebase/Auth Cocoapod (8.2.0)
-RE_README_POD_VERSION = re.compile(
-  r"\|(?P<spaces>\s+)\| (?P<pod_name>.*) Cocoapod \((?P<version>([0-9.]+))\)")
+# or
+# |                          | Firebase/Auth (8.2.0)
+RE_README_IOS_VERSION = re.compile(
+    r"\|(?P<spaces>\s+)\| (?P<pod_name>.*?) (?:Cocoapod )?\((?P<version>([0-9.]+))\)"
+)
 
-def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
-  """Modify a readme Markdown file to reference correct cocoapods versions.
-
-  Looks for lines like:
-  |                          | Firebase/Auth Cocoapod (8.2.0)
-  for pods matching the ones in the version map, and modifies them in-place.
-
-  Args:
-    readme_filepath: Path to readme file to edit.
-    version_map: Dictionary of packages to version numbers, e.g. {
-      'FirebaseAuth': '15.0.0', 'FirebaseDatabase': '14.0.0' }
-    dryrun (bool, optional): Just print the substitutions.
-      Do not write to file. Defaults to True.
-  """
+def modify_readme_file_ios(readme_filepath, version_map, dryrun=True):
+  """Modify a readme Markdown file to reference correct iOS dependency versions."""
   logging.debug('Reading readme file: {0}'.format(readme_filepath))
 
   lines = None
@@ -405,19 +331,22 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   def replace_pod_line(m):
     if not m.group('pod_name'):
       return m.group(0)
-    pod_key = re.sub(r'/.*$', '', m.group('pod_name'))
+    pod_name = m.group('pod_name').strip()
+    pod_key = re.sub(r'/.*$', '', pod_name)
     if pod_key not in version_map:
-      return m.group(0)
-    repl = '|%s| %s Cocoapod (%s)' % (m.group('spaces'),
-                                    m.group('pod_name'),
-                                    version_map[pod_key])
+      if pod_name in version_map:
+        pod_key = pod_name
+      else:
+        return m.group(0)
+    repl = '|%s| %s (%s)' % (m.group('spaces'),
+                             m.group('pod_name'),
+                             version_map[pod_key])
     return repl
 
   substituted_pairs = []
   to_update = False
   for line in lines:
-    substituted_line = re.sub(RE_README_POD_VERSION, replace_pod_line,
-                              line)
+    substituted_line = re.sub(RE_README_IOS_VERSION, replace_pod_line, line)
     output_lines.append(substituted_line)
     if substituted_line != line:
       substituted_pairs.append((line, substituted_line))
@@ -433,7 +362,7 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
         readme_file.writelines(output_lines)
     print()
 
-########## END: iOS pods versions update #####################################
+########## END: iOS Swift packages versions update ###########################
 
 ########## Android versions update #############################
 
@@ -682,8 +611,8 @@ def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
 
 
 def parse_cmdline_args():
-  parser = argparse.ArgumentParser(description='Update pod files with '
-                                                'latest pod versions')
+  parser = argparse.ArgumentParser(description='Update dependencies with '
+                                                'latest package versions')
   parser.add_argument('--dryrun', action='store_true',
             help='Just print the replaced lines, DO NOT overwrite any files')
   parser.add_argument( "--log_level", default="info",
@@ -697,17 +626,16 @@ def parse_cmdline_args():
             help='Allow updating to experimental versions (eg:1.2.3-alpha))')
   # iOS options
   parser.add_argument('--skip_ios', action='store_true',
-            help='Skip iOS pod version update completely.')
-  parser.add_argument('--ignore_ios_pods', nargs='+', default=(),
-            help='Ignore iOS pods which have any of the items specified in '
+            help='Skip iOS package version update completely.')
+  parser.add_argument('--ignore_ios_packages', '--ignore_ios_pods', nargs='+', default=(),
+            help='Ignore iOS packages which have any of the items specified in '
                  'this list as substrings.')
   parser.add_argument('--ignore_ios_versions', nargs='+', default=('cppsdk',),
-            help='Do not update any iOS pods when the old version contains '
+            help='Do not update any iOS packages when the old version contains '
                  'any of the items specified in this list as substrings.')
-  parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
-            help= 'List of pod files or directories containing podfiles')
-  parser.add_argument('--specs_repo',
-            help= 'Local checkout of github Cocoapods Specs repository')
+  parser.add_argument('--package_swift_files', '--podfiles', nargs='+',
+            default=('ios_spm/Package.swift',),
+            help='List of Package.swift files or directories containing them')
   # Android options
   parser.add_argument('--skip_android', action='store_true',
             help='Skip Android libraries version update completely.')
@@ -758,17 +686,15 @@ def main():
                            file_name='readme')
 
   if not args.skip_ios:
-    latest_pod_versions_map = get_latest_pod_versions(
-      args.specs_repo,
-      PODS,
-      set(args.ignore_ios_pods), args.allow_experimental)
-    pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile',
-                          ignore_directories=set(args.ignore_directories))
-    for pod_file in pod_files:
-      modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun,
-                      args.ignore_ios_versions)
+    latest_ios_versions_map = get_latest_ios_package_versions(
+      set(args.ignore_ios_packages), args.allow_experimental)
+    package_swift_files = get_files(args.package_swift_files, file_extension='.swift', file_name='Package.swift',
+                                    ignore_directories=set(args.ignore_directories))
+    for package_swift_file in package_swift_files:
+      modify_package_swift_file(package_swift_file, latest_ios_versions_map, args.dryrun,
+                                args.ignore_ios_versions)
     for readme_file in readme_files:
-      modify_readme_file_pods(readme_file, latest_pod_versions_map, args.dryrun)
+      modify_readme_file_ios(readme_file, latest_ios_versions_map, args.dryrun)
 
   if not args.skip_android:
     latest_android_versions_map = get_latest_maven_versions(

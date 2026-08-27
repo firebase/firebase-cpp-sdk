@@ -329,7 +329,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       "cmake/external/firestore.cmake": "firestore",
       "cmake/external/libuv.cmake": "database",
       "cmake/external/uWebSockets.cmake": "database",
-      "ios_pod/Podfile":scan_changes_in_file,
+      "ios_spm/Package.swift":scan_changes_in_file,
       "Android/firebase_dependencies.gradle":scan_changes_in_file,
       "release_build_files/Android/firebase_dependencies.gradle":scan_changes_in_file,
     }
@@ -339,7 +339,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       "external": None,
       "release_build_files": None,
       # These two handled by file_redirects above.
-      "ios_pod": None,
+      "ios_spm": None,
       "Android": None,
       # Uncomment the two below lines when debugging this script, or GitHub
       # actions related to auto-diff mode.
