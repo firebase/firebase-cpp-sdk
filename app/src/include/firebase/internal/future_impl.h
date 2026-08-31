@@ -180,7 +180,7 @@ void Future<T>::OnCompletion(TypedCompletionCallback callback,
   MutexLock lock(mutex_);
   if (api_ != nullptr) {
     if (callback == nullptr) {
-      api_->AddCompletionCallback(handle_, nullptr, nullptr, nullptr,
+      api_->AddCompletionCallback(handle_, [](const FutureBase&, void*){}, nullptr, nullptr,
                                   /*clear_existing_callbacks=*/true);
     } else {
       auto* data =
@@ -197,9 +197,13 @@ void Future<T>::OnCompletion(TypedCompletionCallback callback,
 template <class ResultType>
 inline void Future<ResultType>::OnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
-  FutureBase::OnCompletion([callback](const FutureBase& future) {
-    callback(static_cast<const Future<ResultType>&>(future));
-  });
+  if (!callback) {
+    FutureBase::OnCompletion([](const FutureBase&, void*){}, nullptr);
+  } else {
+    FutureBase::OnCompletion([callback](const FutureBase& future) {
+      callback(static_cast<const Future<ResultType>&>(future));
+    });
+  }
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
@@ -226,6 +230,9 @@ FutureBase::CompletionCallbackHandle Future<T>::AddOnCompletion(
 template <class ResultType>
 inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
+  if (!callback) {
+    return CompletionCallbackHandle();
+  }
   return FutureBase::AddOnCompletion([callback](const FutureBase& future) {
     callback(static_cast<const Future<ResultType>&>(future));
   });
