@@ -152,21 +152,59 @@ class CompletionCallbackHandle {
   void (*user_data_delete_fn_)(void*);
 };
 
+template <typename T>
+struct TypedCompletionCallbackData {
+  typename Future<T>::TypedCompletionCallback callback;
+  void* user_data;
+};
+
+template <typename T>
+inline void TypedCompletionCallbackTrampoline(const FutureBase& future,
+                                              void* data_ptr) {
+  auto* data = static_cast<TypedCompletionCallbackData<T>*>(data_ptr);
+  if (data != nullptr && data->callback != nullptr) {
+    data->callback(static_cast<const Future<T>&>(future), data->user_data);
+  }
+}
+
+template <typename T>
+inline void DeleteTypedCompletionCallbackData(void* data_ptr) {
+  delete static_cast<TypedCompletionCallbackData<T>*>(data_ptr);
+}
+
 }  // namespace detail
 
 template <class T>
 void Future<T>::OnCompletion(TypedCompletionCallback callback,
                              void* user_data) const {
-  FutureBase::OnCompletion(reinterpret_cast<CompletionCallback>(callback),
-                           user_data);
+  MutexLock lock(mutex_);
+  if (api_ != nullptr) {
+    if (callback == nullptr) {
+      api_->AddCompletionCallback(
+          handle_, [](const FutureBase&, void*) {}, nullptr, nullptr,
+          /*clear_existing_callbacks=*/true);
+    } else {
+      auto* data =
+          new detail::TypedCompletionCallbackData<T>{callback, user_data};
+      api_->AddCompletionCallback(
+          handle_, detail::TypedCompletionCallbackTrampoline<T>, data,
+          detail::DeleteTypedCompletionCallbackData<T>,
+          /*clear_existing_callbacks=*/true);
+    }
+  }
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
 template <class ResultType>
 inline void Future<ResultType>::OnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
-  FutureBase::OnCompletion(
-      *reinterpret_cast<std::function<void(const FutureBase&)>*>(&callback));
+  if (!callback) {
+    FutureBase::OnCompletion([](const FutureBase&, void*) {}, nullptr);
+  } else {
+    FutureBase::OnCompletion([callback](const FutureBase& future) {
+      callback(static_cast<const Future<ResultType>&>(future));
+    });
+  }
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
@@ -174,16 +212,31 @@ inline void Future<ResultType>::OnCompletion(
 template <class T>
 FutureBase::CompletionCallbackHandle Future<T>::AddOnCompletion(
     TypedCompletionCallback callback, void* user_data) const {
-  return FutureBase::AddOnCompletion(
-      reinterpret_cast<CompletionCallback>(callback), user_data);
+  MutexLock lock(mutex_);
+  if (api_ != nullptr) {
+    if (callback == nullptr) {
+      return CompletionCallbackHandle();
+    }
+    auto* data =
+        new detail::TypedCompletionCallbackData<T>{callback, user_data};
+    return api_->AddCompletionCallback(
+        handle_, detail::TypedCompletionCallbackTrampoline<T>, data,
+        detail::DeleteTypedCompletionCallbackData<T>,
+        /*clear_existing_callbacks=*/false);
+  }
+  return CompletionCallbackHandle();
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
 template <class ResultType>
 inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
-  return FutureBase::AddOnCompletion(
-      *reinterpret_cast<std::function<void(const FutureBase&)>*>(&callback));
+  if (!callback) {
+    return CompletionCallbackHandle();
+  }
+  return FutureBase::AddOnCompletion([callback](const FutureBase& future) {
+    callback(static_cast<const Future<ResultType>&>(future));
+  });
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
