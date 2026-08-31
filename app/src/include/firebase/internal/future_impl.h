@@ -180,8 +180,9 @@ void Future<T>::OnCompletion(TypedCompletionCallback callback,
   MutexLock lock(mutex_);
   if (api_ != nullptr) {
     if (callback == nullptr) {
-      api_->AddCompletionCallback(handle_, [](const FutureBase&, void*){}, nullptr, nullptr,
-                                  /*clear_existing_callbacks=*/true);
+      api_->AddCompletionCallback(
+          handle_, [](const FutureBase&, void*) {}, nullptr, nullptr,
+          /*clear_existing_callbacks=*/true);
     } else {
       auto* data =
           new detail::TypedCompletionCallbackData<T>{callback, user_data};
@@ -198,7 +199,7 @@ template <class ResultType>
 inline void Future<ResultType>::OnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
   if (!callback) {
-    FutureBase::OnCompletion([](const FutureBase&, void*){}, nullptr);
+    FutureBase::OnCompletion([](const FutureBase&, void*) {}, nullptr);
   } else {
     FutureBase::OnCompletion([callback](const FutureBase& future) {
       callback(static_cast<const Future<ResultType>&>(future));
