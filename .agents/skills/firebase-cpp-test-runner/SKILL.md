@@ -47,8 +47,8 @@ To build iOS testapps for a specific product (e.g., `auth`):
 python3 scripts/gha/build_testapps.py --t auth --p iOS
 ```
 
-_Note:_ You must have a Mac environment with Xcode and Cocoapods to build iOS
-tests successfully.
+_Note:_ You must have a Mac environment with Xcode to build iOS tests
+successfully (Swift Package Manager is used for iOS testapp dependencies).
 
 ### Building for Desktop
 

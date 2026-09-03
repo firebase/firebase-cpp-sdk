@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1A9E6A61010000000001 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 1A9E6A61020000000001 /* FirebaseRemoteConfig */; };
+		1A9E6A61010000000002 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 1A9E6A61020000000002 /* FirebaseRemoteConfig */; };
 		520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
@@ -38,7 +40,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		08BEC1E1347C2FECB5DCC35B /* libPods-integration_test.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		529226D21C85F68000C89379 /* integration_test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		529226D51C85F68000C89379 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -51,7 +52,6 @@
 		BC1D66692668D4AE005DC2DA /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D666B2668D4B3005DC2DA /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D666D2668D4BB005DC2DA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		C72064CD0A7906E678F38564 /* libPods-integration_test_tvos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test_tvos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D61C5F8C22BABA9B00A79141 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		D61C5F8D22BABA9C00A79141 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D61C5F9222BABAD100A79141 /* integration_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test.cc; path = src/integration_test.cc; sourceTree = "<group>"; };
@@ -77,6 +77,8 @@
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
+			
+				1A9E6A61010000000001 /* FirebaseRemoteConfig in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +89,8 @@
 				BC1D666E2668D4BB005DC2DA /* Foundation.framework in Frameworks */,
 				BC1D666C2668D4B3005DC2DA /* UIKit.framework in Frameworks */,
 				BC1D666A2668D4AE005DC2DA /* CoreGraphics.framework in Frameworks */,
+			
+				1A9E6A61010000000002 /* FirebaseRemoteConfig in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -126,8 +130,6 @@
 				529226D71C85F68000C89379 /* CoreGraphics.framework */,
 				529226D91C85F68000C89379 /* UIKit.framework */,
 				529226EE1C85F68000C89379 /* XCTest.framework */,
-				08BEC1E1347C2FECB5DCC35B /* libPods-integration_test.a */,
-				C72064CD0A7906E678F38564 /* libPods-integration_test_tvos.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -175,7 +177,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 529226F91C85F68000C89379 /* Build configuration list for PBXNativeTarget "integration_test" */;
 			buildPhases = (
-				AD3D1FDEE4CF418AF7FD6E76 /* [CP] Check Pods Manifest.lock */,
 				529226CE1C85F68000C89379 /* Sources */,
 				529226CF1C85F68000C89379 /* Frameworks */,
 				529226D01C85F68000C89379 /* Resources */,
@@ -185,6 +186,9 @@
 			dependencies = (
 			);
 			name = integration_test;
+			packageProductDependencies = (
+				1A9E6A61020000000001 /* FirebaseRemoteConfig */,
+			);
 			productName = testapp;
 			productReference = 529226D21C85F68000C89379 /* integration_test.app */;
 			productType = "com.apple.product-type.application";
@@ -193,7 +197,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = BC1D66612668D10A005DC2DA /* Build configuration list for PBXNativeTarget "integration_test_tvos" */;
 			buildPhases = (
-				8958A3A33BBDC5DD317A123E /* [CP] Check Pods Manifest.lock */,
 				BC1D66482668D109005DC2DA /* Sources */,
 				BC1D66492668D109005DC2DA /* Frameworks */,
 				BC1D664A2668D109005DC2DA /* Resources */,
@@ -203,6 +206,9 @@
 			dependencies = (
 			);
 			name = integration_test_tvos;
+			packageProductDependencies = (
+				1A9E6A61020000000002 /* FirebaseRemoteConfig */,
+			);
 			productName = integration_test_tvos;
 			productReference = BC1D664C2668D109005DC2DA /* integration_test_tvos.app */;
 			productType = "com.apple.product-type.application";
@@ -239,6 +245,9 @@
 				Base,
 			);
 			mainGroup = 529226C91C85F68000C89379;
+			packageReferences = (
+				1A9E6A61030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			productRefGroup = 529226D31C85F68000C89379 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -621,6 +630,30 @@
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1A9E6A61030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = exactVersion;
+				version = 12.18.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1A9E6A61020000000001 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1A9E6A61030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+		1A9E6A61020000000002 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1A9E6A61030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCConfigurationList section */
 		529226CD1C85F68000C89379 /* Build configuration list for PBXProject "integration_test" */ = {

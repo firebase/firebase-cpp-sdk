@@ -182,6 +182,7 @@ PODS = [
   'FirebaseMessaging',
   'FirebaseRemoteConfig',
   'FirebaseStorage',
+  'GoogleUserMessagingPlatform',
 ]
 
 def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None,
@@ -369,6 +370,85 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True, ignore_ios_versions=
     if not dryrun:
       with open(pod_file, "w") as podfile:
         podfile.writelines(existing_lines)
+    print()
+
+
+# Regex to match XCRemoteSwiftPackageReference blocks in project.pbxproj
+RE_SPM_PACKAGE_BLOCK = re.compile(
+    r'(?P<prefix>\b[0-9A-Fa-f]+ /\* XCRemoteSwiftPackageReference "(?P<pkg_name>[^"]+)" \*/ = \{\s*'
+    r'isa = XCRemoteSwiftPackageReference;\s*'
+    r'repositoryURL = "(?P<repo_url>[^"]+)";\s*'
+    r'requirement = \{\s*'
+    r'kind = exactVersion;\s*'
+    r'version = )(?P<version>[^;\s]+)(?P<suffix>;\s*\}\s*;\s*\})',
+    re.DOTALL
+)
+
+def modify_project_file_spm(project_file, pod_version_map, dryrun=True,
+                           ignore_ios_versions=[]):
+  """Update Swift Package versions in specified project.pbxproj file.
+
+  Args:
+      project_file (str): Absolute path to a project.pbxproj file.
+      pod_version_map (dict): Map of pod/package names to their respective version.
+      dryrun (bool, optional): Just print the substitutions.
+                               Do not write to file. Defaults to True.
+      ignore_ios_versions (set): If the old version number for a package
+                                 matches one of these, don't update it.
+  """
+  global logfile_lines
+  with open(project_file, "r") as f:
+    content = f.read()
+
+  substituted_pairs = []
+  to_update = False
+
+  # Map repository URL keywords to pod version keys
+  SPM_PACKAGE_TO_POD_KEY = {
+      'firebase-ios-sdk': 'Firebase',
+      'google-user-messaging-platform': 'GoogleUserMessagingPlatform',
+      'swift-package-manager-google-user-messaging-platform': 'GoogleUserMessagingPlatform',
+  }
+
+  def replace_spm_block(match):
+    nonlocal to_update
+    pkg_name = match.group('pkg_name')
+    repo_url = match.group('repo_url')
+    current_version = match.group('version')
+
+    pod_key = None
+    for k, v in SPM_PACKAGE_TO_POD_KEY.items():
+      if k in repo_url.lower() or k in pkg_name.lower():
+        pod_key = v
+        break
+
+    if not pod_key or pod_key not in pod_version_map:
+      return match.group(0)
+
+    for ignore_version in ignore_ios_versions:
+      if ignore_version in current_version:
+        return match.group(0)
+
+    latest_version = pod_version_map[pod_key]
+    if latest_version != current_version:
+      substituted_pairs.append((f'{pkg_name} version = {current_version}',
+                                f'{pkg_name} version = {latest_version}'))
+      to_update = True
+      logfile_lines.add('iOS (SPM): %s → %s' % (pkg_name, latest_version))
+      return match.group('prefix') + latest_version + match.group('suffix')
+
+    return match.group(0)
+
+  new_content = RE_SPM_PACKAGE_BLOCK.sub(replace_spm_block, content)
+
+  if to_update:
+    print('Updating contents of {0}'.format(project_file))
+    for original, substituted in substituted_pairs:
+      print('(-) ' + original + '\n(+) ' + substituted)
+
+    if not dryrun:
+      with open(project_file, "w") as f:
+        f.write(new_content)
     print()
 
 
@@ -691,7 +771,7 @@ def parse_cmdline_args():
   # TODO: remove default values when we decide to update androidx for 
   # gameloop_android as well.
   parser.add_argument('--ignore_directories', nargs='+',
-            default=('gameloop_android', 'scripts'),
+            default=('gameloop_android', 'scripts', '.cxx', 'ios_build', 'tvos_build', 'desktop_build', 'test_output', 'build'),
             help='Ignore updating any files in these directories (names).')
   parser.add_argument('--allow_experimental', action='store_true',
             help='Allow updating to experimental versions (eg:1.2.3-alpha))')
@@ -706,6 +786,8 @@ def parse_cmdline_args():
                  'any of the items specified in this list as substrings.')
   parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
             help= 'List of pod files or directories containing podfiles')
+  parser.add_argument('--projectfiles', nargs='+', default=(os.getcwd(),),
+            help= 'List of Xcode project files or directories containing project.pbxproj files')
   parser.add_argument('--specs_repo',
             help= 'Local checkout of github Cocoapods Specs repository')
   # Android options
@@ -767,6 +849,12 @@ def main():
     for pod_file in pod_files:
       modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun,
                       args.ignore_ios_versions)
+    project_files = get_files(args.projectfiles, file_extension='.pbxproj',
+                              file_name='project.pbxproj',
+                              ignore_directories=set(args.ignore_directories))
+    for project_file in project_files:
+      modify_project_file_spm(project_file, latest_pod_versions_map, args.dryrun,
+                              args.ignore_ios_versions)
     for readme_file in readme_files:
       modify_readme_file_pods(readme_file, latest_pod_versions_map, args.dryrun)
 

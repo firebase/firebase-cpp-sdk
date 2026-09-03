@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1AAC794B010000000001 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 1AAC794B020000000001 /* FirebaseAuth */; };
+		1AAC794B010000000002 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 1AAC794B020000000002 /* FirebaseAuth */; };
 		520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
@@ -52,7 +54,6 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXFileReference section */
-		46998791754BF3DDE5D7A20F /* libPods-integration_test.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		529226D21C85F68000C89379 /* integration_test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		529226D51C85F68000C89379 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -81,7 +82,6 @@
 		D6C179EF22CB32A000C2651A /* app_framework.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = app_framework.cc; path = src/app_framework.cc; sourceTree = "<group>"; };
 		D6DF8F3C2819C8A400214018 /* empty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = empty.swift; path = src/empty.swift; sourceTree = "<group>"; };
 		D6E7D43C22D51D9900EDBD35 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
-		DE5DF88312698BE99BFA8CD9 /* libPods-integration_test_tvos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test_tvos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +92,8 @@
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
+			
+				1AAC794B010000000001 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -102,6 +104,8 @@
 				BCF6A95A2682C2AB00578FDD /* Foundation.framework in Frameworks */,
 				9F5DD09426697A5F0058C144 /* CoreGraphics.framework in Frameworks */,
 				9F5DD09226697A170058C144 /* UIKit.framework in Frameworks */,
+			
+				1AAC794B010000000002 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -142,8 +146,6 @@
 				529226D71C85F68000C89379 /* CoreGraphics.framework */,
 				529226D91C85F68000C89379 /* UIKit.framework */,
 				529226EE1C85F68000C89379 /* XCTest.framework */,
-				46998791754BF3DDE5D7A20F /* libPods-integration_test.a */,
-				DE5DF88312698BE99BFA8CD9 /* libPods-integration_test_tvos.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -191,7 +193,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 529226F91C85F68000C89379 /* Build configuration list for PBXNativeTarget "integration_test" */;
 			buildPhases = (
-				267D9BF323B254AA726E6787 /* [CP] Check Pods Manifest.lock */,
 				529226CE1C85F68000C89379 /* Sources */,
 				529226CF1C85F68000C89379 /* Frameworks */,
 				529226D01C85F68000C89379 /* Resources */,
@@ -201,6 +202,9 @@
 			dependencies = (
 			);
 			name = integration_test;
+			packageProductDependencies = (
+				1AAC794B020000000001 /* FirebaseAuth */,
+			);
 			productName = testapp;
 			productReference = 529226D21C85F68000C89379 /* integration_test.app */;
 			productType = "com.apple.product-type.application";
@@ -209,7 +213,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9F3A0900266978C400E1D69F /* Build configuration list for PBXNativeTarget "integration_test_tvos" */;
 			buildPhases = (
-				E0368CAC834A70F7776F7FDB /* [CP] Check Pods Manifest.lock */,
 				9F3A08E7266978C300E1D69F /* Sources */,
 				9F3A08E8266978C300E1D69F /* Frameworks */,
 				9F3A08E9266978C300E1D69F /* Resources */,
@@ -220,6 +223,9 @@
 			dependencies = (
 			);
 			name = integration_test_tvos;
+			packageProductDependencies = (
+				1AAC794B020000000002 /* FirebaseAuth */,
+			);
 			productName = integration_test_tvos;
 			productReference = 9F3A08EB266978C300E1D69F /* integration_test_tvos.app */;
 			productType = "com.apple.product-type.application";
@@ -264,6 +270,9 @@
 				Base,
 			);
 			mainGroup = 529226C91C85F68000C89379;
+			packageReferences = (
+				1AAC794B030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			productRefGroup = 529226D31C85F68000C89379 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -648,6 +657,30 @@
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1AAC794B030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = exactVersion;
+				version = 12.18.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1AAC794B020000000001 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1AAC794B030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		1AAC794B020000000002 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1AAC794B030000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCConfigurationList section */
 		529226CD1C85F68000C89379 /* Build configuration list for PBXProject "integration_test" */ = {
