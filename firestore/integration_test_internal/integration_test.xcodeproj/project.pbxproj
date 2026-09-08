@@ -40,8 +40,6 @@
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
 		6013D96CC99BE0D747E924BF /* firebase_auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2D5AB4DBDD804A38B51636 /* firebase_auth.framework */; };
 		7B510B28CC034B1F8E1A89E0 /* firebase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C04D181B10689799EE4823D /* firebase.framework */; };
-		7DDCFC4B946EA9D8EB8FBDF2 /* Pods_integration_test_tvos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD4B0A86D9AE5E39F1D9139D /* Pods_integration_test_tvos.framework */; };
-		86F6FDA3AA46B8DBA710380D /* Pods_integration_test.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AAFA3E3DA9641C2E3C46C9D /* Pods_integration_test.framework */; };
 		B03DCEF24BED9C02CFA71109 /* firebase_auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8C4AC9C038C468519B583C7C /* firebase_auth.framework */; };
 		BC1D682C267B0030005DC2DA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682A267B0030005DC2DA /* Main.storyboard */; };
 		BC1D6831267B0032005DC2DA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682F267B0032005DC2DA /* LaunchScreen.storyboard */; };
@@ -138,7 +136,6 @@
 		1BAFACA12A449C2B00834979 /* aggregate_count_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = aggregate_count_test.cc; path = src/aggregate_count_test.cc; sourceTree = "<group>"; };
 		1BAFACA22A449C2B00834979 /* aggregate_query_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = aggregate_query_test.cc; path = src/aggregate_query_test.cc; sourceTree = "<group>"; };
 		1BAFACA92A449CBD00834979 /* filter_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = filter_test.cc; path = src/filter_test.cc; sourceTree = "<group>"; };
-		4AAFA3E3DA9641C2E3C46C9D /* Pods_integration_test.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_integration_test.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		529226D21C85F68000C89379 /* integration_test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		529226D51C85F68000C89379 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -202,7 +199,6 @@
 		EAFAF9474EC412ADCC65F2CC /* firebase_firestore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_firestore.framework; path = Frameworks/firebase_firestore.framework; sourceTree = "<group>"; };
 		ED39362628657B740050FE2B /* transaction_options_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = transaction_options_test.cc; path = src/transaction_options_test.cc; sourceTree = "<group>"; };
 		EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = leveldb_snappy_test.cc; path = src/leveldb_snappy_test.cc; sourceTree = "<group>"; };
-		FD4B0A86D9AE5E39F1D9139D /* Pods_integration_test_tvos.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_integration_test_tvos.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -218,7 +214,6 @@
 				D86FB1D3D4A592C451A29369 /* firebase_firestore.framework in Frameworks */,
 				6013D96CC99BE0D747E924BF /* firebase_auth.framework in Frameworks */,
 				5270BB448DF5ECE860FDD68B /* firebase_firestore.framework in Frameworks */,
-				86F6FDA3AA46B8DBA710380D /* Pods_integration_test.framework in Frameworks */,
 			
 				1A351229010000000001 /* FirebaseFirestore in Frameworks */,
 				1A351229010000000002 /* FirebaseAuth in Frameworks */,
@@ -232,7 +227,6 @@
 				BC1D685E267B0116005DC2DA /* CoreGraphics.framework in Frameworks */,
 				BC1D685C267B0112005DC2DA /* UIKit.framework in Frameworks */,
 				BC1D685A267B010D005DC2DA /* Foundation.framework in Frameworks */,
-				7DDCFC4B946EA9D8EB8FBDF2 /* Pods_integration_test_tvos.framework in Frameworks */,
 			
 				1A351229010000000003 /* FirebaseFirestore in Frameworks */,
 				1A351229010000000004 /* FirebaseAuth in Frameworks */,
@@ -276,8 +270,6 @@
 				529226D71C85F68000C89379 /* CoreGraphics.framework */,
 				529226D91C85F68000C89379 /* UIKit.framework */,
 				529226EE1C85F68000C89379 /* XCTest.framework */,
-				4AAFA3E3DA9641C2E3C46C9D /* Pods_integration_test.framework */,
-				FD4B0A86D9AE5E39F1D9139D /* Pods_integration_test_tvos.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -486,89 +478,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		885207C8AFF3010751D8174F /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-integration_test_tvos-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		9F70D44D33C0014531523672 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-integration_test/Pods-integration_test-resources.sh",
-				"${PODS_CONFIGURATION_BUILD_DIR}/gRPC-C++-iOS/gRPCCertificates-Cpp.bundle",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/gRPCCertificates-Cpp.bundle",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-integration_test/Pods-integration_test-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		D0F609B857F394F4380A7F47 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-integration_test-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		DE1A8C260E5ED2A1DB7CC213 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos-resources.sh",
-				"${PODS_CONFIGURATION_BUILD_DIR}/gRPC-C++-tvOS/gRPCCertificates-Cpp.bundle",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/gRPCCertificates-Cpp.bundle",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		529226CE1C85F68000C89379 /* Sources */ = {
@@ -795,7 +704,6 @@
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
-					"COCOAPODS=1",
 					"$(inherited)",
 					"PB_FIELD_32BIT=1",
 					"PB_NO_PACKED_STRUCTS=1",
@@ -810,12 +718,9 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock/include\"",
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
-					"/Users/wuandy/projects/firebase-cpp-sdk",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -844,7 +749,6 @@
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
-					"COCOAPODS=1",
 					"$(inherited)",
 					"PB_FIELD_32BIT=1",
 					"PB_NO_PACKED_STRUCTS=1",
@@ -859,12 +763,9 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock/include\"",
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
-					"/Users/wuandy/projects/firebase-cpp-sdk",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -912,7 +813,6 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
-					"COCOAPODS=1",
 					"$(inherited)",
 					"PB_FIELD_32BIT=1",
 					"PB_NO_PACKED_STRUCTS=1",
@@ -927,10 +827,8 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock/include\"",
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
@@ -983,7 +881,6 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
-					"COCOAPODS=1",
 					"$(inherited)",
 					"PB_FIELD_32BIT=1",
 					"PB_NO_PACKED_STRUCTS=1",
@@ -998,10 +895,8 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock/include\"",
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
-					"\"$(SRCROOT)/Pods/FirebaseFirestoreInternal/Firestore/Protos/nanopb\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk\"",
+					"\"$(OBJROOT)/../../SourcePackages/checkouts/firebase-ios-sdk/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
