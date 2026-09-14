@@ -613,6 +613,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### 13.13.0
+- Changes
+    - General (Android): Update to Firebase Android BoM version 34.19.0.
+    - General (iOS): Update to Firebase Cocoapods version 12.19.0.
+
 ### 13.12.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.18.0.
