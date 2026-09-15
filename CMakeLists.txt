@@ -72,7 +72,7 @@ option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
        "When building with Gradle, use the previously built libraries." OFF)
 option(FIREBASE_USE_BORINGSSL
        "Build against BoringSSL instead of using your system's OpenSSL." OFF)
-option(FIREBASE_USE_LINUX_CXX11_ABI
+option(FIREBASE_LINUX_USE_CXX11_ABI
        "Build Linux SDK using the C++11 ABI instead of the legacy ABI." OFF)
 
 # This should only be enabled by the GitHub Action build script.
