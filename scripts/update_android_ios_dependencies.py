@@ -385,7 +385,7 @@ RE_SPM_PACKAGE_BLOCK = re.compile(
 )
 
 def modify_project_file_spm(project_file, pod_version_map, dryrun=True,
-                           ignore_ios_versions=[]):
+                           ignore_ios_versions=None):
   """Update Swift Package versions in specified project.pbxproj file.
 
   Args:
@@ -396,8 +396,10 @@ def modify_project_file_spm(project_file, pod_version_map, dryrun=True,
       ignore_ios_versions (set): If the old version number for a package
                                  matches one of these, don't update it.
   """
+  if ignore_ios_versions is None:
+    ignore_ios_versions = []
   global logfile_lines
-  with open(project_file, "r") as f:
+  with open(project_file, "r", encoding="utf-8") as f:
     content = f.read()
 
   substituted_pairs = []
@@ -447,7 +449,7 @@ def modify_project_file_spm(project_file, pod_version_map, dryrun=True,
       print('(-) ' + original + '\n(+) ' + substituted)
 
     if not dryrun:
-      with open(project_file, "w") as f:
+      with open(project_file, "w", encoding="utf-8") as f:
         f.write(new_content)
     print()
 
