@@ -366,10 +366,14 @@ def demangle_symbol(symbol):
         _cache["demangle"][FLAGS.platform][symbol] = demangled_symbol
         break
       if FLAGS.platform == "darwin" or FLAGS.platform == "ios":
-        # On Darwin, try demangling again without the leading _.
-        demangled_symbol = demangler.demangle(symbol[1:])
-        if demangled_symbol and (symbol[1:] != demangled_symbol):
-          _cache["demangle"][FLAGS.platform][symbol] = demangled_symbol
+        # On Darwin, try demangling again without the leading _ or l_.
+        for stripped in ([symbol[1:], symbol[2:]]
+                         if symbol.startswith("l__Z") else [symbol[1:]]):
+          demangled_symbol = demangler.demangle(stripped)
+          if demangled_symbol and (stripped != demangled_symbol):
+            _cache["demangle"][FLAGS.platform][symbol] = demangled_symbol
+            break
+        if _cache["demangle"][FLAGS.platform][symbol] != symbol:
           break
   return _cache["demangle"][FLAGS.platform][symbol]
 
@@ -396,6 +400,37 @@ def is_cpp_symbol(symbol):
     return symbol.startswith("__Z") or symbol.startswith("l__Z")
   if FLAGS.platform == "windows":
     return "@" in symbol or "?" in symbol
+
+
+def is_ignored_symbol(symbol):
+  """Returns True if the given symbol should be ignored and never renamed.
+
+  Args:
+    symbol: Symbol to check.
+  Returns:
+    True if the symbol should be ignored, False otherwise.
+  """
+  if FLAGS.platform in ("darwin", "ios"):
+    # Ignore any Objective-C or Objective-C++ methods and runtime metadata.
+    if ('[' in symbol or ']' in symbol or
+        symbol.startswith(("_OBJC_", "_objc_"))):
+      return True
+    # Ignore Mach-O assembler temporary labels and compiler metadata labels.
+    # Every real C or C++ symbol on Mach-O is emitted with a leading underscore
+    # (or "l__Z" for linker-private C++ symbols), so any non-C++ symbol lacking
+    # a leading underscore (ltmp*, lCPI*, lJTI*, l_.str, GCC_except_table*, etc.)
+    # is a compiler- or assembler-generated label that the linker discards or
+    # handles specially. Renaming an 'l'/'L' label turns it into a real symbol
+    # ("f_b_l...") at the address of the atom it labelled; when that atom is an
+    # Objective-C class reference, ld aborts in changeClassRefUseToGotUse with
+    # "unsupported reference (alias of) to class-ref".
+    if not is_cpp_symbol(symbol) and not symbol.startswith("_"):
+      return True
+  elif FLAGS.platform == "windows":
+    # Don't rename $LN*, those are local symbols.
+    if symbol.startswith("$LN"):
+      return True
+  return False
 
 
 def get_top_level_namespaces(demangled_symbols):
@@ -525,8 +560,7 @@ def read_symbols_from_archive(archive_file):
     m = RE_NM_SYMBOLS_PLATFORM[FLAGS.platform].match(line)
     if m:
       symbol = m.group("symbol")
-      # Ignore any Objective-C or Objective-C++ methods.
-      if FLAGS.platform == "darwin" and ('[' in symbol or ']' in symbol):
+      if is_ignored_symbol(symbol):
         continue
 
       all_symbols.add(symbol)
@@ -654,8 +688,7 @@ def rename_symbol(symbol):
           new_symbol = re.sub(r"(?<=[^a-z_])%s@@" % ns, r"%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
-    if FLAGS.platform == "windows" and symbol.startswith("$LN"):
-      # Don't rename $LN*, those are local symbols.
+    if is_ignored_symbol(symbol):
       return new_renames
     # C symbol. Just split, rename, and re-join.
     (prefix, remainder) = split_symbol(symbol)
