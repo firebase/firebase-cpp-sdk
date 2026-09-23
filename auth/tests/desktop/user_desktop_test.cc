@@ -891,7 +891,7 @@ TEST_F(UserDesktopTest,
   Future<AuthResult> future1 = firebase_user_.LinkWithProvider(&provider1);
   EXPECT_EQ(future1.status(), kFutureStatusPending);
   Future<AuthResult> future2 = firebase_user_.LinkWithProvider(&provider2);
-  VerifyAuthResult(future2, kAuthErrorFederatedProviderAreadyInUse);
+  VerifyAuthResult(future2, kAuthErrorFederatedProviderAlreadyInUse);
   handler1.TriggerLinkComplete();
   const AuthResult result = WaitForFuture(future1);
 }
@@ -1054,7 +1054,7 @@ TEST_F(UserDesktopTest,
   EXPECT_EQ(future1.status(), kFutureStatusPending);
   Future<AuthResult> future2 =
       firebase_user_.ReauthenticateWithProvider(&provider2);
-  VerifyAuthResult(future2, kAuthErrorFederatedProviderAreadyInUse);
+  VerifyAuthResult(future2, kAuthErrorFederatedProviderAlreadyInUse);
   handler1.TriggerReauthenticateComplete();
   const AuthResult result = WaitForFuture(future1);
 }

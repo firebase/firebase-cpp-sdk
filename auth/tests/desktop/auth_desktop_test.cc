@@ -318,7 +318,7 @@ TEST_F(AuthDesktopTest,
   Future<AuthResult> future1 = firebase_auth_->SignInWithProvider(&provider1);
   EXPECT_EQ(future1.status(), kFutureStatusPending);
   Future<AuthResult> future2 = firebase_auth_->SignInWithProvider(&provider2);
-  VerifyAuthResult(future2, kAuthErrorFederatedProviderAreadyInUse);
+  VerifyAuthResult(future2, kAuthErrorFederatedProviderAlreadyInUse);
   handler1.TriggerSignInComplete();
   const AuthResult result = WaitForFuture(future1);
 }

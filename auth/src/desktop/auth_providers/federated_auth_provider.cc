@@ -60,7 +60,7 @@ Future<AuthResult> CreateAuthFuture(AuthData* auth_data,
     SafeFutureHandle<AuthResult> handle =
         auth_data->future_impl.SafeAlloc<AuthResult>(api_function);
     auth_data->future_impl.CompleteWithResult(
-        handle, kAuthErrorFederatedProviderAreadyInUse,
+        handle, kAuthErrorFederatedProviderAlreadyInUse,
         "Provider operation already in progress.",
         /*result=*/{});
     return MakeFuture(&auth_data->future_impl, handle);
