@@ -91,7 +91,7 @@ static const ErrorCodeMapping kWebCodes[] = {
      kAuthErrorWebContextAlreadyPresented},
     {"ERROR_WEB_CONTEXT_CANCELED", kAuthErrorWebContextCancelled},
     {"ERROR_WEB_INTERNAL_ERROR", kAuthErrorWebInternalError},
-    {"ERROR_WEB_STORAGE_UNSUPPORTED", kAuthErrorWebStorateUnsupported},
+    {"ERROR_WEB_STORAGE_UNSUPPORTED", kAuthErrorWebStorageUnsupported},
     {nullptr},
 };
 static const ErrorCodeMapping kFirebaseAuthCodes[] = {
