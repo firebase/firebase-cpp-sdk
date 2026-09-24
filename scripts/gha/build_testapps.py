@@ -161,10 +161,8 @@ flags.DEFINE_list(
     "or both. Building for both will produce both an .app and an .ipa.")
 
 flags.DEFINE_bool(
-    "update_pod_repo", True,
-    "(iOS/tvOS only) Will run 'pod repo update' before building for iOS/tvOS to update"
-    " the local spec repos available on this machine. Must also include iOS/tvOS"
-    " in platforms flag.")
+    "update_pod_repo", False,
+    "(Deprecated / unused for Swift Package Manager testapps).")
 
 flags.DEFINE_string(
     "compiler", None,
@@ -254,9 +252,6 @@ def main(argv):
       _build_xcframework_from_repo(repo_dir, "ios", testapps, config)
     if _TVOS in platforms:
       _build_xcframework_from_repo(repo_dir, "tvos", testapps, config)
-
-  if update_pod_repo and (_IOS in platforms or _TVOS in platforms):
-    _run(["pod", "repo", "update"])
 
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
@@ -614,8 +609,6 @@ def _build_apple(
     dir_util.copy_tree(framework_src_path, framework_dest_path)
     framework_paths.append(framework_dest_path)
 
-  _run(["pod", "install"])
-
   entitlements_path = os.path.join(
       project_dir, api_config.ios_target + ".entitlements")
   xcode_tool_path = os.path.join(
@@ -636,7 +629,7 @@ def _build_apple(
     logging.info("No entitlements found at %s.", entitlements_path)
   _run(xcode_patcher_args)
 
-  xcode_path = os.path.join(project_dir, "integration_test.xcworkspace")
+  xcode_path = os.path.join(project_dir, "integration_test.xcodeproj")
   if _APPLE_SDK_SIMULATOR in apple_sdk:
     _run(
         xcodebuild.get_args_for_build(

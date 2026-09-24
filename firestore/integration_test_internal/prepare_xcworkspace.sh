@@ -33,7 +33,6 @@ SDKROOT=$(readlink -f "$SCRIPTPATH/../../")
 
 RUBY=`which ruby`
 PYTHON=`which python3`
-POD=`which pod`
 
 # Clean up build directory, incremental builds not supported yet.
 rm -rf $BUILDDIR
@@ -42,10 +41,10 @@ rm -rf $BUILDDIR
 cd $SDKROOT
 $PYTHON $SDKROOT/scripts/gha/build_ios_tvos.py -t firebase_auth firebase_firestore -b $BUILDDIR
 
-# Install the underlying Firestore C++ Core SDK from cocoapods and build the integration test
-# xcode workspace.
+# Set up GoogleTest and test framework files
 cd $SCRIPTPATH
-$POD install
+$PYTHON $SDKROOT/testing/test_framework/download_googletest.py
+$PYTHON $SDKROOT/setup_integration_tests.py $SCRIPTPATH
 
 # Add built xcframework from `build_ios_tvos.py` to ios tests
 $RUBY $SDKROOT/scripts/gha/integration_testing/xcode_tool.rb --XCodeCPP.xcodeProjectDir . --XCodeCPP.target integration_test --XCodeCPP.frameworks ./ios_tvos_build/xcframeworks/firebase.xcframework,./ios_tvos_build/xcframeworks/firebase_firestore.xcframework,./ios_tvos_build/xcframeworks/firebase_auth.xcframework
