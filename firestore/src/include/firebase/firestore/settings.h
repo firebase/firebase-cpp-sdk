@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 
+#include "firebase/internal/common.h"
 #if defined(__OBJC__)
 #include <dispatch/dispatch.h>
 #endif
@@ -47,6 +48,7 @@ class Executor;
 #endif
 
 class FirestoreInternal;
+class LocalCacheSettings;
 
 /** Settings used to configure a Firestore instance. */
 class Settings final {
@@ -137,13 +139,37 @@ class Settings final {
   void set_ssl_enabled(bool enabled);
 
   /**
+   * Returns a reference to the `LocalCacheSettings` instance
+   * used to configure this SDK.
+   */
+  const LocalCacheSettings& local_cache_settings();
+
+  /**
+   * Configures the SDK with the given `LocalCacheSettings` instance.
+   *
+   * By default, persistence cache is enabled, with a cache size of 100 MB.
+   *
+   * See documentation of `PersistentCacheSettings` to under the default
+   * settings.
+   *
+   * @param cache_settings Settings object to configue this SDK.
+   */
+  void set_local_cache_settings(const LocalCacheSettings& cache_settings);
+
+  /**
+   * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.
+   * It will be deleted in a future major release.
+   *
    * Enables or disables local persistent storage.
    *
    * @param enabled Set true to enable local persistent storage.
    */
-  void set_persistence_enabled(bool enabled);
+  FIREBASE_DEPRECATED void set_persistence_enabled(bool enabled);
 
   /**
+   * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.
+   * It will be deleted in a future major release.
+   *
    * Sets an approximate cache size threshold for the on-disk data. If the cache
    * grows beyond this size, Cloud Firestore will start removing data that
    * hasn't been recently used. The size is not a guarantee that the cache will
@@ -153,7 +179,7 @@ class Settings final {
    * By default, collection is enabled with a cache size of 100 MB. The minimum
    * value is 1 MB.
    */
-  void set_cache_size_bytes(int64_t value);
+  FIREBASE_DEPRECATED void set_cache_size_bytes(int64_t value);
 
 #if defined(__OBJC__) || defined(DOXYGEN)
   /**
@@ -208,11 +234,19 @@ class Settings final {
    */
   friend std::ostream& operator<<(std::ostream& out, const Settings& settings);
 
+  /** Checks `lhs` and `rhs` for equality. */
+  friend bool operator==(const Settings& lhs, const Settings& rhs);
+
  private:
   static constexpr int64_t kDefaultCacheSizeBytes = 100 * 1024 * 1024;
+  enum class CacheSettingsSource { kNone, kNew, kOld };
 
   std::string host_;
   bool ssl_enabled_ = true;
+
+  CacheSettingsSource cache_settings_source_{CacheSettingsSource::kNone};
+
+  std::shared_ptr<LocalCacheSettings> local_cache_settings_;
   bool persistence_enabled_ = true;
   int64_t cache_size_bytes_ = kDefaultCacheSizeBytes;
 
@@ -227,14 +261,6 @@ class Settings final {
   std::shared_ptr<const util::Executor> executor_;
 #endif
 };
-
-/** Checks `lhs` and `rhs` for equality. */
-inline bool operator==(const Settings& lhs, const Settings& rhs) {
-  return lhs.host() == rhs.host() &&
-         lhs.is_ssl_enabled() == rhs.is_ssl_enabled() &&
-         lhs.is_persistence_enabled() == rhs.is_persistence_enabled() &&
-         lhs.cache_size_bytes() == rhs.cache_size_bytes();
-}
 
 /** Checks `lhs` and `rhs` for inequality. */
 inline bool operator!=(const Settings& lhs, const Settings& rhs) {

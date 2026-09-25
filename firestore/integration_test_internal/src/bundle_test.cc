@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "firebase/firestore.h"
+#include "firebase/firestore/local_cache_settings.h"
 #include "firebase_test_framework.h"
 #include "firestore_integration_test.h"
 #include "gmock/gmock.h"
@@ -327,7 +328,7 @@ TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
   // This test really only makes sense with memory persistence, as disk
   // persistence only ever lazily deletes data.
   auto new_settings = db->settings();
-  new_settings.set_persistence_enabled(false);
+  new_settings.set_local_cache_settings(MemoryCacheSettings::Create());
   db->set_settings(new_settings);
 
   auto bundle = CreateTestBundle(db);
