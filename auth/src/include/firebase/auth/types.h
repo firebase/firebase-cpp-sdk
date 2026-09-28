@@ -76,7 +76,7 @@ enum AuthError {
   /// Caused by "Set account info" methods.
   kAuthErrorEmailAlreadyInUse,
 
-  /// Indicates the user has attemped to change email or password more than 5
+  /// Indicates the user has attempted to change email or password more than 5
   /// minutes after signing in, and will need to refresh the credentials.
   /// Caused by "Set account info" methods.
   kAuthErrorRequiresRecentLogin,
@@ -319,7 +319,7 @@ enum AuthError {
 
   /// Indicates that 3rd party cookies or data are disabled, or that there was
   /// a problem with the browser.
-  kAuthErrorWebStorateUnsupported,
+  kAuthErrorWebStorageUnsupported,
 
   /// Indicates that the provided tenant ID does not match the Auth instance's
   /// tenant ID.
@@ -400,7 +400,7 @@ enum AuthError {
   /// Indicates that the federated provider is busy with a previous
   /// authorization request. Try again when the previous authorization request
   /// completes.
-  kAuthErrorFederatedProviderAreadyInUse,
+  kAuthErrorFederatedProviderAlreadyInUse,
 
   /// Indicates that one or more fields of the provided AuthenticatedUserData
   /// are invalid.
@@ -427,7 +427,7 @@ enum AuthError {
   /// nor a custom token provider is available.
   kAuthErrorTokenRefreshUnavailable,
 
-#endif  // INTERNAL_EXEPERIMENTAL
+#endif  // INTERNAL_EXPERIMENTAL
 };
 
 /// @brief Contains information required to authenticate with a third party
@@ -438,9 +438,9 @@ struct FederatedProviderData {
   std::string provider_id;
 };
 
-/// @brief Contains information to identify an OAuth povider.
+/// @brief Contains information to identify an OAuth provider.
 struct FederatedOAuthProviderData : FederatedProviderData {
-  /// Initailizes an empty provider data structure.
+  /// Initializes an empty provider data structure.
   FederatedOAuthProviderData() {}
 
   /// Initializes the provider data structure with a provider id.
@@ -460,7 +460,7 @@ struct FederatedOAuthProviderData : FederatedProviderData {
   }
 #endif
 
-  /// OAuth parmeters which specify which rights of access are being requested.
+  /// OAuth parameters which specify which rights of access are being requested.
   std::vector<std::string> scopes;
 
   /// OAuth parameters which are provided to the federated provider service.

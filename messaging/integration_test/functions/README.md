@@ -1,6 +1,6 @@
-# Cloud Functions for App Check Integration Tests
+# Cloud Functions for Messaging Integration Tests
 
-This directory contains the Cloud Functions backend used by the App Check integration tests.
+This directory contains the Cloud Functions backend used by the Messaging integration tests.
 
 ## Running Locally via Emulator
 

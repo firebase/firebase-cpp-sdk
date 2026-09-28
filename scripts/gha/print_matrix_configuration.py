@@ -173,7 +173,6 @@ BUILD_CONFIGS = {
 # Note: All entries in a given list must have the same type, (ftl or virtual).
 TEST_DEVICES = {
   "android_target": [
-      {"type": "ftl", "device": "model=blueline,version=28"}, # Pixel 3
       {"type": "ftl", "device": "model=gts8wifi,version=34"},  # Galaxy Tab S8
       {"type": "ftl", "device": "model=SH-01L,version=28"},  # AQUOS sense2 SH-01L
   ],

@@ -88,3 +88,6 @@ src/firebase_test_framework.h
 src/ios/.clang-format
 src/ios/ios_app_framework.mm
 src/ios/ios_firebase_test_framework.mm
+
+# Node dependencies
+node_modules/

@@ -14,20 +14,16 @@ Building and Running the sample
 -------------------------------
 
 ### iOS
-  - Link your iOS app to the Firebase libraries.
-    - Get CocoaPods version 1 or later by running,
+  - Set up the test framework and dependencies:
+    - From the SDK root directory, run the setup script for the integration test:
         ```
-        sudo gem install cocoapods --pre
+        python3 setup_integration_tests.py analytics/integration_test
         ```
-    - From the sample directory, install the CocoaPods listed in the Podfile
-      by running,
+    - Open the Xcode project:
         ```
-        pod install
+        open integration_test.xcodeproj
         ```
-    - Open the generated Xcode workspace (which now has the CocoaPods),
-        ```
-        open sample.xcworkspace
-        ```
+      Xcode will automatically resolve the required Swift Package dependencies (e.g. `firebase-ios-sdk`).
     - For further details please refer to the
       [general instructions for setting up an iOS app with Firebase](https://firebase.google.com/docs/ios/setup).
   - Register your iOS app with Firebase.
