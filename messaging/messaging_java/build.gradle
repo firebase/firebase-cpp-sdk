@@ -42,7 +42,7 @@ android {
 
   defaultConfig {
     targetSdkVersion 34
-    minSdkVersion 23
+    minSdkVersion 24
   }
 
   sourceSets {
