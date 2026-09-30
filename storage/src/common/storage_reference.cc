@@ -93,6 +93,9 @@ StorageReference::StorageReference(const StorageReference& other)
 }
 
 StorageReference& StorageReference::operator=(const StorageReference& other) {
+  if (this == &other) {
+    return *this;
+  }
   StorageReferenceInternalCommon::DeleteInternal(this);
   internal_ = other.internal_ ? new StorageReferenceInternal(*other.internal_)
                               : nullptr;
@@ -109,6 +112,9 @@ StorageReference::StorageReference(StorageReference&& other) {
 }
 
 StorageReference& StorageReference::operator=(StorageReference&& other) {
+  if (this == &other) {
+    return *this;
+  }
   StorageReferenceInternalCommon::DeleteInternal(this);
   StorageReferenceInternalCommon::UnregisterForCleanup(&other, other.internal_);
   internal_ = other.internal_;

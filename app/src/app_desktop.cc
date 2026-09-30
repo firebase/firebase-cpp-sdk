@@ -150,7 +150,9 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
   }
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
   LogDebug("Validating semaphore creation.");
-  { firebase::Semaphore sem_test(0); }
+  {
+    firebase::Semaphore sem_test(0);
+  }
 
   AppOptions options_with_defaults = options;
   if (options_with_defaults.PopulateRequiredWithDefaults()) {
@@ -163,15 +165,18 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     std::string unique_name =
         std::string(app->options_.package_name()) + "." + app->name_;
     app = app_common::AddApp(app, &app->init_results_);
-    app->internal_->heartbeat_controller_ =
-        std::make_shared<heartbeat::HeartbeatController>(
-            unique_name, *app_common::FindAppLoggerByName(name),
-            app->internal_->date_provider_);
+    Logger* app_logger = app_common::FindAppLoggerByName(name);
+    if (app_logger != nullptr) {
+      app->internal_->heartbeat_controller_ =
+          std::make_shared<heartbeat::HeartbeatController>(
+              unique_name, *app_logger, app->internal_->date_provider_);
 #ifndef SWIG
-    // Log a heartbeat after creating an App. In the Unity SDK this will happen
-    // at a later time, after additional user agents have been registered.
-    app->internal_->heartbeat_controller_->LogHeartbeat();
+      // Log a heartbeat after creating an App. In the Unity SDK this will
+      // happen at a later time, after additional user agents have been
+      // registered.
+      app->internal_->heartbeat_controller_->LogHeartbeat();
 #endif  // SWIG
+    }
   }
   return app;
 }

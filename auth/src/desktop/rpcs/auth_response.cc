@@ -14,7 +14,11 @@
 
 #include "auth/src/desktop/rpcs/auth_response.h"
 
+#include <climits>
+#include <cstdlib>
+
 #include "app/rest/util.h"
+#include "app/src/log.h"
 
 namespace firebase {
 namespace auth {
@@ -35,6 +39,22 @@ AuthError AuthResponse::error_code() const {
 
 bool AuthResponse::IsSuccessful() const {
   return status() == rest::util::HttpSuccess;
+}
+
+int AuthResponse::ParseExpiresIn(const std::string& expires_in) {
+  if (expires_in.empty()) {
+    return 0;
+  }
+  const char* begin = expires_in.c_str();
+  char* end = nullptr;
+  long long value = std::strtoll(begin, &end, 10);  // NOLINT
+  if (end == begin) {
+    LogWarning("Unable to parse expiresIn value: %s", begin);
+    return 0;
+  }
+  if (value < 0) return 0;
+  if (value > INT_MAX) return INT_MAX;
+  return static_cast<int>(value);
 }
 
 }  // namespace auth

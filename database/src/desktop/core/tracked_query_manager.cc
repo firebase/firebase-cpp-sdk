@@ -266,12 +266,15 @@ std::set<std::string> TrackedQueryManager::GetKnownCompleteChildren(
   }
 
   // Second, get any complete default queries immediately below us.
-  for (auto& child_entry : tracked_query_tree_.GetChild(path)->children()) {
-    std::string child_key = child_entry.first;
-    Tree<TrackedQueryMap> child_tree = child_entry.second;
-    if (child_tree.value().has_value() &&
-        HasDefaultCompletePredicate(child_tree.value().value())) {
-      complete_children.insert(child_key);
+  const Tree<TrackedQueryMap>* subtree = tracked_query_tree_.GetChild(path);
+  if (subtree != nullptr) {
+    for (auto& child_entry : subtree->children()) {
+      std::string child_key = child_entry.first;
+      Tree<TrackedQueryMap> child_tree = child_entry.second;
+      if (child_tree.value().has_value() &&
+          HasDefaultCompletePredicate(child_tree.value().value())) {
+        complete_children.insert(child_key);
+      }
     }
   }
 

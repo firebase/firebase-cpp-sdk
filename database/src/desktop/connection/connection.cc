@@ -297,7 +297,12 @@ void Connection::ProcessMessage(const char* message) {
   logger_->LogDebug("%s ProcessMessage (length: %d)", log_id_.c_str(),
                     strlen(message));
 
-  FIREBASE_DEV_ASSERT(!message_data.is_null());
+  if (!message_data.is_map()) {
+    logger_->LogDebug("%s Failed to parse server message: not an object",
+                      log_id_.c_str());
+    Close(kDisconnectReasonProtocolError);
+    return;
+  }
 
   const auto& messageMap = message_data.map();
   auto itType = messageMap.find(kServerEnvelopeType);
@@ -343,7 +348,12 @@ void Connection::OnControlMessage(const Variant& data) {
   logger_->LogDebug("%s received control message: %s", log_id_.c_str(),
                     util::VariantToJson(data).c_str());
 
-  FIREBASE_DEV_ASSERT(!data.is_null());
+  if (!data.is_map()) {
+    logger_->LogDebug("%s Got invalid control message: not an object",
+                      log_id_.c_str());
+    Close(kDisconnectReasonProtocolError);
+    return;
+  }
 
   const auto& data_map = data.map();
   auto itType = data_map.find(kServerControlMessageType);
@@ -416,12 +426,18 @@ void Connection::OnConnectionShutdown(const std::string& reason) {
 }
 
 void Connection::OnHandshake(const Variant& handshake) {
+  if (!handshake.is_map()) {
+    logger_->LogDebug("%s Invalid handshake message: not an object",
+                      log_id_.c_str());
+    Close(kDisconnectReasonProtocolError);
+    return;
+  }
   const auto& data_map = handshake.map();
 
   int64_t timestamp = 0;
   auto itTimestamp = data_map.find(kServerHelloTimestamp);
-  if (itTimestamp != data_map.end()) {
-    timestamp = itTimestamp->second.int64_value();
+  if (itTimestamp != data_map.end() && itTimestamp->second.is_numeric()) {
+    timestamp = itTimestamp->second.AsInt64().int64_value();
   } else {
     logger_->LogDebug("%s No timestamp from handshake message",
                       log_id_.c_str());
@@ -429,7 +445,7 @@ void Connection::OnHandshake(const Variant& handshake) {
 
   std::string host;
   auto itHost = data_map.find(kServerHelloHost);
-  if (itHost != data_map.end()) {
+  if (itHost != data_map.end() && itHost->second.is_string()) {
     host = itHost->second.string_value();
   } else {
     logger_->LogDebug("%s No host uri from handshake message", log_id_.c_str());
@@ -439,7 +455,7 @@ void Connection::OnHandshake(const Variant& handshake) {
 
   std::string sessionId;
   auto itSession = data_map.find(kServerHelloSessionId);
-  if (itSession != data_map.end()) {
+  if (itSession != data_map.end() && itSession->second.is_string()) {
     sessionId = itSession->second.string_value();
   } else {
     logger_->LogDebug("%s No session id from handshake message",

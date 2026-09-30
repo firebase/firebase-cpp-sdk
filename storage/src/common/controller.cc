@@ -42,6 +42,9 @@ Controller::Controller(const Controller& other)
                     : nullptr) {}
 
 Controller& Controller::operator=(const Controller& other) {
+  if (this == &other) {
+    return *this;
+  }
   if (internal_) delete internal_;
   internal_ = other.internal_
                   ? new internal::ControllerInternal(*other.internal_)
@@ -56,6 +59,9 @@ Controller::Controller(Controller&& other) {
 }
 
 Controller& Controller::operator=(Controller&& other) {
+  if (this == &other) {
+    return *this;
+  }
   if (internal_) delete internal_;
   internal_ = other.internal_;
   other.internal_ = nullptr;

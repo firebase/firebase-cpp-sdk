@@ -47,10 +47,11 @@ ListenerRegistration::ListenerRegistration(
 }
 
 ListenerRegistration::ListenerRegistration(ListenerRegistration&& registration)
-    : firestore_(registration.firestore_) {
+    : firestore_(registration.firestore_), internal_(registration.internal_) {
   CleanupFnListenerRegistration::Unregister(&registration,
                                             registration.firestore_);
-  std::swap(internal_, registration.internal_);
+  registration.firestore_ = nullptr;
+  registration.internal_ = nullptr;
   CleanupFnListenerRegistration::Register(this, firestore_);
 }
 
@@ -73,8 +74,8 @@ ListenerRegistration& ListenerRegistration::operator=(
     return *this;
   }
 
-  firestore_ = registration.firestore_;
   CleanupFnListenerRegistration::Unregister(this, firestore_);
+  firestore_ = registration.firestore_;
   internal_ = registration.internal_;
   CleanupFnListenerRegistration::Register(this, firestore_);
   return *this;
@@ -86,11 +87,13 @@ ListenerRegistration& ListenerRegistration::operator=(
     return *this;
   }
 
-  firestore_ = registration.firestore_;
   CleanupFnListenerRegistration::Unregister(&registration,
                                             registration.firestore_);
   CleanupFnListenerRegistration::Unregister(this, firestore_);
+  firestore_ = registration.firestore_;
   internal_ = registration.internal_;
+  registration.firestore_ = nullptr;
+  registration.internal_ = nullptr;
   CleanupFnListenerRegistration::Register(this, firestore_);
   return *this;
 }

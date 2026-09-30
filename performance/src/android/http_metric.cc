@@ -42,7 +42,7 @@ class HttpMetricInternal {
   explicit HttpMetricInternal() {}
 
   ~HttpMetricInternal() {
-    if (active_http_metric_) {
+    if (active_http_metric_ && IsInitialized() && GetFirebaseApp() != nullptr) {
       if (stop_on_destroy_) {
         StopHttpMetric();
       } else {

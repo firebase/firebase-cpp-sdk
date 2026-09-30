@@ -153,11 +153,13 @@ bool Base64Decode(const std::string& input, std::string* output) {
   output_ptr->resize(GetBase64DecodedSize(input));
 
   for (int i = 0, o = 0; i < input.size(); i += 4, o += 3) {
-    char input0 = input[i + 0];
-    char input1 = input[i + 1];
+    uint8_t input0 = static_cast<uint8_t>(input[i + 0]);
+    uint8_t input1 = static_cast<uint8_t>(input[i + 1]);
     // At the end of the string, missing bytes 2 and 3 are considered '='.
-    char input2 = i + 2 < input.size() ? input[i + 2] : kBase64NullEnding;
-    char input3 = i + 3 < input.size() ? input[i + 3] : kBase64NullEnding;
+    uint8_t input2 = static_cast<uint8_t>(
+        i + 2 < input.size() ? input[i + 2] : kBase64NullEnding);
+    uint8_t input3 = static_cast<uint8_t>(
+        i + 3 < input.size() ? input[i + 3] : kBase64NullEnding);
     // If any unknown characters appear, it's an error.
     if (kBase64TableReverse[input0] < 0 || kBase64TableReverse[input1] < 0 ||
         kBase64TableReverse[input2] < 0 || kBase64TableReverse[input3] < 0) {
@@ -166,10 +168,11 @@ bool Base64Decode(const std::string& input, std::string* output) {
     // If kBase64NullEnding appears anywhere but the last 1 or 2 characters,
     // or if it appears but input.size() % 4 != 0, it's an error.
     bool at_end = (i + 4 >= input.size());
-    if ((input0 == kBase64NullEnding) || (input1 == kBase64NullEnding) ||
-        (input2 == kBase64NullEnding && !at_end) ||
-        (input2 == kBase64NullEnding && input3 != kBase64NullEnding) ||
-        (input3 == kBase64NullEnding && !at_end)) {
+    const uint8_t null_ending = static_cast<uint8_t>(kBase64NullEnding);
+    if ((input0 == null_ending) || (input1 == null_ending) ||
+        (input2 == null_ending && !at_end) ||
+        (input2 == null_ending && input3 != null_ending) ||
+        (input3 == null_ending && !at_end)) {
       return false;
     }
     uint32_t b0 = kBase64TableReverse[input0] & 0x3f;
@@ -179,13 +182,13 @@ bool Base64Decode(const std::string& input, std::string* output) {
 
     uint32_t stream = (b0 << 18) | (b1 << 12) | (b2 << 6) | b3;
     (*output_ptr)[o + 0] = (stream >> 16) & 0xFF;
-    if (input2 != kBase64NullEnding) {
+    if (input2 != null_ending) {
       (*output_ptr)[o + 1] = (stream >> 8) & 0xFF;
     } else if (((stream >> 8) & 0xFF) != 0) {
       // If there are any stale bits in this from input1, the text is malformed.
       return false;
     }
-    if (input3 != kBase64NullEnding) {
+    if (input3 != null_ending) {
       (*output_ptr)[o + 2] = (stream >> 0) & 0xFF;
     } else if (((stream >> 0) & 0xFF) != 0) {
       // If there are any stale bits in this from input2, the text is malformed.

@@ -335,23 +335,31 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     // Complete a Future<StorageListResult> from a Java ListResult object.
     jobject prefixes_list = env->CallObjectMethod(
         result, list_result::GetMethodId(list_result::kGetPrefixes));
+    if (util::CheckAndClearJniExceptions(env)) prefixes_list = nullptr;
     jobject items_list = env->CallObjectMethod(
         result, list_result::GetMethodId(list_result::kGetItems));
+    if (util::CheckAndClearJniExceptions(env)) items_list = nullptr;
     jstring page_token_jstr = static_cast<jstring>(env->CallObjectMethod(
         result, list_result::GetMethodId(list_result::kGetPageToken)));
+    if (util::CheckAndClearJniExceptions(env)) page_token_jstr = nullptr;
 
     std::vector<StorageReference> prefixes;
     std::vector<StorageReference> items;
-    std::string page_token = util::JStringToString(env, page_token_jstr);
+    std::string page_token =
+        page_token_jstr ? util::JStringToString(env, page_token_jstr) : "";
 
     auto process_list = [&](jobject list_obj,
                             std::vector<StorageReference>& out_vec) {
       if (list_obj) {
         int size = env->CallIntMethod(
             list_obj, util::list::GetMethodId(util::list::kSize));
+        if (util::CheckAndClearJniExceptions(env)) size = 0;
         for (int i = 0; i < size; ++i) {
           jobject ref_obj = env->CallObjectMethod(
               list_obj, util::list::GetMethodId(util::list::kGet), i);
+          if (util::CheckAndClearJniExceptions(env) || ref_obj == nullptr) {
+            continue;
+          }
           out_vec.push_back(StorageReference(
               new StorageReferenceInternal(data->storage, ref_obj)));
           env->DeleteLocalRef(ref_obj);

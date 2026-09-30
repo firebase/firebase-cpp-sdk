@@ -156,6 +156,12 @@ void RemoteConfigREST::ParseRestResponse() {
     return;
   }
 
+  if (!rc_response_.IsBodyParsed()) {
+    FetchFailure(kFetchFailureReasonError);
+    LogError("fetching failure: unable to parse response body");
+    return;
+  }
+
   Variant entries = rc_response_.GetEntries();
 
   NamespaceKeyValueMap config_map(configs_.fetched.config());
@@ -163,13 +169,23 @@ void RemoteConfigREST::ParseRestResponse() {
   if (rc_response_.StatusMatch("NO_CHANGE")) {
     LogDebug("No change");
   } else if (rc_response_.StatusMatch("UPDATE")) {
+    if (!entries.is_null() && !entries.is_map()) {
+      FetchFailure(kFetchFailureReasonError);
+      LogError("fetching failure: config entries are not a map");
+      return;
+    }
     config_map[namespaces_].clear();
-    for (const auto& keyvalue : entries.map()) {
-      config_map[namespaces_][keyvalue.first.mutable_string()] =
-          keyvalue.second.mutable_string();
-      LogDebug("Update: ns=%s kv=(%s, %s)", namespaces_.c_str(),
-               keyvalue.first.mutable_string().c_str(),
-               keyvalue.second.mutable_string().c_str());
+    if (entries.is_map()) {
+      for (const auto& keyvalue : entries.map()) {
+        if (!keyvalue.first.is_string() || !keyvalue.second.is_string()) {
+          LogWarning("Ignoring config entry with a non-string key or value");
+          continue;
+        }
+        config_map[namespaces_][keyvalue.first.string_value()] =
+            keyvalue.second.string_value();
+        LogDebug("Update: ns=%s kv=(%s, %s)", namespaces_.c_str(),
+                 keyvalue.first.string_value(), keyvalue.second.string_value());
+      }
     }
   } else if (rc_response_.StatusMatch("NO_TEMPLATE")) {
     LogDebug("NotAuthorized: ns=%s", namespaces_.c_str());

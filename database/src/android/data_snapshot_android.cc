@@ -171,11 +171,15 @@ const char* DataSnapshotInternal::GetKey() {
                            "DataSnapshot::GetKey() failed")) {
       return nullptr;
     }
-    const char* key = env->GetStringUTFChars(key_string, nullptr);
-    // key_string and key will be null if this is a snapshot of the Root.
-    cached_key_ = Variant::MutableStringFromStaticString(key ? key : "");
-    env->ReleaseStringUTFChars(key_string, key);
-    env->DeleteLocalRef(key_string);
+    // key_string will be null if this is a snapshot of the Root.
+    if (key_string == nullptr) {
+      cached_key_ = Variant::MutableStringFromStaticString("");
+    } else {
+      const char* key = env->GetStringUTFChars(key_string, nullptr);
+      cached_key_ = Variant::MutableStringFromStaticString(key ? key : "");
+      if (key) env->ReleaseStringUTFChars(key_string, key);
+      env->DeleteLocalRef(key_string);
+    }
   }
   return cached_key_.string_value();
 }

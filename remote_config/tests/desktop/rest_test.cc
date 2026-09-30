@@ -279,6 +279,55 @@ TEST_F(RemoteConfigRESTTest, ParseRestResponseSuccess) {
   EXPECT_GE(info.fetch_time, MillisecondsSinceEpoch() - 10000);
 }
 
+TEST_F(RemoteConfigRESTTest, ParseRestResponseMalformedBody) {
+  std::string header = "HTTP/1.1 200 Ok";
+  std::string body = "<html><body>Bad Gateway</body></html>";
+
+  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
+  rest.rc_response_.ProcessHeader(header.data(), header.length());
+  rest.rc_response_.ProcessBody(body.data(), body.length());
+  rest.rc_response_.MarkCompleted();
+  EXPECT_FALSE(rest.rc_response_.IsBodyParsed());
+
+  rest.ParseRestResponse();
+
+  ExpectFetchFailure(rest, 200);
+}
+
+TEST_F(RemoteConfigRESTTest, ParseRestResponseEntriesNotMap) {
+  std::string header = "HTTP/1.1 200 Ok";
+  std::string body = R"({"entries": ["a", "b"], "state": "UPDATE"})";
+
+  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
+  rest.rc_response_.ProcessHeader(header.data(), header.length());
+  rest.rc_response_.ProcessBody(body.data(), body.length());
+  rest.rc_response_.MarkCompleted();
+
+  rest.ParseRestResponse();
+
+  ExpectFetchFailure(rest, 200);
+}
+
+TEST_F(RemoteConfigRESTTest, ParseRestResponseSkipsNonStringValues) {
+  std::string header = "HTTP/1.1 200 Ok";
+  std::string body =
+      R"({"entries": {"Good": "value", "Number": 5, "Null": null},
+          "state": "UPDATE"})";
+
+  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
+  rest.rc_response_.ProcessHeader(header.data(), header.length());
+  rest.rc_response_.ProcessBody(body.data(), body.length());
+  rest.rc_response_.MarkCompleted();
+
+  rest.ParseRestResponse();
+
+  EXPECT_THAT(rest.fetched().config(),
+              ::testing::ContainerEq(NamespaceKeyValueMap({
+                  {kTestNamespaces, {{"Good", "value"}}},
+              })));
+  EXPECT_EQ(rest.metadata().info().last_fetch_status, kLastFetchStatusSuccess);
+}
+
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

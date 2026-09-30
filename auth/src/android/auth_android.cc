@@ -213,9 +213,15 @@ void CheckEmulator(AuthData* auth_data) {
 
   // Use AUTH_EMULATOR_PORT if it is set to non empty string,
   // otherwise use the default port.
-  uint32_t port = std::stoi(kEmulatorPort);
-  if (std::getenv("AUTH_EMULATOR_PORT") != nullptr) {
-    port = std::stoi(std::getenv("AUTH_EMULATOR_PORT"));
+  uint32_t port =
+      static_cast<uint32_t>(std::strtoul(kEmulatorPort, nullptr, 10));
+  const char* env_port = std::getenv("AUTH_EMULATOR_PORT");
+  if (env_port != nullptr && env_port[0] != '\0') {
+    char* endptr = nullptr;
+    unsigned long parsed = std::strtoul(env_port, &endptr, 10);
+    if (endptr != env_port && parsed > 0 && parsed <= 65535) {
+      port = static_cast<uint32_t>(parsed);
+    }
   }
   SetEmulatorJni(auth_data, kEmulatorLocalHost, port);
 }
@@ -637,6 +643,7 @@ void Auth::UseAppLanguage() {
 }
 
 void Auth::SignOut() {
+  if (!auth_data_) return;
   JNIEnv* env = Env(auth_data_);
   env->CallVoidMethod(AuthImpl(auth_data_), auth::GetMethodId(auth::kSignOut));
   firebase::util::CheckAndClearJniExceptions(env);

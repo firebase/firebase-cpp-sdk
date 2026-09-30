@@ -62,10 +62,12 @@ class ResponseJson : public Response {
   ResponseJson(ResponseJson&& rhs)
       : Response(std::move(rhs)),
         parser_(std::move(rhs.parser_)),
-        application_data_(std::move(rhs.application_data_)) {}
+        application_data_(std::move(rhs.application_data_)),
+        body_parsed_(rhs.body_parsed_) {}
 
   // When transmission is completed, we parse the response JSON string.
   void MarkCompleted() override {
+    body_parsed_ = false;
     // Body could be empty if request failed. Deal this case first since
     // flatbuffer parser does not allow empty input.
     if (strlen(GetBody()) == 0) {
@@ -100,22 +102,32 @@ class ResponseJson : public Response {
     const FbsType* body_fbs =
         flatbuffers::GetRoot<FbsType>(builder.GetBufferPointer());
     application_data_.reset(body_fbs->UnPack());
+    body_parsed_ = true;
 
     Response::MarkCompleted();
   }
 
   // When the response fails, ensure that application_data_ is set.
   void MarkFailed() override {
+    body_parsed_ = false;
     application_data_.reset(new FbsTypeT());
     Response::MarkFailed();
   }
 
  protected:
+  // Returns true if the body was parsed and verified successfully, meaning
+  // parser_->builder_ holds a valid, finished FbsType buffer. If this returns
+  // false, the builder's contents must not be read.
+  bool body_parsed() const { return body_parsed_; }
+
   // The FlatBuffer parser used to parse the response JSON string.
   flatbuffers::unique_ptr<flatbuffers::Parser> parser_;
 
   // The application data in a response is stored here.
   flatbuffers::unique_ptr<FbsTypeT> application_data_;
+
+ private:
+  bool body_parsed_ = false;
 };
 
 }  // namespace rest

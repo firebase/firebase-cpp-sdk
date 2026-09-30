@@ -433,7 +433,7 @@ DatabaseInternal::~DatabaseInternal() {
       delete data;
       env->DeleteGlobalRef(*i);
     }
-    java_single_value_listeners_.clear();
+    java_transaction_handlers_.clear();
   }
 
   env->DeleteGlobalRef(obj_);

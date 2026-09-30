@@ -23,7 +23,7 @@ class TraceInternal {
   explicit TraceInternal() {}
 
   ~TraceInternal() {
-    if (active_trace_) {
+    if (active_trace_ && IsInitialized() && GetFirebaseApp() != nullptr) {
       if (stop_on_destroy_) {
         StopTrace();
       } else {

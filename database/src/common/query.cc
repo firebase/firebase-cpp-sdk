@@ -77,6 +77,9 @@ Query::Query(const Query& src)
 }
 
 Query& Query::operator=(const Query& src) {
+  if (this == &src) {
+    return *this;
+  }
   SetInternal(src.internal_ ? new QueryInternal(*src.internal_) : nullptr);
   return *this;
 }
@@ -89,6 +92,9 @@ Query::Query(Query&& query) : internal_(query.internal_) {
 }
 
 Query& Query::operator=(Query&& query) {
+  if (this == &query) {
+    return *this;
+  }
   QueryInternal* internal = query.internal_;
   query.UnregisterCleanup();
   query.internal_ = nullptr;

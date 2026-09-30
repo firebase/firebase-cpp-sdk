@@ -494,18 +494,22 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
     return;
   }
 
+  auto safe_str = [](const flatbuffers::String* str) -> const char* {
+    return str ? str->c_str() : "";
+  };
+
   UserData loaded_user;
-  loaded_user.uid = userData->uid()->c_str();
-  loaded_user.email = userData->email()->c_str();
-  loaded_user.display_name = userData->display_name()->c_str();
-  loaded_user.photo_url = userData->photo_url()->c_str();
-  loaded_user.provider_id = userData->provider_id()->c_str();
-  loaded_user.phone_number = userData->phone_number()->c_str();
+  loaded_user.uid = safe_str(userData->uid());
+  loaded_user.email = safe_str(userData->email());
+  loaded_user.display_name = safe_str(userData->display_name());
+  loaded_user.photo_url = safe_str(userData->photo_url());
+  loaded_user.provider_id = safe_str(userData->provider_id());
+  loaded_user.phone_number = safe_str(userData->phone_number());
   loaded_user.is_anonymous = userData->is_anonymous();
   loaded_user.is_email_verified = userData->is_email_verified();
-  loaded_user.id_token = userData->id_token()->c_str();
-  loaded_user.refresh_token = userData->refresh_token()->c_str();
-  loaded_user.access_token = userData->access_token()->c_str();
+  loaded_user.id_token = safe_str(userData->id_token());
+  loaded_user.refresh_token = safe_str(userData->refresh_token());
+  loaded_user.access_token = safe_str(userData->access_token());
   loaded_user.access_token_expiration_date =
       userData->access_token_expiration_date();
   loaded_user.has_email_password_credential =
@@ -518,14 +522,15 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
   if (provider_data) {
     for (size_t i = 0; i < provider_data->size(); ++i) {
       auto providerData = provider_data->Get(i);
+      if (!providerData) continue;
 
       UserInfoImpl loaded_user_info;
-      loaded_user_info.uid = providerData->uid()->c_str();
-      loaded_user_info.email = providerData->email()->c_str();
-      loaded_user_info.display_name = providerData->display_name()->c_str();
-      loaded_user_info.photo_url = providerData->photo_url()->c_str();
-      loaded_user_info.provider_id = providerData->provider_id()->c_str();
-      loaded_user_info.phone_number = providerData->phone_number()->c_str();
+      loaded_user_info.uid = safe_str(providerData->uid());
+      loaded_user_info.email = safe_str(providerData->email());
+      loaded_user_info.display_name = safe_str(providerData->display_name());
+      loaded_user_info.photo_url = safe_str(providerData->photo_url());
+      loaded_user_info.provider_id = safe_str(providerData->provider_id());
+      loaded_user_info.phone_number = safe_str(providerData->phone_number());
 
       loaded_provider_data.push_back(loaded_user_info);
     }

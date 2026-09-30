@@ -84,6 +84,9 @@ bool WriteTree::RemoveWrite(WriteId write_id) {
   }
   FIREBASE_DEV_ASSERT_MESSAGE(iter != all_writes_.end(),
                               "remove_write called with nonexistent write_id");
+  if (iter == all_writes_.end()) {
+    return false;
+  }
 
   iter = all_writes_.erase(iter);
 
@@ -324,6 +327,10 @@ Optional<std::pair<Variant, Variant>> WriteTree::CalcNextVariantAfterPost(
     to_iterate = merge.Apply(complete_server_data.value());
   } else {
     // No children to iterate on.
+    return Optional<std::pair<Variant, Variant>>();
+  }
+
+  if (!to_iterate->is_map()) {
     return Optional<std::pair<Variant, Variant>>();
   }
 

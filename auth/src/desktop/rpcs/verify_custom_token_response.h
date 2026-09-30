@@ -52,7 +52,7 @@ class VerifyCustomTokenResponse : public AuthResponse {
     if (application_data_->expiresIn.empty()) {
       return 0;
     }
-    return std::stoi(application_data_->expiresIn);
+    return ParseExpiresIn(application_data_->expiresIn);
   }
 };
 

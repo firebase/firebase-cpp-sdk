@@ -152,9 +152,10 @@ StorageReferenceInternal* MetadataInternal::GetReference() const {
 std::string MetadataInternal::LookUpString(Variant* root, const char* key,
                                            const char* default_value) {
   std::map<Variant, Variant>::iterator lookup = root->map().find(key);
-  return lookup != root->map().end() ? lookup->second.string_value()
-         : default_value             ? default_value
-                                     : "";
+  if (lookup != root->map().end() && lookup->second.is_string()) {
+    return lookup->second.string_value();
+  }
+  return default_value ? default_value : "";
 }
 
 int64_t MetadataInternal::LookUpInt64(Variant* root, const char* key) {
@@ -239,6 +240,7 @@ bool MetadataInternal::ImportFromJson(const char* json) {
     if (json_metadata.is_map()) {
       for (auto itr = json_metadata.map().begin();
            itr != json_metadata.map().end(); ++itr) {
+        if (!itr->first.is_string() || !itr->second.is_string()) continue;
         custom_metadata_[itr->first.string_value()] =
             itr->second.string_value();
       }

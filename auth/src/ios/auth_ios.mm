@@ -176,9 +176,14 @@ void CheckEmulator(AuthData *auth_data) {
   LogInfo("Using Auth Emulator.");
   // Use AUTH_EMULATOR_PORT if it is set to non empty string,
   // otherwise use the default port.
-  uint32_t port = std::stoi(kEmulatorPort);
-  if (std::getenv("AUTH_EMULATOR_PORT") != nullptr) {
-    port = std::stoi(std::getenv("AUTH_EMULATOR_PORT"));
+  uint32_t port = static_cast<uint32_t>(std::strtoul(kEmulatorPort, nullptr, 10));
+  const char *env_port = std::getenv("AUTH_EMULATOR_PORT");
+  if (env_port != nullptr && env_port[0] != '\0') {
+    char *endptr = nullptr;
+    unsigned long parsed = std::strtoul(env_port, &endptr, 10);
+    if (endptr != env_port && parsed > 0 && parsed <= 65535) {
+      port = static_cast<uint32_t>(parsed);
+    }
   }
 
   SetEmulatorJni(auth_data, kEmulatorLocalHost, port);
@@ -570,6 +575,7 @@ Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char *email, const
 }
 
 void Auth::SignOut() {
+  if (!auth_data_) return;
   // TODO(jsanmiya): Verify with iOS team why this returns an error.
   NSError *_Nullable error;
   [AuthImpl(auth_data_) signOut:&error];
@@ -579,6 +585,10 @@ void Auth::SignOut() {
 Future<void> Auth::SendPasswordResetEmail(const char *email) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kAuthFn_SendPasswordResetEmail);
+  if (!email || strlen(email) == 0) {
+    futures.Complete(handle, kAuthErrorMissingEmail, "Empty email address.");
+    return MakeFuture(&futures, handle);
+  }
 
   [AuthImpl(auth_data_) sendPasswordResetWithEmail:@(email)
                                         completion:^(NSError *_Nullable error) {

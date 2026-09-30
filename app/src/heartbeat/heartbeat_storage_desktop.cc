@@ -154,12 +154,23 @@ LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFlatbuffer(
     const LoggedHeartbeatsFlatbuffer& heartbeats_fb) const {
   LoggedHeartbeats heartbeats_struct;
   // TODO(almostmatt): verify format of date string
-  heartbeats_struct.last_logged_date = heartbeats_fb.last_logged_date()->str();
-  for (auto user_agent_and_dates : *(heartbeats_fb.heartbeats())) {
-    std::string user_agent = user_agent_and_dates->user_agent()->str();
-    for (auto date : *(user_agent_and_dates->dates())) {
-      // TODO(almostmatt): verify format of date string
-      heartbeats_struct.heartbeats[user_agent].push_back(date->str());
+  if (heartbeats_fb.last_logged_date() != nullptr) {
+    heartbeats_struct.last_logged_date =
+        heartbeats_fb.last_logged_date()->str();
+  }
+  if (heartbeats_fb.heartbeats() != nullptr) {
+    for (auto user_agent_and_dates : *(heartbeats_fb.heartbeats())) {
+      if (user_agent_and_dates == nullptr ||
+          user_agent_and_dates->user_agent() == nullptr ||
+          user_agent_and_dates->dates() == nullptr) {
+        continue;
+      }
+      std::string user_agent = user_agent_and_dates->user_agent()->str();
+      for (auto date : *(user_agent_and_dates->dates())) {
+        if (date == nullptr) continue;
+        // TODO(almostmatt): verify format of date string
+        heartbeats_struct.heartbeats[user_agent].push_back(date->str());
+      }
     }
   }
   return heartbeats_struct;

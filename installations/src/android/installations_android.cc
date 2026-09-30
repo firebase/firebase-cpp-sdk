@@ -110,8 +110,11 @@ static std::string JTokenResultToString(JNIEnv* env, jobject jtoken) {
 
   jobject jstring = env->CallObjectMethod(
       jtoken, token_result::GetMethodId(token_result::kGetToken));
-  std::string result_value = util::JStringToString(env, jstring);
-  env->DeleteLocalRef(jstring);
+  std::string result_value;
+  if (!util::CheckAndClearJniExceptions(env) && jstring != nullptr) {
+    result_value = util::JStringToString(env, jstring);
+  }
+  if (jstring) env->DeleteLocalRef(jstring);
   env->DeleteLocalRef(jtoken);
   return result_value;
 }
@@ -211,6 +214,13 @@ Future<std::string> InstallationsInternal::GetId() {
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetId));
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (!error.empty() || task == nullptr) {
+    if (task) env->DeleteLocalRef(task);
+    future_impl_.CompleteWithResult(handle, kInstallationsErrorFailure,
+                                    error.c_str(), std::string());
+    return MakeFuture<std::string>(&future_impl_, handle);
+  }
 
   auto data_handle = new FISDataHandle<std::string>(&future_impl_, handle);
 
@@ -236,6 +246,13 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetToken),
       static_cast<jboolean>(forceRefresh));
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (!error.empty() || task == nullptr) {
+    if (task) env->DeleteLocalRef(task);
+    future_impl_.CompleteWithResult(handle, kInstallationsErrorFailure,
+                                    error.c_str(), std::string());
+    return MakeFuture<std::string>(&future_impl_, handle);
+  }
 
   auto data_handle = new FISDataHandle<std::string>(&future_impl_, handle);
 
@@ -254,10 +271,16 @@ Future<std::string> InstallationsInternal::GetTokenLastResult() {
 }
 
 Future<void> InstallationsInternal::Delete() {
-  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
+  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnDelete);
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kDelete));
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (!error.empty() || task == nullptr) {
+    if (task) env->DeleteLocalRef(task);
+    future_impl_.Complete(handle, kInstallationsErrorFailure, error.c_str());
+    return MakeFuture<void>(&future_impl_, handle);
+  }
 
   auto data_handle = new FISDataHandle<void>(&future_impl_, handle);
 

@@ -28,10 +28,16 @@ namespace auth {
 
 std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
     const AuthData& auth_data, const void* const raw_credential_impl) {
+  if (!raw_credential_impl) {
+    return nullptr;
+  }
   const auto* credential_impl =
       static_cast<const CredentialImpl*>(raw_credential_impl);
   const auto* idp_credential = static_cast<const IdentityProviderCredential*>(
       credential_impl->auth_credential.get());
+  if (!idp_credential) {
+    return nullptr;
+  }
   return idp_credential->CreateVerifyAssertionRequest(*auth_data.app,
                                                       GetApiKey(auth_data));
 }
@@ -58,7 +64,9 @@ std::unique_ptr<rest::Request> CreateRequestFromCredential(
 
 const EmailAuthCredential* GetEmailCredential(
     const void* const raw_credential_impl) {
-  FIREBASE_ASSERT_RETURN(nullptr, raw_credential_impl);
+  if (!raw_credential_impl) {
+    return nullptr;
+  }
 
   const auto* credential_impl =
       static_cast<const CredentialImpl*>(raw_credential_impl);

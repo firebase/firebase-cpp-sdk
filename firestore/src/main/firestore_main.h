@@ -177,14 +177,16 @@ class FirestoreInternal {
   Firestore* firestore_public_ = nullptr;
   std::shared_ptr<api::Firestore> firestore_core_;
 
+  // TODO(b/136119216): revamp this mechanism on both iOS and Android.
+  // Declared before cleanup_ so that listeners_mutex_ and listeners_ outlive
+  // ~CleanupNotifier() (which calls UnregisterListenerRegistration).
+  std::mutex listeners_mutex_;
+  std::unordered_set<ListenerRegistrationInternal*> listeners_;
+
   CleanupNotifier cleanup_;
 
   FutureManager future_manager_;
   PromiseFactory<AsyncApi> promise_factory_{&cleanup_, &future_manager_};
-
-  // TODO(b/136119216): revamp this mechanism on both iOS and Android.
-  std::mutex listeners_mutex_;
-  std::unordered_set<ListenerRegistrationInternal*> listeners_;
 
   std::shared_ptr<util::Executor> transaction_executor_;
   std::string database_name_;

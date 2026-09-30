@@ -36,6 +36,9 @@ Credential::Credential(const Credential& rhs) : impl_(nullptr) {
 }
 
 Credential& Credential::operator=(const Credential& rhs) {
+  if (this == &rhs) {
+    return *this;
+  }
   delete static_cast<CredentialImpl*>(impl_);
   impl_ = nullptr;
 
@@ -50,8 +53,6 @@ Credential& Credential::operator=(const Credential& rhs) {
 }
 
 std::string Credential::provider() const {
-  FIREBASE_ASSERT_MESSAGE(is_valid(), "Credential doesn't have an valid impl");
-
   if (impl_ == nullptr) {
     return std::string();
   } else {

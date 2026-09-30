@@ -93,6 +93,10 @@ inline bool ValidateCredential(Promise<FutureResultT>* const promise,
   if (provider == kEmailPasswordAuthProviderId) {
     const EmailAuthCredential* email_credential =
         GetEmailCredential(raw_credential);
+    if (!email_credential) {
+      promise->Fail(kAuthErrorInvalidCredential, "Invalid email credential");
+      return false;
+    }
     return ValidateEmailAndPassword(promise,
                                     email_credential->GetEmail().c_str(),
                                     email_credential->GetPassword().c_str());

@@ -43,6 +43,12 @@ class AuthResponse
     return application_data_->error ? application_data_->error->message
                                     : std::string();
   }
+
+ protected:
+  // Parses the backend's "expiresIn" field (seconds, as a decimal string).
+  // Never throws: returns 0 for empty or non-numeric input and clamps values
+  // outside [0, INT_MAX].
+  static int ParseExpiresIn(const std::string& expires_in);
 };
 
 }  // namespace auth

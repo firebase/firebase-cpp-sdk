@@ -102,7 +102,7 @@ class ViewProcessor {
   ViewCache ApplyServerMerge(const ViewCache& view_cache, const Path& path,
                              const CompoundWrite& changed_children,
                              const WriteTreeRef& writes_cache,
-                             const Variant& server_cache,
+                             const Variant* server_cache,
                              bool filter_server_node,
                              ChildChangeAccumulator* accumulator);
 
@@ -111,7 +111,7 @@ class ViewProcessor {
   ViewCache ApplyUserMerge(const ViewCache& view_cache, const Path& path,
                            const CompoundWrite& changed_children,
                            const WriteTreeRef& writes_cache,
-                           const Variant& server_cache,
+                           const Variant* server_cache,
                            ChildChangeAccumulator* accumulator);
 
   // Acknowledge a write made by the user was accepted by the server, and return

@@ -61,12 +61,14 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     ConfigUpdateListenerRegistration&& registration)
-    : remote_config_(registration.remote_config_) {
+    : remote_config_(registration.remote_config_),
+      internal_(registration.internal_) {
   // Move constructor. Unregister cleanup for the old object and transfer
   // ownership of the internal data.
   CleanupFnConfigUpdateListenerRegistration::Unregister(
       &registration, registration.remote_config_);
-  std::swap(internal_, registration.internal_);
+  registration.remote_config_ = nullptr;
+  registration.internal_ = nullptr;
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
 
@@ -117,6 +119,8 @@ ConfigUpdateListenerRegistration& ConfigUpdateListenerRegistration::operator=(
   CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
   remote_config_ = registration.remote_config_;
   internal_ = registration.internal_;
+  registration.remote_config_ = nullptr;
+  registration.internal_ = nullptr;
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
   return *this;
 }

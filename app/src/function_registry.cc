@@ -39,7 +39,7 @@ bool FunctionRegistry::UnregisterFunction(FunctionId id) {
   if (itr == registered_functions_.end()) {
     return false;
   } else {
-    registered_functions_.erase(itr, itr);
+    registered_functions_.erase(itr);
     return true;
   }
 }

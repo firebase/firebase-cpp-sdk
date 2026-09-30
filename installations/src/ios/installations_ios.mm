@@ -104,7 +104,7 @@ Future<std::string> InstallationsInternal::GetTokenLastResult() {
 
 Future<void> InstallationsInternal::Delete() {
   const auto handle =
-      future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
+      future_impl_.SafeAlloc<void>(kInstallationsFnDelete);
   [impl() deleteWithCompletion:^(NSError *_Nullable error) {
     future_impl_.Complete(handle,
                           error == nullptr ? kInstallationsErrorNone : kInstallationsErrorFailure,

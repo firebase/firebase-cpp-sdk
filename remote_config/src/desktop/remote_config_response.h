@@ -47,6 +47,9 @@ class RemoteConfigResponse
 
   Variant GetEntries();
 
+  // Returns true if the response body was valid JSON matching the schema.
+  bool IsBodyParsed() const { return body_parsed(); }
+
   bool StatusMatch(std::string status_name) {
     return application_data_->state == status_name;
   }

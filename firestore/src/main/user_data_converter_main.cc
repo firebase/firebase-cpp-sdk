@@ -464,6 +464,10 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseScalar(
 
     case Type::kReference: {
       DocumentReference reference = value.reference_value();
+      if (!reference.is_valid() || reference.firestore() == nullptr ||
+          GetInternal(reference.firestore()) == nullptr) {
+        ThrowInvalidData(context, "Document reference is invalid");
+      }
 
       const DatabaseId& other =
           GetInternal(reference.firestore())->database_id();

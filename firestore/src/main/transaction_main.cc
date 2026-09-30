@@ -17,6 +17,7 @@
 #include "firestore/src/main/transaction_main.h"
 
 #include <future>  // NOLINT(build/c++11)
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -141,13 +142,22 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
 
   transaction_->Lookup(
       {key}, [&](const util::StatusOr<std::vector<Document>>& maybe_docs) {
-        if (maybe_docs.ok()) {
+        if (!maybe_docs.ok()) {
+          promise.set_value(maybe_docs.status());
+        } else if (maybe_docs.ValueOrDie().size() != 1) {
+          // The lookup stream can finish successfully before the requested
+          // document arrives. Surface this as a retryable error rather than
+          // asserting on the Firestore worker thread.
+          promise.set_value(
+              Status(Error::kErrorUnavailable,
+                     "Transaction lookup returned " +
+                         std::to_string(maybe_docs.ValueOrDie().size()) +
+                         " documents, expected 1"));
+        } else {
           DocumentSnapshot snapshot =
               ConvertToSingleSnapshot(firestore_internal_->firestore_core(),
                                       std::move(key), maybe_docs.ValueOrDie());
           promise.set_value(std::move(snapshot));
-        } else {
-          promise.set_value(maybe_docs.status());
         }
       });
 

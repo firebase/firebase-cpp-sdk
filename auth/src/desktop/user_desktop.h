@@ -67,7 +67,9 @@ struct UserData : public UserInfoImpl {
       : is_anonymous(false),
         is_email_verified(false),
         access_token_expiration_date(0),
-        has_email_password_credential(false) {}
+        has_email_password_credential(false),
+        last_sign_in_timestamp(0),
+        creation_timestamp(0) {}
 
   // Whether is anonymous.
   bool is_anonymous;

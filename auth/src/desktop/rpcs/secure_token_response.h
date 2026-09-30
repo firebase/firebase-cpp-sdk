@@ -43,7 +43,7 @@ class SecureTokenResponse : public AuthResponse {
     if (application_data_->expires_in.empty()) {
       return 0;
     } else {
-      return std::stoi(application_data_->expires_in);
+      return ParseExpiresIn(application_data_->expires_in);
     }
   }
 };

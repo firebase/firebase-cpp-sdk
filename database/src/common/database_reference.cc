@@ -98,8 +98,12 @@ DatabaseReference::DatabaseReference(const DatabaseReference& reference)
 
 DatabaseReference& DatabaseReference::operator=(
     const DatabaseReference& reference) {
+  if (this == &reference) {
+    return *this;
+  }
   MutexLock lock(internal::g_database_reference_constructor_mutex);
 
+  SwitchCleanupRegistrationBackToQuery();
   internal_ = reference.internal_
                   ? new DatabaseReferenceInternal(*reference.internal_)
                   : nullptr;
@@ -114,14 +118,20 @@ DatabaseReference::DatabaseReference(DatabaseReference&& reference)
     : Query(), internal_(reference.internal_) {
   MutexLock lock(internal::g_database_reference_constructor_mutex);
 
+  reference.SwitchCleanupRegistrationBackToQuery();
   reference.internal_ = nullptr;
   Query::operator=(std::move(reference));
   SwitchCleanupRegistrationToDatabaseReference();
 }
 
 DatabaseReference& DatabaseReference::operator=(DatabaseReference&& reference) {
+  if (this == &reference) {
+    return *this;
+  }
   MutexLock lock(internal::g_database_reference_constructor_mutex);
 
+  SwitchCleanupRegistrationBackToQuery();
+  reference.SwitchCleanupRegistrationBackToQuery();
   internal_ = reference.internal_;
   reference.internal_ = nullptr;
   Query::operator=(std::move(reference));

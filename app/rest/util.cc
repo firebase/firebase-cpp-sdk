@@ -81,19 +81,27 @@ void Terminate() {
 }
 
 std::string EncodeUrl(const std::string& path) {
+  MutexLock curl_lock(*g_util_curl_mutex);
   assert(g_curl_instance != nullptr);
   char* encoded_string =
       curl_easy_escape(g_curl_instance, path.c_str(), path.length());
+  if (encoded_string == nullptr) {
+    return "";
+  }
   std::string result(encoded_string);
   curl_free(encoded_string);
   return result;
 }
 
 std::string DecodeUrl(const std::string& path) {
+  MutexLock curl_lock(*g_util_curl_mutex);
   assert(g_curl_instance != nullptr);
   int length = 0;
   char* decoded_string =
       curl_easy_unescape(g_curl_instance, path.c_str(), path.length(), &length);
+  if (decoded_string == nullptr) {
+    return "";
+  }
   std::string result(decoded_string, length);
   curl_free(decoded_string);
   return result;

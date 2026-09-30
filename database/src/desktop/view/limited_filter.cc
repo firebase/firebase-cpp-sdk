@@ -146,6 +146,9 @@ IndexedVariant LimitedFilter::FullLimitUpdateChild(
   const Variant* old_child_snap =
       GetInternalVariant(&old_indexed.variant(), child_key);
   if (old_child_snap) {
+    if (!window_boundary.has_value()) {
+      return old_indexed;
+    }
     Optional<std::pair<Variant, Variant>> next_child =
         source->GetChildAfterChild(query_params(), *window_boundary, direction);
     while (next_child.has_value() &&
@@ -196,7 +199,7 @@ IndexedVariant LimitedFilter::FullLimitUpdateChild(
   } else if (VariantIsEmpty(child_snap)) {
     // We're deleting a node, but it was not in the window, so ignore it.
     return old_indexed;
-  } else if (in_range) {
+  } else if (in_range && window_boundary.has_value()) {
     if (comp.Compare(*window_boundary, new_child_node) * coefficient >= 0) {
       if (opt_change_accumulator) {
         TrackChildChange(

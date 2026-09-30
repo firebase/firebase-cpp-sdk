@@ -174,6 +174,7 @@ StorageInternal::StorageInternal(App* app, const char* url) {
 }
 
 StorageInternal::~StorageInternal() {
+  cleanup_.CleanupAll();
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
 

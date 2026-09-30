@@ -254,6 +254,11 @@ std::vector<Event> SyncTree::ApplyTaggedQueryOverwrite(const Path& path,
     const QuerySpec* query_spec = this->QuerySpecForTag(tag);
     if (query_spec != nullptr) {
       Optional<Path> relative_path = Path::GetRelative(query_spec->path, path);
+      if (!relative_path.has_value()) {
+        LogWarning("Ignoring tagged overwrite for %s outside of query path %s",
+                   path.c_str(), query_spec->path.c_str());
+        return true;
+      }
       QuerySpec query_to_overwrite =
           relative_path->empty() ? *query_spec : QuerySpec(path);
       this->persistence_manager_->UpdateServerCache(query_to_overwrite, snap);
@@ -278,7 +283,11 @@ std::vector<Event> SyncTree::ApplyTaggedQueryMerge(
     const QuerySpec* query_spec = QuerySpecForTag(tag);
     if (query_spec != nullptr) {
       Optional<Path> relative_path = Path::GetRelative(query_spec->path, path);
-      FIREBASE_DEV_ASSERT(relative_path.has_value());
+      if (!relative_path.has_value()) {
+        LogWarning("Ignoring tagged merge for %s outside of query path %s",
+                   path.c_str(), query_spec->path.c_str());
+        return true;
+      }
       CompoundWrite merge = CompoundWrite::FromPathMerge(changed_children);
       this->persistence_manager_->UpdateServerCache(path, merge);
       Operation op = Operation::Merge(

@@ -85,7 +85,8 @@ bool DataSnapshotInternal::HasChildren() { return [impl() hasChildren] != NO ? t
 const char* DataSnapshotInternal::GetKey() const { return [impl().key UTF8String]; }
 
 std::string DataSnapshotInternal::GetKeyString() const {
-  return std::string([impl().key UTF8String]);
+  const char* key = [impl().key UTF8String];
+  return std::string(key ? key : "");
 }
 
 Variant DataSnapshotInternal::GetValue() const { return IdToVariant(impl().value); }

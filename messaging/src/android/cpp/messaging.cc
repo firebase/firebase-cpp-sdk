@@ -225,7 +225,12 @@ int FileLocker::AcquireLock(const char* lock_filename) {
   int fd = open(lock_filename, O_RDWR | O_CREAT, 0666);
   umask(m);
   if (fd < 0 || flock(fd, LOCK_EX) < 0) {
-    close(fd);
+    if (fd >= 0) {
+      close(fd);
+    }
+    if (g_file_locker_mutex) {
+      g_file_locker_mutex->Release();
+    }
     return -1;
   }
   return fd;
@@ -253,10 +258,20 @@ class MessageLockFileLocker : private FileLocker {
 static bool LoadFile(const char* name, std::string* buf) {
   FILE* file = fopen(name, "rb");
   if (file == nullptr) return false;
-  fseek(file, 0L, SEEK_END);
-  buf->resize(static_cast<size_t>(ftell(file)));
+  if (fseek(file, 0L, SEEK_END) != 0) {
+    fclose(file);
+    return false;
+  }
+  long file_size = ftell(file);
+  if (file_size < 0) {
+    fclose(file);
+    return false;
+  }
+  buf->resize(static_cast<size_t>(file_size));
   fseek(file, 0L, SEEK_SET);
-  fread(&(*buf)[0], buf->size(), 1, file);
+  if (!buf->empty()) {
+    fread(&(*buf)[0], buf->size(), 1, file);
+  }
   bool success = ferror(file) == 0;
   success &= fclose(file) == 0;
   return success;
@@ -274,7 +289,9 @@ static void ConsumeEvents() {
     if (buffer.size()) {
       // Clear the file by opening then closing without writing to it.
       FILE* erase_data_file = fopen(g_local_storage_file_path->c_str(), "w");
-      fclose(erase_data_file);
+      if (erase_data_file != nullptr) {
+        fclose(erase_data_file);
+      }
     }
   }
 
@@ -740,6 +757,9 @@ static void InstallationsGetToken() {
 
   result.OnCompletion(
       [](const Future<std::string>& result, void* voidptr) {
+        if (result.error() != 0 || result.result() == nullptr) {
+          return;
+        }
         if (g_registration_token_mutex) {
           MutexLock lock(*g_registration_token_mutex);
           g_registration_token_received = true;
@@ -927,7 +947,7 @@ Future<void> Unsubscribe(const char* topic) {
                                  kMessagingNotInitializedError);
   MutexLock lock(*g_registration_token_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
   if (g_registration_token_received) {
     UnsubscribeInternal(topic, handle);
   } else if (g_registration_token_request_state ==

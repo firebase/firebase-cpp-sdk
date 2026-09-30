@@ -57,6 +57,17 @@ static Mutex g_scheduler_mutex;  // NOLINT
 static int g_scheduler_ref_count = 0;
 scheduler::Scheduler* Repo::s_scheduler_;
 
+// Returns true if the variant or any of its descendants is a vector.
+static bool ContainsVector(const Variant& variant) {
+  if (variant.is_vector()) return true;
+  if (variant.is_map()) {
+    for (const auto& entry : variant.map()) {
+      if (ContainsVector(entry.second)) return true;
+    }
+  }
+  return false;
+}
+
 // Transaction Response class to pass to PersistentConnection.
 // This is used to capture all the data to use when ResponseCallback is
 // triggered.
@@ -176,11 +187,12 @@ void Repo::RemoveEventCallback(void* listener_ptr,
 
 class OnDisconnectResponse : public connection::Response {
  public:
-  OnDisconnectResponse(Repo* repo, const SafeFutureHandle<void>& handle,
+  OnDisconnectResponse(Repo::ThisRef repo_ref,
+                       const SafeFutureHandle<void>& handle,
                        ReferenceCountedFutureImpl* ref_future, const Path& path,
                        const Variant& data, ResponseCallback callback)
       : connection::Response(callback),
-        repo_(repo),
+        repo_ref_(repo_ref),
         handle_(handle),
         ref_future_(ref_future),
         path_(path),
@@ -196,12 +208,12 @@ class OnDisconnectResponse : public connection::Response {
     }
   }
 
-  Repo* repo() const { return repo_; }
+  Repo::ThisRef& repo_ref() { return repo_ref_; }
   const Path& path() const { return path_; }
   const Variant& data() const { return data_; }
 
  private:
-  Repo* repo_;
+  Repo::ThisRef repo_ref_;
   SafeFutureHandle<void> handle_;
   ReferenceCountedFutureImpl* ref_future_;
   Path path_;
@@ -212,14 +224,17 @@ void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                                 ReferenceCountedFutureImpl* ref_future,
                                 const Path& path, const Variant& data) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      this, handle, ref_future, path, data,
+      safe_this_, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
             static_cast<OnDisconnectResponse*>(ptr.get());
         assert(response);
         if (!response->HasError()) {
-          response->repo()->on_disconnect_.Remember(response->path(),
-                                                    response->data());
+          ThisRefLock lock(&response->repo_ref());
+          Repo* repo = lock.GetReference();
+          if (repo != nullptr) {
+            repo->on_disconnect_.Remember(response->path(), response->data());
+          }
         }
         response->MarkComplete();
       });
@@ -242,13 +257,17 @@ void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      this, handle, ref_future, path, Variant::Null(),
+      safe_this_, handle, ref_future, path, Variant::Null(),
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
             static_cast<OnDisconnectResponse*>(ptr.get());
         assert(response);
         if (!response->HasError()) {
-          response->repo()->on_disconnect_.Forget(response->path());
+          ThisRefLock lock(&response->repo_ref());
+          Repo* repo = lock.GetReference();
+          if (repo != nullptr) {
+            repo->on_disconnect_.Forget(response->path());
+          }
         }
         response->MarkComplete();
       });
@@ -271,17 +290,19 @@ void Repo::OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path, const Variant& data) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      this, handle, ref_future, path, data,
+      safe_this_, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
             static_cast<OnDisconnectResponse*>(ptr.get());
         assert(response);
         if (!response->HasError()) {
-          if (response->data().is_map()) {
+          ThisRefLock lock(&response->repo_ref());
+          Repo* repo = lock.GetReference();
+          if (repo != nullptr && response->data().is_map()) {
             for (const auto& kvp : response->data().map()) {
               const Variant& key = kvp.first;
               const Variant& value = kvp.second;
-              response->repo()->on_disconnect_.Remember(
+              repo->on_disconnect_.Remember(
                   response->path().GetChild(key.AsString().string_value()),
                   value);
             }
@@ -369,9 +390,11 @@ void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
                              static_cast<SetValueResponse*>(ptr.get());
                          Repo::ThisRefLock lock(&response->repo_ref());
                          Repo* repo = lock.GetReference();
-                         repo->AckWriteAndRerunTransactions(
-                             response->write_id(), response->path(),
-                             response->GetErrorCode());
+                         if (repo != nullptr) {
+                           repo->AckWriteAndRerunTransactions(
+                               response->write_id(), response->path(),
+                               response->GetErrorCode());
+                         }
                          response->api()->Complete(
                              response->handle(), response->GetErrorCode(),
                              GetErrorMessage(response->GetErrorCode()));
@@ -408,9 +431,11 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
                                static_cast<SetValueResponse*>(ptr.get());
                            Repo::ThisRefLock lock(&response->repo_ref());
                            Repo* repo = lock.GetReference();
-                           repo->AckWriteAndRerunTransactions(
-                               response->write_id(), response->path(),
-                               response->GetErrorCode());
+                           if (repo != nullptr) {
+                             repo->AckWriteAndRerunTransactions(
+                                 response->write_id(), response->path(),
+                                 response->GetErrorCode());
+                           }
                            response->api()->Complete(
                                response->handle(), response->GetErrorCode(),
                                GetErrorMessage(response->GetErrorCode()));
@@ -612,9 +637,20 @@ void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
   }
 }
 
-void Repo::OnDataUpdate(const Path& path, const Variant& data, bool is_merge,
-                        const Tag& tag) {
+void Repo::OnDataUpdate(const Path& path, const Variant& raw_data,
+                        bool is_merge, const Tag& tag) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
+  // The server may send JSON arrays, but the rest of the client expects
+  // arrays to be represented as maps keyed by index.
+  Variant converted_data;
+  const Variant* data_ptr = &raw_data;
+  if (ContainsVector(raw_data)) {
+    converted_data = raw_data;
+    ConvertVectorToMap(&converted_data);
+    data_ptr = &converted_data;
+  }
+  const Variant& data = *data_ptr;
 
   std::vector<Event> events;
   if (tag.has_value()) {
@@ -977,7 +1013,7 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
                                                   kErrorNone, snapshot);
 
       RemoveEventCallback(transaction->outstanding_listener.get(),
-                          QuerySpec(path));
+                          QuerySpec(transaction->path));
     }
   } else {
     // Transactions are no longer sent. Update their status appropriately.

@@ -94,9 +94,11 @@ Variant RemoteConfigResponse::GetEntries() { return entries_; }
 
 // Mark the response completed for both header and body.
 void RemoteConfigResponse::MarkCompleted() {
+  entries_ = Variant::Null();
   ResponseJson::MarkCompleted();
-  if (GetBody()[0] == '\0') {
-    // If the body of response flatbuffer is empty, early out.
+  if (!body_parsed()) {
+    // The body was empty, or failed to parse or verify (for example, an HTML
+    // error page from a proxy). The builder does not hold a valid buffer.
     return;
   }
   const flatbuffers::FlatBufferBuilder& builder = parser_->builder_;

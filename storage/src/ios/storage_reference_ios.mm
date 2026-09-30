@@ -202,9 +202,11 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer, size_t buffer_si
     const char* error_string = GetErrorMessage(error_code);
     if (data != nil) {
       assert(data.length <= buffer_size);
-      memcpy(buffer, data.bytes, data.length);
+      size_t copy_length =
+          data.length <= buffer_size ? static_cast<size_t>(data.length) : buffer_size;
+      memcpy(buffer, data.bytes, copy_length);
       future_impl->CompleteWithResult(handle, error_code, error_string,
-                                      static_cast<size_t>(data.length));
+                                      copy_length);
     } else {
       future_impl->Complete(handle, error_code, error_string);
     }

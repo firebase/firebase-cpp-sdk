@@ -255,8 +255,13 @@ void PersistentConnection::OnDataMessage(const Variant& message) {
 
   if (HasKey(message, kRequestNumber)) {
     auto it_request_number = message.map().find(kRequestNumber);
-    FIREBASE_DEV_ASSERT(it_request_number->second.is_numeric());
-    uint64_t rn = it_request_number->second.int64_value();
+    if (!it_request_number->second.is_numeric()) {
+      logger_->LogError("%s Received a non-numeric request number: %s",
+                        log_id_.c_str(),
+                        util::VariantToJson(it_request_number->second).c_str());
+      return;
+    }
+    uint64_t rn = it_request_number->second.AsInt64().int64_value();
 
     RequestDataPtr request_ptr;
     auto it_request = request_map_.find(rn);
@@ -284,11 +289,13 @@ void PersistentConnection::OnDataMessage(const Variant& message) {
                       GetStringValue(message, kRequestError, true).c_str());
   } else if (HasKey(message, kServerAsyncAction)) {
     auto* action = GetInternalVariant(&message, kServerAsyncAction);
-    if (!action || !action->is_string())
+    if (!action || !action->is_string()) {
       logger_->LogError("Received Server Async Action is not a string.");
+      return;
+    }
 
     auto* body = GetInternalVariant(&message, kServerAsyncPayload);
-    if (action && body) {
+    if (body) {
       OnDataPush(action->string_value(), *body);
     }
   } else {
@@ -673,12 +680,15 @@ void PersistentConnection::HandleTokenFutures() {
     if (connection_state_ == kGettingToken) {
       logger_->LogDebug("%s Successfully fetched token, opening connection",
                         log_id_.c_str());
-      if (auth_token_future_status_ == kCompletedTokenFuture) {
+      if (auth_token_future_status_ == kCompletedTokenFuture &&
+          pending_auth_token_future_.result() != nullptr) {
         auth_token_ = *pending_auth_token_future_.result();
       } else {
         auth_token_.clear();
       }
-      if (app_check_token_future_status_ == kCompletedTokenFuture) {
+      if (app_check_token_future_status_ == kCompletedTokenFuture &&
+          pending_app_check_token_future_.error() == 0 &&
+          pending_app_check_token_future_.result() != nullptr) {
         app_check_token_ = *pending_app_check_token_future_.result();
       } else {
         app_check_token_.clear();
@@ -845,12 +855,16 @@ void PersistentConnection::OnDataPush(const std::string& action,
   if (action == kServerAsyncDataUpdate || action == kServerAsyncDataMerge) {
     bool is_merge = action.compare(kServerAsyncDataMerge) == 0;
     auto* path_variant = GetInternalVariant(&body, kServerDataUpdatePath);
-    if (!path_variant)
+    if (!path_variant) {
       logger_->LogError("Received path from Server Async Action is missing.");
+      return;
+    }
     auto* payload_data = GetInternalVariant(&body, kServerDataUpdateBody);
-    if (!payload_data)
+    if (!payload_data) {
       logger_->LogError(
           "Received payload data from Server Async Action is missing.");
+      return;
+    }
     auto* tag_variant = GetInternalVariant(&body, kServerDataTag);
 
     // Ignore empty merges

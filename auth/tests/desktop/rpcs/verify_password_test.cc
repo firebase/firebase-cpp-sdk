@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <climits>
 #include <memory>
+#include <string>
 
 #include "app/rest/transport_builder.h"
 #include "app/src/include/firebase/app.h"
@@ -99,6 +101,29 @@ TEST(VerifyPasswordTest, TestErrorResponse) {
   EXPECT_EQ("", response.refresh_token());
   EXPECT_EQ("", response.photo_url());
   EXPECT_EQ(0, response.expires_in());
+}
+
+TEST(VerifyPasswordTest, TestMalformedExpiresIn) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  struct TestCase {
+    const char* expires_in;
+    int expected;
+  };
+  const TestCase kCases[] = {
+      {"abc", 0},
+      {"-5", 0},
+      {"99999999999999999999", INT_MAX},
+      {"3600s", 3600},
+  };
+  for (const auto& test_case : kCases) {
+    VerifyPasswordResponse response;
+    std::string body = std::string("{\"localId\": \"localid123\", ") +
+                       "\"expiresIn\": \"" + test_case.expires_in + "\"}";
+    response.ProcessBody(body.c_str(), body.size() + 1);
+    response.MarkCompleted();
+    EXPECT_EQ(test_case.expected, response.expires_in())
+        << "expiresIn: " << test_case.expires_in;
+  }
 }
 
 }  // namespace auth

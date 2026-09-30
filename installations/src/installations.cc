@@ -125,26 +125,32 @@ void Installations::DeleteInternal() {
 }
 
 Future<std::string> Installations::GetId() {
+  if (!installations_internal_) return Future<std::string>();
   return installations_internal_->GetId();
 }
 
 Future<std::string> Installations::GetIdLastResult() {
+  if (!installations_internal_) return Future<std::string>();
   return installations_internal_->GetIdLastResult();
 }
 
 Future<std::string> Installations::GetToken(bool forceRefresh) {
+  if (!installations_internal_) return Future<std::string>();
   return installations_internal_->GetToken(forceRefresh);
 }
 
 Future<std::string> Installations::GetTokenLastResult() {
+  if (!installations_internal_) return Future<std::string>();
   return installations_internal_->GetTokenLastResult();
 }
 
 Future<void> Installations::Delete() {
+  if (!installations_internal_) return Future<void>();
   return installations_internal_->Delete();
 }
 
 Future<void> Installations::DeleteLastResult() {
+  if (!installations_internal_) return Future<void>();
   return installations_internal_->DeleteLastResult();
 }
 

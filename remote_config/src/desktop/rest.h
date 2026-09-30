@@ -78,6 +78,9 @@ class RemoteConfigREST {
   FRIEND_TEST(RemoteConfigRESTTest, Fetch);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseProtoFailure);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseSuccess);
+  FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseMalformedBody);
+  FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseEntriesNotMap);
+  FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseSkipsNonStringValues);
 #endif  // FIREBASE_TESTING
 
   RemoteConfigREST(const firebase::AppOptions& app_options,

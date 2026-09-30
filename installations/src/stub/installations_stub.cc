@@ -64,7 +64,7 @@ Future<std::string> InstallationsInternal::GetTokenLastResult() {
 }
 
 Future<void> InstallationsInternal::Delete() {
-  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
+  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnDelete);
   future_impl_.Complete(handle, kInstallationsErrorNone);
   return MakeFuture<void>(&future_impl_, handle);
 }

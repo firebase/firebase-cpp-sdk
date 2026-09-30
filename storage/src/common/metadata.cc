@@ -99,6 +99,9 @@ Metadata::Metadata(MetadataInternal* internal) : internal_(internal) {
 }
 
 Metadata& Metadata::operator=(const Metadata& src) {
+  if (this == &src) {
+    return *this;
+  }
   MetadataInternalCommon::DeleteInternal(this);
   internal_ = src.internal_ ? new MetadataInternal(*src.internal_) : nullptr;
   MetadataInternalCommon::RegisterForCleanup(this, internal_);
@@ -113,6 +116,9 @@ Metadata::Metadata(Metadata&& other) : internal_(other.internal_) {
 }
 
 Metadata& Metadata::operator=(Metadata&& other) {
+  if (this == &other) {
+    return *this;
+  }
   MetadataInternalCommon::DeleteInternal(this);
   MetadataInternalCommon::UnregisterForCleanup(&other, other.internal_);
   internal_ = other.internal_;

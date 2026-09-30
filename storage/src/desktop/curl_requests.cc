@@ -154,7 +154,11 @@ void GetBytesResponse::MarkCompleted() {
     ref_future_->CompleteWithResult(handle, kErrorNone, buffer_index_);
   } else {
     StorageNetworkError response;
-    if (response.Parse(static_cast<const char*>(output_buffer_))) {
+    // output_buffer_ is caller-owned and not NUL-terminated, so only parse the
+    // bytes that were actually written into it.
+    std::string error_body(static_cast<const char*>(output_buffer_),
+                           buffer_index_);
+    if (response.Parse(error_body.c_str())) {
       ref_future_->Complete(handle, HttpToErrorCode(status()),
                             response.error_message().c_str());
     } else {
@@ -216,7 +220,7 @@ bool GetFileResponse::ProcessBody(const char* buffer, size_t length) {
   } else {
     // Things are not fine.  Send to a buffer so we can parse the error
     // response later.
-    error_buffer_.append(buffer);
+    error_buffer_.append(buffer, length);
   }
   NotifyProgress();
   return true;

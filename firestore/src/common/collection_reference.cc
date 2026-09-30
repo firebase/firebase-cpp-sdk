@@ -55,7 +55,17 @@ CollectionReference::CollectionReference(CollectionReferenceInternal* internal)
 
 CollectionReference& CollectionReference::operator=(
     const CollectionReference& reference) {
-  Query::operator=(reference);
+  if (this == &reference) {
+    return *this;
+  }
+  CleanupFnQuery::Unregister(this, internal_);
+  delete internal_;
+  if (reference.internal()) {
+    internal_ = new CollectionReferenceInternal(*reference.internal());
+  } else {
+    internal_ = nullptr;
+  }
+  CleanupFnQuery::Register(this, internal_);
   return *this;
 }
 
