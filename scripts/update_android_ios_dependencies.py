@@ -20,8 +20,7 @@ respective public repositories and updates these versions in various files
 across the C++ repository.
 
 There are 3 types of files being updated by this script,
-- Podfile : Files containing lists of cocoapods along with their versions.
-            Eg: `ios_pods/Podfile` and any integration tests podfiles.
+- Package.swift : Files containing Swift packages along with their versions.
 
 - Android dependencies gradle file: Gradle files containing list of Android
                                     libraries and their versions that is

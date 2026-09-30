@@ -83,7 +83,7 @@ jobs:
             # iOS: Update Firestore external version to match Firebase iOS SDK version.
             firebase_ios_version=$(grep "firebase-ios-sdk.git" ios_spm/Package.swift | sed 's/.*exact: "\([^"]*\)".*/\1/')
             echo "Setting Firestore external version to ${firebase_ios_version}"
-            sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firebase_ios_version})/i" cmake/external/firestore.cmake
+            sed -i~ "s/^set(version [^)]*)/set(version ${firebase_ios_version})/i" cmake/external/firestore.cmake
 
             # Download the Firebase iOS prebuilt zip distribution for Analytics and Swift headers.
             echo "Downloading Firebase iOS SDK ${firebase_ios_version} prebuilt zip distribution"
