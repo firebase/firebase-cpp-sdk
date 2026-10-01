@@ -779,7 +779,7 @@ def main():
                               file_name='project.pbxproj',
                               ignore_directories=set(args.ignore_directories))
     for project_file in project_files:
-      modify_project_file_spm(project_file, latest_pod_versions_map, args.dryrun,
+      modify_project_file_spm(project_file, latest_ios_versions_map, args.dryrun,
                               args.ignore_ios_versions)
     for readme_file in readme_files:
       modify_readme_file_ios(readme_file, latest_ios_versions_map, args.dryrun)

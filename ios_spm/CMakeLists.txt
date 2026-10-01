@@ -184,6 +184,9 @@ function(symlink_spm_headers target_name module_name)
           # Check if this header matches preferred slice or if we don't have one yet
           if(fw_headers MATCHES "${preferred_slice}" OR NOT EXISTS "${symlink_base_dir}/${fw_name}")
             file(MAKE_DIRECTORY "${symlink_base_dir}")
+            if(EXISTS "${symlink_base_dir}/${fw_name}")
+              file(REMOVE "${symlink_base_dir}/${fw_name}")
+            endif()
             file(CREATE_LINK "${fw_headers}" "${symlink_base_dir}/${fw_name}" SYMBOLIC COPY_ON_ERROR)
 
             target_include_directories(${target_name}
