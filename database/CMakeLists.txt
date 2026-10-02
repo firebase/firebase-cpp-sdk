@@ -226,9 +226,9 @@ elseif(IOS)
   target_link_libraries(firebase_database
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
+  setup_spm_headers(
     firebase_database
-    POD_NAMES
+    MODULES
       FirebaseCore
       FirebaseDatabase
   )
