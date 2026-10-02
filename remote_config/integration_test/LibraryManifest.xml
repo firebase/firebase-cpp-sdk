@@ -18,6 +18,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.remoteconfig.testapp.lib" >
 
-    <uses-sdk android:minSdkVersion='23'/>
+    <uses-sdk android:minSdkVersion='24'/>
     <application />
 </manifest>
