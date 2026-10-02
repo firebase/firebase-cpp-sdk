@@ -19,8 +19,8 @@ Assuming pre-requisites are in place (from running
 ios and tvos.
 
 It does the following,
-- Build ios and tvos libraries via cmake (after downloading corresponding
-cocoapods).
+- Build ios and tvos libraries via cmake (after resolving corresponding
+Swift packages).
 - Create a "universal" framework if all platforms and architectures were built.
 - Create "xcframeworks" combining both ios and tvos frameworks.
 
@@ -558,7 +558,7 @@ def main():
                                   '{0}_cmake_build'.format(apple_os),
                                   platform_architecture_token)
         # CMake configure was having all sorts of issues when run in parallel.
-        # It might be the Cocoapods that are downloaded in parallel into a
+        # It might be dependencies that are downloaded in parallel into a
         # single cache directory.
         cmake_configure(args.source_dir, build_path,
                         os_platform_variant_config.get('toolchain'),

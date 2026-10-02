@@ -123,9 +123,9 @@ elseif(IOS)
   target_link_libraries(firebase_messaging
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
+  setup_spm_headers(
     firebase_messaging
-    POD_NAMES
+    MODULES
       FirebaseCore
       FirebaseMessaging
   )
