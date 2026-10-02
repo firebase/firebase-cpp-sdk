@@ -67,6 +67,8 @@
       </intent-filter>
     </activity>
     <meta-data android:name="com.google.test.loops" android:value="1" />
+    <!-- Enables the newer Registration method that uses Installation IDs -->
+    <meta-data android:name="firebase_messaging_installation_id_enabled" android:value="true" />
 
     <service android:name="com.google.firebase.messaging.cpp.ListenerService"
              android:exported="true" >

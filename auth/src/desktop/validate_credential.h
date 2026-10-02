@@ -15,6 +15,7 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_VALIDATE_CREDENTIAL_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_VALIDATE_CREDENTIAL_H_
 
+#include <cstring>
 #include <string>
 
 #include "auth/src/desktop/auth_constants.h"

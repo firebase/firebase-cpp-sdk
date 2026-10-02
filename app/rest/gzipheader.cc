@@ -20,6 +20,8 @@
 #include <assert.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <cstring>
 
 #include "app/src/assert.h"
 #include "app/src/util.h"

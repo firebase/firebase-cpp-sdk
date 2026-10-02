@@ -28,12 +28,14 @@
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
+#include "app/src/variant_util.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/common.h"
+#include "storage/src/include/firebase/storage/list_result.h"
 
 namespace firebase {
 namespace storage {
@@ -632,6 +634,76 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
 Future<Metadata> StorageReferenceInternal::UpdateMetadataLastResult() {
   return static_cast<const Future<Metadata>&>(
       future()->LastResult(kStorageReferenceFnUpdateMetadata));
+}
+
+// List items (files) and prefixes (folders) under this StorageReference.
+Future<StorageListResult> StorageReferenceInternal::List(
+    int max_results_per_page, const char* page_token) {
+  auto* future_api = future();
+  auto handle =
+      future_api->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
+
+  std::string page_token_str = page_token ? page_token : "";
+  auto send_request_funct{
+      [&, max_results_per_page, page_token_str]() -> BlockingResponse* {
+        auto* future_api = future();
+        auto handle = future_api->SafeAlloc<StorageListResult>(
+            kStorageReferenceFnListInternal);
+
+        ReturnedListResponse* response =
+            new ReturnedListResponse(handle, future_api, storage_);
+
+        storage::internal::Request* request = new storage::internal::Request();
+
+        // For listing, we need the bucket URL:
+        // [scheme]://[host]/v0/b/[bucket]/o We cannot use
+        // storageUri_.AsHttpMetadataUrl() directly because it appends the
+        // encoded path
+        std::string url = storage_->get_scheme();
+        url += "://";
+        url += storage_->get_host();
+        url += ":";
+        url += std::to_string(storage_->get_port());
+        url += "/v0/b/";
+        url += bucket();
+        url += "/o";
+
+        // The prefix must end with a slash to be treated as a directory by the
+        // REST API.
+        std::string prefix = storageUri_.GetPath().str();
+        if (!prefix.empty() && prefix.back() != '/') {
+          prefix += "/";
+        }
+
+        // Append query parameters
+        std::string delimiter = "/";
+        url += "?delimiter=" + delimiter;
+        if (!prefix.empty()) {
+          url += "&prefix=" + rest::util::EncodeUrl(prefix);
+        }
+        if (max_results_per_page > 0) {
+          url += "&maxResults=" + std::to_string(max_results_per_page);
+        }
+        if (!page_token_str.empty()) {
+          url += "&pageToken=" + rest::util::EncodeUrl(page_token_str);
+        }
+
+        PrepareRequestBlocking(request, url.c_str(), rest::util::kGet);
+
+        RestCall(request, request->notifier(), response, handle.get(), nullptr,
+                 nullptr);
+        return response;
+      }};
+
+  SendRequestWithRetry(kStorageReferenceFnListInternal, send_request_funct,
+                       handle, storage_->max_operation_retry_time());
+  return ListLastResult();
+}
+
+// Returns the result of the most recent call to List();
+Future<StorageListResult> StorageReferenceInternal::ListLastResult() {
+  return static_cast<const Future<StorageListResult>&>(
+      future()->LastResult(kStorageReferenceFnList));
 }
 
 // Asynchronously retrieves a long lived download URL with a revokable token.

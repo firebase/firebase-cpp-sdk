@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/jni/integer.h"
+#include <cstdint>
 
 #include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"

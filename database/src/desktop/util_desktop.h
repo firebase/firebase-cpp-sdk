@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_UTIL_DESKTOP_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_UTIL_DESKTOP_H_
 
+#include <stdint.h>
+
 #include <memory>
 #include <string>
 

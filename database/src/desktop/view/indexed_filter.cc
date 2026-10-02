@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/view/indexed_filter.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"

@@ -14,6 +14,9 @@
 
 #include "auth/src/desktop/rpcs/secure_token_request.h"
 
+#include <cassert>
+#include <cstring>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"

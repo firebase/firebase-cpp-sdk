@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "app/src/secure/user_secure_darwin_internal_testlib.h"
+#include <cstring>
 
 #include "app/src/log.h"
 

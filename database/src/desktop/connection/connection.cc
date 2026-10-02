@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/connection/connection.h"
 
+#include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <string>

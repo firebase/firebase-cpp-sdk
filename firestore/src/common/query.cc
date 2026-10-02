@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/include/firebase/firestore/query.h"
+#include <cstdint>
 
 #include <utility>
 #include "app/src/include/firebase/future.h"

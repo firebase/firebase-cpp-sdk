@@ -96,8 +96,14 @@ set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 project (firebase NONE)
+
+set(CMAKE_Swift_LANGUAGE_VERSION 6.2)
+
 enable_language(C)
 enable_language(CXX)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+  enable_language(Swift)
+endif()
 
 if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
   find_program(CCACHE_PROGRAM ccache)
@@ -119,9 +125,18 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
                ${CMAKE_BINARY_DIR})
 endif()
 
-if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
+if(PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
   #  UMP is not supported on tvOS.
   set(FIREBASE_INCLUDE_UMP OFF)
+endif()
+
+# CMake 3.14+ native iOS support sets CMAKE_SYSTEM_NAME to iOS, 3.21+ for tvOS
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+  if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum OS X deployment version")
+  endif()
+  set(IOS ON CACHE BOOL "")
+  set(FIREBASE_IOS_BUILD ON CACHE BOOL "")
 endif()
 
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
@@ -150,6 +165,9 @@ if(APPLE)
   # build output for our Objective-C++ files much too verbose.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nullability-completeness")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nullability-completeness")
+  # On Apple platforms, disable the target os macros, as they cause problems with zlib
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-define-target-os-macros")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-define-target-os-macros")
   if(DESKTOP)
     # Mac desktop Firestore build requires -Wno-deprecated-declarations
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
@@ -411,10 +429,12 @@ endif()
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
   # Build curl as a static library
-  set(CURL_STATICLIB ON CACHE BOOL "")
+  set(BUILD_SHARED_LIBS OFF)
+  set(BUILD_CURL_EXE OFF)
+  set(CURL_STATICLIB ON)
   if (WIN32)
     # Enable Windows native SSL/TLS in libcurl.
-    set(CMAKE_USE_SCHANNEL ON CACHE BOOL "")
+    set(CMAKE_USE_SCHANNEL ON)
   endif()
 
   # Current Curl library defaults to requiring some dependencies we don't need, disable them.

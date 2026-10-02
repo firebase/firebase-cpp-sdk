@@ -68,6 +68,10 @@ class RemoteConfigInternal {
   FRIEND_TEST(RemoteConfigDesktopTest, SetDefaultsKeyValue);
   FRIEND_TEST(RemoteConfigDesktopTest, ActivateFetched);
   FRIEND_TEST(RemoteConfigDesktopTest, Fetch);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignals);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsMergeAndRemove);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsValidation);
+  FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsPersistence);
 #endif  // FIREBASE_TESTING
 
   explicit RemoteConfigInternal(const firebase::App& app,
@@ -92,6 +96,10 @@ class RemoteConfigInternal {
   Future<void> SetConfigSettings(ConfigSettings settings);
   Future<void> SetConfigSettingsLastResult();
   ConfigSettings GetConfigSettings();
+
+  Future<void> SetCustomSignals(
+      const std::map<std::string, Variant>& custom_signals);
+  Future<void> SetCustomSignalsLastResult();
 
 #ifndef SWIG
   Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,

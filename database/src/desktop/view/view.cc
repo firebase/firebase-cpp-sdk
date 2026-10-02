@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/view/view.h"
 
+#include <cassert>
 #include <memory>
 #include <utility>
 #include <vector>

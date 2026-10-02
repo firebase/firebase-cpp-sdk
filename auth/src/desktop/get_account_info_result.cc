@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/get_account_info_result.h"
 
+#include <cassert>
+
 #include "app/rest/util.h"
 #include "app/src/assert.h"
 #include "auth/src/desktop/auth_util.h"

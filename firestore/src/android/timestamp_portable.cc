@@ -22,6 +22,8 @@
 
 // TODO(b/138615769): remove this file.
 
+#include <cassert>
+#include <cstdint>
 #include <ostream>
 #include <sstream>
 

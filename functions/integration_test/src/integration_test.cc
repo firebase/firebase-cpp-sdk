@@ -22,6 +22,8 @@
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
+#include "firebase/app_check.h"
+#include "firebase/app_check/debug_provider.h"
 #include "firebase/auth.h"
 #include "firebase/functions.h"
 #include "firebase/util.h"
@@ -48,6 +50,10 @@ using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 
 const char kIntegrationTestRootPath[] = "integration_test_data";
+
+// Your Firebase project's Debug token goes here.
+// You can get this from Firebase Console, in the App Check settings.
+const char kAppCheckDebugToken[] = "REPLACE_WITH_APP_CHECK_TOKEN";
 
 class FirebaseFunctionsTest : public FirebaseTest {
  public:
@@ -119,7 +125,16 @@ void FirebaseFunctionsTest::TearDown() {
 void FirebaseFunctionsTest::Initialize() {
   if (initialized_) return;
 
+  LogDebug("Initializing Firebase App Check with Debug Provider");
+  firebase::app_check::DebugAppCheckProviderFactory::GetInstance()
+      ->SetDebugToken(kAppCheckDebugToken);
+  firebase::app_check::AppCheck::SetAppCheckProviderFactory(
+      firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
+
   InitializeApp();
+
+  // Create the AppCheck instance so it's available for the tests.
+  ::firebase::app_check::AppCheck::GetInstance(app_);
 
   LogDebug("Initializing Firebase Auth and Firebase Functions.");
 
@@ -158,6 +173,40 @@ void FirebaseFunctionsTest::Initialize() {
 
   LogDebug("Successfully initialized Firebase Auth and Firebase Functions.");
 
+  // Check if we should use the functions emulator
+  std::string emulator_host;
+  const char* env_emulator_host = std::getenv("FUNCTIONS_EMULATOR_HOST");
+  if (env_emulator_host && *env_emulator_host) {
+    emulator_host = env_emulator_host;
+  }
+  for (int i = 1; i < argc_; ++i) {
+    if (std::strncmp(argv_[i], "--functions_emulator_host=", 26) == 0) {
+      emulator_host = argv_[i] + 26;
+    }
+  }
+  if (!emulator_host.empty()) {
+    std::string origin = emulator_host;
+#if defined(__ANDROID__) || (!defined(__APPLE__) && !defined(TARGET_OS_IPHONE))
+    if (origin.find("http://") == std::string::npos &&
+        origin.find("https://") == std::string::npos) {
+      origin = "http://" + origin;
+    }
+#endif
+#if defined(__ANDROID__)
+    size_t local_pos = origin.find("localhost");
+    if (local_pos != std::string::npos) {
+      origin.replace(local_pos, 9, "10.0.2.2");
+    } else {
+      size_t ip_pos = origin.find("127.0.0.1");
+      if (ip_pos != std::string::npos) {
+        origin.replace(ip_pos, 9, "10.0.2.2");
+      }
+    }
+#endif
+    LogDebug("Using Functions Emulator: %s", origin.c_str());
+    functions_->UseFunctionsEmulator(origin.c_str());
+  }
+
   initialized_ = true;
 }
 
@@ -174,6 +223,17 @@ void FirebaseFunctionsTest::Terminate() {
     delete auth_;
     auth_ = nullptr;
   }
+
+  if (app_) {
+    ::firebase::app_check::AppCheck* app_check =
+        ::firebase::app_check::AppCheck::GetInstance(app_);
+    if (app_check) {
+      LogDebug("Shutdown App Check.");
+      delete app_check;
+    }
+  }
+
+  firebase::app_check::AppCheck::SetAppCheckProviderFactory(nullptr);
 
   TerminateApp();
 
@@ -378,6 +438,81 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURL) {
           ->data();
   EXPECT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 6);
+}
+
+TEST_F(FirebaseFunctionsTest, TestFunctionWithLimitedUseAppCheckToken) {
+  SignIn();
+
+  // addNumbers(5, 7) = 12
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 5;
+  data.map()["secondNumber"] = 7;
+
+  firebase::functions::HttpsCallableOptions options;
+  options.limited_use_app_check_token = true;
+
+  LogDebug("Calling addNumbers with Limited Use App Check Token");
+  firebase::functions::HttpsCallableReference ref =
+      functions_->GetHttpsCallable("addNumbers", options);
+
+  firebase::Variant result =
+      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())
+          .result()
+          ->data();
+  EXPECT_TRUE(result.is_map());
+  EXPECT_EQ(result.map()["operationResult"], 12);
+}
+
+TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
+  SignIn();
+
+  // addNumbers(4, 2) = 6
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 4;
+  data.map()["secondNumber"] = 2;
+
+  std::string proj = app_->options().project_id();
+  // V2 functions can still be addressed via the V1 URL schema which handles
+  // internal routing
+  std::string url =
+      "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
+
+  firebase::functions::HttpsCallableOptions options;
+  options.limited_use_app_check_token = true;
+
+  LogDebug("Calling by URL %s with Limited Use App Check Token", url.c_str());
+  firebase::functions::HttpsCallableReference ref =
+      functions_->GetHttpsCallableFromURL(url.c_str(), options);
+
+  firebase::Variant result =
+      TestFunctionHelper(url.c_str(), ref, &data, firebase::Variant::Null())
+          .result()
+          ->data();
+  EXPECT_TRUE(result.is_map());
+  EXPECT_EQ(result.map()["operationResult"], 6);
+}
+
+TEST_F(FirebaseFunctionsTest, TestV1FunctionWithLimitedUseAppCheckToken) {
+  SignIn();
+
+  // addNumbers(5, 7) = 12
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 5;
+  data.map()["secondNumber"] = 7;
+
+  firebase::functions::HttpsCallableOptions options;
+  options.limited_use_app_check_token = true;
+
+  LogDebug("Calling addNumbers with Limited Use App Check Token");
+  firebase::functions::HttpsCallableReference ref =
+      functions_->GetHttpsCallable("addNumbers", options);
+
+  firebase::Variant result =
+      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())
+          .result()
+          ->data();
+  EXPECT_TRUE(result.is_map());
+  EXPECT_EQ(result.map()["operationResult"], 12);
 }
 
 }  // namespace firebase_testapp_automated

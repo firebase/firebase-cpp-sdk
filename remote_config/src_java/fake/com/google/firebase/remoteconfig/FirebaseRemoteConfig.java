@@ -45,6 +45,7 @@ public class FirebaseRemoteConfig {
   private static final String FN_SET_DEFAULTS_ASYNC = "FirebaseRemoteConfig.setDefaultsAsync";
   private static final String FN_SET_CONFIG_SETTINGS_ASYNC =
       "FirebaseRemoteConfig.setConfigSettingsAsync";
+  private static final String FN_SET_CUSTOM_SIGNALS = "FirebaseRemoteConfig.setCustomSignals";
 
   FirebaseRemoteConfig() {}
 
@@ -202,6 +203,11 @@ public class FirebaseRemoteConfig {
   public Task<Void> setConfigSettingsAsync(FirebaseRemoteConfigSettings settings) {
     FakeReporter.addReport(FN_SET_CONFIG_SETTINGS_ASYNC);
     return voidHelper(FN_SET_CONFIG_SETTINGS_ASYNC);
+  }
+
+  public Task<Void> setCustomSignals(CustomSignals customSignals) {
+    FakeReporter.addReport(FN_SET_CUSTOM_SIGNALS, customSignals.toString());
+    return voidHelper(FN_SET_CUSTOM_SIGNALS);
   }
 
   private static List<String> stringToStringList(String s) {

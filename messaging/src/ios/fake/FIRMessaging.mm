@@ -14,6 +14,7 @@
 
 #import "messaging/src/ios/fake/FIRMessaging.h"
 
+#include <cstdint>
 #include "testing/reporter_impl.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -125,6 +126,10 @@ BOOL is_auto_init_enabled = true;
 
 - (void)deleteTokenWithCompletion:(FIRMessagingDeleteFCMTokenCompletion)completion
   NS_SWIFT_NAME(deleteFCMToken(completion:)) {}
+
+- (void)registerWithCompletion:(void (^)(NSError *__nullable error))completion {}
+
+- (void)unregisterWithCompletion:(void (^)(NSError *__nullable error))completion {}
 
 @end
 

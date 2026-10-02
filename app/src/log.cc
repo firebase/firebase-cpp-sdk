@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include <cassert>
 #include <cstdlib>
 
 #include "app/src/assert.h"

@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <jni.h>
 
+#include <cstdint>
+#include <cstring>
 #include <string>
 
 #include "app/src/assert.h"

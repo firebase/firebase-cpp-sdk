@@ -38,6 +38,7 @@ enum FunctionId {
   FnAppCheckGetTokenAsync,
   FnAppCheckAddListener,
   FnAppCheckRemoveListener,
+  FnAppCheckGetLimitedUseTokenAsync,
 };
 
 // Class for providing a generic way for firebase libraries to expose their

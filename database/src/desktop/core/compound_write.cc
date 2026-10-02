@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/compound_write.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "database/src/desktop/core/tree.h"
 #include "database/src/desktop/util_desktop.h"

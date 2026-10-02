@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "app/src/secure/user_secure_darwin_internal.h"
+#include <cassert>
 #include <functional>
 #include "app/src/assert.h"
 #include "app/src/base64.h"

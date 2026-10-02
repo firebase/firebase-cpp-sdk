@@ -17,7 +17,8 @@
 #ifndef FIREBASE_APP_SRC_SEMAPHORE_H_
 #define FIREBASE_APP_SRC_SEMAPHORE_H_
 
-#include <errno.h>
+#include <cerrno>
+#include <cstdint>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"

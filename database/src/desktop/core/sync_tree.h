@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_TREE_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_TREE_H_
 
+#include <stdint.h>
+
 #include <memory>
 #include <vector>
 
@@ -146,7 +148,7 @@ class SyncTree {
  private:
   // For a given new listen, manage the de-duplication of outstanding
   // subscriptions.
-  void SetupListener(const QuerySpec& query_spec, const View* view);
+  void SetupListener(const QuerySpec& query_spec);
 
   // Recursive helper for ApplyOperationToSyncPoints
   std::vector<Event> ApplyOperationHelper(const Operation& operation,

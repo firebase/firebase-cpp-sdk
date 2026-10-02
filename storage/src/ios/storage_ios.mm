@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cassert>
 #include "storage/src/ios/storage_ios.h"
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"

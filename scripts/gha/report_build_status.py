@@ -127,9 +127,6 @@ _FAILURE_TEXT = "Failure"
 _FLAKY_TEXT = "Pass (flaky)"
 _MISSING_TEXT = "Missing"
 
-general_test_time = ' 09:0'
-firestore_test_time = ' 10:0'
-
 def rename_key(old_dict,old_name,new_name):
     """Rename a key in a dictionary, preserving the order."""
     new_dict = {}
@@ -382,14 +379,19 @@ def main(argv):
         run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
         run['day'] = run['date'].date()
         day = str(run['date'].date())
-        if day in source_tests: continue
+        if run['event'] != 'schedule': continue
         if run['status'] != 'completed': continue
         if run['day'] < start_date or run['day'] > end_date: continue
+        if day in source_tests:
+          prev_date = source_tests[day]['date']
+          # Non-Firestore wants to keep the earliest, otherwise the latest
+          if not FLAGS.firestore and prev_date < run['date']:
+            continue
+          elif FLAGS.firestore and prev_date > run['date']:
+            continue
         run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
-        compare_test_time = firestore_test_time if FLAGS.firestore else general_test_time
-        if compare_test_time in str(run['date']):
-          source_tests[day] = run
-          all_days.add(day)
+        source_tests[day] = run
+        all_days.add(day)
 
       workflow_id = _WORKFLOW_PACKAGING
       all_runs = firebase_github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
@@ -480,8 +482,13 @@ def main(argv):
           sorted_artifacts = sorted(artifacts, key=lambda art: dateutil.parser.parse(art['created_at']), reverse=True)
 
           with tempfile.TemporaryDirectory() as tmpdir:
+            downloaded_artifact_names = set()
             for a in sorted_artifacts: # Iterate over sorted artifacts
               if 'log-artifact' in a['name']:
+                if a['name'] in downloaded_artifact_names:
+                  logging.debug("Skipping older attempt of artifact: %s (ID: %s, Created: %s)", a['name'], a['id'], a['created_at'])
+                  continue
+                downloaded_artifact_names.add(a['name'])
                 logging.debug("Attempting to download artifact: %s (ID: %s, Created: %s)", a['name'], a['id'], a['created_at'])
                 # Pass tmpdir to download_artifact to save directly
                 artifact_downloaded_path = os.path.join(tmpdir, f"{a['id']}.zip")

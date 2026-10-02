@@ -27,8 +27,7 @@ namespace internal {
 class MockListenProvider : public ListenProvider {
  public:
   MOCK_METHOD(void, StartListening,
-              (const QuerySpec& query_spec, const Tag& tag, const View* view),
-              (override));
+              (const QuerySpec& query_spec, const Tag& tag), (override));
   MOCK_METHOD(void, StopListening,
               (const QuerySpec& query_spec, const Tag& tag), (override));
 };

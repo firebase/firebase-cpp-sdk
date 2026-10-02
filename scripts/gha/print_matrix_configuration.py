@@ -73,35 +73,35 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-14"],
+      "os": ["ubuntu-22.04", "macos-15"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["16.2"],
+      "xcode_version": ["26.2"],
       "python_version": ["3.9"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
-        "xcode_version": ["16.2"],
+        "os": ["ubuntu-22.04", "macos-15", "windows-2022"],
+        "xcode_version": ["26.2"],
       }
     }
   },
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-15", "windows-2022"],
       "architecture": ["x64", "arm64"],
       "python_version": ["3.9"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-22.04", "macos-14", "windows-latest"]
+        "os": ["ubuntu-22.04", "macos-15", "windows-2022"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-22.04", "macos-14", "windows-latest"],
+      "os": ["ubuntu-22.04", "macos-15", "windows-2022"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_ftl_target"],
@@ -113,7 +113,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["16.2"],  # only the first one is used
+      "xcode_version": ["26.2"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -141,10 +141,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["16.2"],
+      "xcode_version": ["26.2"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["16.2"]
+        "xcode_version": ["26.2"]
       }
     }
   },
@@ -173,27 +173,25 @@ BUILD_CONFIGS = {
 # Note: All entries in a given list must have the same type, (ftl or virtual).
 TEST_DEVICES = {
   "android_target": [
-      {"type": "ftl", "device": "model=blueline,version=28"}, # Pixel 3
-      {"type": "ftl", "device": "model=gts3lltevzw,version=28"},  # Galaxy Tab S3
+      {"type": "ftl", "device": "model=gts8wifi,version=34"},  # Galaxy Tab S8
       {"type": "ftl", "device": "model=SH-01L,version=28"},  # AQUOS sense2 SH-01L
   ],
   "android_latest": [
-      {"type": "ftl", "device": "model=oriole,version=33"},  # Pixel 6
-      {"type": "ftl", "device": "model=panther,version=33"},  # Pixel 7
-      {"type": "ftl", "device": "model=lynx,version=33"},  # Pixel 7a
-      {"type": "ftl", "device": "model=cheetah,version=33"},  # Pixel 7 Pro
-      {"type": "ftl", "device": "model=felix,version=33"},  # Pixel Fold
+      {"type": "ftl", "device": "model=tokay,version=36"},  # Pixel 9
+      {"type": "ftl", "device": "model=frankel,version=36"},  # Pixel 10
+      {"type": "ftl", "device": "model=stallion,version=36"},  # Pixel 10a
+      {"type": "ftl", "device": "model=mustang,version=36"},  # Pixel 10 Pro XL
+      {"type": "ftl", "device": "model=rango,version=36"},  # Pixel 10 Pro Fold
       {"type": "ftl", "device": "model=tangorpro,version=33"},  # Pixel Tablet
-      {"type": "ftl", "device": "model=gts8uwifi,version=33"},  # Galaxy Tab S8 Ultra
-      {"type": "ftl", "device": "model=b0q,version=33"},  # Galaxy S22 Ultra
-      {"type": "ftl", "device": "model=b4q,version=33"},  # Galaxy Z Flip4
+      {"type": "ftl", "device": "model=gts9wifi,version=34"},  # Galaxy Tab S9
+      {"type": "ftl", "device": "model=pa3q,version=35"},  # Galaxy S25 Ultra
+      {"type": "ftl", "device": "model=b6q,version=34"},  # Galaxy Z Flip6
   ],
   "emulator_ftl_target": [
-      {"type": "ftl", "device": "model=Pixel2,version=28"},
-      {"type": "ftl", "device": "model=Pixel2.arm,version=28"},
-      {"type": "ftl", "device": "model=MediumPhone.arm,version=28"},
-      {"type": "ftl", "device": "model=MediumTablet.arm,version=28"},
-      {"type": "ftl", "device": "model=SmallPhone.arm,version=28"},
+      {"type": "ftl", "device": "model=Pixel2.arm,version=30"},
+      {"type": "ftl", "device": "model=MediumPhone.arm,version=30"},
+      {"type": "ftl", "device": "model=MediumTablet.arm,version=30"},
+      {"type": "ftl", "device": "model=SmallPhone.arm,version=30"},
   ],
   "emulator_ftl_latest": [
       {"type": "ftl", "device": "model=Pixel2.arm,version=32"},
@@ -211,8 +209,8 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "simulator_target": [ {"type": "virtual", "name":"iPhone 15 Pro Max", "version":"17.2"} ],
-  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"17.2"} ],
+  "simulator_target": [ {"type": "virtual", "name":"iPhone 16 Pro Max", "version":"26.2"} ],
+  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"26.2"} ],
 }
 
 # Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model

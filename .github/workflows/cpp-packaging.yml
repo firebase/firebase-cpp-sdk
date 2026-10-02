@@ -32,12 +32,15 @@ env:
   demumbleVer: "df938e45c2b0e064fb5323d88b692d03b451d271"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 16.2 is the version we build the SDK with.
+  # Xcode version 26.2 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "16.2"
+  xcodeVersion: "26.2"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
   GITHUB_TOKEN: ${{ github.token }}
+
+permissions:
+  contents: read
 
 jobs:
   log_inputs:
@@ -82,18 +85,18 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-14]
+        os: [ubuntu-22.04, macos-15]
         include:
         - os: ubuntu-22.04
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
-        - os: macos-14
+        - os: macos-15
           tools_platform: darwin
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
       - name: setup Xcode version (macos)
@@ -101,27 +104,42 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
 
       - name: Fetch and build binutils
         run: |
           set +e
-          # Retry up to 10 times because Curl has a tendency to timeout on
-          # Github runners.
-          for retry in {1..10} error; do
-          if [[ $retry == "error" ]]; then exit 5; fi
-            curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ matrix.binutils_version }}.tar.xz --output binutils.tar.xz && break
-            sleep 300
+          # Retry up to 10 times with fallback mirrors and fail on HTTP errors.
+          urls=(
+            "https://ftpmirror.gnu.org/binutils/binutils-${{ matrix.binutils_version }}.tar.xz"
+            "https://ftp.gnu.org/gnu/binutils/binutils-${{ matrix.binutils_version }}.tar.xz"
+            "https://mirrors.kernel.org/gnu/binutils/binutils-${{ matrix.binutils_version }}.tar.xz"
+          )
+          download_success=false
+          for retry in {1..10}; do
+            for url in "${urls[@]}"; do
+              rm -f binutils.tar.xz
+              echo "Attempting to download binutils from ${url} (attempt ${retry})..."
+              if curl -f -L --connect-timeout 30 --max-time 300 "${url}" --output binutils.tar.xz; then
+                download_success=true
+                break 2
+              fi
+            done
+            sleep 30
           done
+          if [[ "${download_success}" != "true" ]]; then
+            echo "Failed to download binutils after multiple retries."
+            exit 5
+          fi
           set -e
 
           tar -xf binutils.tar.xz
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
           mkdir /tmp/binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix=/tmp/binutils-output
+          ./configure --enable-targets=all --with-system-zlib --prefix=/tmp/binutils-output
           make -j2
           make install
           cd -
@@ -131,7 +149,7 @@ jobs:
       - name: Cache LLVM (Mac only)
         if: matrix.tools_platform == 'darwin'
         id: cache_llvm
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: llvm-src/llvm/build/bin
           key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
@@ -139,8 +157,9 @@ jobs:
       - name: Fetch LLVM source (Mac only)
         # Only fetch LLVM if we don't already have binaries from the cache.
         if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           repository: llvm/llvm-project
           path: llvm-src
           ref: ${{ env.llvmVer }}
@@ -161,8 +180,9 @@ jobs:
           cp -af llvm-src/llvm/build/bin/* packaging-tools
 
       - name: fetch demumble
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           repository: nico/demumble
           path: demumble-src
           ref: ${{ env.demumbleVer }}
@@ -184,17 +204,17 @@ jobs:
           tar -czhf ../packaging-tools.tgz .
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
 
   build_and_package_ios_tvos:
     name: build-and-package-ios-tvos
-    runs-on: macos-14
+    runs-on: macos-15
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
@@ -209,12 +229,13 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: fetch SDK
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -245,7 +266,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-ios-tvos-package
           path: firebase-cpp-sdk-ios-tvos-package.tgz
@@ -257,15 +278,16 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
       - name: Force Java 11
         shell: bash
         run: echo "JAVA_HOME=${JAVA_HOME_11_X64}" >> $GITHUB_ENV
       - name: fetch SDK
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: Store git credentials for all git commands
@@ -277,7 +299,7 @@ jobs:
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ runner.os }}-r21e
@@ -308,7 +330,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-android-package
           path: firebase-cpp-sdk-android-package.tgz
@@ -320,17 +342,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04, macos-14]
+        os: [windows-2022, ubuntu-22.04, macos-15]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
         linux_abi: ["legacy", "c++11"]
         python_version: [3.9]
         include:
-        - os: windows-latest
+        - os: windows-2022
           vcpkg_triplet_suffix: "windows-static"
           sdk_platform: "windows"
-        - os: windows-latest
+        - os: windows-2022
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
           sdk_platform: "windows"
@@ -338,21 +360,21 @@ jobs:
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
           sdk_platform: "linux"
-        - os: macos-14
+        - os: macos-15
           vcpkg_triplet_suffix: "osx"
           additional_build_flags: "--target_format libraries"
           sdk_platform: "darwin"
 
         exclude:
-        - os: windows-latest
+        - os: windows-2022
           linux_abi: "c++11"
-        - os: macos-14
+        - os: macos-15
           architecture: "x86"
-        - os: macos-14
+        - os: macos-15
           msvc_runtime: "dynamic"
-        - os: macos-14
+        - os: macos-15
           linux_abi: "c++11"
-        - os: macos-14
+        - os: macos-15
           build_type: "Debug"
         - os: ubuntu-22.04
           msvc_runtime: "dynamic"
@@ -360,11 +382,11 @@ jobs:
           build_type: "Debug"
         - os: ubuntu-22.04
           architecture: "arm64"
-        - os: windows-latest
+        - os: windows-2022
           architecture: "arm64"
 
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
       - name: Store git credentials for all git commands
@@ -378,8 +400,9 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           submodules: true
 
       - name: Set env variables for subsequent steps (all)
@@ -395,11 +418,11 @@ jobs:
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506 # ratchet:microsoft/setup-msbuild@v1.1
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
@@ -407,18 +430,18 @@ jobs:
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
-        uses: actions/cache@v3
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
 
       - name: Install Desktop SDK prerequisites
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # ratchet:nick-invision/retry@v2
         with:
           timeout_minutes: 15
           max_attempts: 3
@@ -466,7 +489,7 @@ jobs:
         continue-on-error: true
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
@@ -509,7 +532,7 @@ jobs:
           suffix: '-x64-Debug-dynamic'
           runs_on_platform: ubuntu-22.04
         - sdk_platform: darwin
-          runs_on_platform: macos-14
+          runs_on_platform: macos-15
         exclude:
         - sdk_platform: windows
           suffix: ''
@@ -521,24 +544,25 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: fetch SDK
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: download packaging-tool artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: artifacts
           pattern: packaging-tools-*
 
       - name: download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: artifacts
           pattern: firebase-cpp-sdk-*
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -560,7 +584,7 @@ jobs:
             tools_platform=darwin
           fi
           verbose_flag=
-          if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
+          if [[ -n "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" && "${GITHUB_EVENT_INPUTS_VERBOSEBUILD}" -ne 0 ]]; then
             verbose_flag=-v
           fi
           declare -a additional_flags
@@ -600,6 +624,8 @@ jobs:
           fi
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
+        env:
+          GITHUB_EVENT_INPUTS_VERBOSEBUILD: ${{ github.event.inputs.verboseBuild }}
 
       - name: Print package contents
         shell: bash
@@ -607,7 +633,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
@@ -662,7 +688,7 @@ jobs:
             && github.event.inputs.downloadPreviousRun == ''
           )
         # Remove the build artifacts that were consumed during this step of packaging.
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@54ab544f12cdb7b71613a16a2b5a37a9ade990af # ratchet:geekyeggo/delete-artifact@v2
         with:
           name: |
             firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build
@@ -677,7 +703,7 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
       - name: fetch artifact from previous run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -695,9 +721,10 @@ jobs:
           # Retry up to 10 times because Curl has a tendency to timeout on
           # Github runners.
           for retry in {1..10} error; do
-          if [[ $retry == "error" ]]; then exit 5; fi
-            curl -L https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}.zip --output firebase_cpp_sdk.zip && break
-            sleep 300
+            if [[ $retry == "error" ]]; then exit 5; fi
+            rm -f firebase_cpp_sdk.zip
+            curl -f -L --connect-timeout 30 --max-time 300 https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${GITHUB_EVENT_INPUTS_DOWNLOADPUBLICVERSION}.zip --output firebase_cpp_sdk.zip && break
+            sleep 30
           done
           set -e
         env:
@@ -710,13 +737,13 @@ jobs:
           echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
 
       - name: upload hash
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -729,12 +756,13 @@ jobs:
     needs: [build_and_package_ios_tvos, build_and_package_android, package_desktop, log_inputs]
     steps:
       - name: fetch SDK
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
+          persist-credentials: true # zizmor: ignore[artipacked]
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           path: artifacts
           pattern: firebase-cpp-sdk-*-package
@@ -772,13 +800,13 @@ jobs:
           find firebase_cpp_sdk -type f
 
       - name: upload hash
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -789,7 +817,7 @@ jobs:
     needs: [merge_packages]
     steps:
       - name: download SDK zip
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
         with:
           name: firebase_cpp_sdk.zip
       - name: unzip SDK and remove non-Windows files
@@ -817,12 +845,12 @@ jobs:
           ${{ env.hashCommand }} --tag firebase_cpp_sdk_windows.zip > firebase_cpp_sdk_windows_hash.txt
           echo "::warning ::$(cat firebase_cpp_sdk_windows_hash.txt)"
       - name: upload Windows hash
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_windows_hash.txt
           path: firebase_cpp_sdk_windows_hash.txt
       - name: upload Windows SDK zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: firebase_cpp_sdk_windows.zip
           path: firebase_cpp_sdk_windows.zip
@@ -841,7 +869,7 @@ jobs:
         && github.event.inputs.downloadPreviousRun == ''
       )
     steps:
-    - uses: geekyeggo/delete-artifact@v2
+    - uses: geekyeggo/delete-artifact@54ab544f12cdb7b71613a16a2b5a37a9ade990af # ratchet:geekyeggo/delete-artifact@v2
       with:
         name: |
           packaging-tools-*
@@ -856,10 +884,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      with:
+        persist-credentials: true # zizmor: ignore[artipacked]
 
     - name: Setup python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
       with:
         python-version: '3.9'
     - name: Use expanded matrix
@@ -873,11 +903,12 @@ jobs:
       # 
       # This method is preferred over the "personal access token" solution, as the GitHub App's scope is limited to just
       # the firebase-cpp-sdk repository.
-      uses: tibdex/github-app-token@v1
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v1
       id: generate-token
       with:
-        app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-        private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+        client-id: ${{ secrets.WORKFLOW_TRIGGER_CLIENT_ID }}
+        private-key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+        permission-actions: write
     - name: Use GitHub API to start workflow
       shell: bash
       run: |
@@ -929,20 +960,23 @@ jobs:
     if: ${{ failure() && !cancelled() && github.event_name == 'schedule' }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Install python deps
         run: pip install -r scripts/gha/python_requirements.txt
       # The default token can't run workflows, so get an alternate token.
       - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@v1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v1
         id: generate-token
         with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          client-id: ${{ secrets.WORKFLOW_TRIGGER_CLIENT_ID }}
+          private-key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+          permission-actions: write
       - name: Retry failed tests
         run: |
           echo "::warning ::Attempting to retry failed jobs"

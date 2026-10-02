@@ -16,6 +16,7 @@
 #include <shlobj.h>
 #include <stringapiset.h>
 
+#include <cstring>
 #include <string>
 
 #include "app/src/filesystem.h"

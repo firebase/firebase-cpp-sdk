@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/jni/string.h"
+#include <cstdint>
 
 #include <cstring>
 

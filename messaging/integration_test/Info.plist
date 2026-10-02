@@ -40,5 +40,7 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+        <key>FirebaseMessagingInstallationIdEnabled</key>
+        <true/>
 </dict>
 </plist>

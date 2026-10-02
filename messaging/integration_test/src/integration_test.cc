@@ -127,6 +127,8 @@ class FirebaseMessagingTest : public FirebaseTest {
   static firebase::messaging::PollableListener* shared_listener_;
   static std::string* shared_token_;
   static bool is_desktop_stub_;
+  // Used to track if the newer registration method is being used.
+  static bool is_new_registration_id_;
 
   static firebase::functions::Functions* functions_;
 };
@@ -138,6 +140,7 @@ firebase::App* FirebaseMessagingTest::shared_app_ = nullptr;
 firebase::messaging::PollableListener* FirebaseMessagingTest::shared_listener_ =
     nullptr;
 bool FirebaseMessagingTest::is_desktop_stub_;
+bool FirebaseMessagingTest::is_new_registration_id_ = false;
 firebase::functions::Functions* FirebaseMessagingTest::functions_ = nullptr;
 
 void FirebaseMessagingTest::SetUpTestSuite() {
@@ -186,6 +189,41 @@ void FirebaseMessagingTest::SetUpTestSuite() {
 
   LogDebug("Successfully initialized Firebase Cloud Messaging.");
   functions_ = firebase::functions::Functions::GetInstance(shared_app_);
+  if (functions_) {
+    // Check if we should use the functions emulator
+    std::string emulator_host;
+    const char* env_emulator_host = std::getenv("FUNCTIONS_EMULATOR_HOST");
+    if (env_emulator_host && *env_emulator_host) {
+      emulator_host = env_emulator_host;
+    }
+    for (int i = 1; i < argc_; ++i) {
+      if (std::strncmp(argv_[i], "--functions_emulator_host=", 26) == 0) {
+        emulator_host = argv_[i] + 26;
+      }
+    }
+    if (!emulator_host.empty()) {
+      std::string origin = emulator_host;
+#if defined(__ANDROID__) || (!defined(__APPLE__) && !defined(TARGET_OS_IPHONE))
+      if (origin.find("http://") == std::string::npos &&
+          origin.find("https://") == std::string::npos) {
+        origin = "http://" + origin;
+      }
+#endif
+#if defined(__ANDROID__)
+      size_t local_pos = origin.find("localhost");
+      if (local_pos != std::string::npos) {
+        origin.replace(local_pos, 9, "10.0.2.2");
+      } else {
+        size_t ip_pos = origin.find("127.0.0.1");
+        if (ip_pos != std::string::npos) {
+          origin.replace(ip_pos, 9, "10.0.2.2");
+        }
+      }
+#endif
+      LogDebug("Using Functions Emulator: %s", origin.c_str());
+      functions_->UseFunctionsEmulator(origin.c_str());
+    }
+  }
   is_desktop_stub_ = false;
 #if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   is_desktop_stub_ = true;
@@ -287,7 +325,16 @@ bool FirebaseMessagingTest::WaitForToken(int timeout) {
     if (shared_listener_->PollRegistrationToken(&new_token)) {
       if (!new_token.empty()) {
         *shared_token_ = new_token;
-        LogInfo("Got token: %s", shared_token_->c_str());
+        is_new_registration_id_ = false;
+        LogInfo("Got FCM Token: %s", shared_token_->c_str());
+        return true;
+      }
+    }
+    if (shared_listener_->PollRegistration(&new_token)) {
+      if (!new_token.empty()) {
+        *shared_token_ = new_token;
+        is_new_registration_id_ = true;
+        LogInfo("Got FIS: %s", shared_token_->c_str());
         return true;
       }
     }
@@ -533,6 +580,48 @@ TEST_F(FirebaseMessagingTest, DeliverMetricsToBigQuery) {
   (void)result_after_setting;
   (void)result_after_clearing;
 #endif
+}
+
+TEST_F(FirebaseMessagingTest, TestRegistrationOnInitEnabled) {
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+
+  bool initial_val = firebase::messaging::IsRegistrationOnInitEnabled();
+  EXPECT_TRUE(initial_val);
+
+  firebase::messaging::SetRegistrationOnInitEnabled(false);
+  EXPECT_FALSE(firebase::messaging::IsRegistrationOnInitEnabled());
+
+  firebase::messaging::SetRegistrationOnInitEnabled(true);
+  EXPECT_TRUE(firebase::messaging::IsRegistrationOnInitEnabled());
+}
+
+TEST_F(FirebaseMessagingTest, TestRegisterAndUnregister) {
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+
+  EXPECT_TRUE(RequestPermission());
+
+  // Note that these methods should only work if the newer registration
+  // method is enabled. Otherwise, it returns an error.
+  if (is_new_registration_id_) {
+    firebase::Future<void> reg_future = firebase::messaging::Register();
+    EXPECT_TRUE(WaitForCompletion(reg_future, "Register"));
+    EXPECT_EQ(reg_future.error(), 0);
+
+    firebase::Future<void> unreg_future = firebase::messaging::Unregister();
+    EXPECT_TRUE(WaitForCompletion(unreg_future, "Unregister"));
+    EXPECT_EQ(unreg_future.error(), 0);
+  } else {
+    firebase::Future<void> reg_future = firebase::messaging::Register();
+    EXPECT_TRUE(WaitForCompletion(reg_future, "Register",
+                                  {firebase::messaging::kErrorUnknown}));
+
+    firebase::Future<void> unreg_future = firebase::messaging::Unregister();
+    EXPECT_TRUE(WaitForCompletion(unreg_future, "Unregister",
+                                  {firebase::messaging::kErrorUnknown}));
+  }
 }
 
 }  // namespace firebase_testapp_automated

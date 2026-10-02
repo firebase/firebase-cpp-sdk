@@ -14,6 +14,8 @@
 
 #include "functions/src/desktop/serialization.h"
 
+#include <cstdint>
+
 #include "app/src/variant_util.h"
 
 namespace firebase {

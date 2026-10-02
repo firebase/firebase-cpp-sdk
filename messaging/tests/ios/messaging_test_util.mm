@@ -54,6 +54,16 @@ void OnTokenReceived(const char *tokenstr) {
                    didReceiveRegistrationToken:@(tokenstr)];
 }
 
+void OnRegistrationReceived(const char *registration_id) {
+  [[FIRMessaging messaging].delegate messaging:[FIRMessaging messaging]
+                        didReceiveRegistration:registration_id ? @(registration_id) : nil];
+}
+
+void OnUnregistrationReceived(const char *registration_id) {
+  [[FIRMessaging messaging].delegate messaging:[FIRMessaging messaging]
+                                 didUnregister:registration_id ? @(registration_id) : nil];
+}
+
 void SleepMessagingTest(double seconds) {
   // We want the main loop to process messages while we wait.
   [[NSRunLoop mainRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:seconds]];

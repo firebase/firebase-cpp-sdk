@@ -1,5 +1,7 @@
 // Copyright 2021 Google LLC
 
+#include <stdint.h>
+
 #import <Foundation/Foundation.h>
 
 #import "FIRPerformanceAttributable.h"

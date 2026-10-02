@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_TRANSACTION_OPTIONS_BUILDER_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_TRANSACTION_OPTIONS_BUILDER_ANDROID_H_
 
+#include <stdint.h>
 #include "firestore/src/android/transaction_options_android.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"

@@ -15,6 +15,8 @@
  */
 
 #include "firestore/src/jni/env.h"
+#include <cassert>
+#include <cstdint>
 
 #include <cstring>
 

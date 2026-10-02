@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <string>

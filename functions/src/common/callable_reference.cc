@@ -14,6 +14,8 @@
 
 #include "functions/src/include/firebase/functions/callable_reference.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 

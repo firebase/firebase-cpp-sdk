@@ -83,6 +83,15 @@ def main():
           # brew install protobuf
           utils.run_command(['brew', 'install', 'clang-format'])
 
+    # Install mono on linux/mac if its not installed already
+    if not utils.is_command_installed('mono'):
+      if utils.is_linux_os():
+        # sudo apt install mono-complete
+        utils.run_command(['apt', 'install', '-y', 'mono-complete'], as_root=True)
+      elif utils.is_mac_os():
+        # brew install mono
+        utils.run_command(['brew', 'install', 'mono'])
+
     # On Linux, if gcc-10 isn't installed install it. Then make it the default.
     if utils.is_linux_os():
       # Check if we have gcc 9 or gcc 10 as the default, if not, set gcc 10.

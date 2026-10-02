@@ -14,6 +14,8 @@
 
 #include "storage/src/android/controller_android.h"
 
+#include <cstdint>
+
 #include "app/src/util_android.h"
 #include "storage/src/include/firebase/storage/listener.h"
 

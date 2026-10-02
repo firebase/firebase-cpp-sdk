@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/load_bundle_task_progress_android.h"
+#include <cstdint>
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"

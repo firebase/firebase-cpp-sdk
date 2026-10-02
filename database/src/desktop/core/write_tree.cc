@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/write_tree.h"
 
 #include <algorithm>
+#include <cassert>
 
 #include "app/src/assert.h"
 #include "database/src/desktop/core/compound_write.h"

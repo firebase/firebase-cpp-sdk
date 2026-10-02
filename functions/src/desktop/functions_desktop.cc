@@ -34,14 +34,24 @@ const char* FunctionsInternal::region() const { return region_.c_str(); }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
     const char* name) const {
+  return GetHttpsCallable(name, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
+    const char* name, const HttpsCallableOptions& options) const {
   return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), GetUrl(name).c_str());
+      const_cast<FunctionsInternal*>(this), GetUrl(name).c_str(), options);
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
     const char* url) const {
+  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
+    const char* url, const HttpsCallableOptions& options) const {
   return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), url);
+      const_cast<FunctionsInternal*>(this), url, options);
 }
 
 std::string FunctionsInternal::GetUrl(const std::string& name) const {

@@ -14,6 +14,7 @@
 
 #include "storage/src/desktop/rest_operation.h"
 
+#include <cstdint>
 #include <memory>
 
 #include "app/rest/transport_curl.h"

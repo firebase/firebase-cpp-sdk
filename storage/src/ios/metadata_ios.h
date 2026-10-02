@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_METADATA_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_METADATA_IOS_H_
 
+#include <stdint.h>
 #include <map>
 #include <string>
 

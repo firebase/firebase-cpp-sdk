@@ -5,6 +5,8 @@
 #import "FIRPerformance.h"
 #import "FIRTrace.h"
 
+#include <cassert>
+#include <cstdint>
 #include "app/src/assert.h"
 #include "performance/src/include/firebase/performance.h"
 #import "performance/src/include/firebase/performance/trace.h"

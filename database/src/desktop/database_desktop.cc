@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/database_desktop.h"
 
+#include <cassert>
 #include <memory>
 #include <queue>
 #include <stack>

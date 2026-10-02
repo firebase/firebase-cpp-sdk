@@ -16,6 +16,8 @@
 
 #include "app/src/thread.h"
 
+#include <cassert>
+
 #if defined(_STLPORT_VERSION)
 
 #include "app/src/assert.h"

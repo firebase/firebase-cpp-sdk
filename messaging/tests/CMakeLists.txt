@@ -16,7 +16,7 @@ if(ANDROID OR IOS)
     set(messaging_test_util_common_SRCS
         messaging_test_util.h)
     set(messaging_test_util_android_SRCS
-        android/messaging_test_util.cc)
+        android/cpp/messaging_test_util.cc)
     set(messaging_test_util_ios_SRCS
         ios/messaging_test_util.mm)
 

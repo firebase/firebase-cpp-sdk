@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/core/server_values.h"
 
+#include <cstdint>
 #include <ctime>
 
 #include "app/src/include/firebase/variant.h"

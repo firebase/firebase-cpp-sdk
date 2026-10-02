@@ -14,6 +14,7 @@
 
 #include "auth/src/desktop/rpcs/get_oob_confirmation_code_request.h"
 
+#include <cassert>
 #include <string>
 
 #include "app/src/assert.h"

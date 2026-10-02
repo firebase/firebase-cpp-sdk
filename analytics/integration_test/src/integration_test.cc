@@ -22,6 +22,10 @@
 #include <ctime>
 #include <future>
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
 #include "app_framework.h"  // NOLINT
 #include "firebase/analytics.h"
 #include "firebase/analytics/event_names.h"
@@ -297,6 +301,21 @@ TEST_F(FirebaseAnalyticsTest, TestDesktopDebugMode) {
   // it doesn't crash.
   firebase::analytics::SetDesktopDebugMode(true);
   firebase::analytics::SetDesktopDebugMode(false);
+}
+
+TEST_F(FirebaseAnalyticsTest, TestLogAppleTransaction) {
+  auto future =
+      firebase::analytics::LogAppleTransaction("dummy_transaction_id");
+  WaitForCompletionAnyResult(future, "LogAppleTransaction");
+#if defined(__APPLE__) && (TARGET_OS_IOS || TARGET_OS_TV)
+  // On iOS/tvOS, passing a dummy transaction ID will fail to find a verified
+  // transaction.
+  EXPECT_NE(future.error(), 0);
+#else
+  // On Android and Desktop (including macOS), LogAppleTransaction is a no-op
+  // that returns success.
+  EXPECT_EQ(future.error(), 0);
+#endif
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {

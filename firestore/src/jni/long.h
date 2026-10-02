@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
 
+#include <stdint.h>
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 

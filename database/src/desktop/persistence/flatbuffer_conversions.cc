@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/persistence/flatbuffer_conversions.h"
 
+#include <cstdint>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/variant_util.h"
 #include "database/src/common/query_spec.h"
@@ -100,6 +102,11 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
 
     case flexbuffers::FBT_BLOB:
       LogError("Flexbuffers containing blobs are not supported.");
+      break;
+    case flexbuffers::FBT_MAX_TYPE:
+    default:
+      LogError("Unknown or unsupported flexbuffer type: %d",
+               static_cast<int>(ref.GetType()));
       break;
   }
   return Variant::Null();

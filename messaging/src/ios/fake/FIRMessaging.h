@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdint.h>
+
 #import <Foundation/Foundation.h>
 
 /**
@@ -249,6 +251,14 @@ NS_SWIFT_NAME(MessagingDelegate)
 - (void)messaging:(nonnull FIRMessaging *)messaging
     didReceiveRegistrationToken:(nonnull NSString *)fcmToken
     NS_SWIFT_NAME(messaging(_:didReceiveRegistrationToken:));
+
+- (void)messaging:(nonnull FIRMessaging *)messaging
+    didReceiveRegistration:(nullable NSString *)installationId
+    NS_SWIFT_NAME(messaging(_:didReceiveRegistration:));
+
+- (void)messaging:(nonnull FIRMessaging *)messaging
+    didUnregister:(nullable NSString *)installationId
+    NS_SWIFT_NAME(messaging(_:didUnregister:));
 
 @optional
 /// This method is called on iOS 10 devices to handle data messages received via FCM through its
@@ -528,5 +538,11 @@ NS_SWIFT_NAME(Messaging)
  */
 
 - (void)deleteTokenWithCompletion:(void (^)(NSError *__nullable error))completion;
+
+- (void)registerWithCompletion:(nonnull void (^)(NSError *__nullable error))completion
+    NS_SWIFT_NAME(register(completion:));
+
+- (void)unregisterWithCompletion:(nonnull void (^)(NSError *__nullable error))completion
+    NS_SWIFT_NAME(unregister(completion:));
 
 @end

@@ -77,8 +77,7 @@ class FakeListenProvider : public ListenProvider {
 
   ~FakeListenProvider() override {}
 
-  void StartListening(const QuerySpec& query_spec, const Tag& tag,
-                      const View* view) override {
+  void StartListening(const QuerySpec& query_spec, const Tag& tag) override {
     const Path& path = query_spec.path;
     logger_->LogDebug(
         "Listening at %s for Tag %s", path.c_str(),

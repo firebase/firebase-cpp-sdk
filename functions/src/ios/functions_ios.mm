@@ -42,23 +42,43 @@ FunctionsInternal::~FunctionsInternal() {
 const char* FunctionsInternal::region() const { return region_.c_str(); }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* name) const {
+  return GetHttpsCallable(name, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
+    const char* name, const HttpsCallableOptions& options) const {
+  FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
+      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
+
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithName:@(name)]));
+      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
+          HTTPSCallableWithName:@(name)
+                        options:firOptions]));
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const char* url) const {
+  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
+    const char* url, const HttpsCallableOptions& options) const {
+  FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
+      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
+
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   NSURL *nsurl = [NSURL URLWithString:@(url)];
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithURL:nsurl]));
+      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
+          HTTPSCallableWithURL:nsurl
+                       options:firOptions]));
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   std::string origin_str(origin);
-  // origin is in the format localhost:5005
+  // origin is in the format localhost:5005 or http://localhost:5005
   size_t pos = origin_str.rfind(":");
   if (pos == std::string::npos) {
     LogError("Functions::UseFunctionsEmulator: You must specify host:port");
@@ -66,8 +86,17 @@ void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   }
 
   std::string host = origin_str.substr(0, pos);
+  if (host.find("http://") == 0) {
+    host = host.substr(7);
+  } else if (host.find("https://") == 0) {
+    host = host.substr(8);
+  }
   std::string port_str = origin_str.substr(pos+1, std::string::npos);
   int port = atoi(port_str.c_str());
+  if (port <= 0 || port > 65535) {
+    LogError("Functions::UseFunctionsEmulator: Invalid port specified: %d", port);
+    return;
+  }
   [impl_.get()->get() useEmulatorWithHost:@(host.c_str()) port:port];
 }
 

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cassert>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "auth/src/desktop/auth_desktop.h"
@@ -58,7 +60,7 @@ Future<AuthResult> CreateAuthFuture(AuthData* auth_data,
     SafeFutureHandle<AuthResult> handle =
         auth_data->future_impl.SafeAlloc<AuthResult>(api_function);
     auth_data->future_impl.CompleteWithResult(
-        handle, kAuthErrorFederatedProviderAreadyInUse,
+        handle, kAuthErrorFederatedProviderAlreadyInUse,
         "Provider operation already in progress.",
         /*result=*/{});
     return MakeFuture(&auth_data->future_impl, handle);

@@ -16,6 +16,7 @@
 #define FIREBASE_STORAGE_SRC_ANDROID_METADATA_ANDROID_H_
 
 #include <jni.h>
+#include <stdint.h>
 
 #include <map>
 #include <string>

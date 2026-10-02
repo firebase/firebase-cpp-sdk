@@ -15,6 +15,8 @@
 #include "database/src/desktop/connection/persistent_connection.h"
 
 #include <algorithm>
+#include <cassert>
+#include <cstdint>
 #include <sstream>
 #include <utility>
 

@@ -49,9 +49,15 @@ class FunctionsInternal {
 
   HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
 
+  HttpsCallableReferenceInternal* GetHttpsCallable(
+      const char* name, const HttpsCallableOptions& options) const;
+
   // Get a FunctionsReference for the specified URL.
   HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
       const char* url) const;
+
+  HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
+      const char* url, const HttpsCallableOptions& options) const;
 
   void UseFunctionsEmulator(const char* origin);
 

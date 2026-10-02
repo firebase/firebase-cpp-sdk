@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/persistence/prune_forest.h"
 
+#include <cassert>
 #include <set>
 #include <string>
 

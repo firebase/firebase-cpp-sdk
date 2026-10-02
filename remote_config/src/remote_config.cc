@@ -14,6 +14,7 @@
 
 #include "remote_config/src/include/firebase/remote_config.h"
 
+#include <cassert>
 #include <cstdint>
 
 #include "app/src/cleanup_notifier.h"
@@ -177,6 +178,15 @@ ConfigSettings RemoteConfig::GetConfigSettings() {
 
 Future<void> RemoteConfig::SetConfigSettingsLastResult() {
   return internal_->SetConfigSettingsLastResult();
+}
+
+Future<void> RemoteConfig::SetCustomSignals(
+    const std::map<std::string, Variant>& custom_signals) {
+  return internal_->SetCustomSignals(custom_signals);
+}
+
+Future<void> RemoteConfig::SetCustomSignalsLastResult() {
+  return internal_->SetCustomSignalsLastResult();
 }
 
 bool RemoteConfig::GetBoolean(const char* key) {

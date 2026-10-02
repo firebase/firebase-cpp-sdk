@@ -502,6 +502,30 @@ void LogEvent(const char* name) {
   LogEvent(name, nullptr, static_cast<size_t>(0));
 }
 
+/// Log an Apple StoreKit 2 transaction. This is a no-op on Android and returns
+/// success.
+Future<void> LogAppleTransaction(const char* transaction_id) {
+  auto* api = internal::FutureData::Get() ? internal::FutureData::Get()->api()
+                                          : nullptr;
+  if (!api) {
+    return Future<void>();
+  }
+  const auto future_handle =
+      api->SafeAlloc<void>(internal::kAnalyticsFnLogAppleTransaction);
+  api->Complete(future_handle, 0, "");
+  return Future<void>(api, future_handle.get());
+}
+
+Future<void> LogAppleTransactionLastResult() {
+  auto* api = internal::FutureData::Get() ? internal::FutureData::Get()->api()
+                                          : nullptr;
+  if (!api) {
+    return Future<void>();
+  }
+  return static_cast<const Future<void>&>(
+      api->LastResult(internal::kAnalyticsFnLogAppleTransaction));
+}
+
 // Log an event with associated parameters.
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters) {

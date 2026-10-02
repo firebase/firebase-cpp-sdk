@@ -15,6 +15,8 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
+#include <stdint.h>
+
 #include <string>
 #include <utility>
 
@@ -64,6 +66,9 @@ class RemoteConfigInternal {
   Future<void> SetDefaultsLastResult();
   Future<void> SetConfigSettings(ConfigSettings settings);
   Future<void> SetConfigSettingsLastResult();
+  Future<void> SetCustomSignals(
+      const std::map<std::string, Variant>& custom_signals);
+  Future<void> SetCustomSignalsLastResult();
   ConfigSettings GetConfigSettings();
   bool GetBoolean(const char* key, ValueInfo* info);
 

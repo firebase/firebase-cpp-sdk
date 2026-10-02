@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cassert>
 #include "app/src/log.h"
 
 #import <Foundation/Foundation.h>

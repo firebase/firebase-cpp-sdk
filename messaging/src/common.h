@@ -40,6 +40,8 @@ enum MessagingFn {
   kMessagingFnUnsubscribe,
   kMessagingFnGetToken,
   kMessagingFnDeleteToken,
+  kMessagingFnRegister,
+  kMessagingFnUnregister,
   kMessagingFnCount
 };
 
@@ -80,6 +82,12 @@ void NotifyListenerOnMessage(const Message& message);
 
 // Notify the currently set listener of a new token.
 void NotifyListenerOnTokenReceived(const char* token);
+
+// Notify the currently set listener of a new registration installation ID.
+void NotifyListenerOnRegistrationReceived(const char* installationId);
+
+// Notify the currently set listener of an unregistration installation ID.
+void NotifyListenerOnUnregistrationReceived(const char* installationId);
 
 }  // namespace messaging
 }  // namespace firebase

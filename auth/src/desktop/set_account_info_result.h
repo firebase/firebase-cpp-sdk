@@ -15,6 +15,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
 
+#include <assert.h>
+
 #include <vector>
 
 #include "app/src/assert.h"

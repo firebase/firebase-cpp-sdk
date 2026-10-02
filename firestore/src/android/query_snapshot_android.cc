@@ -15,6 +15,8 @@
  */
 
 #include "firestore/src/android/query_snapshot_android.h"
+#include <cassert>
+#include <cstdint>
 
 #include "app/src/assert.h"
 #include "firestore/src/android/document_change_android.h"

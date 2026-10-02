@@ -22,6 +22,7 @@
 
 // TODO(b/138615769): remove this file.
 
+#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <sstream>

@@ -18,8 +18,10 @@
 #define FIREBASE_APP_SRC_UTIL_ANDROID_H_
 
 #include <jni.h>
-#include <stddef.h>
 
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <unordered_set>

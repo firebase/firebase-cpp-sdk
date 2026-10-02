@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/include/firebase/firestore/settings.h"
+#include <cstdint>
 
 #include <ostream>
 #include <sstream>

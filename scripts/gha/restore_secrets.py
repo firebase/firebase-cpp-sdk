@@ -126,6 +126,16 @@ def main(argv):
     _patch_main_src(
       app_check_project, "REPLACE_WITH_APP_CHECK_TOKEN", app_check_token)
 
+  if not FLAGS.apis or "functions" in FLAGS.apis:
+    print("Attempting to patch app check debug token in functions.")
+    app_check_token_path = os.path.join(
+      secrets_dir, "app_check", "app_check_token.txt.gpg")
+    app_check_token = _decrypt(app_check_token_path, passphrase)
+    functions_project = os.path.join(
+      repo_dir, "functions", "integration_test")
+    _patch_main_src(
+      functions_project, "REPLACE_WITH_APP_CHECK_TOKEN", app_check_token)
+
   print("Attempting to decrypt GCS service account key file.")
   decrypted_key_file = os.path.join(secrets_dir, "gcs_key_file.json")
   encrypted_key_file = decrypted_key_file + ".gpg"

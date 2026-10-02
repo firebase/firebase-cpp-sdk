@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/main/firestore_main.h"
+#include <cstdint>
 
 #include <cstring>
 #include <memory>

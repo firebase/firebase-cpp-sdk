@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "app_check/src/ios/util_ios.h"
+#include <cstdint>
 
 #import "FIRAppCheckErrors.h"
 #import "FIRAppCheckToken.h"

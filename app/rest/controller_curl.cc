@@ -16,6 +16,7 @@
 
 #include "app/rest/controller_curl.h"
 
+#include <cstdint>
 #include <utility>
 
 #include "app/rest/transport_curl.h"

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <cassert>
+
 #include "app/src/include/firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_WINDOWS

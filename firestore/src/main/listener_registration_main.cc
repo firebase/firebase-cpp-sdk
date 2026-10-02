@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/main/listener_registration_main.h"
+#include <cassert>
 
 #include <utility>
 

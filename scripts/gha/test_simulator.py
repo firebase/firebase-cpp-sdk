@@ -240,7 +240,7 @@ def main(argv):
       device_name = FLAGS.ios_name
       device_os = FLAGS.ios_version
 
-    device_id = _create_and_boot_simulator("iOS", device_name, device_os)
+    device_id, device_name, device_os = _create_and_boot_simulator("iOS", device_name, device_os)
     if not device_id:
       logging.error("simulator created fail")
       return 21
@@ -274,7 +274,7 @@ def main(argv):
       device_name = FLAGS.tvos_name
       device_os = FLAGS.tvos_version
 
-    device_id = _create_and_boot_simulator("tvOS", device_name, device_os)
+    device_id, device_name, device_os = _create_and_boot_simulator("tvOS", device_name, device_os)
     if not device_id:
       logging.error("simulator created fail")
       return 21
@@ -500,49 +500,113 @@ def _shutdown_simulator():
 
 
 def _create_and_boot_simulator(apple_platform, device_name, device_os):
-  """Create a simulator locally. Will wait until this simulator booted."""
+  """Create a simulator locally. Will wait until this simulator booted.
+
+  Returns a tuple of (device_id, device_name, device_os).
+  """
   _shutdown_simulator()
-  command = "xcrun xctrace list devices 2>&1 | grep \"%s Simulator (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
-  logging.info("Get test simulator: %s", command)
-  result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
-  device_id = result.stdout.readline().strip()
+
+  # Find available runtimes using simctl
+  try:
+    runtimes_result = subprocess.run(
+        ["xcrun", "simctl", "list", "runtimes", "-j"],
+        capture_output=True, text=True, check=True)
+    runtimes_data = json.loads(runtimes_result.stdout)
+  except Exception:
+    logging.exception("Failed to get runtimes list from simctl")
+    return None, None, None
+
+  # Filter runtimes by platform and availability
+  available_runtimes = []
+  for r in runtimes_data.get("runtimes", []):
+    if r.get("isAvailable") and r.get("platform") == apple_platform:
+      available_runtimes.append(r)
+
+  if not available_runtimes:
+    logging.error("No available runtimes found for platform: %s", apple_platform)
+    return None, None, None
+
+  # Find matching runtime version
+  target_runtime = None
+  for r in available_runtimes:
+    version = r.get("version")
+    if version == device_os or version.startswith(device_os):
+      target_runtime = r
+      break
+
+  if not target_runtime:
+    # Fall back to the latest runtime version
+    def parse_version(version_str):
+      sanitized = re.sub(r'[^\d.]', '', version_str)
+      parts = []
+      for x in sanitized.split('.'):
+        if x.isdigit():
+          parts.append(int(x))
+      return parts
+
+    available_runtimes.sort(key=lambda r: parse_version(r.get("version")))
+    target_runtime = available_runtimes[-1]
+    fallback_os = target_runtime.get("version")
+    logging.warning("Requested %s version %s is not available. Falling back to %s",
+                    apple_platform, device_os, fallback_os)
+    if FLAGS.ci:
+      print("::warning ::Requested %s version %s is not available, falling back to %s" %
+            (apple_platform, device_os, fallback_os))
+    device_os = fallback_os
+
+  runtime_id = target_runtime.get("identifier")
+  logging.info("Using runtime: %s (ID: %s)", target_runtime.get("name"), runtime_id)
+
+  # Check if a matching simulator device already exists
+  try:
+    devices_result = subprocess.run(
+        ["xcrun", "simctl", "list", "devices", "-j"],
+        capture_output=True, text=True, check=True)
+    devices_data = json.loads(devices_result.stdout)
+  except Exception:
+    logging.exception("Failed to get devices list from simctl")
+    return None, None, None
+
+  devices_under_runtime = devices_data.get("devices", {}).get(runtime_id, [])
+  device_id = None
+  for d in devices_under_runtime:
+    if d.get("isAvailable") and d.get("name") == device_name:
+      device_id = d.get("udid")
+      logging.info("Found existing simulator device: %s (%s)", device_name, device_id)
+      break
 
   if not device_id:
-    # download and create device
-    args = ["brew", "install", "xcodesorg/made/xcodes"]
-    logging.info("Download xcodes: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
+    # Create new device if not found
+    args = ["xcrun", "simctl", "create", "test_simulator", device_name, runtime_id]
+    logging.info("Creating test simulator: %s", " ".join(args))
+    try:
+      result = subprocess.run(args=args, capture_output=True, text=True, check=True)
+      device_id = result.stdout.strip()
+      logging.info("Created simulator: %s", device_id)
+    except subprocess.CalledProcessError as e:
+      logging.error("Failed to create simulator: %s", e.stderr)
+      # Fall back to the first available device under this runtime
+      for d in devices_under_runtime:
+        if d.get("isAvailable"):
+          device_id = d.get("udid")
+          device_name = d.get("name")
+          logging.info("Fallback to first available device: %s (%s)", device_name, device_id)
+          break
 
-    # Get the set of available versions for the given Apple platform
-    args = ["xcodes", "runtimes"]
-    runtimes = subprocess.run(args=args, capture_output=True, text=True, check=True)
-    available_versions = re.findall('{0} ([\d|.]+)'.format(apple_platform), runtimes.stdout.strip())
-    logging.info("Found available versions for %s: %s", apple_platform, ", ".join(available_versions))
+  if not device_id:
+    logging.error("No simulator device available or created")
+    return None, None, None
 
-    # If the requested version is available, use it, otherwise default to the latest
-    if (device_os not in available_versions):
-      logging.warning("Unable to find version %s, will fall back to %s", device_os, available_versions[-1])
-      if FLAGS.ci:
-        print("::warning ::Unable to find %s version %s, will fall back to %s" % (apple_platform, device_os, available_versions[-1]))
-      device_os = available_versions[-1]
-
-    args = ["sudo", "xcodes", "runtimes", "install", "%s %s" % (apple_platform, device_os)]
-    logging.info("Download simulator: %s", " ".join(args))
-    subprocess.run(args=args, check=False)
-
-    args = ["xcrun", "simctl", "create", "test_simulator", device_name, "%s%s" % (apple_platform, device_os)]
-    logging.info("Create test simulator: %s", " ".join(args))
-    result = subprocess.run(args=args, capture_output=True, text=True, check=True)
-    device_id = result.stdout.strip()
-
+  # Boot the simulator
   args = ["xcrun", "simctl", "boot", device_id]
-  logging.info("Boot my simulator: %s", " ".join(args))
+  logging.info("Boot simulator: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
   args = ["xcrun", "simctl", "bootstatus", device_id]
   logging.info("Wait for simulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-  return device_id
+
+  return device_id, device_name, device_os
 
 
 def _delete_simulator(device_id):

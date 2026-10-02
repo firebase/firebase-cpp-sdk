@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/credential_util.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "auth/src/desktop/auth_util.h"
 #include "auth/src/desktop/credential_impl.h"

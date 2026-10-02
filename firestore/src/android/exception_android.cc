@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/exception_android.h"
+#include <cstdint>
 
 #include <stdexcept>
 #include <utility>

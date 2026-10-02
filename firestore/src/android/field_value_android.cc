@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/field_value_android.h"
+#include <cstdint>
 
 #include <utility>
 #include "firestore/src/android/blob_android.h"

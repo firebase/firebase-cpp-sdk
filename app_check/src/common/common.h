@@ -24,6 +24,7 @@ enum AppCheckFn {
   kAppCheckFnGetAppCheckToken = 0,
   kAppCheckFnGetAppCheckStringInternal,
   kAppCheckFnGetLimitedUseAppCheckToken,
+  kAppCheckFnGetLimitedUseAppCheckStringInternal,
   kAppCheckFnCount,
 };
 

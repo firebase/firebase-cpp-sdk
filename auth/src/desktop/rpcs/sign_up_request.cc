@@ -16,6 +16,7 @@
 
 #include "auth/src/desktop/rpcs/sign_up_request.h"
 
+#include <cassert>
 #include <memory>
 #include <string>
 

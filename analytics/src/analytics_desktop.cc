@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <future>
 #include <map>
 #include <mutex>
@@ -465,6 +466,30 @@ void SetDesktopDebugMode(bool enabled) {
 
 void LogEvent(const char* name) {
   LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
+}
+
+/// Log an Apple StoreKit 2 transaction. This is a no-op on Desktop and returns
+/// success.
+Future<void> LogAppleTransaction(const char* transaction_id) {
+  auto* api = internal::FutureData::Get() ? internal::FutureData::Get()->api()
+                                          : nullptr;
+  if (!api) {
+    return Future<void>();
+  }
+  const auto future_handle =
+      api->SafeAlloc<void>(internal::kAnalyticsFnLogAppleTransaction);
+  api->Complete(future_handle, 0, "");
+  return Future<void>(api, future_handle.get());
+}
+
+Future<void> LogAppleTransactionLastResult() {
+  auto* api = internal::FutureData::Get() ? internal::FutureData::Get()->api()
+                                          : nullptr;
+  if (!api) {
+    return Future<void>();
+  }
+  return static_cast<const Future<void>&>(
+      api->LastResult(internal::kAnalyticsFnLogAppleTransaction));
 }
 
 void LogEvent(const char* name, const char* parameter_name,

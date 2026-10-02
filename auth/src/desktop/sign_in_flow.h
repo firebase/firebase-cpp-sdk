@@ -15,6 +15,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_SIGN_IN_FLOW_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_SIGN_IN_FLOW_H_
 
+#include <assert.h>
+
 #include <string>
 
 #include "app/src/assert.h"

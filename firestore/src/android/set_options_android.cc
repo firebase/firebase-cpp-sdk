@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/set_options_android.h"
+#include <cassert>
 
 #include <utility>
 

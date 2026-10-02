@@ -71,4 +71,16 @@ public class ListenerService extends FirebaseMessagingService {
     DebugLogging.log(TAG, String.format("onNewToken token=%s", token));
     RegistrationIntentService.writeTokenToInternalStorage(this, token);
   }
+
+  @Override
+  public void onRegistered(String installationId) {
+    DebugLogging.log(TAG, String.format("onRegistered installationId=%s", installationId));
+    RegistrationIntentService.writeRegistrationToInternalStorage(this, installationId);
+  }
+
+  @Override
+  public void onUnregistered(String installationId) {
+    DebugLogging.log(TAG, String.format("onUnregistered installationId=%s", installationId));
+    RegistrationIntentService.writeUnregistrationToInternalStorage(this, installationId);
+  }
 }

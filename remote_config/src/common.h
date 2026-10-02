@@ -28,6 +28,7 @@ enum RemoteConfigFn {
   kRemoteConfigFnFetchAndActivate,
   kRemoteConfigFnSetDefaults,
   kRemoteConfigFnSetConfigSettings,
+  kRemoteConfigFnSetCustomSignals,
   kRemoteConfigFnCount
 };
 

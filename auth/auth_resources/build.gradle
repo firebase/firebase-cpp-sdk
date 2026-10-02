@@ -40,7 +40,7 @@ android {
   buildToolsVersion '32.0.0'
 
   defaultConfig {
-    minSdkVersion 23
+    minSdkVersion 24
     targetSdkVersion 34
   }
 
@@ -55,7 +55,7 @@ android {
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:34.8.0')
+  implementation platform('com.google.firebase:firebase-bom:34.19.0')
   implementation 'com.google.firebase:firebase-analytics'
   implementation 'com.google.firebase:firebase-auth'
   implementation project(':app:app_resources')

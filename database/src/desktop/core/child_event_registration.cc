@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/child_event_registration.h"
 
+#include <cassert>
+
 #include "database/src/desktop/data_snapshot_desktop.h"
 #include "database/src/desktop/view/event.h"
 #include "database/src/desktop/view/event_type.h"

@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/document_reference_android.h"
+#include <cassert>
 
 #include <utility>
 #include "app/src/assert.h"

@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"
+#include <cstdint>
 
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/hard_assert_common.h"

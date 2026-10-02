@@ -1,0 +1,35 @@
+From: Antigravity <antigravity@google.com>
+Subject: Patch flatbuffers to resolve ERROR macro conflict on Windows
+
+Workaround for conflict between ProtoIdGapAction::ERROR in idl.h and the
+Windows global ERROR macro defined in wingdi.h/windows.h.
+
+See Flatbuffers Issue: https://github.com/google/flatbuffers/issues/8483
+
+diff --git a/include/flatbuffers/idl.h b/include/flatbuffers/idl.h
+index 95fda8c2..6da1c6e3 100644
+--- a/include/flatbuffers/idl.h
++++ b/include/flatbuffers/idl.h
+@@ -17,6 +17,12 @@
+ #ifndef FLATBUFFERS_IDL_H_
+ #define FLATBUFFERS_IDL_H_
+ 
++#ifdef ERROR
++#pragma push_macro("ERROR")
++#undef ERROR
++#define FLATBUFFERS_POP_ERROR_MACRO
++#endif
++
+ #include <algorithm>
+ #include <functional>
+ #include <map>
+@@ -1300,4 +1306,9 @@ extern bool GenerateTSGRPC(const Parser &parser, const std::string &path,
+                            const std::string &file_name);
+ }  // namespace flatbuffers
+ 
++#ifdef FLATBUFFERS_POP_ERROR_MACRO
++#pragma pop_macro("ERROR")
++#undef FLATBUFFERS_POP_ERROR_MACRO
++#endif
++
+ #endif  // FLATBUFFERS_IDL_H_

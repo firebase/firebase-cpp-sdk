@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_SRC_VARIANT_UTIL_H_
 #define FIREBASE_APP_SRC_VARIANT_UTIL_H_
 
+#include <stdint.h>
+
 #include <string>
 
 #include "app/src/include/firebase/variant.h"

@@ -20,7 +20,6 @@
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"
 #include "database/src/desktop/core/tag.h"
-#include "database/src/desktop/view/view.h"
 
 namespace firebase {
 namespace database {
@@ -34,20 +33,18 @@ class WebSocketListenResponse : public connection::Response {
   WebSocketListenResponse(const Response::ResponseCallback& callback,
                           const Repo::ThisRef& repo_ref, SyncTree* sync_tree,
                           const QuerySpec& query_spec, const Tag& tag,
-                          const View* view, Logger* logger)
+                          Logger* logger)
       : connection::Response(callback),
         repo_ref_(repo_ref),
         sync_tree_(sync_tree),
         query_spec_(query_spec),
         tag_(tag),
-        view_(view),
         logger_(logger) {}
 
   Repo::ThisRef& repo_ref() { return repo_ref_; }
   SyncTree* sync_tree() { return sync_tree_; }
   const QuerySpec& query_spec() const { return query_spec_; }
   const Tag& tag() const { return tag_; }
-  const View* view() const { return view_; }
   Logger* logger() { return logger_; }
 
  private:
@@ -55,12 +52,11 @@ class WebSocketListenResponse : public connection::Response {
   SyncTree* sync_tree_;
   QuerySpec query_spec_;
   Tag tag_;
-  const View* view_;
   Logger* logger_;
 };
 
 void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
-                                             const Tag& tag, const View* view) {
+                                             const Tag& tag) {
   connection_->Listen(
       query_spec, tag,
       std::make_shared<WebSocketListenResponse>(
@@ -79,7 +75,7 @@ void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
 
             std::vector<Event> events;
             if (!response->HasError()) {
-              const QuerySpec& query_spec = response->view()->query_spec();
+              const QuerySpec& query_spec = response->query_spec();
               const Tag& tag = response->tag();
               if (tag.has_value()) {
                 events = response->sync_tree()->ApplyTaggedListenComplete(tag);
@@ -101,7 +97,7 @@ void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
             }
             repo->PostEvents(events);
           },
-          repo_->this_ref(), sync_tree_, query_spec, tag, view, logger_));
+          repo_->this_ref(), sync_tree_, query_spec, tag, logger_));
 }
 
 void WebSocketListenProvider::StopListening(const QuerySpec& query_spec,

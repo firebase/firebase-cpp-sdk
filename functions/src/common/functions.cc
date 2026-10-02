@@ -16,6 +16,8 @@
 
 #include <assert.h>
 
+#include <cstdint>
+#include <cstring>
 #include <map>
 #include <string>
 
@@ -147,10 +149,23 @@ HttpsCallableReference Functions::GetHttpsCallable(const char* name) const {
   return HttpsCallableReference(internal_->GetHttpsCallable(name));
 }
 
+HttpsCallableReference Functions::GetHttpsCallable(
+    const char* name, const HttpsCallableOptions& options) const {
+  if (!internal_) return HttpsCallableReference();
+  return HttpsCallableReference(internal_->GetHttpsCallable(name, options));
+}
+
 HttpsCallableReference Functions::GetHttpsCallableFromURL(
     const char* url) const {
   if (!internal_) return HttpsCallableReference();
   return HttpsCallableReference(internal_->GetHttpsCallableFromURL(url));
+}
+
+HttpsCallableReference Functions::GetHttpsCallableFromURL(
+    const char* url, const HttpsCallableOptions& options) const {
+  if (!internal_) return HttpsCallableReference();
+  return HttpsCallableReference(
+      internal_->GetHttpsCallableFromURL(url, options));
 }
 
 void Functions::UseFunctionsEmulator(const char* origin) {

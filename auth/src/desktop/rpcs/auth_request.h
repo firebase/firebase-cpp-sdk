@@ -55,8 +55,6 @@ class AuthRequest
   std::string GetUrl();
 
  private:
-  void CheckEnvEmulator();
-  std::string env_emulator_url;
   ::firebase::App& app;
 };
 

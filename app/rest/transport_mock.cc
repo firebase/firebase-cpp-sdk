@@ -16,6 +16,7 @@
 
 #include "app/rest/transport_mock.h"
 
+#include <cstring>
 #include <string>
 
 #include "app/rest/util.h"

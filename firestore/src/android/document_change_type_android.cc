@@ -15,6 +15,8 @@
  */
 
 #include "firestore/src/android/document_change_type_android.h"
+#include <cassert>
+#include <cstdint>
 
 #include "../include/firebase/firestore/document_change.h"
 #include "app/src/assert.h"

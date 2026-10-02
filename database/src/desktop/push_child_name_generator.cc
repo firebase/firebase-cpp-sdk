@@ -16,6 +16,8 @@
 
 #include <assert.h>
 
+#include <cstdint>
+
 namespace firebase {
 namespace database {
 namespace internal {

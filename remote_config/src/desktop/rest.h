@@ -74,13 +74,14 @@ class RemoteConfigREST {
   friend class RemoteConfigRESTTest;
   FRIEND_TEST(RemoteConfigRESTTest, Setup);
   FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequest);
+  FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequestWithCustomSignals);
   FRIEND_TEST(RemoteConfigRESTTest, Fetch);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseProtoFailure);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseSuccess);
 #endif  // FIREBASE_TESTING
 
   RemoteConfigREST(const firebase::AppOptions& app_options,
-                   const LayeredConfigs& configs, const std::string namespaces);
+                   LayeredConfigs& configs, const std::string namespaces);
 
   ~RemoteConfigREST();
 
@@ -126,7 +127,7 @@ class RemoteConfigREST {
   std::string api_key_;
   std::string namespaces_;
 
-  LayeredConfigs configs_;
+  LayeredConfigs& configs_;
 
   // Instance Id data
   std::string app_instance_id_;

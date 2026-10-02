@@ -15,6 +15,7 @@
 #include "database/src/desktop/view/view_processor.h"
 
 #include <algorithm>
+#include <cassert>
 #include <utility>
 #include <vector>
 

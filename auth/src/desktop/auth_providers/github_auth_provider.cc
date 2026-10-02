@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "auth/src/desktop/auth_providers/github_auth_credential.h"
 #include "auth/src/desktop/credential_impl.h"

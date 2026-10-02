@@ -18,6 +18,7 @@
 #include <map>
 #include <string>
 
+#include "firebase/variant.h"
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
@@ -27,6 +28,7 @@ namespace internal {
 
 typedef std::map<std::string, std::string> MetaDigestMap;
 typedef std::map<ConfigSetting, std::string> MetaSettingsMap;
+typedef std::map<std::string, Variant> MetaCustomSignalsMap;
 
 // Contains different data about Remote Config Client.
 //
@@ -38,6 +40,7 @@ typedef std::map<ConfigSetting, std::string> MetaSettingsMap;
 //  * settings map: corresponds to a single supported setting, "developer mode"
 //  * digest map: Server computed digest (hash) of the config entries, stored
 //                per config namespace.
+//  * custom_signals map: Custom signals dictionary set by the developer.
 class RemoteConfigMetadata {
  public:
   RemoteConfigMetadata();
@@ -62,6 +65,12 @@ class RemoteConfigMetadata {
   // Return setting value by setting. Return "0" if value does not given.
   std::string GetSetting(const ConfigSetting& setting) const;
 
+  // Returns a map of custom signals.
+  const MetaCustomSignalsMap& custom_signals() const { return custom_signals_; }
+  void set_custom_signals(const MetaCustomSignalsMap& custom_signals) {
+    custom_signals_ = custom_signals;
+  }
+
   bool operator==(const RemoteConfigMetadata& right) const;
 
  private:
@@ -80,6 +89,9 @@ class RemoteConfigMetadata {
   // For now it's only one key: kConfigSettingDeveloperMode. Set "1" to enable
   // and "0" to disable.
   MetaSettingsMap settings_;
+
+  // Custom signals.
+  MetaCustomSignalsMap custom_signals_;
 };
 
 // Helper to deserialize elements of a Flexbuffer Map to map or unordered map,

@@ -14,6 +14,7 @@
 
 #include "app_check/src/android/common_android.h"
 
+#include <cstdint>
 #include <string>
 
 #include "app/src/app_common.h"
@@ -164,11 +165,25 @@ void AndroidAppCheckProvider::GetToken(
 void AndroidAppCheckProvider::GetLimitedUseToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
-  LogWarning(
-      "GetLimitedUseToken() was called, but the AppCheckProvider interface on "
-      "Android does not yet support limited-use tokens. Falling back to "
-      "GetToken().");
-  GetToken(completion_callback);
+  JNIEnv* env = GetJniEnv();
+
+  jobject j_task = env->CallObjectMethod(
+      android_provider_,
+      app_check_provider::GetMethodId(app_check_provider::kGetLimitedUseToken));
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    // Create an object to wrap the callback function
+    TokenResultCallbackData* completion_callback_data =
+        new TokenResultCallbackData(completion_callback);
+    util::RegisterCallbackOnTask(
+        env, j_task, TokenResultCallback,
+        reinterpret_cast<void*>(completion_callback_data),
+        jni_task_id_.c_str());
+  } else {
+    AppCheckToken empty_token;
+    completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
+  }
+  env->DeleteLocalRef(j_task);
 }
 
 }  // namespace internal

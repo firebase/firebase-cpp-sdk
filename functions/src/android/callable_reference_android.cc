@@ -16,6 +16,8 @@
 
 #include <jni.h>
 
+#include <cassert>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_android.h"

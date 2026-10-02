@@ -2,6 +2,9 @@
 
 #import "performance/src/include/firebase/performance/trace.h"
 
+#include <cassert>
+#include <cstdint>
+
 #include "app/src/assert.h"
 #include "performance/src/android/performance_android_internal.h"
 #include "performance/src/include/firebase/performance.h"

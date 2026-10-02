@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cassert>
+#include <cstdint>
+#include <cstring>
 #include "remote_config/src/ios/remote_config_ios.h"
 
 #include <map>
@@ -396,6 +399,55 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void> &>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+Future<void> RemoteConfigInternal::SetCustomSignals(
+    const std::map<std::string, Variant>& custom_signals) {
+  const auto handle =
+      future_impl_.SafeAlloc<void>(kRemoteConfigFnSetCustomSignals);
+  NSMutableDictionary* dict =
+      [[NSMutableDictionary alloc] initWithCapacity:custom_signals.size()];
+  for (const auto& pair : custom_signals) {
+    const char* key = pair.first.c_str();
+    if (pair.second.is_null()) {
+      dict[@(key)] = [NSNull null];
+    } else if (pair.second.is_string() || pair.second.is_int64() ||
+               pair.second.is_double()) {
+      id value = VariantToNSObject(pair.second);
+      if (value) {
+        dict[@(key)] = value;
+      } else {
+        future_impl_.Complete(
+            handle, kFutureStatusFailure,
+            "Invalid value type. Must be String, Int, Double, or Null.");
+        return MakeFuture<void>(&future_impl_, handle);
+      }
+    } else {
+      LogError(
+          "Remote Config: Invalid Variant type for SetCustomSignals() key %s.",
+          key);
+      future_impl_.Complete(
+          handle, kFutureStatusFailure,
+          "Invalid value type. Must be String, Int, Double, or Null.");
+      return MakeFuture<void>(&future_impl_, handle);
+    }
+  }
+  [impl() setCustomSignals:dict
+            withCompletion:^(NSError* _Nullable error) {
+              if (error) {
+                future_impl_.Complete(
+                    handle, kFutureStatusFailure,
+                    util::NSStringToString(error.localizedDescription).c_str());
+              } else {
+                future_impl_.Complete(handle, kFutureStatusSuccess);
+              }
+            }];
+  return MakeFuture<void>(&future_impl_, handle);
+}
+
+Future<void> RemoteConfigInternal::SetCustomSignalsLastResult() {
+  return static_cast<const Future<void> &>(
+      future_impl_.LastResult(kRemoteConfigFnSetCustomSignals));
 }
 
 ConfigSettings RemoteConfigInternal::GetConfigSettings() const {

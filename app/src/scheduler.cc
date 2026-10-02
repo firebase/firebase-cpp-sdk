@@ -17,6 +17,7 @@
 #include "app/src/scheduler.h"
 
 #include <cassert>
+#include <cstdint>
 #include <utility>
 
 #include "app/src/time.h"

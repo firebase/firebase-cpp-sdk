@@ -19,6 +19,7 @@ set(common_SRCS
     src/common/common.cc
     src/common/controller.cc
     src/common/listener.cc
+    src/common/list_result.cc
     src/common/metadata.cc
     src/common/storage.cc
     src/common/storage_reference.cc
@@ -109,12 +110,6 @@ target_compile_definitions(firebase_storage
     -DINTERNAL_EXPERIMENTAL=1
     ${additional_DEFINES}
 )
-# Automatically include headers that might not be declared.
-if(MSVC)
-  add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
-else()
-  add_definitions(-include assert.h -include string.h)
-endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(storage)

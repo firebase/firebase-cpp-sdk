@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/blob_android.h"
+#include <cstdint>
 
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/env.h"

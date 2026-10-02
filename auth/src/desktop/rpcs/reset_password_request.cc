@@ -14,6 +14,7 @@
 
 #include "auth/src/desktop/rpcs/reset_password_request.h"
 
+#include <cassert>
 #include <string>
 
 #include "app/src/assert.h"

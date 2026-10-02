@@ -14,8 +14,13 @@
 
 #include "remote_config/src/desktop/metadata.h"
 
+#include <cerrno>
+#include <cstdint>
+#include <cstdlib>
+#include <limits>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/include/firebase/remote_config.h"
@@ -49,6 +54,20 @@ std::string RemoteConfigMetadata::Serialize() const {
         fbb.String(std::to_string(setting.first).c_str(), setting.second);
       }
     });
+
+    fbb.Map("custom_signals", [&]() {
+      for (const auto& signal : custom_signals_) {
+        const std::string& key = signal.first;
+        const Variant& val = signal.second;
+        if (val.is_string()) {
+          fbb.String(key.c_str(), val.string_value());
+        } else if (val.is_int64()) {
+          fbb.Int(key.c_str(), val.int64_value());
+        } else if (val.is_double()) {
+          fbb.Double(key.c_str(), val.double_value());
+        }
+      }
+    });
   });
   fbb.Finish();
   const std::vector<uint8_t>& buffer = fbb.GetBuffer();
@@ -58,6 +77,9 @@ std::string RemoteConfigMetadata::Serialize() const {
 void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buffer.data());
   size_t size = buffer.size();
+  if (!flexbuffers::VerifyBuffer(data, size)) {
+    return;
+  }
   auto struct_map = flexbuffers::GetRoot(data, size).AsMap();
 
   flexbuffers::Map info = struct_map["info"].AsMap();
@@ -75,9 +97,37 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
   settings_.clear();
   flexbuffers::Map settings = struct_map["settings"].AsMap();
   for (int i = 0, n = settings.size(); i < n; ++i) {
-    int int_key = std::stoi(settings.Keys()[i].AsKey());
+    const char* key_str = settings.Keys()[i].AsKey();
+    if (!key_str) continue;
+    char* endptr = nullptr;
+    errno = 0;
+    long raw_key = std::strtol(key_str, &endptr, 10);
+    if (endptr == key_str || *endptr != '\0' || errno == ERANGE) {
+      continue;
+    }
+    if (raw_key < std::numeric_limits<int>::min() ||
+        raw_key > std::numeric_limits<int>::max()) {
+      continue;
+    }
+    int int_key = static_cast<int>(raw_key);
     settings_[static_cast<ConfigSetting>(int_key)] =
         settings.Values()[i].AsString().c_str();
+  }
+
+  custom_signals_.clear();
+  flexbuffers::Map custom_signals = struct_map["custom_signals"].AsMap();
+  for (size_t i = 0, n = custom_signals.size(); i < n; ++i) {
+    const char* key_str = custom_signals.Keys()[i].AsKey();
+    if (!key_str) continue;
+    flexbuffers::Reference val_ref = custom_signals.Values()[i];
+    if (val_ref.IsString()) {
+      custom_signals_[key_str] =
+          Variant(std::string(val_ref.AsString().c_str()));
+    } else if (val_ref.IsInt()) {
+      custom_signals_[key_str] = Variant(val_ref.AsInt64());
+    } else if (val_ref.IsFloat()) {
+      custom_signals_[key_str] = Variant(val_ref.AsDouble());
+    }
   }
 }
 
@@ -97,6 +147,7 @@ std::string RemoteConfigMetadata::GetSetting(
 bool RemoteConfigMetadata::operator==(const RemoteConfigMetadata& right) const {
   return digest_by_namespace_ == right.digest_by_namespace_ &&
          settings_ == right.settings_ &&
+         custom_signals_ == right.custom_signals_ &&
          info_.fetch_time == right.info_.fetch_time &&
          info_.last_fetch_status == right.info_.last_fetch_status &&
          info_.last_fetch_failure_reason ==

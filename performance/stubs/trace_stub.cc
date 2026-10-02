@@ -1,5 +1,6 @@
 // Copyright 2021 Google LLC
 
+#include <cstdint>
 #include <iostream>
 
 #include "performance/src/include/firebase/performance/trace.h"

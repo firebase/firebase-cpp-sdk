@@ -228,12 +228,26 @@ table SerializedTokenReceived {
   token:string;
 }
 
+table SerializedRegistrationReceived {
+  installation_id:string;
+}
+
+table SerializedUnregistrationReceived {
+  installation_id:string;
+}
+
 union SerializedEventUnion {
   // This event represents receiving a new message.
   SerializedMessage,
 
   // This event represents receiving a new registration token.
   SerializedTokenReceived,
+
+  // This event represents receiving a new registration installation ID.
+  SerializedRegistrationReceived,
+
+  // This event represents receiving an unregistration installation ID.
+  SerializedUnregistrationReceived
 }
 
 table SerializedEvent {

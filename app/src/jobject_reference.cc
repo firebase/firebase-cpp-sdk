@@ -18,6 +18,8 @@
 
 #include <jni.h>
 
+#include <cassert>
+
 #include "app/src/assert.h"
 // util_android.h is included for GetThreadsafeJNIEnv()
 #include "app/src/util_android.h"

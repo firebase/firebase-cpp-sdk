@@ -20,6 +20,7 @@
 #include <stdio.h>
 
 #include <algorithm>
+#include <cstring>
 #include <memory>
 #include <string>
 

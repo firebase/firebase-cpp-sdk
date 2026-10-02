@@ -14,6 +14,8 @@
 
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 
 #ifdef __APPLE__
@@ -244,6 +246,16 @@ Future<Metadata> StorageReference::PutFile(const char* path,
 
 Future<Metadata> StorageReference::PutFileLastResult() {
   return internal_ ? internal_->PutFileLastResult() : Future<Metadata>();
+}
+
+Future<StorageListResult> StorageReference::List(int max_results_per_page,
+                                                 const char* page_token) {
+  return internal_ ? internal_->List(max_results_per_page, page_token)
+                   : Future<StorageListResult>();
+}
+
+Future<StorageListResult> StorageReference::ListLastResult() {
+  return internal_ ? internal_->ListLastResult() : Future<StorageListResult>();
 }
 
 bool StorageReference::is_valid() const { return internal_ != nullptr; }

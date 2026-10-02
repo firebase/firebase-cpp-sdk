@@ -15,6 +15,7 @@
  */
 
 #include "firestore/src/android/aggregate_query_snapshot_android.h"
+#include <cstdint>
 
 #include "firestore/src/android/aggregate_query_android.h"
 #include "firestore/src/jni/compare.h"

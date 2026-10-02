@@ -34,8 +34,7 @@ class InfoListenProvider : public ListenProvider {
 
   void set_sync_tree(SyncTree* sync_tree) { sync_tree_ = sync_tree; }
 
-  void StartListening(const QuerySpec& query_spec, const Tag& tag,
-                      const View* view) override;
+  void StartListening(const QuerySpec& query_spec, const Tag& tag) override;
 
   void StopListening(const QuerySpec& query_spec, const Tag& tag) override;
 

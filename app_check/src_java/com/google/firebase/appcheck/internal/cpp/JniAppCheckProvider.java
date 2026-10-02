@@ -41,6 +41,16 @@ public class JniAppCheckProvider implements AppCheckProvider {
     return taskCompletionSource.getTask();
   }
 
+  @Override
+  public Task<AppCheckToken> getLimitedUseToken() {
+    TaskCompletionSource<AppCheckToken> taskCompletionSource =
+        new TaskCompletionSource<AppCheckToken>();
+    // Call the C++ provider to get an AppCheckToken and set the task result.
+    // The C++ code will call handleGetTokenResult with the resulting token.
+    nativeGetLimitedUseToken(cProvider, taskCompletionSource);
+    return taskCompletionSource.getTask();
+  }
+
   /**
    *  Called by C++ with a token in order to complete the java task.
    */
@@ -57,5 +67,7 @@ public class JniAppCheckProvider implements AppCheckProvider {
    * This function is implemented in the AppCheck C++ library (app_check_android.cc).
    */
   private native void nativeGetToken(
+      long cProvider, TaskCompletionSource<AppCheckToken> task_completion_source);
+  private native void nativeGetLimitedUseToken(
       long cProvider, TaskCompletionSource<AppCheckToken> task_completion_source);
 }

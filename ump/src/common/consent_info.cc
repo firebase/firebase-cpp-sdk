@@ -16,6 +16,8 @@
 
 #include "firebase/ump/consent_info.h"
 
+#include <cassert>
+
 #include "app/src/assert.h"
 #include "firebase/app.h"
 #include "firebase/internal/platform.h"

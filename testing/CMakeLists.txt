@@ -158,3 +158,5 @@ target_link_libraries(firebase_testing
         gtest
         gmock
 )
+
+add_dependencies(firebase_testing generate_testing_fps)
