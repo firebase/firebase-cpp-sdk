@@ -16,7 +16,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Turn on virtual folders for visual studio
@@ -601,7 +601,7 @@ if(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
-add_subdirectory(ios_pod)
+add_subdirectory(ios_spm)
 
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.

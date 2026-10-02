@@ -74,9 +74,9 @@ elseif(IOS)
   target_link_libraries(firebase_installations
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
+  setup_spm_headers(
     firebase_installations
-    POD_NAMES
+    MODULES
       FirebaseCore
       FirebaseInstallations
   )
