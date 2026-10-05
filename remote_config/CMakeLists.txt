@@ -149,9 +149,9 @@ elseif(IOS)
   target_link_libraries(firebase_remote_config
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
+  setup_spm_headers(
     firebase_remote_config
-    POD_NAMES
+    MODULES
       FirebaseCore
       FirebaseRemoteConfig
   )

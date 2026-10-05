@@ -601,7 +601,7 @@ if(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
-add_subdirectory(ios_pod)
+add_subdirectory(ios_spm)
 
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.

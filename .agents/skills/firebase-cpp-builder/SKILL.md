@@ -52,8 +52,7 @@ For iOS, you can use the convenience script from the repository root:
 
 _(Run `./build_scripts/ios/build.sh -h` for more options.)_
 
-Alternatively, you can use CMake's native Xcode generator manually. Ensure you
-have CocoaPods installed if building products that depend on iOS SDK Pods.
+Alternatively, you can use CMake's native Xcode generator manually.
 
 ```bash
 mkdir ios_build

@@ -42,7 +42,6 @@ instructions for your specific platform.
     recommended) is also needed.
 *   **(Windows Only) Strings**: From Microsoft Sysinternals, required for
     Android builds on Windows.
-*   **Cocoapods**: Required for building iOS or tvOS libraries.
 
 To build for Desktop, you can install prerequisites by running the following
 script in the root of the repository: `scripts/gha/install_prereqs_desktop.py`
