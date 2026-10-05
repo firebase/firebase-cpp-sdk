@@ -613,6 +613,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General (Android): **Breaking Change** Updated minSdkVersion to 24.
+    - Auth: **Breaking Change:** Fixed spelling in `AuthError` enum values (`kAuthErrorWebStorateUnsupported` -> `kAuthErrorWebStorageUnsupported` and `kAuthErrorFederatedProviderAreadyInUse` -> `kAuthErrorFederatedProviderAlreadyInUse`).
+
 ### 13.13.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.19.0.

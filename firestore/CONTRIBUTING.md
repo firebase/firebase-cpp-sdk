@@ -126,17 +126,17 @@ Then attach the debugger from Android Studio to unblock the testapp.
 
 # iOS building and testing
 
-When targting iOS, the SDK gets its dependency from Cocoapods, as opposed to from `cmake/external/firestore.cmake`.
+When targting iOS, the SDK gets its dependency from Swift Packages, as opposed to from `cmake/external/firestore.cmake`.
 The dependencies are specified with `ios_pod/Podfile`. Running cmake for iOS will download the pods
 listed in this file, and add the C++ headers from the downloaded pods to include directories.
 
 To build Firestore for iOS/tvOS:
 ```shell
-# Build xcframeworks from this REPO, install pod dependencies and prepare xcworkspace
+# Build xcframeworks from this REPO and prepare the Xcode project
 ./prepare_xcworkspace.sh
 
-# Open up the workspace
-open integration_test.xcworkspace
+# Open up the Xcode project
+open integration_test.xcodeproj
 ```
 
 NOTE: `prepare_xcworkspace.sh` changes `integration_test.xcodeproj/project.pbxproj`, to add the

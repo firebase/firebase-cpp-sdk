@@ -59,7 +59,7 @@ FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h', '.m', '.mm', '.java')
 """Tuple: The file types to run clang-format on.
 Used to filter out results when searching across directories or git diffs.
 """
-FILE_PATHS_TO_IGNORE = re.compile(r'.*ios_pod/swift_headers/.*\.h')
+FILE_PATHS_TO_IGNORE = re.compile(r'.*ios_(pod|spm)/swift_headers/.*\.h')
 """Regex pattern for files paths to ignore.
 Used to filter out results when searching across directories or git diffs.
 """

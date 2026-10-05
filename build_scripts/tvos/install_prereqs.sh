@@ -36,11 +36,8 @@ if [[ -z $(xcode-select -p) || ! -d  $(xcode-select -p) ]]; then
     exit 1
 fi
 
-if [[ -z $(which pod) ]]; then
-    echo "Cocoapods not detected, installing..."
-    sudo gem install cocoapods
+if [[ -z $(which swift) ]]; then
+    echo "Error, swift compiler not installed or not in PATH."
+    exit 1
 fi
-
-echo "Updating Cocoapods repo..."
-pod repo update
 

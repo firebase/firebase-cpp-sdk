@@ -14,24 +14,18 @@ Introduction
 Building and Running the testapp
 --------------------------------
 ### iOS
-  - Link your iOS app to the Firebase libraries.
-    - Get CocoaPods version 1 or later by running,
-
-    ```
-    sudo gem install cocoapods --pre
-    ```
-    - From the testapp directory, install the CocoaPods listed in the Podfile by
-    running,
-    ```
-    pod install
-    ```
-    - Open the generated Xcode workspace (which now has the CocoaPods),
-
-    ```
-    open testapp.xcworkspace
-    ```
+  - Set up the test framework and dependencies:
+    - From the SDK root directory, run the setup script for the integration test:
+        ```
+        python3 setup_integration_tests.py messaging/integration_test
+        ```
+    - Open the Xcode project:
+        ```
+        open integration_test.xcodeproj
+        ```
+      Xcode will automatically resolve the required Swift Package dependencies (e.g. `firebase-ios-sdk`).
     - For further details please refer to the
-    [general instructions for setting up an iOS app with Firebase](https://firebase.google.com/docs/ios/setup).
+      [general instructions for setting up an iOS app with Firebase](https://firebase.google.com/docs/ios/setup).
 
   - Register your iOS app with Firebase.
     - Create a new app on

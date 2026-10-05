@@ -87,15 +87,14 @@ elseif(IOS)
   target_link_libraries(firebase_ump
                         PUBLIC "-fembed-bitcode")
 
-  setup_pod_headers(
+  setup_spm_headers(
     firebase_ump
-    POD_NAMES
+    MODULES
+      UserMessagingPlatform
       GoogleUserMessagingPlatform
   )
 
-  # UMP expects the header files to be in a subfolder, so set up a symlink to
-  # accomplish that.
-  symlink_pod_headers(firebase_ump GoogleUserMessagingPlatform UserMessagingPlatform)
+  symlink_spm_headers(firebase_ump UserMessagingPlatform DIR_NAME UserMessagingPlatform)
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_ump PROPERTIES

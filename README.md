@@ -94,8 +94,6 @@ Note that we include the Gradle wrapper, which if used will acquire the
 necessary version of Gradle for you.
 
 ### Prerequisites for iOS/tvOS
-The following prerequisites are required when building the libraries for iOS or tvOS.
-- [Cocoapods](https://cocoapods.org/)
 
 </details>
 
@@ -192,7 +190,7 @@ that work for both iOS and tvOS. This is helpful as we can use the same
 deliverable for both iOS and tvOS targets in the same XCode project.
 
 ``` bash
-# Install prereqs (like cocoapods)
+# Install prereqs
 ./build_scripts/tvos/install_prereqs.sh
 python3 scripts/gha/build_ios_tvos.py -s . -b ios_tvos_build
 ```
