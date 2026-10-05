@@ -616,6 +616,7 @@ code.
 ### Upcoming
 - Changes
     - General (Android): **Breaking Change** Updated minSdkVersion to 24.
+    - General (MacOS Desktop): Fix for linker issue on XCode 27. (#1920)
     - Auth: **Breaking Change:** Fixed spelling in `AuthError` enum values (`kAuthErrorWebStorateUnsupported` -> `kAuthErrorWebStorageUnsupported` and `kAuthErrorFederatedProviderAreadyInUse` -> `kAuthErrorFederatedProviderAlreadyInUse`).
 
 ### 13.13.0
