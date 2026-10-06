@@ -14,3 +14,118 @@ index 920bf2928..c5c9cc7ee 100644
  
  ExternalProject_Get_property(snappy SOURCE_DIR)
  set(snappy_source_dir "${SOURCE_DIR}")
+diff --git a/Firestore/core/src/util/ordered_code.h b/Firestore/core/src/util/ordered_code.h
+--- a/Firestore/core/src/util/ordered_code.h
++++ b/Firestore/core/src/util/ordered_code.h
+@@ -39,7 +39,8 @@
+ #ifndef FIRESTORE_CORE_SRC_UTIL_ORDERED_CODE_H_
+ #define FIRESTORE_CORE_SRC_UTIL_ORDERED_CODE_H_
+ 
++#include <cstdint>
+ #include <string>
+ 
+ #include "absl/strings/string_view.h"
+ 
+diff --git a/Firestore/core/src/util/quadruple.cc b/Firestore/core/src/util/quadruple.cc
+--- a/Firestore/core/src/util/quadruple.cc
++++ b/Firestore/core/src/util/quadruple.cc
+@@ -20,6 +20,7 @@
+ #include <limits>
+ #include <vector>
+ 
++#include "Firestore/core/src/util/bits.h"
+ #include "Firestore/core/src/util/quadruple_builder.h"
+ 
+ namespace firebase {
+@@ -89,7 +90,7 @@ Quadruple::Quadruple(int64_t x) {
+       mantissa_lo_ = 0;
+     } else {
+       uint64_t ux = static_cast<uint64_t>(x);
+-      int leading_zeros = __builtin_clzll(ux);
++      int leading_zeros = 63 - Bits::Log2FloorNonZero64(ux);
+       // Left-justify with the leading 1 dropped.
+       mantissa_hi_ = ux << (leading_zeros + 1);
+       mantissa_lo_ = 0;
+@@ -225,7 +226,8 @@ Quadruple::operator double() const {
+     }
+     default:
+       int32_t unbiased_exp = static_cast<int32_t>(exponent_ - kExponentBias);
+-      return scalb((1LL << 52) | (mantissa_hi_ >> 12), -52 + unbiased_exp) *
++      return ldexp(static_cast<double>((1ULL << 52) | (mantissa_hi_ >> 12)),
++                   -52 + unbiased_exp) *
+              (negative_ ? -1 : 1);
+   }
+ }
+diff --git a/Firestore/core/src/util/quadruple_builder.h b/Firestore/core/src/util/quadruple_builder.h
+--- a/Firestore/core/src/util/quadruple_builder.h
++++ b/Firestore/core/src/util/quadruple_builder.h
+@@ -16,7 +16,6 @@
+ #ifndef FIRESTORE_CORE_SRC_UTIL_QUADRUPLE_BUILDER_H_
+ #define FIRESTORE_CORE_SRC_UTIL_QUADRUPLE_BUILDER_H_
+ 
+-#include <bit>
+ #include <cstddef>
+ #include <cstdint>
+ 
+diff --git a/Firestore/core/src/util/quadruple_builder.cc b/Firestore/core/src/util/quadruple_builder.cc
+--- a/Firestore/core/src/util/quadruple_builder.cc
++++ b/Firestore/core/src/util/quadruple_builder.cc
+@@ -19,6 +19,8 @@
+ #include <cmath>
+ #include <limits>
+ 
++#include "Firestore/core/src/util/bits.h"
++
+ namespace firebase {
+ namespace firestore {
+ namespace util {
+@@ -785,7 +787,7 @@ void QuadrupleBuilder::multBuffBy10(std::array<uint64_t, N>& buffer) {
+ // added to the result's exponent, or 0 otherwise
+ template <std::size_t N>
+ int32_t QuadrupleBuilder::normalizeMant(std::array<uint64_t, N>& mantissa) {
+-  int32_t expCorr = 31 - __builtin_clzll(mantissa[0]);
++  int32_t expCorr = 31 - (63 - Bits::Log2FloorNonZero64(mantissa[0]));
+   if (expCorr != 0) {
+     divBuffByPower2(mantissa, expCorr);
+   }
+diff --git a/Firestore/core/test/unit/model/mutation_test.cc b/Firestore/core/test/unit/model/mutation_test.cc
+--- a/Firestore/core/test/unit/model/mutation_test.cc
++++ b/Firestore/core/test/unit/model/mutation_test.cc
+@@ -403,29 +403,29 @@ TEST(MutationTest, AppliesIncrementTransformsConsecutively) {
+ 
+ TEST(MutationTest, AppliesIncrementWithoutOverflow) {
+   auto base_data =
+-      Map("a", LONG_MAX - 1, "b", LONG_MAX - 1, "c", LONG_MAX, "d", LONG_MAX);
++      Map("a", INT64_MAX - 1, "b", INT64_MAX - 1, "c", INT64_MAX, "d", INT64_MAX);
+   TransformPairs transforms = {
+       {"a", Increment(1)},
+-      {"b", Increment(LONG_MAX)},
++      {"b", Increment(INT64_MAX)},
+       {"c", Increment(1)},
+-      {"d", Increment(LONG_MAX)},
++      {"d", Increment(INT64_MAX)},
+   };
+   auto expected =
+-      Map("a", LONG_MAX, "b", LONG_MAX, "c", LONG_MAX, "d", LONG_MAX);
++      Map("a", INT64_MAX, "b", INT64_MAX, "c", INT64_MAX, "d", INT64_MAX);
+   TransformBaseDoc(std::move(base_data), transforms, std::move(expected));
+ }
+ 
+ TEST(MutationTest, AppliesIncrementWithoutUnderflow) {
+   auto base_data =
+-      Map("a", LONG_MIN + 1, "b", LONG_MIN + 1, "c", LONG_MIN, "d", LONG_MIN);
++      Map("a", INT64_MIN + 1, "b", INT64_MIN + 1, "c", INT64_MIN, "d", INT64_MIN);
+   TransformPairs transforms = {
+       {"a", Increment(-1)},
+-      {"b", Increment(LONG_MIN)},
++      {"b", Increment(INT64_MIN)},
+       {"c", Increment(-1)},
+-      {"d", Increment(LONG_MIN)},
++      {"d", Increment(INT64_MIN)},
+   };
+   auto expected =
+-      Map("a", LONG_MIN, "b", LONG_MIN, "c", LONG_MIN, "d", LONG_MIN);
++      Map("a", INT64_MIN, "b", INT64_MIN, "c", INT64_MIN, "d", INT64_MIN);
+   TransformBaseDoc(std::move(base_data), transforms, std::move(expected));
+ }
+ 
