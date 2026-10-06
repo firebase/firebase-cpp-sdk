@@ -424,7 +424,7 @@ def is_ignored_symbol(symbol):
     # ("f_b_l...") at the address of the atom it labelled; when that atom is an
     # Objective-C class reference, ld aborts in changeClassRefUseToGotUse with
     # "unsupported reference (alias of) to class-ref".
-    if not is_cpp_symbol(symbol) and not symbol.startswith("_"):
+    if not symbol.startswith("_") and not is_cpp_symbol(symbol):
       return True
   elif FLAGS.platform == "windows":
     # Don't rename $LN*, those are local symbols.
