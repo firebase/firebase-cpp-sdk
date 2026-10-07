@@ -43,7 +43,11 @@ while getopts "t:P:Lh" opt; do
     esac
 done
 
-readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
+if [[ -x ${tools_path}/demumble ]]; then
+    readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
+else
+    readonly demangle_cmds=${tools_path}/c++filt
+fi
 if [[ ${use_llvm_binutils} -eq 1 ]]; then
     readonly binutils_objcopy=${tools_path}/llvm-objcopy
     readonly binutils_nm=${tools_path}/llvm-nm

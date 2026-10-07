@@ -276,6 +276,167 @@ class MergeLibrariesTest(absltest.TestCase):
       if os.path.exists(tempdir):
         shutil.rmtree(tempdir)
 
+  def test_macho_ignored_symbols(self):
+    """Verify Mach-O temporary labels and Objective-C metadata are ignored."""
+    prev_platform = merge_libraries.FLAGS.platform
+    prev_namespaces = merge_libraries.FLAGS.hide_cpp_namespaces
+    prev_rename = merge_libraries.FLAGS.rename_string
+    try:
+      for platform in ("darwin", "ios"):
+        merge_libraries.FLAGS.platform = platform
+        merge_libraries.FLAGS.hide_cpp_namespaces = ["test_namespace"]
+        merge_libraries.FLAGS.rename_string = "f_b_"
+        merge_libraries.init_cache()
+        merge_libraries.init_demanglers()
+
+        ignored_symbols = [
+            # Assembler temporary labels
+            "ltmp0",
+            "ltmp1",
+            "lCPI0_0",
+            "lJTI0_0",
+            "l_.str",
+            "l_.str.1",
+            "l___PRETTY_FUNCTION__.foo",
+            "l__unnamed_cfstring_",
+            "L_OBJC_METH_VAR_NAME_0",
+            # Compiler metadata/exception labels without leading underscore
+            "GCC_except_table0",
+            "GCC_except_table14",
+            "EH_Frame1",
+            "func.eh",
+            # Objective-C methods and runtime metadata
+            "-[FIRApp configure]",
+            "+[FIRApp configure]",
+            "_OBJC_CLASSLIST_REFERENCES_$_",
+            "_OBJC_CLASSLIST_REFERENCES_$_.1",
+            "_OBJC_CLASS_$_NSError",
+            "_OBJC_METACLASS_$_FIRApp",
+            "_OBJC_IVAR_$_SomeClass._ivar",
+            "_OBJC_SELECTOR_REFERENCES_",
+            "_objc_msgSend$currentLocale",
+        ]
+        for sym in ignored_symbols:
+          self.assertTrue(
+              merge_libraries.is_ignored_symbol(sym),
+              f"Expected {sym} to be ignored on {platform}")
+          self.assertEqual(
+              merge_libraries.rename_symbol(sym), {},
+              f"Expected {sym} not to be renamed on {platform}")
+
+        # Real C symbols should not be ignored and should be renamed.
+        self.assertFalse(merge_libraries.is_ignored_symbol("_global_c_symbol"))
+        self.assertEqual(
+            merge_libraries.rename_symbol("_global_c_symbol"),
+            {"_global_c_symbol": "_f_b_global_c_symbol"})
+
+        # Linker-private C++ symbols (l__Z*) should be recognized as C++ symbols,
+        # not ignored, and renamed while preserving the leading 'l__Z' prefix.
+        private_cpp_sym = "l__ZN14test_namespace9TestClass10TestMethodEv"
+        self.assertTrue(merge_libraries.is_cpp_symbol(private_cpp_sym))
+        self.assertFalse(merge_libraries.is_ignored_symbol(private_cpp_sym))
+        self.assertEqual(
+            merge_libraries.rename_symbol(private_cpp_sym),
+            {
+                private_cpp_sym:
+                    "l__ZN18f_b_test_namespace9TestClass10TestMethodEv"
+            })
+
+        merge_libraries.shutdown_demanglers()
+        merge_libraries.shutdown_cache()
+    finally:
+      merge_libraries.FLAGS.platform = prev_platform
+      merge_libraries.FLAGS.hide_cpp_namespaces = prev_namespaces
+      merge_libraries.FLAGS.rename_string = prev_rename
+
+  def test_macho_objc_classref_linking(self):
+    """Verify Objective-C++ object files filter temporary/ObjC symbols cleanly."""
+    if merge_libraries.FLAGS.platform != "darwin":
+      return
+
+    tempdir = tempfile.mkdtemp()
+    cwd = os.getcwd()
+    os.chdir(tempdir)
+    prev_rename = merge_libraries.FLAGS.rename_string
+    try:
+      merge_libraries.FLAGS.rename_string = "f_b_"
+      objc_src = os.path.join(tempdir, "test_objc.mm")
+      objc_obj = os.path.join(tempdir, "test_objc.o")
+      objc_archive = os.path.join(tempdir, "libtest_objc.a")
+      main_src = os.path.join(tempdir, "main.cc")
+      exe_out = os.path.join(tempdir, "test_exe")
+
+      with open(objc_src, "w") as f:
+        f.write("""
+#import <Foundation/Foundation.h>
+extern "C" void test_objc_c_func() {
+  NSLocale* loc = [NSLocale currentLocale];
+  NSError* err = [NSError errorWithDomain:[loc localeIdentifier] code:1 userInfo:nil];
+  (void)err;
+}
+""")
+      with open(main_src, "w") as f:
+        f.write("""
+extern "C" void f_b_test_objc_c_func();
+int main() {
+  f_b_test_objc_c_func();
+  return 0;
+}
+""")
+
+      subprocess.run(["clang++", "-c", objc_src, "-o", objc_obj], check=True)
+      subprocess.run(
+          [merge_libraries.FLAGS.binutils_ar_cmd, "rcs", objc_archive, objc_obj],
+          check=True)
+
+      (defined_symbols, all_symbols) = merge_libraries.read_symbols_from_archive(
+          objc_archive)
+
+      # Verify no ltmp*, l_.str*, or _OBJC_* symbols were read.
+      for sym in all_symbols:
+        self.assertFalse(
+            sym.startswith(("ltmp", "l_.str", "lCPI", "lJTI", "GCC_except_table")),
+            f"Unexpected compiler/assembler temporary symbol: {sym}")
+        self.assertFalse(
+            sym.startswith(("_OBJC_", "_objc_")),
+            f"Unexpected Objective-C runtime symbol: {sym}")
+
+      rename_symbols = {}
+      for sym in defined_symbols:
+        if not merge_libraries.is_cpp_symbol(sym):
+          rename_symbols.update(merge_libraries.rename_symbol(sym))
+
+      self.assertEqual(rename_symbols,
+                       {"_test_objc_c_func": "_f_b_test_objc_c_func"})
+
+      redefinition_file = merge_libraries.create_symbol_redefinition_file(
+          rename_symbols)
+      self.assertIsNotNone(redefinition_file)
+
+      renamed_obj = os.path.join(tempdir, "test_objc_renamed.o")
+      merge_libraries.move_object_file(objc_obj, renamed_obj,
+                                       redefinition_file.name)
+
+      after_defined = merge_libraries.read_symbols_from_archive(renamed_obj)[0]
+      self.assertIn("_f_b_test_objc_c_func", after_defined)
+      self.assertNotIn("_test_objc_c_func", after_defined)
+
+      # When using llvm-objcopy (which preserves arm64 Mach-O compact unwind
+      # sections), also verify end-to-end linking with Apple's linker.
+      if "llvm-objcopy" in merge_libraries.FLAGS.binutils_objcopy_cmd:
+        subprocess.run(
+            [
+                "clang++", main_src, renamed_obj, "-framework", "Foundation",
+                "-o", exe_out
+            ],
+            check=True)
+        self.assertTrue(os.path.isfile(exe_out))
+    finally:
+      merge_libraries.FLAGS.rename_string = prev_rename
+      os.chdir(cwd)
+      if os.path.exists(tempdir):
+        shutil.rmtree(tempdir)
+
 
 if __name__ == "__main__":
   absltest.main()
