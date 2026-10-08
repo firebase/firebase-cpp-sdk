@@ -93,7 +93,7 @@ def main(argv):
 
 
 def _local_path_to_gcs_uri(gcs_prefix, path, testapp_dir):
-  """Converts full local path to a GCS URI for gsutil.
+  """Converts full local path to a GCS URI for gcloud storage.
 
   Replaces backslashes with forward slashes, since GCS expects the latter.
 

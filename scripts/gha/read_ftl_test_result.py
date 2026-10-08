@@ -19,7 +19,7 @@ GitHub Action (FTL GHA).
   https://github.com/FirebaseExtended/github-actions
 
 This tool will read files from GCS storage bucket. Requires Cloud SDK installed 
-with gsutil. (Should be installed by FTL GHA already.)
+with gcloud storage. (Should be installed by FTL GHA already.)
 
 Usage:
 

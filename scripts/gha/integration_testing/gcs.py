@@ -89,7 +89,7 @@ def authorize_gcs(key_file):
 
 
 # This is intended to be logged when a tool stores artifacts on GCS.
-def get_gsutil_tips():
+def get_gcloud_storage_tips():
   """Returns a human readable string with tips on accessing a GCS bucket."""
   return "\n".join((
       "GCS Advice: Install the Google Cloud SDK to access the gcloud storage tool.",
