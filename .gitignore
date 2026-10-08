@@ -22,10 +22,14 @@ __pycache__/
 
 # Unencrypted secret files
 google-services.json
+google-services-desktop.json
 GoogleService-Info.plist
 uri_prefix.txt
 server_key.txt
 gcs_key_file.json
+
+# On-device LiteRT-LM model weight files
+*.litertlm
 
 # Folders for cmake/test output
 *_build/
