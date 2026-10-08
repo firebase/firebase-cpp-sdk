@@ -27,11 +27,11 @@ cmake --build desktop_build \
 
 ### 2. Download a Local Gemma `.litertlm` Model
 
-Download a LiteRT-LM `.litertlm` model (for example, **Gemma 3 1B IT INT4** with a 4,096-token context window) and place it in `desktop_build/ai/` or pass its path via `--model`:
+Download **Gemma 4 E2B IT** (`gemma-4-E2B-it.litertlm` from [`litert-community/gemma-4-E2B-it-litert-lm`](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm), with a **32k context window**) and place it in `desktop_build/ai/` or pass its path via `--model`:
 
 ```bash
-curl -L "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.litertlm" \
-  -o desktop_build/ai/gemma3-1b-it-int4.litertlm
+curl -L "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm" \
+  -o desktop_build/ai/gemma-4-E2B-it.litertlm
 ```
 
 ### 3. Provide Your Firebase Configuration (`google-services.json`)
@@ -43,10 +43,10 @@ The demo initializes `firebase::App` using a standard Firebase `google-services.
 ```bash
 ./desktop_build/ai/firebase_ai_hybrid_chat \
   --config /path/to/google-services.json \
-  --model ./desktop_build/ai/gemma3-1b-it-int4.litertlm
+  --model ./desktop_build/ai/gemma-4-E2B-it.litertlm
 ```
 
-*(If `google-services.json` and `gemma3-1b-it-int4.litertlm` are placed in `desktop_build/ai/` or the current directory, they are auto-detected and you can run `./desktop_build/ai/firebase_ai_hybrid_chat` with no arguments.)*
+*(If `google-services.json` and `gemma-4-E2B-it.litertlm` are placed in `desktop_build/ai/` or the current directory, they are auto-detected and you can run `./desktop_build/ai/firebase_ai_hybrid_chat` with no arguments.)*
 
 ---
 
@@ -80,7 +80,7 @@ Inside `firebase_ai_hybrid_chat`, both Cloud (`gemini-3.1-flash-lite`) and On-De
 
 ## Context Window & Automatic Compaction
 
-- **Auto-Detected Context Length:** When `OnDeviceParams::max_num_tokens` is `0` (the default), `LiteRtAdapter` queries `litert_lm_loaded_file_max_context_tokens` from the `.litertlm` file metadata (`4096` tokens for `gemma3-1b-it-int4.litertlm`, `1024` tokens for `gemma3-270m.litertlm`).
+- **Auto-Detected Context Length:** When `OnDeviceParams::max_num_tokens` is `0` (the default), `LiteRtAdapter` queries `litert_lm_loaded_file_max_context_tokens` from the `.litertlm` file metadata (`32003` tokens for `gemma-4-E2B-it.litertlm`, `4096` tokens for `gemma3-1b-it-int4.litertlm`, `1024` tokens for `gemma3-270m.litertlm`).
 - **Automatic Context Compaction:** Before each on-device turn, `LiteRtAdapter` tokenizes the conversation history via `litert_lm_engine_tokenize`. If the accumulated history exceeds the input token budget, older turns are automatically compacted into `[Compacted Earlier Conversation History]` while keeping recent turns verbatim and reserving headroom for generation output.
 - **Repetition Prevention:** On-device generation configures `LiteRtLmRepetitionPenaltyConfig` (`repetition_penalty = 1.15`, `frequency_penalty = 0.25`, `presence_penalty = 0.1`) and `LiteRtLmNoRepeatNgramConfig` (`no_repeat_ngram_size = 4`) so small quantized models do not fall into token repetition loops on long outputs.
 

@@ -83,6 +83,14 @@ std::string FindDefaultLocalModel(const char* argv0) {
   }
   std::string bin_dir = argv0 ? ParentDir(argv0) : ".";
   std::vector<std::string> candidates = {
+      bin_dir + "/gemma-4-E2B-it.litertlm",
+      bin_dir + "/gemma-4-E2B-it-gpu.litertlm",
+      "./gemma-4-E2B-it.litertlm",
+      "./gemma-4-E2B-it-gpu.litertlm",
+      "./desktop_build/ai/gemma-4-E2B-it.litertlm",
+      "./desktop_build/ai/gemma-4-E2B-it-gpu.litertlm",
+      "./firebase-cpp-sdk/desktop_build/ai/gemma-4-E2B-it.litertlm",
+      "./firebase-cpp-sdk/desktop_build/ai/gemma-4-E2B-it-gpu.litertlm",
       bin_dir + "/gemma3-1b-it-int4.litertlm",
       bin_dir + "/gemma3-270m.litertlm",
       "./gemma3-1b-it-int4.litertlm",
@@ -97,7 +105,7 @@ std::string FindDefaultLocalModel(const char* argv0) {
       return candidate;
     }
   }
-  return "simulated://gemma-3-270m-it";
+  return "simulated://gemma-4-E2B-it";
 }
 
 std::string ReadFileToString(const std::string& path) {
