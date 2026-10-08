@@ -28,6 +28,9 @@ option(FIREBASE_INCLUDE_LIBRARY_DEFAULT
        "Should each library be included by default." ON)
 # Different options to enable/disable each library being included during
 # configuration.
+option(FIREBASE_INCLUDE_AI
+       "Include the Firebase AI Logic library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_ANALYTICS
        "Include the Google Analytics for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -632,6 +635,9 @@ else()
   )
 endif()
 
+if (FIREBASE_INCLUDE_AI)
+  add_subdirectory(ai)
+endif()
 if (FIREBASE_INCLUDE_ANALYTICS)
   add_subdirectory(analytics)
   add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_ANALYTICS_GENERATED_HEADERS)
