@@ -209,8 +209,8 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "simulator_target": [ {"type": "virtual", "name":"iPhone 16 Pro Max", "version":"26.4"} ],
-  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"26.4"} ],
+  "simulator_target": [ {"type": "virtual", "name":"iPhone 16 Pro Max", "version":"26.4.1"} ],
+  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"26.4.1"} ],
 }
 
 # Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model
