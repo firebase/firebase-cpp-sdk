@@ -61,7 +61,7 @@ jobs:
         - os: ubuntu-22.04
           architecture: arm64
         # Do not attempt to use x64 on Mac.
-        - os: macos-15
+        - os: macos-26
           architecture: x64
     steps:
       - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest

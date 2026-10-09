@@ -21,7 +21,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-22.04,windows-2022,macos-15'
+        default: 'ubuntu-22.04,windows-2022,macos-26'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
@@ -219,7 +219,7 @@ jobs:
           # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
           echo "::warning ::Running against Firestore tip-of-tree"
           matrix_platform="Desktop"
-          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-22.04,macos-15")
+          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-22.04,macos-26")
         else
           matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${GITHUB_EVENT_INPUTS_PLATFORMS}" --apis ${apis} )
           matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${GITHUB_EVENT_INPUTS_OPERATING_SYSTEMS}")
@@ -292,7 +292,7 @@ jobs:
         - os: ubuntu-22.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
-        - os: macos-15
+        - os: macos-26
           arch: x86
         # Until we support building openssl from source, we can't use the
         # system's openssl when cross-compiling, except on Linux. Builds on Linux
@@ -301,7 +301,7 @@ jobs:
         - os: windows-2022
           ssl_variant: openssl
           arch: x86
-        - os: macos-15
+        - os: macos-26
           ssl_variant: openssl
           arch: x64
     steps:
@@ -622,7 +622,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15]
+        os: [macos-26]
     steps:
       - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
@@ -745,7 +745,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15]
+        os: [macos-26]
     steps:
       - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
@@ -878,7 +878,7 @@ jobs:
         - os: ubuntu-22.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
-        - os: macos-15
+        - os: macos-26
           arch: x86
         # Until we support building openssl from source, we can't use the
         # system's openssl when cross-compiling, except on Linux. Builds on Linux
@@ -887,7 +887,7 @@ jobs:
         - os: windows-2022
           ssl_variant: openssl
           arch: x86
-        - os: macos-15
+        - os: macos-26
           ssl_variant: openssl
           arch: x64
     steps:
@@ -1152,7 +1152,7 @@ jobs:
   test_ios:
     name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_ios]
-    runs-on: macos-15
+    runs-on: macos-26
     permissions:
       contents: read
       pull-requests: write
@@ -1166,7 +1166,7 @@ jobs:
         exclude:
           -  ios_device: "ios_target"
              test_type: "uitest"
-        build_os: [macos-15]
+        build_os: [macos-26]
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
@@ -1342,7 +1342,7 @@ jobs:
   test_tvos:
     name: test-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}
     needs: [check_and_prepare, build_tvos]
-    runs-on: macos-15
+    runs-on: macos-26
     permissions:
       contents: read
       pull-requests: write
@@ -1352,7 +1352,7 @@ jobs:
       matrix:
 
         tvos_device: ${{ fromJson(needs.check_and_prepare.outputs.tvos_device) }}
-        build_os: [macos-15]
+        build_os: [macos-26]
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
         with:
