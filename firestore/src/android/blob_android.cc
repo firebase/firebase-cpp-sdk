@@ -30,14 +30,12 @@ using jni::Class;
 using jni::Env;
 using jni::Local;
 using jni::Method;
-using jni::Object;
 using jni::StaticMethod;
 
 constexpr char kClass[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Blob";
 jclass g_class = nullptr;
 
-Method<Object> kConstructor("<init>", "(Lcom/google/protobuf/ByteString;)V");
 StaticMethod<BlobInternal> kFromBytes(
     "fromBytes", "([B)Lcom/google/firebase/firestore/Blob;");
 Method<Array<uint8_t>> kToBytes("toBytes", "()[B");
@@ -46,7 +44,7 @@ Method<Array<uint8_t>> kToBytes("toBytes", "()[B");
 
 void BlobInternal::Initialize(jni::Loader& loader) {
   g_class = loader.LoadClass(kClass);
-  loader.LoadAll(kConstructor, kFromBytes, kToBytes);
+  loader.LoadAll(kFromBytes, kToBytes);
 }
 
 Class BlobInternal::GetClass() { return Class(g_class); }
