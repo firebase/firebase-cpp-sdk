@@ -77,12 +77,12 @@ PARAMETERS = {
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["26.2"],
+      "xcode_version": ["26.4"],
       "python_version": ["3.9"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-22.04", "macos-15", "windows-2022"],
-        "xcode_version": ["26.2"],
+        "xcode_version": ["26.4"],
       }
     }
   },
@@ -113,7 +113,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["26.2"],  # only the first one is used
+      "xcode_version": ["26.4"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -141,10 +141,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["26.2"],
+      "xcode_version": ["26.4"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["26.2"]
+        "xcode_version": ["26.4"]
       }
     }
   },
@@ -209,8 +209,8 @@ TEST_DEVICES = {
       {"type": "ftl", "device": "model=iphone8,version=16.6"},
       {"type": "ftl", "device": "model=ipad10,version=16.6"},
   ],
-  "simulator_target": [ {"type": "virtual", "name":"iPhone 16 Pro Max", "version":"26.2"} ],
-  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"26.2"} ],
+  "simulator_target": [ {"type": "virtual", "name":"iPhone 16 Pro Max", "version":"26.4"} ],
+  "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"26.4"} ],
 }
 
 # Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model
