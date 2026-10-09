@@ -114,7 +114,7 @@ PARAMETERS = {
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
       "xcode_version": ["26.4"],  # only the first one is used
-      "ndk_version": ["r22b"],
+      "ndk_version": ["r23b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
 

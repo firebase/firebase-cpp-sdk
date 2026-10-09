@@ -511,8 +511,8 @@ jobs:
         id: cache_ndk
         uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
         with:
-          path: /tmp/android-ndk-r21e
-          key: android-ndk-${{ matrix.os }}-r21e
+          path: /tmp/android-ndk-r23b
+          key: android-ndk-${{ matrix.os }}-r23b
       - name: Setup python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
         with:
