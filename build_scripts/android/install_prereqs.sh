@@ -61,13 +61,13 @@ if [[ -z "${ANDROID_HOME}" ]]; then
     exit 1
 fi
 
-if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 21\." "${NDK_ROOT}/source.properties") ]]; then
-    if [[ -d /tmp/android-ndk-r21e && \
-              -n $(grep "Pkg\.Revision = 21\." "/tmp/android-ndk-r21e/source.properties") ]]; then
-            echo "Using NDK r21e in /tmp/android-ndk-r21e".
+if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 23\." "${NDK_ROOT}/source.properties") ]]; then
+    if [[ -d /tmp/android-ndk-r23b && \
+              -n $(grep "Pkg\.Revision = 23\." "/tmp/android-ndk-r23b/source.properties") ]]; then
+            echo "Using NDK r23b in /tmp/android-ndk-r23b".
     else
         echo "NDK_ROOT environment variable is not set, or NDK version is incorrect."
-        echo "This build recommends NDK r21e, downloading..."
+        echo "This build recommends NDK r23b, downloading..."
             if [[ -z $(which curl) ]]; then
                 echo "Error, could not run 'curl' to download NDK. Is it in your PATH?"
                 exit 1
@@ -77,14 +77,14 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 21\." "${NDK_ROOT}/source.p
             # Github runners.
             for retry in {1..10} error; do
                 if [[ $retry == "error" ]]; then exit 5; fi
-                rm -f /tmp/android-ndk-r21e.zip
+                rm -f /tmp/android-ndk-r23b.zip
                 curl -f --http1.1 -LSs \
-                    "https://dl.google.com/android/repository/android-ndk-r21e-${platform}-x86_64.zip" \
-                    --output /tmp/android-ndk-r21e.zip && break
+                    "https://dl.google.com/android/repository/android-ndk-r23b-${platform}.zip" \
+                    --output /tmp/android-ndk-r23b.zip && break
                 sleep 30
             done
             set -e
-            (cd /tmp && unzip -oq android-ndk-r21e.zip && rm -f android-ndk-r21e.zip)
-            echo "NDK r21e has been downloaded into /tmp/android-ndk-r21e"
+            (cd /tmp && unzip -oq android-ndk-r23b.zip && rm -f android-ndk-r23b.zip)
+            echo "NDK r23b has been downloaded into /tmp/android-ndk-r23b"
     fi
 fi

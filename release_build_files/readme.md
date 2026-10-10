@@ -84,7 +84,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:34.19.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:35.0.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -133,7 +133,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.19.0  (Maven package)
+|                          | androidx.core:core:1.19.1  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -164,7 +164,7 @@ User Messaging Platform    | libfirebase_ump.a
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:4.0.0
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.10.1
+Google Play services module| com.google.android.gms:play-services-base:18.11.0
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
@@ -219,46 +219,46 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (12.19.0)
+|                          | Firebase/Analytics (13.0.1)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck Cocoapod (12.19.0)
+|                          | Firebase/AppCheck (13.0.1)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Auth (13.0.1)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Firestore (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Functions (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (12.19.0)
+|                          | FirebaseInstallations (13.0.1)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging Cocoapod (12.19.0)
+|                          | Firebase/Messaging (13.0.1)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Database (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig Cocoapod (12.19.0)
+|                          | Firebase/RemoteConfig (13.0.1)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Storage (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 User Messaging Platform    | firebase_ump.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/CoreOnly Cocoapod (12.19.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
+|                          | Firebase/CoreOnly (13.0.1)
+|                          | GoogleUserMessagingPlatform (3.1.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -278,46 +278,46 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (12.19.0)
+|                          | Firebase/Analytics (13.0.1)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck Cocoapod (12.19.0)
+|                          | Firebase/AppCheck (13.0.1)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Auth (13.0.1)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Firestore (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Functions (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (12.19.0)
+|                          | FirebaseInstallations (13.0.1)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging Cocoapod (12.19.0)
+|                          | Firebase/CloudMessaging (13.0.1)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Database (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig Cocoapod (12.19.0)
+|                          | Firebase/RemoteConfig (13.0.1)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage Cocoapod (12.19.0)
-|                          | Firebase/Auth Cocoapod (12.19.0)
+|                          | Firebase/Storage (13.0.1)
+|                          | Firebase/Auth (13.0.1)
 User Messaging Platform    | libfirebase_ump.a
 |                          | libfirebase_app.a
-|                          | Firebase/CoreOnly Cocoapod (12.19.0)
-|                          | GoogleUserMessagingPlatform Cocoapod (2.3.0)
+|                          | Firebase/CoreOnly (13.0.1)
+|                          | GoogleUserMessagingPlatform (3.1.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -408,7 +408,7 @@ Firebase Cloud Messaging (stub) | firebase_messaging.framework
 User Messaging Platform (stub)  | libfirebase_ump.a
 |                               | libfirebase_app.a
 
-The provided libraries have been tested using Xcode 26.2. When building C++
+The provided libraries have been tested using Xcode 26.4. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -613,8 +613,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 14.0.0
 - Changes
+    - General (Android): Update to Firebase Android BoM version 35.0.0.
+    - General (iOS): Update to Firebase Cocoapods version 13.0.0.
+    - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
+      using Xcode 26.4.
     - General (Android): **Breaking Change** Updated minSdkVersion to 24.
     - General (MacOS Desktop): Fix for linker issue on XCode 27. (#1920)
     - Auth: **Breaking Change:** Fixed spelling in `AuthError` enum values (`kAuthErrorWebStorateUnsupported` -> `kAuthErrorWebStorageUnsupported` and `kAuthErrorFederatedProviderAreadyInUse` -> `kAuthErrorFederatedProviderAlreadyInUse`).
