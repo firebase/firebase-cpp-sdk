@@ -30,8 +30,9 @@ SignUpRequest::SignUpRequest(::firebase::App& app, const char* api_key)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  std::string url(
-      "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=");
+  const char api_host[] =
+      "identitytoolkit.googleapis.com/v1/accounts:signUp?key=";
+  std::string url = GetUrl(api_host);
   url.append(api_key);
   set_url(url.c_str());
 

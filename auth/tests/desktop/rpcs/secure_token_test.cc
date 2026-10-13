@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/secure_token_request.h"
 #include "auth/src/desktop/rpcs/secure_token_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -38,6 +39,16 @@ TEST(SecureTokenTest, TestSetRefreshRequest) {
       "  \"refreshToken\": \"token123\"\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(SecureTokenTest, TestSetRefreshRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth* auth = Auth::GetAuth(app.get());
+  auth->UseEmulator("localhost", 9099);
+  SecureTokenRequest request(*app, "APIKEY", "token123");
+  EXPECT_EQ(
+      "http://localhost:9099/securetoken.googleapis.com/v1/token?key=APIKEY",
+      request.options().url);
 }
 
 // Test SecureTokenResponse

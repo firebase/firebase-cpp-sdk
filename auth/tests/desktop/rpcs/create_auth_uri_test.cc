@@ -20,6 +20,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -40,6 +41,16 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
       "  \"continueUri\": \"http://localhost\"\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  CreateAuthUriRequest request(*app, "APIKEY", "email");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/createAuthUri?key=APIKEY",
+      request.options().url);
 }
 
 // Test CreateAuthUriResponse

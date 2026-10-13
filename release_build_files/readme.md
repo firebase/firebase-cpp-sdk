@@ -613,6 +613,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - Auth (Desktop): Fixed an issue where refreshing or fetching an ID token
+      (`GetToken`) or linking an email/password credential to an anonymous
+      account failed when using the Auth Emulator, because `SecureTokenRequest`
+      and `SignUpRequest` were always sent to production endpoints.
+
 ### 14.0.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.0.0.
