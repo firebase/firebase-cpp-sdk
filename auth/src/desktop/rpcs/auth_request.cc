@@ -74,6 +74,9 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
 }
 
 std::string AuthRequest::GetUrl(const char* server_url) {
+  if (server_url == nullptr) {
+    return "";
+  }
   Auth* auth_ptr = Auth::GetAuth(&app);
   std::string assigned_emulator_url =
       static_cast<AuthImpl*>(auth_ptr->auth_data_->auth_impl)
