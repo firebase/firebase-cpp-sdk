@@ -178,9 +178,14 @@ struct IdTokenResult {
   /// The sign-in second factor through which the token was obtained.
   std::string sign_in_second_factor;
 
+  /// @brief Default constructor for IdTokenResult.
   IdTokenResult()
       : auth_timestamp(0), issued_at_timestamp(0), expiration_timestamp(0) {}
 
+  /// @brief Equality operator.
+  ///
+  /// @param[in] other The other IdTokenResult to compare with.
+  /// @return true if all fields match, false otherwise.
   bool operator==(const IdTokenResult& other) const {
     return token == other.token && claims == other.claims &&
            auth_timestamp == other.auth_timestamp &&
@@ -190,6 +195,10 @@ struct IdTokenResult {
            sign_in_second_factor == other.sign_in_second_factor;
   }
 
+  /// @brief Inequality operator.
+  ///
+  /// @param[in] other The other IdTokenResult to compare with.
+  /// @return true if any field differs, false otherwise.
   bool operator!=(const IdTokenResult& other) const {
     return !(*this == other);
   }

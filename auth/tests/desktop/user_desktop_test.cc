@@ -298,9 +298,7 @@ class UserDesktopTest : public ::testing::Test {
     // This is to avoid race conditions where the next test's SignIn
     // doesn't cause a change in auth state or id tokens because persistent
     // cache has valid user logged in, preventing listeners from firing.
-    {
-      SleepUponDestruction sleep_for_listeners;
-    }
+    { SleepUponDestruction sleep_for_listeners; }
 
     firebase_auth_.reset(nullptr);
     firebase_app_.reset(nullptr);

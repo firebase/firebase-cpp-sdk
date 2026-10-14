@@ -17,6 +17,7 @@
 #include "auth/src/id_token_util.h"
 
 #include <cstdint>
+#include <map>
 #include <string>
 
 #include "app/src/base64.h"

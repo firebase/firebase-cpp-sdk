@@ -334,6 +334,7 @@ void ReadIdTokenResult(jobject result, FutureCallbackData<IdTokenResult>* d,
         result, tokenresult::GetMethodId(tokenresult::kGetToken)));
     assert(env->ExceptionCheck() == false);
     std::string token = JniStringToString(env, j_token);
+    env->DeleteLocalRef(j_token);
     ParseIdToken(token, data);
   } else {
     *data = IdTokenResult();

@@ -722,7 +722,9 @@ Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
   }
   if (current_token.IsValid()) {
     IdTokenResult id_token_result;
-    ParseIdToken(current_token.token(), &id_token_result);
+    if (!ParseIdToken(current_token.token(), &id_token_result)) {
+      LogWarning("GetIdTokenResult: Failed to parse cached ID token.");
+    }
     promise.CompleteWithResult(id_token_result);
     return promise.future();
   }
@@ -737,7 +739,9 @@ Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
         }
 
         IdTokenResult id_token_result;
-        ParseIdToken(get_token_result.token(), &id_token_result);
+        if (!ParseIdToken(get_token_result.token(), &id_token_result)) {
+          LogWarning("GetIdTokenResult: Failed to parse refreshed ID token.");
+        }
         handle->promise.CompleteWithResult(id_token_result);
       };
 

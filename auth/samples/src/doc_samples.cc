@@ -22,6 +22,7 @@
 
 // [START auth_includes]
 #include <cassert>
+#include <cinttypes>
 #include <cstdint>
 
 #include "firebase/app.h"
@@ -655,12 +656,10 @@ void GetIdTokenClaims(firebase::auth::Auth* auth) {
                 const firebase::auth::IdTokenResult* token_result =
                     result.result();
                 printf("Token: %s\n", token_result->token.c_str());
-                printf("Auth timestamp: %llu\n",
-                       static_cast<unsigned long long>(
-                           token_result->auth_timestamp));
-                printf("Expiration timestamp: %llu\n",
-                       static_cast<unsigned long long>(
-                           token_result->expiration_timestamp));
+                printf("Auth timestamp: %" PRIu64 "\n",
+                       token_result->auth_timestamp);
+                printf("Expiration timestamp: %" PRIu64 "\n",
+                       token_result->expiration_timestamp);
                 // Check custom claims
                 auto it = token_result->claims.find(firebase::Variant("admin"));
                 if (it != token_result->claims.end() && it->second.is_bool() &&
