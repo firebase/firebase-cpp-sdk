@@ -1,24 +1,25 @@
 ---
 name: firebase-cpp-formatter
 description:
-  Formatting workflow for C++ and Objective-C code in the Firebase C++ SDK. Use
-  when modifying source code and ensuring compliance with the repository's
-  clang-format rules.
+  Formatting and linting workflow for C++ and Objective-C code in the Firebase
+  C++ SDK. Use when modifying source code and ensuring compliance with the
+  repository's clang-format rules and cpplint guidelines.
 ---
 
-# Code Formatting for Firebase C++ SDK
+# Code Formatting & Linting for Firebase C++ SDK
 
-This skill provides instructions on how to properly format C++ and Objective-C
-code before creating a pull request or committing changes in the
-`firebase-cpp-sdk` repository. The primary tool is `scripts/format_code.py`.
+This skill provides instructions on how to properly format and lint C++ and
+Objective-C code before creating a pull request or committing changes in the
+`firebase-cpp-sdk` repository.
 
 ## Prerequisites
 
 Before running the formatting script, ensure that your Python environment is set up with all required dependencies:
 
 - **Python Dependencies**: Run `pip install -r scripts/gha/python_requirements.txt` to install the required libraries (such as `attrs`, `absl-py`, etc.).
+- **cpplint**: Run `pip install cpplint` to install the C++ linter.
 
-## Workflows
+## Formatting Workflows
 
 ### 1. Formatting Specific Changed Files (Git Diff)
 
@@ -66,3 +67,23 @@ actually modifying them, append the `--noformat_file` flag:
 ```bash
 python3 scripts/format_code.py -git_diff --noformat_file
 ```
+
+### 5. Formatting Nuances (Short Blocks & Braces)
+
+The repository's CI runs on Ubuntu 22.04 with `clang-format 14`. Under Google style with this configuration, single-statement short blocks are formatted on a single line:
+```cpp
+{ SleepUponDestruction sleep_for_listeners; }
+```
+Splitting such statements across three lines may cause the `file_format_check` CI step to fail. Always run `python3 scripts/format_code.py -git_diff` prior to committing to ensure your formatting exactly matches CI expectations.
+
+## Code Linting (`cpplint`)
+
+The repository runs `cpplint` on all changed files in pull requests via GitHub Actions. You can run the linter locally using the repository's configured filter set:
+
+```bash
+python3 -m cpplint --filter=-build/include_subdir,-build/c++11,-readability/casting,-runtime/references,-whitespace/indent,-whitespace/line_length <files>
+```
+
+Common lint violations to look out for:
+- `[runtime/int]`: Using plain C `long` or `unsigned long long`. Use `int64_t` or `uint64_t` instead.
+- `[build/include_what_you_use]`: Missing direct `#include` directives for standard headers like `<map>`, `<vector>`, `<string>`, or `<cstdint>`.
