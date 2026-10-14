@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/set_account_info_request.h"
 #include "auth/src/desktop/rpcs/set_account_info_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -46,6 +47,17 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
       "  \"idToken\": \"token\"\n"
       "}\n",
       request->options().post_fields);
+}
+
+TEST(SetAccountInfoTest, TestSetAccountInfoRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  auto request =
+      RequestT::CreateUpdateEmailRequest(*app, "APIKEY", "fakeemail");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/setAccountInfo?key=APIKEY",
+      request->options().url);
 }
 
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdatePassword) {

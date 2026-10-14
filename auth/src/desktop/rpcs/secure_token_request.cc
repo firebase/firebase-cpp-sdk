@@ -15,7 +15,7 @@
 #include "auth/src/desktop/rpcs/secure_token_request.h"
 
 #include <cassert>
-#include <cstring>
+#include <string>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
@@ -30,10 +30,8 @@ SecureTokenRequest::SecureTokenRequest(::firebase::App& app,
     : AuthRequest(app, request_resource_data, false) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] = "https://securetoken.googleapis.com/v1/token?key=";
-  std::string url;
-  url.reserve(strlen(api_host) + strlen(api_key));
-  url.append(api_host);
+  const char api_host[] = "securetoken.googleapis.com/v1/token?key=";
+  std::string url = GetUrl(api_host);
   url.append(api_key);
   set_url(url.c_str());
 

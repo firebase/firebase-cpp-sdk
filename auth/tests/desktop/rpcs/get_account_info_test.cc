@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
 #include "auth/src/desktop/rpcs/get_account_info_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -39,6 +40,16 @@ TEST(GetAccountInfoTest, TestGetAccountInfoRequest) {
       "  \"idToken\": \"token\"\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(GetAccountInfoTest, TestGetAccountInfoRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  GetAccountInfoRequest request(*app, "APIKEY", "token");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/getAccountInfo?key=APIKEY",
+      request.options().url);
 }
 
 // Test GetAccountInfoResponse
