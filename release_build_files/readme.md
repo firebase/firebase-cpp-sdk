@@ -613,6 +613,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - Auth: Added `IdTokenResult` struct and `User::GetIdTokenResult()` to
+      retrieve decoded ID token claims and metadata across Desktop, Android,
+      and iOS.
+
 ### 14.0.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.0.0.

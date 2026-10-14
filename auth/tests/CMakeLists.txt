@@ -106,6 +106,16 @@ firebase_cpp_cc_test(
     firebase_testing
 )
 
+firebase_cpp_cc_test(
+  firebase_auth_id_token_result_test
+  SOURCES
+    id_token_result_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_auth
+    firebase_testing
+)
+
 firebase_cpp_cc_test_on_ios(
   firebase_auth_credential_test
   HOST

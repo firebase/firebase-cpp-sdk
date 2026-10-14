@@ -55,6 +55,8 @@ set(common_SRCS
     src/common.cc
     src/common.h
     src/data.h
+    src/id_token_util.cc
+    src/id_token_util.h
     src/user.cc)
 
 # Define the resource build needed for Android

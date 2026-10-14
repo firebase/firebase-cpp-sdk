@@ -644,6 +644,35 @@ void SendIdTokenToBackend(firebase::auth::Auth* auth) {
   // [END send_id_token_to_backend]
 }
 
+void GetIdTokenClaims(firebase::auth::Auth* auth) {
+  // [START get_id_token_claims]
+  firebase::auth::User user = auth->current_user();
+  if (user.is_valid()) {
+    user.GetIdTokenResult(/*force_refresh=*/false)
+        .OnCompletion(
+            [](const firebase::Future<firebase::auth::IdTokenResult>& result) {
+              if (result.error() == firebase::auth::kAuthErrorNone) {
+                const firebase::auth::IdTokenResult* token_result =
+                    result.result();
+                printf("Token: %s\n", token_result->token.c_str());
+                printf("Auth timestamp: %llu\n",
+                       static_cast<unsigned long long>(
+                           token_result->auth_timestamp));
+                printf("Expiration timestamp: %llu\n",
+                       static_cast<unsigned long long>(
+                           token_result->expiration_timestamp));
+                // Check custom claims
+                auto it = token_result->claims.find(firebase::Variant("admin"));
+                if (it != token_result->claims.end() && it->second.is_bool() &&
+                    it->second.bool_value()) {
+                  printf("User is an admin!\n");
+                }
+              }
+            });
+  }
+  // [END get_id_token_claims]
+}
+
 firebase::auth::Auth* AuthOverview(firebase::App* app) {
   /// [Auth overview]
   // Get the Auth class for your App.

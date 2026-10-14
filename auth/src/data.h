@@ -43,6 +43,7 @@ enum AuthApiFunction {
 
   // External functions in the User API.
   kUserFn_GetToken,
+  kUserFn_GetIdTokenResult,
   kUserFn_UpdateEmail,
   kUserFn_UpdatePassword,
   kUserFn_Reauthenticate,

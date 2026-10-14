@@ -21,6 +21,7 @@
 #include "testing/run_all_tests.h"
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
+#include "app/src/base64.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/time.h"
@@ -249,6 +250,135 @@ TEST_F(UserTest, TestGetToken) {
   Verify(token);
   EXPECT_FALSE(token.result()->empty());
 }
+
+TEST_F(UserTest, TestGetIdTokenResult) {
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseUser.getIdToken', futuregeneric:{ticker:1}},"
+      "    {fake:'FIRUser.getIDTokenResultForcingRefresh:completion:',"
+      "     futuregeneric:{ticker:1}},"
+      "    {"
+      "      fake: '"
+      "https://securetoken.googleapis.com/v1/token?key=not_a_real_api_key',"
+      "      httpresponse: {"
+      "        header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
+      "        body: ['{"
+      "          \"access_token\": \"fake_access_token\","
+      "          \"expires_in\": \"3600\","
+      "          \"token_type\": \"Bearer\","
+      "          \"refresh_token\": \"fake_refresh_token\","
+      "          \"id_token\": \"fake_id_token\","
+      "          \"user_id\": \"fake_user_id\","
+      "          \"project_id\": \"fake_project_id\""
+      "        }']"
+      "      }"
+      "    }"
+      "  ]"
+      "}");
+  Future<IdTokenResult> token_result =
+      firebase_user_.GetIdTokenResult(false /* force_refresh */);
+
+  Verify(token_result);
+  ASSERT_NE(nullptr, token_result.result());
+  EXPECT_FALSE(token_result.result()->token.empty());
+
+  Future<IdTokenResult> last_result =
+      firebase_user_.GetIdTokenResultLastResult();
+  EXPECT_EQ(firebase::kFutureStatusComplete, last_result.status());
+  EXPECT_EQ(0, last_result.error());
+  ASSERT_NE(nullptr, last_result.result());
+  EXPECT_EQ(*token_result.result(), *last_result.result());
+
+  User invalid_user;
+  Future<IdTokenResult> invalid_future = invalid_user.GetIdTokenResult(false);
+  EXPECT_EQ(firebase::kFutureStatusInvalid, invalid_future.status());
+}
+
+#if !defined(FIREBASE_ANDROID_FOR_DESKTOP) && !FIREBASE_PLATFORM_IOS && \
+    !FIREBASE_PLATFORM_TVOS
+TEST_F(UserTest, TestGetIdTokenResultDecodesJwtClaimsAndTimestamps) {
+  std::string header_b64;
+  std::string payload_b64;
+  internal::Base64EncodeUrlSafe("{\"alg\":\"RS256\",\"typ\":\"JWT\"}",
+                                &header_b64);
+  internal::Base64EncodeUrlSafe(
+      "{"
+      "\"auth_time\":1600000000,"
+      "\"iat\":1600000010,"
+      "\"exp\":1600003610,"
+      "\"sub\":\"localid123\","
+      "\"admin\":true,"
+      "\"tier\":5,"
+      "\"role\":\"moderator\","
+      "\"firebase\":{"
+      "  \"sign_in_provider\":\"custom\","
+      "  \"sign_in_second_factor\":\"totp\""
+      "}"
+      "}",
+      &payload_b64);
+  const std::string jwt_token = header_b64 + "." + payload_b64 + ".fakesig";
+
+  const std::string config =
+      "{"
+      "  config:["
+      "    {"
+      "      fake: '"
+      "https://securetoken.googleapis.com/v1/token?key=not_a_real_api_key',"
+      "      httpresponse: {"
+      "        header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
+      "        body: ['{"
+      "          \"access_token\": \"fake_access_token\","
+      "          \"expires_in\": \"3600\","
+      "          \"token_type\": \"Bearer\","
+      "          \"refresh_token\": \"fake_refresh_token\","
+      "          \"id_token\": \"" +
+      jwt_token +
+      "\","
+      "          \"user_id\": \"localid123\","
+      "          \"project_id\": \"fake_project_id\""
+      "        }']"
+      "      }"
+      "    }"
+      "  ]"
+      "}";
+  firebase::testing::cppsdk::ConfigSet(config.c_str());
+
+  // Force refresh to fetch the JWT from the mocked securetoken endpoint.
+  Future<IdTokenResult> future = firebase_user_.GetIdTokenResult(true);
+  Verify(future);
+  ASSERT_NE(nullptr, future.result());
+  const IdTokenResult& result = *future.result();
+  EXPECT_EQ(jwt_token, result.token);
+  EXPECT_EQ(1600000000ULL, result.auth_timestamp);
+  EXPECT_EQ(1600000010ULL, result.issued_at_timestamp);
+  EXPECT_EQ(1600003610ULL, result.expiration_timestamp);
+  EXPECT_EQ("custom", result.sign_in_provider);
+  EXPECT_EQ("totp", result.sign_in_second_factor);
+
+  auto admin_it = result.claims.find(Variant("admin"));
+  ASSERT_NE(result.claims.end(), admin_it);
+  EXPECT_TRUE(admin_it->second.is_bool());
+  EXPECT_TRUE(admin_it->second.bool_value());
+
+  auto tier_it = result.claims.find(Variant("tier"));
+  ASSERT_NE(result.claims.end(), tier_it);
+  EXPECT_TRUE(tier_it->second.is_int64());
+  EXPECT_EQ(5, tier_it->second.int64_value());
+
+  auto role_it = result.claims.find(Variant("role"));
+  ASSERT_NE(result.claims.end(), role_it);
+  EXPECT_TRUE(role_it->second.is_string());
+  EXPECT_STREQ("moderator", role_it->second.string_value());
+
+  // Subsequent non-forced call returns the cached fresh JWT result.
+  Future<IdTokenResult> cached_future = firebase_user_.GetIdTokenResult(false);
+  Verify(cached_future);
+  ASSERT_NE(nullptr, cached_future.result());
+  EXPECT_EQ(result, *cached_future.result());
+}
+#endif  // !defined(FIREBASE_ANDROID_FOR_DESKTOP) && !FIREBASE_PLATFORM_IOS &&
+        // !FIREBASE_PLATFORM_TVOS
 
 TEST_F(UserTest, TestGetProviderData) {
   // Test get provider data. Right now, most of the sign-in does not have extra

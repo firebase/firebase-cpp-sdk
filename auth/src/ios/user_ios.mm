@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include "app/src/time.h"
+#include "auth/src/id_token_util.h"
 #include "auth/src/ios/common_ios.h"
 
 namespace firebase {
@@ -76,6 +77,30 @@ Future<std::string> User::GetToken(bool force_refresh) {
                                          data->assign(token == nullptr ? "" : [token UTF8String]);
                                        });
                     }];
+  return MakeFuture(&futures, handle);
+}
+
+Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
+  if (!ValidUser(auth_data_)) {
+    return Future<IdTokenResult>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<IdTokenResult>(kUserFn_GetIdTokenResult);
+  [UserImpl(auth_data_)
+      getIDTokenResultForcingRefresh:force_refresh
+                          completion:^(FIRAuthTokenResult *_Nullable token_result,
+                                       NSError *_Nullable error) {
+                            futures.Complete(
+                                handle, AuthErrorFromNSError(error),
+                                [error.localizedDescription UTF8String],
+                                [token_result](IdTokenResult *data) {
+                                  if (token_result != nullptr && token_result.token != nil) {
+                                    ParseIdToken([token_result.token UTF8String], data);
+                                  } else {
+                                    *data = IdTokenResult();
+                                  }
+                                });
+                          }];
   return MakeFuture(&futures, handle);
 }
 

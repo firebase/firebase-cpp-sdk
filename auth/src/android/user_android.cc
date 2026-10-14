@@ -20,6 +20,7 @@
 
 #include "app/src/time.h"
 #include "auth/src/android/common_android.h"
+#include "auth/src/id_token_util.h"
 
 namespace firebase {
 namespace auth {
@@ -308,6 +309,52 @@ Future<std::string> User::GetToken(bool force_refresh) {
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, ReadTokenResult);
+    env->DeleteLocalRef(pending_result);
+  } else {
+    // If the method failed for some reason, clear the expected callback.
+    auth_data_->SetExpectIdTokenListenerCallback(false);
+  }
+  return MakeFuture(&futures, handle);
+}
+
+void ReadIdTokenResult(jobject result, FutureCallbackData<IdTokenResult>* d,
+                       bool success, void* void_data) {
+  auto data = static_cast<IdTokenResult*>(void_data);
+  JNIEnv* env = Env(d->auth_data);
+
+  // `result` is of type GetTokenResult when `success` is true.
+  if (success) {
+    if (d->auth_data->ShouldTriggerIdTokenListenerCallback()) {
+      NotifyIdTokenListeners(d->auth_data);
+    }
+    // This comes from the successfully completed Task in Java, so it should
+    // always be valid.
+    FIREBASE_ASSERT(result != nullptr);
+    jstring j_token = static_cast<jstring>(env->CallObjectMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetToken)));
+    assert(env->ExceptionCheck() == false);
+    std::string token = JniStringToString(env, j_token);
+    ParseIdToken(token, data);
+  } else {
+    *data = IdTokenResult();
+  }
+}
+
+Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
+  if (!ValidUser(auth_data_)) {
+    return Future<IdTokenResult>();
+  }
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<IdTokenResult>(kUserFn_GetIdTokenResult);
+  JNIEnv* env = Env(auth_data_);
+
+  auth_data_->SetExpectIdTokenListenerCallback(force_refresh);
+  jobject pending_result = env->CallObjectMethod(
+      UserImpl(auth_data_), user::GetMethodId(user::kToken), force_refresh);
+
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    RegisterCallback(pending_result, handle, auth_data_, ReadIdTokenResult);
     env->DeleteLocalRef(pending_result);
   } else {
     // If the method failed for some reason, clear the expected callback.
