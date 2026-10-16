@@ -55,8 +55,6 @@ set(common_SRCS
     src/common.cc
     src/common.h
     src/data.h
-    src/id_token_util.cc
-    src/id_token_util.h
     src/user.cc)
 
 # Define the resource build needed for Android
@@ -118,6 +116,8 @@ set(desktop_SRCS
     src/desktop/sign_in_flow.cc
     src/desktop/user_desktop.cc
     src/desktop/user_view.cc
+    src/id_token_util.cc
+    src/id_token_util.h
     src/desktop/rpcs/auth_request.cc
     src/desktop/rpcs/auth_response.cc
     src/desktop/rpcs/create_auth_uri_request.cc

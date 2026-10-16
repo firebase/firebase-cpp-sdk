@@ -28,6 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
     _authDate = [NSDate dateWithTimeIntervalSince1970:1];
     _issuedAtDate = [NSDate dateWithTimeIntervalSince1970:1];
     _signInProvider = @"custom";
+    _signInSecondFactor = @"totp";
     _claims = @{};
   }
   return self;
