@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -152,6 +153,57 @@ struct UserMetadata {
   uint64_t creation_timestamp;
 };
 
+/// @brief Result of a GetIdTokenResult call, containing the token string and
+/// decoded claims.
+struct IdTokenResult {
+  /// The JSON Web Token (JWT) string.
+  std::string token;
+
+  /// Claims map decoded from the token payload, including custom claims and
+  /// standard claims.
+  std::map<Variant, Variant> claims;
+
+  /// Authentication timestamp (seconds since Unix epoch).
+  uint64_t auth_timestamp;
+
+  /// Issued-at timestamp (seconds since Unix epoch).
+  uint64_t issued_at_timestamp;
+
+  /// Expiration timestamp (seconds since Unix epoch).
+  uint64_t expiration_timestamp;
+
+  /// The sign-in provider through which the token was obtained.
+  std::string sign_in_provider;
+
+  /// The sign-in second factor through which the token was obtained.
+  std::string sign_in_second_factor;
+
+  /// @brief Default constructor for IdTokenResult.
+  IdTokenResult()
+      : auth_timestamp(0), issued_at_timestamp(0), expiration_timestamp(0) {}
+
+  /// @brief Equality operator.
+  ///
+  /// @param[in] other The other IdTokenResult to compare with.
+  /// @return true if all fields match, false otherwise.
+  bool operator==(const IdTokenResult& other) const {
+    return token == other.token && claims == other.claims &&
+           auth_timestamp == other.auth_timestamp &&
+           issued_at_timestamp == other.issued_at_timestamp &&
+           expiration_timestamp == other.expiration_timestamp &&
+           sign_in_provider == other.sign_in_provider &&
+           sign_in_second_factor == other.sign_in_second_factor;
+  }
+
+  /// @brief Inequality operator.
+  ///
+  /// @param[in] other The other IdTokenResult to compare with.
+  /// @return true if any field differs, false otherwise.
+  bool operator!=(const IdTokenResult& other) const {
+    return !(*this == other);
+  }
+};
+
 /// @brief Firebase user account object.
 ///
 /// This class allows you to manipulate the profile of a user, link to and
@@ -218,6 +270,28 @@ class User : public UserInfoInterface {
 
   /// Get results of the most recent call to GetToken.
   Future<std::string> GetTokenLastResult() const;
+
+  /// Retrieves the Firebase authentication token result, including claims and
+  /// timestamps.
+  ///
+  /// If a current ID token is still believed to be valid (i.e. it has not yet
+  /// expired), that token will be returned immediately.
+  /// A developer may set the optional force_refresh flag to get a new ID token,
+  /// whether or not the existing token has expired.
+  Future<IdTokenResult> GetIdTokenResult(bool force_refresh);
+
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+  /// A "thread safer" version of GetIdTokenResult.
+  /// If called by two threads simultaneously, GetIdTokenResult can return the
+  /// same pending Future twice. This creates problems if both threads try to
+  /// set the OnCompletion callback, unaware that there's another copy.
+  /// GetIdTokenResultThreadSafe returns a proxy to the Future if it's still
+  /// pending, allowing each proxy to have their own callback.
+  Future<IdTokenResult> GetIdTokenResultThreadSafe(bool force_refresh);
+#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+
+  /// Get results of the most recent call to GetIdTokenResult.
+  Future<IdTokenResult> GetIdTokenResultLastResult() const;
 
   /// Gets the third party profile data associated with this user returned by
   /// the authentication server, if any.

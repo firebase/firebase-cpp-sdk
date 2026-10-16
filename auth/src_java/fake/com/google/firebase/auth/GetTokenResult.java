@@ -16,9 +16,36 @@
 
 package com.google.firebase.auth;
 
+import java.util.Collections;
+import java.util.Map;
+
 /** Fake GetTokenResult */
 public final class GetTokenResult {
   public String getToken() {
     return "a fake token";
+  }
+
+  public long getExpirationTimestamp() {
+    return 1L;
+  }
+
+  public long getAuthTimestamp() {
+    return 1L;
+  }
+
+  public long getIssuedAtTimestamp() {
+    return 1L;
+  }
+
+  public String getSignInProvider() {
+    return "custom";
+  }
+
+  public String getSignInSecondFactor() {
+    return "totp";
+  }
+
+  public Map<String, Object> getClaims() {
+    return Collections.emptyMap();
   }
 }

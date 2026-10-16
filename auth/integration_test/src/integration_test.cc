@@ -109,6 +109,13 @@ class FirebaseAuthTest : public FirebaseTest {
   }
 
   // Passthrough method to the base class's WaitForCompletion.
+  bool WaitForCompletion(firebase::Future<firebase::auth::IdTokenResult> future,
+                         const char* fn,
+                         int expected_error = firebase::auth::kAuthErrorNone) {
+    return FirebaseTest::WaitForCompletion(future, fn, expected_error);
+  }
+
+  // Passthrough method to the base class's WaitForCompletion.
   bool WaitForCompletion(firebase::Future<void> future, const char* fn,
                          int expected_error = firebase::auth::kAuthErrorNone) {
     return FirebaseTest::WaitForCompletion(future, fn, expected_error);
@@ -426,6 +433,42 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
   EXPECT_THAT(token_listener.token_states(),
               AnyOf(ElementsAre("", Not(""), Not(""), ""),
                     ElementsAre("", Not(""), Not(""), Not(""), "")));
+}
+
+TEST_F(FirebaseAuthTest, TestGetIdTokenResult) {
+  SignInAnonymously();
+  ASSERT_TRUE(auth_->current_user().is_valid());
+
+  firebase::Future<firebase::auth::IdTokenResult> result_future =
+      auth_->current_user().GetIdTokenResult(false);
+  WaitForCompletion(result_future, "GetIdTokenResult(false)");
+  ASSERT_NE(result_future.result(), nullptr);
+  const firebase::auth::IdTokenResult first_result = *result_future.result();
+  EXPECT_NE(first_result.token, "");
+  EXPECT_GT(first_result.auth_timestamp, 0ULL);
+  EXPECT_GT(first_result.issued_at_timestamp, 0ULL);
+  EXPECT_GT(first_result.expiration_timestamp,
+            first_result.issued_at_timestamp);
+  EXPECT_EQ(first_result.sign_in_provider, "anonymous");
+  EXPECT_FALSE(first_result.claims.empty());
+  auto sub_it = first_result.claims.find(firebase::Variant("sub"));
+  ASSERT_TRUE(sub_it != first_result.claims.end());
+  EXPECT_TRUE(sub_it->second.is_string());
+  EXPECT_EQ(std::string(sub_it->second.string_value()),
+            auth_->current_user().uid());
+
+  ProcessEvents(1000);
+  result_future = auth_->current_user().GetIdTokenResult(true);
+  WaitForCompletion(result_future, "GetIdTokenResult(true)");
+  ASSERT_NE(result_future.result(), nullptr);
+  const firebase::auth::IdTokenResult second_result = *result_future.result();
+  EXPECT_NE(second_result.token, "");
+  EXPECT_NE(first_result.token, second_result.token);
+  EXPECT_GE(second_result.issued_at_timestamp,
+            first_result.issued_at_timestamp);
+
+  DeleteUser();
+  SignOut();
 }
 
 #if FIREBASE_PLATFORM_ANDROID

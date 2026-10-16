@@ -30,7 +30,13 @@ using util::JniUriToString;
 
 // clang-format off
 #define TOKEN_RESULT_METHODS(X)                                                \
-    X(GetToken, "getToken", "()Ljava/lang/String;")
+    X(GetToken, "getToken", "()Ljava/lang/String;"),                           \
+    X(GetExpirationTimestamp, "getExpirationTimestamp", "()J"),                \
+    X(GetAuthTimestamp, "getAuthTimestamp", "()J"),                            \
+    X(GetIssuedAtTimestamp, "getIssuedAtTimestamp", "()J"),                    \
+    X(GetSignInProvider, "getSignInProvider", "()Ljava/lang/String;"),         \
+    X(GetSignInSecondFactor, "getSignInSecondFactor", "()Ljava/lang/String;"), \
+    X(GetClaims, "getClaims", "()Ljava/util/Map;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(tokenresult, TOKEN_RESULT_METHODS)
 METHOD_LOOKUP_DEFINITION(tokenresult,
@@ -308,6 +314,82 @@ Future<std::string> User::GetToken(bool force_refresh) {
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, ReadTokenResult);
+    env->DeleteLocalRef(pending_result);
+  } else {
+    // If the method failed for some reason, clear the expected callback.
+    auth_data_->SetExpectIdTokenListenerCallback(false);
+  }
+  return MakeFuture(&futures, handle);
+}
+
+void ReadIdTokenResult(jobject result, FutureCallbackData<IdTokenResult>* d,
+                       bool success, void* void_data) {
+  auto data = static_cast<IdTokenResult*>(void_data);
+  JNIEnv* env = Env(d->auth_data);
+
+  // `result` is of type GetTokenResult when `success` is true.
+  if (success) {
+    if (d->auth_data->ShouldTriggerIdTokenListenerCallback()) {
+      NotifyIdTokenListeners(d->auth_data);
+    }
+    // This comes from the successfully completed Task in Java, so it should
+    // always be valid.
+    FIREBASE_ASSERT(result != nullptr);
+    const jobject j_token = env->CallObjectMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetToken));
+    util::CheckAndClearJniExceptions(env);
+    const jlong expiration_timestamp = env->CallLongMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetExpirationTimestamp));
+    util::CheckAndClearJniExceptions(env);
+    const jlong auth_timestamp = env->CallLongMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetAuthTimestamp));
+    util::CheckAndClearJniExceptions(env);
+    const jlong issued_at_timestamp = env->CallLongMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetIssuedAtTimestamp));
+    util::CheckAndClearJniExceptions(env);
+    const jobject j_sign_in_provider = env->CallObjectMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetSignInProvider));
+    util::CheckAndClearJniExceptions(env);
+    const jobject j_sign_in_second_factor = env->CallObjectMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetSignInSecondFactor));
+    util::CheckAndClearJniExceptions(env);
+    const jobject j_claims = env->CallObjectMethod(
+        result, tokenresult::GetMethodId(tokenresult::kGetClaims));
+    util::CheckAndClearJniExceptions(env);
+
+    // Note that JniStringToString releases local references for us.
+    data->token = JniStringToString(env, j_token);
+    data->expiration_timestamp = static_cast<uint64_t>(expiration_timestamp);
+    data->auth_timestamp = static_cast<uint64_t>(auth_timestamp);
+    data->issued_at_timestamp = static_cast<uint64_t>(issued_at_timestamp);
+    data->sign_in_provider = JniStringToString(env, j_sign_in_provider);
+    data->sign_in_second_factor =
+        JniStringToString(env, j_sign_in_second_factor);
+    data->claims.clear();
+    if (j_claims != nullptr) {
+      util::JavaMapToVariantMap(env, &data->claims, j_claims);
+      env->DeleteLocalRef(j_claims);
+    }
+  } else {
+    *data = IdTokenResult();
+  }
+}
+
+Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
+  if (!ValidUser(auth_data_)) {
+    return Future<IdTokenResult>();
+  }
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<IdTokenResult>(kUserFn_GetIdTokenResult);
+  JNIEnv* env = Env(auth_data_);
+
+  auth_data_->SetExpectIdTokenListenerCallback(force_refresh);
+  jobject pending_result = env->CallObjectMethod(
+      UserImpl(auth_data_), user::GetMethodId(user::kToken), force_refresh);
+
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    RegisterCallback(pending_result, handle, auth_data_, ReadIdTokenResult);
     env->DeleteLocalRef(pending_result);
   } else {
     // If the method failed for some reason, clear the expected callback.
