@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/reset_password_request.h"
 #include "auth/src/desktop/rpcs/reset_password_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -39,6 +40,16 @@ TEST(ResetPasswordTest, TestResetPasswordRequest) {
       "  \"newPassword\": \"password\"\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(ResetPasswordTest, TestResetPasswordRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  ResetPasswordRequest request(*app, "APIKEY", "oob", "password");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/resetPassword?key=APIKEY",
+      request.options().url);
 }
 
 // Test ResetPasswordResponse

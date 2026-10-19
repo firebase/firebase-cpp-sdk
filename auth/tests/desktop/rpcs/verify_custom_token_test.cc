@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/verify_custom_token_request.h"
 #include "auth/src/desktop/rpcs/verify_custom_token_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -40,6 +41,16 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
       "  \"token\": \"token123\"\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  VerifyCustomTokenRequest request(*app, "APIKEY", "token123");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/verifyCustomToken?key=APIKEY",
+      request.options().url);
 }
 
 // Test VerifyCustomTokenResponse

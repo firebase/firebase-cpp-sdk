@@ -19,6 +19,8 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_response.h"
+#include "auth/src/desktop/rpcs/sign_up_request.h"
+#include "auth/src/include/firebase/auth.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -40,6 +42,16 @@ TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
       request.options().post_fields);
 }
 
+TEST(SignUpNewUserTest, TestAnonymousSignInRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  SignUpNewUserRequest request(*app, "APIKEY");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/signupNewUser?key=APIKEY",
+      request.options().url);
+}
+
 // Test SignUpNewUserRequest for using password signin
 TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
@@ -56,6 +68,33 @@ TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
       "  \"returnSecureToken\": true\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPassword) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request = SignUpRequest::CreateLinkWithEmailAndPasswordRequest(
+      *app, "APIKEY", "e@mail", "pwd");
+  EXPECT_EQ(
+      "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=APIKEY",
+      request->options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  \"email\": \"e@mail\",\n"
+      "  \"password\": \"pwd\",\n"
+      "  \"returnSecureToken\": true\n"
+      "}\n",
+      request->options().post_fields);
+}
+
+TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPasswordWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  auto request = SignUpRequest::CreateLinkWithEmailAndPasswordRequest(
+      *app, "APIKEY", "e@mail", "pwd");
+  EXPECT_EQ(
+      "http://localhost:9099/identitytoolkit.googleapis.com/v1/"
+      "accounts:signUp?key=APIKEY",
+      request->options().url);
 }
 
 // Test SignUpNewUserResponse

@@ -52,7 +52,7 @@ class AuthRequest
       : AuthRequest(app, reinterpret_cast<const char*>(schema),
                     deliver_heartbeat) {}
 
-  std::string GetUrl();
+  std::string GetUrl(const char* server_url = kServerURL);
 
  private:
   ::firebase::App& app;

@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
 #include "auth/src/desktop/rpcs/verify_assertion_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -40,6 +41,17 @@ TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromIdToken) {
   auto request = VerifyAssertionRequest::FromIdToken(*app, "APIKEY", "provider",
                                                      "id_token");
   CheckUrl(*request);
+}
+
+TEST(VerifyAssertionTest, TestVerifyAssertionRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  auto request = VerifyAssertionRequest::FromIdToken(*app, "APIKEY", "provider",
+                                                     "id_token");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/verifyAssertion?key=APIKEY",
+      request->options().url);
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessToken) {

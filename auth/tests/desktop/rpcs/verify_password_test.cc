@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/verify_password_request.h"
 #include "auth/src/desktop/rpcs/verify_password_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -40,6 +41,16 @@ TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
       "  \"returnSecureToken\": true\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(VerifyPasswordTest, TestVerifyPasswordRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/verifyPassword?key=APIKEY",
+      request.options().url);
 }
 
 // Test VerifyPasswordResponse
