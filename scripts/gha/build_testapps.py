@@ -630,6 +630,7 @@ def _build_apple(
   _run(xcode_patcher_args)
 
   xcode_path = os.path.join(project_dir, "integration_test.xcodeproj")
+  os.environ["FIREBASE_SOURCE_FIRESTORE"] = "1"
   if _APPLE_SDK_SIMULATOR in apple_sdk:
     _run(
         xcodebuild.get_args_for_build(
