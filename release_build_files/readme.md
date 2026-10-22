@@ -84,7 +84,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:35.0.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:35.1.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -164,7 +164,7 @@ User Messaging Platform    | libfirebase_ump.a
 |                          | (Maven package)
 |                          | com.google.android.ump:user-messaging-platform:4.0.0
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.11.0
+Google Play services module| com.google.android.gms:play-services-base:18.11.1
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
@@ -613,8 +613,9 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### 14.0.1
+### 14.1.0
 - Changes
+    - General (Android): Update to Firebase Android BoM version 35.1.0.
     - General (iOS): Update to Firebase CocoaPods version 13.1.1.
     - [Firestore] Security Update: Removed compromised eMudhra intermediate CA
       root certificates from embedded trust store.
