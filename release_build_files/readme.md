@@ -238,7 +238,7 @@ Firebase Functions         | firebase_functions.xcframework
 |                          | Firebase/Auth (13.1.1)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations (13.1.1)
+|                          | Firebase/Installations (13.1.1)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Messaging (13.1.1)
@@ -297,10 +297,10 @@ Firebase Functions         | libfirebase_functions.a
 |                          | Firebase/Auth (13.1.1)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations (13.1.1)
+|                          | Firebase/Installations (13.1.1)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging (13.1.1)
+|                          | Firebase/Messaging (13.1.1)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
@@ -613,8 +613,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 14.0.1
 - Changes
+    - General (Android): Update to Firebase Android BoM version 35.1.0.
+    - General (iOS): Update to Firebase CocoaPods version 13.1.1.
     - [Firestore] Security Update: Removed compromised eMudhra intermediate CA
       root certificates from embedded trust store.
       ([#16930](https://github.com/firebase/firebase-ios-sdk/pull/16930))
