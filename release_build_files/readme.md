@@ -616,6 +616,7 @@ code.
 ### 13.13.1
 - Changes
     - General (iOS): Update to Firebase Cocoapods version 12.19.3.
+    - [Firestore] Security Update: Removed compromised eMudhra intermediate CA root certificates from embedded trust store. ([#16930](https://github.com/firebase/firebase-ios-sdk/pull/16930))
 
 ### 13.13.0
 - Changes
