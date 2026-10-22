@@ -630,6 +630,10 @@ code.
     - General (MacOS Desktop): Fix for linker issue on XCode 27. (#1920)
     - Auth: **Breaking Change:** Fixed spelling in `AuthError` enum values (`kAuthErrorWebStorateUnsupported` -> `kAuthErrorWebStorageUnsupported` and `kAuthErrorFederatedProviderAreadyInUse` -> `kAuthErrorFederatedProviderAlreadyInUse`).
 
+### 13.13.1
+- Changes
+    - General (iOS): Update to Firebase Cocoapods version 12.19.3.
+
 ### 13.13.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 34.19.0.
