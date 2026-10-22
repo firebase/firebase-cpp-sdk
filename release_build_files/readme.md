@@ -615,6 +615,7 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - [Firestore] Security Update: Removed compromised eMudhra intermediate CA root certificates from embedded trust store. ([#16930](https://github.com/firebase/firebase-ios-sdk/pull/16930))
     - Auth (Desktop): Fixed an issue where refreshing or fetching an ID token
       (`GetToken`) or linking an email/password credential to an anonymous
       account failed when using the Auth Emulator, because `SecureTokenRequest`
@@ -633,6 +634,7 @@ code.
 ### 13.13.1
 - Changes
     - General (iOS): Update to Firebase Cocoapods version 12.19.3.
+    - [Firestore] Security Update: Removed compromised eMudhra intermediate CA root certificates from embedded trust store. ([#16930](https://github.com/firebase/firebase-ios-sdk/pull/16930))
 
 ### 13.13.0
 - Changes
