@@ -613,8 +613,9 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### 14.0.1
+### 14.1.0
 - Changes
+    - General (Android): Update to Firebase Android BoM version 35.1.0.
     - General (iOS): Update to Firebase CocoaPods version 13.1.1.
     - [Firestore] Security Update: Removed compromised eMudhra intermediate CA
       root certificates from embedded trust store.
