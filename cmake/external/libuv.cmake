@@ -18,7 +18,7 @@ if(TARGET libuv OR NOT DOWNLOAD_LIBUV)
   return()
 endif()
 
-set(version v1.33.1)
+set(version v1.53.0)
 
 ExternalProject_Add(
   libuv
@@ -26,6 +26,7 @@ ExternalProject_Add(
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
   DOWNLOAD_NAME libuv-${version}.tar.gz
   URL https://github.com/libuv/libuv/archive/${version}.tar.gz
+  URL_HASH SHA256=279f3f67a24bb9921fe999ca6cd5e332fade8d515873ef9ba054b70e70a31d9e
 
   PREFIX ${PROJECT_BINARY_DIR}
 

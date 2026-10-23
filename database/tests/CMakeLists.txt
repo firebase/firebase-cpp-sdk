@@ -359,6 +359,28 @@ if(MSVC)
 endif()
 
 firebase_cpp_cc_test(
+  firebase_rtdb_desktop_connection_web_socket_hub_test
+  SOURCES
+    desktop/connection/web_socket_hub_test.cc
+  INCLUDES
+    ${OPENSSL_INCLUDE_DIR}
+    ${UWEBSOCKETS_SOURCE_DIR}/..
+  DEPENDS
+    firebase_database
+    firebase_testing
+    ${OPENSSL_SSL_LIBRARY}
+    ${OPENSSL_CRYPTO_LIBRARY}
+    libuWS
+)
+
+if(MSVC)
+  target_compile_definitions(firebase_rtdb_desktop_connection_web_socket_hub_test
+    PRIVATE
+      -DWIN32_LEAN_AND_MEAN
+  )
+endif()
+
+firebase_cpp_cc_test(
   firebase_rtdb_desktop_connection_connection_test
   SOURCES
     desktop/connection/connection_test.cc
@@ -372,4 +394,3 @@ firebase_cpp_cc_test(
     firebase_database
     firebase_testing
 )
-

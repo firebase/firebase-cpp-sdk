@@ -18,15 +18,15 @@ if(TARGET googletest OR NOT DOWNLOAD_GOOGLETEST)
   return()
 endif()
 
-set(version 1.11.0) # June 2021
+set(version 1.18.0) # August 2026
 
 ExternalProject_Add(
   googletest
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
   DOWNLOAD_NAME googletest-${version}.tar.gz
-  URL https://github.com/google/googletest/archive/release-${version}.tar.gz
-  URL_HASH SHA256=b4870bf121ff7795ba20d20bcdd8627b8e088f2d1dab299a031c1034eddc93d5
+  URL https://github.com/google/googletest/archive/v${version}.tar.gz
+  URL_HASH SHA256=6e3191c1455468b3fc35a417fb565c1c5071aee1b7e7f85e30cf48a98d37d8b5
 
   PREFIX ${PROJECT_BINARY_DIR}
 

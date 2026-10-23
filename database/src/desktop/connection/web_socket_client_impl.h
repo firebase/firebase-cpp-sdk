@@ -26,7 +26,7 @@
 #include "app/src/scheduler.h"
 #include "app/src/thread.h"
 #include "database/src/desktop/connection/web_socket_client_interface.h"
-#include "uWebSockets/src/uWS.h"
+#include "database/src/desktop/connection/web_socket_hub.h"
 
 namespace firebase {
 namespace database {
@@ -107,8 +107,9 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   std::unique_ptr<Thread> thread_;
 
   // The access point for uWebSockets which contains event loops and
-  // different sockets.
-  uWS::Hub hub_;
+  // different sockets. Secure (wss://) connections verify the server's
+  // certificate against the host in uri_.
+  WebSocketHub hub_;
 
   // The handler to keep the event loop of hub_ alive even there is no
   // connection at all.  Otherwise the loop would stop when there is nothing to

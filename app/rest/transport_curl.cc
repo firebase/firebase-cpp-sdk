@@ -446,8 +446,7 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
 
   // Ensure that we are only accepting HTTP(S) traffic.
   // TODO(73540740): Remove support for HTTP.
-  CheckOk(curl_easy_setopt(curl_, CURLOPT_PROTOCOLS,
-                           CURLPROTO_HTTP | CURLPROTO_HTTPS),
+  CheckOk(curl_easy_setopt(curl_, CURLOPT_PROTOCOLS_STR, "http,https"),
           "set valid protocols");
 
   // Verify SSL.
@@ -837,40 +836,32 @@ void CurlThread::ProcessRequests() {
         // Update transfer status.
         CURLINFO transferred_getter;
         CURLINFO size_getter;
-        // According to the documentation, CURLINFO_CONTENT_LENGTH_(UP|DOWN)LOAD
-        // is deprecated in favor of CURLINFO_CONTENT_LENGTH_(UP|DOWN)LOAD_T,
-        // but it looks like our version of libcurl doesn't support the newer _T
-        // versions.
         switch (controller->direction()) {
           case kTransferDirectionUpload:
-            size_getter = CURLINFO_CONTENT_LENGTH_UPLOAD;
-            transferred_getter = CURLINFO_SIZE_UPLOAD;
-            static_assert((CURLINFO_CONTENT_LENGTH_UPLOAD &
-                           CURLINFO_TYPEMASK) == CURLINFO_DOUBLE,
-                          "Unexpected transfer_size type");
-            static_assert(
-                (CURLINFO_SIZE_UPLOAD & CURLINFO_TYPEMASK) == CURLINFO_DOUBLE,
-                "Unexpected bytes_transferred type");
+            size_getter = CURLINFO_CONTENT_LENGTH_UPLOAD_T;
+            transferred_getter = CURLINFO_SIZE_UPLOAD_T;
             break;
           case kTransferDirectionDownload:
-            size_getter = CURLINFO_CONTENT_LENGTH_DOWNLOAD;
-            transferred_getter = CURLINFO_SIZE_DOWNLOAD;
-            static_assert((CURLINFO_CONTENT_LENGTH_DOWNLOAD &
-                           CURLINFO_TYPEMASK) == CURLINFO_DOUBLE,
-                          "Unexpected transfer_size type");
-            static_assert(
-                (CURLINFO_SIZE_DOWNLOAD & CURLINFO_TYPEMASK) == CURLINFO_DOUBLE,
-                "Unexpected bytes_transferred type");
+            size_getter = CURLINFO_CONTENT_LENGTH_DOWNLOAD_T;
+            transferred_getter = CURLINFO_SIZE_DOWNLOAD_T;
             break;
         }
+        static_assert(
+            (CURLINFO_CONTENT_LENGTH_UPLOAD_T & CURLINFO_TYPEMASK) ==
+                    CURLINFO_OFF_T &&
+                (CURLINFO_SIZE_UPLOAD_T & CURLINFO_TYPEMASK) == CURLINFO_OFF_T &&
+                (CURLINFO_CONTENT_LENGTH_DOWNLOAD_T & CURLINFO_TYPEMASK) ==
+                    CURLINFO_OFF_T &&
+                (CURLINFO_SIZE_DOWNLOAD_T & CURLINFO_TYPEMASK) == CURLINFO_OFF_T,
+            "Transfer size getters must return curl_off_t");
 
         CURLcode code;
-        double value = 0.0;
+        curl_off_t value = 0;
         code = curl_easy_getinfo(transport->curl(), size_getter, &value);
         if (code == CURLE_OK) {
           controller->set_transfer_size(static_cast<int64_t>(value));
         }
-        value = 0.0;
+        value = 0;
         code = curl_easy_getinfo(transport->curl(), transferred_getter, &value);
         if (code == CURLE_OK) {
           controller->set_bytes_transferred(static_cast<int64_t>(value));

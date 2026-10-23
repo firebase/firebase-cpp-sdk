@@ -99,6 +99,7 @@ set(desktop_SRCS
     src/desktop/connection/persistent_connection.cc
     src/desktop/connection/util_connection.cc
     src/desktop/connection/web_socket_client_impl.cc
+    src/desktop/connection/web_socket_hub.cc
     src/desktop/core/cache_policy.cc
     src/desktop/core/child_event_registration.cc
     src/desktop/core/compound_write.cc
@@ -175,6 +176,17 @@ else()
       libuWS
       OpenSSL::SSL
       OpenSSL::Crypto)
+
+  # web_socket_hub.cc reads the operating system's trusted root certificates.
+  # These are already required link dependencies of Realtime Database
+  # (see release_build_files/readme.md).
+  if(WIN32)
+    list(APPEND additional_link_LIB crypt32)
+  elseif(APPLE)
+    list(APPEND additional_link_LIB
+         "-framework CoreFoundation"
+         "-framework Security")
+  endif()
 
   set(additional_DEFINES
       -DFIREBASE_TARGET_DESKTOP=1)

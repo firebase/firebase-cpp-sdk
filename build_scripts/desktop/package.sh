@@ -212,7 +212,8 @@ readonly deps_hidden_firebase_app="
 */curl-build/lib/${subdir}libcurl${suffix}.${ext}
 */${subdir}${prefix}flatbuffers.${ext}
 */zlib-build/${subdir}${prefix}z.${ext}
-*/zlib-build/${subdir}zlibstatic*.${ext}
+*/zlib-build/${subdir}zs.${ext}
+*/zlib-build/${subdir}zsd.${ext}
 */boringssl-build/${subdir}${prefix}crypto.${ext}
 */boringssl-build/${subdir}${prefix}ssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
@@ -220,7 +221,7 @@ readonly deps_hidden_firebase_app="
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 readonly deps_hidden_firebase_database="
-*/${subdir}${prefix}uv_a.${ext}
+*/libuv-build/${subdir}libuv.${ext}
 */${subdir}${prefix}libuWS.${ext}
 "
 readonly deps_hidden_firebase_firestore="

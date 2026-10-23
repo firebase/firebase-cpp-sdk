@@ -19,8 +19,15 @@ if(TARGET leveldb)
 endif()
 
 if (DESKTOP AND MSVC)
-set(patch_file 
-  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/leveldb/0001-leveldb-1.23-windows-paths.patch)
+  # Apply the Windows-only patch. On other platforms no patch is applied, so
+  # don't define a PATCH_COMMAND at all; otherwise a `patch_file` variable left
+  # over from a previously included dependency would be applied to leveldb.
+  set(leveldb_patch_command
+    PATCH_COMMAND git apply
+      ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/leveldb/0001-leveldb-1.23-windows-paths.patch
+      && git gc --aggressive)
+else()
+  set(leveldb_patch_command)
 endif()
 
 # This version must be kept in sync with the version in firestore.patch.txt.
@@ -42,5 +49,5 @@ ExternalProject_Add(
   INSTALL_COMMAND   ""
   TEST_COMMAND      ""
   HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
-  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
+  ${leveldb_patch_command}
 )

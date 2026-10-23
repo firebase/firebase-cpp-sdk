@@ -428,7 +428,8 @@ endif()
 
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
-  # Build curl as a static library
+  # Build curl as a static library with only what the SDK needs: HTTP(S) over
+  # the platform's native TLS stack, with no optional third-party libraries.
   set(BUILD_SHARED_LIBS OFF)
   set(BUILD_STATIC_LIBS ON)
   set(BUILD_CURL_EXE OFF)
@@ -436,25 +437,23 @@ if(DESKTOP)
   set(BUILD_MISC_DOCS OFF)
   set(ENABLE_CURL_MANUAL OFF)
   set(CURL_STATICLIB ON)
-  if (WIN32)
-    # Enable Windows native SSL/TLS in libcurl.
-    set(CMAKE_USE_SCHANNEL ON)
+  set(HTTP_ONLY ON)
+  set(BUILD_TESTING OFF)
+  if(WIN32)
+    # Windows native TLS (Schannel), which also verifies certificates against
+    # the Windows certificate store.
     set(CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)
   elseif(APPLE)
-    # Enable macOS native SecTrust certificate & intermediate CA verification.
+    # Verify certificates with Apple's Security framework (SecTrust) so that
+    # the macOS trust store is used instead of a CA bundle file.
     set(USE_APPLE_SECTRUST ON CACHE BOOL "" FORCE)
   endif()
-
-  # Current Curl library defaults to requiring some dependencies we don't need, disable them.
-  set(CMAKE_USE_LIBSSH2 OFF)
   set(CURL_USE_LIBSSH2 OFF CACHE BOOL "" FORCE)
   set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
   set(USE_NGHTTP2 OFF CACHE BOOL "" FORCE)
   set(USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
   set(CURL_BROTLI OFF CACHE STRING "" FORCE)
   set(CURL_ZSTD OFF CACHE STRING "" FORCE)
-  set(HTTP_ONLY ON)
-  set(BUILD_TESTING OFF)
   if(APPLE AND CMAKE_CROSSCOMPILING AND NOT CMAKE_TOOLCHAIN_FILE)
     # curl's CMake file checks for CMAKE_TOOLCHAIN_FILE rather than checking
     # CMAKE_CROSSCOMPILING when determining whether we are cross-compiling.
@@ -465,8 +464,16 @@ if(DESKTOP)
   endif()
   add_external_library(curl)
 
+  # Only the static libuv is used (by uWebSockets); skip its shared library.
+  set(LIBUV_BUILD_SHARED OFF CACHE BOOL "" FORCE)
   add_external_library(libuv)
 
+  # Only the static zlib is used; skip its shared library, examples and
+  # install rules.
+  set(ZLIB_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+  set(ZLIB_BUILD_STATIC ON CACHE BOOL "" FORCE)
+  set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+  set(ZLIB_INSTALL OFF CACHE BOOL "" FORCE)
   add_external_library(zlib)
 
   add_external_library(uWebSockets)
@@ -531,9 +538,6 @@ if(DESKTOP)
         uv_a
         zlibstatic
     )
-    if(MSVC)
-      target_link_libraries(libuWS PRIVATE crypt32)
-    endif()
   endif()
 endif()
 

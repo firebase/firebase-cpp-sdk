@@ -36,7 +36,7 @@ WebSocketClientImpl::WebSocketClientImpl(
     : uri_(uri),
       handler_(handler),
       thread_(nullptr),
-      hub_(),
+      hub_(GetHostFromWebSocketUri(uri), logger),
       keep_loop_alive_(nullptr),
       process_queue_async_(nullptr),
       callback_queue_(),

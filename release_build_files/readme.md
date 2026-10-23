@@ -461,7 +461,7 @@ Authentication       | `advapi32, ws2_32, crypt32`
 App Check            | `advapi32, ws2_32, crypt32`
 Firestore            | `advapi32, ws2_32, crypt32, rpcrt4, ole32, shell32, dbghelp, bcrypt`
 Functions            | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
-Realtime Database    | `advapi32, ws2_32, crypt32, iphlpapi, psapi, userenv, shell32`
+Realtime Database    | `advapi32, ws2_32, crypt32, iphlpapi, psapi, userenv, shell32, dbghelp, ole32, synchronization`
 Remote Config        | `advapi32, ws2_32, crypt32, rpcrt4, ole32, icu`
 Storage              | `advapi32, ws2_32, crypt32`
 
@@ -624,6 +624,20 @@ code.
       (`GetToken`) or linking an email/password credential to an anonymous
       account failed when using the Auth Emulator, because `SecureTokenRequest`
       and `SignUpRequest` were always sent to production endpoints.
+    - Realtime Database (Desktop): Security Update: secure (`wss://`)
+      connections now verify the server's TLS certificate against the operating
+      system's trusted roots, check that it matches the host, and require
+      TLS 1.2 or newer. Previously any certificate was accepted.
+      Connections through a TLS-intercepting proxy require its root to be
+      installed in the operating system trust store; on Linux the
+      `SSL_CERT_FILE` / `SSL_CERT_DIR` environment variables are also honored.
+    - General (Desktop): Updated bundled dependencies: BoringSSL to
+      `fips-20260721`, libcurl to 8.23.0, zlib to 1.3.2 (fixes
+      CVE-2018-25032 and CVE-2022-37434), libuv to 1.53.0 and uWebSockets to
+      v0.14.8. On macOS, libcurl now verifies certificates with the system
+      trust store (Apple SecTrust). On Windows, Realtime Database now
+      additionally requires linking `dbghelp`, `ole32` and `synchronization`
+      (see the Windows library table above) and targets Windows 10 or later.
 
 ### 14.0.0
 - Changes
