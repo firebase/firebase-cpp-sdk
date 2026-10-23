@@ -79,16 +79,21 @@ jobs:
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
     steps:
-    ### Fail the workflow if the user does not have admin access to run the tests.
+    ### Fail the workflow if the user does not have write access to run the tests.
+    ### Skipped for scheduled runs (the actor is whoever last touched the workflow file)
+    ### and for bot actors (e.g. firebase-workflow-trigger[bot] dispatching this from the
+    ### packaging workflow), since bots are not collaborators and already need
+    ### actions:write to dispatch a workflow.
     - name: Check if user has permission to trigger tests
+      if: github.event_name != 'schedule' && !endsWith(github.actor, '[bot]')
       env:
         GH_TOKEN: ${{ github.token }}
         ACTOR: ${{ github.actor }}
       run: |
         permission=$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${ACTOR}/permission" --jq '.permission' || echo "none")
         echo "User ${ACTOR} has permission: ${permission}"
-        if [[ "${permission}" != "admin" ]]; then
-          echo "::error ::User ${ACTOR} does not have admin permission to trigger tests."
+        if [[ "${permission}" != "admin" && "${permission}" != "write" ]]; then
+          echo "::error ::User ${ACTOR} does not have write permission to trigger tests."
           exit 1
         fi
     ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
