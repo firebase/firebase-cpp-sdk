@@ -343,7 +343,6 @@ firebase_cpp_cc_test(
     desktop/connection/web_socket_client_impl_test.cc
   INCLUDES
     ${OPENSSL_INCLUDE_DIR}
-    ${UWEBSOCKETS_SOURCE_DIR}/..
   DEPENDS
     firebase_database
     firebase_testing
@@ -351,6 +350,8 @@ firebase_cpp_cc_test(
     libuWS
 )
 
+target_include_directories(firebase_rtdb_desktop_connection_web_socket_client_impl_test
+  SYSTEM PRIVATE ${UWEBSOCKETS_SOURCE_DIR}/..)
 if(MSVC)
   target_compile_definitions(firebase_rtdb_desktop_connection_web_socket_client_impl_test
     PRIVATE
@@ -364,7 +365,6 @@ firebase_cpp_cc_test(
     desktop/connection/web_socket_hub_test.cc
   INCLUDES
     ${OPENSSL_INCLUDE_DIR}
-    ${UWEBSOCKETS_SOURCE_DIR}/..
   DEPENDS
     firebase_database
     firebase_testing
@@ -373,6 +373,8 @@ firebase_cpp_cc_test(
     libuWS
 )
 
+target_include_directories(firebase_rtdb_desktop_connection_web_socket_hub_test
+  SYSTEM PRIVATE ${UWEBSOCKETS_SOURCE_DIR}/..)
 if(MSVC)
   target_compile_definitions(firebase_rtdb_desktop_connection_web_socket_hub_test
     PRIVATE

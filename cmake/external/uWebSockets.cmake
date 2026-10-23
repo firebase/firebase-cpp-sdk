@@ -18,9 +18,8 @@ if(TARGET uWebSockets OR NOT DOWNLOAD_UWEBSOCKETS)
   return()
 endif()
 
+# v0.14.8, the last release with the C++ client (uWS::Hub::connect).
 set(uwebsockets_commit_tag 6d80b42e56f03295816f11371e6713690c87efdf)
-set(patch_file 
-  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/uWebSockets/0001-fix-want-write-and-sprintf-deprecation.patch)
 
 ExternalProject_Add(
   uWebSockets
@@ -29,7 +28,6 @@ ExternalProject_Add(
     COMMAND git init uWebSockets
     COMMAND cd uWebSockets && git fetch --depth=1 https://github.com/uNetworking/uWebSockets.git ${uwebsockets_commit_tag} && git reset --hard FETCH_HEAD
 
-  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
   PREFIX ${PROJECT_BINARY_DIR}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""

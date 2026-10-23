@@ -330,6 +330,22 @@ WebSocketHub::WebSocketHub(const std::string& host, Logger* logger)
   }
 }
 
+void WebSocketHub::run() {
+  // uWS::Hub::connect() gives each socket the Group<CLIENT> copy of the Node's
+  // NodeData, taken when the Hub was constructed. uS::Node::run() records the
+  // loop thread only in the original, so the copy's `tid` keeps naming the
+  // thread that constructed the Hub. On the libuv backend (macOS, Windows)
+  // Socket::changePoll() compares `tid` with the current thread and, on a
+  // mismatch, forwards through an Async that the copy never created: the
+  // first write that has to wait for the socket to become writable (a large
+  // payload, or SSL_ERROR_WANT_WRITE) then dereferences a null pointer
+  // (firebase/firebase-cpp-sdk#344). Recording the loop thread in the copies
+  // as well keeps every poll change on the direct path.
+  this->uWS::Group<uWS::CLIENT>::tid = pthread_self();
+  this->uWS::Group<uWS::SERVER>::tid = pthread_self();
+  uS::Node::run();
+}
+
 }  // namespace connection
 }  // namespace internal
 }  // namespace database

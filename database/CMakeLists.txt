@@ -162,12 +162,16 @@ endif()
 
 if(ANDROID OR IOS)
   set(additional_include_DIR)
+  set(additional_system_include_DIR)
   set(additional_link_LIB)
   set(additional_DEFINES)
 else()
   set(additional_include_DIR
       ${FLATBUFFERS_SOURCE_DIR}/include
-      ${OPENSSL_INCLUDE_DIR}
+      ${OPENSSL_INCLUDE_DIR})
+  # uWebSockets is header-heavy third-party code; include it as a system
+  # directory so warnings in its headers are not reported against our sources.
+  set(additional_system_include_DIR
       ${UWEBSOCKETS_SOURCE_DIR}/..)
 
   set(additional_link_LIB
@@ -223,6 +227,10 @@ target_include_directories(firebase_database
     ${FIREBASE_CPP_SDK_ROOT_DIR}
     ${additional_include_DIR}
 )
+if(additional_system_include_DIR)
+  target_include_directories(firebase_database SYSTEM PRIVATE
+    ${additional_system_include_DIR})
+endif()
 target_compile_definitions(firebase_database
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1

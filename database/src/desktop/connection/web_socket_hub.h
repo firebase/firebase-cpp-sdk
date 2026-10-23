@@ -75,6 +75,11 @@ class WebSocketHub final : public uWS::Hub {
   WebSocketHub(const WebSocketHub&) = delete;
   WebSocketHub& operator=(const WebSocketHub&) = delete;
 
+  // Runs the event loop on the calling thread, like uS::Node::run(), after
+  // recording that thread as the loop thread everywhere uWebSockets consults
+  // it. See the definition for why this is needed.
+  void run();
+
   const std::string& host() const { return host_; }
   Logger* logger() const { return logger_; }
 

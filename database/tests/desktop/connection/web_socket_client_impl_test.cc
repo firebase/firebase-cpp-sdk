@@ -226,6 +226,50 @@ TEST(WebSocketClientImpl, Test1) {
   server.Stop();
 }
 
+// Sends a message far larger than the socket's send buffer, so that the write
+// cannot complete at once and uWebSockets has to queue the remainder and wait
+// for the socket to become writable. On the libuv backend (macOS, Windows)
+// this path used to dereference a null Async because the socket's NodeData
+// still named the constructing thread as the loop thread; WebSocketHub::run()
+// fixes that. See firebase/firebase-cpp-sdk#344.
+TEST(WebSocketClientImpl, TestLargeMessage) {
+  TestWebSocketEchoServer server(0);
+  server.Start();
+  auto uri = GetLocalHostUri(server.GetPort(true));
+
+  Semaphore semaphore(1);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl ws_client(uri.c_str(), "", &logger, &scheduler, "",
+                                &handler);
+
+  EXPECT_TRUE(semaphore.TryWait());
+  ws_client.Connect(5000);
+  semaphore.Wait();
+  semaphore.Post();
+  ASSERT_TRUE(handler.is_connected_ && !handler.is_error_);
+
+  // 8 MiB of printable data; the default maxPayload of the echo server and the
+  // client is 16 MiB.
+  std::string message(8 * 1024 * 1024, 'x');
+  for (size_t i = 0; i < message.size(); i += 4096) message[i] = 'y';
+  EXPECT_TRUE(semaphore.TryWait());
+  ws_client.Send(message.c_str());
+  semaphore.Wait();
+  semaphore.Post();
+  EXPECT_TRUE(handler.is_msg_received_ && !handler.is_error_);
+  EXPECT_EQ(message, handler.msg_received_);
+
+  EXPECT_TRUE(semaphore.TryWait());
+  ws_client.Close();
+  semaphore.Wait();
+  semaphore.Post();
+  EXPECT_TRUE(handler.is_closed_ && !handler.is_error_);
+
+  server.Stop();
+}
+
 // Test if it is safe to create the client and destroy it immediately.
 // This is to test if the destructor can properly end the event loop.
 // Otherwise, it would block forever and timeout
