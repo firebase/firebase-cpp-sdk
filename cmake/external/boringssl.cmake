@@ -20,7 +20,7 @@ endif()
 
 set(patch_file ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/boringssl/0001-disable-warnings.patch)
 
-set(boringssl_commit_tag fips-20220613)
+set(boringssl_commit_tag fips-20260721)
 
 ExternalProject_Add(
   boringssl

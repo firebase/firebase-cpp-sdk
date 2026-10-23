@@ -213,8 +213,8 @@ readonly deps_hidden_firebase_app="
 */${subdir}${prefix}flatbuffers.${ext}
 */zlib-build/${subdir}${prefix}z.${ext}
 */zlib-build/${subdir}zlibstatic*.${ext}
-*/boringssl-build/crypto/${subdir}${prefix}crypto.${ext}
-*/boringssl-build/ssl/${subdir}${prefix}ssl.${ext}
+*/boringssl-build/${subdir}${prefix}crypto.${ext}
+*/boringssl-build/${subdir}${prefix}ssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
 */firestore-build/*/snappy-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}

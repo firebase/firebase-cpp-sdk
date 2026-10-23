@@ -18,7 +18,7 @@ if(TARGET uWebSockets OR NOT DOWNLOAD_UWEBSOCKETS)
   return()
 endif()
 
-set(uwebsockets_commit_tag 4d94401b9c98346f9afd838556fdc7dce30561eb)
+set(uwebsockets_commit_tag 6d80b42e56f03295816f11371e6713690c87efdf)
 set(patch_file 
   ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/uWebSockets/0001-fix-want-write-and-sprintf-deprecation.patch)
 

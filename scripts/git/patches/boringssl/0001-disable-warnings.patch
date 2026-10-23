@@ -1,14 +1,14 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index bab3d89..16f0cee 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -197,6 +197,11 @@ elseif(MSVC)
-               # possible loss of data
-       "C4244" # 'function' : conversion from 'int' to 'uint8_t',
-               # possible loss of data
-+      "C4255" # 'function' : no function prototype given: converting '()' to
-+              # '(void)'
-+      "C4191" # 'operator/operation' : unsafe conversion from 'type of
-+              # expression' to 'type required'
-+      "C5264" # 'const' variable is not used
-       "C4267" # conversion from 'size_t' to 'int', possible loss of data
-       "C4371" # layout of class may have changed from a previous version of the
-               # compiler due to better packing of member '...'
+@@ -519,6 +519,9 @@ elseif(MSVC)
+       "-wd4702" # unreachable code; MSVC's warning is too aggressive. See
+                 # https://crbug.com/385161043
+       "-wd4706" # assignment within conditional expression
++      "-wd4255" # no function prototype given: converting '()' to '(void)'
++      "-wd4191" # 'type cast': unsafe conversion from 'FARPROC' to '...'
++      "-wd5264" # 'const' variable is not used
+       )
+   add_compile_options(
+     "$<$<COMPILE_LANGUAGE:C,CXX>:-W4;-WX;${MSVC_DISABLED_WARNINGS_LIST}>")
