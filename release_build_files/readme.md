@@ -613,6 +613,15 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
+      when initialization fails. It now returns `nullptr` and reports
+      `kInitResultFailedMissingDependency`.
+    - General (Android): Fixed loading of embedded Java classes when the app
+      runs under a custom class loader setup, such as being hosted in another
+      app's process. (#1936)
+
 ### 14.1.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.1.0.
