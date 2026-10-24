@@ -301,6 +301,7 @@ static jobject GetParentLoader() {
 // JNIEnv::FindClass(), to the binary name (e.g. "java.lang.String") expected by
 // ClassLoader methods.
 static std::string JniClassNameToBinaryName(const char* class_name) {
+  if (!class_name) return std::string();
   std::string binary_name(class_name);
   std::replace(binary_name.begin(), binary_name.end(), '/', '.');
   return binary_name;
