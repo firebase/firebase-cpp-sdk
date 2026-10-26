@@ -252,7 +252,19 @@ TEST_F(UserTest, TestGetToken) {
 }
 
 TEST_F(UserTest, TestGetIdTokenResult) {
-  firebase::testing::cppsdk::ConfigSet(
+  // On desktop the result is produced by decoding the ID token as a JWT, so
+  // the mocked securetoken endpoint must return a well-formed one.
+  std::string header_b64;
+  std::string payload_b64;
+  internal::Base64EncodeUrlSafe("{\"alg\":\"RS256\",\"typ\":\"JWT\"}",
+                                &header_b64);
+  internal::Base64EncodeUrlSafe(
+      "{\"auth_time\":1600000000,\"iat\":1600000010,\"exp\":1600003610,"
+      "\"sub\":\"localid123\"}",
+      &payload_b64);
+  const std::string jwt_token = header_b64 + "." + payload_b64 + ".fakesig";
+
+  const std::string config =
       "{"
       "  config:["
       "    {fake:'FirebaseUser.getIdToken', futuregeneric:{ticker:1}},"
@@ -264,20 +276,23 @@ TEST_F(UserTest, TestGetIdTokenResult) {
       "      httpresponse: {"
       "        header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
       "        body: ['{"
-      "          \"access_token\": \"fake_access_token\","
-      "          \"expires_in\": \"3600\","
-      "          \"token_type\": \"Bearer\","
-      "          \"refresh_token\": \"fake_refresh_token\","
-      "          \"id_token\": \"fake_id_token\","
-      "          \"user_id\": \"fake_user_id\","
-      "          \"project_id\": \"fake_project_id\""
+      "          \\\"access_token\\\": \\\"fake_access_token\\\","
+      "          \\\"expires_in\\\": \\\"3600\\\","
+      "          \\\"token_type\\\": \\\"Bearer\\\","
+      "          \\\"refresh_token\\\": \\\"fake_refresh_token\\\","
+      "          \\\"id_token\\\": \\\"" +
+      jwt_token +
+      "\\\","
+      "          \\\"user_id\\\": \\\"localid123\\\","
+      "          \\\"project_id\\\": \\\"fake_project_id\\\""
       "        }']"
       "      }"
       "    }"
       "  ]"
-      "}");
+      "}";
+  firebase::testing::cppsdk::ConfigSet(config.c_str());
   Future<IdTokenResult> token_result =
-      firebase_user_.GetIdTokenResult(false /* force_refresh */);
+      firebase_user_.GetIdTokenResult(true /* force_refresh */);
 
   Verify(token_result);
   ASSERT_NE(nullptr, token_result.result());
@@ -294,6 +309,21 @@ TEST_F(UserTest, TestGetIdTokenResult) {
   Future<IdTokenResult> invalid_future = invalid_user.GetIdTokenResult(false);
   EXPECT_EQ(firebase::kFutureStatusInvalid, invalid_future.status());
 }
+
+#if !defined(FIREBASE_ANDROID_FOR_DESKTOP) && !FIREBASE_PLATFORM_IOS && \
+    !FIREBASE_PLATFORM_TVOS
+TEST_F(UserTest, TestGetIdTokenResultFailsOnMalformedToken) {
+  // The cached token from the fixture ("idtoken123") is not a JWT, so the
+  // desktop implementation must report an error instead of silently returning
+  // an empty result.
+  Future<IdTokenResult> future = firebase_user_.GetIdTokenResult(false);
+  MaybeWaitForFuture(future);
+  EXPECT_EQ(firebase::kFutureStatusComplete, future.status());
+  EXPECT_EQ(kAuthErrorFailure, future.error());
+  EXPECT_STRNE("", future.error_message());
+}
+#endif  // !defined(FIREBASE_ANDROID_FOR_DESKTOP) && !FIREBASE_PLATFORM_IOS &&
+        // !FIREBASE_PLATFORM_TVOS
 
 #if !defined(FIREBASE_ANDROID_FOR_DESKTOP) && !FIREBASE_PLATFORM_IOS && \
     !FIREBASE_PLATFORM_TVOS

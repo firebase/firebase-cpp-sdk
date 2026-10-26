@@ -278,6 +278,9 @@ class User : public UserInfoInterface {
   /// expired), that token will be returned immediately.
   /// A developer may set the optional force_refresh flag to get a new ID token,
   /// whether or not the existing token has expired.
+  ///
+  /// The returned Future fails with kAuthErrorFailure if the ID token cannot
+  /// be decoded.
   Future<IdTokenResult> GetIdTokenResult(bool force_refresh);
 
 #if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)

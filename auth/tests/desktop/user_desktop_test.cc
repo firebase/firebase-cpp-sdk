@@ -402,10 +402,9 @@ TEST_F(UserDesktopTest, TestGetIdTokenResult) {
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(0);
 
-  // Initial cached token from SetUp.
-  IdTokenResult initial_result =
-      WaitForFuture(firebase_user_.GetIdTokenResult(false));
-  EXPECT_EQ("idtoken123", initial_result.token);
+  // Initial cached token from SetUp ("idtoken123") is not a JWT, so decoding
+  // it must fail rather than silently produce an empty result.
+  WaitForFuture(firebase_user_.GetIdTokenResult(false), kAuthErrorFailure);
 
   // Force refresh to get the JWT and verify parsed claims & timestamps.
   const IdTokenResult refreshed_result =

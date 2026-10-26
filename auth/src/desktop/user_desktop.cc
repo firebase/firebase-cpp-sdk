@@ -64,6 +64,11 @@ using firebase::callback::NewCallback;
 
 namespace {
 
+// Error message reported by GetIdTokenResult when the ID token returned by the
+// backend cannot be decoded as a JWT.
+const char kIdTokenResultParseErrorMessage[] =
+    "Failed to decode the ID token as a JWT.";
+
 // Contains the results of a GetToken operation, either successful, in which
 // case IsValid() will return true and token() will be non-blank, or
 // non-successful.
@@ -724,6 +729,8 @@ Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
     IdTokenResult id_token_result;
     if (!ParseIdToken(current_token.token(), &id_token_result)) {
       LogWarning("GetIdTokenResult: Failed to parse cached ID token.");
+      promise.Fail(kAuthErrorFailure, kIdTokenResultParseErrorMessage);
+      return promise.future();
     }
     promise.CompleteWithResult(id_token_result);
     return promise.future();
@@ -741,6 +748,9 @@ Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
         IdTokenResult id_token_result;
         if (!ParseIdToken(get_token_result.token(), &id_token_result)) {
           LogWarning("GetIdTokenResult: Failed to parse refreshed ID token.");
+          handle->promise.Fail(kAuthErrorFailure,
+                               kIdTokenResultParseErrorMessage);
+          return;
         }
         handle->promise.CompleteWithResult(id_token_result);
       };

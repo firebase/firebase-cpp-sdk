@@ -43,7 +43,6 @@ enum AuthApiFunction {
 
   // External functions in the User API.
   kUserFn_GetToken,
-  kUserFn_GetIdTokenResult,
   kUserFn_UpdateEmail,
   kUserFn_UpdatePassword,
   kUserFn_Reauthenticate,
@@ -59,6 +58,7 @@ enum AuthApiFunction {
   kUserFn_UpdatePhoneNumberCredential,
   kUserFn_Reload,
   kUserFn_Delete,
+  kUserFn_GetIdTokenResult,
 
   // Internal functions that are still handles, but are only used internally:
   kInternalFn_GetTokenForRefresher,
