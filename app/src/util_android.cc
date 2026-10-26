@@ -1883,7 +1883,7 @@ bool LogException(JNIEnv* env, LogLevel log_level, const char* log_fmt, ...) {
     if (message) {
       std::string message_str = JniStringToString(env, message);
       if (log_fmt != nullptr) {
-        char buf[512];
+        char buf[512] = {0};
         va_list list;
         va_start(list, log_fmt);
         vsnprintf(buf, sizeof(buf), log_fmt, list);
