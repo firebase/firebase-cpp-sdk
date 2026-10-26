@@ -30,7 +30,7 @@ jobs:
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
       matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         with:
           persist-credentials: true # zizmor: ignore[artipacked]
           submodules: false
@@ -95,7 +95,7 @@ jobs:
           echo "Enabling expanded build and test matrix."
           echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
 
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         with:
           persist-credentials: true # zizmor: ignore[artipacked]
           submodules: true
@@ -110,18 +110,18 @@ jobs:
           MATRIX_ARCHITECTURE: ${{ matrix.architecture }}
 
       - name: Setup python
-        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
 
       - name: Add msbuild to PATH
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506 # ratchet:microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # ratchet:microsoft/setup-msbuild@v3
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # ratchet:actions/cache@v6
         with:
           path: /tmp/android-ndk-r23b
           key: android-ndk-${{ matrix.os }}-r23b
@@ -166,7 +166,7 @@ jobs:
 
       - name: Cache ccache files
         id: cache_ccache
-        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # ratchet:actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # ratchet:actions/cache@v6
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
