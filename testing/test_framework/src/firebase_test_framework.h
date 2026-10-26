@@ -101,9 +101,6 @@ namespace firebase_test_framework {
 // SKIP_TEST_ON_SIMULATOR / SKIP_TEST_ON_EMULATOR (identical)
 // SKIP_TEST_ON_IOS_SIMULATOR / SKIP_TEST_ON_ANDROID_EMULATOR
 // SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(version_code)
-//
-// Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for
-// Android STLPort, which does not fully support C++11.
 
 #if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 #define SKIP_TEST_ON_DESKTOP                                               \
@@ -272,18 +269,6 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(x) ((void)0)
 #endif  // defined(ANDROID)
 
-#if defined(STLPORT)
-#define SKIP_TEST_IF_USING_STLPORT                                             \
-  {                                                                            \
-    app_framework::LogInfo("Skipping %s due to incompatibility with STLPort.", \
-                           test_info_->name());                                \
-    GTEST_SKIP();                                                              \
-    return;                                                                    \
-  }
-#else
-#define SKIP_TEST_IF_USING_STLPORT ((void)0)
-#endif  // defined(STLPORT)
-
 #if defined(QUICK_CHECK)
 #define SKIP_TEST_ON_QUICK_CHECK                                               \
   {                                                                            \
@@ -295,8 +280,10 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_QUICK_CHECK ((void)0)
 #endif  // defined(QUICK_CHECK)
 
-#define KNOWN_FAILURE(explanation) \
-  { FAIL() << test_info_->name() << " has a known failure: " << explanation; }
+#define KNOWN_FAILURE(explanation)                                           \
+  {                                                                          \
+    FAIL() << test_info_->name() << " has a known failure: " << explanation; \
+  }
 
 #if FIREBASE_PLATFORM_LINUX || FIREBASE_PLATFORM_OSX
 #define DEATHTEST_SIGABRT "SIGABRT"

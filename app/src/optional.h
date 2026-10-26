@@ -20,6 +20,7 @@
 #include <cassert>
 #include <cstdint>
 #include <new>
+#include <type_traits>
 #include <utility>
 
 #include "app/src/include/firebase/internal/common.h"
@@ -175,18 +176,7 @@ class Optional {
   }
   T* aligned_buffer() { return reinterpret_cast<T*>(&buffer_); }
 
-  // Older versions of Visual Studio (2013 and prior) do not have support
-  // for alignof, but do have __alignof, so map it to use that if necessary.
-#if (defined(_MSC_VER) && _MSC_VER <= 1800)
-#define FIREBASE_ALIGNOF __alignof
-#else
-#define FIREBASE_ALIGNOF alignof
-#endif  // (defined(_MSC_VER) && _MSC_VER <= 1800)
-
-  typename FIREBASE_ALIGNED_STORAGE<sizeof(T), FIREBASE_ALIGNOF(T)>::type
-      buffer_;
-
-#undef FIREBASE_ALIGNOF
+  typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer_;
 
   bool has_value_;
 };

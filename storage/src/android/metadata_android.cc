@@ -115,13 +115,7 @@ static std::map<std::string, std::string>* CreateMapCopy(
   std::map<std::string, std::string>* dest = nullptr;
   if (src != nullptr) {
     dest = new std::map<std::string, std::string>;
-#if defined(_STLPORT_VERSION)
-    for (auto i = src->begin(); i != src->end(); ++i) {
-      dest->insert(*i);
-    }
-#else
     *dest = *src;
-#endif  // defined(_STLPORT_VERSION)
   }
   return dest;
 }

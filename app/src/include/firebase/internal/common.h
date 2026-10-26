@@ -19,48 +19,11 @@
 
 // This file contains definitions that configure the SDK.
 
-// Include a STL header file, othewise _STLPORT_VERSION won't be set.
+#include <type_traits>
 #include <utility>
 
-// Move operators use rvalue references, which are a C++11 extension.
-// Also, Visual Studio 2010 and later actually support move operators despite
-// reporting __cplusplus to be 199711L, so explicitly check for that.
-// Also, stlport doesn't implement std::move().
-#if (__cplusplus >= 201103L || _MSC_VER >= 1600) && !defined(_STLPORT_VERSION)
 #define FIREBASE_USE_MOVE_OPERATORS
-#endif
-
-// stlport doesn't implement std::function.
-#if !defined(_STLPORT_VERSION)
 #define FIREBASE_USE_STD_FUNCTION
-#endif  // !defined(_STLPORT_VERSION)
-
-// stlport doesn't implement std::aligned_storage.
-#if defined(_STLPORT_VERSION)
-#include <cstddef>
-
-namespace firebase {
-template <std::size_t Length, std::size_t Alignment>
-struct AlignedStorage {
-  struct type {
-    alignas(Alignment) unsigned char data[Length];
-  };
-};
-}  // namespace firebase
-#define FIREBASE_ALIGNED_STORAGE ::firebase::AlignedStorage
-#else
-#include <type_traits>
-#define FIREBASE_ALIGNED_STORAGE std::aligned_storage
-#endif  // defined(_STLPORT_VERSION)
-
-// Visual Studio 2013 does not support snprintf, so use streams instead.
-#if !(defined(_MSC_VER) && _MSC_VER <= 1800)
-#define FIREBASE_USE_SNPRINTF
-#endif  // !(defined(_MSC_VER) && _MSC_VER <= 1800)
-
-#if !(defined(_MSC_VER) && _MSC_VER <= 1800)
-#define FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
-#endif  // !(defined(_MSC_VER) && _MSC_VER <= 1800)
 
 #if !defined(DOXYGEN) && !defined(SWIG)
 #if !defined(_WIN32) && !defined(__CYGWIN__)
@@ -100,7 +63,7 @@ struct AlignedStorage {
   namespace firebase {                                                \
   static void* module_name##_ref FIREBASE_APP_KEEP_SYMBOL =           \
       &FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name); \
-  }     /* namespace firebase */
+  } /* namespace firebase */
 #endif  //  !defined(DOXYGEN) && !defined(SWIG)
 
 #if defined(SWIG) || defined(DOXYGEN)

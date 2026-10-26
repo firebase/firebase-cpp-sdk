@@ -16,6 +16,8 @@
 
 #include "app/src/thread.h"
 
+#include <utility>
+
 #include "app/src/include/firebase/internal/mutex.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -89,8 +91,7 @@ TEST(ThreadTest, ThreadShouldNotBeJoinableAfterBeingMoveAssignedOutOf) {
 
   ASSERT_THAT(source.Joinable(), Eq(true));
 
-  // cast due to lack of std::move in STLPort
-  target = static_cast<firebase::Thread&&>(source);
+  target = std::move(source);
   ASSERT_THAT(source.Joinable(), Eq(false));
   ASSERT_THAT(target.Joinable(), Eq(true));
   target.Join();
@@ -101,8 +102,7 @@ TEST(ThreadTest, ThreadShouldNotBeJoinableAfterBeingMoveFrom) {
 
   ASSERT_THAT(source.Joinable(), Eq(true));
 
-  // cast due to lack of std::move in STLPort
-  firebase::Thread target(static_cast<firebase::Thread&&>(source));
+  firebase::Thread target(std::move(source));
   ASSERT_THAT(source.Joinable(), Eq(false));
   ASSERT_THAT(target.Joinable(), Eq(true));
   target.Join();

@@ -16,37 +16,20 @@
 
 #include "app/src/thread.h"
 
-#if !defined(_STLPORT_VERSION)
-
 namespace firebase {
 
 Thread::Thread() {}
 
 Thread::~Thread() {}
 
-#ifdef FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 Thread::Thread(Thread&& other) = default;
-#else
-Thread::Thread(Thread&& other) { thread_.swap(other.thread_); }
-#endif  // FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 
 Thread::Thread(Thread::UnsafeRoutine start_routine, void* arg)
     : thread_(start_routine, arg) {}
 
 Thread::Thread(Thread::NoArgRoutine start_routine) : thread_(start_routine) {}
 
-#ifdef FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 Thread& Thread::operator=(Thread&& other) = default;
-#else
-Thread& Thread::operator=(Thread&& other) {
-  if (this == &other) {
-    return *this;
-  }
-
-  thread_.swap(other.thread_);
-  return *this;
-}
-#endif  // FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 
 bool Thread::Joinable() const { return thread_.joinable(); }
 
@@ -56,4 +39,3 @@ void Thread::Detach() { thread_.detach(); }
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
-#endif

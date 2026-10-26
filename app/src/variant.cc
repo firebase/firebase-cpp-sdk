@@ -21,9 +21,8 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
-#include <iomanip>
-#include <sstream>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
@@ -456,32 +455,18 @@ void Variant::assert_is_blob() const {
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 Variant Variant::AsString() const {
-#ifdef FIREBASE_USE_SNPRINTF
   static const size_t kBufferSize = 64;
-#endif  // FIREBASE_USE_SNPRINTF
   switch (type_) {
     case kInternalTypeInt64: {
-#ifdef FIREBASE_USE_SNPRINTF
       char buffer[kBufferSize];
       snprintf(buffer, kBufferSize, INT64FORMAT,
                static_cast<intmax_t>(int64_value()));
       return Variant::FromMutableString(buffer);
-#else
-      std::stringstream ss;
-      ss << static_cast<intmax_t>(int64_value());
-      return Variant::FromMutableString(ss.str());
-#endif  // FIREBASE_USE_SNPRINTF
     }
     case kInternalTypeDouble: {
-#ifdef FIREBASE_USE_SNPRINTF
       char buffer[kBufferSize];
       snprintf(buffer, kBufferSize, "%.16f", double_value());
       return Variant::FromMutableString(buffer);
-#else
-      std::stringstream ss;
-      ss << std::fixed << std::setprecision(16) << double_value();
-      return Variant::FromMutableString(ss.str());
-#endif  // FIREBASE_USE_SNPRINTF
     }
     case kInternalTypeBool: {
       return bool_value() ? Variant("true") : Variant("false");

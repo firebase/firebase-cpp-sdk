@@ -289,9 +289,6 @@ class CallbackStdFunction : public Callback {
 };
 #endif
 
-// STLPort doens't support std::tuple or std::get, which are needed for
-// CallbackVariadic to work.
-#if !defined(_STLPORT_VERSION)
 template <int...>
 struct IntegerSequence {};
 
@@ -357,7 +354,6 @@ template <typename... CallbackAndArgs>
 Callback* NewCallback(CallbackAndArgs... callback_and_args) {
   return NewCallbackHelper(callback_and_args...);
 }
-#endif  // !defined(_STLPORT_VERSION)
 
 /// Adds a Callback to be called on the next PollCallbacks call.
 /// This function returns a reference in the queue that can be used to remove

@@ -130,9 +130,7 @@ const char* kCpuArchitecture = "mips64";
 #error Unknown Android architecture.
 #endif  // Architecture
 
-#if defined(_STLPORT_VERSION)
-const char* kCppRuntimeOrStl = "stlport";
-#elif defined(_GLIBCXX_UTILITY)
+#if defined(_GLIBCXX_UTILITY)
 const char* kCppRuntimeOrStl = "gnustl";
 #elif defined(_LIBCPP_STD_VER)
 const char* kCppRuntimeOrStl = "libcpp";
