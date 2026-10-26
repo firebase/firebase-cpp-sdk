@@ -41,19 +41,28 @@ namespace remote_config {
 
 // The global map of Apps to RemoteConfigs.
 //
-// The map is allocated on first use and freed when the last RemoteConfig is
-// deleted. The mutex is allocated once and never freed: it cannot be safely
-// deleted while another thread may be about to lock it, and it is cheap to
-// keep for the lifetime of the process. Neither is a static object with a
-// destructor, so a RemoteConfig owned by a static (e.g. a static
+// The map and its mutex are function-local statics that are allocated on
+// first use and never freed, which keeps them out of static initialization
+// and destruction entirely. They are ready no matter which translation unit's
+// initializers run first, and a RemoteConfig owned by a static (e.g. a static
 // std::unique_ptr<RemoteConfig>) can still be destroyed safely after this
-// file's globals would otherwise have been torn down by the C++ runtime.
+// file's globals would otherwise have been torn down by the C++ runtime. The
+// mutex in particular can never be freed safely, since another thread may be
+// about to lock it.
 using RemoteConfigMap = std::map<App*, RemoteConfig*>;
-static RemoteConfigMap* g_rcs = nullptr;
-Mutex* g_rc_mutex = new Mutex();
+
+static RemoteConfigMap& RemoteConfigs() {
+  static RemoteConfigMap* const remote_configs = new RemoteConfigMap();
+  return *remote_configs;
+}
+
+static Mutex& RemoteConfigsMutex() {
+  static Mutex* const mutex = new Mutex();
+  return *mutex;
+}
 
 RemoteConfig* RemoteConfig::GetInstance(App* app) {
-  MutexLock lock(*g_rc_mutex);
+  MutexLock lock(RemoteConfigsMutex());
   // Return the RemoteConfig if it already exists.
   RemoteConfig* existing_rc = FindRemoteConfig(app);
   if (existing_rc) {
@@ -80,10 +89,7 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
 
     // Stick it in the global map so we remember it, and can delete it on
     // shutdown.
-    if (!g_rcs) {
-      g_rcs = new RemoteConfigMap();
-    }
-    (*g_rcs)[app] = rc;
+    RemoteConfigs()[app] = rc;
     return rc;
   }
 
@@ -91,18 +97,17 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
 }
 
 RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
-  MutexLock lock(*g_rc_mutex);
-  if (!g_rcs) return nullptr;
+  MutexLock lock(RemoteConfigsMutex());
   // Return the RemoteConfig if it already exists.
-  RemoteConfigMap::iterator it = g_rcs->find(app);
-  if (it != g_rcs->end()) {
+  RemoteConfigMap::iterator it = RemoteConfigs().find(app);
+  if (it != RemoteConfigs().end()) {
     return it->second;
   }
   return nullptr;
 }
 
 void RemoteConfig::DeleteInternal() {
-  MutexLock lock(*g_rc_mutex);
+  MutexLock lock(RemoteConfigsMutex());
   if (!internal_) return;
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app());
@@ -113,15 +118,8 @@ void RemoteConfig::DeleteInternal() {
   delete internal_;
   internal_ = nullptr;
 
-  // Remove rc from the g_rcs map.
-  if (g_rcs) {
-    g_rcs->erase(app());
-    // If it's the last one, delete the map.
-    if (g_rcs->empty()) {
-      delete g_rcs;
-      g_rcs = nullptr;
-    }
-  }
+  // Remove rc from the RemoteConfigs map.
+  RemoteConfigs().erase(app());
 }
 
 RemoteConfig::RemoteConfig(App* app) {

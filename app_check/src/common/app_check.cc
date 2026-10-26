@@ -61,10 +61,16 @@ namespace app_check {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAppCheck);
 
-// Allocated once and never freed so that it is not destroyed by the C++
-// runtime at exit: an AppCheck owned by a static object may be destroyed after
-// this file's globals, and its destructor must still be able to lock this.
-Mutex* g_app_check_lock = new Mutex();
+// A function-local static that is allocated on first use and never freed,
+// which keeps it out of static initialization and destruction entirely: it
+// is ready no matter which translation unit's initializers run first, and
+// an AppCheck owned by a static object can still lock it from its destructor
+// after this file's globals would otherwise have been torn down by the C++
+// runtime.
+static Mutex& AppCheckLock() {
+  static Mutex* const mutex = new Mutex();
+  return *mutex;
+}
 static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 
 // Define the destructors for the virtual listener/provider/factory classes.
@@ -89,7 +95,7 @@ namespace internal {
 AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
   if (!app) return nullptr;
 
-  MutexLock lock(*g_app_check_lock);
+  MutexLock lock(AppCheckLock());
   if (g_app_check_map) {
     auto it = g_app_check_map->find(app);
     if (it != g_app_check_map->end()) {
@@ -104,7 +110,7 @@ AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
 AppCheck* AppCheck::GetInstance(::firebase::App* app) {
   if (!app) return nullptr;
 
-  MutexLock lock(*g_app_check_lock);
+  MutexLock lock(AppCheckLock());
   if (!g_app_check_map) {
     g_app_check_map = new std::map<::firebase::App*, AppCheck*>();
   }
@@ -130,7 +136,7 @@ AppCheck::AppCheck(::firebase::App* app) {
 AppCheck::~AppCheck() { DeleteInternal(); }
 
 void AppCheck::DeleteInternal() {
-  MutexLock lock(*g_app_check_lock);
+  MutexLock lock(AppCheckLock());
 
   if (!internal_) return;
 
