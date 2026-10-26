@@ -613,6 +613,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General (Android): Fixed a potential buffer overflow in `LogException` when
+      formatting long JNI exception messages.
+
 ### 14.1.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.1.0.
