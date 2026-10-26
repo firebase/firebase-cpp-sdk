@@ -52,7 +52,10 @@ namespace storage {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseStorage);
 
-Mutex g_storages_lock;  // NOLINT
+// Allocated once and never freed so that it is not destroyed by the C++
+// runtime at exit: a Storage owned by a static object may be destroyed after
+// this file's globals, and its destructor must still be able to lock this.
+Mutex* g_storages_lock = new Mutex();
 static std::map<std::pair<App*, std::string>, Storage*>* g_storages = nullptr;
 
 Storage* Storage::GetInstance(::firebase::App* app,
@@ -62,7 +65,7 @@ Storage* Storage::GetInstance(::firebase::App* app,
 
 Storage* Storage::GetInstance(::firebase::App* app, const char* url,
                               InitResult* init_result_out) {
-  MutexLock lock(g_storages_lock);
+  MutexLock lock(*g_storages_lock);
   if (!g_storages) {
     g_storages = new std::map<std::pair<App*, std::string>, Storage*>();
   }
@@ -133,7 +136,7 @@ Storage::Storage(::firebase::App* app, const char* url) {
 }
 
 void Storage::DeleteInternal() {
-  MutexLock lock(g_storages_lock);
+  MutexLock lock(*g_storages_lock);
   if (!internal_) return;
 
   CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());

@@ -24,12 +24,16 @@ namespace firebase {
 namespace installations {
 
 std::map<App*, Installations*>* g_installations = nullptr;  // NOLINT
-Mutex g_installations_mutex;                                // NOLINT
+// Allocated once and never freed so that it is not destroyed by the C++
+// runtime at exit: an Installations owned by a static object may be destroyed
+// after this file's globals, and its destructor must still be able to lock
+// this.
+Mutex* g_installations_mutex = new Mutex();
 
 using internal::InstallationsInternal;
 
 Installations* Installations::GetInstance(App* app) {
-  MutexLock lock(g_installations_mutex);
+  MutexLock lock(*g_installations_mutex);
 
   // Return the Installations if it already exists.
   Installations* existing_installations = FindInstallations(app);
@@ -70,7 +74,7 @@ Installations* Installations::GetInstance(App* app) {
 }
 
 Installations* Installations::FindInstallations(App* app) {
-  MutexLock lock(g_installations_mutex);
+  MutexLock lock(*g_installations_mutex);
   if (!g_installations) {
     g_installations = new std::map<App*, Installations*>();  // NOLINT
     return nullptr;
@@ -86,12 +90,12 @@ Installations* Installations::FindInstallations(App* app) {
 }
 
 Installations::Installations(App* app) : app_(app) {
-  MutexLock lock(g_installations_mutex);
+  MutexLock lock(*g_installations_mutex);
   installations_internal_ = new InstallationsInternal(*app);
 }
 
 Installations::~Installations() {
-  MutexLock lock(g_installations_mutex);
+  MutexLock lock(*g_installations_mutex);
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_);
   if (notifier) {
@@ -116,7 +120,7 @@ bool Installations::InitInternal() {
 }
 
 void Installations::DeleteInternal() {
-  MutexLock lock(g_installations_mutex);
+  MutexLock lock(*g_installations_mutex);
   if (!installations_internal_) return;
 
   installations_internal_->Cleanup();

@@ -613,6 +613,14 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General: Fixed a crash at process exit when an `Auth`, `RemoteConfig`,
+      `Database`, `Storage`, `Functions`, `Installations` or `AppCheck`
+      instance is owned by a static object (for example a static
+      `std::unique_ptr`) and destroyed after the SDK's own globals.
+      ([#110](https://github.com/firebase/firebase-cpp-sdk/issues/110))
+
 ### 14.1.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.1.0.

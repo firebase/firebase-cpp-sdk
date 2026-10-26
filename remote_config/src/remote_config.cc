@@ -39,11 +39,21 @@
 namespace firebase {
 namespace remote_config {
 
-std::map<App*, RemoteConfig*> g_rcs;
-Mutex g_rc_mutex;  // NOLINT
+// The global map of Apps to RemoteConfigs.
+//
+// The map is allocated on first use and freed when the last RemoteConfig is
+// deleted. The mutex is allocated once and never freed: it cannot be safely
+// deleted while another thread may be about to lock it, and it is cheap to
+// keep for the lifetime of the process. Neither is a static object with a
+// destructor, so a RemoteConfig owned by a static (e.g. a static
+// std::unique_ptr<RemoteConfig>) can still be destroyed safely after this
+// file's globals would otherwise have been torn down by the C++ runtime.
+using RemoteConfigMap = std::map<App*, RemoteConfig*>;
+static RemoteConfigMap* g_rcs = nullptr;
+Mutex* g_rc_mutex = new Mutex();
 
 RemoteConfig* RemoteConfig::GetInstance(App* app) {
-  MutexLock lock(g_rc_mutex);
+  MutexLock lock(*g_rc_mutex);
   // Return the RemoteConfig if it already exists.
   RemoteConfig* existing_rc = FindRemoteConfig(app);
   if (existing_rc) {
@@ -70,7 +80,10 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
 
     // Stick it in the global map so we remember it, and can delete it on
     // shutdown.
-    g_rcs[app] = rc;
+    if (!g_rcs) {
+      g_rcs = new RemoteConfigMap();
+    }
+    (*g_rcs)[app] = rc;
     return rc;
   }
 
@@ -78,17 +91,18 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
 }
 
 RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
-  MutexLock lock(g_rc_mutex);
+  MutexLock lock(*g_rc_mutex);
+  if (!g_rcs) return nullptr;
   // Return the RemoteConfig if it already exists.
-  std::map<App*, RemoteConfig*>::iterator it = g_rcs.find(app);
-  if (it != g_rcs.end()) {
+  RemoteConfigMap::iterator it = g_rcs->find(app);
+  if (it != g_rcs->end()) {
     return it->second;
   }
   return nullptr;
 }
 
 void RemoteConfig::DeleteInternal() {
-  MutexLock lock(g_rc_mutex);
+  MutexLock lock(*g_rc_mutex);
   if (!internal_) return;
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app());
@@ -100,7 +114,14 @@ void RemoteConfig::DeleteInternal() {
   internal_ = nullptr;
 
   // Remove rc from the g_rcs map.
-  g_rcs.erase(app());
+  if (g_rcs) {
+    g_rcs->erase(app());
+    // If it's the last one, delete the map.
+    if (g_rcs->empty()) {
+      delete g_rcs;
+      g_rcs = nullptr;
+    }
+  }
 }
 
 RemoteConfig::RemoteConfig(App* app) {

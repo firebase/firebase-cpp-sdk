@@ -59,7 +59,16 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAuth);
 // and an Auth requires an App. So, the user acquires the Auth via an App
 // reference.
 // TODO(jsanmiya): Ensure all the Auths are destroyed on shutdown.
-std::map<App*, Auth*> g_auths;
+//
+// The map is allocated on first use and freed when the last Auth is deleted.
+// The mutex is allocated once and never freed: it cannot be safely deleted
+// while another thread may be about to lock it, and it is cheap to keep for
+// the lifetime of the process. Neither is a static object with a destructor,
+// so an Auth owned by a static (e.g. a static std::unique_ptr<Auth>) can still
+// be destroyed safely after this file's globals would otherwise have been torn
+// down by the C++ runtime.
+using AuthMap = std::map<App*, Auth*>;
+static AuthMap* g_auths = nullptr;
 Mutex* g_auths_mutex = new Mutex();
 
 // static
@@ -85,7 +94,10 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 
   // Stick it in the global map so we remember it, and can delete it on
   // shutdown.
-  g_auths[app] = auth;
+  if (!g_auths) {
+    g_auths = new AuthMap();
+  }
+  (*g_auths)[app] = auth;
 
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return auth;
@@ -94,9 +106,10 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 // static
 Auth* Auth::FindAuth(App* app) {
   MutexLock lock(*g_auths_mutex);
+  if (!g_auths) return nullptr;
   // Return the Auth if it already exists.
-  std::map<App*, Auth*>::iterator it = g_auths.find(app);
-  if (it != g_auths.end()) {
+  AuthMap::iterator it = g_auths->find(app);
+  if (it != g_auths->end()) {
     return it->second;
   }
   return nullptr;
@@ -148,18 +161,24 @@ void Auth::DeleteInternal() {
   notifier->UnregisterObject(this);
 
   int num_auths_remaining = 0;
-  {
+  if (g_auths) {
     // Remove `this` from the g_auths map.
     // The mapping is 1:1, so we should only ever delete one.
-    for (auto it = g_auths.begin(); it != g_auths.end(); ++it) {
+    for (auto it = g_auths->begin(); it != g_auths->end(); ++it) {
       if (it->second == this) {
         LogDebug("Deleting Auth %p for App %p", this, it->first);
-        g_auths.erase(it);
+        g_auths->erase(it);
         break;
       }
     }
 
-    num_auths_remaining = g_auths.size();
+    num_auths_remaining = g_auths->size();
+
+    // If it's the last one, delete the map.
+    if (num_auths_remaining == 0) {
+      delete g_auths;
+      g_auths = nullptr;
+    }
   }
 
   auth_data_->ClearListeners();

@@ -56,7 +56,10 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseDatabase);
 using internal::DatabaseInternal;
 
 using DatabaseMap = std::map<std::pair<std::string, std::string>, Database*>;
-Mutex g_databases_lock;  // NOLINT
+// Allocated once and never freed so that it is not destroyed by the C++
+// runtime at exit: a Database owned by a static object may be destroyed after
+// this file's globals, and its destructor must still be able to lock this.
+Mutex* g_databases_lock = new Mutex();
 static DatabaseMap* g_databases = nullptr;
 
 namespace {
@@ -71,7 +74,7 @@ Database* Database::GetInstance(App* app, const char* url,
     LogError("Database::GetInstance(): The app must not be null.");
     return nullptr;
   }
-  MutexLock lock(g_databases_lock);
+  MutexLock lock(*g_databases_lock);
   if (!g_databases) {
     g_databases = new DatabaseMap();
   }
@@ -118,7 +121,7 @@ Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
 }
 
 void Database::DeleteInternal() {
-  MutexLock lock(g_databases_lock);
+  MutexLock lock(*g_databases_lock);
 
   if (!internal_) return;
 

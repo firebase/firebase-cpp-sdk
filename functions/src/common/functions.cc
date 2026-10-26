@@ -54,7 +54,10 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseFunctions);
 
 constexpr const char* kDefaultRegion = "us-central1";
 
-Mutex g_functions_lock;  // NOLINT
+// Allocated once and never freed so that it is not destroyed by the C++
+// runtime at exit: a Functions owned by a static object may be destroyed after
+// this file's globals, and its destructor must still be able to lock this.
+Mutex* g_functions_lock = new Mutex();
 static std::map<std::pair<App*, std::string>, Functions*>* g_functions =
     nullptr;
 
@@ -65,7 +68,7 @@ Functions* Functions::GetInstance(::firebase::App* app,
 
 Functions* Functions::GetInstance(::firebase::App* app, const char* region,
                                   InitResult* init_result_out) {
-  MutexLock lock(g_functions_lock);
+  MutexLock lock(*g_functions_lock);
   if (!g_functions) {
     g_functions = new std::map<std::pair<App*, std::string>, Functions*>();
   }
@@ -118,7 +121,7 @@ Functions::Functions(::firebase::App* app, const char* region) {
 Functions::~Functions() { DeleteInternal(); }
 
 void Functions::DeleteInternal() {
-  MutexLock lock(g_functions_lock);
+  MutexLock lock(*g_functions_lock);
 
   if (!internal_) return;
 
