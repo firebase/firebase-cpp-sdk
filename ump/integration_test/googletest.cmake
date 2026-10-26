@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Download GoogleTest from GitHub as an external project.
-# Pin to v1.18.0 (063de7e9578f82b369302001269680b4b1553359) because we touch internal GoogleTest structures that could change in the future.
+# Pin to the v1.18.0 commit hash to ensure the tag does not change.
 
 # This CMake file is taken from:
 # https://github.com/google/googletest/blob/master/googletest/README.md#incorporating-into-an-existing-cmake-project

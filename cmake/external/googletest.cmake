@@ -18,7 +18,7 @@ if(TARGET googletest OR NOT DOWNLOAD_GOOGLETEST)
   return()
 endif()
 
-# Pinned to the official v1.18.0 release commit (August 2026).
+# Pin to the v1.18.0 commit hash (August 2026) to ensure the tag does not change.
 set(version 063de7e9578f82b369302001269680b4b1553359)
 
 ExternalProject_Add(
