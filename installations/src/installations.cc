@@ -18,20 +18,21 @@
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 #include "installations/src/installations_internal.h"
 
 namespace firebase {
 namespace installations {
 
 std::map<App*, Installations*>* g_installations = nullptr;  // NOLINT
-// A function-local static that is allocated on first use and never freed,
-// which keeps it out of static initialization and destruction entirely: it
-// is ready no matter which translation unit's initializers run first, and
-// an Installations owned by a static object can still lock it from its
-// destructor after this file's globals would otherwise have been torn down by
-// the C++ runtime.
+// A function-local static wrapped in NoDestructor, so it is constructed on
+// first use and never destroyed. That keeps it out of static initialization
+// and destruction entirely: it is ready no matter which translation unit's
+// initializers run first, and an Installations owned by a static object can
+// still lock it from its destructor after this file's globals would otherwise
+// have been torn down by the C++ runtime.
 static Mutex& InstallationsMutex() {
-  static Mutex* const mutex = new Mutex();
+  static NoDestructor<Mutex> mutex;
   return *mutex;
 }
 

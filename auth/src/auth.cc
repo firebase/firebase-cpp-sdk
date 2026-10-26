@@ -32,6 +32,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/no_destructor.h"
 #include "app/src/semaphore.h"
 #include "app/src/util.h"
 #include "auth/src/common.h"
@@ -60,23 +61,23 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAuth);
 // reference.
 // TODO(jsanmiya): Ensure all the Auths are destroyed on shutdown.
 //
-// The map and its mutex are function-local statics that are allocated on
-// first use and never freed, which keeps them out of static initialization
-// and destruction entirely. They are ready no matter which translation unit's
-// initializers run first, and an Auth owned by a static (e.g. a static
-// std::unique_ptr<Auth>) can still be destroyed safely after this file's
-// globals would otherwise have been torn down by the C++ runtime. The mutex in
-// particular can never be freed safely, since another thread may be about to
-// lock it.
+// The map and its mutex are function-local statics wrapped in NoDestructor,
+// so they are constructed on first use and never destroyed. That keeps them
+// out of static initialization and destruction entirely: they are ready no
+// matter which translation unit's initializers run first, and an Auth owned
+// by a static (e.g. a static std::unique_ptr<Auth>) can still be destroyed
+// safely after this file's globals would otherwise have been torn down by the
+// C++ runtime. The mutex in particular could never be destroyed safely, since
+// another thread may be about to lock it.
 using AuthMap = std::map<App*, Auth*>;
 
 static AuthMap& Auths() {
-  static AuthMap* const auths = new AuthMap();
+  static NoDestructor<AuthMap> auths;
   return *auths;
 }
 
 static Mutex& AuthsMutex() {
-  static Mutex* const mutex = new Mutex();
+  static NoDestructor<Mutex> mutex;
   return *mutex;
 }
 

@@ -25,6 +25,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app_check/src/common/common.h"
 
@@ -61,14 +62,14 @@ namespace app_check {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAppCheck);
 
-// A function-local static that is allocated on first use and never freed,
-// which keeps it out of static initialization and destruction entirely: it
-// is ready no matter which translation unit's initializers run first, and
-// an AppCheck owned by a static object can still lock it from its destructor
-// after this file's globals would otherwise have been torn down by the C++
-// runtime.
+// A function-local static wrapped in NoDestructor, so it is constructed on
+// first use and never destroyed. That keeps it out of static initialization
+// and destruction entirely: it is ready no matter which translation unit's
+// initializers run first, and an AppCheck owned by a static object can still
+// lock it from its destructor after this file's globals would otherwise have
+// been torn down by the C++ runtime.
 static Mutex& AppCheckLock() {
-  static Mutex* const mutex = new Mutex();
+  static NoDestructor<Mutex> mutex;
   return *mutex;
 }
 static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;

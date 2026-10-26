@@ -161,6 +161,13 @@ firebase_cpp_cc_test(firebase_app_cleanup_notifier_test
     firebase_app
 )
 
+firebase_cpp_cc_test(firebase_app_no_destructor_test
+  SOURCES
+    no_destructor_test.cc
+  DEPENDS
+    firebase_app
+)
+
 firebase_cpp_cc_test(firebase_app_cpp11_thread_test
   SOURCES
     thread_test.cc

@@ -20,6 +20,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/no_destructor.h"
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
 #include "include/firebase/remote_config.h"
@@ -41,23 +42,23 @@ namespace remote_config {
 
 // The global map of Apps to RemoteConfigs.
 //
-// The map and its mutex are function-local statics that are allocated on
-// first use and never freed, which keeps them out of static initialization
-// and destruction entirely. They are ready no matter which translation unit's
-// initializers run first, and a RemoteConfig owned by a static (e.g. a static
-// std::unique_ptr<RemoteConfig>) can still be destroyed safely after this
-// file's globals would otherwise have been torn down by the C++ runtime. The
-// mutex in particular can never be freed safely, since another thread may be
-// about to lock it.
+// The map and its mutex are function-local statics wrapped in NoDestructor,
+// so they are constructed on first use and never destroyed. That keeps them
+// out of static initialization and destruction entirely: they are ready no
+// matter which translation unit's initializers run first, and a RemoteConfig
+// owned by a static (e.g. a static std::unique_ptr<RemoteConfig>) can still be
+// destroyed safely after this file's globals would otherwise have been torn
+// down by the C++ runtime. The mutex in particular could never be destroyed
+// safely, since another thread may be about to lock it.
 using RemoteConfigMap = std::map<App*, RemoteConfig*>;
 
 static RemoteConfigMap& RemoteConfigs() {
-  static RemoteConfigMap* const remote_configs = new RemoteConfigMap();
+  static NoDestructor<RemoteConfigMap> remote_configs;
   return *remote_configs;
 }
 
 static Mutex& RemoteConfigsMutex() {
-  static Mutex* const mutex = new Mutex();
+  static NoDestructor<Mutex> mutex;
   return *mutex;
 }
 

@@ -27,6 +27,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 
 // QueryInternal is defined in these 3 files, one implementation for each OS.
@@ -54,14 +55,14 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseFunctions);
 
 constexpr const char* kDefaultRegion = "us-central1";
 
-// A function-local static that is allocated on first use and never freed,
-// which keeps it out of static initialization and destruction entirely: it
-// is ready no matter which translation unit's initializers run first, and
-// a Functions owned by a static object can still lock it from its destructor
-// after this file's globals would otherwise have been torn down by the C++
-// runtime.
+// A function-local static wrapped in NoDestructor, so it is constructed on
+// first use and never destroyed. That keeps it out of static initialization
+// and destruction entirely: it is ready no matter which translation unit's
+// initializers run first, and a Functions owned by a static object can still
+// lock it from its destructor after this file's globals would otherwise have
+// been torn down by the C++ runtime.
 static Mutex& FunctionsLock() {
-  static Mutex* const mutex = new Mutex();
+  static NoDestructor<Mutex> mutex;
   return *mutex;
 }
 static std::map<std::pair<App*, std::string>, Functions*>* g_functions =
