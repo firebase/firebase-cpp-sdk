@@ -35,9 +35,7 @@ class SpecialFunctionsNotifier {
 
   virtual void Construct() = 0;
   virtual void Copy() = 0;
-#ifdef FIREBASE_USE_MOVE_OPERATORS
   virtual void Move() = 0;
-#endif
   virtual void Destruct() = 0;
 };
 
@@ -56,7 +54,6 @@ class SpecialFunctionsNotifierWrapper {
     return *this;
   }
 
-#ifdef FIREBASE_USE_MOVE_OPERATORS
   SpecialFunctionsNotifierWrapper(SpecialFunctionsNotifierWrapper&& other) {
     s_notifier_->Move();
   }
@@ -65,7 +62,6 @@ class SpecialFunctionsNotifierWrapper {
     s_notifier_->Move();
     return *this;
   }
-#endif
 
   ~SpecialFunctionsNotifierWrapper() { s_notifier_->Destruct(); }
 
@@ -79,9 +75,7 @@ class SpecialFunctionsNotifierMock : public SpecialFunctionsNotifier {
  public:
   MOCK_METHOD(void, Construct, (), (override));
   MOCK_METHOD(void, Copy, (), (override));
-#ifdef FIREBASE_USE_MOVE_OPERATORS
   MOCK_METHOD(void, Move, (), (override));
-#endif
   MOCK_METHOD(void, Destruct, (), (override));
 };
 
@@ -96,8 +90,7 @@ class IntHolder {
   int value_;
 };
 
-// Helper class used to setup mock expect calls due to the complexities of move
-// enabled or not
+// Helper class used to setup mock expect calls.
 class ExpectCallSetup {
  public:
   explicit ExpectCallSetup(SpecialFunctionsNotifierMock* mock_notifier)
@@ -110,13 +103,8 @@ class ExpectCallSetup {
 
   ExpectCallSetup& CopyAndMove(size_t expectecCopyCallCount,
                                size_t expectecMoveCallCount) {
-#ifdef FIREBASE_USE_MOVE_OPERATORS
     EXPECT_CALL(*mock_notifier_, Copy()).Times(expectecCopyCallCount);
     EXPECT_CALL(*mock_notifier_, Move()).Times(expectecMoveCallCount);
-#else
-    EXPECT_CALL(*mock_notifier_, Copy())
-        .Times(expectecCopyCallCount + expectecMoveCallCount);
-#endif
     return *this;
   }
 

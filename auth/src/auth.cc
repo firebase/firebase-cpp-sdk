@@ -17,12 +17,12 @@
 #include "auth/src/include/firebase/auth.h"
 
 #include <assert.h>
-#include <stdio.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/cleanup_notifier.h"
@@ -30,17 +30,11 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/semaphore.h"
 #include "app/src/util.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
-
-// Workaround MSVC's incompatible libc headers.
-#if FIREBASE_PLATFORM_WINDOWS
-#define snprintf _snprintf
-#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
@@ -257,13 +251,9 @@ static bool ReplaceEntryWithBack(const T& entry, std::vector<T>* v) {
   auto it = std::find(v->begin(), v->end(), entry);
   if (it == v->end()) return false;
 
-  // If it's not already the back element, move/copy the back element onto it.
+  // If it's not already the back element, move the back element onto it.
   if (&(*it) != &(v->back())) {
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
     *it = std::move(v->back());
-#else
-    *it = v->back();
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
   }
   v->pop_back();
   return true;

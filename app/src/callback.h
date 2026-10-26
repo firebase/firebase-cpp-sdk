@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_SRC_CALLBACK_H_
 #define FIREBASE_APP_SRC_CALLBACK_H_
 
+#include <tuple>
 #include <utility>
 
 #include "firebase/internal/common.h"
@@ -76,8 +77,8 @@ class CallbackArg<const char*> {
 };
 
 /// Interface for Callbacks that will later be called from the correct context.
-/// We don't use std::function because stlport has weak support for it, and we
-/// need to guarantee that any string conversion happens on the C# thread.
+/// We don't use std::function because we need to guarantee that any string
+/// conversion happens on the C# thread.
 class Callback {
  public:
   virtual ~Callback() {}
@@ -289,9 +290,6 @@ class CallbackStdFunction : public Callback {
 };
 #endif
 
-// STLPort doens't support std::tuple or std::get, which are needed for
-// CallbackVariadic to work.
-#if !defined(_STLPORT_VERSION)
 template <int...>
 struct IntegerSequence {};
 
@@ -357,7 +355,6 @@ template <typename... CallbackAndArgs>
 Callback* NewCallback(CallbackAndArgs... callback_and_args) {
   return NewCallbackHelper(callback_and_args...);
 }
-#endif  // !defined(_STLPORT_VERSION)
 
 /// Adds a Callback to be called on the next PollCallbacks call.
 /// This function returns a reference in the queue that can be used to remove
