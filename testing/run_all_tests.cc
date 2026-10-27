@@ -21,6 +21,8 @@
 #include <jni.h>
 #include <stdio.h>
 
+#include <string>
+
 #include "base/logging.h"
 #include "gtest/gtest.h"
 
@@ -91,12 +93,13 @@ extern "C" JNIEXPORT jint JNICALL JNI_FUNCTION_NAME
   if (fp != nullptr) {
     LOG(INFO) << "Native test logs:";
     fseek(fp, 0, SEEK_SET);
-    char log[256];
-    while (!feof(fp)) {
-      if (fgets(log, 256, fp)) {
-        log[strlen(log) - 1] = '\0';  // Remove newline.
-        LOG(INFO) << log;
+    char log[256] = {0};
+    while (fgets(log, sizeof(log), fp) != nullptr) {
+      std::string line(log);
+      if (!line.empty() && line.back() == '\n') {
+        line.pop_back();  // Remove newline.
       }
+      LOG(INFO) << line;
     }
     fclose(fp);
   } else {

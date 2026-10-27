@@ -613,6 +613,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
+      descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
+
 ### 14.1.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.1.0.

@@ -228,14 +228,18 @@ std::string GetTimezone() {
   FILE* tz_file = fopen("/etc/timezone", "r");
   if (tz_file) {
     const size_t kBufSize = 128;
-    char buf[kBufSize];
-    if (fgets(buf, kBufSize, tz_file)) {
+    char buf[kBufSize] = {0};
+    const bool read_ok = fgets(buf, kBufSize, tz_file) != nullptr;
+    fclose(tz_file);
+    if (read_ok) {
       // Remove a trailing '\n', if any.
-      size_t len = strlen(buf);
-      if (buf[len - 1] == '\n') {
-        buf[len - 1] = '\0';
+      std::string tz(buf);
+      if (!tz.empty() && tz.back() == '\n') {
+        tz.pop_back();
       }
-      return std::string(buf);
+      if (!tz.empty()) {
+        return tz;
+      }
     }
   }
   // If TZ environment variable is defined and not empty, use it, else use
