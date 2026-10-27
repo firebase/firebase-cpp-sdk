@@ -621,6 +621,8 @@ code.
     - General (Android): Fixed loading of embedded Java classes when the app
       runs under a custom class loader setup, such as being hosted in another
       app's process. (#1936)
+    - General (Android): Fixed a potential buffer overflow in `LogException` when
+      formatting long JNI exception messages.
 
 ### 14.1.0
 - Changes
