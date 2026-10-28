@@ -1882,18 +1882,15 @@ bool LogException(JNIEnv* env, LogLevel log_level, const char* log_fmt, ...) {
     }
     if (message) {
       std::string message_str = JniStringToString(env, message);
-      if (log_fmt == nullptr) {
-        LogMessage(log_level, "%s", message_str.c_str());
-      } else {
-        static char buf[512];
+      if (log_fmt != nullptr) {
+        char buf[512] = {0};
         va_list list;
         va_start(list, log_fmt);
-        vsnprintf(buf, sizeof(buf) - 1, log_fmt, list);
+        vsnprintf(buf, sizeof(buf), log_fmt, list);
         va_end(list);
-        strncat(buf, ": ", sizeof(buf) - 1);
-        strncat(buf, message_str.c_str(), sizeof(buf) - 1);
-        LogMessage(log_level, "%s", buf);
+        message_str = std::string(buf) + ": " + message_str;
       }
+      LogMessage(log_level, "%s", message_str.c_str());
     }
     env->DeleteLocalRef(exception);
     return true;

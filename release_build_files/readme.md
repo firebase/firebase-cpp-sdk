@@ -617,6 +617,8 @@ code.
 - Changes
     - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
       descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
+    - General (Android): Fixed a potential buffer overflow in `LogException` when
+      formatting long JNI exception messages.
 
 ### 14.1.0
 - Changes
