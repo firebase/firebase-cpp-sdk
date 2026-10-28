@@ -33,10 +33,9 @@
 #define UCHAR_TYPE wchar_t
 #include <icu.h>
 #elif FIREBASE_PLATFORM_LINUX
-#include <stdio.h>
-
 #include <clocale>
 #include <ctime>
+#include <fstream>
 #else
 #error "Unknown platform."
 #endif  // platform selector
@@ -225,21 +224,13 @@ std::string GetTimezone() {
 
 #elif FIREBASE_PLATFORM_LINUX
   // Ubuntu: Check /etc/timezone for the full time zone name.
-  FILE* tz_file = fopen("/etc/timezone", "r");
-  if (tz_file) {
-    const size_t kBufSize = 128;
-    char buf[kBufSize] = {0};
-    const bool read_ok = fgets(buf, kBufSize, tz_file) != nullptr;
-    fclose(tz_file);
-    if (read_ok) {
-      // Remove a trailing '\n', if any.
-      std::string tz(buf);
-      if (!tz.empty() && tz.back() == '\n') {
-        tz.pop_back();
-      }
-      if (!tz.empty()) {
-        return tz;
-      }
+  std::ifstream tz_file("/etc/timezone");
+  std::string tz;
+  if (std::getline(tz_file, tz)) {
+    // Trim trailing whitespace, including the '\r' of a CRLF line ending.
+    tz.erase(tz.find_last_not_of(" \t\r\n") + 1);
+    if (!tz.empty()) {
+      return tz;
     }
   }
   // If TZ environment variable is defined and not empty, use it, else use

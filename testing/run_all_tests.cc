@@ -21,6 +21,7 @@
 #include <jni.h>
 #include <stdio.h>
 
+#include <fstream>
 #include <string>
 
 #include "base/logging.h"
@@ -92,13 +93,10 @@ extern "C" JNIEXPORT jint JNICALL JNI_FUNCTION_NAME
 #ifdef OUTPUT_TO_INFO
   if (fp != nullptr) {
     LOG(INFO) << "Native test logs:";
-    fseek(fp, 0, SEEK_SET);
-    char log[256] = {0};
-    while (fgets(log, sizeof(log), fp) != nullptr) {
-      std::string line(log);
-      if (!line.empty() && line.back() == '\n') {
-        line.pop_back();  // Remove newline.
-      }
+    fflush(fp);
+    std::ifstream log_file(log_path);
+    std::string line;
+    while (std::getline(log_file, line)) {
       LOG(INFO) << line;
     }
     fclose(fp);
