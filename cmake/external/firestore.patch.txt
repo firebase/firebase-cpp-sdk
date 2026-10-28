@@ -14,18 +14,6 @@ index 920bf2928..c5c9cc7ee 100644
  
  ExternalProject_Get_property(snappy SOURCE_DIR)
  set(snappy_source_dir "${SOURCE_DIR}")
-diff --git a/Firestore/core/src/util/ordered_code.h b/Firestore/core/src/util/ordered_code.h
---- a/Firestore/core/src/util/ordered_code.h
-+++ b/Firestore/core/src/util/ordered_code.h
-@@ -39,7 +39,8 @@
- #ifndef FIRESTORE_CORE_SRC_UTIL_ORDERED_CODE_H_
- #define FIRESTORE_CORE_SRC_UTIL_ORDERED_CODE_H_
- 
-+#include <cstdint>
- #include <string>
- 
- #include "absl/strings/string_view.h"
- 
 diff --git a/Firestore/core/src/util/quadruple.cc b/Firestore/core/src/util/quadruple.cc
 --- a/Firestore/core/src/util/quadruple.cc
 +++ b/Firestore/core/src/util/quadruple.cc

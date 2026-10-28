@@ -73,7 +73,10 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
   }
 }
 
-std::string AuthRequest::GetUrl() {
+std::string AuthRequest::GetUrl(const char* server_url) {
+  if (server_url == nullptr) {
+    return "";
+  }
   Auth* auth_ptr = Auth::GetAuth(&app);
   std::string assigned_emulator_url =
       static_cast<AuthImpl*>(auth_ptr->auth_data_->auth_impl)
@@ -81,13 +84,13 @@ std::string AuthRequest::GetUrl() {
 
   if (assigned_emulator_url.empty()) {
     std::string url(kHttps);
-    url += kServerURL;
+    url += server_url;
     return url;
   } else {
     std::string url(kHttp);
     url += assigned_emulator_url;
     url += "/";
-    url += kServerURL;
+    url += server_url;
     return url;
   }
 }

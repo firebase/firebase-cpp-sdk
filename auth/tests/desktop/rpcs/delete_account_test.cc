@@ -19,6 +19,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/delete_account_request.h"
 #include "auth/src/desktop/rpcs/delete_account_response.h"
+#include "auth/src/include/firebase/auth.h"
 #include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -40,6 +41,16 @@ TEST(DeleteAccountTest, TestDeleteAccountRequest) {
       "  \"idToken\": \"token\"\n"
       "}\n",
       request.options().post_fields);
+}
+
+TEST(DeleteAccountTest, TestDeleteAccountRequestWithEmulator) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  DeleteAccountRequest request(*app, "APIKEY");
+  EXPECT_EQ(
+      "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
+      "relyingparty/deleteAccount?key=APIKEY",
+      request.options().url);
 }
 
 // Test DeleteAccountResponse
