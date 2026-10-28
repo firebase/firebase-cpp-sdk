@@ -646,6 +646,7 @@ void SendIdTokenToBackend(firebase::auth::Auth* auth) {
 }
 
 void GetIdTokenClaims(firebase::auth::Auth* auth) {
+  // [START get_id_token_claims]
   firebase::auth::User user = auth->current_user();
   if (user.is_valid()) {
     user.GetIdTokenResult(/*force_refresh=*/false)
@@ -668,6 +669,7 @@ void GetIdTokenClaims(firebase::auth::Auth* auth) {
               }
             });
   }
+  // [END get_id_token_claims]
 }
 
 firebase::auth::Auth* AuthOverview(firebase::App* app) {
