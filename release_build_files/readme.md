@@ -615,6 +615,8 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
+      descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
       when initialization fails. It now returns `nullptr` and reports
       `kInitResultFailedMissingDependency`.
