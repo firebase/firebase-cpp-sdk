@@ -92,9 +92,7 @@ class FunctionsInternal {
   // Initialize classes loaded from embedded files.
   static bool InitializeEmbeddedClasses(App* app);
 
-  static Mutex init_mutex_;
   static int initialize_count_;
-  static std::map<jint, Error> java_error_to_cpp_;
 
   App* app_;
   std::string region_;

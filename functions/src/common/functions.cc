@@ -55,18 +55,23 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseFunctions);
 
 constexpr const char* kDefaultRegion = "us-central1";
 
-// A function-local static wrapped in NoDestructor, so it is constructed on
-// first use and never destroyed. That keeps it out of static initialization
-// and destruction entirely: it is ready no matter which translation unit's
-// initializers run first, and a Functions owned by a static object can still
-// lock it from its destructor after this file's globals would otherwise have
-// been torn down by the C++ runtime.
+using FunctionsMap = std::map<std::pair<App*, std::string>, Functions*>;
+
+// The map and its mutex are function-local statics wrapped in NoDestructor, so
+// they are constructed on first use and never destroyed. That keeps them out
+// of static initialization and destruction entirely: they are ready no matter
+// which translation unit's initializers run first, and a Functions owned by a
+// static object can still lock the mutex and erase itself from its destructor
+// during process exit.
 static Mutex& FunctionsLock() {
   static NoDestructor<Mutex> mutex;
   return *mutex;
 }
-static std::map<std::pair<App*, std::string>, Functions*>* g_functions =
-    nullptr;
+
+static FunctionsMap& FunctionsByKey() {
+  static NoDestructor<FunctionsMap> functions;
+  return *functions;
+}
 
 Functions* Functions::GetInstance(::firebase::App* app,
                                   InitResult* init_result_out) {
@@ -76,9 +81,6 @@ Functions* Functions::GetInstance(::firebase::App* app,
 Functions* Functions::GetInstance(::firebase::App* app, const char* region,
                                   InitResult* init_result_out) {
   MutexLock lock(FunctionsLock());
-  if (!g_functions) {
-    g_functions = new std::map<std::pair<App*, std::string>, Functions*>();
-  }
 
   // Region we use for our global index of Functions instances.
   // If a null region is given, we use the default region.
@@ -89,8 +91,9 @@ Functions* Functions::GetInstance(::firebase::App* app, const char* region,
     region_idx = std::string(kDefaultRegion);
   }
 
-  auto it = g_functions->find(std::make_pair(app, region_idx));
-  if (it != g_functions->end()) {
+  FunctionsMap& functions_map = FunctionsByKey();
+  auto it = functions_map.find(std::make_pair(app, region_idx));
+  if (it != functions_map.end()) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
@@ -101,7 +104,7 @@ Functions* Functions::GetInstance(::firebase::App* app, const char* region,
     delete functions;
     return nullptr;
   }
-  g_functions->insert(
+  functions_map.insert(
       std::make_pair(std::make_pair(app, region_idx), functions));
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return functions;
@@ -133,7 +136,7 @@ void Functions::DeleteInternal() {
   if (!internal_) return;
 
   // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to g_functions, and app() may be null.
+  // App's CleanupNotifier or added to FunctionsByKey(), and app() may be null.
   if (!internal_->initialized()) {
     delete internal_;
     internal_ = nullptr;
@@ -148,14 +151,9 @@ void Functions::DeleteInternal() {
   // If a Functions is explicitly deleted, remove it from our cache.
   std::string region = internal_->region();
   std::string region_idx = region.empty() ? kDefaultRegion : region;
-  g_functions->erase(std::make_pair(app(), region_idx));
+  FunctionsByKey().erase(std::make_pair(app(), region_idx));
   delete internal_;
   internal_ = nullptr;
-  // If it's the last one, delete the map.
-  if (g_functions->empty()) {
-    delete g_functions;
-    g_functions = nullptr;
-  }
 }
 
 ::firebase::App* Functions::app() {

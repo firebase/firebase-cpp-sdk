@@ -144,5 +144,35 @@ TEST_F(InstallationsTest, GetTokenForceRefresh) {
   delete installations;
 }
 
+TEST_F(InstallationsTest, DestroyAppBeforeInstallationsClearsCachedInstance) {
+  Installations* installations1 = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations1, NotNull());
+  CheckSuccessWithValue(installations1->GetId(), std::string("FakeId"));
+
+  // Deleting the App first runs CleanupNotifier -> DeleteInternal(), which
+  // tears down installations_internal_ and removes the entry from the per-App
+  // map so a recreated App cannot observe a gutted Installations shell.
+  delete firebase_app_;
+  firebase_app_ = nullptr;
+  EXPECT_EQ(installations1->GetId().status(), kFutureStatusInvalid);
+
+  firebase_app_ = testing::CreateApp();
+  ASSERT_THAT(firebase_app_, NotNull());
+
+  Installations* installations2 = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations2, NotNull());
+  EXPECT_NE(installations2, installations1);
+  CheckSuccessWithValue(installations2->GetId(), std::string("FakeId"));
+
+  // Deleting the already-cleaned-up installations1 (for example from a
+  // late-running static std::unique_ptr destructor) must be a no-op and must
+  // not evict installations2 even if the allocator reused the App* address.
+  delete installations1;
+  EXPECT_EQ(Installations::GetInstance(firebase_app_), installations2);
+  CheckSuccessWithValue(installations2->GetId(), std::string("FakeId"));
+
+  delete installations2;
+}
+
 }  // namespace installations
 }  // namespace firebase

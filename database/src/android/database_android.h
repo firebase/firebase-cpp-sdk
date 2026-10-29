@@ -41,7 +41,7 @@ namespace database {
 namespace internal {
 
 // For constructing, copying or moving DatabaseReferences atomically.
-extern Mutex g_database_reference_constructor_mutex;
+Mutex& DatabaseReferenceConstructorMutex();
 
 // This is the Android implementation of Database.
 class DatabaseInternal {
@@ -192,7 +192,6 @@ class DatabaseInternal {
   // Initialize classes loaded from embedded files.
   static bool InitializeEmbeddedClasses(App* app);
 
-  static Mutex init_mutex_;
   static int initialize_count_;
   static std::map<jint, Error>* java_error_to_cpp_;
   App* app_;

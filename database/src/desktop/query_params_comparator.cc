@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include "app/src/assert.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "database/src/desktop/util_desktop.h"
 
@@ -33,20 +34,34 @@ const char QueryParamsComparator::kMaxKey[] = "[MAX_KEY]";
 // down values with these types. These are never compared to other variants
 // directly - they should only be used with the QueryParamsComparator, which
 // uses the Variant::type() to do comparisons.
-static const Variant kMinVariant = Variant::FromStaticBlob(  // NOLINT
-    QueryParamsComparator::kMinKey, sizeof(QueryParamsComparator::kMinKey));
-static const Variant kMaxVariant = Variant::FromStaticBlob(  // NOLINT
-    QueryParamsComparator::kMaxKey, sizeof(QueryParamsComparator::kMaxKey));
+static const Variant& MinVariant() {
+  static const NoDestructor<Variant> min_variant(Variant::FromStaticBlob(
+      QueryParamsComparator::kMinKey, sizeof(QueryParamsComparator::kMinKey)));
+  return *min_variant;
+}
 
-const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =  // NOLINT
-    std::make_pair(QueryParamsComparator::kMinKey, kMinVariant);
-const std::pair<Variant, Variant> QueryParamsComparator::kMaxNode =  // NOLINT
-    std::make_pair(QueryParamsComparator::kMaxKey, kMaxVariant);
+static const Variant& MaxVariant() {
+  static const NoDestructor<Variant> max_variant(Variant::FromStaticBlob(
+      QueryParamsComparator::kMaxKey, sizeof(QueryParamsComparator::kMaxKey)));
+  return *max_variant;
+}
+
+const std::pair<Variant, Variant>& QueryParamsComparator::MinNode() {
+  static const NoDestructor<std::pair<Variant, Variant>> min_node(
+      std::make_pair(QueryParamsComparator::kMinKey, MinVariant()));
+  return *min_node;
+}
+
+const std::pair<Variant, Variant>& QueryParamsComparator::MaxNode() {
+  static const NoDestructor<std::pair<Variant, Variant>> max_node(
+      std::make_pair(QueryParamsComparator::kMaxKey, MaxVariant()));
+  return *max_node;
+}
 
 static int VariantIsSentinel(const Variant& key, const Variant& value) {
-  if (key == QueryParamsComparator::kMinKey && value == kMinVariant) {
+  if (key == QueryParamsComparator::kMinKey && value == MinVariant()) {
     return -1;
-  } else if (key == QueryParamsComparator::kMaxKey && value == kMaxVariant) {
+  } else if (key == QueryParamsComparator::kMaxKey && value == MaxVariant()) {
     return 1;
   } else {
     return 0;
@@ -179,14 +194,14 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
   // If we encounted a special sentinel value, figure out what we actually want
   // the precendence to be.
   if (precedence_a == kPrecedenceSentinel) {
-    assert(*value_a == kMinVariant || *value_a == kMaxVariant);
+    assert(*value_a == MinVariant() || *value_a == MaxVariant());
     precedence_a =
-        (*value_a == kMinVariant) ? kPrecedenceFirst : kPrecedenceLast;
+        (*value_a == MinVariant()) ? kPrecedenceFirst : kPrecedenceLast;
   }
   if (precedence_b == kPrecedenceSentinel) {
-    assert(*value_b == kMinVariant || *value_b == kMaxVariant);
+    assert(*value_b == MinVariant() || *value_b == MaxVariant());
     precedence_b =
-        (*value_b == kMinVariant) ? kPrecedenceFirst : kPrecedenceLast;
+        (*value_b == MinVariant()) ? kPrecedenceFirst : kPrecedenceLast;
   }
 
   // Values coming down from the server should never contain blobs or vectors.

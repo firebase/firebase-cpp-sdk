@@ -26,6 +26,7 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/no_destructor.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 #include "app/src/util.h"
@@ -312,13 +313,16 @@ CurlThread* g_curl_thread = nullptr;
 // Count initializations that multiple libraries can use this simultaneously.
 int g_initialize_count = 0;
 
-// Mutex for Curl initialization.
-Mutex* g_initialize_mutex = new Mutex();
+// Mutex for Curl initialization and teardown.
+Mutex& InitializeMutex() {
+  static NoDestructor<Mutex> initialize_mutex;
+  return *initialize_mutex;
+}
 
 }  // namespace
 
 void InitTransportCurl() {
-  MutexLock lock(*g_initialize_mutex);
+  MutexLock lock(InitializeMutex());
   if (g_initialize_count == 0) {
     // Initialize curl.
     CURLcode global_init_code = curl_global_init(CURL_GLOBAL_ALL);
@@ -334,7 +338,7 @@ void InitTransportCurl() {
 }
 
 void CleanupTransportCurl() {
-  MutexLock lock(*g_initialize_mutex);
+  MutexLock lock(InitializeMutex());
   assert(g_initialize_count > 0);
   g_initialize_count--;
   if (g_initialize_count == 0) {

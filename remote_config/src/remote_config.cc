@@ -97,12 +97,11 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
       rc->DeleteInternal();
     });
 
-    // Stick it in the global map so we remember it, and can delete it on
-    // shutdown.
     RemoteConfigs()[app] = rc;
     return rc;
   }
 
+  delete rc;
   return nullptr;
 }
 
@@ -114,6 +113,15 @@ RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
 void RemoteConfig::DeleteInternal() {
   MutexLock lock(RemoteConfigsMutex());
   if (!internal_) return;
+
+  // An instance whose initialization failed was never registered with the
+  // App's CleanupNotifier, added to RemoteConfigs(), or left holding JNI/iOS
+  // class references.
+  if (!internal_->Initialized()) {
+    delete internal_;
+    internal_ = nullptr;
+    return;
+  }
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app());
   assert(notifier);

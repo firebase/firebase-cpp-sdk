@@ -18,53 +18,80 @@
 #define FIREBASE_APP_SRC_NO_DESTRUCTOR_H_
 
 #include <new>
+#include <type_traits>
 #include <utility>
 
 namespace firebase {
+namespace internal {
 
-// Wraps a T so that its destructor is never run.
+// Wraps an instance of T in inline aligned storage whose destructor is never
+// called.
 //
-// Intended for function-local statics that must outlive static destruction,
-// such as the registries and mutexes that Firebase instances touch from their
-// own destructors. A plain `static T t;` is destroyed at exit in reverse order
-// of construction, so an instance owned by a user's static object can find it
-// already gone. A `static T* t = new T;` avoids that but hands callers a raw
-// pointer and a heap allocation. NoDestructor keeps the T inline, constructs it
-// in place on first use, and simply never destroys it.
+// Intended for function-local statics that must outlive process teardown, such
+// as global registries, mutexes, and loggers accessed when user-owned static
+// Firebase objects run their destructors during exit():
 //
+// - A plain `static T value;` registers an exit-time destructor (`__cxa_atexit`
+//   / `atexit`) that runs in reverse construction order, so destructors of
+//   other static objects constructed earlier can observe a destroyed `T`.
+// - A namespace-scope `static T* value = new T();` avoids exit-time
+//   destruction, but introduces dynamic initialization order hazards across
+//   translation units before `main()`.
+// - A function-local `static NoDestructor<T> value;` is initialized thread-
+//   safely on first call (C++11 [stmt.dcl]), stores `T` inline with no extra
+//   heap allocation, has a trivial destructor so no exit-time destructor is
+//   registered, and remains reachable via static storage so leak checkers do
+//   not report it as leaked.
+//
+// Example:
 //   static Mutex& RegistryMutex() {
 //     static NoDestructor<Mutex> mutex;
 //     return *mutex;
 //   }
-//
-// The object is reachable from the static for the lifetime of the process, so
-// leak checkers do not report it.
 template <typename T>
 class NoDestructor {
  public:
   // Constructs the wrapped T in place, forwarding any arguments.
-  template <typename... Args>
+  // Disabled when decaying a single argument yields NoDestructor itself so
+  // non-const lvalue copy attempts hit the deleted copy constructor instead of
+  // forwarding into T's constructors (for example, firebase::Variant).
+  template <typename... Args,
+            typename std::enable_if<
+                !std::is_same<void(typename std::decay<Args>::type&...),
+                              void(NoDestructor&)>::value,
+                int>::type = 0>
   explicit NoDestructor(Args&&... args) {
-    new (static_cast<void*>(storage_)) T(std::forward<Args>(args)...);
+    new (storage_) T(std::forward<Args>(args)...);
   }
+
+  // Explicit copy/move overloads for T so brace-enclosed initializers (such as
+  // `NoDestructor<std::vector<int>>({1, 2})`) can deduce T.
+  explicit NoDestructor(const T& x) { new (storage_) T(x); }
+  explicit NoDestructor(T&& x) { new (storage_) T(std::move(x)); }
 
   NoDestructor(const NoDestructor&) = delete;
   NoDestructor& operator=(const NoDestructor&) = delete;
 
-  // Intentionally does not destroy the wrapped T.
+  // Trivially destructible: intentionally never destroys the wrapped T.
   ~NoDestructor() = default;
 
   T& operator*() { return *get(); }
   T* operator->() { return get(); }
-  T* get() { return reinterpret_cast<T*>(storage_); }
+  T* get() { return std::launder(reinterpret_cast<T*>(storage_)); }
 
   const T& operator*() const { return *get(); }
   const T* operator->() const { return get(); }
-  const T* get() const { return reinterpret_cast<const T*>(storage_); }
+  const T* get() const {
+    return std::launder(reinterpret_cast<const T*>(storage_));
+  }
 
  private:
   alignas(T) unsigned char storage_[sizeof(T)];
 };
+
+}  // namespace internal
+
+using internal::NoDestructor;
 
 }  // namespace firebase
 

@@ -25,6 +25,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/time.h"
 #include "app/src/util.h"
@@ -254,7 +255,10 @@ static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
     kValueSourceRemoteValue,   // FirebaseRemoteConfig.VALUE_SOURCE_REMOTE (2)
 };
 
-ReferenceCount RemoteConfigInternal::initializer_;  // NOLINT
+static ReferenceCount& Initializer() {
+  static NoDestructor<ReferenceCount> initializer;
+  return *initializer;
+}
 
 static bool CacheJNIMethodIds(
     JNIEnv* env, jobject activity,
@@ -672,8 +676,8 @@ struct ConfigUpdateListenerWrapper {
 };
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
-    : app_(app), future_impl_(kRemoteConfigFnCount) {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+    : app_(app), future_impl_(kRemoteConfigFnCount), internal_obj_(nullptr) {
+  ReferenceCountLock<ReferenceCount> lock(&Initializer());
   LogDebug("Firebase RemoteConfig API Initializing");
   static const char* kApiIdentifier = "Remote Config";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
@@ -731,7 +735,7 @@ bool RemoteConfigInternal::Initialized() const {
 }
 
 void RemoteConfigInternal::Cleanup() {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+  ReferenceCountLock<ReferenceCount> lock(&Initializer());
   if (lock.RemoveReference() == 1) {
     JNIEnv* env = app_.GetJNIEnv();
     ReleaseClasses(env);

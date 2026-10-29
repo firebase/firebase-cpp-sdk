@@ -57,17 +57,29 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseDatabase);
 using internal::DatabaseInternal;
 
 using DatabaseMap = std::map<std::pair<std::string, std::string>, Database*>;
-// A function-local static wrapped in NoDestructor, so it is constructed on
-// first use and never destroyed. That keeps it out of static initialization
-// and destruction entirely: it is ready no matter which translation unit's
-// initializers run first, and a Database owned by a static object can still
-// lock it from its destructor after this file's globals would otherwise have
-// been torn down by the C++ runtime.
+
+// The map and its mutex are function-local statics wrapped in NoDestructor, so
+// they are constructed on first use and never destroyed. That keeps them out
+// of static initialization and destruction entirely: they are ready no matter
+// which translation unit's initializers run first, and a Database owned by a
+// static object can still lock the mutex and erase itself from its destructor
+// during process exit.
 static Mutex& DatabasesLock() {
   static NoDestructor<Mutex> mutex;
   return *mutex;
 }
-static DatabaseMap* g_databases = nullptr;
+
+static DatabaseMap& Databases() {
+  static NoDestructor<DatabaseMap> databases;
+  return *databases;
+}
+
+namespace internal {
+Mutex& DatabaseReferenceConstructorMutex() {
+  static NoDestructor<Mutex> mutex;
+  return *mutex;
+}
+}  // namespace internal
 
 namespace {
 DatabaseMap::key_type MakeKey(App* app, const std::string& url) {
@@ -82,13 +94,11 @@ Database* Database::GetInstance(App* app, const char* url,
     return nullptr;
   }
   MutexLock lock(DatabasesLock());
-  if (!g_databases) {
-    g_databases = new DatabaseMap();
-  }
 
+  DatabaseMap& databases = Databases();
   DatabaseMap::key_type key = MakeKey(app, std::string(url ? url : ""));
-  DatabaseMap::iterator it = g_databases->find(key);
-  if (it != g_databases->end()) {
+  DatabaseMap::iterator it = databases.find(key);
+  if (it != databases.end()) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
@@ -100,7 +110,7 @@ Database* Database::GetInstance(App* app, const char* url,
     delete database;
     return nullptr;
   }
-  g_databases->insert(std::make_pair(key, database));
+  databases.insert(std::make_pair(key, database));
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return database;
 }
@@ -133,7 +143,7 @@ void Database::DeleteInternal() {
   if (!internal_) return;
 
   // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to g_databases, and app() may be null.
+  // App's CleanupNotifier or added to Databases(), and app() may be null.
   if (!internal_->initialized()) {
     delete internal_;
     internal_ = nullptr;
@@ -148,19 +158,14 @@ void Database::DeleteInternal() {
   app_notifier->UnregisterObject(this);
 
   {
-    MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
+    MutexLock db_ref_lock(internal::DatabaseReferenceConstructorMutex());
     // Force cleanup to happen first.
     internal_->cleanup().CleanupAll();
   }
   delete internal_;
   internal_ = nullptr;
   // If a Database is explicitly deleted, remove it from our cache.
-  g_databases->erase(MakeKey(my_app, url));
-  // If it's the last one, delete the map.
-  if (g_databases->empty()) {
-    delete g_databases;
-    g_databases = nullptr;
-  }
+  Databases().erase(MakeKey(my_app, url));
 }
 
 Database::~Database() { DeleteInternal(); }

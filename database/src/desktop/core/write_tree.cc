@@ -168,7 +168,7 @@ Optional<Variant> WriteTree::CalcCompleteEventCache(
         if (complete_server_cache != nullptr) {
           layered_cache = complete_server_cache;
         } else {
-          layered_cache = &kNullVariant;
+          layered_cache = &GetNullVariant();
         }
         return Optional<Variant>(sub_merge.Apply(*layered_cache));
       }

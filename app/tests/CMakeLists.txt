@@ -168,6 +168,14 @@ firebase_cpp_cc_test(firebase_app_no_destructor_test
     firebase_app
 )
 
+firebase_cpp_cc_test(firebase_app_static_destruction_test
+  SOURCES
+    static_destruction_test.cc
+  DEPENDS
+    firebase_app
+    flatbuffers
+)
+
 firebase_cpp_cc_test(firebase_app_cpp11_thread_test
   SOURCES
     thread_test.cc

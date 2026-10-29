@@ -615,9 +615,10 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
-    - General: Fixed a crash at process exit when an `Auth`, `RemoteConfig`,
-      `Database`, `Storage`, `Functions`, `Installations` or `AppCheck`
-      instance is owned by a static object (for example a static
+    - General: Fixed a crash at process exit when an `App` or Firebase product
+      instance (`Analytics`, `AppCheck`, `Auth`, `Database`, `Firestore`,
+      `Functions`, `Installations`, `Messaging`, `RemoteConfig`, `Storage`, or
+      `UMP`) is owned by a static object (for example a static
       `std::unique_ptr`) and destroyed after the SDK's own globals.
       ([#110](https://github.com/firebase/firebase-cpp-sdk/issues/110))
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`

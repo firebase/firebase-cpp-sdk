@@ -39,7 +39,7 @@ namespace database {
 namespace internal {
 
 // For constructing, copying or moving DatabaseReferences atomically.
-extern Mutex g_database_reference_constructor_mutex;
+Mutex& DatabaseReferenceConstructorMutex();
 
 // This defines the class FIRDatabasePointer, which is a C++-compatible wrapper
 // around the FIRDatabase Obj-C class.

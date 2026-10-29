@@ -658,7 +658,7 @@ ViewCache ViewProcessor::AckUserWrite(const ViewCache& view_cache,
         server_cache.IsCompleteForPath(ack_path)) {
       const Variant* variant =
           GetInternalVariant(&server_cache.variant(), ack_path);
-      if (!variant) variant = &kNullVariant;
+      if (!variant) variant = &GetNullVariant();
       return ApplyServerOverwrite(view_cache, ack_path, *variant, writes_cache,
                                   opt_complete_cache, filter_server_node,
                                   accumulator);

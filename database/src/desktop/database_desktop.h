@@ -45,7 +45,7 @@ namespace database {
 namespace internal {
 
 // For constructing, copying or moving DatabaseReferences atomically.
-extern Mutex g_database_reference_constructor_mutex;
+Mutex& DatabaseReferenceConstructorMutex();
 
 typedef int64_t WriteId;
 

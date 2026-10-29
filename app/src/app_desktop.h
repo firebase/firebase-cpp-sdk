@@ -43,10 +43,5 @@ class AppInternal {
   firebase::heartbeat::DateProviderImpl date_provider_;
 };
 
-// When Create() is invoked without arguments, it checks for a file named
-// google-services-desktop.json, to load options from.  This specifies the
-// path to search.
-static std::string g_default_config_path;  // NOLINT
-
 }  // namespace internal
 }  // namespace firebase

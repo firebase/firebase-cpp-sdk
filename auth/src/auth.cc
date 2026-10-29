@@ -172,15 +172,12 @@ void Auth::DeleteInternal() {
 
   int num_auths_remaining = 0;
   {
-    // Remove `this` from the Auths map.
-    // The mapping is 1:1, so we should only ever delete one.
+    // Remove `this` from the Auths map by its owning App key.
     AuthMap& auths = Auths();
-    for (auto it = auths.begin(); it != auths.end(); ++it) {
-      if (it->second == this) {
-        LogDebug("Deleting Auth %p for App %p", this, it->first);
-        auths.erase(it);
-        break;
-      }
+    auto it = auths.find(auth_data_->app);
+    if (it != auths.end()) {
+      LogDebug("Deleting Auth %p for App %p", this, it->first);
+      auths.erase(it);
     }
 
     num_auths_remaining = auths.size();

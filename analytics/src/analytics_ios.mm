@@ -32,6 +32,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
 #include "app/src/util.h"
@@ -120,13 +121,16 @@ const uint64_t AnalyticsDataResetter::kResetRetryIntervalMilliseconds = 1000;
 const uint64_t AnalyticsDataResetter::kResetTimeoutMilliseconds = 5000;
 
 static const double kMillisecondsPerSecond = 1000.0;
-static Mutex g_mutex;  // NOLINT
+static Mutex& AnalyticsMutex() {
+  static NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 static bool g_initialized = false;
 static AnalyticsDataResetter* g_resetter = nullptr;
 
 // Initialize the API.
 void Initialize(const ::firebase::App& app) {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   g_initialized = true;
   g_resetter = new AnalyticsDataResetter();
   internal::RegisterTerminateOnDefaultAppDestroy();
@@ -142,7 +146,7 @@ bool IsInitialized() { return g_initialized; }
 
 // Terminate the API.
 void Terminate() {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   internal::FutureData::Destroy();
   internal::UnregisterTerminateOnDefaultAppDestroy();
   delete g_resetter;
@@ -237,7 +241,7 @@ void LogEvent(const char* name) {
 }
 
 Future<void> LogAppleTransaction(const char* transaction_id) {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
 
   auto* api = internal::FutureData::Get()->api();
@@ -251,7 +255,7 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
   [AppleTransactionVerifier
       verifyWithTransactionId:SafeString(transaction_id)
                    completion:^(BOOL isFound) {
-                     MutexLock lock(g_mutex);
+                     MutexLock lock(AnalyticsMutex());
                      if (!internal::IsInitialized()) return;
 
                      auto* api = internal::FutureData::Get()->api();
@@ -266,7 +270,7 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
 }
 
 Future<void> LogAppleTransactionLastResult() {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   return static_cast<const Future<void>&>(
       internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnLogAppleTransaction));
@@ -449,7 +453,7 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 }
 
 void ResetAnalyticsData() {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   g_resetter->Reset();
 }
@@ -467,7 +471,7 @@ bool IsDesktopInitialized() { return false; }
 void SetDesktopDebugMode(bool) {}
 
 Future<std::string> GetAnalyticsInstanceId() {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle =
@@ -477,7 +481,7 @@ Future<std::string> GetAnalyticsInstanceId() {
       [](SafeFutureHandle<std::string>* handle) {
         for (;;) {
           {
-            MutexLock lock(g_mutex);
+            MutexLock lock(AnalyticsMutex());
             if (!internal::IsInitialized()) break;
             std::string instance_id = g_resetter->GetInstanceId();
             if (!instance_id.empty()) {
@@ -495,19 +499,19 @@ Future<std::string> GetAnalyticsInstanceId() {
 }
 
 Future<std::string> GetAnalyticsInstanceIdLastResult() {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   return static_cast<const Future<std::string>&>(
       internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
 Future<int64_t> GetSessionId() {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle = api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
   [FIRAnalytics sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
-    MutexLock lock(g_mutex);
+    MutexLock lock(AnalyticsMutex());
     if (!internal::IsInitialized()) return;
     if (error) {
       api->Complete(future_handle, -1, util::NSStringToString(error.localizedDescription).c_str());
@@ -519,7 +523,7 @@ Future<int64_t> GetSessionId() {
 }
 
 Future<int64_t> GetSessionIdLastResult() {
-  MutexLock lock(g_mutex);
+  MutexLock lock(AnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   return static_cast<const Future<int64_t>&>(
       internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetSessionId));

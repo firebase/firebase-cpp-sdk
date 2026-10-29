@@ -62,17 +62,23 @@ namespace app_check {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAppCheck);
 
-// A function-local static wrapped in NoDestructor, so it is constructed on
-// first use and never destroyed. That keeps it out of static initialization
-// and destruction entirely: it is ready no matter which translation unit's
-// initializers run first, and an AppCheck owned by a static object can still
-// lock it from its destructor after this file's globals would otherwise have
-// been torn down by the C++ runtime.
+using AppCheckMap = std::map<::firebase::App*, AppCheck*>;
+
+// The map and its mutex are function-local statics wrapped in NoDestructor, so
+// they are constructed on first use and never destroyed. That keeps them out
+// of static initialization and destruction entirely: they are ready no matter
+// which translation unit's initializers run first, and an AppCheck owned by a
+// static object can still lock the mutex and erase itself from its destructor
+// during process exit.
 static Mutex& AppCheckLock() {
   static NoDestructor<Mutex> mutex;
   return *mutex;
 }
-static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
+
+static AppCheckMap& AppChecks() {
+  static NoDestructor<AppCheckMap> app_checks;
+  return *app_checks;
+}
 
 // Define the destructors for the virtual listener/provider/factory classes.
 AppCheckListener::~AppCheckListener() {}
@@ -97,11 +103,10 @@ AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
   if (!app) return nullptr;
 
   MutexLock lock(AppCheckLock());
-  if (g_app_check_map) {
-    auto it = g_app_check_map->find(app);
-    if (it != g_app_check_map->end()) {
-      return it->second;
-    }
+  AppCheckMap& app_checks = AppChecks();
+  auto it = app_checks.find(app);
+  if (it != app_checks.end()) {
+    return it->second;
   }
   return nullptr;
 }
@@ -112,17 +117,14 @@ AppCheck* AppCheck::GetInstance(::firebase::App* app) {
   if (!app) return nullptr;
 
   MutexLock lock(AppCheckLock());
-  if (!g_app_check_map) {
-    g_app_check_map = new std::map<::firebase::App*, AppCheck*>();
-  }
-
-  auto it = g_app_check_map->find(app);
-  if (it != g_app_check_map->end()) {
+  AppCheckMap& app_checks = AppChecks();
+  auto it = app_checks.find(app);
+  if (it != app_checks.end()) {
     return it->second;
   }
 
   AppCheck* app_check = new AppCheck(app);
-  g_app_check_map->insert(std::make_pair(app, app_check));
+  app_checks.insert(std::make_pair(app, app_check));
   return app_check;
 }
 
@@ -141,15 +143,10 @@ void AppCheck::DeleteInternal() {
 
   if (!internal_) return;
 
-  // Remove it from the map
-  g_app_check_map->erase(app());
+  // Remove it from the map.
+  AppChecks().erase(app());
   delete internal_;
   internal_ = nullptr;
-  // If it is the last one, delete the map.
-  if (g_app_check_map->empty()) {
-    delete g_app_check_map;
-    g_app_check_map = nullptr;
-  }
 }
 
 ::firebase::App* AppCheck::app() {

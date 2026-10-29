@@ -951,14 +951,14 @@ TEST_F(FutureTest, VerifyNotLeakedWhenOverridden) {
     SafeFutureHandle<TestResult> last_result_handle;
     last_result_handle = future_impl_.SafeAlloc<TestResult>(0);
     EXPECT_THAT(last_result_handle.get(),
-                Ne(SafeFutureHandle<TestResult>::kInvalidHandle.get()));
+                Ne(SafeFutureHandle<TestResult>::InvalidHandle().get()));
     EXPECT_TRUE(future_impl_.ValidFuture(last_result_handle));
     id = last_result_handle.get().id();
   }
   {
     auto new_last_result_handle = future_impl_.SafeAlloc<TestResult>(0);
     EXPECT_THAT(new_last_result_handle.get(),
-                Ne(SafeFutureHandle<TestResult>::kInvalidHandle.get()));
+                Ne(SafeFutureHandle<TestResult>::InvalidHandle().get()));
     EXPECT_FALSE(future_impl_.ValidFuture(id));
   }
 }

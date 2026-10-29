@@ -42,6 +42,12 @@ set(rest_SRCS
 add_library(firebase_rest_lib STATIC
     ${rest_SRCS})
 
+# Reject static/global C++ objects with non-trivial destructors so REST
+# transport locks outlive user-owned static Firebase objects at process exit.
+target_compile_options(
+    firebase_rest_lib PRIVATE
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=exit-time-destructors>)
+
 target_include_directories(firebase_rest_lib
   PUBLIC
     ${FIREBASE_CPP_SDK_ROOT_DIR}
