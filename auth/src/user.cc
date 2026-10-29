@@ -20,6 +20,7 @@ namespace firebase {
 namespace auth {
 
 AUTH_RESULT_FN(User, GetToken, std::string)
+AUTH_RESULT_FN(User, GetIdTokenResult, IdTokenResult)
 AUTH_RESULT_FN(User, UpdatePassword, void)
 AUTH_RESULT_FN(User, LinkWithCredential, AuthResult)
 AUTH_RESULT_FN(User, Reauthenticate, void)
@@ -47,6 +48,18 @@ Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
     FutureBase base = auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
     const FutureBase& rFuture = base;
     return static_cast<const Future<std::string>&>(rFuture);
+  }
+}
+
+Future<IdTokenResult> User::GetIdTokenResultThreadSafe(bool force_refresh) {
+  Future<IdTokenResult> future = GetIdTokenResult(force_refresh);
+  if (future.status() != kFutureStatusPending) {
+    return future;
+  } else {
+    FutureBase base =
+        auth_data_->future_impl.LastResultProxy(kUserFn_GetIdTokenResult);
+    const FutureBase& rFuture = base;
+    return static_cast<const Future<IdTokenResult>&>(rFuture);
   }
 }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
