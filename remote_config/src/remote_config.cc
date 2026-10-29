@@ -62,10 +62,19 @@ static Mutex& RemoteConfigsMutex() {
   return *mutex;
 }
 
+// Must be called with RemoteConfigsMutex() held.
+static RemoteConfig* FindRemoteConfigLocked(App* app) {
+  RemoteConfigMap::iterator it = RemoteConfigs().find(app);
+  if (it != RemoteConfigs().end()) {
+    return it->second;
+  }
+  return nullptr;
+}
+
 RemoteConfig* RemoteConfig::GetInstance(App* app) {
   MutexLock lock(RemoteConfigsMutex());
   // Return the RemoteConfig if it already exists.
-  RemoteConfig* existing_rc = FindRemoteConfig(app);
+  RemoteConfig* existing_rc = FindRemoteConfigLocked(app);
   if (existing_rc) {
     return existing_rc;
   }
@@ -99,12 +108,7 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
 
 RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
   MutexLock lock(RemoteConfigsMutex());
-  // Return the RemoteConfig if it already exists.
-  RemoteConfigMap::iterator it = RemoteConfigs().find(app);
-  if (it != RemoteConfigs().end()) {
-    return it->second;
-  }
-  return nullptr;
+  return FindRemoteConfigLocked(app);
 }
 
 void RemoteConfig::DeleteInternal() {

@@ -45,7 +45,7 @@ class NoDestructor {
   // Constructs the wrapped T in place, forwarding any arguments.
   template <typename... Args>
   explicit NoDestructor(Args&&... args) {
-    new (&storage_) T(std::forward<Args>(args)...);
+    new (static_cast<void*>(storage_)) T(std::forward<Args>(args)...);
   }
 
   NoDestructor(const NoDestructor&) = delete;
@@ -56,11 +56,11 @@ class NoDestructor {
 
   T& operator*() { return *get(); }
   T* operator->() { return get(); }
-  T* get() { return reinterpret_cast<T*>(&storage_); }
+  T* get() { return reinterpret_cast<T*>(storage_); }
 
   const T& operator*() const { return *get(); }
   const T* operator->() const { return get(); }
-  const T* get() const { return reinterpret_cast<const T*>(&storage_); }
+  const T* get() const { return reinterpret_cast<const T*>(storage_); }
 
  private:
   alignas(T) unsigned char storage_[sizeof(T)];

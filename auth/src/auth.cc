@@ -81,11 +81,20 @@ static Mutex& AuthsMutex() {
   return *mutex;
 }
 
+// Must be called with AuthsMutex() held.
+static Auth* FindAuthLocked(App* app) {
+  AuthMap::iterator it = Auths().find(app);
+  if (it != Auths().end()) {
+    return it->second;
+  }
+  return nullptr;
+}
+
 // static
 Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
   MutexLock lock(AuthsMutex());
   // Return the Auth if it already exists.
-  Auth* existing_auth = FindAuth(app);
+  Auth* existing_auth = FindAuthLocked(app);
   if (existing_auth) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     // Log heartbeat data when instance getters are called.
@@ -113,12 +122,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 // static
 Auth* Auth::FindAuth(App* app) {
   MutexLock lock(AuthsMutex());
-  // Return the Auth if it already exists.
-  AuthMap::iterator it = Auths().find(app);
-  if (it != Auths().end()) {
-    return it->second;
-  }
-  return nullptr;
+  return FindAuthLocked(app);
 }
 
 // Auth uses the pimpl mechanism to hide internal data types from the interface.

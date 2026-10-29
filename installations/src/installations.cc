@@ -38,11 +38,27 @@ static Mutex& InstallationsMutex() {
 
 using internal::InstallationsInternal;
 
+// Must be called with InstallationsMutex() held.
+static Installations* FindInstallationsLocked(App* app) {
+  if (!g_installations) {
+    g_installations = new std::map<App*, Installations*>();  // NOLINT
+    return nullptr;
+  }
+
+  // Return the Installations if it already exists.
+  std::map<App*, Installations*>::iterator it =
+      g_installations->find(app);  // NOLINT
+  if (it != g_installations->end()) {
+    return it->second;
+  }
+  return nullptr;
+}
+
 Installations* Installations::GetInstance(App* app) {
   MutexLock lock(InstallationsMutex());
 
   // Return the Installations if it already exists.
-  Installations* existing_installations = FindInstallations(app);
+  Installations* existing_installations = FindInstallationsLocked(app);
   if (existing_installations) {
     // Log heartbeat data when instance getters are called.
     // See go/firebase-platform-logging-design for more information.
@@ -81,18 +97,7 @@ Installations* Installations::GetInstance(App* app) {
 
 Installations* Installations::FindInstallations(App* app) {
   MutexLock lock(InstallationsMutex());
-  if (!g_installations) {
-    g_installations = new std::map<App*, Installations*>();  // NOLINT
-    return nullptr;
-  }
-
-  // Return the Installations if it already exists.
-  std::map<App*, Installations*>::iterator it =
-      g_installations->find(app);  // NOLINT
-  if (it != g_installations->end()) {
-    return it->second;
-  }
-  return nullptr;
+  return FindInstallationsLocked(app);
 }
 
 Installations::Installations(App* app) : app_(app) {
@@ -108,7 +113,11 @@ Installations::~Installations() {
     notifier->UnregisterObject(this);
   }
 
-  DeleteInternal();
+  if (installations_internal_) {
+    installations_internal_->Cleanup();
+    delete installations_internal_;
+    installations_internal_ = nullptr;
+  }
 
   if (g_installations) {
     // Remove installations from the g_installations map.
