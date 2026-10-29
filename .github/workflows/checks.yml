@@ -22,12 +22,12 @@ jobs:
   file_format_check:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         with:
           persist-credentials: true # zizmor: ignore[artipacked]
           submodules: false
       - name: Setup python
-        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
         with:
           python-version: 3.9
       - name: Install prerequisites
@@ -64,12 +64,12 @@ jobs:
       - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
         with:
           cmakeVersion: "~3.31.0"
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         with:
           persist-credentials: true # zizmor: ignore[artipacked]
           submodules: false
       - name: Setup python
-        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
         with:
           python-version: 3.9
       - name: Install prerequisites
@@ -104,7 +104,7 @@ jobs:
     # Check for Google copyright in each file.
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         with:
           persist-credentials: true # zizmor: ignore[artipacked]
           submodules: false
@@ -117,7 +117,7 @@ jobs:
     # Check that the readme was updated, unless the PR has a specific label set (env.skipReleaseNotesLabel).
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
         if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) && (github.event.pull_request.base.ref == 'main')}}
         with:

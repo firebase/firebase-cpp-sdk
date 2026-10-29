@@ -50,6 +50,7 @@
 #include "auth/src/desktop/sign_in_flow.h"
 #include "auth/src/desktop/user_view.h"
 #include "auth/src/desktop/validate_credential.h"
+#include "auth/src/id_token_util.h"
 #include "auth/src/include/firebase/auth/types.h"
 #include "auth/user_data_generated.h"
 #include "auth/user_data_resource.h"
@@ -62,6 +63,11 @@ using firebase::app::secure::UserSecureManager;
 using firebase::callback::NewCallback;
 
 namespace {
+
+// Error message reported by GetIdTokenResult when the ID token returned by the
+// backend cannot be decoded as a JWT.
+const char kIdTokenResultParseErrorMessage[] =
+    "Failed to decode the ID token as a JWT.";
 
 // Contains the results of a GetToken operation, either successful, in which
 // case IsValid() will return true and token() will be non-blank, or
@@ -691,6 +697,62 @@ Future<std::string> User::GetTokenInternal(const bool force_refresh,
         }
 
         handle->promise.CompleteWithResult(get_token_result.token());
+      };
+
+  // Note: request is deliberately null because EnsureFreshToken will create it.
+  return CallAsync(auth_data_, promise, std::unique_ptr<rest::Request>(),
+                   callback);
+}
+
+Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
+  if (auth_data_ == nullptr) {
+    return Future<IdTokenResult>();
+  }
+  Promise<IdTokenResult> promise(&auth_data_->future_impl,
+                                 kUserFn_GetIdTokenResult);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
+
+  GetTokenResult current_token(kAuthErrorFailure);
+  const bool is_user_logged_in =
+      UserView::TryRead(auth_data_, [&](const UserView::Reader& user) {
+        current_token = GetTokenIfFresh(user, force_refresh);
+      });
+
+  if (!is_user_logged_in) {
+    auto future = promise.future();
+    future.Release();
+    return future;
+  }
+  if (current_token.IsValid()) {
+    IdTokenResult id_token_result;
+    if (!ParseIdToken(current_token.token(), &id_token_result)) {
+      LogWarning("GetIdTokenResult: Failed to parse cached ID token.");
+      promise.Fail(kAuthErrorFailure, kIdTokenResultParseErrorMessage);
+      return promise.future();
+    }
+    promise.CompleteWithResult(id_token_result);
+    return promise.future();
+  }
+
+  const auto callback =
+      [](AuthDataHandle<IdTokenResult, rest::Request>* const handle) {
+        const GetTokenResult get_token_result =
+            EnsureFreshToken(handle->auth_data, true);
+        if (!get_token_result.IsValid()) {
+          FailPromise(&handle->promise, get_token_result.error());
+          return;
+        }
+
+        IdTokenResult id_token_result;
+        if (!ParseIdToken(get_token_result.token(), &id_token_result)) {
+          LogWarning("GetIdTokenResult: Failed to parse refreshed ID token.");
+          handle->promise.Fail(kAuthErrorFailure,
+                               kIdTokenResultParseErrorMessage);
+          return;
+        }
+        handle->promise.CompleteWithResult(id_token_result);
       };
 
   // Note: request is deliberately null because EnsureFreshToken will create it.

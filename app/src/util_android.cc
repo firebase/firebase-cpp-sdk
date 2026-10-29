@@ -297,12 +297,23 @@ static jobject GetParentLoader() {
   return g_class_loaders->back();
 }
 
+// Convert a JNI class name (e.g. "java/lang/String"), as used by
+// JNIEnv::FindClass(), to the binary name (e.g. "java.lang.String") expected by
+// ClassLoader methods.
+static std::string JniClassNameToBinaryName(const char* class_name) {
+  if (!class_name) return std::string();
+  std::string binary_name(class_name);
+  std::replace(binary_name.begin(), binary_name.end(), '/', '.');
+  return binary_name;
+}
+
 // Try to find a class in the list of class loaders.
 static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
   assert(g_class_loaders);
   static const class_loader::Method kFindLoadClassMethods[] = {
       class_loader::kFindLoadedClass, class_loader::kLoadClass};
-  jstring class_name_object = env->NewStringUTF(class_name);
+  jstring class_name_object =
+      env->NewStringUTF(JniClassNameToBinaryName(class_name).c_str());
   jclass class_object = nullptr;
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kFindLoadClassMethods); ++i) {
     for (auto it = g_class_loaders->begin();
@@ -1669,8 +1680,6 @@ jclass FindClassInFiles(
       firebase::util::JniStringToString(env, cache_dir_path_jstring);
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-  static const char kPathSeparator = '/';
-
   jobject cache_uri =
       env->CallObjectMethod(cache_dir, file::GetMethodId(file::kToUri));
   CheckAndClearJniExceptions(env);
@@ -1698,11 +1707,9 @@ jclass FindClassInFiles(
       url_path_array, GetParentLoader());
   env->DeleteLocalRef(url_path_array);
 
-  std::string class_name_str(class_name);
-  std::replace(class_name_str.begin(), class_name_str.end(), kPathSeparator,
-               '.');
-  LogDebug("Load class %s (a.k.a. %s)", class_name_str.c_str(), class_name);
-  jstring class_name_object = env->NewStringUTF(class_name_str.c_str());
+  std::string binary_name = JniClassNameToBinaryName(class_name);
+  LogDebug("Load class %s (a.k.a. %s)", binary_name.c_str(), class_name);
+  jstring class_name_object = env->NewStringUTF(binary_name.c_str());
   jclass loaded_class = static_cast<jclass>(env->CallObjectMethod(
       class_loader_obj,
       url_class_loader::GetMethodId(url_class_loader::kLoadClass),
@@ -1745,8 +1752,9 @@ jclass FindClassInFiles(
   env->DeleteLocalRef(code_cache_dir_path);
   env->DeleteLocalRef(dex_path_string);
 
-  LogDebug("Load class %s", class_name);
-  jstring class_name_object = env->NewStringUTF(class_name);
+  std::string binary_name = JniClassNameToBinaryName(class_name);
+  LogDebug("Load class %s (a.k.a. %s)", binary_name.c_str(), class_name);
+  jstring class_name_object = env->NewStringUTF(binary_name.c_str());
   jclass loaded_class = static_cast<jclass>(env->CallObjectMethod(
       class_loader_obj,
       dex_class_loader::GetMethodId(dex_class_loader::kLoadClass),
@@ -1882,18 +1890,15 @@ bool LogException(JNIEnv* env, LogLevel log_level, const char* log_fmt, ...) {
     }
     if (message) {
       std::string message_str = JniStringToString(env, message);
-      if (log_fmt == nullptr) {
-        LogMessage(log_level, "%s", message_str.c_str());
-      } else {
-        static char buf[512];
+      if (log_fmt != nullptr) {
+        char buf[512] = {0};
         va_list list;
         va_start(list, log_fmt);
-        vsnprintf(buf, sizeof(buf) - 1, log_fmt, list);
+        vsnprintf(buf, sizeof(buf), log_fmt, list);
         va_end(list);
-        strncat(buf, ": ", sizeof(buf) - 1);
-        strncat(buf, message_str.c_str(), sizeof(buf) - 1);
-        LogMessage(log_level, "%s", buf);
+        message_str = std::string(buf) + ": " + message_str;
       }
+      LogMessage(log_level, "%s", message_str.c_str());
     }
     env->DeleteLocalRef(exception);
     return true;

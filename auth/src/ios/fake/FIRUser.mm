@@ -20,6 +20,7 @@
 
 #import "auth/src/ios/fake/FIRUser.h"
 
+#import "auth/src/ios/fake/FIRAuthTokenResult.h"
 #import "auth/src/ios/fake/FIRUserMetadata.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -94,7 +95,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)getIDTokenResultWithCompletion:(nullable FIRAuthTokenResultCallback)completion {}
 
 - (void)getIDTokenResultForcingRefresh:(BOOL)forceRefresh
-                            completion:(nullable FIRAuthTokenResultCallback)completion {}
+                            completion:(nullable FIRAuthTokenResultCallback)completion {
+  _callbackManager.Add(@"FIRUser.getIDTokenResultForcingRefresh:completion:", completion,
+                       [[FIRAuthTokenResult alloc] init]);
+}
 
 - (void)getIDTokenForcingRefresh:(BOOL)forceRefresh
                       completion:(nullable FIRAuthTokenCallback)completion {
