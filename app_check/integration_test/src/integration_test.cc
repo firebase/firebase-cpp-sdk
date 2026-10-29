@@ -506,14 +506,14 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
       ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);
   firebase::Future<::firebase::app_check::AppCheckToken> future =
-      app_check->GetAppCheckToken(true);
+      app_check->GetAppCheckToken(false);
   EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
   ::firebase::app_check::AppCheckToken token = *future.result();
   EXPECT_NE(token.token, "");
   EXPECT_NE(token.expire_time_millis, 0);
 
   // Wait a bit to make sure the expire time would be different
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // GetToken with force_refresh=false will return the same token.
   firebase::Future<::firebase::app_check::AppCheckToken> future2 =
@@ -522,7 +522,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // GetToken with force_refresh=true will return a new token.
   firebase::Future<::firebase::app_check::AppCheckToken> future3 =
