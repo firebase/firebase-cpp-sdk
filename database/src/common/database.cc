@@ -122,15 +122,20 @@ void Database::DeleteInternal() {
 
   if (!internal_) return;
 
+  // An instance whose initialization failed was never registered with the
+  // App's CleanupNotifier or added to g_databases, and app() may be null.
+  if (!internal_->initialized()) {
+    delete internal_;
+    internal_ = nullptr;
+    return;
+  }
+
   App* my_app = app();
   std::string url = internal_->constructor_url();
 
-  // Only need to unregister if internal_ is initialized
-  if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
-    assert(app_notifier);
-    app_notifier->UnregisterObject(this);
-  }
+  CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
+  assert(app_notifier);
+  app_notifier->UnregisterObject(this);
 
   {
     MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
