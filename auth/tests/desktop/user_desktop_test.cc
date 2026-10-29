@@ -378,6 +378,48 @@ TEST_F(UserDesktopTest, TestGetToken) {
   EXPECT_EQ("new idtoken123", new_token);
 }
 
+TEST_F(UserDesktopTest, TestGetIdTokenResult) {
+  const std::string jwt_token =
+      "eyJhbGciOiJub25lIn0."
+      "eyJhdXRoX3RpbWUiOjE2MDAwMDAwMDAsImlhdCI6MTYwMDAwMDAwMSwiZXhwIjoxNjAwMDAz"
+      "NjAwLCJhZG1pbiI6dHJ1ZSwiZmlyZWJhc2UiOnsic2lnbl9pbl9wcm92aWRlciI6ImN1c3Rv"
+      "bSJ9fQ."
+      "sig";
+  const auto api_url =
+      std::string("https://securetoken.googleapis.com/v1/token?key=") + API_KEY;
+  InitializeConfigWithAFake(
+      api_url, FakeSuccessfulResponse(
+                   std::string("\"access_token\": \"new accesstoken123\","
+                               "\"expires_in\": \"3600\","
+                               "\"token_type\": \"Bearer\","
+                               "\"refresh_token\": \"new refreshtoken123\","
+                               "\"id_token\": \"") +
+                   jwt_token +
+                   "\","
+                   "\"user_id\": \"localid123\","
+                   "\"project_id\": \"53101460582\""));
+
+  id_token_listener.ExpectChanges(1);
+  auth_state_listener.ExpectChanges(0);
+
+  // Initial cached token from SetUp ("idtoken123") is not a JWT, so decoding
+  // it must fail rather than silently produce an empty result.
+  WaitForFuture(firebase_user_.GetIdTokenResult(false), kAuthErrorFailure);
+
+  // Force refresh to get the JWT and verify parsed claims & timestamps.
+  const IdTokenResult refreshed_result =
+      WaitForFuture(firebase_user_.GetIdTokenResult(true));
+  EXPECT_EQ(jwt_token, refreshed_result.token);
+  EXPECT_EQ(1600000000ULL, refreshed_result.auth_timestamp);
+  EXPECT_EQ(1600000001ULL, refreshed_result.issued_at_timestamp);
+  EXPECT_EQ(1600003600ULL, refreshed_result.expiration_timestamp);
+  EXPECT_EQ("custom", refreshed_result.sign_in_provider);
+  auto admin_it = refreshed_result.claims.find(Variant("admin"));
+  ASSERT_NE(refreshed_result.claims.end(), admin_it);
+  EXPECT_TRUE(admin_it->second.is_bool());
+  EXPECT_TRUE(admin_it->second.bool_value());
+}
+
 TEST_F(UserDesktopTest, TestDelete) {
   InitializeConfigWithAFake(
       GetUrlForApi(API_KEY, "deleteAccount"),

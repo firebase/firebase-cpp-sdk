@@ -79,6 +79,54 @@ Future<std::string> User::GetToken(bool force_refresh) {
   return MakeFuture(&futures, handle);
 }
 
+Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
+  if (!ValidUser(auth_data_)) {
+    return Future<IdTokenResult>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<IdTokenResult>(kUserFn_GetIdTokenResult);
+  [UserImpl(auth_data_)
+      getIDTokenResultForcingRefresh:force_refresh
+                          completion:^(FIRAuthTokenResult *_Nullable token_result,
+                                       NSError *_Nullable error) {
+                            futures.Complete(
+                                handle, AuthErrorFromNSError(error),
+                                [error.localizedDescription UTF8String],
+                                [token_result](IdTokenResult *data) {
+                                  if (token_result != nullptr) {
+                                    data->token = StringFromNSString(token_result.token);
+                                    data->auth_timestamp =
+                                        token_result.authDate
+                                            ? static_cast<uint64_t>(
+                                                  token_result.authDate.timeIntervalSince1970)
+                                            : 0;
+                                    data->issued_at_timestamp =
+                                        token_result.issuedAtDate
+                                            ? static_cast<uint64_t>(
+                                                  token_result.issuedAtDate.timeIntervalSince1970)
+                                            : 0;
+                                    data->expiration_timestamp =
+                                        token_result.expirationDate
+                                            ? static_cast<uint64_t>(
+                                                  token_result.expirationDate.timeIntervalSince1970)
+                                            : 0;
+                                    data->sign_in_provider =
+                                        StringFromNSString(token_result.signInProvider);
+                                    data->sign_in_second_factor =
+                                        StringFromNSString(token_result.signInSecondFactor);
+                                    data->claims.clear();
+                                    if (token_result.claims != nil) {
+                                      util::NSDictionaryToStdMap(token_result.claims,
+                                                                 &data->claims);
+                                    }
+                                  } else {
+                                    *data = IdTokenResult();
+                                  }
+                                });
+                          }];
+  return MakeFuture(&futures, handle);
+}
+
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
   if (ValidUser(auth_data_)) {

@@ -615,6 +615,9 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - Auth: Added `IdTokenResult` struct and `User::GetIdTokenResult()` to
+      retrieve decoded ID token claims and metadata across Desktop, Android,
+      and iOS.
     - General (Android): Fixed a potential buffer overflow in `LogException` when
       formatting long JNI exception messages.
 
