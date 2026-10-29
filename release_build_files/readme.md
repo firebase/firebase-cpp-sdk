@@ -615,6 +615,12 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
+      when initialization fails. It now returns `nullptr` and reports
+      `kInitResultFailedMissingDependency`.
+    - General (Android): Fixed loading of embedded Java classes when the app
+      runs under a custom class loader setup, such as being hosted in another
+      app's process. (#1936)
     - Auth: Added `IdTokenResult` struct and `User::GetIdTokenResult()` to
       retrieve decoded ID token claims and metadata across Desktop, Android,
       and iOS.
