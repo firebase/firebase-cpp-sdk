@@ -136,6 +136,14 @@ void Storage::DeleteInternal() {
   MutexLock lock(g_storages_lock);
   if (!internal_) return;
 
+  // An instance whose initialization failed was never registered with the
+  // App's CleanupNotifier or added to g_storages, and app() may be null.
+  if (!internal_->initialized()) {
+    delete internal_;
+    internal_ = nullptr;
+    return;
+  }
+
   CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
   assert(app_notifier);
   app_notifier->UnregisterObject(this);

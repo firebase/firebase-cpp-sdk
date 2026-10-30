@@ -619,6 +619,19 @@ code.
       Windows apps linking the desktop libraries must now also link the
       `bcrypt`, `iphlpapi`, and `secur32` Windows SDK libraries, and macOS apps
       must now also link the `SystemConfiguration` framework.
+    - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
+      descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
+    - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
+      when initialization fails. It now returns `nullptr` and reports
+      `kInitResultFailedMissingDependency`.
+    - General (Android): Fixed loading of embedded Java classes when the app
+      runs under a custom class loader setup, such as being hosted in another
+      app's process. (#1936)
+    - Auth: Added `IdTokenResult` struct and `User::GetIdTokenResult()` to
+      retrieve decoded ID token claims and metadata across Desktop, Android,
+      and iOS.
+    - General (Android): Fixed a potential buffer overflow in `LogException` when
+      formatting long JNI exception messages.
 
 ### 14.1.0
 - Changes
