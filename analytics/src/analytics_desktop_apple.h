@@ -29,14 +29,14 @@
 //       "disabled" / "0" / "off" / "false"  -> stubs
 //       "enabled"  / "1" / "on"  / "true"   -> Apple SDK
 //       "debug"                              -> Apple SDK + DebugView
-//  3. Auto: enabled. Inside the Unity Editor the default is "debug": events
-//     flow through the Apple SDK and appear in DebugView, while Firebase keeps
-//     debug-mode events out of production reports and the BigQuery export.
-//     Set "enabled" to send Editor events as regular traffic. Caveats of the
-//     Editor process: the main bundle is the Editor (the backend sets
-//     FIROptions.bundleID from AppOptions::package_name() to compensate), and
-//     its NSUserDefaults / measurement store (and so the app instance ID) is
-//     shared by every Unity project on the machine.
+//  3. Auto: enabled, including inside the Unity Editor. Debug mode is left to
+//     the app (SetDesktopDebugMode() / "debug"). Editor caveats, which the
+//     SDK cannot fix: GoogleAppMeasurement reports the main bundle's (the
+//     Editor's) bundle ID and app version, and keeps its state in the Editor's
+//     NSUserDefaults / Application Support, shared by every Unity project on
+//     the machine.
+//  "disabled" / "enabled" / "debug" set explicitly also overwrite the
+//  persisted debug flag; auto leaves it alone.
 
 #ifndef FIREBASE_ANALYTICS_SRC_ANALYTICS_DESKTOP_APPLE_H_
 #define FIREBASE_ANALYTICS_SRC_ANALYTICS_DESKTOP_APPLE_H_

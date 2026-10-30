@@ -71,28 +71,26 @@ the SDK twice.
 | Control | Effect |
 |---|---|
 | `FIREBASE_ANALYTICS_APPLE_SDK=disabled` | Use the stubs even if the SDK is embedded |
-| `FIREBASE_ANALYTICS_APPLE_SDK=enabled` | Use the Apple SDK and send regular traffic (the default outside the Unity Editor) |
-| `FIREBASE_ANALYTICS_APPLE_SDK=debug` | Use the Apple SDK with debug mode (DebugView) on (the default inside the Unity Editor) |
+| `FIREBASE_ANALYTICS_APPLE_SDK=enabled` | Use the Apple SDK and clear the persisted debug flag |
+| `FIREBASE_ANALYTICS_APPLE_SDK=debug` | Use the Apple SDK with debug mode (DebugView) on |
+| *(unset)* | Use the Apple SDK, everywhere including the Unity Editor. The persisted debug flag is left as is |
 | `SetDesktopDebugMode(bool)` | Persists the Apple SDK debug flag, which applies from the next launch |
 
-**Unity Editor.** Analytics is **on by default in the Editor**, in debug mode:
-events go through the Apple SDK and appear in DebugView. Firebase excludes
-debug-mode events from production reports and the BigQuery export, so
-play-mode testing doesn't skew real metrics. Set `enabled` to send Editor
-events as regular traffic, or `disabled` to turn Editor Analytics off. Unity
-exposes both as `Window > Firebase > Analytics` menu toggles. Known Editor
-caveats:
+**Unity Editor.** Analytics is on by default in the Editor and behaves like
+a standalone player. Debug mode is up to the developer. Known Editor caveats,
+which this SDK cannot fix:
 
-* The process's main bundle is the Unity Editor. The backend sets
-  `FIROptions.bundleID` from `AppOptions::package_name()` (the bundle ID in
-  your Firebase config), but some device/app metadata (app version, install
-  source) still comes from the Editor.
+* GoogleAppMeasurement reports `[NSBundle mainBundle].bundleIdentifier` and
+  the main bundle's app version. In the Editor, those are the Unity Editor's.
+  `FIROptions.bundleID` (set from `AppOptions::package_name()`) doesn't change
+  this. FirebaseCore only uses it to log `I-COR000008` when it doesn't match
+  the main bundle, so expect that log line in the Editor.
 * GoogleAppMeasurement keeps its state in the Editor's NSUserDefaults /
   Application Support, which every Unity project on the machine shares. So
   all projects share one app instance ID and event queue in the Editor.
-* `FIRApp` is configured once per process. It survives play-mode cycles and
-  domain reloads because the Apple SDK can't be re-configured. Switching
-  Firebase projects, or toggling debug mode, requires restarting the Editor.
+* Analytics starts once per process. It survives play-mode cycles and domain
+  reloads. Switching Firebase projects, or changing debug mode, requires
+  restarting the Editor.
 
 Feature mapping compared with the stubs:
 

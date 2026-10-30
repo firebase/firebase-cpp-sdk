@@ -299,8 +299,10 @@ id<FIRCppDesktopOptionsShape> CreateOptions(const AppOptions& app_options) {
     options.storageBucket = @(app_options.storage_bucket());
   }
   if (std::strlen(app_options.client_id())) options.clientID = @(app_options.client_id());
-  // Prefer the configured bundle ID: inside the Unity Editor the main bundle
-  // is the Editor itself.
+  // Mirrors app_ios.mm. Note that only FirebaseCore reads FIROptions.bundleID
+  // (to log I-COR000008 when it differs from the main bundle);
+  // GoogleAppMeasurement always reports [NSBundle mainBundle].bundleIdentifier,
+  // so inside the Unity Editor events carry the Editor's bundle ID regardless.
   if (std::strlen(app_options.package_name())) {
     options.bundleID = @(app_options.package_name());
   } else if ([[NSBundle mainBundle] bundleIdentifier]) {
@@ -412,33 +414,29 @@ bool Initialize(const App& app, bool collection_enabled, bool collection_enabled
 
   @autoreleasepool {
     const bool in_unity_editor = IsRunningInUnityEditor();
-    BackendMode mode = ResolveMode();
-    if (mode == kBackendModeAuto) {
-      // On by default everywhere. In the Unity Editor, default to debug mode:
-      // events still flow through the Apple SDK (and show up in DebugView),
-      // but Firebase excludes debug-mode events from production reports and
-      // the BigQuery export, so play-mode testing doesn't skew real metrics.
-      // Set FIREBASE_ANALYTICS_APPLE_SDK=enabled to send Editor events as
-      // regular traffic instead.
-      mode = in_unity_editor ? kBackendModeDebug : kBackendModeEnabled;
-    }
+    const BackendMode requested_mode = ResolveMode();
+    // On by default everywhere, including the Unity Editor. Debug mode is the
+    // app developer's choice (SetDesktopDebugMode() or
+    // FIREBASE_ANALYTICS_APPLE_SDK=debug); the SDK doesn't force it.
+    const BackendMode mode =
+        requested_mode == kBackendModeAuto ? kBackendModeEnabled : requested_mode;
     if (mode == kBackendModeDisabled) return false;
 
     // The debug-mode flag must be written before FIRApp is configured because
-    // GoogleAppMeasurement reads it at startup.
+    // GoogleAppMeasurement reads it at startup. Only explicit modes touch it;
+    // otherwise the value persisted by SetDesktopDebugMode() is respected.
+    const bool explicit_mode = requested_mode != kBackendModeAuto;
     const bool debug_mode = mode == kBackendModeDebug;
     if (debug_mode) {
       WriteDebugModeFlag(true);
-    } else if (in_unity_editor) {
-      // The flag persists in the Editor's NSUserDefaults; clear one left over
-      // from an earlier debug-mode session when regular traffic is requested.
+    } else if (explicit_mode) {
       WriteDebugModeFlag(false);
     }
     if (in_unity_editor) {
-      LogInfo("Analytics: Running in the Unity Editor (%s). Events are attributed to the "
-              "configured bundle ID; the Editor's analytics storage is shared by every Unity "
-              "project on this machine. Set %s=disabled to turn Analytics off in the Editor.",
-              debug_mode ? "debug mode, events appear in DebugView" : "regular traffic",
+      LogInfo("Analytics: Running in the Unity Editor. GoogleAppMeasurement reports the Editor's "
+              "bundle ID and app version (from the Editor's Info.plist), and its local storage "
+              "is shared by every Unity project on this machine. Set %s=disabled to turn "
+              "Analytics off in the Editor.",
               kBackendModeEnvironmentVariable);
     }
 
