@@ -633,7 +633,8 @@ code.
       it with `firebase_cpp_link_apple_analytics_sdk(<target>)` from
       `cmake/firebase_apple_desktop_sdk.cmake`, and configure the app with an
       Apple app (`GoogleService-Info.plist`). Apps that don't embed the Apple
-      SDK keep the existing stub behavior. See `analytics/apple_desktop/README.md`.
+      SDK keep the existing stub behavior. Inside the Unity Editor it defaults to
+      debug mode (DebugView). See `analytics/apple_desktop/README.md`.
 
 ### 14.1.0
 - Changes

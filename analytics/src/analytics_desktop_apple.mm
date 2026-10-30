@@ -414,21 +414,33 @@ bool Initialize(const App& app, bool collection_enabled, bool collection_enabled
     const bool in_unity_editor = IsRunningInUnityEditor();
     BackendMode mode = ResolveMode();
     if (mode == kBackendModeAuto) {
-      mode = in_unity_editor ? kBackendModeDisabled : kBackendModeEnabled;
-      if (in_unity_editor) {
-        LogInfo("Analytics: Firebase Analytics is disabled in the Unity Editor by default. "
-                "Enable it with Window > Firebase > Analytics > Send macOS Editor Events to "
-                "DebugView (or set %s=debug).",
-                kBackendModeEnvironmentVariable);
-      }
+      // On by default everywhere. In the Unity Editor, default to debug mode:
+      // events still flow through the Apple SDK (and show up in DebugView),
+      // but Firebase excludes debug-mode events from production reports and
+      // the BigQuery export, so play-mode testing doesn't skew real metrics.
+      // Set FIREBASE_ANALYTICS_APPLE_SDK=enabled to send Editor events as
+      // regular traffic instead.
+      mode = in_unity_editor ? kBackendModeDebug : kBackendModeEnabled;
     }
     if (mode == kBackendModeDisabled) return false;
 
-    // Never send production traffic from the Editor; debug mode routes
-    // events to DebugView. Must be written before FIRApp is configured
-    // because GoogleAppMeasurement reads it at startup.
-    const bool debug_mode = mode == kBackendModeDebug || in_unity_editor;
-    if (debug_mode) WriteDebugModeFlag(true);
+    // The debug-mode flag must be written before FIRApp is configured because
+    // GoogleAppMeasurement reads it at startup.
+    const bool debug_mode = mode == kBackendModeDebug;
+    if (debug_mode) {
+      WriteDebugModeFlag(true);
+    } else if (in_unity_editor) {
+      // The flag persists in the Editor's NSUserDefaults; clear one left over
+      // from an earlier debug-mode session when regular traffic is requested.
+      WriteDebugModeFlag(false);
+    }
+    if (in_unity_editor) {
+      LogInfo("Analytics: Running in the Unity Editor (%s). Events are attributed to the "
+              "configured bundle ID; the Editor's analytics storage is shared by every Unity "
+              "project on this machine. Set %s=disabled to turn Analytics off in the Editor.",
+              debug_mode ? "debug mode, events appear in DebugView" : "regular traffic",
+              kBackendModeEnvironmentVariable);
+    }
 
     if (!EnsureDefaultAppConfigured(app.options())) return false;
 
