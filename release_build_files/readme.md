@@ -628,6 +628,12 @@ code.
       and iOS.
     - General (Android): Fixed a potential buffer overflow in `LogException` when
       formatting long JNI exception messages.
+    - Analytics (macOS Desktop): Analytics can now forward to the Firebase
+      Apple SDK when it is embedded in the app, instead of using stubs. Embed
+      it with `firebase_cpp_link_apple_analytics_sdk(<target>)` from
+      `cmake/firebase_apple_desktop_sdk.cmake`, and configure the app with an
+      Apple app (`GoogleService-Info.plist`). Apps that don't embed the Apple
+      SDK keep the existing stub behavior. See `analytics/apple_desktop/README.md`.
 
 ### 14.1.0
 - Changes

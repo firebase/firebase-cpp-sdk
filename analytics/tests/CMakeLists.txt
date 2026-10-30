@@ -30,6 +30,18 @@ firebase_cpp_cc_test(
     ${ANALYTICS_TEST_PLATFORM_DEPS}
 )
 
+if(APPLE AND NOT IOS AND FIREBASE_ANALYTICS_USE_APPLE_DESKTOP_BACKEND)
+  firebase_cpp_cc_test(
+    firebase_analytics_desktop_apple_test
+    SOURCES
+      analytics_desktop_apple_test.cc
+    DEPENDS
+      firebase_app_for_testing
+      firebase_analytics
+      firebase_testing
+  )
+endif()
+
 firebase_cpp_cc_test_on_ios(
   firebase_analytics_test
   HOST

@@ -36,6 +36,24 @@
 #include "analytics_windows.h"
 #endif  // defined(_WIN32)
 
+#if defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
+#include "analytics/src/analytics_desktop_apple.h"
+
+// Forwards to the Firebase Apple SDK backend when it is active (macOS builds
+// that embed the Apple SDK); otherwise falls through to the Windows / stub
+// implementation below.
+#define FIREBASE_ANALYTICS_APPLE_BACKEND(statement) \
+  do {                                              \
+    if (internal::apple::IsActive()) {              \
+      statement;                                    \
+    }                                               \
+  } while (0)
+#else
+#define FIREBASE_ANALYTICS_APPLE_BACKEND(statement) \
+  do {                                              \
+  } while (0)
+#endif  // defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
+
 namespace firebase {
 namespace analytics {
 
@@ -52,6 +70,8 @@ static LogCallback g_log_callback;
 static std::mutex g_log_callback_mutex;
 static int g_fake_instance_id = 0;
 static bool g_analytics_collection_enabled = true;
+// Whether SetAnalyticsCollectionEnabled() was called explicitly.
+static bool g_analytics_collection_enabled_set = false;
 static std::string g_app_id;
 static std::string g_package_name;
 
@@ -126,6 +146,11 @@ void Initialize(const App& app) {
     }
   }
 #endif  // defined(_WIN32)
+
+#if defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
+  internal::apple::Initialize(app, g_analytics_collection_enabled,
+                              g_analytics_collection_enabled_set);
+#endif  // defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
 }
 
 namespace internal {
@@ -138,6 +163,11 @@ bool IsInitialized() { return g_initialized; }
 // Terminates the Analytics desktop API.
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
+#if defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
+  // Must run before FutureData is destroyed: it stops pending Apple SDK
+  // callbacks from completing futures.
+  internal::apple::Terminate();
+#endif  // defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
 #if defined(_WIN32)
   if (g_analytics_module) {
     // Make sure to notify the SDK that the analytics is being terminated to
@@ -301,6 +331,8 @@ void LogEvent(const char* name, const Parameter* parameters,
     LogError("Analytics: Event name cannot be null or empty.");
     return;
   }
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::LogEvent(name, parameters, number_of_parameters));
 
   GoogleAnalytics_EventParameters* c_event_params = nullptr;
   if (parameters != nullptr && number_of_parameters > 0) {
@@ -344,6 +376,8 @@ void SetUserProperty(const char* name, const char* property) {
     LogError("Analytics: User property name cannot be null or empty.");
     return;
   }
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::SetUserProperty(name, property));
   // The C API GoogleAnalytics_SetUserProperty allows value to be nullptr to
   // remove the property. If value is an empty string, it might also be treated
   // as clearing by some backends, or it might be an invalid value. The C API
@@ -372,6 +406,7 @@ void SetUserId(const char* user_id) {
   // validation for empty string beyond what C API does. Consider adding a check
   // for empty string if Firebase spec requires it. e.g., if (user_id != nullptr
   // && user_id[0] == '\0') { /* log error */ return; }
+  FIREBASE_ANALYTICS_APPLE_BACKEND(return internal::apple::SetUserId(user_id));
   GoogleAnalytics_SetUserId(user_id);
 }
 
@@ -381,6 +416,9 @@ void SetUserId(const char* user_id) {
 // @param[in] enabled A flag that enables or disables Analytics collection.
 void SetAnalyticsCollectionEnabled(bool enabled) {
   g_analytics_collection_enabled = enabled;
+  g_analytics_collection_enabled_set = true;
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::SetAnalyticsCollectionEnabled(enabled));
 
   if (internal::IsInitialized()) {
     GoogleAnalytics_SetAnalyticsCollectionEnabled(enabled);
@@ -391,6 +429,8 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
 // instance ID.
 void ResetAnalyticsData() {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::ResetAnalyticsData());
 
   GoogleAnalytics_ResetAnalyticsData();
   g_fake_instance_id++;
@@ -453,12 +493,19 @@ void NotifyAppLifecycleChange(AppLifecycleState state) {
 // Returns true if the desktop Analytics dll is initialized.
 bool IsDesktopInitialized() {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(return true);
   return GoogleAnalytics_IsInitialized();
 }
 
 // Sends the enabled Flag to the desktop Analytics dll.
 void SetDesktopDebugMode(bool enabled) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+#if defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
+  // Persisted even when the backend isn't active yet, as the Apple SDK reads
+  // the flag at startup.
+  internal::apple::SetDebugMode(enabled);
+  FIREBASE_ANALYTICS_APPLE_BACKEND(return);
+#endif  // defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
   GoogleAnalytics_SetDebugMode(enabled);
 }
 
@@ -537,6 +584,9 @@ void LogEvent(const char* name, const char* parameter_name,
 void SetDefaultEventParameters(const Parameter* parameters,
                                size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::SetDefaultEventParameters(parameters,
+                                                        number_of_parameters));
 }
 
 void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
@@ -545,6 +595,8 @@ void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::SetConsent(consent_settings));
 
   // Not supported by the Windows C API.
   (void)consent_settings;  // Mark as unused
@@ -561,6 +613,9 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::
+          InitiateOnDeviceConversionMeasurementWithEmailAddress(email_address));
   (void)email_address;
 #if defined(_WIN32)
   if (g_analytics_module) {
@@ -575,6 +630,9 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::
+          InitiateOnDeviceConversionMeasurementWithPhoneNumber(phone_number));
   (void)phone_number;
 #if defined(_WIN32)
   if (g_analytics_module) {
@@ -589,6 +647,10 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email_address) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::
+          InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
+              hashed_email_address));
   (void)hashed_email_address;
 #if defined(_WIN32)
   if (g_analytics_module) {
@@ -604,6 +666,10 @@ void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone_number) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::
+          InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
+              hashed_phone_number));
   (void)hashed_phone_number;
 #if defined(_WIN32)
   if (g_analytics_module) {
@@ -618,6 +684,8 @@ void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
 
 void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ANALYTICS_APPLE_BACKEND(
+      return internal::apple::SetSessionTimeoutDuration(milliseconds));
   (void)milliseconds;
 #if defined(_WIN32)
   if (g_analytics_module) {
@@ -634,6 +702,10 @@ Future<std::string> GetAnalyticsInstanceId() {
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle =
       api->SafeAlloc<std::string>(internal::kAnalyticsFnGetAnalyticsInstanceId);
+  FIREBASE_ANALYTICS_APPLE_BACKEND({
+    internal::apple::GetAnalyticsInstanceId(api, future_handle);
+    return Future<std::string>(api, future_handle.get());
+  });
   std::string instance_id = std::string("FakeAnalyticsInstanceId");
   {
     std::stringstream ss;
@@ -654,9 +726,13 @@ Future<std::string> GetAnalyticsInstanceId() {
 
 Future<std::string> GetAnalyticsInstanceIdLastResult() {
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
-  LogWarning(
-      "Analytics: GetAnalyticsInstanceIdLastResult() is not supported on "
-      "Desktop.");
+  bool apple_backend_active = false;
+  FIREBASE_ANALYTICS_APPLE_BACKEND(apple_backend_active = true);
+  if (!apple_backend_active) {
+    LogWarning(
+        "Analytics: GetAnalyticsInstanceIdLastResult() is not supported on "
+        "Desktop.");
+  }
   return static_cast<const Future<std::string>&>(
       internal::FutureData::Get()->api()->LastResult(
           internal::kAnalyticsFnGetAnalyticsInstanceId));
@@ -667,6 +743,10 @@ Future<int64_t> GetSessionId() {
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle =
       api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
+  FIREBASE_ANALYTICS_APPLE_BACKEND({
+    internal::apple::GetSessionId(api, future_handle);
+    return Future<int64_t>(api, future_handle.get());
+  });
   int64_t session_id = 0x5E5510171D570BL;  // "SESSIONIDSTUB", kinda
   api->CompleteWithResult(future_handle, 0, "", session_id);
 #if defined(_WIN32)

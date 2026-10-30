@@ -250,3 +250,22 @@ set(firebase_libs firebase_analytics firebase_app)
 set(gtest_libs gtest gmock)
 target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})
+
+# On macOS desktop, optionally embed the Firebase Apple SDK so Analytics uses
+# it instead of the desktop stubs. Requires a google-services-desktop.json
+# generated from an Apple app's GoogleService-Info.plist (App ID "1:...:ios:...").
+option(FIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK
+       "Embed the Firebase Apple SDK in the macOS desktop integration test." OFF)
+if(APPLE AND NOT IOS AND FIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK)
+  set(FIREBASE_ANALYTICS_TEST_BUNDLE_ID "com.google.firebase.cpp.analytics.testapp"
+      CACHE STRING "Bundle ID of the macOS desktop integration test app.")
+  # GoogleAppMeasurement expects to run inside an app bundle with a bundle ID.
+  set_target_properties(${integration_test_target_name} PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_GUI_IDENTIFIER "${FIREBASE_ANALYTICS_TEST_BUNDLE_ID}"
+    MACOSX_BUNDLE_BUNDLE_NAME "Firebase Analytics Test"
+  )
+  firebase_cpp_link_apple_analytics_sdk(${integration_test_target_name})
+  target_compile_definitions(${integration_test_target_name}
+    PRIVATE FIREBASE_ANALYTICS_TEST_APPLE_SDK_EMBEDDED=1)
+endif()

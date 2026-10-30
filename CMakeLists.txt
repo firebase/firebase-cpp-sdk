@@ -603,6 +603,10 @@ endif()
 
 add_subdirectory(ios_spm)
 
+# Defines firebase_cpp_link_apple_analytics_sdk(), used to embed the Firebase
+# Apple SDK into macOS desktop binaries (no-op on other platforms).
+include(firebase_apple_desktop_sdk)
+
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.
 if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)

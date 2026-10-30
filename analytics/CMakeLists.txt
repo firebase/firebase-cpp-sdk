@@ -85,6 +85,19 @@ if(WIN32)
   list(APPEND desktop_SRCS src/analytics_windows.cc)
 endif()
 
+# On macOS desktop, Analytics can forward to the Firebase Apple SDK when it is
+# embedded in the final binary (see cmake/firebase_apple_desktop_sdk.cmake).
+# The backend binds to the Apple SDK at runtime, so firebase_analytics itself
+# gains no link-time dependency on it and keeps the stub behavior otherwise.
+option(FIREBASE_ANALYTICS_APPLE_DESKTOP_BACKEND
+       "Build the Firebase Apple SDK backend for macOS desktop Analytics." ON)
+if(APPLE AND NOT IOS AND FIREBASE_ANALYTICS_APPLE_DESKTOP_BACKEND)
+  set(FIREBASE_ANALYTICS_USE_APPLE_DESKTOP_BACKEND ON)
+  list(APPEND desktop_SRCS src/analytics_desktop_apple.mm)
+else()
+  set(FIREBASE_ANALYTICS_USE_APPLE_DESKTOP_BACKEND OFF)
+endif()
+
 if(ANDROID)
   set(analytics_platform_SRCS
       "${android_SRCS}")
@@ -114,6 +127,13 @@ target_link_libraries(firebase_analytics
     PUBLIC firebase_app)
 if(WIN32)
   target_link_libraries(firebase_analytics PRIVATE Crypt32.lib)
+endif()
+if(FIREBASE_ANALYTICS_USE_APPLE_DESKTOP_BACKEND)
+  set_source_files_properties(src/analytics_desktop_apple.mm
+    PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+  target_compile_definitions(firebase_analytics
+    PRIVATE FIREBASE_ANALYTICS_APPLE_DESKTOP=1)
+  target_link_libraries(firebase_analytics PUBLIC "-framework Foundation")
 endif()
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.

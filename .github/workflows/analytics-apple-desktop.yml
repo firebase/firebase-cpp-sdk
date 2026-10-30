@@ -1,0 +1,87 @@
+name: Analytics (macOS desktop, Firebase Apple SDK)
+
+on:
+  pull_request:
+    paths:
+      - 'analytics/**'
+      - 'cmake/firebase_apple_desktop_sdk*'
+      - 'scripts/check_duplicate_symbols*'
+      - 'ios_spm/Package.swift'
+      - '.github/workflows/analytics-apple-desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  script_tests:
+    name: Build-script unit tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Setup python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
+        with:
+          python-version: 3.9
+      - name: build_apple_analytics_sdk tests
+        working-directory: analytics/apple_desktop
+        run: python build_apple_analytics_sdk_test.py -v
+      - name: check_duplicate_symbols tests
+        working-directory: scripts
+        run: python check_duplicate_symbols_test.py -v
+
+  embed_apple_sdk:
+    name: Embed Firebase Apple SDK (macOS ${{ matrix.arch }})
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+        with:
+          persist-credentials: false
+          submodules: true
+      - name: Setup python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
+        with:
+          python-version: 3.9
+      - name: Install prerequisites
+        run: python scripts/gha/install_prereqs_desktop.py
+      - name: Build the Firebase Apple Analytics SDK
+        env:
+          MATRIX_ARCH: ${{ matrix.arch }}
+        run: |
+          python analytics/apple_desktop/build_apple_analytics_sdk.py \
+            --output-dir "${RUNNER_TEMP}/firebase_apple_analytics_sdk" \
+            --archs "${MATRIX_ARCH}"
+          cat "${RUNNER_TEMP}/firebase_apple_analytics_sdk/size_report.txt"
+      - name: Build the analytics integration test with the SDK embedded
+        # The integration test pulls in the whole C++ SDK (including desktop
+        # Firestore), so this also exercises the nanopb de-duplication and
+        # the PRE_LINK duplicate-symbol check.
+        env:
+          MATRIX_ARCH: ${{ matrix.arch }}
+        run: |
+          cmake -S analytics/integration_test -B build \
+            -DFIREBASE_CPP_SDK_DIR="${GITHUB_WORKSPACE}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="${MATRIX_ARCH}" \
+            -DFIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK=ON \
+            -DFIREBASE_APPLE_ANALYTICS_SDK_DIR="${RUNNER_TEMP}/firebase_apple_analytics_sdk"
+          cmake --build build --target integration_test -j 4
+      - name: Inspect the embedded binary
+        run: |
+          BINARY=build/integration_test.app/Contents/MacOS/integration_test
+          ls -l "${BINARY}"
+          # The Firebase Apple SDK classes must be present for the runtime
+          # lookup in analytics_desktop_apple.mm to succeed.
+          nm -m "${BINARY}" | grep -E '_OBJC_CLASS_\$_FIRAnalytics$'
+          nm -m "${BINARY}" | grep -E '_OBJC_CLASS_\$_FIRApp$'

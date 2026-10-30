@@ -290,6 +290,9 @@ TEST_F(FirebaseAnalyticsTest, TestDesktopInitialization) {
 #if defined(_WIN32)
   // On Windows, it should be true.
   EXPECT_TRUE(initialized);
+#elif defined(FIREBASE_ANALYTICS_TEST_APPLE_SDK_EMBEDDED)
+  // On macOS with the Firebase Apple SDK embedded, Analytics forwards to it.
+  EXPECT_TRUE(initialized);
 #else
   // On other platforms, it should return false.
   EXPECT_FALSE(initialized);

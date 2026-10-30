@@ -1,0 +1,38 @@
+# Symbols of the embedded Firebase Apple SDK that are hidden in macOS desktop
+# shared libraries / bundles (ld64 -unexported_symbols_list; '#' lines are
+# comments, '*' and '?' are wildcards). See firebase_apple_desktop_sdk.cmake.
+#
+# Objective-C classes, metaclasses and ivars.
+_OBJC_CLASS_$_FIR*
+_OBJC_METACLASS_$_FIR*
+_OBJC_IVAR_$_FIR*
+_OBJC_CLASS_$_APM*
+_OBJC_METACLASS_$_APM*
+_OBJC_IVAR_$_APM*
+_OBJC_CLASS_$_GUL*
+_OBJC_METACLASS_$_GUL*
+_OBJC_IVAR_$_GUL*
+_OBJC_CLASS_$_FBL*
+_OBJC_METACLASS_$_FBL*
+_OBJC_IVAR_$_FBL*
+_OBJC_CLASS_$_GOOG*
+_OBJC_METACLASS_$_GOOG*
+_OBJC_IVAR_$_GOOG*
+# Objective-C constants and C functions. Product-name prefixes such as
+# _Firebase* are deliberately not listed: SWIG entry points exported by the
+# Unity FirebaseCppApp bundle (Firebase_<Product>_CSharp_*) must stay visible.
+_FIR*
+_kFIR*
+_APM*
+_kAPM*
+_GUL*
+_kGUL*
+_FBL*
+_kFBL*
+_GOOG*
+_kGOOG*
+# nanopb (the embedded copy, or desktop Firestore's when de-duplicated).
+_pb_*
+# Swift (FirebaseCoreInternal). The C++ SDK has no Swift code on desktop.
+_$s*
+_$S*
