@@ -621,6 +621,8 @@ code.
       `UMP`) is owned by a static object (for example a static
       `std::unique_ptr`) and destroyed after the SDK's own globals.
       ([#110](https://github.com/firebase/firebase-cpp-sdk/issues/110))
+    - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
+      descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
       when initialization fails. It now returns `nullptr` and reports
       `kInitResultFailedMissingDependency`.
