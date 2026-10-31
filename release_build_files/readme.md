@@ -410,9 +410,9 @@ User Messaging Platform (stub)  | libfirebase_ump.a
 
 The provided libraries have been tested using Xcode 26.4. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
-system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
-`Security` OS X system frameworks (consult your compiler documentation for more
-information).
+system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`,
+`Security`, and `SystemConfiguration` OS X system frameworks (consult your
+compiler documentation for more information).
 
 #### Windows libraries
 
@@ -457,13 +457,13 @@ information):
 
 Firebase C++ Library | Windows SDK library dependencies
 -------------------- | -----------------------------------------------------
-Authentication       | `advapi32, ws2_32, crypt32`
-App Check            | `advapi32, ws2_32, crypt32`
-Firestore            | `advapi32, ws2_32, crypt32, rpcrt4, ole32, shell32, dbghelp, bcrypt`
-Functions            | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
-Realtime Database    | `advapi32, ws2_32, crypt32, iphlpapi, psapi, userenv, shell32`
-Remote Config        | `advapi32, ws2_32, crypt32, rpcrt4, ole32, icu`
-Storage              | `advapi32, ws2_32, crypt32`
+Authentication       | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
+App Check            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
+Firestore            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, shell32, dbghelp`
+Functions            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32`
+Realtime Database    | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, psapi, userenv, shell32`
+Remote Config        | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, icu`
+Storage              | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 
 ## Getting Started
 
@@ -615,6 +615,10 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - General (Desktop): Updated the bundled libcurl from 7.73.0 to 8.23.0.
+      Windows apps linking the desktop libraries must now also link the
+      `bcrypt`, `iphlpapi`, and `secur32` Windows SDK libraries, and macOS apps
+      must now also link the `SystemConfiguration` framework.
     - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
       descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
