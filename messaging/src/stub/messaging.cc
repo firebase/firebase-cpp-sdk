@@ -37,6 +37,7 @@
 #include <sstream>
 
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
 
 namespace firebase {
@@ -48,7 +49,10 @@ static bool g_initialized = false;
 
 #if FIREBASE_MESSAGING_TEST_ENABLED
 static pthread_t g_message_thread;
-static Mutex g_message_thread_mutex;  // NOLINT
+static Mutex& MessageThreadMutex() {
+  static NoDestructor<Mutex> message_thread_mutex;
+  return *message_thread_mutex;
+}
 static bool g_message_thread_run;
 static const int kMessageIntervalMilliseconds = 5000;
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
@@ -61,7 +65,7 @@ static void* MessageTestThread(void* arg) {
   int time_elapsed_milliseconds = 0;
   for (;;) {
     {
-      MutexLock lock(g_message_thread_mutex);
+      MutexLock lock(MessageThreadMutex());
       if (!g_message_thread_run) break;
     }
     // Wait until kMessageIntervalMilliseconds has elapsed.
@@ -103,7 +107,7 @@ InitResult Initialize(const ::firebase::App& /*app*/, Listener* listener,
   FutureData::Create();
 #if FIREBASE_MESSAGING_TEST_ENABLED
   {
-    MutexLock lock(g_message_thread_mutex);
+    MutexLock lock(MessageThreadMutex());
     if (g_message_thread_run) return kInitResultSuccess;
     g_message_thread_run = true;
     pthread_attr_t attr;
@@ -129,7 +133,7 @@ void Terminate() {
   internal::UnregisterTerminateOnDefaultAppDestroy();
 #if FIREBASE_MESSAGING_TEST_ENABLED
   {
-    MutexLock lock(g_message_thread_mutex);
+    MutexLock lock(MessageThreadMutex());
     if (!g_message_thread_run) return;
     g_message_thread_run = false;
   }

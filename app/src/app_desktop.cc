@@ -32,6 +32,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/semaphore.h"
 #include "app/src/util.h"
 
@@ -39,6 +40,13 @@ namespace firebase {
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
 namespace internal {
+
+// Directory prefix searched by AppOptions::LoadDefault when Create() is
+// invoked without explicit options.
+static std::string& DefaultConfigPath() {
+  static NoDestructor<std::string> default_config_path;
+  return *default_config_path;
+}
 
 // Attempts to load a config file from the path specified, and use it to
 // populate the AppOptions pointer.  Returns true on success, false otherwise.
@@ -88,7 +96,7 @@ bool LoadAppOptionsFromJsonConfigFile(const char* path, AppOptions* options) {
 
 }  // namespace internal
 
-// Searches internal::g_default_config_path for filenames matching
+// Searches internal::DefaultConfigPath() for filenames matching
 // kDefaultGoogleServicesNames attempting to load the app options from each
 // config file in turn.
 AppOptions* AppOptions::LoadDefault(AppOptions* options) {
@@ -106,7 +114,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
       FIREBASE_ARRAYSIZE(kDefaultGoogleServicesNames);
   for (size_t i = 0; i < number_of_config_filenames; i++) {
     std::string full_path =
-        internal::g_default_config_path + kDefaultGoogleServicesNames[i];
+        internal::DefaultConfigPath() + kDefaultGoogleServicesNames[i];
     if (internal::LoadAppOptionsFromJsonConfigFile(full_path.c_str(),
                                                    options)) {
       return options;
@@ -150,7 +158,9 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
   }
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
   LogDebug("Validating semaphore creation.");
-  { firebase::Semaphore sem_test(0); }
+  {
+    firebase::Semaphore sem_test(0);
+  }
 
   AppOptions options_with_defaults = options;
   if (options_with_defaults.PopulateRequiredWithDefaults()) {
@@ -200,7 +210,8 @@ void App::RegisterLibrary(const char* library, const char* version,
 const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
 void App::SetDefaultConfigPath(const char* path) {
-  internal::g_default_config_path = path;
+  std::string& config_path = internal::DefaultConfigPath();
+  config_path = path;
 
 #if defined(WIN32)
   const char kSeperator = '\\';
@@ -208,10 +219,10 @@ void App::SetDefaultConfigPath(const char* path) {
   const char kSeperator = '/';
 #endif
 
-  if (!internal::g_default_config_path.empty()) {
-    char last_character = internal::g_default_config_path.back();
+  if (!config_path.empty()) {
+    char last_character = config_path.back();
     if (last_character != '\\' && last_character != '/') {
-      internal::g_default_config_path += kSeperator;
+      config_path += kSeperator;
     }
   }
 }

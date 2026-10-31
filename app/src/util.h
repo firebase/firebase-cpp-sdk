@@ -55,7 +55,9 @@ namespace firebase {
 #else  // !FIREBASE_PLATFORM_ANDROID
 // No-ops on other platforms. Consume the variables to prevent warnings.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(x) \
-  { (void)(x); }
+  {                                                                \
+    (void)(x);                                                     \
+  }
 #define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(x, y) \
   {                                                                \
     (void)(x);                                                     \
@@ -146,9 +148,11 @@ class AppCallback {
     if (destroyed_) destroyed_(app);
   }
 
-  // Add a callback class to the list.
-  // NOTE: This is *not* synchronized as it's not possible to use Mutex
-  // from static constructors on some platforms.
+  // Adds a callback during FIREBASE_APP_REGISTER_CALLBACKS static
+  // initialization. Intentionally leaves CallbacksMutex() unlocked because
+  // registration runs during single-threaded dynamic initialization before
+  // main() and avoids constructing platform Mutex primitives in early static
+  // constructors on platforms with restricted pre-main runtime state.
   static void AddCallback(AppCallback* callback);
 
  private:
@@ -160,13 +164,6 @@ class AppCallback {
   Destroyed destroyed_;
   // Whether this callback is enabled.
   bool enabled_;
-
-  // Global set of callbacks.
-  static std::map<std::string, AppCallback*>* callbacks_;
-  // Mutex which controls access to callbacks during notification.
-  // NOTE: This violates Google's C++ style guide as we do not have access to
-  // module initializers in //base so this replicates part of that behavior.
-  static Mutex* callbacks_mutex_;
 };
 
 // Register app callbacks for a module.
@@ -222,13 +219,6 @@ class StaticFutureData {
 
  private:
   ReferenceCountedFutureImpl api_;
-
-  // Mutex which controls access to s_future_datas_
-  static Mutex* s_futures_mutex_;
-
-  // Static storage of StaticFutureDatas per module.  Keyed on a void pointer
-  // that should be declared in the module to serve as a unique identifier.
-  static std::map<const void*, StaticFutureData*>* s_future_datas_;
 
   static StaticFutureData* CreateNewData(const void* module_identifier,
                                          int num_functions);

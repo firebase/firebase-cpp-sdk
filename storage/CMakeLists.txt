@@ -111,6 +111,12 @@ target_compile_definitions(firebase_storage
     ${additional_DEFINES}
 )
 
+# Reject static/global C++ objects with non-trivial destructors so SDK state
+# cannot be destroyed before user-owned static Firebase objects at process exit.
+target_compile_options(
+    firebase_storage PRIVATE
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=exit-time-destructors>)
+
 if(ANDROID)
   firebase_cpp_proguard_file(storage)
 elseif(IOS)

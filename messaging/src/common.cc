@@ -22,6 +22,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "messaging/src/include/firebase/messaging.h"
 
@@ -44,7 +45,10 @@ FIREBASE_APP_REGISTER_CALLBACKS(
 namespace firebase {
 namespace messaging {
 
-static Mutex g_listener_lock;  // NOLINT
+static Mutex& ListenerLock() {
+  static NoDestructor<Mutex> listener_lock;
+  return *listener_lock;
+}
 static Listener* g_listener = nullptr;
 
 // Keep track of the most recent token received.
@@ -93,7 +97,7 @@ void UnregisterTerminateOnDefaultAppDestroy() {
 }  // namespace internal
 
 Listener* SetListener(Listener* listener) {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(ListenerLock());
   Listener* previous_listener = g_listener;
   if (listener && !g_prev_token_received) {
     g_prev_token_received = new std::string;
@@ -134,7 +138,7 @@ Listener* SetListener(Listener* listener) {
 
 // Determine whether a listener is present.
 bool HasListener() {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(ListenerLock());
   return g_listener != nullptr;
 }
 
@@ -143,12 +147,12 @@ Listener* SetListenerIfNotNull(Listener* listener) {
 }
 
 void NotifyListenerOnMessage(const Message& message) {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(ListenerLock());
   if (g_listener) g_listener->OnMessage(message);
 }
 
 void NotifyListenerOnTokenReceived(const char* token) {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(ListenerLock());
   // If we have a previous token that we've notified any listener about, check
   // to ensure no repeat.
   if (g_prev_token_received && *g_prev_token_received == token) {
@@ -171,7 +175,7 @@ void NotifyListenerOnRegistrationReceived(const char* installationId) {
   if (!installationId || installationId[0] == '\0') {
     return;
   }
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(ListenerLock());
   if (!g_prev_registration_received)
     g_prev_registration_received = new std::string;
   *g_prev_registration_received = installationId;
@@ -187,7 +191,7 @@ void NotifyListenerOnUnregistrationReceived(const char* installationId) {
   if (!installationId || installationId[0] == '\0') {
     return;
   }
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(ListenerLock());
   // If the unregistration is for a pending registration that we haven't sent to
   // a listener yet, clear the pending state.
   if (g_prev_registration_received &&

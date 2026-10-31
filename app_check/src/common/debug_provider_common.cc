@@ -30,8 +30,12 @@ namespace firebase {
 namespace app_check {
 
 DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-  static DebugAppCheckProviderFactory g_debug_app_check_provider_factory;
-  return &g_debug_app_check_provider_factory;
+  // Heap-allocated function-local singleton (DebugAppCheckProviderFactory has a
+  // private constructor) so the factory is never destroyed during exit() while
+  // AppCheckInternal still references it or its created providers.
+  static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory =
+      new DebugAppCheckProviderFactory();
+  return g_debug_app_check_provider_factory;
 }
 
 DebugAppCheckProviderFactory::DebugAppCheckProviderFactory()

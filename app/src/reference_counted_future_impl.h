@@ -27,6 +27,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 
 namespace firebase {
 
@@ -66,15 +67,16 @@ class SafeFutureHandle {
   // See FutureHandle::Detach.
   void Detach() { handle_.Detach(); }
 
-  static const SafeFutureHandle kInvalidHandle;
+  // Type-safe version of kInvalidFutureHandle. Wrapped in NoDestructor so ODR
+  // uses of SafeFutureHandle<T> never register an exit-time destructor.
+  static const SafeFutureHandle& InvalidHandle() {
+    static const NoDestructor<SafeFutureHandle> invalid_handle;
+    return *invalid_handle;
+  }
 
  private:
   FutureHandle handle_;
 };
-
-// Type-safe version of kInvalidFutureHandle.
-template <typename T>
-const SafeFutureHandle<T> SafeFutureHandle<T>::kInvalidHandle;
 
 /// @brief Backing class for Futures that allows a Future to have multiple
 ///        copies. When no copies remain, the Future is invalidated.
@@ -98,9 +100,10 @@ const SafeFutureHandle<T> SafeFutureHandle<T>::kInvalidHandle;
 // unsafe methods.
 class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
  public:
-  /// This handle will never be returned by @ref Alloc, so you can use it
-  /// to signify an uninitialized or invalid value.
-  static const FutureHandle kInvalidHandle;
+  /// Returns a handle that will never be returned by @ref Alloc, used to
+  /// signify an uninitialized or invalid value without registering a static
+  /// exit-time destructor.
+  static const FutureHandle& InvalidHandle();
 
   /// Returned by @ref GetFutureError when the passed in handle is invalid.
   static constexpr int kErrorFutureIsNoLongerValid = -1;

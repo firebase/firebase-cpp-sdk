@@ -35,6 +35,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
@@ -72,7 +73,10 @@ static const ::firebase::App* g_app = nullptr;
 
 // Mutex used to arbitrate access to g_app between the thread calling this
 // module and MessageProcessingThread().
-static Mutex g_app_mutex;
+static Mutex& AppMutex() {
+  static NoDestructor<Mutex> app_mutex;
+  return *app_mutex;
+}
 
 // Global reference to the Firebase Cloud Messaging instance.
 // This is initialized in messaging::Initialize() and never released
@@ -126,7 +130,10 @@ static std::string* g_lockfile_path;
 static Mutex* g_file_locker_mutex;
 
 // Mutex for managing if FutureData is safe to use, or if it has been deleted.
-static Mutex g_future_data_mutex;
+static Mutex& FutureDataMutex() {
+  static NoDestructor<Mutex> future_data_mutex;
+  return *future_data_mutex;
+}
 
 static const char* kMessagingNotInitializedError = "Messaging not initialized.";
 
@@ -312,7 +319,7 @@ static void ConsumeEvents() {
 // thread knows that it is time to quit.
 static bool TerminateRequested() {
   bool result;
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(AppMutex());
   // If the app is removed, Terminate() has been called.
   result = !g_app;
   return result;
@@ -352,7 +359,7 @@ Future<void> RequestPermissionLastResult() {
 void ProcessMessages() {
   JNIEnv* env;
   {
-    MutexLock lock(g_app_mutex);
+    MutexLock lock(AppMutex());
     env = g_app ? g_app->GetJNIEnv() : nullptr;
   }
   if (HasListener() && env) {
@@ -370,7 +377,7 @@ void ProcessMessages() {
 static void* MessageProcessingThread(void*) {
   JavaVM* jvm;
   {
-    MutexLock lock(g_app_mutex);
+    MutexLock lock(AppMutex());
     jvm = g_app ? g_app->java_vm() : nullptr;
     if (jvm == nullptr) return nullptr;
   }
@@ -513,7 +520,7 @@ static void FireIntentMessage(JNIEnv* env) {
   g_intent_message_fired = true;
   jobject activity;
   {
-    MutexLock lock(g_app_mutex);
+    MutexLock lock(AppMutex());
     if (!g_app) return;
     activity = env->NewLocalRef(g_app->activity());
     assert(env->ExceptionCheck() == false);
@@ -601,7 +608,7 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
   }
 
   {
-    MutexLock lock(g_app_mutex);
+    MutexLock lock(AppMutex());
     g_app = &app;
   }
   g_registration_token_mutex = new Mutex();
@@ -699,7 +706,7 @@ void Terminate() {
   util::CancelCallbacks(env, kApiIdentifier);
   // Dereference the app.
   {
-    MutexLock lock(g_app_mutex);
+    MutexLock lock(AppMutex());
     g_app = nullptr;
   }
   TerminateMessageProcessingThread();
@@ -726,7 +733,7 @@ void Terminate() {
   ReleaseClasses(env);
   util::Terminate(env);
   {
-    MutexLock lock(g_future_data_mutex);
+    MutexLock lock(FutureDataMutex());
     FutureData::Destroy();
   }
 }
@@ -853,7 +860,7 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
   FutureHandle handle(future_id);
   Error error =
       (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
-  MutexLock lock(g_future_data_mutex);
+  MutexLock lock(FutureDataMutex());
   if (FutureData::Get() && FutureData::Get()->api()) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     api->Complete(handle, error, status_message);
@@ -875,7 +882,7 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
   SafeFutureHandle<std::string>* handle =
       reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data);
   Error error = success ? kErrorNone : kErrorUnknown;
-  MutexLock lock(g_future_data_mutex);
+  MutexLock lock(FutureDataMutex());
   if (FutureData::Get() && FutureData::Get()->api()) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     api->CompleteWithResult(*handle, error, status_message, result_value);

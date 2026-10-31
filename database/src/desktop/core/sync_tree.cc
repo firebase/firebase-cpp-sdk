@@ -299,7 +299,7 @@ std::vector<Event> SyncTree::ApplyListenComplete(const Path& path) {
   persistence_manager_->RunInTransaction([&, this]() -> bool {
     this->persistence_manager_->SetQueryComplete(QuerySpec(path));
     results = this->ApplyOperationToSyncPoints(
-        Operation::ListenComplete(OperationSource::kServer, path));
+        Operation::ListenComplete(OperationSource::Server(), path));
     return true;
   });
   return results;
@@ -312,7 +312,7 @@ std::vector<Event> SyncTree::ApplyServerMerge(
     CompoundWrite merge = CompoundWrite::FromPathMerge(changed_children);
     this->persistence_manager_->UpdateServerCache(path, merge);
     results = this->ApplyOperationToSyncPoints(
-        Operation::Merge(OperationSource::kServer, path, merge));
+        Operation::Merge(OperationSource::Server(), path, merge));
     return true;
   });
   return results;
@@ -447,7 +447,7 @@ std::vector<Event> SyncTree::ApplyUserMerge(
     }
     pending_write_tree_->AddMerge(path, children, write_id);
     results = ApplyOperationToSyncPoints(
-        Operation::Merge(OperationSource::kUser, path, children));
+        Operation::Merge(OperationSource::User(), path, children));
     return true;
   });
   return results;
@@ -468,7 +468,7 @@ std::vector<Event> SyncTree::ApplyUserOverwrite(
     pending_write_tree_->AddOverwrite(path, new_data, write_id, visibility);
     if (visibility == kOverwriteVisible) {
       events = this->ApplyOperationToSyncPoints(
-          Operation::Overwrite(OperationSource::kUser, path, new_data));
+          Operation::Overwrite(OperationSource::User(), path, new_data));
     }
     return true;
   });

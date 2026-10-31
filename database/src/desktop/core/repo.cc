@@ -24,6 +24,7 @@
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/scheduler.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/connection/persistent_connection.h"
@@ -53,7 +54,10 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
-static Mutex g_scheduler_mutex;  // NOLINT
+static Mutex& SchedulerMutex() {
+  static NoDestructor<Mutex> scheduler_mutex;
+  return *scheduler_mutex;
+}
 static int g_scheduler_ref_count = 0;
 scheduler::Scheduler* Repo::s_scheduler_;
 
@@ -106,7 +110,7 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url,
   url_ = host_info_.ToString();
 
   {
-    MutexLock lock(g_scheduler_mutex);
+    MutexLock lock(SchedulerMutex());
     g_scheduler_ref_count++;
     if (s_scheduler_ == nullptr) s_scheduler_ = new scheduler::Scheduler();
   }
@@ -133,7 +137,7 @@ Repo::~Repo() {
   safe_this_.ClearReference();
   connection_.reset(nullptr);
   {
-    MutexLock lock(g_scheduler_mutex);
+    MutexLock lock(SchedulerMutex());
     if (g_scheduler_ref_count) g_scheduler_ref_count--;
     if (g_scheduler_ref_count == 0) {
       delete s_scheduler_;

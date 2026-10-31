@@ -19,6 +19,7 @@
 #include <string>
 
 #include "app/src/assert.h"
+#include "app/src/no_destructor.h"
 #include "app/src/path.h"
 #include "database/src/desktop/core/tree.h"
 
@@ -26,8 +27,15 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-static const Tree<bool> kPruneTree(true);  // NOLINT
-static const Tree<bool> kKeepTree(false);  // NOLINT
+static const Tree<bool>& PruneTree() {
+  static const NoDestructor<Tree<bool>> prune_tree(true);
+  return *prune_tree;
+}
+
+static const Tree<bool>& KeepTree() {
+  static const NoDestructor<Tree<bool>> keep_tree(false);
+  return *keep_tree;
+}
 
 static bool KeepPredicate(bool prune) { return !prune; }
 static bool PrunePredicate(bool prune) { return prune; }
@@ -84,7 +92,7 @@ void PruneForestRef::Prune(const Path& path) {
   if (prune_forest_->RootMostValueMatching(path, PrunePredicate) != nullptr) {
     // This path will already be pruned
   } else {
-    *prune_forest_->GetOrMakeSubtree(path) = kPruneTree;
+    *prune_forest_->GetOrMakeSubtree(path) = PruneTree();
   }
 }
 
@@ -92,7 +100,7 @@ void PruneForestRef::Keep(const Path& path) {
   if (prune_forest_->RootMostValueMatching(path, KeepPredicate) != nullptr) {
     // This path will already be kept
   } else {
-    *prune_forest_->GetOrMakeSubtree(path) = kKeepTree;
+    *prune_forest_->GetOrMakeSubtree(path) = KeepTree();
   }
 }
 
@@ -101,7 +109,7 @@ void PruneForestRef::KeepAll(const Path& path,
   if (prune_forest_->RootMostValueMatching(path, KeepPredicate) != nullptr) {
     // This path will already be kept.
   } else {
-    DoAll(path, children, kKeepTree);
+    DoAll(path, children, KeepTree());
   }
 }
 
@@ -114,7 +122,7 @@ void PruneForestRef::PruneAll(const Path& path,
   if (prune_forest_->RootMostValueMatching(path, PrunePredicate) != nullptr) {
     // This path will already be pruned.
   } else {
-    DoAll(path, children, kPruneTree);
+    DoAll(path, children, PruneTree());
   }
 }
 

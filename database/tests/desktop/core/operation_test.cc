@@ -97,7 +97,7 @@ TEST(OperationSource, ForServerTaggedQuery) {
 }
 
 TEST(Operation, Overwrite) {
-  Operation op = Operation::Overwrite(OperationSource::kServer, Path("A/B/C"),
+  Operation op = Operation::Overwrite(OperationSource::Server(), Path("A/B/C"),
                                       Variant(100));
   EXPECT_EQ(op.type, Operation::kTypeOverwrite);
   EXPECT_EQ(op.source.source, OperationSource::kSourceServer);
@@ -115,7 +115,7 @@ TEST(Operation, Merge) {
   };
   CompoundWrite write = CompoundWrite::FromPathMerge(merge);
   Operation op =
-      Operation::Merge(OperationSource::kServer, Path("A/B/C"), write);
+      Operation::Merge(OperationSource::Server(), Path("A/B/C"), write);
 
   EXPECT_EQ(op.type, Operation::kTypeMerge);
   EXPECT_EQ(op.source.source, OperationSource::kSourceServer);
@@ -153,7 +153,7 @@ TEST(Operation, AckUserWrite) {
 
 TEST(Operation, ListenComplete) {
   Operation op =
-      Operation::ListenComplete(OperationSource::kServer, Path("A/B/C"));
+      Operation::ListenComplete(OperationSource::Server(), Path("A/B/C"));
   EXPECT_EQ(op.type, Operation::kTypeListenComplete);
   EXPECT_EQ(op.source.source, OperationSource::kSourceServer);
   EXPECT_FALSE(op.source.query_params.has_value());
@@ -168,8 +168,9 @@ TEST(OperationDeathTest, DISABLED_ListenCompleteWithWrongSource) {
 TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
 #endif
   // ListenCompletes must come from the server, not the user.
-  EXPECT_DEATH(Operation::ListenComplete(OperationSource::kUser, Path("A/B/C")),
-               DEATHTEST_SIGABRT);
+  EXPECT_DEATH(
+      Operation::ListenComplete(OperationSource::User(), Path("A/B/C")),
+      DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildOverwriteEmptyPath) {
@@ -178,7 +179,7 @@ TEST(Operation, OperationForChildOverwriteEmptyPath) {
       std::make_pair("bbb", 200),
       std::make_pair("ccc", 300),
   };
-  Operation op = Operation::Overwrite(OperationSource::kServer, Path(),
+  Operation op = Operation::Overwrite(OperationSource::Server(), Path(),
                                       Variant(variant_data));
   Optional<Operation> result = OperationForChild(op, "aaa");
   EXPECT_TRUE(result.has_value());
@@ -195,7 +196,7 @@ TEST(Operation, OperationForChildOverwriteNonEmptyPath) {
       std::make_pair("bbb", 200),
       std::make_pair("ccc", 300),
   };
-  Operation op = Operation::Overwrite(OperationSource::kServer, Path("A/B/C"),
+  Operation op = Operation::Overwrite(OperationSource::Server(), Path("A/B/C"),
                                       Variant(variant_data));
   Optional<Operation> result = OperationForChild(op, "A");
   EXPECT_TRUE(result.has_value());
@@ -214,7 +215,7 @@ TEST(Operation, OperationForChildMergeEmptyPath) {
         std::make_pair(Path("ccc/ddd"), 300),
     };
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
-    Operation op = Operation::Merge(OperationSource::kServer, Path(), write);
+    Operation op = Operation::Merge(OperationSource::Server(), Path(), write);
 
     Optional<Operation> result = OperationForChild(op, "zzz");
 
@@ -227,7 +228,7 @@ TEST(Operation, OperationForChildMergeEmptyPath) {
         std::make_pair(Path("ccc/ddd"), 300),
     };
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
-    Operation op = Operation::Merge(OperationSource::kServer, Path(), write);
+    Operation op = Operation::Merge(OperationSource::Server(), Path(), write);
 
     Optional<Operation> result = OperationForChild(op, "aaa");
 
@@ -245,7 +246,7 @@ TEST(Operation, OperationForChildMergeEmptyPath) {
         std::make_pair(Path("ccc/ddd"), 300),
     };
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
-    Operation op = Operation::Merge(OperationSource::kServer, Path(), write);
+    Operation op = Operation::Merge(OperationSource::Server(), Path(), write);
 
     Optional<Operation> result = OperationForChild(op, "ccc");
 
@@ -266,7 +267,7 @@ TEST(Operation, OperationForChildMergeNonEmptyPath) {
     };
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
     Operation op =
-        Operation::Merge(OperationSource::kServer, Path("A/B/C"), write);
+        Operation::Merge(OperationSource::Server(), Path("A/B/C"), write);
 
     Optional<Operation> result = OperationForChild(op, "A");
 
@@ -288,7 +289,7 @@ TEST(Operation, OperationForChildMergeNonEmptyPath) {
     };
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
     Operation op =
-        Operation::Merge(OperationSource::kServer, Path("A/B/C"), write);
+        Operation::Merge(OperationSource::Server(), Path("A/B/C"), write);
 
     Optional<Operation> result = OperationForChild(op, "Z");
 
@@ -419,7 +420,7 @@ TEST(Operation,
 }
 
 TEST(Operation, OperationForChildListenCompleteEmptyPath) {
-  Operation op = Operation::ListenComplete(OperationSource::kServer, Path());
+  Operation op = Operation::ListenComplete(OperationSource::Server(), Path());
 
   Optional<Operation> result = OperationForChild(op, "Z");
 
@@ -433,7 +434,7 @@ TEST(Operation, OperationForChildListenCompleteEmptyPath) {
 
 TEST(Operation, OperationForChildListenCompleteNonEmptyPath) {
   Operation op =
-      Operation::ListenComplete(OperationSource::kServer, Path("A/B/C"));
+      Operation::ListenComplete(OperationSource::Server(), Path("A/B/C"));
 
   Optional<Operation> result = OperationForChild(op, "A");
 

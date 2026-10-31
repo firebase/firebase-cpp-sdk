@@ -54,8 +54,6 @@ class InstallationsInternal {
   void Cleanup();
 
  private:
-  static firebase::internal::ReferenceCount initializer_;
-
   const firebase::App& app_;
 
   /// Handle calls from Futures that the API returns.

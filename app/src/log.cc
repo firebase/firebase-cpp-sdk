@@ -25,6 +25,7 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/no_destructor.h"
 
 #if !defined(FIREBASE_LOG_DEBUG)
 #define FIREBASE_LOG_DEBUG 0
@@ -52,20 +53,19 @@ const LogLevel kDefaultLogLevel = kLogLevelInfo;
 LogLevel g_log_level = kDefaultLogLevel;
 LogCallback g_log_callback = DefaultLogCallback;
 void* g_log_callback_data = nullptr;
-// Mutex which controls access to the log buffer used to format callback
-// log messages.
-Mutex* g_log_mutex = nullptr;
 
-// Initialize g_log_mutex when static constructors are called.
-// This class makes sure g_log_mutex is initialized typically initialized
-// before the first log function is called.
-class InitializeLogMutex {
- public:
-  InitializeLogMutex() {
-    if (!g_log_mutex) g_log_mutex = new Mutex();
-  }
-};
-InitializeLogMutex g_log_mutex_initializer;
+namespace {
+
+// Serializes formatting into the shared callback log buffer. Using a
+// function-local NoDestructor<Mutex> guarantees thread-safe initialization on
+// first log call (even from pre-main static constructors) and keeps the mutex
+// alive for exit-time destructors that log warnings or debug messages.
+Mutex& LogMutex() {
+  static NoDestructor<Mutex> log_mutex;
+  return *log_mutex;
+}
+
+}  // namespace
 
 // Forward a log message to LogMessageV().
 static void InternalLogMessage(LogLevel log_level, const char* message, ...) {
@@ -111,7 +111,7 @@ static void LogToFile(LogLevel log_level, const char* format, va_list args) {
       fflush(log_file);
     }
   } else {
-    MutexLock lock(*g_log_mutex);
+    MutexLock lock(LogMutex());
     if (!log_file) {
 #if FIREBASE_PLATFORM_WINDOWS
       log_file = _wfopen(FIREBASE_LOG_FILENAME_W, L"wt");
@@ -132,13 +132,7 @@ static void LogToFile(LogLevel log_level, const char* format, va_list args) {
 // Log a firebase message (implemented by the platform specific logger).
 void LogMessageWithCallbackV(LogLevel log_level, const char* format,
                              va_list args) {
-  // We create the mutex on the heap as this can be called before the C++
-  // runtime is initialized on iOS.  This ensures the Mutex class is
-  // constructed before we attempt to use it.  Of course, this isn't thread
-  // safe but the first time this is called on any platform it will be from
-  // a single thread to initialize the API.
-  if (!g_log_mutex) g_log_mutex = new Mutex();
-  MutexLock lock(*g_log_mutex);
+  MutexLock lock(LogMutex());
 
   LogInitialize();
 #if FIREBASE_LOG_TO_FILE

@@ -15,6 +15,7 @@
 #include "database/src/include/firebase/database/common.h"
 
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/no_destructor.h"
 
 namespace firebase {
 namespace database {
@@ -57,16 +58,13 @@ const char* GetErrorMessage(Error error) {
                                                       : "";
 }
 
-static const Variant* g_server_value_timestamp = nullptr;
 const Variant& ServerTimestamp() {
-  if (g_server_value_timestamp == nullptr) {
-    // The Firebase server defines a ServerValue for Timestamp as a map with the
-    // key ".sv" and the value "timestamp".
-    std::map<Variant, Variant> server_value;
-    server_value.insert(std::make_pair(".sv", "timestamp"));
-    g_server_value_timestamp = new Variant(server_value);
-  }
-  return *g_server_value_timestamp;
+  // The Firebase server defines a ServerValue for Timestamp as a map with the
+  // key ".sv" and the value "timestamp". Function-local NoDestructor ensures
+  // thread-safe one-time initialization with no exit-time destructor.
+  static const NoDestructor<Variant> server_value_timestamp(
+      std::map<Variant, Variant>{std::make_pair(".sv", "timestamp")});
+  return *server_value_timestamp;
 }
 
 }  // namespace database

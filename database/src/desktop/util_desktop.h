@@ -42,7 +42,7 @@ class VariantFilter;
 // Rather than construct a null_variant in the current scope any place where
 // this happens, it can be helpful to have a persistent one that can be used
 // from anywhere.
-extern const Variant kNullVariant;
+const Variant& GetNullVariant();
 
 // The virtual key for the value. This has special meaning to the database, and
 // for all intents and purposes the value at this location in the map should be
@@ -87,7 +87,7 @@ bool PatchVariant(const Variant& patch_data, Variant* out_data);
 // Get a child of a given variant, respecting .value and .priorty virtual keys
 // appropriately. This will always return some value. If there is a value at the
 // given path, a reference to that value will be returned. If there is not, a
-// reference to kNullVariant will be returned.
+// reference to GetNullVariant() will be returned.
 //
 // This function is designed to perfectly mimic the behavior of Node.getChild in
 // the Java API. This should be used in place of GetInternalVariant, which is

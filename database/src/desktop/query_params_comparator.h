@@ -88,8 +88,8 @@ class QueryParamsComparator {
   // These values will always be sorted before or after all over values.
   static const char kMinKey[];
   static const char kMaxKey[];
-  static const std::pair<Variant, Variant> kMinNode;
-  static const std::pair<Variant, Variant> kMaxNode;
+  static const std::pair<Variant, Variant>& MinNode();
+  static const std::pair<Variant, Variant>& MaxNode();
 
  private:
   int CompareChildren(const Variant& value_a, const Variant& value_b) const;

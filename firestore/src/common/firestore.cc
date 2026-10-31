@@ -23,8 +23,10 @@
 #include <utility>
 
 #include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "firestore/src/common/compiler_info.h"
 #include "firestore/src/common/exception_common.h"
@@ -72,30 +74,29 @@ FirestoreMap::key_type MakeKey(App* app, std::string database_id) {
   return std::make_pair(app, std::move(database_id));
 }
 
-Mutex* g_firestores_lock = new Mutex();
-FirestoreMap* g_firestores = nullptr;
-
-// Ensures that the cache is initialized.
-// Prerequisite: `g_firestores_lock` must be locked before calling this
-// function.
-FirestoreMap* FirestoreCache() {
-  if (!g_firestores) {
-    g_firestores = new FirestoreMap();
-  }
-  return g_firestores;
+// The cache and its mutex are function-local statics wrapped in NoDestructor,
+// so they are constructed on first use regardless of translation-unit init
+// order and remain valid if a static Firestore instance is destroyed at exit.
+Mutex& FirestoresLock() {
+  static NoDestructor<Mutex> lock;
+  return *lock;
 }
 
-// Prerequisite: `g_firestores_lock` must be locked before calling this
-// function.
+// Prerequisite: `FirestoresLock()` must be locked before calling this function.
+FirestoreMap& FirestoreCache() {
+  static NoDestructor<FirestoreMap> firestores;
+  return *firestores;
+}
+
+// Prerequisite: `FirestoresLock()` must be locked before calling this function.
 Firestore* FindFirestoreInCache(App* app,
                                 const std::string& database_id,
                                 InitResult* init_result_out) {
-  auto* cache = FirestoreCache();
-
+  FirestoreMap& cache = FirestoreCache();
   FirestoreMap::key_type key = MakeKey(app, database_id);
-  FirestoreMap::iterator found = g_firestores->find(key);
+  FirestoreMap::iterator found = cache.find(key);
 
-  if (found != cache->end()) {
+  if (found != cache.end()) {
     if (init_result_out) *init_result_out = kInitResultSuccess;
     return found->second;
   }
@@ -162,7 +163,7 @@ Firestore* Firestore::GetInstance(App* app,
   ValidateApp(app);
   ValidateDatabase(db_name);
 
-  MutexLock lock(*g_firestores_lock);
+  MutexLock lock(FirestoresLock());
   Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
   if (from_cache) {
     return from_cache;
@@ -178,7 +179,7 @@ Firestore* Firestore::CreateFirestore(App* app,
   SIMPLE_HARD_ASSERT(internal != nullptr,
                      "Provided FirestoreInternal must not be null.");
 
-  MutexLock lock(*g_firestores_lock);
+  MutexLock lock(FirestoresLock());
 
   const std::string& database_id = internal->database_name();
   Firestore* from_cache =
@@ -202,7 +203,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
 
   FirestoreMap::key_type key =
       MakeKey(firestore->app(), firestore->internal_->database_name());
-  FirestoreCache()->emplace(std::move(key), firestore);
+  FirestoreCache().emplace(std::move(key), firestore);
   return firestore;
 }
 
@@ -238,7 +239,7 @@ Firestore::Firestore(FirestoreInternal* internal)
 Firestore::~Firestore() { DeleteInternal(); }
 
 void Firestore::DeleteInternal() {
-  MutexLock lock(*g_firestores_lock);
+  MutexLock lock(FirestoresLock());
 
   if (!internal_) return;
 
@@ -270,11 +271,7 @@ void Firestore::DeleteInternal() {
   // If a Firestore is explicitly deleted, remove it from our cache.
 
   FirestoreMap::key_type key = MakeKey(my_app, database_id);
-  FirestoreCache()->erase(key);
-  if (g_firestores->empty()) {
-    delete g_firestores;
-    g_firestores = nullptr;
-  }
+  FirestoreCache().erase(key);
 }
 
 const App* Firestore::app() const {
@@ -382,8 +379,10 @@ Future<void> Firestore::EnableNetwork() {
 Future<void> Firestore::Terminate() {
   if (!internal_) return FailedFuture<void>();
   FirestoreMap::key_type key = MakeKey(app(), internal_->database_name());
-
-  FirestoreCache()->erase(key);
+  {
+    MutexLock lock(FirestoresLock());
+    FirestoreCache().erase(key);
+  }
   return internal_->Terminate();
 }
 

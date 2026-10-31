@@ -414,6 +414,12 @@ target_compile_definitions(firebase_firestore
   PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC -DPB_NO_PACKED_STRUCTS
 )
 
+# Reject static/global C++ objects with non-trivial destructors so SDK state
+# cannot be destroyed before user-owned static Firebase objects at process exit.
+target_compile_options(
+    firebase_firestore PRIVATE
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=exit-time-destructors>)
+
 if(ANDROID)
   firebase_cpp_proguard_file(firestore)
 
