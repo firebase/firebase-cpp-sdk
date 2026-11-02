@@ -477,7 +477,8 @@ if(DESKTOP)
   # Disable optional external libraries that curl 8.23.0 enables by default:
   # - libssh2: SSH/SCP/SFTP protocol library (unused by Firebase REST).
   # - libpsl: Public Suffix List cookie-domain library (unused).
-  # - nghttp2: HTTP/2 framing library (Firebase REST pins to HTTP/1.1).
+  # - nghttp2: optional external HTTP/2 library (not bundled by default; REST
+  #   auto-negotiates HTTP/2 when linked with an HTTP/2-capable libcurl).
   # - libidn2: Internationalized Domain Names library (unused).
   set(CURL_USE_LIBSSH2 OFF)
   set(CURL_USE_LIBPSL OFF)
