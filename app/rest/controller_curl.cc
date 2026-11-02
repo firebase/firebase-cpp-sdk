@@ -16,103 +16,77 @@
 
 #include "app/rest/controller_curl.h"
 
+#include <atomic>
 #include <cstdint>
+#include <memory>
 #include <utility>
 
-#include "app/rest/transport_curl.h"
-#include "app/src/include/firebase/internal/common.h"
+#include "app/rest/curl/curl_io_loop.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/log.h"
 
 namespace firebase {
 namespace rest {
 
-ControllerCurl::ControllerCurl(TransportCurl* transport,
-                               TransferDirection direction, Response* response)
-    : transport_(transport),
-      direction_(direction),
-      is_paused_(false),
-      response_(response),
-      transferring_(false),
-      bytes_transferred_(0),
-      transfer_size_(0),
-      this_handle_(nullptr),
-      this_handle_mutex_(nullptr) {}
+namespace {
 
-ControllerCurl::~ControllerCurl() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    *this_handle_ = nullptr;
-  }
+void PostToTransfer(const std::shared_ptr<TransferControl>& control,
+                    void (*action)(RestTransfer*)) {
+  curl::CurlIoLoop::PostIfRunning([control, action]() {
+    RestTransfer* transfer = nullptr;
+    {
+      MutexLock lock(control->mutex);
+      transfer = control->transfer;
+    }
+    if (transfer != nullptr) action(transfer);
+  });
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-ControllerCurl::ControllerCurl(ControllerCurl&& other) noexcept {
-  *this = std::move(other);
-}
+}  // namespace
 
-ControllerCurl& ControllerCurl::operator=(ControllerCurl&& other) noexcept {
-  direction_ = other.direction_;
-  transport_ = other.transport_;
-  is_paused_ = other.is_paused_;
-  response_ = other.response_;
-  transferring_ = other.transferring_;
-  bytes_transferred_ = other.bytes_transferred_;
-  transfer_size_ = other.transfer_size_;
-  this_handle_ = other.this_handle_;
-  this_handle_mutex_ = other.this_handle_mutex_;
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    *this_handle_ = this;
-  }
-  other.this_handle_mutex_ = nullptr;
-  other.transport_ = nullptr;
-  return *this;
-}
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+ControllerCurl::ControllerCurl(std::shared_ptr<TransferControl> control)
+    : control_(std::move(control)) {}
+
+ControllerCurl::~ControllerCurl() = default;
 
 bool ControllerCurl::Pause() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    if (transferring_ && !is_paused_) {
-      transport_->PauseRequest(response_);
-      is_paused_ = true;
-      return true;
-    }
+  if (!control_) return false;
+  {
+    MutexLock lock(control_->mutex);
+    if (!control_->transferring || control_->paused) return false;
+    control_->paused = true;
   }
-  return false;
+  PostToTransfer(control_, &TransferControl::PauseOnIoThread);
+  return true;
 }
 
 bool ControllerCurl::Resume() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    if (transferring_ && is_paused_) {
-      transport_->ResumeRequest(response_);
-      is_paused_ = false;
-      return true;
-    }
+  if (!control_) return false;
+  {
+    MutexLock lock(control_->mutex);
+    if (!control_->transferring || !control_->paused) return false;
+    control_->paused = false;
   }
-  return false;
+  PostToTransfer(control_, &TransferControl::ResumeOnIoThread);
+  return true;
 }
 
 bool ControllerCurl::IsPaused() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    return is_paused_;
-  }
-  return false;
+  if (!control_) return false;
+  MutexLock lock(control_->mutex);
+  return control_->paused;
 }
 
 bool ControllerCurl::Cancel() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    if (transferring_) {
-      transport_->CancelRequest(response_);
-      transferring_ = false;
-      return true;
-    }
+  if (!control_) return false;
+  {
+    MutexLock lock(control_->mutex);
+    if (!control_->transferring) return false;
+    control_->transferring = false;
+    control_->paused = false;
+    control_->canceled = true;
   }
-  return false;
+  PostToTransfer(control_, &TransferControl::CancelOnIoThread);
+  return true;
 }
 
 float ControllerCurl::Progress() {
@@ -121,26 +95,13 @@ float ControllerCurl::Progress() {
   return transferred / size;
 }
 
-int64_t ControllerCurl::TransferSize() { return transfer_size_; }
-
-int64_t ControllerCurl::BytesTransferred() { return bytes_transferred_; }
-
-void ControllerCurl::set_bytes_transferred(int64_t bytes_transferred) {
-  // Only set the bytes transferred if it is larger than the current value.
-  // Curl reports -1 for the bytes transferred if the transfer is just starting
-  // or is complete.
-  if (bytes_transferred > bytes_transferred_) {
-    bytes_transferred_ = bytes_transferred;
-  }
+int64_t ControllerCurl::TransferSize() {
+  return control_ ? control_->transfer_size.load(std::memory_order_relaxed) : 0;
 }
 
-void ControllerCurl::set_transfer_size(int64_t transfer_size) {
-  // Only set the transfer size if it is larger than the current value.
-  // Curl reports -1 for the transfer size if the transfer is just starting or
-  // is complete.
-  if (transfer_size > transfer_size_) {
-    transfer_size_ = transfer_size;
-  }
+int64_t ControllerCurl::BytesTransferred() {
+  return control_ ? control_->bytes_transferred.load(std::memory_order_relaxed)
+                  : 0;
 }
 
 }  // namespace rest

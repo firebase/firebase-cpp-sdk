@@ -21,42 +21,39 @@
 #include <unistd.h>
 #endif  // FIREBASE_SSL_CAPATH
 
+#include "app/rest/curl/curl_handles.h"
+
 namespace firebase {
 namespace rest {
 namespace curl {
 
 namespace {
 
-// Applies a single option and folds the result into *first_error, keeping
-// only the first failure so the caller sees the root cause.
-void SetOpt(CURL* easy, CURLoption option, long value,  // NOLINT
-            CURLcode* first_error) {
-  CURLcode code = curl_easy_setopt(easy, option, value);
+// Applies a single option via the type-safe SetOpt wrapper and folds the result
+// into *first_error, keeping only the first failure so the caller sees the root
+// cause.
+template <typename T>
+void ApplyOpt(CURL* easy, CURLoption option, T value, CURLcode* first_error) {
+  CURLcode code = SetOpt(easy, option, value);
   if (code != CURLE_OK && *first_error == CURLE_OK) *first_error = code;
 }
-
-#ifdef FIREBASE_SSL_CAPATH
-void SetOpt(CURL* easy, CURLoption option, const char* value,
-            CURLcode* first_error) {
-  CURLcode code = curl_easy_setopt(easy, option, value);
-  if (code != CURLE_OK && *first_error == CURLE_OK) *first_error = code;
-}
-#endif  // FIREBASE_SSL_CAPATH
 
 }  // namespace
 
 CURLcode ApplyTlsPolicy(CURL* easy) {
   CURLcode first_error = CURLE_OK;
-  SetOpt(easy, CURLOPT_SSL_VERIFYPEER, 1L, &first_error);
-  SetOpt(easy, CURLOPT_SSL_VERIFYHOST, 2L, &first_error);
-  SetOpt(easy, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2, &first_error);
+  ApplyOpt(easy, CURLOPT_SSL_VERIFYPEER, 1L, &first_error);
+  ApplyOpt(easy, CURLOPT_SSL_VERIFYHOST, 2L, &first_error);
+  ApplyOpt(easy, CURLOPT_SSLVERSION,
+           static_cast<long>(CURL_SSLVERSION_TLSv1_2),  // NOLINT
+           &first_error);
 #ifdef FIREBASE_SSL_CAPATH
   // Explicitly setting CURLOPT_CAINFO (even to nullptr) marks
   // ssl.custom_cafile = TRUE inside libcurl, which stops it from substituting
   // the build machine's compile-time CURL_CA_BUNDLE path. See the comment on
   // LinuxCaBundlePath() for why that matters.
-  SetOpt(easy, CURLOPT_CAINFO, LinuxCaBundlePath(), &first_error);
-  SetOpt(easy, CURLOPT_CAPATH, LinuxCaDirectoryPath(), &first_error);
+  ApplyOpt(easy, CURLOPT_CAINFO, LinuxCaBundlePath(), &first_error);
+  ApplyOpt(easy, CURLOPT_CAPATH, LinuxCaDirectoryPath(), &first_error);
 #endif  // FIREBASE_SSL_CAPATH
   return first_error;
 }

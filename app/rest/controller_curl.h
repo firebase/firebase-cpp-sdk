@@ -17,17 +17,18 @@
 #ifndef FIREBASE_APP_REST_CONTROLLER_CURL_H_
 #define FIREBASE_APP_REST_CONTROLLER_CURL_H_
 
+#include <atomic>
 #include <cstdint>
+#include <memory>
 
 #include "app/rest/controller_interface.h"
-#include "app/rest/response.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace rest {
 
-class TransportCurl;
+class RestTransfer;
 
 // Enum used by ControllerCurl to determine whether the controller is operating
 // on an upload or a download.
@@ -36,99 +37,74 @@ enum TransferDirection {
   kTransferDirectionDownload,
 };
 
-// An implementation of a Controller that controls a running curl
-// operation. This can be used to monitor progress, pause, restart or cancel a
-// running operation.
+// Shared state between a ControllerCurl (owned by the caller) and its in-flight
+// RestTransfer (owned by the curl I/O thread). Both hold a shared_ptr so either
+// may outlive the other without dangling pointers or global transfer tables.
+struct TransferControl {
+  explicit TransferControl(TransferDirection dir)
+      : direction(dir),
+        mutex(Mutex::kModeNonRecursive),
+        transfer(nullptr),
+        transferring(true),
+        paused(false),
+        canceled(false),
+        bytes_transferred(0),
+        transfer_size(0) {}
+
+  // Written exclusively on the curl I/O thread; read lock-free by callers.
+  // libcurl reports -1 while starting or complete, so keep the high-water mark.
+  void SetBytesTransferred(int64_t value) {
+    if (value > bytes_transferred.load(std::memory_order_relaxed)) {
+      bytes_transferred.store(value, std::memory_order_relaxed);
+    }
+  }
+
+  void SetTransferSize(int64_t value) {
+    if (value > transfer_size.load(std::memory_order_relaxed)) {
+      transfer_size.store(value, std::memory_order_relaxed);
+    }
+  }
+
+  // Defined in transport_curl.cc; invoked on the curl I/O thread.
+  static void PauseOnIoThread(RestTransfer* transfer);
+  static void ResumeOnIoThread(RestTransfer* transfer);
+  static void CancelOnIoThread(RestTransfer* transfer);
+
+  const TransferDirection direction;
+  // Guards transfer, transferring, paused, and canceled.
+  Mutex mutex;
+  RestTransfer* transfer;
+  bool transferring;
+  bool paused;
+  bool canceled;
+  std::atomic<int64_t> bytes_transferred;
+  std::atomic<int64_t> transfer_size;
+};
+
+// Controls a running curl transfer (progress, pause, resume, cancel).
 class ControllerCurl : public Controller {
  public:
-  // Transport and Response are pointers to the transport layer and curl
-  // response, respectively.  ControllerCurl does not take ownership of these,
-  // but needs access to them to perform controller operations.
-  // The owner of this class is responsible for ensuring that transport and
-  // response remain valid throughout the lifetime of the controller.  (and
-  // conversely, that ControllerCurl's methods are not invoked after transport
-  // and response are no longer valid.)
-  ControllerCurl(TransportCurl* transport, TransferDirection direction,
-                 Response* response);
-
+  explicit ControllerCurl(std::shared_ptr<TransferControl> control);
   ~ControllerCurl() override;
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  ControllerCurl(ControllerCurl&& other) noexcept;
-
-  ControllerCurl& operator=(ControllerCurl&& other) noexcept;
+  ControllerCurl(ControllerCurl&& other) noexcept = default;
+  ControllerCurl& operator=(ControllerCurl&& other) noexcept = default;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-  // Pauses whatever the handle is doing.
-  bool Pause() override;
-
-  // Resumes a paused operation.
-  bool Resume() override;
-
-  // Returns true if the operation is paused.
-  bool IsPaused() override;
-
-  // Cancels a request and disposes of any resources allocated as part of the
-  // request.
-  bool Cancel() override;
-
-  // Returns a float in the range [0.0 - 1.0], representing the progress of the
-  // operation so far, if known. (percent bytes transferred, usually.)
-  float Progress() override;
-
-  // Returns the number of bytes being transferred in this operation. (either
-  // upload or download.)
-  int64_t TransferSize() override;
-
-  // Returns the number of bytes that have been transferred so far.
-  int64_t BytesTransferred() override;
-
-  // The following methods are called by TransportCurl to set the status of this
-  // object.
-  // Set whether a transfer is active.
-  void set_transferring(bool transferring) { transferring_ = transferring; }
-
-  // Set the current number of bytes transferred.
-  void set_bytes_transferred(int64_t bytes_transferred);
-
-  // Set the total size of the transfer.
-  void set_transfer_size(int64_t transfer_size);
-
-  // Set the controller handle and mutex.
-  void InitializeControllerHandle(ControllerCurl** handle, Mutex* mutex) {
-    this_handle_ = handle;
-    this_handle_mutex_ = mutex;
-  }
-
-  // Direction of the transfer.
-  TransferDirection direction() const { return direction_; }
-
- private:
   ControllerCurl(const ControllerCurl& other) = delete;
   ControllerCurl& operator=(const ControllerCurl& other) = delete;
 
-  TransportCurl* transport_;
+  bool Pause() override;
+  bool Resume() override;
+  bool IsPaused() override;
+  bool Cancel() override;
+  float Progress() override;
+  int64_t TransferSize() override;
+  int64_t BytesTransferred() override;
 
-  // Whether this is an upload or a download.
-  TransferDirection direction_;
-
-  // Whether this operation is currently paused or not.
-  bool is_paused_;
-
-  // The response that this controller is associated with.
-  Response* response_;
-
-  // Whether the transfer is running.
-  bool transferring_;
-  // Number of bytes transferred.
-  int64_t bytes_transferred_;
-  // Total size of the transfer.
-  int64_t transfer_size_;
-
-  // Handle to this controller which is updated when it's moved.
-  ControllerCurl** this_handle_;
-  // Guards this_handle.
-  Mutex* this_handle_mutex_;
+ private:
+  std::shared_ptr<TransferControl> control_;
 };
 
 }  // namespace rest
