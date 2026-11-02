@@ -19,7 +19,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <string>
 #include <thread>  // NOLINT
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -1715,6 +1717,96 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
   TerminateAppAndAuth();
   // Reinitialize App and Auth.
   InitializeAppAndAuth();
+}
+
+// Verifies that Controller::bytes_transferred() and total_byte_count() equal
+// the full object size immediately upon download completion (exercising
+// CURLOPT_XFERINFOFUNCTION rather than periodic loop sampling).
+TEST_F(FirebaseStorageTest, TestCompletedDownloadReportsExactControllerProgress) {
+  SignIn();
+
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("TestFile-ExactControllerProgress.bin");
+  cleanup_files_.push_back(ref);
+
+  const size_t kFileSize = 2 * 1024 * 1024;
+  const std::string payload = CreateDataForLargeFile(kFileSize);
+
+  WaitForCompletion(
+      RunWithRetry([&]() { return ref.PutBytes(payload.data(), kFileSize); }),
+      "PutBytes");
+
+  std::vector<char> downloaded(kFileSize, 0);
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> get_future =
+      ref.GetBytes(downloaded.data(), kFileSize, &listener, &controller);
+  WaitForCompletion(get_future, "GetBytes");
+  ASSERT_NE(get_future.result(), nullptr);
+  EXPECT_EQ(*get_future.result(), kFileSize);
+  EXPECT_EQ(memcmp(payload.data(), downloaded.data(), kFileSize), 0);
+  EXPECT_EQ(controller.total_byte_count(), static_cast<int64_t>(kFileSize));
+  EXPECT_EQ(controller.bytes_transferred(), static_cast<int64_t>(kFileSize));
+}
+
+// Verifies that concurrent small metadata/data RPCs complete promptly while a
+// large streaming transfer is active on the shared CurlIoLoop, and that
+// Controller::Cancel() wakes the loop immediately.
+TEST_F(FirebaseStorageTest, TestConcurrentOperationsAndFastCancelDuringLargeTransfer) {
+  SignIn();
+
+  firebase::storage::StorageReference folder = CreateFolder();
+  firebase::storage::StorageReference large_ref =
+      folder.Child("TestFile-ConcurrentLarge.bin");
+  cleanup_files_.push_back(large_ref);
+
+  const size_t kLargeSize = 16 * 1024 * 1024;
+  const std::string large_payload = CreateDataForLargeFile(kLargeSize);
+  WaitForCompletion(RunWithRetry([&]() {
+                      return large_ref.PutBytes(large_payload.data(),
+                                                kLargeSize);
+                    }),
+                    "PutBytes large");
+
+  std::vector<char> download_buf(kLargeSize, 0);
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> large_get = large_ref.GetBytes(
+      download_buf.data(), kLargeSize, &listener, &controller);
+
+  while (!controller.is_valid()) {
+    ProcessEvents(1);
+  }
+
+  // Fire 8 concurrent metadata reads while the 16 MB download is streaming.
+  const int kFastOps = 8;
+  std::vector<firebase::Future<firebase::storage::Metadata>> meta_futures(
+      kFastOps);
+  for (int i = 0; i < kFastOps; ++i) {
+    meta_futures[i] = large_ref.GetMetadata();
+  }
+  for (int i = 0; i < kFastOps; ++i) {
+    WaitForCompletion(meta_futures[i], "Concurrent GetMetadata");
+    ASSERT_NE(meta_futures[i].result(), nullptr);
+    EXPECT_EQ(meta_futures[i].result()->size_bytes(),
+              static_cast<int64_t>(kLargeSize));
+  }
+
+  // If the large download is still in flight, cancelling it must complete
+  // rapidly via curl_multi_wakeup() rather than hanging.
+  if (large_get.status() == firebase::kFutureStatusPending) {
+    const int64_t cancel_start_us = GetCurrentTimeInMicroseconds();
+    if (controller.Cancel()) {
+      WaitForCompletionAnyResult(large_get, "Cancelled large GetBytes");
+      const int64_t cancel_elapsed_ms =
+          (GetCurrentTimeInMicroseconds() - cancel_start_us) / 1000;
+      EXPECT_LT(cancel_elapsed_ms, 3000);
+    } else {
+      WaitForCompletionAnyResult(large_get, "Completed large GetBytes");
+    }
+  } else {
+    EXPECT_EQ(large_get.error(), 0);
+  }
 }
 
 }  // namespace firebase_testapp_automated

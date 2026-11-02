@@ -20,7 +20,9 @@
 #include <cstring>
 #include <ctime>
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -29,6 +31,10 @@
 #include "firebase/internal/platform.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
+
+#if defined(__linux__) && FIREBASE_PLATFORM_DESKTOP
+#include <dirent.h>
+#endif
 
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
@@ -1438,6 +1444,152 @@ TEST_F(FirebaseDatabaseTest, TestChildListenerWithNullArgument) {
   firebase::database::DatabaseReference ref =
       database_->GetReference("Nothing/will/be/uploaded/here");
   ref.AddChildListener(nullptr);
+}
+
+#if defined(__linux__) && FIREBASE_PLATFORM_DESKTOP
+static int CountProcessThreads() {
+  DIR* dir = opendir("/proc/self/task");
+  if (!dir) return -1;
+  int count = 0;
+  while (struct dirent* entry = readdir(dir)) {
+    if (entry->d_name[0] != '.') ++count;
+  }
+  closedir(dir);
+  return count;
+}
+#endif  // defined(__linux__) && defined(FIREBASE_PLATFORM_DESKTOP)
+
+namespace {
+class BoolFlagValueListener : public firebase::database::ValueListener {
+ public:
+  void OnValueChanged(
+      const firebase::database::DataSnapshot& snapshot) override {
+    if (snapshot.value().is_bool() && snapshot.value().bool_value()) {
+      connected_ = true;
+    }
+  }
+  void OnCancelled(const firebase::database::Error& /*error*/,
+                   const char* /*error_message*/) override {}
+  bool connected() const { return connected_; }
+
+ private:
+  bool connected_ = false;
+};
+}  // namespace
+
+// Verifies that multiple Firebase Apps and Database instances can hold live
+// WebSocket connections concurrently while sharing the single process-wide
+// CurlIoLoop thread on desktop (rather than spawning a thread per Database).
+TEST_F(FirebaseDatabaseTest, TestMultipleAppsShareSingleWebSocketIoLoop) {
+  ASSERT_NE(shared_app_, nullptr);
+  ASSERT_NE(database_, nullptr);
+
+  // Ensure the primary database connection (and shared Repo scheduler + I/O
+  // loop) is warm before measuring thread scaling across additional Apps.
+  firebase::database::DatabaseReference primary_info =
+      database_->GetReference(".info/connected");
+  BoolFlagValueListener primary_listener;
+  primary_info.AddValueListener(&primary_listener);
+  for (int i = 0; i < 100 && !primary_listener.connected(); ++i) {
+    ProcessEvents(100);
+  }
+  EXPECT_TRUE(primary_listener.connected());
+
+  const int kExtraApps = 8;
+  std::vector<firebase::App*> apps(kExtraApps, nullptr);
+  std::vector<firebase::database::Database*> dbs(kExtraApps, nullptr);
+  std::vector<firebase::database::DatabaseReference> refs(kExtraApps);
+  std::vector<BoolFlagValueListener> listeners(kExtraApps);
+
+  // Create the extra App instances first (each App owns its own desktop
+  // HeartbeatController scheduler thread) before measuring WebSocket/Database
+  // thread scaling.
+  for (int i = 0; i < kExtraApps; ++i) {
+    std::string name = "multi_ws_app_" + std::to_string(i);
+    apps[i] = firebase::App::Create(shared_app_->options(), name.c_str());
+    ASSERT_NE(apps[i], nullptr);
+  }
+  ProcessEvents(100);
+
+#if defined(__linux__) && FIREBASE_PLATFORM_DESKTOP
+  const int threads_after_apps = CountProcessThreads();
+  ASSERT_GT(threads_after_apps, 0);
+#endif
+
+  for (int i = 0; i < kExtraApps; ++i) {
+    firebase::InitResult init_result = firebase::kInitResultSuccess;
+    dbs[i] = firebase::database::Database::GetInstance(apps[i], &init_result);
+    ASSERT_EQ(init_result, firebase::kInitResultSuccess);
+    ASSERT_NE(dbs[i], nullptr);
+    refs[i] = dbs[i]->GetReference(".info/connected");
+    refs[i].AddValueListener(&listeners[i]);
+  }
+
+  bool all_connected = false;
+  for (int attempt = 0; attempt < 150 && !all_connected; ++attempt) {
+    ProcessEvents(100);
+    all_connected = true;
+    for (int i = 0; i < kExtraApps; ++i) {
+      if (!listeners[i].connected()) {
+        all_connected = false;
+        break;
+      }
+    }
+  }
+  EXPECT_TRUE(all_connected);
+
+#if defined(__linux__) && FIREBASE_PLATFORM_DESKTOP
+  const int threads_with_websockets = CountProcessThreads();
+  // All 8 additional Database instances and live WebSocket connections
+  // multiplex onto the existing CurlIoLoop and shared Repo scheduler, spawning
+  // 0 new WebSocket threads (whereas the legacy per-Database WebSocket thread
+  // model spawned +8 threads here).
+  EXPECT_LE(threads_with_websockets - threads_after_apps, 1)
+      << "threads_after_apps=" << threads_after_apps
+      << " threads_with_websockets=" << threads_with_websockets;
+#endif
+
+  primary_info.RemoveValueListener(&primary_listener);
+  for (int i = 0; i < kExtraApps; ++i) {
+    refs[i].RemoveValueListener(&listeners[i]);
+    refs[i] = firebase::database::DatabaseReference();
+    delete dbs[i];
+    delete apps[i];
+  }
+}
+
+// Verifies concurrent multi-frame WebSocket writes and reads across many paths
+// without framing corruption or head-of-line stalls.
+TEST_F(FirebaseDatabaseTest, TestConcurrentMultiFrameWritesAndReads) {
+  SignIn();
+  firebase::database::DatabaseReference working_path = CreateWorkingPath();
+
+  const int kNumChildren = 12;
+  const size_t kPayloadBytes = 32 * 1024;
+  std::vector<std::string> payloads(kNumChildren);
+  std::vector<firebase::Future<void>> write_futures(kNumChildren);
+  for (int i = 0; i < kNumChildren; ++i) {
+    payloads[i].assign(kPayloadBytes, static_cast<char>('A' + (i % 26)));
+    std::string child_name = "chunk_" + std::to_string(i);
+    write_futures[i] =
+        working_path.Child(child_name.c_str()).SetValue(payloads[i].c_str());
+  }
+  for (int i = 0; i < kNumChildren; ++i) {
+    WaitForCompletion(write_futures[i], "Concurrent SetValue");
+  }
+
+  std::vector<firebase::Future<firebase::database::DataSnapshot>> read_futures(
+      kNumChildren);
+  for (int i = 0; i < kNumChildren; ++i) {
+    std::string child_name = "chunk_" + std::to_string(i);
+    read_futures[i] = working_path.Child(child_name.c_str()).GetValue();
+  }
+  for (int i = 0; i < kNumChildren; ++i) {
+    WaitForCompletion(read_futures[i], "Concurrent GetValue");
+    ASSERT_NE(read_futures[i].result(), nullptr);
+    ASSERT_TRUE(read_futures[i].result()->value().is_string());
+    EXPECT_EQ(payloads[i], read_futures[i].result()->value().string_value());
+  }
 }
 
 }  // namespace firebase_testapp_automated
