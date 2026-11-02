@@ -29,6 +29,13 @@
 #include <thread>  // NOLINT
 #include <vector>
 
+#if !defined(_WIN32)
+#include <fcntl.h>
+#include <sys/resource.h>
+#include <sys/select.h>
+#include <unistd.h>
+#endif
+
 #include "app/rest/controller_interface.h"
 #include "app/rest/curl/curl_io_loop.h"
 #include "app/rest/request.h"
@@ -555,6 +562,91 @@ TEST_F(TransportCurlTest, FastRequestsNotDelayedByInFlightSlowRequest) {
   ASSERT_TRUE(slow_response.Wait());
   EXPECT_EQ(200, slow_response.status());
 }
+
+#if !defined(_WIN32)
+TEST_F(TransportCurlTest, HighFileDescriptorsAboveFdSetSizeDoNotStall) {
+  // Large desktop game engines (Unreal / Unity) commonly hold >1,024 open file
+  // descriptors (.pak archives, shader caches, audio banks). Under the legacy
+  // curl_multi_fdset() + select() loop, any socket with fd >= FD_SETSIZE (1024)
+  // was omitted from fd_set: if an earlier socket had fd < 1024, select()
+  // blocked completely blind to the high-FD transfers; otherwise maxfd == -1
+  // degraded into 33 ms sleep ticks. Verify curl_multi_poll() handles sockets
+  // above FD_SETSIZE with zero stall even alongside a low-FD transfer.
+  struct rlimit orig_limit {};
+  ASSERT_EQ(0, getrlimit(RLIMIT_NOFILE, &orig_limit));
+  const rlim_t kNeeded = static_cast<rlim_t>(FD_SETSIZE + 128);
+  bool raised_limit = false;
+  if (orig_limit.rlim_cur < kNeeded && orig_limit.rlim_max >= kNeeded) {
+    struct rlimit raised = orig_limit;
+    raised.rlim_cur =
+        orig_limit.rlim_max < static_cast<rlim_t>(FD_SETSIZE + 256)
+            ? orig_limit.rlim_max
+            : static_cast<rlim_t>(FD_SETSIZE + 256);
+    if (setrlimit(RLIMIT_NOFILE, &raised) == 0) {
+      raised_limit = true;
+    }
+  }
+  struct ScopedFdCleanup {
+    std::vector<int> fds;
+    bool restore_rlimit = false;
+    struct rlimit saved {};
+    ~ScopedFdCleanup() {
+      for (int fd : fds) close(fd);
+      if (restore_rlimit) setrlimit(RLIMIT_NOFILE, &saved);
+    }
+  } cleanup;
+  cleanup.restore_rlimit = raised_limit;
+  cleanup.saved = orig_limit;
+
+  struct rlimit active_limit {};
+  ASSERT_EQ(0, getrlimit(RLIMIT_NOFILE, &active_limit));
+  if (active_limit.rlim_cur < kNeeded) {
+    GTEST_SKIP() << "RLIMIT_NOFILE (" << active_limit.rlim_cur
+                 << ") is below FD_SETSIZE + 128 (" << kNeeded << ")";
+  }
+
+  // 1. Start a slow request first so it acquires a low FD (< FD_SETSIZE).
+  Request slow_request;
+  slow_request.set_url(Url("/slow?ms=2000").c_str());
+  TestResponse slow_response;
+  TransportCurl slow_transport;
+  slow_transport.set_is_async(true);
+  slow_transport.Perform(slow_request, &slow_response);
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // 2. Reserve dummy file descriptors past FD_SETSIZE so subsequent sockets
+  // receive fd >= FD_SETSIZE + 32.
+  const int kTargetFd = FD_SETSIZE + 32;
+  cleanup.fds.reserve(kTargetFd + 16);
+  int max_opened_fd = -1;
+  while (max_opened_fd < kTargetFd) {
+    int fd = open("/dev/null", O_RDONLY);
+    if (fd < 0) break;
+    cleanup.fds.push_back(fd);
+    if (fd > max_opened_fd) max_opened_fd = fd;
+  }
+  ASSERT_GE(max_opened_fd, kTargetFd);
+
+  // 3. Perform 8 fast requests whose sockets live above FD_SETSIZE.
+  auto start = std::chrono::steady_clock::now();
+  for (int i = 0; i < 8; ++i) {
+    TransportCurl fast_transport;
+    Request fast_request;
+    fast_request.set_url(Url("/").c_str());
+    TestResponse fast_response;
+    fast_transport.Perform(fast_request, &fast_response);
+    EXPECT_EQ(200, fast_response.status()) << "high-FD request " << i;
+    EXPECT_STREQ("test", fast_response.GetBody()) << "high-FD request " << i;
+  }
+  auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - start)
+                        .count();
+  EXPECT_LT(elapsed_ms, 500);
+
+  ASSERT_TRUE(slow_response.Wait());
+  EXPECT_EQ(200, slow_response.status());
+}
+#endif  // !defined(_WIN32)
 
 }  // namespace
 }  // namespace rest

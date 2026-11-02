@@ -31,6 +31,13 @@
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
+#if FIREBASE_PLATFORM_DESKTOP && !defined(_WIN32)
+#include <fcntl.h>
+#include <sys/resource.h>
+#include <sys/select.h>
+#include <unistd.h>
+#endif
+
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
 #define TO_STRING_EXPAND(X) #X
@@ -1808,5 +1815,102 @@ TEST_F(FirebaseStorageTest, TestConcurrentOperationsAndFastCancelDuringLargeTran
     EXPECT_EQ(large_get.error(), 0);
   }
 }
+
+#if FIREBASE_PLATFORM_DESKTOP && !defined(_WIN32)
+// Verifies that Cloud Storage downloads succeed promptly even when the host
+// process already holds > FD_SETSIZE (1024) open file descriptors (such as
+// mounted .pak archives in a desktop game engine), exercising curl_multi_poll()
+// above the legacy select() FD_SETSIZE ceiling.
+TEST_F(FirebaseStorageTest, TestDownloadsWithHighOpenFileDescriptors) {
+  struct rlimit orig_limit {};
+  if (getrlimit(RLIMIT_NOFILE, &orig_limit) != 0) return;
+  const rlim_t kNeeded = static_cast<rlim_t>(FD_SETSIZE + 160);
+  bool raised_limit = false;
+  if (orig_limit.rlim_cur < kNeeded && orig_limit.rlim_max >= kNeeded) {
+    struct rlimit raised = orig_limit;
+    raised.rlim_cur =
+        orig_limit.rlim_max < static_cast<rlim_t>(FD_SETSIZE + 256)
+            ? orig_limit.rlim_max
+            : static_cast<rlim_t>(FD_SETSIZE + 256);
+    if (setrlimit(RLIMIT_NOFILE, &raised) == 0) {
+      raised_limit = true;
+    }
+  }
+  struct ScopedFdGuard {
+    std::vector<int> fds;
+    bool restore_rlimit = false;
+    struct rlimit saved {};
+    ~ScopedFdGuard() {
+      for (int fd : fds) close(fd);
+      if (restore_rlimit) setrlimit(RLIMIT_NOFILE, &saved);
+    }
+  } guard;
+  guard.restore_rlimit = raised_limit;
+  guard.saved = orig_limit;
+
+  struct rlimit active_limit {};
+  if (getrlimit(RLIMIT_NOFILE, &active_limit) != 0 ||
+      active_limit.rlim_cur < kNeeded) {
+    LogWarning("Skipping high-FD Storage test: RLIMIT_NOFILE=%llu < %llu",
+               static_cast<unsigned long long>(active_limit.rlim_cur),
+               static_cast<unsigned long long>(kNeeded));
+    return;
+  }
+
+  // Reserve > FD_SETSIZE descriptors before Auth/Storage open network sockets
+  // so every TLS socket receives fd >= FD_SETSIZE.
+  TerminateStorage();
+  TerminateAppAndAuth();
+
+  const int kTargetFd = FD_SETSIZE + 48;
+  guard.fds.reserve(kTargetFd + 16);
+  int max_fd = -1;
+  while (max_fd < kTargetFd) {
+    int fd = open("/dev/null", O_RDONLY);
+    if (fd < 0) break;
+    guard.fds.push_back(fd);
+    if (fd > max_fd) max_fd = fd;
+  }
+  if (max_fd < kTargetFd) {
+    InitializeAppAndAuth();
+    InitializeStorage();
+    FAIL() << "Failed to allocate FD >= " << kTargetFd;
+  }
+
+  InitializeAppAndAuth();
+  InitializeStorage();
+  SignIn();
+
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("TestFile-HighOpenFds.bin");
+  cleanup_files_.push_back(ref);
+
+  const size_t kFileSize = 1024 * 1024;
+  const std::string payload = CreateDataForLargeFile(kFileSize);
+  WaitForCompletion(
+      RunWithRetry([&]() { return ref.PutBytes(payload.data(), kFileSize); }),
+      "PutBytes with high open FDs");
+
+  const int kConcurrentDownloads = 4;
+  std::vector<std::vector<char>> buffers(kConcurrentDownloads,
+                                         std::vector<char>(kFileSize, 0));
+  std::vector<firebase::Future<size_t>> downloads(kConcurrentDownloads);
+  const int64_t dl_start_us = GetCurrentTimeInMicroseconds();
+  for (int i = 0; i < kConcurrentDownloads; ++i) {
+    downloads[i] = ref.GetBytes(buffers[i].data(), kFileSize);
+  }
+  for (int i = 0; i < kConcurrentDownloads; ++i) {
+    WaitForCompletion(downloads[i], "High-FD GetBytes");
+    ASSERT_NE(downloads[i].result(), nullptr);
+    EXPECT_EQ(*downloads[i].result(), kFileSize);
+    EXPECT_EQ(memcmp(payload.data(), buffers[i].data(), kFileSize), 0);
+  }
+  const int64_t dl_elapsed_ms =
+      (GetCurrentTimeInMicroseconds() - dl_start_us) / 1000;
+  // Under the legacy curl_multi_fdset() + select() loop, sockets above
+  // FD_SETSIZE degraded into 33 ms sleep ticks (~3,000+ ms for 4 x 1 MB).
+  EXPECT_LT(dl_elapsed_ms, 2200);
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP && !defined(_WIN32)
 
 }  // namespace firebase_testapp_automated
