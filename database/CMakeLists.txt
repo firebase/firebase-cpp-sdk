@@ -188,11 +188,6 @@ if(MSVC)
                             # to include winsock2.h later on in the process.
     -DCURL_STATICLIB=1
   )
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(additional_DEFINES
-    "${additional_DEFINES}"
-    -DFIREBASE_SSL_CAPATH="/etc/ssl/certs"
-  )
 endif()
 
 add_library(firebase_database STATIC

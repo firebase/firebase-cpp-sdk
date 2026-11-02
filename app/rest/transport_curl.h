@@ -36,15 +36,6 @@ void InitTransportCurl();
 // resources. This should be called once for every call to InitTransportCurl.
 void CleanupTransportCurl();
 
-// Returns the first readable system CA bundle file on the current Linux host
-// (probing standard Debian/Ubuntu, RHEL/Fedora, openSUSE, and Alpine paths),
-// or nullptr if no bundle file is found or on non-Linux platforms.
-const char* GetLinuxCaBundlePath();
-
-// Returns FIREBASE_SSL_CAPATH ("/etc/ssl/certs") if it exists as a readable
-// directory on the current Linux host, or nullptr otherwise.
-const char* GetLinuxCaDirectoryPath();
-
 // Implement the transport layer, based on curl library.
 class TransportCurl : public Transport {
  public:

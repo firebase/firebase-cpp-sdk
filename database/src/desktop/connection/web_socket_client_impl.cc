@@ -18,6 +18,7 @@
 #include <cstring>
 #include <string>
 
+#include "app/rest/curl/tls_policy.h"
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -240,26 +241,18 @@ void WebSocketClientImpl::ConnectSync(int timeout_ms) {
   // Handle PING frames explicitly in ReceiveFrames() so standalone PINGs flush
   // their PONG response immediately without waiting for another frame.
   curl_easy_setopt(easy, CURLOPT_WS_OPTIONS, CURLWS_NOAUTOPONG);
-  // Verify SSL peer certificate chain and hostname/SANs, and enforce TLS 1.2
-  // as the minimum protocol version (allowing TLS 1.2 and TLS 1.3 while
-  // preventing downgrade attacks to deprecated TLS 1.0/1.1):
-  // - Windows (CURL_USE_SCHANNEL): Verifies against the Windows Certificate
-  //   Store (Crypt32) with native OCSP/CRL and Microsoft CTL revocation checks.
-  // - macOS (USE_APPLE_SECTRUST): Verifies against the macOS System Keychain
-  //   via Security.framework (SecTrustEvaluateWithError) with Apple OCSP/CRL
-  //   and Valid/trustd revocation checks.
-  // - Linux (OpenSSL/BoringSSL): Verifies against the runtime distribution's
-  //   CA bundle file (CURLOPT_CAINFO) and hashed CA directory (CURLOPT_CAPATH)
-  //   resolved by GetLinuxCaBundlePath() / GetLinuxCaDirectoryPath().
-  curl_easy_setopt(easy, CURLOPT_SSL_VERIFYPEER, 1L);
-  curl_easy_setopt(easy, CURLOPT_SSL_VERIFYHOST, 2L);
-  curl_easy_setopt(easy, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
-#ifdef FIREBASE_SSL_CAPATH
-  curl_easy_setopt(easy, CURLOPT_CAINFO,
-                   firebase::rest::GetLinuxCaBundlePath());
-  curl_easy_setopt(easy, CURLOPT_CAPATH,
-                   firebase::rest::GetLinuxCaDirectoryPath());
-#endif
+  // Peer/hostname verification, TLS 1.2 minimum, and OS trust store selection
+  // are centralized in app/rest/curl/tls_policy.h so REST and WebSocket
+  // connections can never drift apart.
+  CURLcode tls_result = firebase::rest::curl::ApplyTlsPolicy(easy);
+  if (tls_result != CURLE_OK) {
+    logger_->LogError("Failed to apply TLS policy for %s: (%d) %s",
+                      uri_.c_str(), static_cast<int>(tls_result),
+                      curl_easy_strerror(tls_result));
+    curl_easy_cleanup(easy);
+    OnError();
+    return;
+  }
   if (timeout_ms > 0) {
     curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT_MS,
                      static_cast<long>(timeout_ms));  // NOLINT
