@@ -342,10 +342,13 @@ firebase_cpp_cc_test(
   SOURCES
     desktop/connection/web_socket_client_impl_test.cc
   INCLUDES
+    ${CURL_SOURCE_DIR}/include
     ${OPENSSL_INCLUDE_DIR}
   DEPENDS
     firebase_database
+    firebase_rest_lib
     firebase_testing
+    libcurl
     ${OPENSSL_CRYPTO_LIBRARY}
 )
 
@@ -353,6 +356,7 @@ if(MSVC)
   target_compile_definitions(firebase_rtdb_desktop_connection_web_socket_client_impl_test
     PRIVATE
       -DWIN32_LEAN_AND_MEAN
+      -DCURL_STATICLIB=1
   )
   target_link_libraries(firebase_rtdb_desktop_connection_web_socket_client_impl_test
     PRIVATE

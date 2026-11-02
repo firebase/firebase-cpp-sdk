@@ -41,10 +41,12 @@ namespace curl {
 //   while (!quit) {
 //     run functions queued with Post();
 //     curl_multi_perform();
-//     for each CURLMSG_DONE: curl_multi_remove_handle(); Transfer::OnDone();
+//     for each CURLMSG_DONE: curl_multi_remove_handle()*; Transfer::OnDone();
 //     curl_multi_poll(multi, extra_fds, n, timeout, &numfds);   // sleeps
 //     dispatch extra-fd readiness callbacks;
 //   }
+//   (* skipped for transfers whose RemoveFromMultiOnDone() is false, i.e.
+//      CURLOPT_CONNECT_ONLY handles that keep using their connection.)
 //
 // curl_multi_poll() blocks until a libcurl socket is ready, a libcurl timer
 // expires, an extra fd is ready, or another thread calls Post() (which uses
@@ -145,8 +147,9 @@ class CurlIoLoop {
   // CURLMOPT_* tuning. I/O thread only.
   CURLM* multi();
 
-  // Number of registered transfers (for tests). I/O thread only.
+  // Number of registered transfers / extra fds (for tests). I/O thread only.
   size_t transfer_count() const;
+  size_t extra_fd_count() const;
 
   CurlIoLoop(const CurlIoLoop&) = delete;
   CurlIoLoop& operator=(const CurlIoLoop&) = delete;

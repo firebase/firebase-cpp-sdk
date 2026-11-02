@@ -49,10 +49,15 @@ class Transfer {
 
   // Called exactly once on the I/O thread when libcurl reports the transfer
   // finished (CURLMSG_DONE) or when the loop is shutting down with the
-  // transfer still in flight (result == CURLE_ABORTED_BY_CALLBACK). The easy
-  // handle has already been removed from the multi handle and the loop has
-  // forgotten the Transfer, so it is safe to reuse or destroy the handle and
-  // to destroy the Transfer itself from here.
+  // transfer still in flight (result == CURLE_ABORTED_BY_CALLBACK). The loop
+  // has forgotten the Transfer by the time this runs, so it is safe to destroy
+  // the Transfer itself from here.
+  //
+  // If RemoveFromMultiOnDone() returned true (the default) the easy handle has
+  // also already been removed from the multi handle, so it may be reused or
+  // destroyed freely. Otherwise the handle is still attached and the
+  // implementation owns detaching it (curl_multi_remove_handle() on
+  // CurlIoLoop::multi(), on the I/O thread) before destroying it.
   //
   // IMPORTANT: this runs on the single process-wide I/O thread that services
   // every libcurl transfer in the process. Implementations MUST keep it short:
@@ -67,6 +72,17 @@ class Transfer {
   // are documented in the Phase 1 audit and should move that work onto their
   // own executor.)
   virtual void OnDone(CURLcode result) = 0;
+
+  // Whether the loop should curl_multi_remove_handle() the easy handle before
+  // calling OnDone(). Defaults to true, which is right for ordinary transfers.
+  //
+  // CURLOPT_CONNECT_ONLY transfers (WebSockets driven with curl_ws_recv() /
+  // curl_ws_send()) MUST return false: libcurl closes a connect-only
+  // connection the moment its handle is removed from the multi handle, so the
+  // handle has to stay attached for as long as the socket is in use. Such a
+  // transfer typically registers the socket with CurlIoLoop::AddExtraFd() in
+  // OnDone() and detaches the handle itself when it is finished with it.
+  virtual bool RemoveFromMultiOnDone() { return true; }
 };
 
 }  // namespace curl
