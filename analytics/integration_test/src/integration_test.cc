@@ -32,6 +32,7 @@
 #include "firebase/analytics/parameter_names.h"
 #include "firebase/analytics/user_property_names.h"
 #include "firebase/app.h"
+#include "firebase/installations.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -438,6 +439,62 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   ProcessEvents(1000);
 
   did_test_setconsent_ = true;
+}
+
+TEST_F(FirebaseAnalyticsTest, TestInstallationsAndAnalyticsCoexist) {
+  FLAKY_TEST_SECTION_BEGIN();
+
+  auto* installations =
+      firebase::installations::Installations::GetInstance(shared_app_);
+  ASSERT_NE(installations, nullptr);
+
+  firebase::Future<std::string> installation_id = installations->GetId();
+  firebase::Future<std::string> analytics_instance_id =
+      firebase::analytics::GetAnalyticsInstanceId();
+
+  WaitForCompletion(installation_id, "Installations::GetId");
+  WaitForCompletion(analytics_instance_id, "GetAnalyticsInstanceId");
+
+  ASSERT_NE(installation_id.result(), nullptr);
+  ASSERT_NE(analytics_instance_id.result(), nullptr);
+  EXPECT_FALSE(installation_id.result()->empty());
+  EXPECT_FALSE(analytics_instance_id.result()->empty());
+
+#if defined(FIREBASE_ANALYTICS_TEST_APPLE_SDK_EMBEDDED)
+  EXPECT_NE(*installation_id.result(), "FakeId");
+  EXPECT_NE(*analytics_instance_id.result(), "FakeAnalyticsInstanceId0");
+  LogInfo("Verified real macOS Installation ID (%s) and Analytics Instance ID (%s)",
+          installation_id.result()->c_str(),
+          analytics_instance_id.result()->c_str());
+#endif  // defined(FIREBASE_ANALYTICS_TEST_APPLE_SDK_EMBEDDED)
+
+  delete installations;
+
+  FLAKY_TEST_SECTION_END();
+}
+
+TEST_F(FirebaseAnalyticsTest, TestRapidReinitializeWithPendingFutures) {
+  // Exercises Terminate() -> Initialize() while async futures are in flight.
+  for (int i = 0; i < 3; ++i) {
+    firebase::Future<std::string> pending_id =
+        firebase::analytics::GetAnalyticsInstanceId();
+    firebase::Future<int64_t> pending_session =
+        firebase::analytics::GetSessionId();
+    (void)pending_id;
+    (void)pending_session;
+    firebase::analytics::Terminate();
+    firebase::analytics::SetDesktopDebugMode(true);
+    firebase::analytics::Initialize(*shared_app_);
+  }
+  firebase::analytics::SetDesktopDebugMode(false);
+
+  FLAKY_TEST_SECTION_BEGIN();
+  firebase::Future<std::string> final_id =
+      firebase::analytics::GetAnalyticsInstanceId();
+  WaitForCompletion(final_id, "GetAnalyticsInstanceId after rapid reinit");
+  ASSERT_NE(final_id.result(), nullptr);
+  EXPECT_FALSE(final_id.result()->empty());
+  FLAKY_TEST_SECTION_END();
 }
 
 }  // namespace firebase_testapp_automated

@@ -22,19 +22,40 @@ namespace installations {
 namespace internal {
 
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {}
+    : app_(app), future_impl_(kInstallationsFnCount) {
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+  apple_state_ = apple::CreateInstance(app_, &future_impl_);
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+}
 
-InstallationsInternal::~InstallationsInternal() {}
+InstallationsInternal::~InstallationsInternal() { Cleanup(); }
 
-void InstallationsInternal::LogHeartbeat(const firebase::App& app) {}
+void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+  apple::LogHeartbeat(app);
+#else
+  (void)app;
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+}
 
 bool InstallationsInternal::Initialized() const { return true; }
 
-void InstallationsInternal::Cleanup() {}
+void InstallationsInternal::Cleanup() {
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+  apple::CleanupInstance(apple_state_);
+  apple_state_.reset();
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+}
 
 Future<std::string> InstallationsInternal::GetId() {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetId);
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+  if (apple::IsInstanceActive(apple_state_)) {
+    apple::GetId(apple_state_, handle);
+    return MakeFuture<std::string>(&future_impl_, handle);
+  }
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
   future_impl_.CompleteWithResult(handle, kInstallationsErrorNone, "",
                                   std::string("FakeId"));
 
@@ -49,7 +70,12 @@ Future<std::string> InstallationsInternal::GetIdLastResult() {
 Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetToken);
-
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+  if (apple::IsInstanceActive(apple_state_)) {
+    apple::GetToken(apple_state_, forceRefresh, handle);
+    return MakeFuture<std::string>(&future_impl_, handle);
+  }
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
   future_impl_.CompleteWithResult(handle, kInstallationsErrorNone, "",
                                   forceRefresh
                                       ? std::string("FakeTokenForceRefresh")
@@ -64,7 +90,13 @@ Future<std::string> InstallationsInternal::GetTokenLastResult() {
 }
 
 Future<void> InstallationsInternal::Delete() {
-  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
+  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnDelete);
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+  if (apple::IsInstanceActive(apple_state_)) {
+    apple::Delete(apple_state_, handle);
+    return MakeFuture<void>(&future_impl_, handle);
+  }
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
   future_impl_.Complete(handle, kInstallationsErrorNone);
   return MakeFuture<void>(&future_impl_, handle);
 }

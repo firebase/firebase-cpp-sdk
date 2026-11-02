@@ -225,15 +225,31 @@ else()
     set(ADDITIONAL_LIBS pthread)
   endif()
 
+  # If a GoogleService-Info.plist is present without google-services-desktop.json,
+  # convert it automatically so desktop App::Create() can load the Apple config.
+  if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GoogleService-Info.plist" AND
+     NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/google-services-desktop.json")
+    execute_process(
+      COMMAND ${FIREBASE_PYTHON_EXECUTABLE}
+        "${FIREBASE_CPP_SDK_DIR}/generate_xml_from_google_services_json.py"
+        --plist
+        -i "${CMAKE_CURRENT_LIST_DIR}/GoogleService-Info.plist"
+        -o "${CMAKE_CURRENT_LIST_DIR}/google-services-desktop.json"
+      RESULT_VARIABLE plist_convert_result
+    )
+  endif()
+
   # If a config file is present, copy it into the binary location so that it's
   # possible to create the default Firebase app.
   set(FOUND_JSON_FILE FALSE)
+  set(SELECTED_CONFIG_FILE "")
   foreach(config "google-services-desktop.json" "google-services.json")
     if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/${config}")
+      set(SELECTED_CONFIG_FILE "${CMAKE_CURRENT_LIST_DIR}/${config}")
       add_custom_command(
         TARGET ${integration_test_target_name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-          "${CMAKE_CURRENT_LIST_DIR}/${config}" $<TARGET_FILE_DIR:${integration_test_target_name}>)
+          "${SELECTED_CONFIG_FILE}" $<TARGET_FILE_DIR:${integration_test_target_name}>/google-services-desktop.json)
       set(FOUND_JSON_FILE TRUE)
       break()
     endif()
@@ -246,18 +262,34 @@ endif()
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 # Note that firebase_app needs to be last in the list.
-set(firebase_libs firebase_analytics firebase_app)
+set(firebase_libs firebase_analytics firebase_installations firebase_app)
 set(gtest_libs gtest gmock)
 target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})
 
-# On macOS desktop, optionally embed the Firebase Apple SDK so Analytics uses
-# it instead of the desktop stubs. Requires a google-services-desktop.json
-# generated from an Apple app's GoogleService-Info.plist (App ID "1:...:ios:...").
+# On macOS desktop, optionally embed the Firebase Apple SDK so Analytics and
+# Installations use it instead of the desktop stubs. Requires a
+# google-services-desktop.json generated from an Apple app's
+# GoogleService-Info.plist (App ID "1:...:ios:...").
 option(FIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK
        "Embed the Firebase Apple SDK in the macOS desktop integration test." OFF)
 if(APPLE AND NOT IOS AND FIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK)
-  set(FIREBASE_ANALYTICS_TEST_BUNDLE_ID "com.google.firebase.cpp.analytics.testapp"
+  set(DEFAULT_ANALYTICS_BUNDLE_ID "com.google.firebase.cpp.analytics.testapp")
+  if(SELECTED_CONFIG_FILE AND EXISTS "${SELECTED_CONFIG_FILE}")
+    execute_process(
+      COMMAND ${FIREBASE_PYTHON_EXECUTABLE}
+        "${FIREBASE_CPP_SDK_DIR}/generate_xml_from_google_services_json.py"
+        -l -i "${SELECTED_CONFIG_FILE}"
+      OUTPUT_VARIABLE DETECTED_BUNDLE_ID
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+    )
+    if(DETECTED_BUNDLE_ID)
+      string(REGEX REPLACE "\n.*$" "" DETECTED_BUNDLE_ID "${DETECTED_BUNDLE_ID}")
+      set(DEFAULT_ANALYTICS_BUNDLE_ID "${DETECTED_BUNDLE_ID}")
+    endif()
+  endif()
+  set(FIREBASE_ANALYTICS_TEST_BUNDLE_ID "${DEFAULT_ANALYTICS_BUNDLE_ID}"
       CACHE STRING "Bundle ID of the macOS desktop integration test app.")
   # GoogleAppMeasurement expects to run inside an app bundle with a bundle ID.
   set_target_properties(${integration_test_target_name} PROPERTIES
@@ -268,4 +300,24 @@ if(APPLE AND NOT IOS AND FIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK)
   firebase_cpp_link_apple_analytics_sdk(${integration_test_target_name})
   target_compile_definitions(${integration_test_target_name}
     PRIVATE FIREBASE_ANALYTICS_TEST_APPLE_SDK_EMBEDDED=1)
+
+  # Standalone live verification app (`macos_live_demo.app`) that enables
+  # DebugView, prints the real Installation ID and Analytics IDs, logs events,
+  # and runs the macOS CFRunLoop so events appear in Firebase Console DebugView.
+  add_executable(macos_live_demo MACOSX_BUNDLE
+    src/macos_live_demo.cc
+  )
+  set_target_properties(macos_live_demo PROPERTIES
+    MACOSX_BUNDLE_GUI_IDENTIFIER "${FIREBASE_ANALYTICS_TEST_BUNDLE_ID}"
+    MACOSX_BUNDLE_BUNDLE_NAME "Firebase macOS Live Demo"
+  )
+  target_link_libraries(macos_live_demo ${firebase_libs} ${ADDITIONAL_LIBS})
+  firebase_cpp_link_apple_analytics_sdk(macos_live_demo)
+  if(SELECTED_CONFIG_FILE AND EXISTS "${SELECTED_CONFIG_FILE}")
+    add_custom_command(
+      TARGET macos_live_demo POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        "${SELECTED_CONFIG_FILE}" $<TARGET_FILE_DIR:macos_live_demo>/google-services-desktop.json
+    )
+  endif()
 endif()

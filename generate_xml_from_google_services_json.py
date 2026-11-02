@@ -169,10 +169,10 @@ def construct_google_services_json(xml_dict):
             }],
             'services': {
                 'analytics_service': {
-                    'status': xml_dict['IS_ANALYTICS_ENABLED']
+                    'status': xml_dict.get('IS_ANALYTICS_ENABLED', 1)
                 },
                 'appinvite_service': {
-                    'status': xml_dict['IS_APPINVITE_ENABLED']
+                    'status': xml_dict.get('IS_APPINVITE_ENABLED', 0)
                 }
             }
         },],

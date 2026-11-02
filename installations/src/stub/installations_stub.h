@@ -19,6 +19,12 @@
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+#include <memory>
+
+#include "installations/src/desktop/installations_desktop_apple.h"
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+
 namespace firebase {
 namespace installations {
 namespace internal {
@@ -53,6 +59,10 @@ class InstallationsInternal {
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
+
+#if defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
+  std::shared_ptr<apple::InstanceState> apple_state_;
+#endif  // defined(FIREBASE_INSTALLATIONS_APPLE_DESKTOP)
 };
 
 }  // namespace internal

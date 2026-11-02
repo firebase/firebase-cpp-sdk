@@ -30,6 +30,20 @@ set(ios_SRCS
 set(desktop_SRCS
     src/stub/installations_stub.cc)
 
+# On macOS desktop, Installations can forward to the Firebase Apple SDK
+# (FIRInstallations) when it is embedded in the final binary (see
+# cmake/firebase_apple_desktop_sdk.cmake). The backend binds to the Apple SDK at
+# runtime, so firebase_installations itself gains no link-time dependency on it
+# and keeps the stub behavior otherwise.
+option(FIREBASE_INSTALLATIONS_APPLE_DESKTOP_BACKEND
+       "Build the Firebase Apple SDK backend for macOS desktop Installations." ON)
+if(APPLE AND NOT IOS AND FIREBASE_INSTALLATIONS_APPLE_DESKTOP_BACKEND)
+  set(FIREBASE_INSTALLATIONS_USE_APPLE_DESKTOP_BACKEND ON)
+  list(APPEND desktop_SRCS src/desktop/installations_desktop_apple.mm)
+else()
+  set(FIREBASE_INSTALLATIONS_USE_APPLE_DESKTOP_BACKEND OFF)
+endif()
+
 if(ANDROID)
   set(installations_platform_SRCS
       "${android_SRCS}")
@@ -52,6 +66,13 @@ target_link_libraries(firebase_installations
   PUBLIC
     firebase_app
 )
+if(FIREBASE_INSTALLATIONS_USE_APPLE_DESKTOP_BACKEND)
+  set_source_files_properties(src/desktop/installations_desktop_apple.mm
+    PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+  target_compile_definitions(firebase_installations
+    PRIVATE FIREBASE_INSTALLATIONS_APPLE_DESKTOP=1)
+  target_link_libraries(firebase_installations PUBLIC "-framework Foundation")
+endif()
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
 target_include_directories(firebase_installations

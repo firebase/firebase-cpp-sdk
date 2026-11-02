@@ -215,6 +215,20 @@ else()
     set(ADDITIONAL_LIBS pthread)
   endif()
 
+  # If a GoogleService-Info.plist is present without google-services-desktop.json,
+  # convert it automatically so desktop App::Create() can load the Apple config.
+  if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GoogleService-Info.plist" AND
+     NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/google-services-desktop.json")
+    execute_process(
+      COMMAND ${FIREBASE_PYTHON_EXECUTABLE}
+        "${FIREBASE_CPP_SDK_DIR}/generate_xml_from_google_services_json.py"
+        --plist
+        -i "${CMAKE_CURRENT_LIST_DIR}/GoogleService-Info.plist"
+        -o "${CMAKE_CURRENT_LIST_DIR}/google-services-desktop.json"
+      RESULT_VARIABLE plist_convert_result
+    )
+  endif()
+
   # If a config file is present, copy it into the binary location so that it's
   # possible to create the default Firebase app.
   set(FOUND_JSON_FILE FALSE)
@@ -223,7 +237,7 @@ else()
       add_custom_command(
         TARGET ${integration_test_target_name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-          "${CMAKE_CURRENT_LIST_DIR}/${config}" $<TARGET_FILE_DIR:${integration_test_target_name}>)
+          "${CMAKE_CURRENT_LIST_DIR}/${config}" $<TARGET_FILE_DIR:${integration_test_target_name}>/google-services-desktop.json)
       set(FOUND_JSON_FILE TRUE)
       break()
     endif()
@@ -240,3 +254,22 @@ set(firebase_libs firebase_installations firebase_app)
 set(gtest_libs gtest gmock)
 target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})
+
+# On macOS desktop, optionally embed the Firebase Apple SDK so Installations
+# uses FIRInstallations instead of the desktop stubs. Requires a
+# google-services-desktop.json generated from an Apple app's
+# GoogleService-Info.plist (App ID "1:...:ios:...").
+option(FIREBASE_INSTALLATIONS_TEST_EMBED_APPLE_SDK
+       "Embed the Firebase Apple SDK in the macOS desktop integration test." OFF)
+if(APPLE AND NOT IOS AND FIREBASE_INSTALLATIONS_TEST_EMBED_APPLE_SDK)
+  set(FIREBASE_INSTALLATIONS_TEST_BUNDLE_ID "com.google.firebase.cpp.installations.testapp"
+      CACHE STRING "Bundle ID of the macOS desktop integration test app.")
+  set_target_properties(${integration_test_target_name} PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_GUI_IDENTIFIER "${FIREBASE_INSTALLATIONS_TEST_BUNDLE_ID}"
+    MACOSX_BUNDLE_BUNDLE_NAME "Firebase Installations Test"
+  )
+  firebase_cpp_link_apple_analytics_sdk(${integration_test_target_name})
+  target_compile_definitions(${integration_test_target_name}
+    PRIVATE FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED=1)
+endif()

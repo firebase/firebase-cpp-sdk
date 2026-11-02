@@ -63,6 +63,8 @@
 @protocol FIRCppDesktopAppClassShape <NSObject>
 + (void)configureWithOptions:(id)options;
 + (nullable id<FIRCppDesktopAppShape>)defaultApp;
+@optional
++ (BOOL)isDefaultAppConfigured;
 @end
 
 @protocol FIRCppDesktopAnalyticsClassShape <NSObject>
@@ -117,8 +119,12 @@ const uint64_t kInstanceIdTimeoutMs = 30000;
 
 Mutex g_mutex;  // NOLINT
 bool g_active = false;
+uint64_t g_generation = 0;
 BackendMode g_mode_override = kBackendModeAuto;
+bool g_debug_mode_set_by_api = false;
+bool g_debug_mode_value = false;
 // Google App ID the process-wide FIRApp was configured with by this backend.
+// Intentionally process-lifetime because FIRApp cannot be torn down.
 std::string* g_configured_app_id = nullptr;
 
 Class<FIRCppDesktopAnalyticsClassShape> AnalyticsClass() {
@@ -311,67 +317,107 @@ id<FIRCppDesktopOptionsShape> CreateOptions(const AppOptions& app_options) {
   return options;
 }
 
-// Configures the process-wide default FIRApp if nobody has yet. Returns false
-// if the Apple SDK could not be configured. Must be called with g_mutex held.
-bool EnsureDefaultAppConfigured(const AppOptions& app_options) {
-  id<FIRCppDesktopAppShape> default_app = [AppClass() defaultApp];
-  if (default_app) {
-    std::string existing_app_id = StdString(default_app.options.googleAppID);
-    if (g_configured_app_id == nullptr) {
-      // The host configured FIRApp itself (e.g. a native macOS app that also
-      // uses the Firebase Apple SDK directly). Reuse it.
-      LogInfo("Analytics: Using the FIRApp already configured by the host (App ID %s).",
-              existing_app_id.c_str());
-    } else if (existing_app_id != app_options.app_id()) {
-      // The Apple SDK cannot be re-configured within a process. In the Unity
-      // Editor this happens when switching Firebase projects without
-      // restarting the Editor.
-      LogWarning("Analytics: The Firebase Apple SDK is already configured with App ID %s in "
-                 "this process; ignoring App ID %s. Restart the process (or the Unity Editor) "
-                 "to switch projects.",
-                 existing_app_id.c_str(), app_options.app_id());
+// Configures the process-wide default FIRApp on the main thread if nobody has
+// yet. Returns false if the Apple SDK could not be configured.
+// Must NOT be called with g_mutex held when off the main thread to avoid
+// deadlocking if the main thread concurrently calls an Analytics API.
+bool EnsureDefaultAppConfiguredOnMainThread(const AppOptions& app_options) {
+  __block bool configured = false;
+  void (^configure_block)(void) = ^{
+    @autoreleasepool {
+      Class<FIRCppDesktopAppClassShape> app_class = AppClass();
+      bool is_configured = false;
+      if ([(id)app_class respondsToSelector:@selector(isDefaultAppConfigured)]) {
+        is_configured = [app_class isDefaultAppConfigured];
+      } else {
+        is_configured = ([app_class defaultApp] != nil);
+      }
+
+      if (is_configured) {
+        id<FIRCppDesktopAppShape> default_app = [app_class defaultApp];
+        std::string existing_app_id =
+            default_app ? StdString(default_app.options.googleAppID) : std::string();
+        if (!IsAppleGoogleAppId(existing_app_id.c_str())) {
+          LogWarning("Analytics: Existing default FIRApp has non-Apple App ID '%s'; falling back "
+                     "to the Analytics desktop stubs.",
+                     existing_app_id.c_str());
+          configured = false;
+          return;
+        }
+        MutexLock lock(g_mutex);
+        if (g_configured_app_id == nullptr) {
+          // The host (or FirebaseInstallations) configured FIRApp itself. Reuse it.
+          LogInfo("Analytics: Using the FIRApp already configured in this process (App ID %s).",
+                  existing_app_id.c_str());
+          g_configured_app_id = new std::string(existing_app_id);
+        } else if (existing_app_id != app_options.app_id()) {
+          // The Apple SDK cannot be re-configured within a process. In the Unity
+          // Editor this happens when switching Firebase projects without
+          // restarting the Editor.
+          LogWarning("Analytics: The Firebase Apple SDK is already configured with App ID %s in "
+                     "this process; ignoring App ID %s. Restart the process (or the Unity Editor) "
+                     "to switch projects.",
+                     existing_app_id.c_str(), app_options.app_id());
+        }
+        configured = true;
+        return;
+      }
+
+      if (!IsAppleGoogleAppId(app_options.app_id())) {
+        LogWarning("Analytics: App ID '%s' is not an Apple platform App ID (1:<sender>:ios:<id>). "
+                   "Register an Apple app in the Firebase console and configure the desktop app "
+                   "with it (e.g. from GoogleService-Info.plist). Falling back to the Analytics "
+                   "desktop stubs.",
+                   app_options.app_id());
+        configured = false;
+        return;
+      }
+
+      @try {
+        [app_class configureWithOptions:CreateOptions(app_options)];
+      } @catch (NSException* exception) {
+        LogError("Analytics: Failed to configure the Firebase Apple SDK: %s",
+                 [[exception reason] UTF8String]);
+        configured = false;
+        return;
+      }
+      {
+        MutexLock lock(g_mutex);
+        if (g_configured_app_id == nullptr) g_configured_app_id = new std::string();
+        *g_configured_app_id = app_options.app_id();
+      }
+      configured = true;
     }
-    return true;
-  }
+  };
 
-  if (!IsAppleGoogleAppId(app_options.app_id())) {
-    LogWarning("Analytics: App ID '%s' is not an Apple platform App ID (1:<sender>:ios:<id>). "
-               "Register an Apple app in the Firebase console and configure the desktop app "
-               "with it (e.g. from GoogleService-Info.plist). Falling back to the Analytics "
-               "desktop stubs.",
-               app_options.app_id());
-    return false;
+  if ([NSThread isMainThread]) {
+    configure_block();
+  } else {
+    dispatch_sync(dispatch_get_main_queue(), configure_block);
   }
-
-  @try {
-    [AppClass() configureWithOptions:CreateOptions(app_options)];
-  } @catch (NSException* exception) {
-    LogError("Analytics: Failed to configure the Firebase Apple SDK: %s",
-             [[exception reason] UTF8String]);
-    return false;
-  }
-  if (g_configured_app_id == nullptr) g_configured_app_id = new std::string();
-  *g_configured_app_id = app_options.app_id();
-  return true;
+  return configured;
 }
 
 void PollInstanceId(ReferenceCountedFutureImpl* api, SafeFutureHandle<std::string> handle,
-                    uint64_t start_ms) {
+                    uint64_t start_ms, uint64_t generation) {
   dispatch_after(
       dispatch_time(DISPATCH_TIME_NOW, kInstanceIdPollIntervalMs * NSEC_PER_MSEC),
       dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-        MutexLock lock(g_mutex);
-        // Terminate() deactivates the backend (under g_mutex) before the
-        // future API is destroyed, so `api` is valid while g_active is set.
-        if (!g_active) return;
-        std::string instance_id = g_resetter->GetInstanceId();
-        if (!instance_id.empty()) {
-          api->CompleteWithResult(handle, 0, "", instance_id);
-        } else if (firebase::internal::GetTimestampEpoch() - start_ms >= kInstanceIdTimeoutMs) {
-          api->CompleteWithResult(handle, -1, "Timed out waiting for the app instance ID.",
-                                  std::string());
-        } else {
-          PollInstanceId(api, handle, start_ms);
+        @autoreleasepool {
+          MutexLock lock(g_mutex);
+          // Terminate() and Initialize() increment g_generation (under g_mutex)
+          // before the future API is destroyed or replaced, so `api` is valid
+          // only while g_active is set AND g_generation still matches.
+          if (!g_active || g_generation != generation) return;
+          std::string instance_id = g_resetter->GetInstanceId();
+          if (!instance_id.empty()) {
+            api->CompleteWithResult(handle, 0, "", instance_id);
+          } else if (firebase::internal::GetTimestampEpoch() - start_ms >= kInstanceIdTimeoutMs) {
+            api->CompleteWithResult(handle, -1, "Timed out waiting for the app instance ID.",
+                                    std::string());
+          } else {
+            PollInstanceId(api, handle, start_ms, generation);
+          }
         }
       });
 }
@@ -403,18 +449,25 @@ void SetBackendMode(BackendMode mode) {
 }
 
 bool Initialize(const App& app, bool collection_enabled, bool collection_enabled_set) {
-  MutexLock lock(g_mutex);
-  if (g_active) return true;
+  BackendMode requested_mode = kBackendModeAuto;
+  bool api_debug_set = false;
+  bool api_debug_value = false;
+  {
+    MutexLock lock(g_mutex);
+    if (g_active) return true;
 
-  if (!IsAppleSdkEmbedded()) {
-    LogDebug("Analytics: The Firebase Apple SDK is not linked into this binary; using the "
-             "Analytics desktop stubs.");
-    return false;
+    if (!IsAppleSdkEmbedded()) {
+      LogDebug("Analytics: The Firebase Apple SDK is not linked into this binary; using the "
+               "Analytics desktop stubs.");
+      return false;
+    }
+    requested_mode = ResolveMode();
+    api_debug_set = g_debug_mode_set_by_api;
+    api_debug_value = g_debug_mode_value;
   }
 
   @autoreleasepool {
     const bool in_unity_editor = IsRunningInUnityEditor();
-    const BackendMode requested_mode = ResolveMode();
     // On by default everywhere, including the Unity Editor. Debug mode is the
     // app developer's choice (SetDesktopDebugMode() or
     // FIREBASE_ANALYTICS_APPLE_SDK=debug); the SDK doesn't force it.
@@ -423,13 +476,12 @@ bool Initialize(const App& app, bool collection_enabled, bool collection_enabled
     if (mode == kBackendModeDisabled) return false;
 
     // The debug-mode flag must be written before FIRApp is configured because
-    // GoogleAppMeasurement reads it at startup. Only explicit modes touch it;
-    // otherwise the value persisted by SetDesktopDebugMode() is respected.
-    const bool explicit_mode = requested_mode != kBackendModeAuto;
-    const bool debug_mode = mode == kBackendModeDebug;
-    if (debug_mode) {
+    // GoogleAppMeasurement reads it at startup.
+    if (mode == kBackendModeDebug) {
       WriteDebugModeFlag(true);
-    } else if (explicit_mode) {
+    } else if (api_debug_set) {
+      WriteDebugModeFlag(api_debug_value);
+    } else if (requested_mode != kBackendModeAuto) {
       WriteDebugModeFlag(false);
     }
     if (in_unity_editor) {
@@ -440,14 +492,21 @@ bool Initialize(const App& app, bool collection_enabled, bool collection_enabled
               kBackendModeEnvironmentVariable);
     }
 
-    if (!EnsureDefaultAppConfigured(app.options())) return false;
+    if (!EnsureDefaultAppConfiguredOnMainThread(app.options())) return false;
 
     if (collection_enabled_set) {
       [AnalyticsClass() setAnalyticsCollectionEnabled:collection_enabled];
     }
-    if (g_resetter == nullptr) g_resetter = new AnalyticsDataResetter();
-    g_active = true;
-    LogInfo("Analytics: Using the Firebase Apple SDK%s.", debug_mode ? " (debug mode)" : "");
+    const bool effective_debug_mode =
+        [[NSUserDefaults standardUserDefaults] boolForKey:kDebugModeUserDefaultsKey];
+    {
+      MutexLock lock(g_mutex);
+      if (g_resetter == nullptr) g_resetter = new AnalyticsDataResetter();
+      ++g_generation;
+      g_active = true;
+    }
+    LogInfo("Analytics: Using the Firebase Apple SDK%s.",
+            effective_debug_mode ? " (debug mode)" : "");
   }
   return true;
 }
@@ -455,6 +514,7 @@ bool Initialize(const App& app, bool collection_enabled, bool collection_enabled
 void Terminate() {
   MutexLock lock(g_mutex);
   // FIRApp / FIRAnalytics stay configured on purpose (see header).
+  ++g_generation;
   g_active = false;
   delete g_resetter;
   g_resetter = nullptr;
@@ -466,6 +526,7 @@ bool IsActive() {
 }
 
 void LogEvent(const char* name, const Parameter* parameters, size_t number_of_parameters) {
+  if (!IsActive()) return;
   @autoreleasepool {
     NSDictionary* dict = ParametersToDictionary("LogEvent", parameters, number_of_parameters);
     [AnalyticsClass() logEventWithName:SafeString(name) parameters:dict];
@@ -473,22 +534,26 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
 }
 
 void SetUserProperty(const char* name, const char* value) {
+  if (!IsActive()) return;
   @autoreleasepool {
     [AnalyticsClass() setUserPropertyString:(value ? @(value) : nil) forName:SafeString(name)];
   }
 }
 
 void SetUserId(const char* user_id) {
+  if (!IsActive()) return;
   @autoreleasepool {
     [AnalyticsClass() setUserID:(user_id ? @(user_id) : nil)];
   }
 }
 
 void SetAnalyticsCollectionEnabled(bool enabled) {
+  if (!IsActive()) return;
   [AnalyticsClass() setAnalyticsCollectionEnabled:enabled];
 }
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
+  if (!IsActive()) return;
   Class<FIRCppDesktopAnalyticsClassShape> analytics = AnalyticsClass();
   if (![(id)analytics respondsToSelector:@selector(setConsent:)]) {
     LogWarning("Analytics: SetConsent() is not supported by the embedded Firebase Apple SDK.");
@@ -535,6 +600,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
 }
 
 void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_parameters) {
+  if (!IsActive()) return;
   @autoreleasepool {
     if (parameters == nullptr || number_of_parameters == 0) {
       [AnalyticsClass() setDefaultEventParameters:nil];
@@ -547,6 +613,7 @@ void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_par
 }
 
 void SetSessionTimeoutDuration(int64_t milliseconds) {
+  if (!IsActive()) return;
   [AnalyticsClass()
       setSessionTimeoutInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
 }
@@ -561,6 +628,7 @@ void ResetAnalyticsData() {
 // and requires GoogleAdsOnDeviceConversion; it's a logged no-op otherwise.
 #define FIREBASE_ANALYTICS_APPLE_ODM(selector_name, argument)                                   \
   do {                                                                                          \
+    if (!IsActive()) return;                                                                    \
     Class<FIRCppDesktopAnalyticsClassShape> analytics = AnalyticsClass();                       \
     if ([(id)analytics respondsToSelector:@selector(selector_name:)]) {                         \
       [analytics selector_name:argument];                                                       \
@@ -602,10 +670,23 @@ void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
 #undef FIREBASE_ANALYTICS_APPLE_ODM
 
 void SetDebugMode(bool enabled) {
+  bool already_active = false;
+  {
+    MutexLock lock(g_mutex);
+    g_debug_mode_set_by_api = true;
+    g_debug_mode_value = enabled;
+    already_active = g_active;
+  }
   if (!IsAppleSdkEmbedded()) return;
-  WriteDebugModeFlag(enabled);
-  LogInfo("Analytics: Debug mode %s; this takes effect the next time the app starts.",
-          enabled ? "enabled" : "disabled");
+  @autoreleasepool {
+    WriteDebugModeFlag(enabled);
+  }
+  if (already_active) {
+    LogInfo("Analytics: Debug mode %s; this takes effect the next time the app starts.",
+            enabled ? "enabled" : "disabled");
+  } else {
+    LogInfo("Analytics: Debug mode %s for initialization.", enabled ? "enabled" : "disabled");
+  }
 }
 
 void GetAnalyticsInstanceId(ReferenceCountedFutureImpl* api,
@@ -620,21 +701,36 @@ void GetAnalyticsInstanceId(ReferenceCountedFutureImpl* api,
     api->CompleteWithResult(handle, 0, "", instance_id);
     return;
   }
-  PollInstanceId(api, handle, firebase::internal::GetTimestampEpoch());
+  PollInstanceId(api, handle, firebase::internal::GetTimestampEpoch(), g_generation);
 }
 
 void GetSessionId(ReferenceCountedFutureImpl* api, const SafeFutureHandle<int64_t>& handle) {
-  SafeFutureHandle<int64_t> handle_copy = handle;
-  [AnalyticsClass() sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
+  uint64_t generation = 0;
+  {
     MutexLock lock(g_mutex);
-    if (!g_active) return;
-    if (error) {
-      api->CompleteWithResult(handle_copy, -1, [[error localizedDescription] UTF8String],
-                              static_cast<int64_t>(0));
-    } else {
-      api->CompleteWithResult(handle_copy, 0, "", session_id);
+    if (!g_active) {
+      api->CompleteWithResult(handle, -1, "Analytics is not active.", static_cast<int64_t>(0));
+      return;
     }
-  }];
+    generation = g_generation;
+  }
+  SafeFutureHandle<int64_t> handle_copy = handle;
+  @autoreleasepool {
+    [AnalyticsClass() sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
+      @autoreleasepool {
+        MutexLock lock(g_mutex);
+        if (!g_active || g_generation != generation) return;
+        if (error) {
+          const char* err_str = [[error localizedDescription] UTF8String];
+          api->CompleteWithResult(
+              handle_copy, -1, err_str ? err_str : "Failed to retrieve session ID.",
+              static_cast<int64_t>(0));
+        } else {
+          api->CompleteWithResult(handle_copy, 0, "", session_id);
+        }
+      }
+    }];
+  }
 }
 
 }  // namespace apple

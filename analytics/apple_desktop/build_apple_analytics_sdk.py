@@ -283,9 +283,11 @@ def render_size_report(manifest):
   return "\n".join(lines) + "\n"
 
 
-def compute_stamp(version, archs, deployment_target, template_text):
+def compute_stamp(version, archs, deployment_target, template_text,
+                  configuration="release"):
   digest = hashlib.sha256()
-  for part in (version, ",".join(archs), deployment_target, template_text):
+  for part in (version, ",".join(archs), deployment_target, template_text,
+               configuration):
     digest.update(part.encode("utf-8"))
     digest.update(b"\0")
   return digest.hexdigest()
@@ -388,7 +390,8 @@ def archive_modules(per_arch_objects, work_dir, lib_dir):
   return records
 
 
-def extract_binary_frameworks(scratch_dir, frameworks_dir, output_dir):
+def extract_binary_frameworks(scratch_dir, frameworks_dir, output_dir,
+                              requested_archs=None):
   """Copies static macOS slices of downloaded binary xcframeworks."""
   records = []
   artifacts = os.path.join(scratch_dir, "artifacts")
@@ -411,6 +414,16 @@ def extract_binary_frameworks(scratch_dir, frameworks_dir, output_dir):
         raise RuntimeError(
             "%s's macOS slice is not a static library (%s); it cannot be "
             "embedded." % (name, description))
+      if requested_archs:
+        available_archs = set(_run(["lipo", "-archs", binary],
+                                   capture=True).split())
+        missing_archs = [a for a in requested_archs
+                         if a not in available_archs]
+        if missing_archs:
+          raise RuntimeError(
+              "%s's macOS slice (%s) is missing requested architecture(s): %s" %
+              (name, ", ".join(sorted(available_archs)),
+               ", ".join(missing_archs)))
       destination = os.path.join(frameworks_dir, library["LibraryPath"])
       if os.path.exists(destination):
         shutil.rmtree(destination)
@@ -473,7 +486,8 @@ def main(argv):
 
   output_dir = os.path.abspath(args.output_dir)
   with open(os.path.join(script_dir, "Package.swift.in")) as f:
-    stamp = compute_stamp(version, args.archs, deployment_target, f.read())
+    stamp = compute_stamp(version, args.archs, deployment_target, f.read(),
+                          args.configuration)
   stamp_path = os.path.join(output_dir, STAMP_FILE)
   if (not args.force and os.path.exists(stamp_path) and
       os.path.exists(os.path.join(output_dir, MANIFEST_CMAKE))):
@@ -484,6 +498,10 @@ def main(argv):
 
   package_dir = os.path.join(output_dir, "package")
   scratch_dir = os.path.join(output_dir, "spm")
+  if os.path.isdir(scratch_dir):
+    for entry in os.listdir(scratch_dir):
+      if entry.endswith("-apple-macosx"):
+        shutil.rmtree(os.path.join(scratch_dir, entry), ignore_errors=True)
   render_package(script_dir, package_dir, version, deployment_target)
   _run(["swift", "package", "--package-path", package_dir, "--scratch-path",
         scratch_dir, "resolve"], env=_swift_env())
@@ -495,14 +513,15 @@ def main(argv):
     bin_paths.append(bin_path)
     per_arch_objects[arch] = collect_module_objects(bin_path)
 
-  for stale in ("lib", "frameworks"):
+  for stale in ("lib", "frameworks", "thin"):
     shutil.rmtree(os.path.join(output_dir, stale), ignore_errors=True)
   modules = archive_modules(per_arch_objects,
                             os.path.join(output_dir, "thin"),
                             os.path.join(output_dir, "lib"))
   modules += extract_binary_frameworks(scratch_dir,
                                        os.path.join(output_dir, "frameworks"),
-                                       output_dir)
+                                       output_dir,
+                                       requested_archs=args.archs)
 
   privacy_sources = find_privacy_manifests(
       *(bin_paths + [os.path.join(output_dir, "frameworks")]))

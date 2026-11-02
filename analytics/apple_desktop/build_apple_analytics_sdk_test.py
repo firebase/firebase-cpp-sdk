@@ -224,14 +224,17 @@ class ManifestTest(unittest.TestCase):
     self.assertIn("12.0 KiB", lines[3])
 
   def test_stamp_changes_with_inputs(self):
-    base = sdk.compute_stamp("13.1.1", ["arm64"], "11.0", "t")
-    self.assertEqual(base, sdk.compute_stamp("13.1.1", ["arm64"], "11.0", "t"))
+    base = sdk.compute_stamp("13.1.1", ["arm64"], "11.0", "t", "release")
+    self.assertEqual(
+        base, sdk.compute_stamp("13.1.1", ["arm64"], "11.0", "t", "release"))
     self.assertNotEqual(base,
                         sdk.compute_stamp("13.1.2", ["arm64"], "11.0", "t"))
     self.assertNotEqual(
         base, sdk.compute_stamp("13.1.1", ["arm64", "x86_64"], "11.0", "t"))
     self.assertNotEqual(base,
                         sdk.compute_stamp("13.1.1", ["arm64"], "12.0", "t"))
+    self.assertNotEqual(
+        base, sdk.compute_stamp("13.1.1", ["arm64"], "11.0", "t", "debug"))
 
 
 if __name__ == "__main__":

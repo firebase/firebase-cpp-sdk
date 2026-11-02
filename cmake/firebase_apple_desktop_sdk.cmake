@@ -148,6 +148,23 @@ function(firebase_cpp_link_apple_analytics_sdk TARGET)
   endif()
   _firebase_cpp_load_apple_analytics_sdk(sdk_dir)
 
+  if(CMAKE_OSX_ARCHITECTURES)
+    set(target_archs ${CMAKE_OSX_ARCHITECTURES})
+  elseif(CMAKE_SYSTEM_PROCESSOR)
+    set(target_archs ${CMAKE_SYSTEM_PROCESSOR})
+  else()
+    set(target_archs ${CMAKE_HOST_SYSTEM_PROCESSOR})
+  endif()
+  foreach(req_arch ${target_archs})
+    if(NOT "${req_arch}" IN_LIST FIREBASE_APPLE_ANALYTICS_SDK_ARCHS)
+      message(FATAL_ERROR
+        "${TARGET} is building for architecture '${req_arch}', which is not "
+        "present in the Firebase Apple Analytics SDK at ${sdk_dir} "
+        "(available: ${FIREBASE_APPLE_ANALYTICS_SDK_ARCHS}). Rebuild the SDK "
+        "with --archs ${target_archs}.")
+    endif()
+  endforeach()
+
   if(CMAKE_OSX_DEPLOYMENT_TARGET AND
      CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS FIREBASE_APPLE_ANALYTICS_SDK_DEPLOYMENT_TARGET)
     message(WARNING
@@ -167,17 +184,19 @@ function(firebase_cpp_link_apple_analytics_sdk TARGET)
   set(forced_archives)
   set(embedded_modules)
   list(LENGTH FIREBASE_APPLE_ANALYTICS_SDK_MODULES module_count)
-  math(EXPR last_index "${module_count} - 1")
-  foreach(index RANGE ${last_index})
-    list(GET FIREBASE_APPLE_ANALYTICS_SDK_MODULES ${index} module)
-    list(GET FIREBASE_APPLE_ANALYTICS_SDK_ARCHIVES ${index} archive)
-    if(dedupe_nanopb AND module MATCHES "^nanopb$")
-      continue()
-    endif()
-    list(APPEND forced_archives "${archive}")
-    list(APPEND embedded_modules "${module}")
-    target_link_options(${TARGET} PRIVATE "LINKER:-force_load,${archive}")
-  endforeach()
+  if(module_count GREATER 0)
+    math(EXPR last_index "${module_count} - 1")
+    foreach(index RANGE ${last_index})
+      list(GET FIREBASE_APPLE_ANALYTICS_SDK_MODULES ${index} module)
+      list(GET FIREBASE_APPLE_ANALYTICS_SDK_ARCHIVES ${index} archive)
+      if(dedupe_nanopb AND module MATCHES "^nanopb$")
+        continue()
+      endif()
+      list(APPEND forced_archives "${archive}")
+      list(APPEND embedded_modules "${module}")
+      target_link_options(${TARGET} PRIVATE "LINKER:-force_load,${archive}")
+    endforeach()
+  endif()
   # Libraries are appended to the LINK_LIBRARIES property instead of using
   # target_link_libraries(): CMake rejects mixing its keyword and plain
   # signatures on one target, and callers (e.g. the Unity bundle) use either.
@@ -224,14 +243,31 @@ function(firebase_cpp_link_apple_analytics_sdk TARGET)
     endif()
     get_target_property(target_link_libraries ${TARGET} LINK_LIBRARIES)
     _firebase_cpp_collect_static_libraries(linked_archives ${target_link_libraries})
-    list(GET FIREBASE_APPLE_ANALYTICS_SDK_ARCHS 0 check_arch)
-    add_custom_command(TARGET ${TARGET} PRE_LINK
-      COMMAND "${FIREBASE_PYTHON_EXECUTABLE}"
-              "${_FIREBASE_APPLE_SDK_REPO_DIR}/scripts/check_duplicate_symbols.py"
-              --arch ${check_arch}
-              --force-load ${forced_archives}
-              --link ${linked_archives}
-      COMMENT "Checking ${TARGET} for duplicate symbols with the Firebase Apple SDK"
+    foreach(check_arch ${target_archs})
+      add_custom_command(TARGET ${TARGET} PRE_LINK
+        COMMAND "${FIREBASE_PYTHON_EXECUTABLE}"
+                "${_FIREBASE_APPLE_SDK_REPO_DIR}/scripts/check_duplicate_symbols.py"
+                --arch ${check_arch}
+                --force-load ${forced_archives}
+                --link ${linked_archives}
+        COMMENT "Checking ${TARGET} (${check_arch}) for duplicate symbols with the Firebase Apple SDK"
+        VERBATIM
+      )
+    endforeach()
+  endif()
+
+  get_target_property(is_macosx_bundle ${TARGET} MACOSX_BUNDLE)
+  get_target_property(is_module_bundle ${TARGET} BUNDLE)
+  if((is_macosx_bundle OR is_module_bundle) AND
+     FIREBASE_APPLE_ANALYTICS_SDK_PRIVACY_MANIFEST AND
+     EXISTS "${FIREBASE_APPLE_ANALYTICS_SDK_PRIVACY_MANIFEST}")
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory
+              "$<TARGET_BUNDLE_CONTENT_DIR:${TARGET}>/Resources"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+              "${FIREBASE_APPLE_ANALYTICS_SDK_PRIVACY_MANIFEST}"
+              "$<TARGET_BUNDLE_CONTENT_DIR:${TARGET}>/Resources/PrivacyInfo.xcprivacy"
+      COMMENT "Copying Firebase Apple SDK PrivacyInfo.xcprivacy into ${TARGET} bundle"
       VERBATIM
     )
   endif()

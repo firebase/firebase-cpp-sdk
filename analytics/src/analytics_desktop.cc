@@ -182,6 +182,8 @@ void Terminate() {
 
   internal::FutureData::Destroy();
   internal::UnregisterTerminateOnDefaultAppDestroy();
+  g_analytics_collection_enabled = true;
+  g_analytics_collection_enabled_set = false;
   g_initialized = false;
 }
 
@@ -499,13 +501,17 @@ bool IsDesktopInitialized() {
 
 // Sends the enabled Flag to the desktop Analytics dll.
 void SetDesktopDebugMode(bool enabled) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 #if defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
-  // Persisted even when the backend isn't active yet, as the Apple SDK reads
-  // the flag at startup.
+  // Persisted even when SetDesktopDebugMode() is called before
+  // analytics::Initialize(), since the Apple SDK reads the debug flag at
+  // startup.
   internal::apple::SetDebugMode(enabled);
+  if (!internal::IsInitialized()) {
+    return;
+  }
   FIREBASE_ANALYTICS_APPLE_BACKEND(return);
 #endif  // defined(FIREBASE_ANALYTICS_APPLE_DESKTOP)
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   GoogleAnalytics_SetDebugMode(enabled);
 }
 
@@ -542,6 +548,11 @@ Future<void> LogAppleTransactionLastResult() {
 void LogEvent(const char* name, const char* parameter_name,
               const char* parameter_value) {
   if (parameter_name == nullptr) {
+    FIREBASE_ANALYTICS_APPLE_BACKEND({
+      Parameter param("", parameter_value);
+      LogEvent(name, &param, 1);
+      return;
+    });
     LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }
@@ -552,6 +563,11 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const double parameter_value) {
   if (parameter_name == nullptr) {
+    FIREBASE_ANALYTICS_APPLE_BACKEND({
+      Parameter param("", parameter_value);
+      LogEvent(name, &param, 1);
+      return;
+    });
     LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }
@@ -562,6 +578,11 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const int64_t parameter_value) {
   if (parameter_name == nullptr) {
+    FIREBASE_ANALYTICS_APPLE_BACKEND({
+      Parameter param("", parameter_value);
+      LogEvent(name, &param, 1);
+      return;
+    });
     LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }
@@ -572,6 +593,11 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const int parameter_value) {
   if (parameter_name == nullptr) {
+    FIREBASE_ANALYTICS_APPLE_BACKEND({
+      Parameter param("", static_cast<int64_t>(parameter_value));
+      LogEvent(name, &param, 1);
+      return;
+    });
     LogEvent(name, static_cast<const Parameter*>(nullptr), 0);
     return;
   }

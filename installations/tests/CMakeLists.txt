@@ -21,3 +21,15 @@ firebase_cpp_cc_test(
     firebase_installations
     firebase_testing
 )
+
+if(APPLE AND NOT IOS AND FIREBASE_INSTALLATIONS_USE_APPLE_DESKTOP_BACKEND)
+  firebase_cpp_cc_test(
+    firebase_installations_desktop_apple_test
+    SOURCES
+      installations_desktop_apple_test.cc
+    DEPENDS
+      firebase_app_for_testing
+      firebase_installations
+      firebase_testing
+  )
+endif()

@@ -144,5 +144,12 @@ TEST_F(InstallationsTest, GetTokenForceRefresh) {
   delete installations;
 }
 
+TEST_F(InstallationsTest, Delete) {
+  auto* installations = Installations::GetInstance(firebase_app_);
+  CheckSuccess(installations->Delete());
+  CheckSuccess(installations->DeleteLastResult());
+  delete installations;
+}
+
 }  // namespace installations
 }  // namespace firebase

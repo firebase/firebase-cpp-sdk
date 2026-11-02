@@ -141,6 +141,11 @@ TEST_F(FirebaseInstallationsTest, TestCanGetId) {
   firebase::Future<std::string> id = installations_->GetId();
   WaitForCompletion(id, "GetId");
   EXPECT_NE(*id.result(), "");
+#if defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
+  EXPECT_NE(*id.result(), "FakeId");
+  app_framework::LogInfo("Firebase Installation ID (macOS Apple SDK): %s",
+                         id.result()->c_str());
+#endif  // defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
 }
 
 TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
@@ -175,12 +180,14 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
   id = installations_->GetId();
   WaitForCompletion(id, "GetId 2");
   EXPECT_NE(*id.result(), "");  // ensure non-blank
-#if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // Desktop is a stub and returns the same ID, but on mobile it
-  // should return a new ID.
+#if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE) || \
+    defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
+  // Desktop is a stub and returns the same ID, but on mobile (and macOS when
+  // the Firebase Apple SDK is embedded) it should return a new ID.
   EXPECT_NE(*id.result(), first_id);
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
-        // TARGET_OS_IPHONE)
+        // TARGET_OS_IPHONE) ||
+        // defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
 
   FLAKY_TEST_SECTION_END();
 }
@@ -189,6 +196,10 @@ TEST_F(FirebaseInstallationsTest, TestCanGetToken) {
   firebase::Future<std::string> token = installations_->GetToken(true);
   WaitForCompletion(token, "GetToken");
   EXPECT_NE(*token.result(), "");
+#if defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
+  EXPECT_NE(*token.result(), "FakeToken");
+  EXPECT_NE(*token.result(), "FakeTokenForceRefresh");
+#endif  // defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
 }
 
 TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
@@ -221,12 +232,14 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
   token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken 2");
   EXPECT_NE(*token.result(), "");  // ensure non-blank
-#if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // Desktop is a stub and returns the same token, but on mobile it
-  // should return a new token.
+#if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE) || \
+    defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
+  // Desktop is a stub and returns the same token, but on mobile (and macOS when
+  // the Firebase Apple SDK is embedded) it should return a new token.
   EXPECT_NE(*token.result(), first_token);
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
-        // TARGET_OS_IPHONE)
+        // TARGET_OS_IPHONE) ||
+        // defined(FIREBASE_INSTALLATIONS_TEST_APPLE_SDK_EMBEDDED)
 
   FLAKY_TEST_SECTION_END();
 }

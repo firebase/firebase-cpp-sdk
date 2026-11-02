@@ -47,6 +47,7 @@ DEFAULT_IGNORES = [
     r"^ltmp",   # Local labels.
     r"^___swift_",  # Swift runtime helper thunks (linkonce).
     r"^_\$s",   # Swift symbols; the C++ SDK contains no Swift on desktop.
+    r"^_\$S",   # Legacy Swift mangling prefix.
 ]
 # nm -P type letters for defined, external, non-weak symbols.
 STRONG_DEFINED_TYPES = set("TDBSCRIA")

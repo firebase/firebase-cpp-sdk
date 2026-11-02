@@ -93,6 +93,19 @@ TEST_F(AnalyticsDesktopAppleFallbackTest, FallsBackToStubsWithoutAppleSdk) {
   analytics::SetDesktopDebugMode(false);
 }
 
+TEST(AnalyticsDesktopApplePreInitTest, SetDebugModeBeforeInitializeIsSafe) {
+  SetBackendMode(kBackendModeEnabled);
+  // Must not assert or crash when called before analytics::Initialize().
+  analytics::SetDesktopDebugMode(true);
+  App* app = testing::CreateApp();
+  analytics::Initialize(*app);
+  EXPECT_FALSE(IsActive());
+  analytics::SetDesktopDebugMode(false);
+  analytics::Terminate();
+  delete app;
+  SetBackendMode(kBackendModeAuto);
+}
+
 }  // namespace apple
 }  // namespace internal
 }  // namespace analytics
