@@ -120,6 +120,48 @@ firebase_cpp_cc_test(firebase_app_rest_transport_mock_test
     firebase_testing
 )
 
+# Tests below talk to a localhost HTTP server (test_http_server.h) and need
+# libcurl headers plus the platform socket library.
+firebase_cpp_cc_test(firebase_app_rest_curl_io_loop_test
+  SOURCES
+    curl_io_loop_test.cc
+    test_http_server.h
+  INCLUDES
+    ${CURL_SOURCE_DIR}/include
+  DEPENDS
+    firebase_app
+    firebase_rest_lib
+    libcurl
+)
+
+firebase_cpp_cc_test(firebase_app_rest_transport_curl_test
+  SOURCES
+    transport_curl_test.cc
+    test_http_server.h
+  INCLUDES
+    ${CURL_SOURCE_DIR}/include
+  DEPENDS
+    firebase_app
+    firebase_rest_lib
+    libcurl
+)
+
+if(MSVC)
+  foreach(rest_socket_test
+          firebase_app_rest_curl_io_loop_test
+          firebase_app_rest_transport_curl_test)
+    target_compile_definitions(${rest_socket_test}
+      PRIVATE
+        -DWIN32_LEAN_AND_MEAN
+        CURL_STATICLIB=1
+    )
+    target_link_libraries(${rest_socket_test}
+      PRIVATE
+        ws2_32
+    )
+  endforeach()
+endif()
+
 #[[
 
 # google3 Dependency: FLAGS_test_tmpdir, CHECK(), CHECK_EQ
@@ -142,14 +184,6 @@ firebase_cpp_cc_test(firebase_app_rest_gzipheader_unittest
 firebase_cpp_cc_test(firebase_app_rest_zlibwrapper_unittest
   SOURCES
     zlibwrapper_unittest.cc
-  DEPENDS
-    firebase_rest_lib
-)
-
-# google3 Dependency: net/.../http2server, net/util/ports.h (net_util::PickUnusedPort())
-firebase_cpp_cc_test(firebase_app_rest_transport_curl_test
-  SOURCES
-    transport_curl_test.cc
   DEPENDS
     firebase_rest_lib
 )

@@ -26,7 +26,14 @@ enable_language(CXX)
 set(rest_SRCS
     controller_curl.cc
     controller_interface.cc
+    curl/curl_global.cc
+    curl/curl_global.h
+    curl/curl_handles.h
+    curl/curl_io_loop.cc
+    curl/curl_io_loop.h
     curl/tls_policy.cc
+    curl/tls_policy.h
+    curl/transfer.h
     gzipheader.cc
     request.cc
     request_binary_gzip.cc

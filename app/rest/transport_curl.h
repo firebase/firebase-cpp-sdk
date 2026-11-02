@@ -31,9 +31,12 @@ namespace rest {
 
 // This must be called before performing any curl operations. Calls to this
 // function are reference counted, so it is safe to call multiple times.
+// Starts the shared curl::CurlIoLoop I/O thread on the first call.
 void InitTransportCurl();
 // This must be called when curl operations are complete to clean up remaining
 // resources. This should be called once for every call to InitTransportCurl.
+// Stops the I/O thread on the last call; any transfer still in flight is
+// failed (HttpNoContent) before this returns.
 void CleanupTransportCurl();
 
 // Implement the transport layer, based on curl library.
@@ -73,7 +76,7 @@ class TransportCurl : public Transport {
 
  private:
   friend class ControllerCurl;
-  friend class BackgroundTransportCurl;
+  friend class RestTransfer;
 
   // Used by the ControllerCurl to cancel a running transfer.
   void CancelRequest(Response* response);
