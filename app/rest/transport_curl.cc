@@ -45,6 +45,11 @@
 #include <sys/select.h>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
+#ifdef FIREBASE_SSL_CAPATH
+#include <sys/stat.h>
+#include <unistd.h>
+#endif  // FIREBASE_SSL_CAPATH
+
 namespace firebase {
 namespace rest {
 
@@ -355,6 +360,67 @@ void CleanupTransportCurl() {
   }
 }
 
+// Standard system CA bundle locations across major Linux distributions:
+// - /etc/ssl/certs/ca-certificates.crt: Debian, Ubuntu, Gentoo, Arch, Alpine
+// - /etc/pki/tls/certs/ca-bundle.crt: Fedora, RHEL, CentOS, Rocky, Alma,
+//   Amazon Linux
+// - /etc/ssl/ca-bundle.pem: openSUSE, SLES
+// - /etc/pki/tls/cacert.pem: OpenELEC
+// - /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem: CentOS/RHEL p11-kit
+//   trust store
+// - /etc/ssl/cert.pem: Alpine, Arch, Fedora/FreeBSD-style symlink
+//
+// Why we probe at runtime instead of relying on libcurl's compile-time
+// CURL_CA_BUNDLE:
+// 1. At CMake configure time, libcurl detects the CA bundle path on the
+//    *build* host (typically Ubuntu's /etc/ssl/certs/ca-certificates.crt) and
+//    compiles that single path into CURL_CA_BUNDLE.
+// 2. When linked against BoringSSL (or OpenSSL < 3.0), libcurl calls
+//    X509_STORE_load_locations(store, ssl_cafile, ssl_capath). BoringSSL's
+//    X509_STORE_load_locations checks ssl_cafile first and immediately returns
+//    0 (CURLE_SSL_CACERT_BADFILE) if that file does not exist on the runtime
+//    machine, aborting before it ever loads ssl_capath.
+// 3. Conversely, some Linux distributions and container images only ship a
+//    combined CA bundle file without populating OpenSSL c_rehash (<hash>.0)
+//    symlinks in /etc/ssl/certs, so setting only CURLOPT_CAPATH is
+//    insufficient.
+// Explicitly setting CURLOPT_CAINFO to GetLinuxCaBundlePath() (even when it
+// returns nullptr) marks ssl.custom_cafile = TRUE in libcurl, preventing a
+// missing build-host CURL_CA_BUNDLE path from breaking verification while
+// loading both the runtime distribution's CA bundle and hashed CA directory
+// when available.
+const char* GetLinuxCaBundlePath() {
+#ifdef FIREBASE_SSL_CAPATH
+  static const char* const kCaBundlePaths[] = {
+      "/etc/ssl/certs/ca-certificates.crt",
+      "/etc/pki/tls/certs/ca-bundle.crt",
+      "/etc/ssl/ca-bundle.pem",
+      "/etc/pki/tls/cacert.pem",
+      "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+      "/etc/ssl/cert.pem",
+  };
+  for (const char* path : kCaBundlePaths) {
+    struct stat st;
+    if (stat(path, &st) == 0 && S_ISREG(st.st_mode) &&
+        access(path, R_OK) == 0) {
+      return path;
+    }
+  }
+#endif  // FIREBASE_SSL_CAPATH
+  return nullptr;
+}
+
+const char* GetLinuxCaDirectoryPath() {
+#ifdef FIREBASE_SSL_CAPATH
+  struct stat st;
+  if (stat(FIREBASE_SSL_CAPATH, &st) == 0 && S_ISDIR(st.st_mode) &&
+      access(FIREBASE_SSL_CAPATH, R_OK | X_OK) == 0) {
+    return FIREBASE_SSL_CAPATH;
+  }
+#endif  // FIREBASE_SSL_CAPATH
+  return nullptr;
+}
+
 BackgroundTransportCurl::BackgroundTransportCurl(
     CURLM* curl_multi, CURL* curl, Request* request, Response* response,
     Mutex* controller_mutex, ControllerCurl* controller,
@@ -457,12 +523,25 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
   CheckOk(curl_easy_setopt(curl_, CURLOPT_PROTOCOLS_STR, "http,https"),
           "set valid protocols");
 
-  // Verify SSL.
+  // Verify SSL peer certificate chain and hostname/SANs, and enforce TLS 1.2
+  // as the minimum protocol version (allowing TLS 1.2 and TLS 1.3 while
+  // preventing downgrade attacks to deprecated TLS 1.0/1.1):
+  // - Windows (CURL_USE_SCHANNEL): Verifies against the Windows Certificate
+  //   Store (Crypt32) with native OCSP/CRL and Microsoft CTL revocation checks.
+  // - macOS (USE_APPLE_SECTRUST): Verifies against the macOS System Keychain
+  //   via Security.framework (SecTrustEvaluateWithError) with Apple OCSP/CRL
+  //   and Valid/trustd revocation checks.
+  // - Linux (OpenSSL/BoringSSL): Verifies against the system CA bundle and
+  //   hashed CA directory maintained by the OS ca-certificates package.
   CheckOk(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYPEER, 1L), "verify peer");
   CheckOk(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYHOST, 2L), "verify host");
+  CheckOk(curl_easy_setopt(curl_, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2),
+          "set minimum TLS version");
 
 #ifdef FIREBASE_SSL_CAPATH
-  CheckOk(curl_easy_setopt(curl_, CURLOPT_CAPATH, FIREBASE_SSL_CAPATH),
+  CheckOk(curl_easy_setopt(curl_, CURLOPT_CAINFO, GetLinuxCaBundlePath()),
+          "CA Info");
+  CheckOk(curl_easy_setopt(curl_, CURLOPT_CAPATH, GetLinuxCaDirectoryPath()),
           "CA Path");
 #endif
 

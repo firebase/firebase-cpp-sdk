@@ -16,6 +16,8 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 
 #include <atomic>
+#include <cstddef>
+#include <deque>
 #include <memory>
 #include <queue>
 #include <string>
@@ -26,7 +28,8 @@
 #include "app/src/scheduler.h"
 #include "app/src/thread.h"
 #include "database/src/desktop/connection/web_socket_client_interface.h"
-#include "uWebSockets/src/uWS.h"
+
+struct curl_slist;
 
 namespace firebase {
 namespace database {
@@ -58,103 +61,117 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   void RefreshAppCheckToken(const std::string& token);
 
  private:
-  typedef uWS::WebSocket<uWS::CLIENT> ClientWebSocket;
   typedef void (*Callback)(WebSocketClientImpl* client, int int_value,
                            const std::string& string_value);
 
-  // Callback for hub_ when connection error occurs
-  static void OnError(void* data);
+  enum State {
+    kStateIdle = 0,
+    kStateConnecting,
+    kStateOpen,
+    kStateClosed,
+  };
 
-  // Callback for hub_ when connection is established
-  static void OnConnection(ClientWebSocket* ws, uWS::HttpRequest req);
-
-  // Callback for hub_ when a message is received from the server
-  static void OnMessage(ClientWebSocket* ws, char* message, size_t length,
-                        uWS::OpCode opCode);
-
-  // Callback for hub_ when the connection is closed
-  static void OnDisconnection(ClientWebSocket* ws, int code, char* message,
-                              size_t length);
-
-  // The thread routine to host the event loop of hub_
+  // The thread routine to host the libcurl WebSocket event loop.
   static void EventLoopRoutine(void* data);
 
-  // Synchronously request to close the websocket.  Should only be called in
-  // evnet loop thread.
+  // Main event loop executed on thread_.
+  void RunEventLoop();
+
+  // Start the asynchronous WebSocket handshake on the event loop thread.
+  void ConnectSync(int timeout_ms);
+
+  // Synchronously close the WebSocket connection on the event loop thread.
   void CloseSync();
 
-  // Schedule an async callback to be trigger in the next iteration of the event
-  // loop.  This call is thread-safe and is to prevent multiple threads fighting
-  // for the same resource, such as websocket_
+  // Queue and flush an outbound text message on the event loop thread.
+  void SendSync(const std::string& msg);
+
+  // Attempt to flush any queued outbound messages via curl_ws_send().
+  void FlushSendQueue();
+
+  // Drain all available incoming WebSocket frames via curl_ws_recv().
+  void ReceiveFrames();
+
+  // Remove and clean up the active easy handle and request headers.
+  void CleanupEasyHandle();
+
+  // Event notifications matching the WebSocketClientEventHandler contract.
+  void OnError();
+  void OnConnection();
+  void OnMessage(const char* message, size_t length);
+  void OnDisconnection();
+
+  // Schedule an async callback to be triggered in the next iteration of the
+  // event loop. This call is thread-safe.
   void ScheduleOnce(Callback cb, int int_value,
                     const std::string& string_value);
 
-  // Process callback queue in event loop thread
-  static void ProcessCallbackQueue(uS::Async* async);
+  // Process all pending callbacks in callback_queue_ on the event loop thread.
+  void ProcessCallbackQueue();
 
-  // Check if the websocket is available and not closed.
-  // Only call this in event loop.
+  // Check if the WebSocket connection is currently established and open.
+  // Only call this in the event loop thread.
   bool IsWebSocketAvailable() const;
 
-  // The server uri to connect to. Should start with "ws://" for non-SSL
-  // connection or "wss://" for SSL connection.
+  // The server URI to connect to ("ws://..." or "wss://...").
   const std::string uri_;
 
   // The event handler for connection events.
   WebSocketClientEventHandler* handler_;
 
-  // The thread to host the event loop of hub_
+  // The worker thread hosting the libcurl multi event loop.
   std::unique_ptr<Thread> thread_;
 
-  // The access point for uWebSockets which contains event loops and
-  // different sockets.
-  uWS::Hub hub_;
+  // The libcurl multi handle (CURLM*) used to drive non-blocking handshakes,
+  // socket polling (curl_multi_poll), and cross-thread wakeups
+  // (curl_multi_wakeup).
+  void* curl_multi_;
 
-  // The handler to keep the event loop of hub_ alive even there is no
-  // connection at all.  Otherwise the loop would stop when there is nothing to
-  // handle anymore.  Also used to asynchronously close all async handles and
-  // WebSocket connection in destructor.
-  uS::Async* keep_loop_alive_;
+  // The active libcurl easy handle (CURL*) for the WebSocket connection.
+  // Only accessed on the event loop thread.
+  void* curl_easy_;
 
-  // Async handler to process callback queue in event look thread.
-  uS::Async* process_queue_async_;
+  // Linked list of HTTP Upgrade request headers associated with curl_easy_.
+  struct curl_slist* request_headers_;
 
-  // A blob of callback data which is added to callback queue and triggered in
-  // the event loop thread.  The callback member is called with a reference to
-  // the client, int_value and string_value stored in this data structure.
+  // Current connection state on the event loop thread.
+  State state_;
+
+  // Buffer for reassembling multi-chunk or fragmented (CURLWS_CONT) incoming
+  // WebSocket data frames.
+  std::string incoming_message_buffer_;
+
+  // Buffer for reassembling incoming PING payloads if split across chunks.
+  std::string incoming_ping_buffer_;
+
+  // Queue of outbound text messages waiting to be sent over the WebSocket.
+  std::deque<std::string> send_queue_;
+
+  // Byte offset into send_queue_.front() for partial non-blocking writes.
+  size_t current_send_offset_;
+
+  // A blob of callback data added to callback_queue_ and triggered on the
+  // event loop thread.
   struct CallbackData {
     explicit CallbackData(Callback c, WebSocketClientImpl* ws_client, int i,
                           const std::string& str)
         : callback(c), client(ws_client), int_value(i), string_value(str) {}
 
     Callback callback;
-
     WebSocketClientImpl* client;
-
-    // Generic purposed int value.  Used as timeout in this case.
     int int_value;
-
-    // Generic purposed string value.  Used as message to send in this case.
     std::string string_value;
   };
 
-  // A queue of callback to be triggered in event loop thread.
+  // A queue of callbacks to be triggered on the event loop thread.
   std::queue<CallbackData> callback_queue_;
 
-  // Mutex to guard callback_queue_
+  // Mutex guarding callback_queue_ and app_check_token_.
   Mutex callback_queue_mutex_;
 
-  // Flagged when this object starts to be destructed.  This helps the other
-  // thread to handle situation accordingly, ex. if the connection is
-  // established after this object starts to be deleted.  Note that this flag is
-  // is not guarded by any synchronization primitives and is changed outside of
-  // the event loop.  If referenced during the event loop, make sure the racing
-  // condition will not cause the problem.
+  // Flagged when this object starts to be destructed so the event loop thread
+  // can exit immediately.
   std::atomic<int> is_destructing_;
-
-  // The websocket handler to send message, to receive message and to close the
-  // connection.  Should only be used in the event loop.  Not thread safe
-  ClientWebSocket* websocket_;
 
   // User agent used when opening the connection.
   std::string user_agent_;
@@ -166,9 +183,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
 
   scheduler::Scheduler* scheduler_;
 
-  // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the std::shared_ptr never
-  // changes, until safe_this_ is completely destroyed.
+  // Safe reference to this. Set in constructor and cleared in destructor.
   typedef firebase::internal::SafeReference<WebSocketClientImpl> ClientRef;
   typedef firebase::internal::SafeReferenceLock<WebSocketClientImpl>
       ClientRefLock;

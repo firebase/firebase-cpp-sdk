@@ -15,19 +15,32 @@
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 #include <cassert>
-#include <map>
+#include <cstring>
+#include <string>
 
+#include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/thread.h"
+#include "curl/curl.h"
 
 namespace firebase {
 namespace database {
 namespace internal {
 namespace connection {
+
+namespace {
+// Size of the stack buffer used for each curl_ws_recv() read pass.
+constexpr size_t kRecvBufferSize = 16384;
+// Poll timeout in milliseconds while waiting for handshake completion.
+constexpr int kConnectingPollTimeoutMs = 100;
+// Poll timeout in milliseconds while connected or idle (woken immediately by
+// curl_multi_wakeup() on state changes).
+constexpr int kDefaultPollTimeoutMs = 1000;
+}  // namespace
 
 WebSocketClientImpl::WebSocketClientImpl(
     const std::string& uri, const std::string& user_agent, Logger* logger,
@@ -36,109 +49,269 @@ WebSocketClientImpl::WebSocketClientImpl(
     : uri_(uri),
       handler_(handler),
       thread_(nullptr),
-      hub_(),
-      keep_loop_alive_(nullptr),
-      process_queue_async_(nullptr),
+      curl_multi_(nullptr),
+      curl_easy_(nullptr),
+      request_headers_(nullptr),
+      state_(kStateIdle),
+      incoming_message_buffer_(),
+      incoming_ping_buffer_(),
+      send_queue_(),
+      current_send_offset_(0),
       callback_queue_(),
       callback_queue_mutex_(Mutex::kModeNonRecursive),
       is_destructing_(0),
-      websocket_(nullptr),
       user_agent_(user_agent),
+      app_check_token_(app_check_token),
       logger_(logger),
       scheduler_(scheduler),
-      safe_this_(this),
-      app_check_token_(app_check_token) {
-  // Bind callback function
-  hub_.onError(WebSocketClientImpl::OnError);
-  hub_.onConnection(WebSocketClientImpl::OnConnection);
-  hub_.onMessage(WebSocketClientImpl::OnMessage);
-  hub_.onDisconnection(WebSocketClientImpl::OnDisconnection);
+      safe_this_(this) {
+  firebase::rest::InitTransportCurl();
+  curl_multi_ = curl_multi_init();
+  FIREBASE_DEV_ASSERT(curl_multi_ != nullptr);
 
-  // Create a async object to keep the loop alive and close all async handler
-  // during destruction.
-  keep_loop_alive_ = new uS::Async(hub_.getLoop());
-  keep_loop_alive_->setData(this);
-  keep_loop_alive_->start([](uS::Async* async) {
-    assert(async);
-    assert(async->getData());
-
-    WebSocketClientImpl* client =
-        static_cast<WebSocketClientImpl*>(async->getData());
-
-    // Close all async process
-    if (client) {
-      client->CloseSync();
-
-      client->keep_loop_alive_->close();
-      client->keep_loop_alive_ = nullptr;
-      client->process_queue_async_->close();
-      client->process_queue_async_ = nullptr;
-    }
-  });
-
-  // Initiate async handler to process callback queue.  The callback will only
-  // be triggered after process_queue_async_->send().
-  process_queue_async_ = new uS::Async(hub_.getLoop());
-  process_queue_async_->setData(this);
-  process_queue_async_->start(ProcessCallbackQueue);
-
-  // Start the event loop
+  // Start the background event loop thread.
   thread_ = std::make_unique<Thread>(EventLoopRoutine, this);
 }
 
 void WebSocketClientImpl::EventLoopRoutine(void* data) {
   assert(data != nullptr);
   WebSocketClientImpl* client = static_cast<WebSocketClientImpl*>(data);
-  Logger* logger = client->logger_;
+  client->RunEventLoop();
+}
 
-  logger->LogDebug("=== uWebSockets Event Loop Start ===");
-  client->hub_.run();
-  logger->LogDebug("=== uWebSockets Event Loop End ===");
+void WebSocketClientImpl::RunEventLoop() {
+  logger_->LogDebug("=== libcurl WebSocket Event Loop Start ===");
+  CURLM* multi = static_cast<CURLM*>(curl_multi_);
+
+  while (is_destructing_.load() == 0) {
+    ProcessCallbackQueue();
+    if (is_destructing_.load() > 0) {
+      break;
+    }
+
+    if (state_ == kStateConnecting) {
+      int running_handles = 0;
+      CURLMcode mc = curl_multi_perform(multi, &running_handles);
+      if (mc != CURLM_OK) {
+        logger_->LogError("curl_multi_perform failed: %s",
+                          curl_multi_strerror(mc));
+        CleanupEasyHandle();
+        state_ = kStateClosed;
+        OnError();
+        continue;
+      }
+
+      int msgs_left = 0;
+      CURLMsg* msg = nullptr;
+      while ((msg = curl_multi_info_read(multi, &msgs_left)) != nullptr) {
+        if (msg->msg == CURLMSG_DONE && msg->easy_handle == curl_easy_) {
+          CURLcode result = msg->data.result;
+          if (result == CURLE_OK) {
+            // Clear the transfer timeout once the WebSocket upgrade succeeds so
+            // long-lived connections are not terminated after timeout_ms.
+            curl_easy_setopt(static_cast<CURL*>(curl_easy_), CURLOPT_TIMEOUT_MS,
+                             0L);
+            state_ = kStateOpen;
+            OnConnection();
+            // Drain any WebSocket frames that arrived in the same packet or TLS
+            // record as the HTTP 101 Switching Protocols response.
+            if (state_ == kStateOpen && is_destructing_.load() == 0) {
+              ReceiveFrames();
+            }
+            if (state_ == kStateOpen && is_destructing_.load() == 0) {
+              FlushSendQueue();
+            }
+          } else {
+            logger_->LogDebug(
+                "Error occurred while establishing connection to "
+                "%s: (%d) %s",
+                uri_.c_str(), static_cast<int>(result),
+                curl_easy_strerror(result));
+            CleanupEasyHandle();
+            state_ = kStateClosed;
+            OnError();
+          }
+          break;
+        }
+      }
+
+      if (state_ == kStateConnecting && is_destructing_.load() == 0) {
+        curl_multi_poll(multi, nullptr, 0, kConnectingPollTimeoutMs, nullptr);
+      }
+    } else if (state_ == kStateOpen) {
+      FlushSendQueue();
+      if (state_ == kStateOpen && is_destructing_.load() == 0) {
+        ReceiveFrames();
+      }
+      if (state_ == kStateOpen && is_destructing_.load() == 0) {
+        curl_socket_t sockfd = CURL_SOCKET_BAD;
+        curl_easy_getinfo(static_cast<CURL*>(curl_easy_), CURLINFO_ACTIVESOCKET,
+                          &sockfd);
+        if (sockfd != CURL_SOCKET_BAD) {
+          struct curl_waitfd waitfd;
+          waitfd.fd = sockfd;
+          waitfd.events = static_cast<short>(
+              CURL_WAIT_POLLIN | (send_queue_.empty() ? 0 : CURL_WAIT_POLLOUT));
+          waitfd.revents = 0;
+          curl_multi_poll(multi, &waitfd, 1, kDefaultPollTimeoutMs, nullptr);
+        } else {
+          curl_multi_poll(multi, nullptr, 0, kConnectingPollTimeoutMs, nullptr);
+        }
+      }
+    } else {
+      // Idle or closed: block until woken by curl_multi_wakeup() or timeout.
+      curl_multi_poll(multi, nullptr, 0, kDefaultPollTimeoutMs, nullptr);
+    }
+  }
+
+  // Clean up any active handle during destruction.
+  if (curl_easy_ != nullptr) {
+    if (state_ == kStateOpen && current_send_offset_ == 0) {
+      const unsigned char close_payload[2] = {0x03, 0xe8};  // 1000 Normal
+      size_t sent = 0;
+      (void)curl_ws_send(static_cast<CURL*>(curl_easy_), close_payload,
+                         sizeof(close_payload), &sent, 0, CURLWS_CLOSE);
+    }
+    CleanupEasyHandle();
+    state_ = kStateClosed;
+  }
+
+  logger_->LogDebug("=== libcurl WebSocket Event Loop End ===");
 }
 
 WebSocketClientImpl::~WebSocketClientImpl() {
-  // Clear safe reference immediately so that scheduled callback can skip
-  // executing code which requires reference to this.
+  // Clear safe reference immediately so that scheduled callbacks can skip
+  // executing code which requires a reference to this.
   safe_this_.ClearReference();
 
   is_destructing_.store(1);
 
-  // Remove the handler to keep event loop alive
-  if (keep_loop_alive_ != nullptr) {
-    keep_loop_alive_->send();
+  if (curl_multi_ != nullptr) {
+    curl_multi_wakeup(static_cast<CURLM*>(curl_multi_));
   }
 
-  // Wait for the thread to end.
+  // Wait for the event loop thread to end.
   if (thread_) {
     thread_->Join();
     thread_.reset(nullptr);
   }
 
-  handler_ = nullptr;
+  if (curl_multi_ != nullptr) {
+    curl_multi_cleanup(static_cast<CURLM*>(curl_multi_));
+    curl_multi_ = nullptr;
+  }
 
-  // websocket_ should be cleared now or OnDisconnection() probably is not
-  // called properly.
-  assert(websocket_ == nullptr);
+  firebase::rest::CleanupTransportCurl();
+
+  handler_ = nullptr;
+  assert(curl_easy_ == nullptr);
 }
 
 void WebSocketClientImpl::Connect(int timeout_ms) {
-  ScheduleOnce(
-      [](WebSocketClientImpl* client, int timeout_ms, const std::string&) {
-        Logger* logger = client->logger_;
-        if (client->websocket_ == nullptr) {
-          std::map<std::string, std::string> headers;
-          headers["User-Agent"] = client->user_agent_;
-          headers[app_common::kApiClientHeader] = App::GetUserAgent();
-          if (!client->app_check_token_.empty()) {
-            headers["X-Firebase-AppCheck"] = client->app_check_token_;
-          }
-          client->hub_.connect(client->uri_, client, headers, timeout_ms);
-        } else {
-          logger->LogWarning("websocket has already been connected to %s",
-                             client->uri_.c_str());
-        }
-      },
-      timeout_ms, "");
+  ScheduleOnce([](WebSocketClientImpl* client, int timeout_ms,
+                  const std::string&) { client->ConnectSync(timeout_ms); },
+               timeout_ms, "");
+}
+
+void WebSocketClientImpl::ConnectSync(int timeout_ms) {
+  if (state_ == kStateConnecting || state_ == kStateOpen) {
+    logger_->LogWarning("websocket has already been connected to %s",
+                        uri_.c_str());
+    return;
+  }
+
+  if (curl_easy_ != nullptr) {
+    CleanupEasyHandle();
+  }
+
+  CURL* easy = curl_easy_init();
+  if (easy == nullptr) {
+    logger_->LogError("Failed to initialize curl easy handle for %s",
+                      uri_.c_str());
+    OnError();
+    return;
+  }
+
+  curl_easy_setopt(easy, CURLOPT_URL, uri_.c_str());
+  // CURLOPT_CONNECT_ONLY = 2L instructs libcurl to perform the HTTP/1.1
+  // WebSocket Upgrade handshake and stop after receiving 101 Switching
+  // Protocols so framing can be driven via curl_ws_recv() and curl_ws_send().
+  curl_easy_setopt(easy, CURLOPT_CONNECT_ONLY, 2L);
+  // Handle PING frames explicitly in ReceiveFrames() so standalone PINGs flush
+  // their PONG response immediately without waiting for another frame.
+  curl_easy_setopt(easy, CURLOPT_WS_OPTIONS, CURLWS_NOAUTOPONG);
+  // Verify SSL peer certificate chain and hostname/SANs, and enforce TLS 1.2
+  // as the minimum protocol version (allowing TLS 1.2 and TLS 1.3 while
+  // preventing downgrade attacks to deprecated TLS 1.0/1.1):
+  // - Windows (CURL_USE_SCHANNEL): Verifies against the Windows Certificate
+  //   Store (Crypt32) with native OCSP/CRL and Microsoft CTL revocation checks.
+  // - macOS (USE_APPLE_SECTRUST): Verifies against the macOS System Keychain
+  //   via Security.framework (SecTrustEvaluateWithError) with Apple OCSP/CRL
+  //   and Valid/trustd revocation checks.
+  // - Linux (OpenSSL/BoringSSL): Verifies against the runtime distribution's
+  //   CA bundle file (CURLOPT_CAINFO) and hashed CA directory (CURLOPT_CAPATH)
+  //   resolved by GetLinuxCaBundlePath() / GetLinuxCaDirectoryPath().
+  curl_easy_setopt(easy, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(easy, CURLOPT_SSL_VERIFYHOST, 2L);
+  curl_easy_setopt(easy, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+#ifdef FIREBASE_SSL_CAPATH
+  curl_easy_setopt(easy, CURLOPT_CAINFO,
+                   firebase::rest::GetLinuxCaBundlePath());
+  curl_easy_setopt(easy, CURLOPT_CAPATH,
+                   firebase::rest::GetLinuxCaDirectoryPath());
+#endif
+  if (timeout_ms > 0) {
+    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT_MS,
+                     static_cast<long>(timeout_ms));  // NOLINT
+    curl_easy_setopt(easy, CURLOPT_TIMEOUT_MS,
+                     static_cast<long>(timeout_ms));  // NOLINT
+  }
+
+  std::string app_check_token;
+  {
+    MutexLock lock(callback_queue_mutex_);
+    app_check_token = app_check_token_;
+  }
+
+  std::string user_agent_header = "User-Agent: " + user_agent_;
+  request_headers_ =
+      curl_slist_append(request_headers_, user_agent_header.c_str());
+
+  const char* api_client = App::GetUserAgent();
+  if (api_client != nullptr && api_client[0] != '\0') {
+    std::string api_client_header =
+        std::string(app_common::kApiClientHeader) + ": " + api_client;
+    request_headers_ =
+        curl_slist_append(request_headers_, api_client_header.c_str());
+  }
+
+  if (!app_check_token.empty()) {
+    std::string app_check_header = "X-Firebase-AppCheck: " + app_check_token;
+    request_headers_ =
+        curl_slist_append(request_headers_, app_check_header.c_str());
+  }
+
+  curl_easy_setopt(easy, CURLOPT_HTTPHEADER, request_headers_);
+
+  CURLMcode mc = curl_multi_add_handle(static_cast<CURLM*>(curl_multi_), easy);
+  if (mc != CURLM_OK) {
+    logger_->LogError("curl_multi_add_handle failed: %s",
+                      curl_multi_strerror(mc));
+    if (request_headers_ != nullptr) {
+      curl_slist_free_all(request_headers_);
+      request_headers_ = nullptr;
+    }
+    curl_easy_cleanup(easy);
+    OnError();
+    return;
+  }
+
+  curl_easy_ = easy;
+  incoming_message_buffer_.clear();
+  incoming_ping_buffer_.clear();
+  send_queue_.clear();
+  current_send_offset_ = 0;
+  state_ = kStateConnecting;
 }
 
 void WebSocketClientImpl::Close() {
@@ -148,63 +321,193 @@ void WebSocketClientImpl::Close() {
 }
 
 void WebSocketClientImpl::CloseSync() {
-  if (IsWebSocketAvailable()) {
-    websocket_->close(1000);
+  if (state_ == kStateOpen && curl_easy_ != nullptr) {
+    if (current_send_offset_ == 0) {
+      // Send close code 1000 (Normal Closure) in big-endian byte order.
+      const unsigned char close_payload[2] = {0x03, 0xe8};
+      size_t sent = 0;
+      (void)curl_ws_send(static_cast<CURL*>(curl_easy_), close_payload,
+                         sizeof(close_payload), &sent, 0, CURLWS_CLOSE);
+    }
+    CleanupEasyHandle();
+    state_ = kStateClosed;
+    OnDisconnection();
+  } else if (state_ == kStateConnecting && curl_easy_ != nullptr) {
+    CleanupEasyHandle();
+    state_ = kStateClosed;
   }
 }
 
 void WebSocketClientImpl::Send(const char* msg) {
   assert(msg != nullptr);
 
-  ScheduleOnce(
-      [](WebSocketClientImpl* client, int, const std::string& msg) {
-        Logger* logger = client->logger_;
-        if (client->IsWebSocketAvailable()) {
-          client->websocket_->send(msg.c_str());
-        } else {
-          logger->LogWarning(
-              "Cannot send message.  websocket is not available");
+  ScheduleOnce([](WebSocketClientImpl* client, int,
+                  const std::string& msg) { client->SendSync(msg); },
+               0, msg);
+}
+
+void WebSocketClientImpl::SendSync(const std::string& msg) {
+  if (IsWebSocketAvailable()) {
+    send_queue_.push_back(msg);
+    FlushSendQueue();
+  } else {
+    logger_->LogWarning("Cannot send message.  websocket is not available");
+  }
+}
+
+void WebSocketClientImpl::FlushSendQueue() {
+  if (!IsWebSocketAvailable()) {
+    return;
+  }
+
+  CURL* easy = static_cast<CURL*>(curl_easy_);
+  while (!send_queue_.empty() && state_ == kStateOpen &&
+         is_destructing_.load() == 0) {
+    const std::string& msg = send_queue_.front();
+    const char* data = msg.data() + current_send_offset_;
+    size_t remaining = msg.size() - current_send_offset_;
+    size_t sent = 0;
+
+    CURLcode res = curl_ws_send(easy, data, remaining, &sent, 0, CURLWS_TEXT);
+    if (res == CURLE_OK || res == CURLE_AGAIN) {
+      current_send_offset_ += sent;
+      if (current_send_offset_ >= msg.size() && res == CURLE_OK) {
+        send_queue_.pop_front();
+        current_send_offset_ = 0;
+      } else {
+        // Socket write buffer is full; wait for CURL_WAIT_POLLOUT.
+        break;
+      }
+    } else {
+      logger_->LogError("curl_ws_send failed for %s: (%d) %s", uri_.c_str(),
+                        static_cast<int>(res), curl_easy_strerror(res));
+      CleanupEasyHandle();
+      state_ = kStateClosed;
+      OnError();
+      OnDisconnection();
+      break;
+    }
+  }
+}
+
+void WebSocketClientImpl::ReceiveFrames() {
+  if (!IsWebSocketAvailable()) {
+    return;
+  }
+
+  CURL* easy = static_cast<CURL*>(curl_easy_);
+  char buffer[kRecvBufferSize];
+
+  while (state_ == kStateOpen && is_destructing_.load() == 0) {
+    size_t rlen = 0;
+    const struct curl_ws_frame* meta = nullptr;
+    CURLcode res = curl_ws_recv(easy, buffer, sizeof(buffer), &rlen, &meta);
+
+    if (res == CURLE_AGAIN) {
+      break;
+    }
+    if (res == CURLE_GOT_NOTHING) {
+      CleanupEasyHandle();
+      state_ = kStateClosed;
+      OnDisconnection();
+      break;
+    }
+    if (res != CURLE_OK) {
+      logger_->LogDebug("curl_ws_recv error on %s: (%d) %s", uri_.c_str(),
+                        static_cast<int>(res), curl_easy_strerror(res));
+      CleanupEasyHandle();
+      state_ = kStateClosed;
+      OnError();
+      OnDisconnection();
+      break;
+    }
+
+    if (meta == nullptr) {
+      break;
+    }
+
+    if (meta->flags & CURLWS_CLOSE) {
+      if (current_send_offset_ == 0) {
+        size_t sent = 0;
+        (void)curl_ws_send(easy, "", 0, &sent, 0, CURLWS_CLOSE);
+      }
+      CleanupEasyHandle();
+      state_ = kStateClosed;
+      OnDisconnection();
+      break;
+    }
+
+    if (meta->flags & CURLWS_PING) {
+      if (rlen > 0) {
+        incoming_ping_buffer_.append(buffer, rlen);
+      }
+      if (meta->bytesleft == 0) {
+        if (current_send_offset_ == 0) {
+          size_t sent = 0;
+          (void)curl_ws_send(easy, incoming_ping_buffer_.data(),
+                             incoming_ping_buffer_.size(), &sent, 0,
+                             CURLWS_PONG);
         }
-      },
-      0, msg);
+        incoming_ping_buffer_.clear();
+      }
+      continue;
+    }
+
+    if (meta->flags & CURLWS_PONG) {
+      continue;
+    }
+
+    if (meta->flags & (CURLWS_TEXT | CURLWS_BINARY | CURLWS_CONT)) {
+      if (rlen > 0) {
+        incoming_message_buffer_.append(buffer, rlen);
+      }
+      if (meta->bytesleft == 0 && (meta->flags & CURLWS_CONT) == 0) {
+        std::string completed_message;
+        completed_message.swap(incoming_message_buffer_);
+        OnMessage(completed_message.data(), completed_message.size());
+      }
+    }
+  }
+}
+
+void WebSocketClientImpl::CleanupEasyHandle() {
+  if (curl_easy_ != nullptr) {
+    if (curl_multi_ != nullptr) {
+      curl_multi_remove_handle(static_cast<CURLM*>(curl_multi_),
+                               static_cast<CURL*>(curl_easy_));
+    }
+    curl_easy_cleanup(static_cast<CURL*>(curl_easy_));
+    curl_easy_ = nullptr;
+  }
+  if (request_headers_ != nullptr) {
+    curl_slist_free_all(request_headers_);
+    request_headers_ = nullptr;
+  }
+  incoming_message_buffer_.clear();
+  incoming_ping_buffer_.clear();
+  send_queue_.clear();
+  current_send_offset_ = 0;
 }
 
 void WebSocketClientImpl::RefreshAppCheckToken(const std::string& token) {
+  MutexLock lock(callback_queue_mutex_);
   app_check_token_ = token;
 }
 
-void WebSocketClientImpl::OnError(void* data) {
-  assert(data != nullptr);
-  WebSocketClientImpl* client = static_cast<WebSocketClientImpl*>(data);
-  Logger* logger = client->logger_;
-
-  if (client->handler_) {
-    // TODO(b/71873743): Modify uWebSockets to provide more context, ex. reasons
-    WebSocketClientErrorData error(client->uri_.c_str());
-    client->handler_->OnError(error);
+void WebSocketClientImpl::OnError() {
+  if (handler_) {
+    WebSocketClientErrorData error(uri_.c_str());
+    handler_->OnError(error);
   }
 
-  logger->LogDebug("Error occurred while establishing connection to %s",
-                   client->uri_.c_str());
+  logger_->LogDebug("Error occurred while establishing connection to %s",
+                    uri_.c_str());
 }
 
-void WebSocketClientImpl::OnConnection(ClientWebSocket* ws,
-                                       uWS::HttpRequest req) {
-  assert(ws != nullptr);
-  assert(ws->getUserData() != nullptr);
-  WebSocketClientImpl* client =
-      static_cast<WebSocketClientImpl*>(ws->getUserData());
-
-  // There should be only one connection per client.  However, hub_ can have
-  // multiple connnections at a time, and current implementation does not
-  // prevent Connect() from  being called when another connection is
-  // establishing. Use assert for now to prevent this from happening.
-  assert(client->websocket_ == nullptr);
-  client->websocket_ = ws;
-
-  if (client->handler_) {
-    client->scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
-        client->safe_this_, [](ClientRef client_ref) {
+void WebSocketClientImpl::OnConnection() {
+  if (handler_) {
+    scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
+        safe_this_, [](ClientRef client_ref) {
           ClientRefLock lock(&client_ref);
           auto client = lock.GetReference();
           if (client != nullptr && client->handler_ != nullptr) {
@@ -213,50 +516,29 @@ void WebSocketClientImpl::OnConnection(ClientWebSocket* ws,
         }));
   }
 
-  // Just in case of the client is delete right after connection request is sent
-  // This may have racing condition with the destructor.  But since the
-  // destructor schedule another task, which runs on the same thread to this
-  // call, in order to close the websocket, it should not be a big issue.
-  if (client->is_destructing_.load() > 0) {
-    client->CloseSync();
+  if (is_destructing_.load() > 0) {
+    CloseSync();
   }
 }
 
-void WebSocketClientImpl::OnMessage(ClientWebSocket* ws, char* message,
-                                    size_t length, uWS::OpCode opCode) {
-  assert(ws != nullptr);
-  assert(ws->getUserData() != nullptr);
-  WebSocketClientImpl* client =
-      static_cast<WebSocketClientImpl*>(ws->getUserData());
-
-  if (client->handler_) {
+void WebSocketClientImpl::OnMessage(const char* message, size_t length) {
+  if (handler_) {
     std::string message_string(message, length);
-    client->scheduler_->Schedule(
-        new callback::CallbackValue2<ClientRef, std::string>(
-            client->safe_this_, message_string,
-            [](ClientRef client_ref, std::string msg) {
-              ClientRefLock lock(&client_ref);
-              auto client = lock.GetReference();
-              if (client != nullptr && client->handler_ != nullptr) {
-                client->handler_->OnMessage(msg.c_str());
-              }
-            }));
+    scheduler_->Schedule(new callback::CallbackValue2<ClientRef, std::string>(
+        safe_this_, message_string, [](ClientRef client_ref, std::string msg) {
+          ClientRefLock lock(&client_ref);
+          auto client = lock.GetReference();
+          if (client != nullptr && client->handler_ != nullptr) {
+            client->handler_->OnMessage(msg.c_str());
+          }
+        }));
   }
 }
 
-void WebSocketClientImpl::OnDisconnection(ClientWebSocket* ws, int code,
-                                          char* message, size_t length) {
-  assert(ws != nullptr);
-  assert(ws->getUserData() != nullptr);
-  WebSocketClientImpl* client =
-      static_cast<WebSocketClientImpl*>(ws->getUserData());
-
-  assert(client->websocket_ != nullptr);
-  client->websocket_ = nullptr;
-
-  if (client->handler_) {
-    client->scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
-        client->safe_this_, [](ClientRef client_ref) {
+void WebSocketClientImpl::OnDisconnection() {
+  if (handler_) {
+    scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
+        safe_this_, [](ClientRef client_ref) {
           ClientRefLock lock(&client_ref);
           auto client = lock.GetReference();
           if (client != nullptr && client->handler_ != nullptr) {
@@ -270,32 +552,35 @@ void WebSocketClientImpl::ScheduleOnce(Callback cb, int int_value,
                                        const std::string& string_value) {
   assert(cb != nullptr);
 
-  MutexLock lock(callback_queue_mutex_);
-  callback_queue_.push(CallbackData(cb, this, int_value, string_value));
+  {
+    MutexLock lock(callback_queue_mutex_);
+    callback_queue_.push(CallbackData(cb, this, int_value, string_value));
+  }
 
-  // Signal the event loop to trigger the async callback.
-  process_queue_async_->send();
+  if (curl_multi_ != nullptr) {
+    curl_multi_wakeup(static_cast<CURLM*>(curl_multi_));
+  }
 }
 
-void WebSocketClientImpl::ProcessCallbackQueue(uS::Async* async) {
-  assert(async);
-  assert(async->getData());
-
-  WebSocketClientImpl* client =
-      static_cast<WebSocketClientImpl*>(async->getData());
-
-  MutexLock lock(client->callback_queue_mutex_);
-  while (!client->callback_queue_.empty()) {
-    auto& callback_data = client->callback_queue_.front();
+void WebSocketClientImpl::ProcessCallbackQueue() {
+  for (;;) {
+    CallbackData callback_data(nullptr, nullptr, 0, "");
+    {
+      MutexLock lock(callback_queue_mutex_);
+      if (callback_queue_.empty()) {
+        break;
+      }
+      callback_data = callback_queue_.front();
+      callback_queue_.pop();
+    }
     callback_data.callback(callback_data.client, callback_data.int_value,
                            callback_data.string_value);
-    client->callback_queue_.pop();
   }
 }
 
 bool WebSocketClientImpl::IsWebSocketAvailable() const {
-  return websocket_ != nullptr && !websocket_->isClosed() &&
-         !websocket_->isShuttingDown();
+  return state_ == kStateOpen && curl_easy_ != nullptr &&
+         is_destructing_.load() == 0;
 }
 
 }  // namespace connection

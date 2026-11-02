@@ -461,7 +461,7 @@ Authentication       | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 App Check            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 Firestore            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, shell32, dbghelp`
 Functions            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32`
-Realtime Database    | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, psapi, userenv, shell32`
+Realtime Database    | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, shell32`
 Remote Config        | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, icu`
 Storage              | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 

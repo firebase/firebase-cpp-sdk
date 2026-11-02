@@ -159,9 +159,7 @@ Currently, the third party libraries that can be provided this way are:
 | ------- |
 | CURL |
 | FLATBUFFERS |
-| LIBUV |
 | NANOPB |
-| UWEBSOCKETS |
 | ZLIB |
 
 #### Building with CMake for iOS

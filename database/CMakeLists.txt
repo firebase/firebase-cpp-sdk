@@ -165,14 +165,14 @@ if(ANDROID OR IOS)
   set(additional_DEFINES)
 else()
   set(additional_include_DIR
+      ${CURL_SOURCE_DIR}/include
       ${FLATBUFFERS_SOURCE_DIR}/include
-      ${OPENSSL_INCLUDE_DIR}
-      ${UWEBSOCKETS_SOURCE_DIR}/..)
+      ${OPENSSL_INCLUDE_DIR})
 
   set(additional_link_LIB
       firebase_rest_lib
       leveldb
-      libuWS
+      libcurl
       OpenSSL::SSL
       OpenSSL::Crypto)
 
@@ -186,6 +186,12 @@ if(MSVC)
     -DWIN32_LEAN_AND_MEAN # Ensure that windows doesn't include winsock.h by
                             # default, as it can cause issues when libraries try
                             # to include winsock2.h later on in the process.
+    -DCURL_STATICLIB=1
+  )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(additional_DEFINES
+    "${additional_DEFINES}"
+    -DFIREBASE_SSL_CAPATH="/etc/ssl/certs"
   )
 endif()
 
@@ -246,7 +252,3 @@ endif()
 
 cpp_pack_library(firebase_database "")
 cpp_pack_public_headers()
-if (NOT ANDROID AND NOT IOS)
-  cpp_pack_library(uv_a "deps/database/external")
-  cpp_pack_library(libuWS "deps/database/external")
-endif()

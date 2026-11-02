@@ -343,18 +343,20 @@ firebase_cpp_cc_test(
     desktop/connection/web_socket_client_impl_test.cc
   INCLUDES
     ${OPENSSL_INCLUDE_DIR}
-    ${UWEBSOCKETS_SOURCE_DIR}/..
   DEPENDS
     firebase_database
     firebase_testing
     ${OPENSSL_CRYPTO_LIBRARY}
-    libuWS
 )
 
 if(MSVC)
   target_compile_definitions(firebase_rtdb_desktop_connection_web_socket_client_impl_test
     PRIVATE
       -DWIN32_LEAN_AND_MEAN
+  )
+  target_link_libraries(firebase_rtdb_desktop_connection_web_socket_client_impl_test
+    PRIVATE
+      ws2_32
   )
 endif()
 
@@ -364,10 +366,8 @@ firebase_cpp_cc_test(
     desktop/connection/connection_test.cc
   INCLUDES
     ${OPENSSL_INCLUDE_DIR}
-    ${UWEBSOCKETS_SOURCE_DIR}/..
   DEPENDS
     ${OPENSSL_CRYPTO_DIR}
-    libuWS
     firebase_app_for_testing
     firebase_database
     firebase_testing

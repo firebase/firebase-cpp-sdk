@@ -220,8 +220,6 @@ readonly deps_hidden_firebase_app="
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 readonly deps_hidden_firebase_database="
-*/${subdir}${prefix}uv_a.${ext}
-*/${subdir}${prefix}libuWS.${ext}
 "
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
