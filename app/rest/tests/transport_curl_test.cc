@@ -163,6 +163,8 @@ TEST_F(TransportCurlTest, HttpGetSync) {
   EXPECT_TRUE(response.body_completed());
   EXPECT_STREQ(test::TestHttpServer::kServerName(),
                response.GetHeader("Server"));
+  EXPECT_STREQ(test::TestHttpServer::kServerName(),
+               response.GetHeader("server"));
   EXPECT_STREQ("test", response.GetBody());
   EXPECT_TRUE(request.completed());
   EXPECT_EQ(1, response.completed_calls());
@@ -520,6 +522,38 @@ TEST_F(TransportCurlTest, CleanupWithInFlightRequestFailsIt) {
 
   // Re-initialize so that ~TransportCurl() and TearDown() behave normally.
   InitTransportCurl();
+}
+
+TEST_F(TransportCurlTest, FastRequestsNotDelayedByInFlightSlowRequest) {
+  // Keep one slow transfer parked in curl_multi_poll() so the old select() +
+  // 33 ms polling loop would stall new requests waiting for its poll cycle.
+  Request slow_request;
+  slow_request.set_url(Url("/slow?ms=2000").c_str());
+  TestResponse slow_response;
+  TransportCurl slow_transport;
+  slow_transport.set_is_async(true);
+  slow_transport.Perform(slow_request, &slow_response);
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  TransportCurl fast_transport;
+  auto start = std::chrono::steady_clock::now();
+  for (int i = 0; i < 10; ++i) {
+    Request fast_request;
+    fast_request.set_url(Url("/").c_str());
+    TestResponse fast_response;
+    fast_transport.Perform(fast_request, &fast_response);
+    EXPECT_EQ(200, fast_response.status()) << "request " << i;
+    EXPECT_STREQ("test", fast_response.GetBody()) << "request " << i;
+  }
+  auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - start)
+                        .count();
+  // 10 sequential wakeups + loopback HTTP round trips complete in single-digit
+  // milliseconds via curl_multi_wakeup() (keep bound generous for CI).
+  EXPECT_LT(elapsed_ms, 500);
+
+  ASSERT_TRUE(slow_response.Wait());
+  EXPECT_EQ(200, slow_response.status());
 }
 
 }  // namespace

@@ -146,10 +146,22 @@ firebase_cpp_cc_test(firebase_app_rest_transport_curl_test
     libcurl
 )
 
+firebase_cpp_cc_test(firebase_app_rest_tls_policy_test
+  SOURCES
+    tls_policy_test.cc
+  INCLUDES
+    ${CURL_SOURCE_DIR}/include
+  DEPENDS
+    firebase_app
+    firebase_rest_lib
+    libcurl
+)
+
 if(MSVC)
   foreach(rest_socket_test
           firebase_app_rest_curl_io_loop_test
-          firebase_app_rest_transport_curl_test)
+          firebase_app_rest_transport_curl_test
+          firebase_app_rest_tls_policy_test)
     target_compile_definitions(${rest_socket_test}
       PRIVATE
         -DWIN32_LEAN_AND_MEAN

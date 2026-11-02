@@ -140,6 +140,17 @@ RestTransfer* FindActiveTransfer(TransportCurl* transport, Response* response) {
   return it->second;
 }
 
+// True when the linked libcurl build includes HTTP/2 (nghttp2) support.
+// Bundled SDK builds set USE_NGHTTP2=OFF to avoid an extra external dependency,
+// while system-libcurl builds on Linux/macOS typically enable HTTP/2.
+bool LibcurlSupportsHttp2() {
+  static const bool kSupported = []() {
+    const curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
+    return info != nullptr && (info->features & CURL_VERSION_HTTP2) != 0;
+  }();
+  return kSupported;
+}
+
 }  // namespace
 
 void InitTransportCurl() { curl::CurlIoLoop::Acquire(); }
@@ -349,14 +360,28 @@ bool RestTransfer::Setup() {
   CheckOk(curl::SetOpt(easy_, CURLOPT_XFERINFODATA, static_cast<void*>(this)),
           "set progress callback data");
 
-  // Force HTTP/1.1 even when linked against a libcurl build that defaults to
-  // HTTP/2 (e.g., system libcurl or internal builds with nghttp2 enabled):
-  // Response::ProcessHeader() parses status lines with "HTTP/%*d.%*d %d", which
-  // does not match HTTP/2's "HTTP/2 200" status line, and streaming POST
-  // uploads rely on HTTP/1.1 "Transfer-Encoding: chunked".
-  CheckOk(curl::SetOpt(easy_, CURLOPT_HTTP_VERSION,
-                       static_cast<long>(CURL_HTTP_VERSION_1_1)),  // NOLINT
-          "set http version to http1");
+  std::string method = util::ToUpper(options.method);
+  const bool stream_unknown_post_size =
+      (method == util::kPost && options.stream_post_fields &&
+       request_->GetPostFieldsSize() == ~static_cast<size_t>(0));
+  bool has_transfer_encoding_header = stream_unknown_post_size;
+  for (const auto& pair : options.header) {
+    if (util::ToLower(pair.first) == "transfer-encoding") {
+      has_transfer_encoding_header = true;
+      break;
+    }
+  }
+
+  // Negotiate HTTP/2 over TLS (ALPN) when libcurl is built with HTTP/2 support,
+  // unless the request relies on an HTTP/1.1 Transfer-Encoding header
+  // (forbidden by RFC 9113 section 8.2.2). Plain HTTP and servers without h2
+  // fall back to HTTP/1.1 automatically.
+  const long http_version =  // NOLINT
+      (!has_transfer_encoding_header && LibcurlSupportsHttp2())
+          ? static_cast<long>(CURL_HTTP_VERSION_2TLS)  // NOLINT
+          : static_cast<long>(CURL_HTTP_VERSION_1_1);  // NOLINT
+  CheckOk(curl::SetOpt(easy_, CURLOPT_HTTP_VERSION, http_version),
+          "set http version");
 
   // SDK error in initialization stage is not recoverable.
   FIREBASE_ASSERT(err_code_ == CURLE_OK);
@@ -377,11 +402,10 @@ bool RestTransfer::Setup() {
     header.append(pair.second);
     curl::SListAppend(&headers_, header.c_str());
   }
-  std::string method = util::ToUpper(options.method);
   if (method == util::kPost && options.stream_post_fields) {
     size_t transfer_size = request_->GetPostFieldsSize();
     // If the upload size is unknown use chunked encoding.
-    if (transfer_size == ~static_cast<size_t>(0)) {
+    if (stream_unknown_post_size) {
       // To use POST to a HTTP 1.1 sever we need to use chunked encoding.
       // This is not supported by HTTP 1.0 servers which need to know the size
       // of the request up front.

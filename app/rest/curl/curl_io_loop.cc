@@ -107,6 +107,9 @@ CurlIoLoop::CurlIoLoop()
       wait_fds_() {
   multi_.reset(curl_multi_init());
   FIREBASE_ASSERT_MESSAGE(multi_ != nullptr, "curl_multi_init() failed");
+  // Enable HTTP/2 connection multiplexing on the shared multi handle (a no-op
+  // when libcurl is built without HTTP/2 support).
+  curl_multi_setopt(multi_.get(), CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
   thread_ = Thread(ThreadMain, this);
   // Wait until the thread has published its id so IsOnIoThread() is reliable
   // for every caller from here on.
