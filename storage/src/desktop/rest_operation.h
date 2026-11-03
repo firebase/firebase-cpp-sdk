@@ -176,6 +176,15 @@ class RestOperation {
   std::thread::id perform_thread_;
   // Storage controller that delegates to this object.
   storage::Controller controller_;
+  // Copy of controller_ handed to Listener callbacks, which run on the
+  // StorageInternal's CallbackDispatcher thread and may outlive this object
+  // (the copy only reaches the operation through its shared OperationHandle).
+  std::shared_ptr<storage::Controller> listener_controller_;
+  // Set while a progress notification for this operation is queued on the
+  // CallbackDispatcher, so a slow Listener never lets the queue grow: the
+  // queued notification samples the latest byte counts when it runs.
+  std::shared_ptr<std::atomic<bool>> progress_pending_ =
+      std::make_shared<std::atomic<bool>>(false);
   std::atomic<bool> is_complete_{false};
   std::atomic<bool> is_started_{false};
 };

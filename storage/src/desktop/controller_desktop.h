@@ -45,6 +45,18 @@ class ControllerBinding {
   // the current attempt was cancelled or a pending retry was prevented.
   bool Cancel();
 
+  // Pauses the current attempt. Before the first attempt has been bound (it
+  // is prepared and started on a background thread), records the pause so
+  // Bind() applies it to that attempt.
+  bool Pause();
+
+  // Resumes the current attempt, or clears a pause recorded by Pause().
+  bool Resume();
+
+  // Whether the current attempt (or, before one is bound, the pending
+  // operation) is paused.
+  [[nodiscard]] bool IsPaused() const;
+
   // Whether Cancel() has been called.
   [[nodiscard]] bool is_cancelled() const;
 
@@ -56,6 +68,8 @@ class ControllerBinding {
   std::shared_ptr<RestOperation::OperationHandle> current_;
   bool cancelled_ = false;
   bool finished_ = false;
+  // Pause requested before the first attempt was bound; applied by Bind().
+  bool pending_pause_ = false;
 };
 
 // Private Pimpl implementation class owned by firebase::storage::Controller
@@ -152,10 +166,6 @@ class ControllerInternal {
 
   // Replaces the guarded members with `state` under mutex_.
   void Assign(State&& state) noexcept;
-
-  // Returns the handle to act on: the binding's current attempt if bound,
-  // otherwise op_handle_.
-  std::shared_ptr<RestOperation::OperationHandle> CurrentHandle() const;
 
   // Update the internal state from the operation optionally returning
   // the current transfer state.

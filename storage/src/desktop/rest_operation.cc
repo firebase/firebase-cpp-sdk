@@ -150,6 +150,7 @@ RestOperation::RestOperation(
     controller_.internal_ = new ControllerInternal();
   }
   controller_.internal_->Initialize(storage_reference, this);
+  listener_controller_ = std::make_shared<storage::Controller>(controller_);
 
   if (listener) {
     set_listener(listener);
@@ -352,27 +353,49 @@ bool RestOperation::is_complete() const {
 }
 
 void RestOperation::NotifyListenerOfProgress() {
+  // Runs on the curl I/O thread. The user's Listener is never invoked here:
+  // a Listener may delete its Storage, App or this operation, and doing so on
+  // the I/O thread would block it on itself (~TransportCurl() waits for
+  // transfers that only the I/O thread can finish). Instead the notification
+  // is posted to the StorageInternal's CallbackDispatcher, with shared copies
+  // of everything it needs, so it never touches `this`.
   std::shared_ptr<ListenerSharedState> state;
   {
     MutexLock lock(mutex_);
     if (perform_thread_ == std::this_thread::get_id()) {
       // Synchronous callback from inside transport_.Perform() in the
-      // constructor, which holds mutex_ (see there). Dispatching would run the
-      // user listener with mutex_ held, so skip this progress update; the
-      // final result is still reported through the response's future.
+      // constructor, which holds mutex_ (see there). Skip this progress
+      // update; the final result is still reported through the response's
+      // future.
       return;
     }
     state = listener_state_;
   }
-  if (!state) {
+  if (!state || storage_internal_ == nullptr) {
     return;
   }
-  // The user callback may destroy this operation, so nothing reachable through
-  // `this` is touched after it has been invoked; NotifyScope cleans up via its
-  // own shared_ptr to the notification state.
+  // ~RestOperation() waits for this scope, so storage_internal_ and the
+  // members read below stay valid until it ends.
   NotifyScope scope(notify_state_);
-  if (scope.active()) {
-    ListenerInternal::NotifyProgress(std::move(state), &controller_);
+  if (!scope.active()) {
+    return;
+  }
+  if (progress_pending_->exchange(true)) {
+    return;  // A queued notification will report the latest progress.
+  }
+  const bool posted = storage_internal_->listener_dispatcher().Post(
+      [state = std::move(state), controller = listener_controller_,
+       handle = op_handle_, pending = progress_pending_]() {
+        // Cleared before sampling, so progress made from here on is
+        // reported by a new notification.
+        pending->store(false);
+        // Dropped if the listener was detached from, or re-attached to
+        // another operation than, this one in the meantime.
+        ListenerInternal::NotifyProgress(state, controller.get(),
+                                         handle.get());
+      });
+  if (!posted) {
+    progress_pending_->store(false);
   }
 }
 

@@ -67,11 +67,14 @@ struct FutureApiOwner {
   }
 
   ~FutureApiOwner() {
-    if (storage_token) {
-      std::lock_guard<std::mutex> lock(storage_token->mutex);
-      if (storage_token->storage != nullptr) {
-        storage_token->storage->future_manager().ReleaseFutureApi(this);
-      }
+    // Keep the StorageInternal alive through an active-user scope rather than
+    // by holding storage_token->mutex: ReleaseFutureApi() may destroy future
+    // results (e.g. Metadata holding StorageReference handles) whose
+    // destructors acquire storage_token->mutex themselves.
+    StorageLifetimeScope scope(storage_token,
+                               StorageLifetimeScope::Mode::kAllowShutdown);
+    if (scope) {
+      scope.storage()->future_manager().ReleaseFutureApi(this);
     }
   }
 
@@ -432,7 +435,9 @@ Future<void> StorageReferenceInternal::DeleteLastResult() const {
 const int kAppCheckTokenTimeoutMs = 10000;
 
 // Handy utility function, since REST calls have similar setup and teardown.
-// Can potentially block getting Future results for the Request.
+// May block for up to kAppCheckTokenTimeoutMs waiting for an App Check token,
+// so it is only called on the retry thread (see SendRequestWithRetry()),
+// never on the caller's thread.
 void StorageReferenceInternal::PrepareRequestBlocking(
     rest::Request* request, const char* url, const char* method,
     const char* content_type) {
@@ -580,7 +585,12 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
   return GetBytesLastResult();
 }
 
-// Sends a rest request, and creates a separate thread to retry failures.
+// Prepares and sends the request, and retries failures, on a separate thread.
+//
+// Even the first attempt is prepared on that thread: preparing a request may
+// block for up to kAppCheckTokenTimeoutMs while fetching an App Check token
+// (and a custom AppCheckProvider may need the caller's thread to produce it),
+// so the caller of this Future-returning API never blocks.
 template <typename FutureType>
 void StorageReferenceInternal::SendRequestWithRetry(
     SendRequestFunct send_request_funct,
@@ -588,25 +598,22 @@ void StorageReferenceInternal::SendRequestWithRetry(
     Controller* controller_out) {
   std::shared_ptr<FutureApiOwner> owner = future_api_owner_;
   if (!owner || !owner->api || !storage_) {
+    if (controller_out) *controller_out = Controller();
     return;
   }
   const bool retry_all_errors = g_retry_all_errors_for_testing;
 
-  // If the caller wants a Controller, every attempt (including retries on the
-  // background thread) is published to a shared ControllerBinding so that the
-  // caller's Controller, and all its copies, always control the current
-  // attempt, and Cancel() also stops further retries.
+  // If the caller wants a Controller, every attempt is published to a shared
+  // ControllerBinding so that the caller's Controller, and all its copies,
+  // always control the current attempt; Cancel() also stops further retries,
+  // and a Pause() issued before the first attempt starts is applied to it.
   std::shared_ptr<ControllerBinding> binding;
-  Controller first_attempt_controller;
-  RequestAttempt first_attempt =
-      send_request_funct(controller_out ? &first_attempt_controller : nullptr);
   if (controller_out) {
     binding = std::make_shared<ControllerBinding>();
-    binding->Bind(AttemptHandle(first_attempt_controller.internal_));
-    if (first_attempt_controller.internal_) {
-      first_attempt_controller.internal_->SetBinding(binding);
-    }
-    *controller_out = first_attempt_controller;
+    Controller bound_controller;
+    bound_controller.internal_->Initialize(AsStorageReference(), nullptr);
+    bound_controller.internal_->SetBinding(binding);
+    *controller_out = std::move(bound_controller);
   }
   // Marks the binding finished on every path that does not hand it to the
   // retry thread.
@@ -616,21 +623,6 @@ void StorageReferenceInternal::SendRequestWithRetry(
       if (*binding) (*binding)->MarkFinished();
     }
   } binding_finisher{&binding};
-
-  if (first_attempt.future.status() == firebase::kFutureStatusComplete) {
-    const int http_status = first_attempt.http_status
-                                ? first_attempt.http_status->load()
-                                : rest::util::HttpInvalid;
-    const bool can_retry =
-        !first_attempt.local_failure &&
-        first_attempt.future.error() != kErrorCancelled &&
-        !(binding && binding->is_cancelled()) &&
-        IsRetryableFailure(http_status, retry_all_errors);
-    if (!can_retry) {
-      CompleteFinalFutureFromAttempt(owner, final_handle, first_attempt.future);
-      return;
-    }
-  }
 
   auto lifetime_token = owner->storage_token;
   bool cancel_final = false;
@@ -653,8 +645,8 @@ void StorageReferenceInternal::SendRequestWithRetry(
   std::thread async_retry_thread(
       &StorageReferenceInternal::AsyncSendRequestWithRetry<FutureType>,
       std::move(self_ref), std::move(owner), std::move(send_request_funct),
-      final_handle, std::move(first_attempt), max_retry_time_seconds,
-      retry_all_errors, std::move(binding));
+      final_handle, max_retry_time_seconds, retry_all_errors,
+      std::move(binding));
   async_retry_thread.detach();
 }
 
@@ -667,9 +659,8 @@ template <typename FutureType>
 void StorageReferenceInternal::AsyncSendRequestWithRetry(
     StorageReference self_ref, std::shared_ptr<FutureApiOwner> future_api_owner,
     SendRequestFunct send_request_funct,
-    SafeFutureHandle<FutureType> final_handle, RequestAttempt first_attempt,
-    double max_retry_time_seconds, bool retry_all_errors,
-    std::shared_ptr<ControllerBinding> binding) {
+    SafeFutureHandle<FutureType> final_handle, double max_retry_time_seconds,
+    bool retry_all_errors, std::shared_ptr<ControllerBinding> binding) {
   // Whatever happens below, the user-facing operation is over once this
   // function returns.
   struct BindingFinisher {
@@ -720,7 +711,21 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
     return binding && binding->is_cancelled();
   };
 
-  RequestAttempt attempt = std::move(first_attempt);
+  if (!self_ref.is_valid() || cancelled_by_user()) {
+    CompleteFinalFutureCancelled(future_api_owner, final_handle);
+    return;
+  }
+  // Prepare and start the first attempt (see SendRequestWithRetry()). Bind()
+  // cancels it right away if Cancel() raced with this send, and applies a
+  // Pause() issued before it started.
+  RequestAttempt attempt;
+  {
+    Controller attempt_controller;
+    attempt = send_request_funct(binding ? &attempt_controller : nullptr);
+    if (binding) {
+      binding->Bind(AttemptHandle(attempt_controller.internal_));
+    }
+  }
   const auto end_time = std::chrono::steady_clock::now() +
                         std::chrono::duration<double>(max_retry_time_seconds);
   auto current_sleep_time = std::chrono::milliseconds(kInitialSleepTimeMillis);

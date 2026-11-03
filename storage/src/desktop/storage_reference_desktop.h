@@ -222,8 +222,8 @@ class StorageReferenceInternal {
       StorageReference self_ref,
       std::shared_ptr<FutureApiOwner> future_api_owner,
       SendRequestFunct send_request_funct,
-      SafeFutureHandle<FutureType> final_handle, RequestAttempt first_attempt,
-      double max_retry_time_seconds, bool retry_all_errors,
+      SafeFutureHandle<FutureType> final_handle, double max_retry_time_seconds,
+      bool retry_all_errors,
       std::shared_ptr<ControllerBinding> binding);
 
   // Returns whether or not an HTTP status indicates a retryable failure.

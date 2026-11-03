@@ -27,19 +27,75 @@ void ControllerBinding::Bind(
     std::shared_ptr<RestOperation::OperationHandle> handle) {
   std::shared_ptr<RestOperation::OperationHandle> old_handle;
   bool cancelled = false;
+  bool pause = false;
   {
     std::scoped_lock lock(mutex_);
     old_handle = std::move(current_);
     current_ = handle;
     cancelled = cancelled_;
-  }
-  old_handle.reset();
-  if (cancelled && handle) {
-    std::scoped_lock op_lock(handle->mutex);
-    if (handle->op != nullptr) {
-      handle->op->Cancel();
+    pause = pending_pause_ && handle != nullptr;
+    if (handle) {
+      pending_pause_ = false;
     }
   }
+  old_handle.reset();
+  if (!handle) {
+    return;
+  }
+  std::scoped_lock op_lock(handle->mutex);
+  if (handle->op == nullptr) {
+    return;
+  }
+  if (cancelled) {
+    handle->op->Cancel();
+  } else if (pause) {
+    handle->op->Pause();
+  }
+}
+
+bool ControllerBinding::Pause() {
+  std::shared_ptr<RestOperation::OperationHandle> handle;
+  {
+    std::scoped_lock lock(mutex_);
+    if (cancelled_ || finished_) {
+      return false;
+    }
+    if (!current_) {
+      pending_pause_ = true;
+      return true;
+    }
+    handle = current_;
+  }
+  std::scoped_lock op_lock(handle->mutex);
+  return handle->op != nullptr && handle->op->Pause();
+}
+
+bool ControllerBinding::Resume() {
+  std::shared_ptr<RestOperation::OperationHandle> handle;
+  {
+    std::scoped_lock lock(mutex_);
+    if (!current_) {
+      const bool was_pending = pending_pause_;
+      pending_pause_ = false;
+      return was_pending;
+    }
+    handle = current_;
+  }
+  std::scoped_lock op_lock(handle->mutex);
+  return handle->op != nullptr && handle->op->Resume();
+}
+
+bool ControllerBinding::IsPaused() const {
+  std::shared_ptr<RestOperation::OperationHandle> handle;
+  {
+    std::scoped_lock lock(mutex_);
+    if (!current_) {
+      return pending_pause_;
+    }
+    handle = current_;
+  }
+  std::scoped_lock op_lock(handle->mutex);
+  return handle->op != nullptr && handle->op->is_paused();
 }
 
 void ControllerBinding::MarkFinished() {
@@ -204,21 +260,17 @@ void ControllerInternal::Assign(State&& state) noexcept {
   }
 }
 
-std::shared_ptr<RestOperation::OperationHandle>
-ControllerInternal::CurrentHandle() const {
+bool ControllerInternal::Pause() {
   std::shared_ptr<ControllerBinding> binding;
+  std::shared_ptr<RestOperation::OperationHandle> handle;
   {
     std::scoped_lock lock(mutex_);
-    if (!binding_) {
-      return op_handle_;
-    }
     binding = binding_;
+    handle = op_handle_;
   }
-  return binding->current();
-}
-
-bool ControllerInternal::Pause() {
-  std::shared_ptr<RestOperation::OperationHandle> handle = CurrentHandle();
+  if (binding) {
+    return binding->Pause();
+  }
   if (!handle) {
     return false;
   }
@@ -227,7 +279,16 @@ bool ControllerInternal::Pause() {
 }
 
 bool ControllerInternal::Resume() {
-  std::shared_ptr<RestOperation::OperationHandle> handle = CurrentHandle();
+  std::shared_ptr<ControllerBinding> binding;
+  std::shared_ptr<RestOperation::OperationHandle> handle;
+  {
+    std::scoped_lock lock(mutex_);
+    binding = binding_;
+    handle = op_handle_;
+  }
+  if (binding) {
+    return binding->Resume();
+  }
   if (!handle) {
     return false;
   }
@@ -254,7 +315,16 @@ bool ControllerInternal::Cancel() {
 }
 
 bool ControllerInternal::is_paused() const {
-  std::shared_ptr<RestOperation::OperationHandle> handle = CurrentHandle();
+  std::shared_ptr<ControllerBinding> binding;
+  std::shared_ptr<RestOperation::OperationHandle> handle;
+  {
+    std::scoped_lock lock(mutex_);
+    binding = binding_;
+    handle = op_handle_;
+  }
+  if (binding) {
+    return binding->IsPaused();
+  }
   if (!handle) {
     return false;
   }

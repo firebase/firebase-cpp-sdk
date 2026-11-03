@@ -96,10 +96,17 @@ void ListenerInternal::NotifyProgress(Controller* controller) {
   NotifyProgress(std::shared_ptr<SharedState>(state_), controller);
 }
 
-void ListenerInternal::NotifyProgress(std::shared_ptr<SharedState> state,
-                                      Controller* controller) {
+void ListenerInternal::NotifyProgress(
+    std::shared_ptr<SharedState> state, Controller* controller,
+    const RestOperation::OperationHandle* expected_handle) {
   if (!state || !controller) {
     return;
+  }
+  if (expected_handle != nullptr) {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    if (state->op_handle.get() != expected_handle) {
+      return;  // Detached, or re-attached to a different operation.
+    }
   }
   // Sample the byte counts BEFORE taking state->mutex. Reading them goes
   // through ControllerInternal, which locks the operation's
@@ -114,7 +121,9 @@ void ListenerInternal::NotifyProgress(std::shared_ptr<SharedState> state,
   const std::thread::id self_id = std::this_thread::get_id();
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    if (!state->listener) {
+    if (!state->listener ||
+        (expected_handle != nullptr &&
+         state->op_handle.get() != expected_handle)) {
       return;
     }
     // Progress is monotonic. Since the counts were sampled outside the lock,

@@ -62,9 +62,12 @@ class ListenerInternal {
 
   // Takes `state` by value so the shared state stays alive (and is never
   // reached through a reference into a ListenerInternal) even if the user
-  // callback destroys the ListenerInternal.
-  static void NotifyProgress(std::shared_ptr<SharedState> state,
-                             Controller* controller);
+  // callback destroys the ListenerInternal. If `expected_handle` is non-null,
+  // the update is dropped unless the listener is still attached to that
+  // operation (used for notifications delivered asynchronously).
+  static void NotifyProgress(
+      std::shared_ptr<SharedState> state, Controller* controller,
+      const RestOperation::OperationHandle* expected_handle = nullptr);
 
   // Notify the listener that the operation was paused.
   void NotifyPaused(Controller* controller);

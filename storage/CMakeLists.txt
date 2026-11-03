@@ -54,6 +54,7 @@ set(ios_SRCS
 
 # Source files used by the desktop implementation.
 set(desktop_SRCS
+    src/desktop/callback_dispatcher.cc
     src/desktop/controller_desktop.cc
     src/desktop/curl_requests.cc
     src/desktop/listener_desktop.cc

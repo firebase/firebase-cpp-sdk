@@ -29,6 +29,7 @@
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "storage/src/desktop/callback_dispatcher.h"
 #include "storage/src/desktop/storage_path.h"
 #include "storage/src/include/firebase/storage/common.h"
 
@@ -168,6 +169,11 @@ class StorageInternal {
     return scheme_;
   }
 
+  // Dispatcher that runs storage Listener callbacks off the curl I/O thread.
+  // Shut down at the start of ~StorageInternal(), after which posted
+  // callbacks are dropped.
+  CallbackDispatcher& listener_dispatcher() { return listener_dispatcher_; }
+
  private:
   // Clean up completed operations.
   void CleanupCompletedOperations();
@@ -207,6 +213,7 @@ class StorageInternal {
   std::string scheme_ = "https";
   int port_ = 443;
   bool configured_ = false;
+  CallbackDispatcher listener_dispatcher_;
 };
 
 // Registers the calling thread in LifetimeToken::active_users for the

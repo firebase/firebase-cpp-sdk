@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <future>
 #include <map>
 #include <memory>
 #include <string>
@@ -26,6 +28,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "storage/src/common/list_result_internal.h"
+#include "storage/src/desktop/callback_dispatcher.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/listener_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
@@ -404,6 +407,76 @@ TEST_F(StorageDesktopUtilsTests, testPublicApiValueSemanticsAndValidation) {
   StorageListResult copied_list(valid_list);
   EXPECT_TRUE(copied_list.is_valid());
   EXPECT_EQ(copied_list.next_page_token(), "next-tok");
+}
+
+TEST_F(StorageDesktopUtilsTests, testCallbackDispatcherOrderingAndShutdown) {
+  firebase::storage::internal::CallbackDispatcher dispatcher;
+  std::vector<int> order;
+  std::promise<void> done;
+  for (int i = 0; i < 5; ++i) {
+    EXPECT_TRUE(dispatcher.Post([&order, i]() { order.push_back(i); }));
+  }
+  EXPECT_TRUE(dispatcher.Post([&done, &dispatcher]() {
+    EXPECT_TRUE(dispatcher.IsWorkerThread());
+    done.set_value();
+  }));
+  done.get_future().wait();
+  EXPECT_EQ(order, (std::vector<int>{0, 1, 2, 3, 4}));
+  EXPECT_FALSE(dispatcher.IsWorkerThread());
+  dispatcher.Shutdown();
+  EXPECT_FALSE(dispatcher.Post([]() {}));
+  dispatcher.Shutdown();  // Idempotent.
+}
+
+TEST_F(StorageDesktopUtilsTests, testCallbackDispatcherDestroyedFromCallback) {
+  // A callback may destroy its own dispatcher (as when a Listener deletes its
+  // Storage): the worker detaches instead of joining itself.
+  auto* dispatcher = new firebase::storage::internal::CallbackDispatcher();
+  std::promise<void> destroyed;
+  ASSERT_TRUE(dispatcher->Post([dispatcher, &destroyed]() {
+    delete dispatcher;
+    destroyed.set_value();
+  }));
+  EXPECT_EQ(destroyed.get_future().wait_for(std::chrono::seconds(10)),
+            std::future_status::ready);
+}
+
+TEST_F(StorageDesktopUtilsTests, testStorageReferenceHandlesAcrossStorageDeletion) {
+  std::unique_ptr<App> app(firebase::testing::CreateApp());
+  firebase::InitResult init_result;
+  Storage* storage =
+      Storage::GetInstance(app.get(), "gs://handle-bucket", &init_result);
+  ASSERT_NE(storage, nullptr);
+  StorageReference root = storage->GetReference();
+  StorageReference child = root.Child("a/b.txt");
+  StorageReference copied(child);
+  StorageReference moved(std::move(copied));
+  EXPECT_FALSE(copied.is_valid());
+  EXPECT_TRUE(moved.is_valid());
+  StorageReference assigned;
+  assigned = moved;
+  EXPECT_EQ(assigned.full_path(), "/a/b.txt");
+  StorageReference move_assigned;
+  move_assigned = std::move(assigned);
+  EXPECT_FALSE(assigned.is_valid());
+  EXPECT_EQ(move_assigned.full_path(), "/a/b.txt");
+  {
+    // Released while the Storage is alive: unregistered and deleted.
+    StorageReference temp = root.Child("temp");
+    EXPECT_TRUE(temp.is_valid());
+  }
+
+  delete storage;
+  // Every surviving handle was invalidated by the Storage's cleanup, and can
+  // still be copied, moved and destroyed safely.
+  EXPECT_FALSE(root.is_valid());
+  EXPECT_FALSE(child.is_valid());
+  EXPECT_FALSE(moved.is_valid());
+  EXPECT_FALSE(move_assigned.is_valid());
+  StorageReference after_copy(child);
+  StorageReference after_move(std::move(moved));
+  EXPECT_FALSE(after_copy.is_valid());
+  EXPECT_FALSE(after_move.is_valid());
 }
 
 }  // namespace

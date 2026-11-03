@@ -88,6 +88,13 @@ StorageInternal::~StorageInternal() {
     lifetime_token_->cv.notify_all();
   }
 
+  // No Listener callback starts once destruction has begun. If this runs on
+  // the dispatcher's own thread (a Listener deleted its Storage or App), the
+  // dispatcher detaches and that thread exits once the callback returns; it
+  // never holds curl transport state, so the teardown below cannot block on
+  // it.
+  listener_dispatcher_.Shutdown();
+
   // Cancel any active operations so in-flight requests wake up immediately.
   {
     std::vector<std::shared_ptr<RestOperation::OperationHandle>> handles;
