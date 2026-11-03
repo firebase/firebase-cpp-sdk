@@ -21,6 +21,8 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "app/rest/controller_curl.h"
 #include "app/rest/curl/curl_global.h"
@@ -77,6 +79,10 @@ class RestTransfer final : public curl::Transfer {
   // Any thread, only when the loop is no longer running (PostIfRunning()
   // failed): fails the response as canceled and destroys this object.
   void AbortWithoutLoop();
+  // I/O thread only. Detaches this transfer from its owning TransportCurl,
+  // Request, and Response when ~TransportCurl() / WaitForAllTransfersToComplete
+  // is invoked on the I/O thread itself (e.g. from inside a progress callback).
+  void AbandonOnIoThread();
 
   // curl::Transfer:
   CURL* easy() override { return easy_.get(); }
@@ -89,6 +95,7 @@ class RestTransfer final : public curl::Transfer {
   bool Setup();
   void CheckOk(CURLcode code, const char* msg);
   void CompleteOperation();
+  void DetachControl();
   // Unregisters this transfer and destroys it.
   void Finish();
 
@@ -124,6 +131,9 @@ class RestTransfer final : public curl::Transfer {
   // Set when Request::ReadBody() asked to abort the upload, so that the
   // resulting CURLE_ABORTED_BY_CALLBACK is not mistaken for a cancellation.
   bool read_aborted_;
+  bool started_;
+  bool in_callback_;
+  bool abandoned_;
 };
 
 namespace {
@@ -135,15 +145,72 @@ std::atomic<uint64_t> g_next_transfer_id{1};
 
 // Transfers that have been started and not yet finished, keyed by transfer_id
 // so that Cancel/Pause/Resume requests can find them without ABA hazards.
-// I/O thread only. Intentionally leaked for static destruction safety.
-std::unordered_map<uint64_t, RestTransfer*>* g_active_transfers =
-    new std::unordered_map<uint64_t, RestTransfer*>();
+// I/O thread only. Wrapped in function-local statics for SIOF and static
+// destruction safety.
+std::unordered_map<uint64_t, RestTransfer*>& ActiveTransfers() {
+  static auto* transfers = new std::unordered_map<uint64_t, RestTransfer*>();
+  return *transfers;
+}
+
+// Transfers abandoned while a curl callback was on the stack on the I/O thread.
+// I/O thread only.
+std::unordered_map<uint64_t, RestTransfer*>& AbandonedTransfers() {
+  static auto* transfers = new std::unordered_map<uint64_t, RestTransfer*>();
+  return *transfers;
+}
+
+// Per-TransportCurl map of live transfers (from creation in PerformInternal
+// until ~RestTransfer or AbandonOnIoThread), guarded by LiveTransfersMutex().
+Mutex& LiveTransfersMutex() {
+  static auto* m = new Mutex();
+  return *m;
+}
+
+std::unordered_map<TransportCurl*, std::unordered_map<uint64_t, RestTransfer*>>&
+LiveTransfersByTransport() {
+  static auto* map = new std::unordered_map<
+      TransportCurl*, std::unordered_map<uint64_t, RestTransfer*>>();
+  return *map;
+}
+
+void RegisterLiveTransfer(TransportCurl* transport, uint64_t transfer_id,
+                          RestTransfer* transfer) {
+  MutexLock lock(LiveTransfersMutex());
+  LiveTransfersByTransport()[transport][transfer_id] = transfer;
+}
+
+void UnregisterLiveTransfer(TransportCurl* transport, uint64_t transfer_id) {
+  if (!transport) return;
+  MutexLock lock(LiveTransfersMutex());
+  auto it = LiveTransfersByTransport().find(transport);
+  if (it != LiveTransfersByTransport().end()) {
+    it->second.erase(transfer_id);
+    if (it->second.empty()) {
+      LiveTransfersByTransport().erase(it);
+    }
+  }
+}
+
+std::vector<RestTransfer*> TakeLiveTransfers(TransportCurl* transport) {
+  std::vector<RestTransfer*> result;
+  MutexLock lock(LiveTransfersMutex());
+  auto it = LiveTransfersByTransport().find(transport);
+  if (it != LiveTransfersByTransport().end()) {
+    result.reserve(it->second.size());
+    for (const auto& kv : it->second) {
+      result.push_back(kv.second);
+    }
+    LiveTransfersByTransport().erase(it);
+  }
+  return result;
+}
 
 // I/O thread only.
 RestTransfer* FindActiveTransfer(TransportCurl* transport,
                                  uint64_t transfer_id) {
-  auto it = g_active_transfers->find(transfer_id);
-  if (it == g_active_transfers->end()) return nullptr;
+  auto& active = ActiveTransfers();
+  auto it = active.find(transfer_id);
+  if (it == active.end()) return nullptr;
   // Pointer comparison only: `transport` may already be destroyed.
   if (it->second->transport() != transport) return nullptr;
   return it->second;
@@ -186,16 +253,17 @@ RestTransfer::RestTransfer(
       err_code_(CURLE_OK),
       canceled_(false),
       timed_out_(false),
-      read_aborted_(false) {
+      read_aborted_(false),
+      started_(false),
+      in_callback_(false),
+      abandoned_(false) {
   assert(transport_);
   assert(request_);
   assert(response_);
   err_buf_[0] = '\0';
 }
 
-RestTransfer::~RestTransfer() {
-  // Detach from the shared controller state first: after this point the
-  // controller knows the transfer is no longer active.
+void RestTransfer::DetachControl() {
   if (control_) {
     {
       MutexLock lock(control_->mutex);
@@ -205,6 +273,12 @@ RestTransfer::~RestTransfer() {
     }
     control_.reset();
   }
+}
+
+RestTransfer::~RestTransfer() {
+  // Detach from the shared controller state first: after this point the
+  // controller knows the transfer is no longer active.
+  DetachControl();
 
   // The handle is detached from the multi handle by now. Destroy the easy
   // handle and header list before SignalTransferComplete() below.
@@ -212,6 +286,9 @@ RestTransfer::~RestTransfer() {
     curl::SetOpt(easy_.get(), CURLOPT_ERRORBUFFER, static_cast<char*>(nullptr));
     curl::SetOpt(easy_.get(), CURLOPT_HTTPHEADER,
                  static_cast<curl_slist*>(nullptr));
+    curl::SetOpt(easy_.get(), CURLOPT_HEADERDATA, static_cast<void*>(nullptr));
+    curl::SetOpt(easy_.get(), CURLOPT_WRITEDATA, static_cast<void*>(nullptr));
+    curl::SetOpt(easy_.get(), CURLOPT_READDATA, static_cast<void*>(nullptr));
     curl::SetOpt(easy_.get(), CURLOPT_XFERINFODATA,
                  static_cast<void*>(nullptr));
     easy_.reset();
@@ -220,22 +297,30 @@ RestTransfer::~RestTransfer() {
 
   TransportCurl* transport = transport_;
   transport_ = nullptr;
-  if (is_async_) {
-    // If this is an asynchronous operation, MarkFailed() or MarkCompleted()
-    // could end up attempting to tear down TransportCurl so we signal
-    // completion here. Nothing below may touch `transport`.
-    transport->SignalTransferComplete();
+  UnregisterLiveTransfer(transport, transfer_id_);
+  if (transport != nullptr) {
+    if (is_async_) {
+      // If this is an asynchronous operation, MarkFailed() or MarkCompleted()
+      // could end up attempting to tear down TransportCurl so we signal
+      // completion here. Nothing below may touch `transport`.
+      transport->SignalTransferComplete();
+      CompleteOperation();
+    } else {
+      // Synchronous operations need all data present in the response before
+      // Perform() returns so signal complete after MarkFailed() or
+      // MarkCompleted().
+      CompleteOperation();
+      transport->SignalTransferComplete();
+    }
+  } else if (!abandoned_) {
     CompleteOperation();
-  } else {
-    // Synchronous operations need all data present in the response before
-    // Perform() returns so signal complete after MarkFailed() or
-    // MarkCompleted().
-    CompleteOperation();
-    transport->SignalTransferComplete();
   }
 }
 
 void RestTransfer::CompleteOperation() {
+  if (abandoned_ || request_ == nullptr || response_ == nullptr) {
+    return;
+  }
   if (canceled_) {
     response_->set_status(rest::util::HttpNoContent);
     request_->MarkFailed();
@@ -266,34 +351,52 @@ void RestTransfer::CheckOk(CURLcode code, const char* msg) {
 size_t RestTransfer::HeaderCallback(char* buffer, size_t size, size_t nitems,
                                     void* userdata) {
   FIREBASE_ASSERT_RETURN(0, userdata != nullptr);
-  Response* response = static_cast<Response*>(userdata);
-  // Size is always 1, see https://curl.haxx.se/mail/lib-2010-12/0123.html.
-  if (response->ProcessHeader(buffer, size * nitems)) {
-    return size * nitems;
-  } else {
+  RestTransfer* transfer = static_cast<RestTransfer*>(userdata);
+  if (transfer->abandoned_ || transfer->response_ == nullptr) {
     return 0;
   }
+  // Size is always 1, see https://curl.haxx.se/mail/lib-2010-12/0123.html.
+  transfer->in_callback_ = true;
+  const bool ok = transfer->response_->ProcessHeader(buffer, size * nitems);
+  transfer->in_callback_ = false;
+  if (transfer->abandoned_ || !ok) {
+    return 0;
+  }
+  return size * nitems;
 }
 
 size_t RestTransfer::WriteCallback(char* buffer, size_t size, size_t nmemb,
                                    void* userdata) {
   FIREBASE_ASSERT_RETURN(0, userdata != nullptr);
-  Response* response = static_cast<Response*>(userdata);
-  // Size is always 1, see https://curl.haxx.se/mail/lib-2010-12/0123.html.
-  if (response->ProcessBody(buffer, size * nmemb)) {
-    return size * nmemb;
-  } else {
+  RestTransfer* transfer = static_cast<RestTransfer*>(userdata);
+  if (transfer->abandoned_ || transfer->response_ == nullptr) {
     return 0;
   }
+  // Size is always 1, see https://curl.haxx.se/mail/lib-2010-12/0123.html.
+  transfer->in_callback_ = true;
+  const bool ok = transfer->response_->ProcessBody(buffer, size * nmemb);
+  transfer->in_callback_ = false;
+  if (transfer->abandoned_ || !ok) {
+    return 0;
+  }
+  return size * nmemb;
 }
 
 size_t RestTransfer::ReadCallback(char* buffer, size_t size, size_t nitems,
                                   void* userdata) {
   FIREBASE_ASSERT_RETURN(0, userdata != nullptr);
   RestTransfer* transfer = static_cast<RestTransfer*>(userdata);
+  if (transfer->abandoned_ || transfer->request_ == nullptr) {
+    return CURL_READFUNC_ABORT;
+  }
   bool abort = false;
+  transfer->in_callback_ = true;
   size_t data_read =
       transfer->request_->ReadBody(buffer, size * nitems, &abort);
+  transfer->in_callback_ = false;
+  if (transfer->abandoned_) {
+    return CURL_READFUNC_ABORT;
+  }
   if (abort) {
     transfer->read_aborted_ = true;
     return CURL_READFUNC_ABORT;
@@ -306,6 +409,7 @@ int RestTransfer::ProgressCallback(void* userdata, curl_off_t dltotal,
                                    curl_off_t ulnow) {
   RestTransfer* transfer = static_cast<RestTransfer*>(userdata);
   if (transfer == nullptr) return 0;
+  if (transfer->abandoned_) return 1;
   ControllerCurl::TransferControl* control = transfer->control_.get();
   if (control) {
     switch (control->direction) {
@@ -357,12 +461,11 @@ bool RestTransfer::Setup() {
   // Set callback functions.
   CheckOk(curl::SetOpt(easy, CURLOPT_HEADERFUNCTION, &HeaderCallback),
           "set http header callback");
-  CheckOk(
-      curl::SetOpt(easy, CURLOPT_HEADERDATA, static_cast<void*>(response_)),
-      "set http header callback data");
+  CheckOk(curl::SetOpt(easy, CURLOPT_HEADERDATA, static_cast<void*>(this)),
+          "set http header callback data");
   CheckOk(curl::SetOpt(easy, CURLOPT_WRITEFUNCTION, &WriteCallback),
           "set http body write callback");
-  CheckOk(curl::SetOpt(easy, CURLOPT_WRITEDATA, static_cast<void*>(response_)),
+  CheckOk(curl::SetOpt(easy, CURLOPT_WRITEDATA, static_cast<void*>(this)),
           "set http body write callback data");
   CheckOk(curl::SetOpt(easy, CURLOPT_READFUNCTION, &ReadCallback),
           "set http body read callback");
@@ -504,7 +607,12 @@ bool RestTransfer::Setup() {
 }
 
 void RestTransfer::Start() {
-  (*g_active_transfers)[transfer_id_] = this;
+  if (abandoned_) {
+    delete this;
+    return;
+  }
+  started_ = true;
+  ActiveTransfers()[transfer_id_] = this;
   if (Setup()) {
     CURLMcode code = curl::CurlIoLoop::Get().Add(*this);
     if (code == CURLM_OK) return;  // OnDone() will finish the transfer.
@@ -514,12 +622,26 @@ void RestTransfer::Start() {
   }
   // If any error happens during the setup, we do not perform the http request
   // and fail the response immediately instead.
-  response_->set_sdk_error_code(err_code_);
+  if (response_ != nullptr) {
+    response_->set_sdk_error_code(err_code_);
+  }
   canceled_ = true;
   Finish();
 }
 
 void RestTransfer::Cancel() {
+  if (in_callback_) {
+    // Cannot remove/destroy the easy handle while curl_multi_perform() is on
+    // the stack inside HeaderCallback/WriteCallback/ReadCallback; defer to the
+    // next pass of RunPosted().
+    const uint64_t id = transfer_id_;
+    TransportCurl* transport = transport_;
+    curl::CurlIoLoop::PostIfRunning([transport, id]() {
+      RestTransfer* transfer = FindActiveTransfer(transport, id);
+      if (transfer) transfer->Cancel();
+    });
+    return;
+  }
   if (easy_) {
     curl::CurlIoLoop::Get().Remove(*this);
   }
@@ -541,29 +663,70 @@ void RestTransfer::Resume() {
 
 void RestTransfer::AbortWithoutLoop() {
   canceled_ = true;
-  // Not registered in g_active_transfers (Start() never ran), so just
+  // Not registered in ActiveTransfers() (Start() never ran), so just
   // complete and destroy.
   delete this;
 }
 
-void RestTransfer::OnDone(CURLcode result) {
-  if (result == CURLE_OPERATION_TIMEDOUT) {
-    timed_out_ = true;
-  } else if (result == CURLE_ABORTED_BY_CALLBACK && !read_aborted_) {
-    // The I/O loop is shutting down with this transfer still in flight.
-    canceled_ = true;
+void RestTransfer::AbandonOnIoThread() {
+  DetachControl();
+  abandoned_ = true;
+  transport_ = nullptr;
+  request_ = nullptr;
+  response_ = nullptr;
+  ActiveTransfers().erase(transfer_id_);
+  if (!started_) {
+    // Start() is queued in CurlIoLoop::posted_ and will delete `this` when
+    // it sees abandoned_ == true.
+    return;
   }
-  if (result != CURLE_OK) {
-    response_->set_sdk_error_code(result);
-    LogDebug("transfer to %s finished with curl error (%d) %s: %s",
-             request_->options().url.c_str(), static_cast<int>(result),
-             curl_easy_strerror(result), err_buf_);
+  if (!in_callback_) {
+    if (easy_) {
+      curl::CurlIoLoop::Get().Remove(*this);
+    }
+    delete this;
+    return;
+  }
+  // Currently inside a curl callback on the I/O thread stack. Register in
+  // AbandonedTransfers() so either OnDone() (in DispatchDone/AbortAllTransfers)
+  // or the posted cleanup lambda below deletes `this` once curl_multi_perform
+  // unwinds.
+  const uint64_t id = transfer_id_;
+  AbandonedTransfers()[id] = this;
+  curl::CurlIoLoop::PostIfRunning([id]() {
+    auto it = AbandonedTransfers().find(id);
+    if (it != AbandonedTransfers().end()) {
+      RestTransfer* transfer = it->second;
+      AbandonedTransfers().erase(it);
+      if (transfer->easy()) {
+        curl::CurlIoLoop::Get().Remove(*transfer);
+      }
+      delete transfer;
+    }
+  });
+}
+
+void RestTransfer::OnDone(CURLcode result) {
+  if (!abandoned_ && response_ != nullptr && request_ != nullptr) {
+    if (result == CURLE_OPERATION_TIMEDOUT) {
+      timed_out_ = true;
+    } else if (result == CURLE_ABORTED_BY_CALLBACK && !read_aborted_) {
+      // The I/O loop is shutting down with this transfer still in flight.
+      canceled_ = true;
+    }
+    if (result != CURLE_OK) {
+      response_->set_sdk_error_code(result);
+      LogDebug("transfer to %s finished with curl error (%d) %s: %s",
+               request_->options().url.c_str(), static_cast<int>(result),
+               curl_easy_strerror(result), err_buf_);
+    }
   }
   Finish();
 }
 
 void RestTransfer::Finish() {
-  g_active_transfers->erase(transfer_id_);
+  ActiveTransfers().erase(transfer_id_);
+  AbandonedTransfers().erase(transfer_id_);
   delete this;
 }
 
@@ -572,7 +735,10 @@ void RestTransfer::Finish() {
 // ---------------------------------------------------------------------------
 
 TransportCurl::TransportCurl()
-    : is_async_(false), running_transfers_(0), running_transfers_semaphore_(0) {}
+    : is_async_(false),
+      running_transfers_(0),
+      waiting_threads_(0),
+      running_transfers_semaphore_(0) {}
 
 TransportCurl::~TransportCurl() { WaitForAllTransfersToComplete(); }
 
@@ -605,6 +771,7 @@ void TransportCurl::PerformInternal(
   }
   RestTransfer* transfer = new RestTransfer(
       this, transfer_id, is_async, request, response, std::move(control));
+  RegisterLiveTransfer(this, transfer_id, transfer);
   if (!curl::CurlIoLoop::PostIfRunning(
           [transfer]() { transfer->Start(); })) {
     // The loop has already stopped (Perform() after CleanupTransportCurl()).
@@ -669,28 +836,54 @@ void TransportCurl::ResumeRequest(uint64_t transfer_id) {
 
 void TransportCurl::SignalTransferComplete() {
   MutexLock lock(running_transfers_mutex_);
-  if (running_transfers_) {
+  if (running_transfers_ > 0) {
     running_transfers_--;
-    running_transfers_semaphore_.Post();
+    if (running_transfers_ == 0 && waiting_threads_ > 0) {
+      const int to_wake = waiting_threads_;
+      waiting_threads_ = 0;
+      for (int i = 0; i < to_wake; ++i) {
+        running_transfers_semaphore_.Post();
+      }
+    }
   }
 }
 
 void TransportCurl::WaitForAllTransfersToComplete() {
+  if (curl::CurlIoLoop::IsOnIoThreadCurrent()) {
+    // Called on the CurlIoLoop worker thread itself (e.g. a progress or
+    // completion listener destroying the owning RestOperation/TransportCurl).
+    // Waiting on running_transfers_semaphore_ here would self-deadlock the
+    // I/O thread; instead detach and abandon any in-flight transfers for this
+    // transport on the I/O thread immediately.
+    int to_wake = 0;
+    {
+      MutexLock lock(running_transfers_mutex_);
+      if (running_transfers_ == 0) {
+        return;
+      }
+      running_transfers_ = 0;
+      to_wake = waiting_threads_;
+      waiting_threads_ = 0;
+      for (int i = 0; i < to_wake; ++i) {
+        running_transfers_semaphore_.Post();
+      }
+    }
+    std::vector<RestTransfer*> live = TakeLiveTransfers(this);
+    for (RestTransfer* transfer : live) {
+      if (transfer != nullptr) {
+        transfer->AbandonOnIoThread();
+      }
+    }
+    return;
+  }
+
   for (;;) {
     {
       MutexLock lock(running_transfers_mutex_);
       if (running_transfers_ == 0) break;
+      waiting_threads_++;
     }
     running_transfers_semaphore_.Wait();
-    {
-      MutexLock lock(running_transfers_mutex_);
-      if (running_transfers_ == 0) {
-        // Re-post so any additional concurrent waiters also wake and observe
-        // running_transfers_ == 0 instead of blocking forever.
-        running_transfers_semaphore_.Post();
-        break;
-      }
-    }
   }
 }
 

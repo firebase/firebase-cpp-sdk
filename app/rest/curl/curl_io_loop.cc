@@ -36,22 +36,28 @@ namespace {
 // ever wakes when there is something to do.
 constexpr int kPollTimeoutMs = 1000;
 
-// Singleton state. The mutexes are intentionally leaked so they stay valid
-// during static destruction, matching the other process-wide mutexes in
-// app/rest.
-// g_loop_mutex serializes Acquire() and Release() lifecycle transitions.
-Mutex* g_loop_mutex = new Mutex();
-// g_post_mutex is a leaf lock (never held across thread_.Join() or user
+// Singleton state. The mutexes are wrapped in C++17 thread-safe function-local
+// statics to avoid Static Initialization Order Fiasco (SIOF) and intentionally
+// leaked so they stay valid during static destruction.
+// LoopMutex() serializes Acquire() and Release() lifecycle transitions.
+Mutex& LoopMutex() {
+  static auto* m = new Mutex();
+  return *m;
+}
+// PostMutex() is a leaf lock (never held across thread_.Join() or user
 // callbacks) guarding cross-thread PostIfRunning() access to the active loop.
-Mutex* g_post_mutex = new Mutex();
+Mutex& PostMutex() {
+  static auto* m = new Mutex();
+  return *m;
+}
 CurlIoLoop* g_postable_loop = nullptr;
 int g_loop_ref_count = 0;
 // Read lock-free by Get() so the I/O thread itself can call Get() while
-// Release() is joining it under g_loop_mutex.
+// Release() is joining it under LoopMutex().
 std::atomic<CurlIoLoop*> g_loop{nullptr};
 
 // Set on the I/O thread for the duration of Run() so PostIfRunning() and
-// IsOnIoThreadCurrent() can execute without locking g_loop_mutex (which
+// IsOnIoThreadCurrent() can execute without locking LoopMutex() (which
 // Release() holds while joining the I/O thread).
 thread_local CurlIoLoop* g_tls_loop = nullptr;
 
@@ -64,17 +70,14 @@ Transfer::~Transfer() {}
 // ---------------------------------------------------------------------------
 
 void CurlIoLoop::Acquire() {
-  FIREBASE_ASSERT_MESSAGE(
-      g_tls_loop == nullptr,
-      "CurlIoLoop::Acquire() must not be called from the I/O thread");
-  MutexLock lock(*g_loop_mutex);
+  MutexLock lock(LoopMutex());
   if (g_loop_ref_count == 0) {
     FIREBASE_ASSERT(g_loop.load() == nullptr);
     CurlGlobal::Acquire();
     CurlIoLoop* loop = new CurlIoLoop();
     g_loop.store(loop, std::memory_order_release);
     {
-      MutexLock post_lock(*g_post_mutex);
+      MutexLock post_lock(PostMutex());
       g_postable_loop = loop;
     }
   }
@@ -82,10 +85,7 @@ void CurlIoLoop::Acquire() {
 }
 
 void CurlIoLoop::Release() {
-  FIREBASE_ASSERT_MESSAGE(
-      g_tls_loop == nullptr,
-      "CurlIoLoop::Release() must not be called from the I/O thread");
-  MutexLock lock(*g_loop_mutex);
+  MutexLock lock(LoopMutex());
   if (g_loop_ref_count <= 0) {
     LogError("CurlIoLoop::Release() called without matching Acquire()");
     FIREBASE_DEV_ASSERT_MESSAGE(
@@ -94,9 +94,23 @@ void CurlIoLoop::Release() {
   }
   if (--g_loop_ref_count == 0) {
     CurlIoLoop* loop = g_loop.load(std::memory_order_acquire);
-    FIREBASE_ASSERT_MESSAGE(!loop->IsOnIoThread(),
-                            "CurlIoLoop::Release() of the last reference must "
-                            "not be called from the I/O thread");
+    if (loop != nullptr && loop->IsOnIoThread()) {
+      // Released the last reference from a callback running on the I/O thread
+      // itself. We cannot join our own thread; detach the singleton state now
+      // (so a subsequent Acquire() can start a fresh loop) and let Run()
+      // drain, delete `loop`, and release CurlGlobal as soon as it unwinds.
+      {
+        MutexLock post_lock(PostMutex());
+        if (g_postable_loop == loop) {
+          g_postable_loop = nullptr;
+        }
+      }
+      g_loop.store(nullptr, std::memory_order_release);
+      loop->quit_ = true;
+      loop->self_delete_on_exit_ = true;
+      loop->thread_.Detach();
+      return;
+    }
     // ~CurlIoLoop() joins the I/O thread and clears g_postable_loop and g_loop
     // before any member variables are destroyed or memory is freed.
     delete loop;
@@ -105,6 +119,9 @@ void CurlIoLoop::Release() {
 }
 
 CurlIoLoop& CurlIoLoop::Get() {
+  if (g_tls_loop != nullptr) {
+    return *g_tls_loop;
+  }
   CurlIoLoop* loop = g_loop.load(std::memory_order_acquire);
   FIREBASE_ASSERT_MESSAGE(loop != nullptr,
                           "CurlIoLoop::Get() called without a prior "
@@ -129,6 +146,7 @@ CurlIoLoop::CurlIoLoop()
       posted_(),
       stopped_(false),
       quit_(false),
+      self_delete_on_exit_(false),
       transfers_(),
       connect_only_transfers_(),
       extra_fds_(),
@@ -147,17 +165,20 @@ CurlIoLoop::CurlIoLoop()
 }
 
 CurlIoLoop::~CurlIoLoop() {
-  Post([this]() { quit_ = true; });
-  thread_.Join();
+  if (!self_delete_on_exit_) {
+    Post([this]() { quit_ = true; });
+    thread_.Join();
+  }
   // Clear g_postable_loop and g_loop immediately after the I/O thread exits
   // and before any member is destroyed or memory is deallocated.
   {
-    MutexLock post_lock(*g_post_mutex);
+    MutexLock post_lock(PostMutex());
     if (g_postable_loop == this) {
       g_postable_loop = nullptr;
     }
   }
-  g_loop.store(nullptr, std::memory_order_release);
+  CurlIoLoop* expected = this;
+  g_loop.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel);
   // Synchronize with any Post() that observed stopped_ == false (it holds
   // mutex_ while it wakes us) before multi_ is destroyed below.
   MutexLock lock(mutex_);
@@ -190,10 +211,10 @@ bool CurlIoLoop::Post(std::function<void()> fn) {
 
 bool CurlIoLoop::PostIfRunning(std::function<void()> fn) {
   FIREBASE_ASSERT(fn);
-  if (g_tls_loop != nullptr) {
+  if (g_tls_loop != nullptr && !g_tls_loop->self_delete_on_exit_) {
     return g_tls_loop->Post(std::move(fn));
   }
-  MutexLock post_lock(*g_post_mutex);
+  MutexLock post_lock(PostMutex());
   CurlIoLoop* loop = g_postable_loop;
   if (loop == nullptr) {
     return false;
@@ -413,6 +434,7 @@ void CurlIoLoop::Run() {
       LogError("curl_multi_perform() failed: %s", curl_multi_strerror(code));
     }
     DispatchDone();
+    if (quit_) break;
 
     // Sleep until a libcurl socket or timer fires, an extra fd is ready, or
     // Post() wakes us. libcurl clamps the timeout to its own next timer.
@@ -481,6 +503,10 @@ void CurlIoLoop::Run() {
     }
   }
   g_tls_loop = nullptr;
+  if (self_delete_on_exit_) {
+    delete this;
+    CurlGlobal::Release();
+  }
 }
 
 }  // namespace curl

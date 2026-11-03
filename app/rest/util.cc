@@ -49,13 +49,18 @@ const char kGet[] = "GET";
 const char kPost[] = "POST";
 
 // Mutex for utils initialization and distribution of CURL pointers.
-static ::firebase::Mutex* g_util_curl_mutex = new Mutex();
+// Wrapped in a function-local static to prevent Static Initialization Order
+// Fiasco (SIOF) while intentionally leaking for static destruction safety.
+Mutex& UtilCurlMutex() {
+  static auto* m = new Mutex();
+  return *m;
+}
 
 CURL* g_curl_instance = nullptr;
 int g_init_ref_count = 0;
 
 void* CreateCurlPtr() {  // NOLINT
-  MutexLock lock(*g_util_curl_mutex);
+  MutexLock lock(UtilCurlMutex());
   curl::CurlGlobal::Acquire();
   CURL* easy = curl_easy_init();
   if (!easy) {
@@ -66,13 +71,13 @@ void* CreateCurlPtr() {  // NOLINT
 
 void DestroyCurlPtr(void* curl_ptr) {
   if (!curl_ptr) return;
-  MutexLock lock(*g_util_curl_mutex);
+  MutexLock lock(UtilCurlMutex());
   curl_easy_cleanup(static_cast<CURL*>(curl_ptr));
   curl::CurlGlobal::Release();
 }
 
 void Initialize() {
-  MutexLock curl_lock(*g_util_curl_mutex);
+  MutexLock curl_lock(UtilCurlMutex());
   assert(g_init_ref_count >= 0);
   if (g_init_ref_count == 0) {
     curl::CurlGlobal::Acquire();
@@ -82,7 +87,7 @@ void Initialize() {
 }
 
 void Terminate() {
-  MutexLock curl_lock(*g_util_curl_mutex);
+  MutexLock curl_lock(UtilCurlMutex());
   if (g_init_ref_count <= 0) {
     LogError("rest::util::Terminate() called without matching Initialize()");
     FIREBASE_DEV_ASSERT_MESSAGE(
@@ -102,7 +107,7 @@ std::string EncodeUrl(const std::string& path) {
   if (path.empty() || path.length() > static_cast<size_t>(INT_MAX)) {
     return "";
   }
-  MutexLock curl_lock(*g_util_curl_mutex);
+  MutexLock curl_lock(UtilCurlMutex());
   char* encoded_string = curl_easy_escape(
       g_curl_instance, path.c_str(), static_cast<int>(path.length()));
   if (!encoded_string) {
@@ -117,7 +122,7 @@ std::string DecodeUrl(const std::string& path) {
   if (path.empty() || path.length() > static_cast<size_t>(INT_MAX)) {
     return "";
   }
-  MutexLock curl_lock(*g_util_curl_mutex);
+  MutexLock curl_lock(UtilCurlMutex());
   int length = 0;
   char* decoded_string =
       curl_easy_unescape(g_curl_instance, path.c_str(),

@@ -33,10 +33,9 @@
 #define ftello _ftelli64
 
 // Also include files needed for path conversion.
+#include <windows.h>
 #include <wchar.h>  // NOLINT
 
-#include <codecvt>
-#include <locale>
 #include <string>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
@@ -50,10 +49,14 @@ RequestFile::RequestFile(const char* filename, size_t offset)
     : file_(nullptr), file_size_(0), post_fields_size_(0) {
   if (filename) {
 #if FIREBASE_PLATFORM_WINDOWS
-    std::string filename_utf8(filename);
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_utf16;
-    std::wstring filename_utf16 = utf8_to_utf16.from_bytes(filename_utf8);
-    file_ = _wfopen(filename_utf16.c_str(), L"rb");
+    int wide_len = MultiByteToWideChar(CP_UTF8, 0, filename, -1, nullptr, 0);
+    if (wide_len > 0) {
+      std::wstring filename_utf16(static_cast<size_t>(wide_len), L'\0');
+      if (MultiByteToWideChar(CP_UTF8, 0, filename, -1, &filename_utf16[0],
+                              wide_len) > 0) {
+        file_ = _wfopen(filename_utf16.c_str(), L"rb");
+      }
+    }
 #else
     file_ = fopen(filename, "rb");
 #endif

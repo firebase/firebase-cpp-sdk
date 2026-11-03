@@ -773,6 +773,99 @@ TEST_F(TransportCurlTest, HighFileDescriptorsAboveFdSetSizeDoNotStall) {
 }
 #endif  // !defined(_WIN32)
 
+TEST_F(TransportCurlTest,
+       CompletedAsyncTransfersDoNotAccumulateStaleSemaphoreTokens) {
+  auto curl = std::make_unique<TransportCurl>();
+  curl->set_is_async(true);
+
+  // Complete 5 async transfers before any thread calls
+  // WaitForAllTransfersToComplete(). SignalTransferComplete() must NOT bank
+  // extra tokens on running_transfers_semaphore_.
+  for (int i = 0; i < 5; ++i) {
+    Request fast_req;
+    fast_req.set_url(Url("/").c_str());
+    TestResponse fast_resp;
+    curl->Perform(fast_req, &fast_resp);
+    ASSERT_TRUE(fast_resp.Wait());
+    EXPECT_EQ(200, fast_resp.status());
+  }
+
+  // Now start a slow async transfer and immediately destroy TransportCurl.
+  // ~TransportCurl() must genuinely block until the slow transfer finishes.
+  Request slow_req;
+  slow_req.set_url(Url("/slow?ms=300").c_str());
+  TestResponse slow_resp;
+  auto start = std::chrono::steady_clock::now();
+  curl->Perform(slow_req, &slow_resp);
+  curl.reset();
+  auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - start)
+                        .count();
+  EXPECT_GE(elapsed_ms, 250);
+  ASSERT_TRUE(slow_resp.Wait());
+  EXPECT_EQ(200, slow_resp.status());
+}
+
+TEST_F(TransportCurlTest,
+       DestroyingTransportAndCleanupInsideBodyCallbackOnIoThreadDoesNotDeadlock) {
+  struct ReinitGuard {
+    ~ReinitGuard() {
+      if (!curl::CurlIoLoop::IsRunning()) {
+        InitTransportCurl();
+      }
+    }
+  } reinit_guard;
+
+  // Simulates a Storage/Functions callback on the CurlIoLoop thread that
+  // destroys the owning TransportCurl (and even drops the last CurlIoLoop
+  // reference via CleanupTransportCurl()) from inside ProcessBody().
+  class SelfDestroyingBodyResponse : public Response {
+   public:
+    SelfDestroyingBodyResponse(std::unique_ptr<TransportCurl>* transport_slot,
+                               Semaphore* callback_done)
+        : transport_slot_(transport_slot), callback_done_(callback_done) {}
+
+    bool ProcessBody(const char* buffer, size_t length) override {
+      body_seen_.append(buffer, length);
+      if (transport_slot_ && *transport_slot_) {
+        transport_slot_->reset();
+        CleanupTransportCurl();
+        callback_done_->Post();
+      }
+      return false;
+    }
+
+    const std::string& body_seen() const { return body_seen_; }
+
+   private:
+    std::unique_ptr<TransportCurl>* transport_slot_;
+    Semaphore* callback_done_;
+    std::string body_seen_;
+  };
+
+  auto transport = std::make_unique<TransportCurl>();
+  transport->set_is_async(true);
+  Semaphore callback_done(0);
+  Request request;
+  request.set_url(Url("/large?size=65536").c_str());
+  SelfDestroyingBodyResponse response(&transport, &callback_done);
+
+  transport->Perform(request, &response);
+  ASSERT_TRUE(callback_done.TimedWait(5000));
+  EXPECT_EQ(nullptr, transport.get());
+  EXPECT_FALSE(response.body_seen().empty());
+
+  // Re-initialize TransportCurl and verify a subsequent transfer works cleanly.
+  InitTransportCurl();
+  TransportCurl fresh_transport;
+  Request fresh_req;
+  fresh_req.set_url(Url("/").c_str());
+  TestResponse fresh_resp;
+  fresh_transport.Perform(fresh_req, &fresh_resp);
+  EXPECT_EQ(200, fresh_resp.status());
+  EXPECT_STREQ("test", fresh_resp.GetBody());
+}
+
 }  // namespace
 }  // namespace rest
 }  // namespace firebase

@@ -99,11 +99,13 @@ class TransportCurl : public Transport {
   // Whether this request should be made asynchronously.
   std::atomic<bool> is_async_;
 
-  // Guards running_transfers.
+  // Guards running_transfers_ and waiting_threads_.
   Mutex running_transfers_mutex_;
   // Number of ongoing transfers.
   int running_transfers_;
-  // Signaled when a transfer is complete.
+  // Number of threads currently blocked in WaitForAllTransfersToComplete().
+  int waiting_threads_;
+  // Signaled when running_transfers_ drops to 0 while waiting_threads_ > 0.
   Semaphore running_transfers_semaphore_;
 };
 

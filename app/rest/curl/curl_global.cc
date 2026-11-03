@@ -26,15 +26,18 @@ namespace curl {
 
 namespace {
 
-// Intentionally leaked so it is usable during static destruction, matching the
-// other process-wide mutexes in app/rest.
-Mutex* g_global_mutex = new Mutex();
+// Intentionally leaked inside a function-local static so it is safe against
+// both Static Initialization Order Fiasco (SIOF) and static destruction order.
+Mutex& GlobalMutex() {
+  static auto* m = new Mutex();
+  return *m;
+}
 int g_global_ref_count = 0;
 
 }  // namespace
 
 void CurlGlobal::Acquire() {
-  MutexLock lock(*g_global_mutex);
+  MutexLock lock(GlobalMutex());
   if (g_global_ref_count == 0) {
     CURLcode code = curl_global_init(CURL_GLOBAL_ALL);
     FIREBASE_ASSERT_MESSAGE(code == CURLE_OK,
@@ -45,7 +48,7 @@ void CurlGlobal::Acquire() {
 }
 
 void CurlGlobal::Release() {
-  MutexLock lock(*g_global_mutex);
+  MutexLock lock(GlobalMutex());
   FIREBASE_ASSERT_MESSAGE(g_global_ref_count > 0,
                           "CurlGlobal::Release() without matching Acquire()");
   if (--g_global_ref_count == 0) {
@@ -54,7 +57,7 @@ void CurlGlobal::Release() {
 }
 
 int CurlGlobal::ref_count() {
-  MutexLock lock(*g_global_mutex);
+  MutexLock lock(GlobalMutex());
   return g_global_ref_count;
 }
 

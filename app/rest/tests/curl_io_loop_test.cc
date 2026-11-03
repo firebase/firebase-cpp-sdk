@@ -451,6 +451,71 @@ TEST_F(CurlIoLoopTest, ExtraFdGenerationPreventsStaleCallbackWhenReplacedInBatch
   EXPECT_EQ(0, replaced_cb_count.load());
 }
 
+TEST_F(CurlIoLoopTest, ReleaseOnIoThreadWithExtraRefAndOnLastRefDoesNotDeadlockOrAssert) {
+  struct ReinitGuard {
+    ~ReinitGuard() {
+      if (!CurlIoLoop::IsRunning()) {
+        CurlIoLoop::Acquire();
+      }
+    }
+  } reinit_guard;
+
+  // Case 1: Acquire + Release on the I/O thread while the fixture holds a
+  // reference (g_loop_ref_count: 1 -> 2 -> 1). Must not assert or stop the
+  // loop.
+  Semaphore case1_done(0);
+  CurlIoLoop::Get().Post([&]() {
+    EXPECT_TRUE(CurlIoLoop::IsOnIoThreadCurrent());
+    CurlIoLoop::Acquire();
+    CurlIoLoop::Release();
+    EXPECT_TRUE(CurlIoLoop::IsRunning());
+    case1_done.Post();
+  });
+  ASSERT_TRUE(case1_done.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(CurlIoLoop::IsRunning());
+
+  // Case 2: Dropping the last reference (g_loop_ref_count: 1 -> 0) from inside
+  // Transfer::OnDone() on the I/O thread must detach and self-clean cleanly
+  // without self-deadlock or assertion failure, and allow a fresh Acquire().
+  class SelfReleasingTransfer : public TestTransfer {
+   public:
+    SelfReleasingTransfer(const std::string& url, Semaphore* released_sem)
+        : TestTransfer(url), released_sem_(released_sem) {}
+    void OnDone(CURLcode result) override {
+      CurlIoLoop::Get().Post([this]() { follow_up_ran = true; });
+      CurlIoLoop::Release();
+      TestTransfer::OnDone(result);
+      released_sem_->Post();
+    }
+    std::atomic<bool> follow_up_ran{false};
+
+   private:
+    Semaphore* released_sem_;
+  };
+
+  Semaphore released_sem(0);
+  SelfReleasingTransfer transfer(server_->BaseUrl() + "/", &released_sem);
+  CurlIoLoop::Get().Post([&]() {
+    ASSERT_EQ(CURLM_OK, CurlIoLoop::Get().Add(transfer));
+  });
+  ASSERT_TRUE(released_sem.TimedWait(kWaitTimeoutMs));
+  ASSERT_TRUE(transfer.WaitForDone());
+  EXPECT_EQ(CURLE_OK, transfer.result());
+
+  // Wait briefly for the detached I/O thread to finish its shutdown drain,
+  // execute follow_up_ran, and delete itself.
+  for (int i = 0; i < 100 && !transfer.follow_up_ran.load(); ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  EXPECT_TRUE(transfer.follow_up_ran.load());
+  EXPECT_FALSE(CurlIoLoop::IsRunning());
+
+  // Re-acquiring must spin up a healthy new CurlIoLoop instance.
+  CurlIoLoop::Acquire();
+  EXPECT_TRUE(CurlIoLoop::IsRunning());
+  Drain(CurlIoLoop::Get());
+}
+
 }  // namespace
 }  // namespace curl
 }  // namespace rest

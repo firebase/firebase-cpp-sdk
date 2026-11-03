@@ -83,10 +83,9 @@ namespace curl {
 // posts a quit request and joins the thread; any Transfer still registered at
 // that point is removed from the multi handle and receives
 // OnDone(CURLE_ABORTED_BY_CALLBACK) on the I/O thread before Release()
-// returns, so owners blocked waiting for completion are always released.
-//
-// Release() must not be called from the I/O thread itself (it would join
-// itself).
+// returns, so owners blocked waiting for completion are always released. If
+// the last reference is released from the I/O thread itself, the loop detaches
+// and deletes itself once the current iteration drains instead of self-joining.
 class CurlIoLoop {
  public:
   // Reference counting. Thread-safe. Acquire() returns once the I/O thread is
@@ -199,6 +198,7 @@ class CurlIoLoop {
 
   // I/O thread only from here on.
   bool quit_;
+  bool self_delete_on_exit_;
   std::unordered_map<CURL*, Transfer*> transfers_;
   std::unordered_map<CURL*, Transfer*> connect_only_transfers_;
   std::vector<ExtraFd> extra_fds_;
