@@ -1332,8 +1332,7 @@ std::vector<unsigned char> RemoteConfigInternal::GetData(const char* key,
     env->DeleteLocalRef(value_object);
     if (!failed && value_array != nullptr) {
       value = util::JniByteArrayToVector(env, value_array);
-    }
-    if (value_array != nullptr) {
+    } else if (value_array != nullptr) {
       env->DeleteLocalRef(value_array);
     }
     if (info) info->conversion_successful = (!failed && value_array != nullptr);
@@ -1412,7 +1411,6 @@ static Variant RemoteConfigValueToVariant(JNIEnv* env, jobject from) {
   if (!CheckKeyRetrievalLogError(env, "", "vector") && value_array != nullptr) {
     std::vector<unsigned char> blob =
         util::JniByteArrayToVector(env, value_array);
-    env->DeleteLocalRef(value_array);
     return Variant::FromMutableBlob(blob.data(), blob.size());
   }
   if (value_array != nullptr) {
