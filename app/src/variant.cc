@@ -167,11 +167,15 @@ Variant& Variant::operator=(Variant&& other) noexcept {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 static int CompareStrings(const Variant& left, const Variant& right) {
+  const std::string l_buf =
+      left.is_mutable_string() ? left.mutable_string() : std::string();
+  const std::string r_buf =
+      right.is_mutable_string() ? right.mutable_string() : std::string();
   std::string_view l_view = left.is_mutable_string()
-                                ? std::string_view(left.mutable_string())
+                                ? std::string_view(l_buf)
                                 : std::string_view(left.string_value());
   std::string_view r_view = right.is_mutable_string()
-                                ? std::string_view(right.mutable_string())
+                                ? std::string_view(r_buf)
                                 : std::string_view(right.string_value());
   return l_view.compare(r_view);
 }
@@ -594,8 +598,10 @@ Variant Variant::AsBool() const {
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
+      const std::string buf =
+          is_mutable_string() ? mutable_string() : std::string();
       std::string_view sv = is_mutable_string()
-                                ? std::string_view(mutable_string())
+                                ? std::string_view(buf)
                                 : std::string_view(string_value());
       if (sv.empty() || sv == "0") return Variant::False();
       if (sv.size() == 5 && (sv[0] == 'f' || sv[0] == 'F') &&
