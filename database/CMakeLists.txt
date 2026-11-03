@@ -25,13 +25,15 @@ set(common_SRCS
     src/common/mutable_data.cc
     src/common/query.cc)
 
-# Define the resource build needed for Android
-firebase_cpp_gradle(":database:database_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar")
-binary_to_array("database_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar"
-    "firebase_database_resources"
-    "${FIREBASE_GEN_FILE_DIR}/database")
+if(ANDROID)
+  # Define the resource build needed for Android
+  firebase_cpp_gradle(":database:database_resources:generateDexJarRelease"
+      "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar")
+  binary_to_array("database_resources"
+      "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar"
+      "firebase_database_resources"
+      "${FIREBASE_GEN_FILE_DIR}/database")
+endif()
 
 # Source files used by the Android implementation.
 set(android_SRCS
@@ -220,9 +222,9 @@ target_compile_definitions(firebase_database
 if(ANDROID)
   firebase_cpp_proguard_file(database)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
+  # Enable Automatic Reference Counting (ARC) for Objective-C/Objective-C++ sources.
   target_compile_options(firebase_database
-                         PUBLIC "$<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>")
+                         PRIVATE "$<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>")
 
   setup_spm_headers(
     firebase_database

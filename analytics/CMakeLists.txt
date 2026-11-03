@@ -135,10 +135,10 @@ target_compile_definitions(firebase_analytics
 if(ANDROID)
   firebase_cpp_proguard_file(analytics)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode specifically for Objective-C++ files.
-  # Note: -fembed-bitcode is placed here for src/analytics_ios.mm so that it is not passed
-  # to the Swift compiler, which does not support the flag.
-  set_source_files_properties(src/analytics_ios.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc;-fembed-bitcode")
+  # Enable Automatic Reference Counting (ARC) specifically for Objective-C/Objective-C++ files
+  # so that it is not passed to the Swift compiler or leaked to downstream C++ targets.
+  target_compile_options(firebase_analytics
+                         PRIVATE "$<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>")
 
   if(CMAKE_GENERATOR STREQUAL "Xcode")
     target_include_directories(firebase_analytics PRIVATE "$(DERIVED_FILE_DIR)")

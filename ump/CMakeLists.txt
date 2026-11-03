@@ -20,13 +20,15 @@ set(common_SRCS
     src/common/consent_info_internal.cc
 )
 
-# Define the resource build needed for Android
-firebase_cpp_gradle(":ump:ump_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar")
-binary_to_array("ump_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar"
-    "firebase_ump"
-    "${FIREBASE_GEN_FILE_DIR}/ump")
+if(ANDROID)
+  # Define the resource build needed for Android
+  firebase_cpp_gradle(":ump:ump_resources:generateDexJarRelease"
+      "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar")
+  binary_to_array("ump_resources"
+      "${CMAKE_CURRENT_LIST_DIR}/ump_resources/build/ump_resources_lib.jar"
+      "firebase_ump"
+      "${FIREBASE_GEN_FILE_DIR}/ump")
+endif()
 
 # Source files used by the Android implementation.
 set(android_SRCS
@@ -81,11 +83,9 @@ if(ANDROID)
   firebase_cpp_proguard_file(ump)
 elseif(IOS)
   # UMP for iOS uses weak references, which requires enabling Automatic
-  # Reference Counting (ARC). Also enable BitCode.
+  # Reference Counting (ARC) for Objective-C/Objective-C++ sources.
   target_compile_options(firebase_ump
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_ump
-                        PUBLIC "-fembed-bitcode")
+                         PRIVATE "$<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>")
 
   setup_spm_headers(
     firebase_ump

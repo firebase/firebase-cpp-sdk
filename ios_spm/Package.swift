@@ -41,6 +41,7 @@ let package = Package(
                 .product(name: "FirebaseFunctions", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseInstallations", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseMessaging", package: "firebase-ios-sdk"),
+                .product(name: "FirebasePerformance", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseRemoteConfig", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseStorage", package: "firebase-ios-sdk"),
                 .product(name: "GoogleUserMessagingPlatform", package: "swift-package-manager-google-user-messaging-platform"),

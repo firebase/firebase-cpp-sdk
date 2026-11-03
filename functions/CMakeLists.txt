@@ -79,9 +79,9 @@ target_compile_definitions(firebase_functions
 if(ANDROID)
   firebase_cpp_proguard_file(functions)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
+  # Enable Automatic Reference Counting (ARC) for Objective-C/Objective-C++ sources.
   target_compile_options(firebase_functions
-                         PUBLIC "-fobjc-arc")
+                         PRIVATE "$<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>")
 
   setup_spm_headers(
     firebase_functions

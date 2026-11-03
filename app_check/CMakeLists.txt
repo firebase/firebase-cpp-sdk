@@ -26,13 +26,15 @@ set(common_SRCS
   src/include/firebase/app_check/app_attest_provider.h
 )
 
-# Run gradle command to make jar
-firebase_cpp_gradle(":app_check:app_check_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/app_check_resources/build/app_check_resources_lib.jar")
-binary_to_array("app_check_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/app_check_resources/build/app_check_resources_lib.jar"
-    "firebase_app_check"
-    "${FIREBASE_GEN_FILE_DIR}/app_check")
+if(ANDROID)
+  # Run gradle command to make jar
+  firebase_cpp_gradle(":app_check:app_check_resources:generateDexJarRelease"
+      "${CMAKE_CURRENT_LIST_DIR}/app_check_resources/build/app_check_resources_lib.jar")
+  binary_to_array("app_check_resources"
+      "${CMAKE_CURRENT_LIST_DIR}/app_check_resources/build/app_check_resources_lib.jar"
+      "firebase_app_check"
+      "${FIREBASE_GEN_FILE_DIR}/app_check")
+endif()
 
 # Source files used by the Android implementation.
 set(android_SRCS
@@ -165,11 +167,9 @@ target_compile_definitions(firebase_app_check
 if(ANDROID)
   firebase_cpp_proguard_file(app_check)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  # Enable Automatic Reference Counting (ARC) for Objective-C/Objective-C++ sources.
   target_compile_options(firebase_app_check
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_app_check
-                        PUBLIC "-fembed-bitcode")
+                         PRIVATE "$<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>")
 
   setup_spm_headers(
     firebase_app_check

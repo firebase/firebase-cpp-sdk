@@ -109,6 +109,18 @@ def addProguard(String lib) {
     "${gradle.firebase_cpp_sdk_dir}/libs/android/${lib}.pro")
 }
 
+// Substitute Kotlin Multiplatform AndroidX DataStore modules (pulled in by
+// firebase-bom:35.1.0 / firebase-common:23.0.0) with their explicit -android
+// AAR variants so pure-Java AGP projects do not resolve the -jvm JARs.
+project.configurations.all {
+  resolutionStrategy.dependencySubstitution {
+    substitute module('androidx.datastore:datastore-preferences') using module('androidx.datastore:datastore-preferences-android:1.1.7')
+    substitute module('androidx.datastore:datastore') using module('androidx.datastore:datastore-android:1.1.7')
+    substitute module('androidx.datastore:datastore-core') using module('androidx.datastore:datastore-core-android:1.1.7')
+    substitute module('androidx.datastore:datastore-preferences-core') using module('androidx.datastore:datastore-preferences-core-android:1.1.7')
+  }
+}
+
 project.afterEvaluate {
   if (!firebaseCpp.dependencies.libSet.isEmpty()) {
     // App is required, so add it if it wasn't included.

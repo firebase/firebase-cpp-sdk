@@ -117,11 +117,9 @@ if(ANDROID)
     OBJECT_OUTPUTS "${FIREBASE_MESSAGING_JAVA_AAR_PATH}"
   )
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  # Enable Automatic Reference Counting (ARC) for Objective-C/Objective-C++ sources.
   target_compile_options(firebase_messaging
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_messaging
-                        PUBLIC "-fembed-bitcode")
+                         PRIVATE "$<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>")
 
   setup_spm_headers(
     firebase_messaging
