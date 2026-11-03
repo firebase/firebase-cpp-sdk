@@ -53,6 +53,7 @@ using test::VerifyAuthResult;
 using test::VerifyProviderData;
 using test::VerifyUser;
 using test::WaitForFuture;
+using test::WaitForPersistedUserDeleted;
 using test::WaitOnLoadPersistence;
 
 using ::testing::AnyOf;
@@ -213,6 +214,7 @@ class UserDesktopTest : public ::testing::Test {
     // doesn't cause a change in auth state or id tokens because persistent
     // cache has valid user logged in, preventing listeners from firing.
     firebase::internal::Sleep(200);
+    WaitForPersistedUserDeleted(firebase_auth_->auth_data_);
 
     firebase_auth_.reset(nullptr);
     firebase_app_.reset(nullptr);

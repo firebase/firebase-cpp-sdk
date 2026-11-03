@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "app/src/include/firebase/internal/mutex.h"
+#include "auth/src/desktop/user_desktop.h"
 #include "auth/src/include/firebase/auth/user.h"
 
 namespace firebase {
@@ -102,6 +103,19 @@ bool WaitOnLoadPersistence(AuthData* auth_data) {
     }
   }
   return load_finished;
+}
+
+void WaitForPersistedUserDeleted(AuthData* auth_data) {
+  if (auth_data == nullptr || auth_data->auth_impl == nullptr) return;
+  auto* auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  if (!auth_impl->user_data_persist) return;
+  // Persistence operations run in order on one scheduler, so once this delete
+  // completes any save/delete queued earlier (e.g. by SignOut) has finished.
+  const Future<void> deleted =
+      auth_impl->user_data_persist->DeleteUserData(auth_data);
+  while (deleted.status() == kFutureStatusPending) {
+    firebase::internal::Sleep(1);
+  }
 }
 
 using ::testing::NotNull;

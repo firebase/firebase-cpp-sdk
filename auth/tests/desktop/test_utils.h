@@ -262,6 +262,11 @@ void VerifyUser(const User& user);
 // Waits for the persistent user cache load on auth_data to finish.
 bool WaitOnLoadPersistence(AuthData* auth_data);
 
+// Deletes the persisted user for auth_data and waits for the deletion (and
+// any persistence operation queued before it) to finish, so the next test
+// starts without a stale cached user.
+void WaitForPersistedUserDeleted(AuthData* auth_data);
+
 // Waits until the given future is complete and asserts that it completed with
 // the given error (no error by default). Returns the future's result.
 template <typename T>
