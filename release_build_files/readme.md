@@ -615,6 +615,11 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - App Check (Desktop): The App Check Debug Provider now automatically loads
+      CLI-provisioned debug tokens from `~/.config/configstore/firebase-appcheck.json`
+      and the `FIREBASE_APPCHECK_DEBUG_TOKEN` / `AppCheckDebugToken` environment
+      variables, and logs an actionable recovery hint when a debug token is
+      rejected with HTTP 403.
     - Auth (Desktop): Fixed an issue where refreshing or fetching an ID token
       (`GetToken`) or linking an email/password credential to an anonymous
       account failed when using the Auth Emulator, because `SecureTokenRequest`

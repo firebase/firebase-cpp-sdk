@@ -15,14 +15,72 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 
+#include <functional>
 #include <map>
+#include <mutex>
 #include <string>
 
+#include "app/src/scheduler.h"
 #include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
+
+class DebugAppCheckProviderFactoryInternal;
+
+// Resolves the path to the local Firebase App Check configstore file
+// (~/.config/configstore/firebase-appcheck.json or XDG_CONFIG_HOME override).
+std::string ResolveConfigstorePath();
+
+// Reads and parses the local configstore JSON file at `config_path` and
+// returns the debug token for `app_id`, or an empty string if not found or
+// invalid.
+std::string ResolveDebugTokenFromConfig(const std::string& config_path,
+                                        const std::string& app_id);
+
+// Test hooks to override the NDEBUG release build safeguard at runtime.
+void SetSimulateReleaseBuildForTesting(bool simulate_release);
+void ResetSimulateReleaseBuildForTesting();
+
+class DebugAppCheckProvider : public AppCheckProvider {
+ public:
+  DebugAppCheckProvider(
+      App* app, const std::string& token,
+      DebugAppCheckProviderFactoryInternal* factory = nullptr);
+  ~DebugAppCheckProvider() override;
+
+  void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
+                    completion_callback) override;
+
+  void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) override;
+
+  // Resolves the debug token (if not already set) following the priority order:
+  // 1. Explicit SetDebugToken
+  // 2. Environment variable (FIREBASE_APPCHECK_DEBUG_TOKEN /
+  // AppCheckDebugToken)
+  // 3. Local configstore (~/.config/configstore/firebase-appcheck.json)
+  // 4. Auto-generated UUID
+  const std::string& DetermineDebugToken();
+
+  App* app() const { return app_; }
+  DebugAppCheckProviderFactoryInternal* factory() const { return factory_; }
+
+ private:
+  void GetTokenInternal(
+      bool limited_use,
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback);
+
+  App* app_;
+  DebugAppCheckProviderFactoryInternal* factory_;
+  scheduler::Scheduler scheduler_;
+  std::mutex token_mutex_;
+  std::string debug_token_;
+  bool logged_token_;
+};
 
 class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
@@ -34,7 +92,10 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
   void SetDebugToken(const std::string& token);
 
+  void RemoveProviderForApp(App* app);
+
  private:
+  std::mutex mutex_;
   std::map<App*, AppCheckProvider*> provider_map_;
 
   std::string debug_token_;
