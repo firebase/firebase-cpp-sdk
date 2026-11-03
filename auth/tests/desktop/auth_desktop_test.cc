@@ -140,6 +140,9 @@ class AuthDesktopTest : public ::testing::Test {
     AppOptions options = testing::MockAppOptions();
     options.set_app_id("com.firebase.test");
     options.set_api_key(API_KEY);
+    // Unique per test binary so that persisted users in the shared desktop
+    // secure store do not collide when ctest runs binaries in parallel.
+    options.set_project_id("auth_desktop_test");
     firebase_app_ = std::unique_ptr<App>(App::Create(options));
     firebase_auth_ = std::unique_ptr<Auth>(Auth::GetAuth(firebase_app_.get()));
     EXPECT_NE(nullptr, firebase_auth_);

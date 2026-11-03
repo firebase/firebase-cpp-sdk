@@ -45,6 +45,11 @@ namespace auth {
 using ::firebase::heartbeat::HeartbeatStorageDesktop;
 using ::firebase::heartbeat::LoggedHeartbeats;
 
+// Heartbeats are persisted per app name in a store shared across processes, so
+// use an app name unique to this binary; otherwise other test binaries using
+// the default app interfere when ctest runs them in parallel.
+constexpr char kHeartbeatTestAppName[] = "auth_request_heartbeat_test";
+
 class AuthRequestHeartbeatTest : public ::testing::Test {
  public:
   AuthRequestHeartbeatTest() : had_saved_heartbeats_(false) {}
@@ -56,19 +61,20 @@ class AuthRequestHeartbeatTest : public ::testing::Test {
 
   void SetUp() override {
     Logger logger(nullptr);
-    HeartbeatStorageDesktop storage(firebase::kDefaultAppName, logger);
+    HeartbeatStorageDesktop storage(kHeartbeatTestAppName, logger);
     had_saved_heartbeats_ = storage.ReadTo(saved_heartbeats_);
     // Clear any pre-existing stored heartbeats for the test.
     LoggedHeartbeats empty_heartbeats_struct;
     storage.Write(empty_heartbeats_struct);
     // Update the unique ptr to point at the created app.
-    app_.reset(testing::CreateApp());
+    app_.reset(
+        testing::CreateApp(testing::MockAppOptions(), kHeartbeatTestAppName));
   }
 
   void TearDown() override {
     app_.reset();
     Logger logger(nullptr);
-    HeartbeatStorageDesktop storage(firebase::kDefaultAppName, logger);
+    HeartbeatStorageDesktop storage(kHeartbeatTestAppName, logger);
     if (had_saved_heartbeats_) {
       storage.Write(saved_heartbeats_);
     } else {

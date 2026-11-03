@@ -166,6 +166,9 @@ class UserDesktopTest : public ::testing::Test {
     });
     AppOptions options = testing::MockAppOptions();
     options.set_api_key(API_KEY);
+    // Unique per test binary so that persisted users in the shared desktop
+    // secure store do not collide when ctest runs binaries in parallel.
+    options.set_project_id("user_desktop_test");
     firebase_app_ = std::unique_ptr<App>(testing::CreateApp(options));
     firebase_auth_ = std::unique_ptr<Auth>(Auth::GetAuth(firebase_app_.get()));
 
