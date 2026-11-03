@@ -62,6 +62,15 @@ RemoteConfig* FindRemoteConfigLocked(App* app) {
   auto it = instances.find(app);
   return it != instances.end() ? it->second : nullptr;
 }
+
+// Reports a static (missing) value when RemoteConfig has been cleaned up, so
+// callers never read an uninitialized ValueInfo.
+void SetStaticValueInfo(ValueInfo* info) {
+  if (info) {
+    info->source = kValueSourceStaticValue;
+    info->conversion_successful = false;
+  }
+}
 }  // namespace
 
 RemoteConfig* RemoteConfig::GetInstance(App* app) {
@@ -270,7 +279,11 @@ bool RemoteConfig::GetBoolean(const char* key, ValueInfo* info) {
 }
 
 bool RemoteConfig::GetBoolean(const char* key, ValueInfo* info) const {
-  return internal_ ? internal_->GetBoolean(key, info) : false;
+  if (!internal_) {
+    SetStaticValueInfo(info);
+    return false;
+  }
+  return internal_->GetBoolean(key, info);
 }
 
 int64_t RemoteConfig::GetLong(const char* key) {
@@ -286,7 +299,11 @@ int64_t RemoteConfig::GetLong(const char* key, ValueInfo* info) {
 }
 
 int64_t RemoteConfig::GetLong(const char* key, ValueInfo* info) const {
-  return internal_ ? internal_->GetLong(key, info) : 0;
+  if (!internal_) {
+    SetStaticValueInfo(info);
+    return 0;
+  }
+  return internal_->GetLong(key, info);
 }
 
 double RemoteConfig::GetDouble(const char* key) {
@@ -302,7 +319,11 @@ double RemoteConfig::GetDouble(const char* key, ValueInfo* info) {
 }
 
 double RemoteConfig::GetDouble(const char* key, ValueInfo* info) const {
-  return internal_ ? internal_->GetDouble(key, info) : 0.0;
+  if (!internal_) {
+    SetStaticValueInfo(info);
+    return 0.0;
+  }
+  return internal_->GetDouble(key, info);
 }
 
 std::string RemoteConfig::GetString(const char* key) {
@@ -318,7 +339,11 @@ std::string RemoteConfig::GetString(const char* key, ValueInfo* info) {
 }
 
 std::string RemoteConfig::GetString(const char* key, ValueInfo* info) const {
-  return internal_ ? internal_->GetString(key, info) : std::string{};
+  if (!internal_) {
+    SetStaticValueInfo(info);
+    return std::string{};
+  }
+  return internal_->GetString(key, info);
 }
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key) {
@@ -336,8 +361,11 @@ std::vector<unsigned char> RemoteConfig::GetData(const char* key,
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key,
                                                  ValueInfo* info) const {
-  return internal_ ? internal_->GetData(key, info)
-                   : std::vector<unsigned char>{};
+  if (!internal_) {
+    SetStaticValueInfo(info);
+    return std::vector<unsigned char>{};
+  }
+  return internal_->GetData(key, info);
 }
 
 std::vector<std::string> RemoteConfig::GetKeysByPrefix(const char* prefix) {
