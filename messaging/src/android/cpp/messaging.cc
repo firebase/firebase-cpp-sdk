@@ -689,7 +689,7 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
   g_intent_message_fired = false;
   g_lockfile_path = std::make_unique<std::string>(local_storage_dir + "/" + kLockfile);
   g_local_storage_file_path =
-      new std::string(local_storage_dir + "/" + kStorageFile);
+      std::make_unique<std::string>(local_storage_dir + "/" + kStorageFile);
 
   // Ensure storage file exists.
   FILE* storage_file = fopen(g_local_storage_file_path->c_str(), "a");
