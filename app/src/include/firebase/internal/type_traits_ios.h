@@ -31,7 +31,15 @@ namespace detail {
 template <typename T>
 struct IsObjCBlockImpl : std::false_type {};
 
-#if defined(__BLOCKS__) || __has_feature(blocks)
+#if defined(__BLOCKS__)
+#define FIREBASE_HAS_BLOCKS 1
+#elif defined(__has_feature)
+#if __has_feature(blocks)
+#define FIREBASE_HAS_BLOCKS 1
+#endif
+#endif
+
+#if defined(FIREBASE_HAS_BLOCKS)
 template <typename Ret, typename... Args>
 struct IsObjCBlockImpl<Ret (^)(Args...)> : std::true_type {};
 
@@ -65,7 +73,7 @@ template <typename T>
 struct IsObjCPointer
     : std::bool_constant<!std::is_reference_v<T> &&
                          std::is_pointer_v<T> &&
-                         std::is_convertible_v<T, id>> {};
+                         std::is_convertible_v<std::remove_cv_t<std::remove_pointer_t<T>>*, id>> {};
 
 #else  // !defined(__OBJC__)
 

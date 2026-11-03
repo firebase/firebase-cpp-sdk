@@ -17,10 +17,12 @@
 
 #include "app/src/jni/ownership.h"
 
+#include <type_traits>
+
 namespace firebase {
 namespace jni {
 
-template <typename T>
+template <typename T, typename std::enable_if_t<std::is_pointer_v<T>, int> = 0>
 inline ScopedLocalRef<T> MakeScopedLocalRef(JNIEnv* env, T object) noexcept {
   return ScopedLocalRef<T>(env, object);
 }

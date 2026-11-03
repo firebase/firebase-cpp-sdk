@@ -248,19 +248,17 @@ inline std::string JStringToString(JNIEnv* env, jobject str_obj) {
   jstring str = static_cast<jstring>(str_obj);
   const char* chars = env->GetStringUTFChars(str, nullptr);
   if (!chars) {
-    if (env->ExceptionCheck()) {
-      env->ExceptionClear();
-    }
     return std::string();
   }
+  jsize len = env->GetStringUTFLength(str);
   std::string result =
-      ModifiedUtf8ToUtf8(std::string_view(chars, std::strlen(chars)));
+      ModifiedUtf8ToUtf8(std::string_view(chars, static_cast<size_t>(len)));
   env->ReleaseStringUTFChars(str, chars);
   return result;
 }
 
 // Converts a JNI jstring to a standard UTF-8 std::string and deletes `str_obj`.
-inline std::string JniStringToString(JNIEnv* env, jobject str_obj) {
+inline std::string JniStringToStringAndReleaseLocalRef(JNIEnv* env, jobject str_obj) {
   if (!env || !str_obj) return std::string();
   std::string result = JStringToString(env, str_obj);
   env->DeleteLocalRef(str_obj);

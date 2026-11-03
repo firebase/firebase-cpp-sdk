@@ -1019,7 +1019,7 @@ void JavaListToVariantList(JNIEnv* env, std::vector<Variant>* to,
 // Convert a jstring to a std::string, releasing the reference to the
 // jstring.
 std::string JniStringToString(JNIEnv* env, jobject string_object) {
-  return jni::JniStringToString(env, string_object);
+  return jni::JniStringToStringAndReleaseLocalRef(env, string_object);
 }
 
 // Convert a Java object of type java.lang.Object into an std::string, by

@@ -32,18 +32,18 @@ JObjectReference::JObjectReference() : java_vm_(nullptr), object_(nullptr) {}
 
 JObjectReference::JObjectReference(JNIEnv* env)
     : java_vm_(nullptr), object_(nullptr) {
-  Initialize(env, nullptr, nullptr);
+  Initialize(nullptr, env, nullptr);
 }
 
 JObjectReference::JObjectReference(JNIEnv* env, jobject object)
     : java_vm_(nullptr), object_(nullptr) {
-  Initialize(env, nullptr, object);
+  Initialize(nullptr, env, object);
 }
 
 JObjectReference::JObjectReference(const JObjectReference& reference)
     : java_vm_(reference.java_vm_), object_(nullptr) {
   if (reference.object_ != nullptr) {
-    Initialize(nullptr, reference.java_vm_, reference.object_);
+    Initialize(reference.java_vm_, nullptr, reference.object_);
   }
 }
 
@@ -92,7 +92,11 @@ void JObjectReference::Set(JNIEnv* env, jobject jobject_reference) {
   if (env && !java_vm_) {
     java_vm_ = GetJavaVM(env);
   }
-  if (jobject_reference != nullptr && jobject_reference == object_) {
+  if (jobject_reference != nullptr && object_ != nullptr && env != nullptr) {
+    if (env->IsSameObject(jobject_reference, object_)) {
+      return;
+    }
+  } else if (jobject_reference == object_) {
     return;
   }
 
@@ -113,43 +117,7 @@ void JObjectReference::Set(JNIEnv* env, jobject jobject_reference) {
   }
 }
 
-jobject JObjectReference::Set(JNIEnv* env, jobject jobject_reference,
-                              std::atomic<jobject>* target_jobject_reference) {
-  FIREBASE_DEV_ASSERT(env);
-  FIREBASE_DEV_ASSERT(target_jobject_reference);
-  if (!target_jobject_reference) return nullptr;
-  
-  jobject old_ref = target_jobject_reference->load(std::memory_order_acquire);
-  if (jobject_reference != nullptr &&
-      jobject_reference == old_ref) {
-    return old_ref;
-  }
-  if (env) {
-    jni::internal::GlobalRefReaper::RecordJavaVM(env);
-  }
-  jobject new_object = nullptr;
-  if (jobject_reference != nullptr) {
-    new_object =
-        jni::internal::GlobalRefReaper::NewGlobalRef(env, jobject_reference);
-  }
-  
-  // Try to atomically swap in the new reference
-  while (!target_jobject_reference->compare_exchange_weak(old_ref, new_object, std::memory_order_release, std::memory_order_acquire)) {
-    // If another thread updated it to the SAME object we just created a ref for (unlikely but possible)
-    if (old_ref == jobject_reference) {
-      if (new_object) {
-        jni::internal::GlobalRefReaper::DeleteOrEnqueue(new_object, env);
-      }
-      return old_ref;
-    }
-  }
 
-  // We successfully swapped. Delete the old reference.
-  if (old_ref != nullptr) {
-    jni::internal::GlobalRefReaper::DeleteOrEnqueue(old_ref, env);
-  }
-  return new_object;
-}
 
 JObjectReference JObjectReference::FromLocalReference(
     JNIEnv* env, jobject local_reference) {
@@ -167,14 +135,11 @@ JNIEnv* JObjectReference::GetJNIEnv() const {
 }
 
 jobject JObjectReference::GetLocalRef() const {
-  if (!object_) return nullptr;
   JNIEnv* env = GetJNIEnv();
-  if (!env) return nullptr;
-  jni::ExceptionClearGuard guard(env);
-  return env->NewLocalRef(object_);
+  return object_ && env ? env->NewLocalRef(object_) : nullptr;
 }
 
-void JObjectReference::Initialize(JNIEnv* env, JavaVM* jvm,
+void JObjectReference::Initialize(JavaVM* jvm, JNIEnv* env,
                                   jobject jobject_reference) {
   java_vm_ = jvm ? jvm : GetJavaVM(env);
   FIREBASE_DEV_ASSERT(env || java_vm_ || !jobject_reference);

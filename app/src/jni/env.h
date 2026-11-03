@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -630,7 +631,7 @@ class Env {
   template <typename T>
   EnableForReference<T, Local<Array<T>>> NewArray(size_t size,
                                                   jclass element_class) {
-    if (!ok() || !element_class) return {};
+    if (!ok() || !element_class || size > std::numeric_limits<jsize>::max()) return {};
     jobjectArray result =
         env_->NewObjectArray(ToJni(size), element_class, nullptr);
     return MakeResult<Array<T>>(result);
@@ -675,6 +676,7 @@ class Env {
                                              size_t start, size_t len,
                                              T* buffer) {
     if (!ok() || !array || len == 0 || !buffer) return;
+    if (start > std::numeric_limits<jsize>::max() || len > std::numeric_limits<jsize>::max()) return;
     if constexpr (std::is_same_v<T, bool>) {
       std::vector<jboolean> raw(len, JNI_FALSE);
       env_->GetBooleanArrayRegion(ToJni(array), ToJni(start), ToJni(len),

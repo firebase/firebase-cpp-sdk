@@ -26,6 +26,8 @@
 namespace firebase {
 namespace jni {
 
+class Env;
+
 // Policy controlling how JNI exceptions are handled at scope exit or call boundaries.
 enum class ExceptionPolicy {
   // Captures and clears pending JNI exceptions so C++ can handle them cleanly.
@@ -119,7 +121,7 @@ inline std::string ExtractExceptionMessage(JNIEnv* env, jthrowable exception) {
       env->ExceptionClear();
       return std::string();
     }
-    return JStringToString(env, msg_obj.get());
+    return JStringToString(env, static_cast<jstring>(msg_obj.get()));
   };
 
   std::string message = try_method("getLocalizedMessage");

@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_SRC_UTIL_H_
 #define FIREBASE_APP_SRC_UTIL_H_
 
+#include <atomic>
 #include <map>
 #include <string>
 #include <vector>
@@ -35,32 +36,45 @@ namespace firebase {
 
 #if FIREBASE_PLATFORM_ANDROID
 // Return kInitResultFailedMissingDependency if Google Play is unavailable.
-#define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app) \
-  if (::google_play_services::CheckAvailability((app).GetJNIEnv(),   \
-                                                (app).activity()) != \
-      ::google_play_services::kAvailabilityAvailable) {              \
-    return ::firebase::kInitResultFailedMissingDependency;           \
-  }
+#define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app)       \
+  do {                                                                     \
+    const ::firebase::App& firebase_util_app_ = (app);                     \
+    if (::google_play_services::CheckAvailability(                         \
+            firebase_util_app_.GetJNIEnv(),                                \
+            firebase_util_app_.activity()) !=                              \
+        ::google_play_services::kAvailabilityAvailable) {                  \
+      return ::firebase::kInitResultFailedMissingDependency;               \
+    }                                                                      \
+  } while (false)
 
 // Return null if Google Play is unavailable. Also, if output is non-null, set
 // *output to kInitResultFailedMissingDependency.
-#define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(app, output) \
-  if (::google_play_services::CheckAvailability((app).GetJNIEnv(),        \
-                                                (app).activity()) !=      \
-      ::google_play_services::kAvailabilityAvailable) {                   \
-    if ((output) != nullptr)                                              \
-      *(output) = ::firebase::kInitResultFailedMissingDependency;         \
-    return nullptr;                                                       \
-  }
+#define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(app, output)  \
+  do {                                                                     \
+    const ::firebase::App& firebase_util_app_ = (app);                     \
+    ::firebase::InitResult* firebase_util_output_ = (output);              \
+    if (::google_play_services::CheckAvailability(                         \
+            firebase_util_app_.GetJNIEnv(),                                \
+            firebase_util_app_.activity()) !=                              \
+        ::google_play_services::kAvailabilityAvailable) {                  \
+      if (firebase_util_output_ != nullptr) {                              \
+        *firebase_util_output_ =                                           \
+            ::firebase::kInitResultFailedMissingDependency;                \
+      }                                                                    \
+      return nullptr;                                                      \
+    }                                                                      \
+  } while (false)
 #else  // !FIREBASE_PLATFORM_ANDROID
 // No-ops on other platforms. Consume the variables to prevent warnings.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(x) \
-  { (void)(x); }
+  do {                                                             \
+    (void)(x);                                                     \
+  } while (false)
 #define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(x, y) \
-  {                                                                \
+  do {                                                             \
     (void)(x);                                                     \
     (void)(y);                                                     \
-  }
+  } while (false)
 #endif  // FIREBASE_PLATFORM_ANDROID
 
 // Macro that silences switch case fallthrough warnings when using certain
@@ -73,11 +87,13 @@ namespace firebase {
 //     // some stuff with bar
 //     break;
 // }
-#if __clang__
+#if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+#define FIREBASE_CASE_FALLTHROUGH [[fallthrough]]
+#elif defined(__clang__)
 #define FIREBASE_CASE_FALLTHROUGH [[clang::fallthrough]]
 #else
 #define FIREBASE_CASE_FALLTHROUGH
-#endif  // __clang__
+#endif
 
 // Class that allows modules to register for callbacks when instances of
 // firebase::App are created and destroyed.
@@ -106,18 +122,25 @@ class AppCallback {
     AddCallback(this);
   }
 
+  AppCallback(const AppCallback&) = delete;
+  AppCallback& operator=(const AppCallback&) = delete;
+  AppCallback(AppCallback&&) = delete;
+  AppCallback& operator=(AppCallback&&) = delete;
+
   // Get the name of the module associated with this callback class.
   const char* module_name() const { return module_name_; }
 
   // Get whether this is enabled.
-  bool enabled() const { return enabled_; }
+  bool enabled() const { return enabled_.load(std::memory_order_acquire); }
 
   // Enable / disable this callback object.
   // NOTE: Use of this method is perilous!  This method should only disable
   // a callback *before* any App instances are created otherwise it's possible
   // to get into a state where a module is initialized and will never be torn
   // down.
-  void set_enabled(bool enable) { enabled_ = enable; }
+  void set_enabled(bool enable) {
+    enabled_.store(enable, std::memory_order_release);
+  }
 
   // Called by firebase::App when an instance is created.
   static void NotifyAllAppCreated(
@@ -146,12 +169,9 @@ class AppCallback {
     if (destroyed_) destroyed_(app);
   }
 
-  // Add a callback class to the list.
-  // NOTE: This is *not* synchronized as it's not possible to use Mutex
-  // from static constructors on some platforms.
+  // Add a callback class to the list (synchronized via GetCallbacksMutex()).
   static void AddCallback(AppCallback* callback);
 
- private:
   // Name of the module associated with this callback.
   const char* module_name_;
   // Called when an app has just been created.
@@ -159,14 +179,10 @@ class AppCallback {
   // Called when an app is about to be destroyed.
   Destroyed destroyed_;
   // Whether this callback is enabled.
-  bool enabled_;
+  std::atomic<bool> enabled_;
 
-  // Global set of callbacks.
+  // Global set of callbacks (guarded by GetCallbacksMutex() in util.cc).
   static std::map<std::string, AppCallback*>* callbacks_;
-  // Mutex which controls access to callbacks during notification.
-  // NOTE: This violates Google's C++ style guide as we do not have access to
-  // module initializers in //base so this replicates part of that behavior.
-  static Mutex* callbacks_mutex_;
 };
 
 // Register app callbacks for a module.
@@ -175,7 +191,7 @@ class AppCallback {
 // down on destruction.
 //
 // For example:
-// FIREBASE_APP_REGISTER_CALLBACKS(\
+// FIREBASE_APP_REGISTER_CALLBACKS(
 //   analytics,
 //   {
 //     if (app == ::firebase::App::GetInstance()) {
@@ -187,7 +203,8 @@ class AppCallback {
 //     if (app == ::firebase::App::GetInstance()) {
 //       firebase::analytics::Terminate();
 //     }
-//   });
+//   },
+//   false);
 #define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,             \
                                         destroyed_code, enabled_by_default)    \
   namespace firebase {                                                         \
@@ -209,7 +226,7 @@ class AppCallback {
 class StaticFutureData {
  public:
   explicit StaticFutureData(int num_functions) : api_(num_functions) {}
-  ~StaticFutureData() {}
+  ~StaticFutureData() = default;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 
@@ -223,13 +240,6 @@ class StaticFutureData {
  private:
   ReferenceCountedFutureImpl api_;
 
-  // Mutex which controls access to s_future_datas_
-  static Mutex* s_futures_mutex_;
-
-  // Static storage of StaticFutureDatas per module.  Keyed on a void pointer
-  // that should be declared in the module to serve as a unique identifier.
-  static std::map<const void*, StaticFutureData*>* s_future_datas_;
-
   static StaticFutureData* CreateNewData(const void* module_identifier,
                                          int num_functions);
 };
@@ -241,7 +251,7 @@ std::vector<std::string> SplitString(const std::string& s, char delimiter);
 // Helper function to combine a string and other object into a unique
 // identifier. Primarily used to manage listening to JNI Tasks on Android.
 // Note that repeated calls are expected to return different values.
-std::string CreateApiIdentifier(const char* api_id, void* object);
+std::string CreateApiIdentifier(const char* api_id, const void* object);
 
 }  // namespace firebase
 

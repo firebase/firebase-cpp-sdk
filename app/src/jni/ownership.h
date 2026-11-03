@@ -143,6 +143,9 @@ class GlobalRefReaper {
           attached_env != nullptr) {
         Flush(attached_env);
         jobject global_ref = NewGlobalRefWithEnv(attached_env, ref);
+        if (attached_env->ExceptionCheck()) {
+          attached_env->ExceptionClear();
+        }
         vm->DetachCurrentThread();
         return global_ref;
       }
@@ -196,9 +199,13 @@ class GlobalRefReaper {
       env->ExceptionClear();
     }
     jobject global_ref = env->NewGlobalRef(ref);
-    if (env->ExceptionCheck()) {
-      env->ExceptionClear();
-      global_ref = nullptr;
+    if (!global_ref) {
+      if (pending) {
+        env->ExceptionClear();
+        env->Throw(pending);
+        env->DeleteLocalRef(pending);
+      }
+      return nullptr;
     }
     if (pending) {
       env->Throw(pending);
@@ -294,9 +301,9 @@ class Borrowed : public internal::ReferenceBase<T> {
   constexpr Borrowed() noexcept = default;
   explicit constexpr Borrowed(JniType object) noexcept : Base(object) {}
   // NOLINTNEXTLINE(google-explicit-constructor)
-  constexpr Borrowed(const Local<T>& local) noexcept : Base(local.get()) {}
+  constexpr Borrowed(const Local<T>& local) noexcept : Base(static_cast<JniType>(local.get())) {}
   // NOLINTNEXTLINE(google-explicit-constructor)
-  constexpr Borrowed(const Global<T>& global) noexcept : Base(global.get()) {}
+  constexpr Borrowed(const Global<T>& global) noexcept : Base(static_cast<JniType>(global.get())) {}
   constexpr Borrowed(const Borrowed&) noexcept = default;
   constexpr Borrowed(Borrowed&&) noexcept = default;
   constexpr Borrowed& operator=(const Borrowed&) noexcept = default;
@@ -359,7 +366,7 @@ class Local : public internal::ReferenceBase<T> {
 
   Local& operator=(const Local& other) noexcept {
     if (this != &other) {
-      AssignFromLocal(other.env_, other.get());
+      AssignFromLocal(other.env_, static_cast<JniType>(other.get()));
     }
     return *this;
   }
@@ -420,7 +427,7 @@ class Local : public internal::ReferenceBase<T> {
   }
 
   JniType release() noexcept {
-    JniType result = this->get();
+    JniType result = static_cast<JniType>(this->get());
     this->object_ = nullptr;
     return result;
   }
@@ -498,7 +505,7 @@ class Global : public internal::ReferenceBase<T> {
   explicit Global(const Global& other) noexcept
       : Base(nullptr), jvm_(other.jvm_) {
     if (other.get()) {
-      CopyFrom(nullptr, other.get());
+      CopyFrom(nullptr, static_cast<JniType>(other.get()));
     }
   }
 
@@ -530,7 +537,7 @@ class Global : public internal::ReferenceBase<T> {
   explicit Global(const T& other) noexcept
       : Base(nullptr), jvm_(internal::GlobalRefReaper::GetJavaVM()) {
     if (other.get()) {
-      CopyFrom(nullptr, other.get());
+      CopyFrom(nullptr, static_cast<JniType>(other.get()));
     }
   }
 
@@ -556,7 +563,7 @@ class Global : public internal::ReferenceBase<T> {
         reset();
       } else {
         if (other.jvm_) jvm_ = other.jvm_;
-        CopyAssign(nullptr, other.get());
+        CopyAssign(nullptr, static_cast<JniType>(other.get()));
       }
     }
     return *this;
@@ -597,9 +604,7 @@ class Global : public internal::ReferenceBase<T> {
     if (this != &other) {
       reset();
       this->object_ = other.release();
-      if (other.jvm_) {
-        jvm_ = other.jvm_;
-      }
+      jvm_ = other.jvm_;
       other.jvm_ = nullptr;
     }
     return *this;
@@ -613,9 +618,7 @@ class Global : public internal::ReferenceBase<T> {
   Global& operator=(Global<U>&& other) noexcept {
     reset();
     this->object_ = static_cast<JniType>(other.release());
-    if (other.jvm()) {
-      jvm_ = other.jvm();
-    }
+    jvm_ = other.jvm();
     return *this;
   }
 
@@ -653,7 +656,7 @@ class Global : public internal::ReferenceBase<T> {
   }
 
   JniType release() noexcept {
-    JniType result = this->get();
+    JniType result = static_cast<JniType>(this->get());
     this->object_ = nullptr;
     return result;
   }

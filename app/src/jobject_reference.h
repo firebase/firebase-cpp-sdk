@@ -77,7 +77,7 @@ class JObjectReference {
   JObjectReference(JObjectReference&& reference) noexcept;
 
   // Destructor deletes the global reference if non-null.
-  virtual ~JObjectReference();
+  ~JObjectReference();
 
   // Copy assignment creates a new global reference to the referenced jobject.
   JObjectReference& operator=(const JObjectReference& reference);
@@ -116,18 +116,12 @@ class JObjectReference {
   static JObjectReference FromLocalReference(JNIEnv* env,
                                              jobject local_reference);
 
-  // Creates a new global reference to `jobject_reference` (without deleting
-  // `jobject_reference`), deletes any prior global reference stored in
-  // `*target_jobject_reference` (which must be initialized to nullptr or a
-  // valid global reference prior to calling), and writes and returns the new
-  // global reference in `*target_jobject_reference`.
-  static jobject Set(JNIEnv* env, jobject jobject_reference,
-                     std::atomic<jobject>* target_jobject_reference);
+
 
  private:
   // Initialize this reference, creating a global reference to jobject_reference
   // if it is non-null.
-  void Initialize(JNIEnv* env, JavaVM* jvm, jobject jobject_reference);
+  void Initialize(JavaVM* jvm, JNIEnv* env, jobject jobject_reference);
 
   JavaVM* java_vm_;
   jobject object_;

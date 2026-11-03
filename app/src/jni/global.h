@@ -17,10 +17,12 @@
 
 #include "app/src/jni/ownership.h"
 
+#include <type_traits>
+
 namespace firebase {
 namespace jni {
 
-template <typename T>
+template <typename T, typename std::enable_if_t<std::is_pointer_v<T>, int> = 0>
 inline GlobalRef<T> MakeGlobalRef(JNIEnv* env, T object,
                                   bool adopt_existing_global = false) noexcept {
   return GlobalRef<T>(env, object, adopt_existing_global);
