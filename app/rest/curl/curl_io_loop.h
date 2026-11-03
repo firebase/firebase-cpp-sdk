@@ -60,8 +60,12 @@ class Transfer {
   // transfer still in flight (result == CURLE_ABORTED_BY_CALLBACK). The loop
   // has forgotten the Transfer by the time this runs, so it is safe to destroy
   // the Transfer itself from here.
-  // The easy handle has already been removed from the multi handle before this
-  // runs, so it may be destroyed freely.
+  //
+  // If RemoveFromMultiOnDone() returned true (the default) the easy handle has
+  // also already been removed from the multi handle, so it may be destroyed
+  // freely. Otherwise the handle is still attached and the implementation owns
+  // detaching it (curl_multi_remove_handle() on CurlIoLoop::multi(), on the I/O
+  // thread) before destroying it.
   //
   // IMPORTANT: this runs on the single process-wide I/O thread that services
   // every libcurl transfer in the process. Implementations MUST keep it short:
@@ -69,6 +73,15 @@ class Transfer {
   // semaphore, and return. Never block, never perform network I/O, and never
   // run product or application code here.
   virtual void OnDone(CURLcode result) = 0;
+
+  // Whether the loop should curl_multi_remove_handle() the easy handle before
+  // calling OnDone(). Defaults to true, which is right for ordinary transfers.
+  //
+  // CURLOPT_CONNECT_ONLY transfers (WebSockets driven with curl_ws_recv() /
+  // curl_ws_send()) MUST return false: libcurl closes a connect-only
+  // connection the moment its handle is removed from the multi handle, so the
+  // handle has to stay attached for as long as the socket is in use.
+  virtual bool RemoveFromMultiOnDone() { return true; }
 };
 
 // The single process-wide libcurl I/O thread.
@@ -79,10 +92,12 @@ class Transfer {
 //   while (!quit) {
 //     run functions queued with Post();
 //     curl_multi_perform();
-//     for each CURLMSG_DONE: curl_multi_remove_handle(); Transfer::OnDone();
+//     for each CURLMSG_DONE: curl_multi_remove_handle()*; Transfer::OnDone();
 //     curl_multi_poll(multi, extra_fds, n, timeout, &numfds);   // sleeps
 //     dispatch extra-fd readiness callbacks;
 //   }
+//   (* skipped for transfers whose RemoveFromMultiOnDone() is false, i.e.
+//      CURLOPT_CONNECT_ONLY handles that keep using their connection.)
 //
 // curl_multi_poll() blocks until a libcurl socket is ready, a libcurl timer
 // expires, an extra fd is ready, or another thread calls Post() (which uses
@@ -189,8 +204,9 @@ class CurlIoLoop {
   // CURLMOPT_* tuning. I/O thread only.
   CURLM* multi();
 
-  // Number of registered transfers (for tests). I/O thread only.
+  // Number of registered transfers / extra fds (for tests). I/O thread only.
   size_t transfer_count() const;
+  size_t extra_fd_count() const;
 
   CurlIoLoop(const CurlIoLoop&) = delete;
   CurlIoLoop& operator=(const CurlIoLoop&) = delete;

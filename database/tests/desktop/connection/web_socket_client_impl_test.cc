@@ -15,20 +15,31 @@
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 #include <atomic>
+#include <chrono>  // NOLINT
 #include <cstdint>
 #include <cstring>
-#include <mutex>
+#include <functional>
+#include <mutex>  // NOLINT
 #include <sstream>
 #include <string>
-#include <thread>
+#include <thread>  // NOLINT
 #include <vector>
 
+#include "app/rest/curl/curl_io_loop.h"
+#include "app/rest/request.h"
+#include "app/rest/response.h"
+#include "app/rest/tests/test_http_server.h"
+#include "app/rest/transport_curl.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
 #include "database/src/desktop/util_desktop.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+
+#if defined(__linux__)
+#include <dirent.h>
+#endif
 
 #if FIREBASE_PLATFORM_WINDOWS
 #include <winsock2.h>
@@ -69,9 +80,24 @@ class TestWebSocketEchoServer {
     kBehaviorEcho = 0,
     kBehaviorSendFragmentedWithInterleavedPing,
     kBehaviorServerInitiatedClose,
+    // Writes the 101 response and a text frame in one send() so both arrive
+    // in the same TCP segment.
+    kBehaviorSendTextWithHandshake,
+    // Sends a PING right after the handshake and then stops reading for a
+    // while so a large client message cannot be flushed in one go.
+    kBehaviorPingThenDelayedRead,
+    // Waits before answering the handshake so clients can be torn down while
+    // the upgrade is still in flight.
+    kBehaviorDelayedHandshake,
+    // Sends a 5-byte initial fragment followed by a continuation header
+    // declaring 256 MiB (exceeding kMaxMessagePayloadBytes by 5 bytes).
     kBehaviorSendOversizedFragmentedMessage,
+    // Sends a 126-byte PING control frame (exceeding RFC 6455's 125-byte cap).
     kBehaviorSendOversizedPingFrame,
   };
+
+  static const char* kTextWithHandshakePayload() { return "hello-with-101"; }
+  static const char* kDelayedReadPingPayload() { return "late-ping"; }
 
   explicit TestWebSocketEchoServer(int port = 0,
                                    ServerBehavior behavior = kBehaviorEcho)
@@ -219,6 +245,13 @@ class TestWebSocketEchoServer {
     return true;
   }
 
+  // Sleeps in slices so Stop() stays prompt.
+  void SleepWhileRunning(int ms) {
+    for (int waited = 0; waited < ms && run_.load(); waited += 10) {
+      firebase::internal::Sleep(10);
+    }
+  }
+
   void RunAcceptLoop() {
     while (run_.load()) {
       SocketHandle lsock = listen_sock_;
@@ -326,8 +359,27 @@ class TestWebSocketEchoServer {
         "Connection: Upgrade\r\n"
         "Sec-WebSocket-Accept: " +
         accept_key + "\r\n\r\n";
+    if (behavior_ == kBehaviorDelayedHandshake) {
+      SleepWhileRunning(500);
+      if (!run_.load()) return;
+    }
+    if (behavior_ == kBehaviorSendTextWithHandshake) {
+      // Append an unmasked, unfragmented text frame to the handshake bytes.
+      const char* payload = kTextWithHandshakePayload();
+      response.push_back(static_cast<char>(0x81));
+      response.push_back(static_cast<char>(std::strlen(payload)));
+      response.append(payload);
+    }
     if (!SendAll(sock, response.data(), response.size())) {
       return;
+    }
+
+    if (behavior_ == kBehaviorPingThenDelayedRead) {
+      const char* payload = kDelayedReadPingPayload();
+      SendFrame(sock, 0x89, payload, std::strlen(payload));
+      // Leave the client's outbound data unread so its socket buffer fills.
+      SleepWhileRunning(1000);
+      if (!run_.load()) return;
     }
 
     if (behavior_ == kBehaviorServerInitiatedClose) {
@@ -350,7 +402,11 @@ class TestWebSocketEchoServer {
     }
 
     if (behavior_ == kBehaviorSendOversizedFragmentedMessage) {
+      // Fragment 1: FIN=0, opcode=0x1 (TEXT), 5 bytes.
       SendFrame(sock, 0x01, "hello", 5);
+      // Fragment 2 header: FIN=1, opcode=0x0 (CONT), 64-bit length = 256 MiB
+      // (so total message = 256 MiB + 5 > kMaxMessagePayloadBytes), plus 1 byte
+      // of payload so curl_ws_recv() delivers the frame metadata immediately.
       const uint64_t kContinuationLen = 256ULL * 1024 * 1024;
       uint8_t header_and_first_byte[11];
       header_and_first_byte[0] = 0x80;
@@ -361,14 +417,14 @@ class TestWebSocketEchoServer {
       }
       header_and_first_byte[10] = 'x';
       SendAll(sock, header_and_first_byte, sizeof(header_and_first_byte));
-      firebase::internal::Sleep(200);
+      SleepWhileRunning(200);
       return;
     }
 
     if (behavior_ == kBehaviorSendOversizedPingFrame) {
       const std::string oversized_ping(126, 'p');
       SendFrame(sock, 0x89, oversized_ping.data(), oversized_ping.size());
-      firebase::internal::Sleep(200);
+      SleepWhileRunning(200);
       return;
     }
 
@@ -678,6 +734,9 @@ TEST(WebSocketClientImpl, ConnectionFailureTriggersOnError) {
   EXPECT_EQ(handler.error_uri_, uri);
 }
 
+// Non-ws/wss URI schemes (e.g. http://, file://) must be rejected before
+// opening a connection even when linked against a multi-protocol system
+// libcurl.
 TEST(WebSocketClientImpl, RejectsNonWebSocketUriSchemes) {
   TestWebSocketEchoServer server(0);
   server.Start();
@@ -729,6 +788,8 @@ TEST(WebSocketClientImpl, RejectsOversizedInboundMessageAcrossFragments) {
                                 &logger, &scheduler, "", &handler);
 
   ws_client.Connect(5000);
+  // Expect OnOpen(), followed by OnError() and OnClose() when the oversized
+  // continuation header arrives.
   EXPECT_TRUE(semaphore.TimedWait(5000));
   EXPECT_TRUE(semaphore.TimedWait(5000));
   EXPECT_TRUE(semaphore.TimedWait(5000));
@@ -753,6 +814,7 @@ TEST(WebSocketClientImpl, RejectsOversizedInboundPingFrame) {
                                 &logger, &scheduler, "", &handler);
 
   ws_client.Connect(5000);
+  // Expect OnOpen(), followed by OnError() and OnClose().
   EXPECT_TRUE(semaphore.TimedWait(5000));
   EXPECT_TRUE(semaphore.TimedWait(5000));
   EXPECT_TRUE(semaphore.TimedWait(5000));
@@ -763,6 +825,364 @@ TEST(WebSocketClientImpl, RejectsOversizedInboundPingFrame) {
 
   server.Stop();
 }
+
+// ---------------------------------------------------------------------------
+// Shared CurlIoLoop tests.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// Holds a transport reference for the duration of a test so the shared loop
+// stays alive between clients and can be inspected.
+class SharedLoopScope {
+ public:
+  SharedLoopScope() { firebase::rest::InitTransportCurl(); }
+  ~SharedLoopScope() { firebase::rest::CleanupTransportCurl(); }
+  firebase::rest::curl::CurlIoLoop& loop() {
+    return firebase::rest::curl::CurlIoLoop::Get();
+  }
+  // Runs fn on the I/O thread and waits for it.
+  void RunOnLoop(std::function<void()> fn) {
+    Semaphore done(0);
+    loop().Post([&]() {
+      fn();
+      done.Post();
+    });
+    ASSERT_TRUE(done.TimedWait(5000));
+  }
+  size_t transfer_count() {
+    size_t count = 0;
+    RunOnLoop([&]() { count = loop().transfer_count(); });
+    return count;
+  }
+  size_t extra_fd_count() {
+    size_t count = 0;
+    RunOnLoop([&]() { count = loop().extra_fd_count(); });
+    return count;
+  }
+  std::thread::id io_thread_id() {
+    std::thread::id id;
+    RunOnLoop([&]() { id = std::this_thread::get_id(); });
+    return id;
+  }
+};
+
+int64_t ElapsedMs(std::chrono::steady_clock::time_point start) {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start)
+      .count();
+}
+
+#if defined(__linux__)
+int CountThreadsInProcess() {
+  int count = 0;
+  DIR* dir = opendir("/proc/self/task");
+  if (dir == nullptr) return -1;
+  while (readdir(dir) != nullptr) count++;
+  closedir(dir);
+  return count - 2;  // "." and ".."
+}
+#endif  // defined(__linux__)
+
+// A Response that signals a semaphore on completion.
+class SignalingResponse : public firebase::rest::Response {
+ public:
+  explicit SignalingResponse(Semaphore* semaphore) : semaphore_(semaphore) {}
+  void MarkCompleted() override {
+    firebase::rest::Response::MarkCompleted();
+    semaphore_->Post();
+  }
+  void MarkFailed() override {
+    firebase::rest::Response::MarkFailed();
+    semaphore_->Post();
+  }
+
+ private:
+  Semaphore* semaphore_;
+};
+
+}  // namespace
+
+// Two clients to two servers share one I/O thread; closing one leaves the
+// other fully functional.
+TEST(WebSocketClientImpl, TwoClientsShareOneLoop) {
+  SharedLoopScope scope;
+  TestWebSocketEchoServer server_a(0);
+  TestWebSocketEchoServer server_b(0);
+  server_a.Start();
+  server_b.Start();
+
+  Semaphore semaphore_a(0);
+  Semaphore semaphore_b(0);
+  TestClientEventHandler handler_a(&semaphore_a);
+  TestClientEventHandler handler_b(&semaphore_b);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl client_a(GetLocalHostUri(server_a.GetPort(true)), "a",
+                               &logger, &scheduler, "", &handler_a);
+  WebSocketClientImpl client_b(GetLocalHostUri(server_b.GetPort(true)), "b",
+                               &logger, &scheduler, "", &handler_b);
+
+  std::thread::id io_thread = scope.io_thread_id();
+  EXPECT_NE(std::this_thread::get_id(), io_thread);
+
+  client_a.Connect(5000);
+  client_b.Connect(5000);
+  EXPECT_TRUE(semaphore_a.TimedWait(5000));
+  EXPECT_TRUE(semaphore_b.TimedWait(5000));
+  EXPECT_TRUE(handler_a.is_connected_);
+  EXPECT_TRUE(handler_b.is_connected_);
+
+  // Both open sockets are serviced by the same loop...
+  EXPECT_EQ(2u, scope.extra_fd_count());
+  EXPECT_EQ(0u, scope.transfer_count());
+  // ...on the one and only I/O thread.
+  EXPECT_EQ(io_thread, scope.io_thread_id());
+
+  client_a.Send("from-a");
+  client_b.Send("from-b");
+  EXPECT_TRUE(semaphore_a.TimedWait(5000));
+  EXPECT_TRUE(semaphore_b.TimedWait(5000));
+  EXPECT_EQ("from-a", handler_a.msg_received_);
+  EXPECT_EQ("from-b", handler_b.msg_received_);
+
+  client_a.Close();
+  EXPECT_TRUE(semaphore_a.TimedWait(5000));
+  EXPECT_TRUE(handler_a.is_closed_);
+  EXPECT_EQ(1u, scope.extra_fd_count());
+
+  // B is unaffected.
+  handler_b.is_msg_received_ = false;
+  client_b.Send("still-alive");
+  EXPECT_TRUE(semaphore_b.TimedWait(5000));
+  EXPECT_TRUE(handler_b.is_msg_received_);
+  EXPECT_EQ("still-alive", handler_b.msg_received_);
+  EXPECT_FALSE(handler_b.is_closed_);
+  EXPECT_FALSE(handler_a.is_error_);
+  EXPECT_FALSE(handler_b.is_error_);
+
+  client_b.Close();
+  EXPECT_TRUE(semaphore_b.TimedWait(5000));
+  EXPECT_TRUE(handler_b.is_closed_);
+  EXPECT_EQ(0u, scope.extra_fd_count());
+
+  server_a.Stop();
+  server_b.Stop();
+}
+
+// A slow REST transfer on the shared multi handle must not delay WebSocket
+// traffic, and an open WebSocket must not delay REST traffic.
+TEST(WebSocketClientImpl,
+     SharesLoopWithRestTransportWithoutHeadOfLineBlocking) {
+  SharedLoopScope scope;
+  TestWebSocketEchoServer ws_server(0);
+  ws_server.Start();
+  firebase::rest::test::TestHttpServer http_server;
+  ASSERT_TRUE(http_server.Start());
+
+  Semaphore ws_semaphore(0);
+  TestClientEventHandler handler(&ws_semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl client(GetLocalHostUri(ws_server.GetPort(true)), "",
+                             &logger, &scheduler, "", &handler);
+  client.Connect(5000);
+  EXPECT_TRUE(ws_semaphore.TimedWait(5000));
+  ASSERT_TRUE(handler.is_connected_);
+
+  // Start a REST request that stays in flight for 2 s.
+  Semaphore slow_done(0);
+  firebase::rest::Request slow_request;
+  slow_request.set_url((http_server.BaseUrl() + "/slow?ms=2000").c_str());
+  SignalingResponse slow_response(&slow_done);
+  firebase::rest::TransportCurl slow_transport;
+  slow_transport.set_is_async(true);
+  slow_transport.Perform(slow_request, &slow_response);
+  EXPECT_EQ(1u, scope.transfer_count());
+
+  // WebSocket round trips are not held up by it.
+  for (int i = 0; i < 5; ++i) {
+    handler.is_msg_received_ = false;
+    auto start = std::chrono::steady_clock::now();
+    client.Send("ping-while-rest-busy");
+    ASSERT_TRUE(ws_semaphore.TimedWait(5000));
+    EXPECT_LT(ElapsedMs(start), 200) << "round trip " << i;
+    EXPECT_EQ("ping-while-rest-busy", handler.msg_received_);
+  }
+
+  // Nor is a quick REST request held up by the open WebSocket.
+  {
+    Semaphore fast_done(0);
+    firebase::rest::Request fast_request;
+    fast_request.set_url((http_server.BaseUrl() + "/").c_str());
+    SignalingResponse fast_response(&fast_done);
+    firebase::rest::TransportCurl fast_transport;
+    auto start = std::chrono::steady_clock::now();
+    fast_transport.Perform(fast_request, &fast_response);  // synchronous
+    EXPECT_LT(ElapsedMs(start), 200);
+    EXPECT_EQ(200, fast_response.status());
+    EXPECT_STREQ("test", fast_response.GetBody());
+  }
+
+  // The slow one still completes normally.
+  EXPECT_TRUE(slow_done.TimedWait(10000));
+  EXPECT_EQ(200, slow_response.status());
+
+  client.Close();
+  EXPECT_TRUE(ws_semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_closed_);
+  EXPECT_FALSE(handler.is_error_);
+  ws_server.Stop();
+}
+
+// A data frame that arrives in the same TCP segment as the 101 response must
+// be delivered.
+TEST(WebSocketClientImpl, FrameInSameSegmentAsHandshakeIsDelivered) {
+  TestWebSocketEchoServer server(
+      0, TestWebSocketEchoServer::kBehaviorSendTextWithHandshake);
+  server.Start();
+
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl client(GetLocalHostUri(server.GetPort(true)), "", &logger,
+                             &scheduler, "", &handler);
+  client.Connect(5000);
+  // OnOpen followed by OnMessage.
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_connected_);
+  EXPECT_TRUE(handler.is_msg_received_);
+  EXPECT_EQ(TestWebSocketEchoServer::kTextWithHandshakePayload(),
+            handler.msg_received_);
+  EXPECT_FALSE(handler.is_error_);
+
+  client.Close();
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  server.Stop();
+}
+
+// Destroying clients while their handshake is in flight leaves nothing behind
+// on the shared loop.
+TEST(WebSocketClientImpl, DestroyDuringHandshakeLeavesSharedLoopClean) {
+  SharedLoopScope scope;
+  TestWebSocketEchoServer server(
+      0, TestWebSocketEchoServer::kBehaviorDelayedHandshake);
+  server.Start();
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  auto uri = GetLocalHostUri(server.GetPort(true));
+
+  for (int i = 0; i < 20; ++i) {
+    Semaphore semaphore(0);
+    TestClientEventHandler handler(&semaphore);
+    WebSocketClientImpl* client =
+        new WebSocketClientImpl(uri, "", &logger, &scheduler, "", &handler);
+    client->Connect(5000);
+    if (i % 2 == 1) {
+      // Let the handshake actually get registered before tearing down.
+      EXPECT_EQ(1u, scope.transfer_count());
+    }
+    delete client;
+    EXPECT_FALSE(handler.is_connected_);
+  }
+  EXPECT_EQ(0u, scope.transfer_count());
+  EXPECT_EQ(0u, scope.extra_fd_count());
+
+  // The loop is still perfectly usable afterwards.
+  TestWebSocketEchoServer echo_server(0);
+  echo_server.Start();
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  WebSocketClientImpl client(GetLocalHostUri(echo_server.GetPort(true)), "",
+                             &logger, &scheduler, "", &handler);
+  client.Connect(5000);
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_connected_);
+  client.Send("after-churn");
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_EQ("after-churn", handler.msg_received_);
+
+  server.Stop();
+  echo_server.Stop();
+}
+
+// A PING that arrives while a large outbound frame is only partially written
+// (POLLOUT armed) is answered once that frame has been flushed.
+TEST(WebSocketClientImpl, PingDuringPartialSendStillGetsPong) {
+  TestWebSocketEchoServer server(
+      0, TestWebSocketEchoServer::kBehaviorPingThenDelayedRead);
+  server.Start();
+
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl client(GetLocalHostUri(server.GetPort(true)), "", &logger,
+                             &scheduler, "", &handler);
+  client.Connect(5000);
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  ASSERT_TRUE(handler.is_connected_);
+
+  // Far more than any loopback socket buffer: the server is not reading for
+  // a second, so curl_ws_send() has to stop part-way and wait for POLLOUT
+  // while the server's PING is already in our receive path.
+  std::string large_payload(24 * 1024 * 1024, 'z');
+  client.Send(large_payload.c_str());
+  EXPECT_TRUE(semaphore.TimedWait(30000));
+  EXPECT_TRUE(handler.is_msg_received_);
+  EXPECT_EQ(large_payload.size(), handler.msg_received_.size());
+  EXPECT_EQ(large_payload, handler.msg_received_);
+
+  // The PONG was sent after the frame completed; give the server a moment to
+  // read it.
+  for (int i = 0; i < 500 && !server.pong_received(); ++i) {
+    firebase::internal::Sleep(10);
+  }
+  EXPECT_TRUE(server.pong_received());
+  EXPECT_EQ(TestWebSocketEchoServer::kDelayedReadPingPayload(),
+            server.last_pong_payload());
+  EXPECT_FALSE(handler.is_error_);
+
+  client.Close();
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  server.Stop();
+}
+
+#if defined(__linux__)
+// A WebSocket client no longer brings its own thread: with the shared loop
+// already running, creating, connecting and using a client creates none.
+TEST(WebSocketClientImpl, ClientDoesNotCreateAThread) {
+  SharedLoopScope scope;
+  TestWebSocketEchoServer server(0);
+  server.Start();
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  // The scheduler starts its worker thread lazily; warm it up so the baseline
+  // below already includes it.
+  scheduler.Schedule([&semaphore]() { semaphore.Post(); });
+  ASSERT_TRUE(semaphore.TimedWait(5000));
+
+  int threads_before = CountThreadsInProcess();
+  ASSERT_GT(threads_before, 0);
+  {
+    WebSocketClientImpl client(GetLocalHostUri(server.GetPort(true)), "",
+                               &logger, &scheduler, "", &handler);
+    client.Connect(5000);
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    client.Send("hi");
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    EXPECT_EQ(threads_before, CountThreadsInProcess());
+    client.Close();
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+  }
+  EXPECT_EQ(threads_before, CountThreadsInProcess());
+  server.Stop();
+}
+#endif  // defined(__linux__)
 
 }  // namespace connection
 }  // namespace internal

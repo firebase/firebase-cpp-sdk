@@ -259,6 +259,11 @@ size_t CurlIoLoop::transfer_count() const {
   return transfers_.size();
 }
 
+size_t CurlIoLoop::extra_fd_count() const {
+  AssertOnIoThread("extra_fd_count");
+  return extra_fds_.size();
+}
+
 // ---------------------------------------------------------------------------
 // The loop.
 // ---------------------------------------------------------------------------
@@ -295,14 +300,20 @@ void CurlIoLoop::DispatchDone() {
     // curl_multi_remove_handle().
     CURL* easy = message->easy_handle;
     CURLcode result = message->data.result;
-    curl_multi_remove_handle(multi_.get(), easy);
     auto it = transfers_.find(easy);
     if (it == transfers_.end()) {
+      curl_multi_remove_handle(multi_.get(), easy);
       LogWarning("CurlIoLoop: CURLMSG_DONE for unknown easy handle %p", easy);
       continue;
     }
     Transfer* transfer = it->second;
     transfers_.erase(it);
+    // Connect-only transfers keep their handle attached: removing it would
+    // close the connection they are about to use (see Transfer::
+    // RemoveFromMultiOnDone()). A completed handle left in the multi is inert.
+    if (transfer->RemoveFromMultiOnDone()) {
+      curl_multi_remove_handle(multi_.get(), easy);
+    }
     transfer->OnDone(result);
   }
 }
