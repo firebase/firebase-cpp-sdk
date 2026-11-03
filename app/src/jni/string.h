@@ -138,6 +138,9 @@ inline std::string Utf8ToModifiedUtf8(std::string_view utf8) {
           i += 4;
           continue;
         }
+        out.append("\xEF\xBF\xBD", 3);
+        i += 4;
+        continue;
       }
       out.append("\xEF\xBF\xBD", 3);
       ++i;
@@ -174,28 +177,39 @@ inline std::string ModifiedUtf8ToUtf8(std::string_view mutf8) {
         static_cast<uint8_t>(mutf8[i + 1]) == 0x80) {
       out.push_back('\0');
       i += 2;
-    } else if (b0 == 0xED && i + 5 < n) {
-      const uint8_t b1 = static_cast<uint8_t>(mutf8[i + 1]);
-      const uint8_t b2 = static_cast<uint8_t>(mutf8[i + 2]);
-      const uint8_t b3 = static_cast<uint8_t>(mutf8[i + 3]);
-      const uint8_t b4 = static_cast<uint8_t>(mutf8[i + 4]);
-      const uint8_t b5 = static_cast<uint8_t>(mutf8[i + 5]);
-      if (b1 >= 0xA0 && b1 <= 0xAF && (b2 & 0xC0) == 0x80 && b3 == 0xED &&
-          b4 >= 0xB0 && b4 <= 0xBF && (b5 & 0xC0) == 0x80) {
-        const uint32_t high =
-            0xD800U | (static_cast<uint32_t>(b1 & 0x0F) << 6) |
-            static_cast<uint32_t>(b2 & 0x3F);
-        const uint32_t low =
-            0xDC00U | (static_cast<uint32_t>(b4 & 0x0F) << 6) |
-            static_cast<uint32_t>(b5 & 0x3F);
-        const uint32_t cp =
-            0x10000U + (((high - 0xD800U) << 10) | (low - 0xDC00U));
-        out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
-        out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
-        out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
-        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-        i += 6;
-        continue;
+    } else if (b0 == 0xED) {
+      if (i + 5 < n) {
+        const uint8_t b1 = static_cast<uint8_t>(mutf8[i + 1]);
+        const uint8_t b2 = static_cast<uint8_t>(mutf8[i + 2]);
+        const uint8_t b3 = static_cast<uint8_t>(mutf8[i + 3]);
+        const uint8_t b4 = static_cast<uint8_t>(mutf8[i + 4]);
+        const uint8_t b5 = static_cast<uint8_t>(mutf8[i + 5]);
+        if (b1 >= 0xA0 && b1 <= 0xAF && (b2 & 0xC0) == 0x80 && b3 == 0xED &&
+            b4 >= 0xB0 && b4 <= 0xBF && (b5 & 0xC0) == 0x80) {
+          const uint32_t high =
+              0xD800U | (static_cast<uint32_t>(b1 & 0x0F) << 6) |
+              static_cast<uint32_t>(b2 & 0x3F);
+          const uint32_t low =
+              0xDC00U | (static_cast<uint32_t>(b4 & 0x0F) << 6) |
+              static_cast<uint32_t>(b5 & 0x3F);
+          const uint32_t cp =
+              0x10000U + (((high - 0xD800U) << 10) | (low - 0xDC00U));
+          out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+          out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+          out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+          out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+          i += 6;
+          continue;
+        }
+      }
+      if (i + 2 < n) {
+        const uint8_t b1 = static_cast<uint8_t>(mutf8[i + 1]);
+        const uint8_t b2 = static_cast<uint8_t>(mutf8[i + 2]);
+        if (b1 >= 0xA0 && b1 <= 0xBF && (b2 & 0xC0) == 0x80) {
+          out.append("\xEF\xBF\xBD");
+          i += 3;
+          continue;
+        }
       }
       out.push_back(static_cast<char>(b0));
       ++i;
@@ -250,11 +264,15 @@ inline std::string JStringToString(JNIEnv* env, jobject str_obj) {
   if (!chars) {
     return std::string();
   }
+  struct ReleaseGuard {
+    JNIEnv* e;
+    jstring s;
+    const char* c;
+    ~ReleaseGuard() { e->ReleaseStringUTFChars(s, c); }
+  } guard{env, str, chars};
+
   jsize len = env->GetStringUTFLength(str);
-  std::string result =
-      ModifiedUtf8ToUtf8(std::string_view(chars, static_cast<size_t>(len)));
-  env->ReleaseStringUTFChars(str, chars);
-  return result;
+  return ModifiedUtf8ToUtf8(std::string_view(chars, static_cast<size_t>(len)));
 }
 
 // Converts a JNI jstring to a standard UTF-8 std::string and deletes `str_obj`.

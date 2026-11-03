@@ -82,7 +82,7 @@ class ExceptionClearGuard {
   ExceptionClearGuard(ExceptionClearGuard&&) = delete;
   ExceptionClearGuard& operator=(ExceptionClearGuard&&) = delete;
 
-  bool had_exception() const noexcept { return static_cast<bool>(saved_exception_); }
+  bool had_exception() const noexcept { return saved_exception_.get() != nullptr; }
   jthrowable saved_exception() const noexcept { return saved_exception_.get(); }
 
   // Consumes the saved exception so it will not be re-thrown on destruction.
@@ -175,6 +175,7 @@ class JniCallbackScope {
     if (!env_) return;
     if (policy_ == ExceptionPolicy::kCaptureAndClear &&
         env_->ExceptionCheck()) {
+      env_->ExceptionDescribe();
       env_->ExceptionClear();
     }
   }

@@ -308,6 +308,11 @@ class Borrowed : public internal::ReferenceBase<T> {
   constexpr Borrowed(Borrowed&&) noexcept = default;
   constexpr Borrowed& operator=(const Borrowed&) noexcept = default;
   constexpr Borrowed& operator=(Borrowed&&) noexcept = default;
+
+  template <typename U>
+  constexpr Borrowed<U> CastTo() const noexcept {
+    return Borrowed<U>(static_cast<typename JniTypeMap<U>::type>(this->get()));
+  }
 };
 
 template <typename T = jobject>
@@ -325,9 +330,14 @@ class Local : public internal::ReferenceBase<T> {
 
   constexpr Local() noexcept = default;
 
-  Local(JNIEnv* env, JniType object) noexcept : Base(object), env_(env) {
+  Local(JNIEnv* env, JniType object, bool adopt_existing_local = false) noexcept : Base(nullptr), env_(env) {
     if (env) {
       internal::GlobalRefReaper::RecordJavaVM(env);
+    }
+    if (adopt_existing_local) {
+      this->object_ = object;
+    } else if (object) {
+      AssignFromLocal(env, object);
     }
   }
 
@@ -442,16 +452,25 @@ class Local : public internal::ReferenceBase<T> {
   template <typename U>
   Local<U> CastTo() && noexcept {
     return Local<U>(env_,
-                    static_cast<typename JniTypeMap<U>::type>(release()));
+                    static_cast<typename JniTypeMap<U>::type>(release()),
+                    /*adopt_existing_local=*/true);
   }
 
  private:
   template <typename Ref>
   void CopyFrom(JNIEnv* env, const Ref& other) noexcept {
     env_ = env;
-    if (env_ && other.get() && !env_->ExceptionCheck()) {
-      this->object_ =
-          static_cast<JniType>(env_->NewLocalRef(other.get()));
+    if (env_ && other.get()) {
+      jthrowable pending = nullptr;
+      if (env_->ExceptionCheck()) {
+        pending = env_->ExceptionOccurred();
+        env_->ExceptionClear();
+      }
+      this->object_ = static_cast<JniType>(env_->NewLocalRef(other.get()));
+      if (pending) {
+        env_->Throw(pending);
+        env_->DeleteLocalRef(pending);
+      }
     } else {
       this->object_ = nullptr;
     }
@@ -463,10 +482,19 @@ class Local : public internal::ReferenceBase<T> {
       return;
     }
     JNIEnv* target_env = src_env ? src_env : env_;
-    JniType new_ref =
-        (target_env && !target_env->ExceptionCheck())
-            ? static_cast<JniType>(target_env->NewLocalRef(src_obj))
-            : nullptr;
+    JniType new_ref = nullptr;
+    if (target_env) {
+      jthrowable pending = nullptr;
+      if (target_env->ExceptionCheck()) {
+        pending = target_env->ExceptionOccurred();
+        target_env->ExceptionClear();
+      }
+      new_ref = static_cast<JniType>(target_env->NewLocalRef(src_obj));
+      if (pending) {
+        target_env->Throw(pending);
+        target_env->DeleteLocalRef(pending);
+      }
+    }
     reset(target_env, new_ref);
   }
 
@@ -666,6 +694,11 @@ class Global : public internal::ReferenceBase<T> {
   template <typename U>
   U CastTo() const noexcept {
     return U(static_cast<typename JniTypeMap<U>::type>(this->get()));
+  }
+
+  template <typename U>
+  Global<U> CastTo() && noexcept {
+    return Global<U>(nullptr, static_cast<typename JniTypeMap<U>::type>(release()), /*adopt_existing_global=*/true);
   }
 
  private:

@@ -73,7 +73,7 @@ template <typename T>
 struct IsObjCPointer
     : std::bool_constant<!std::is_reference_v<T> &&
                          std::is_pointer_v<T> &&
-                         std::is_convertible_v<std::remove_cv_t<std::remove_pointer_t<T>>*, id>> {};
+                         std::is_convertible_v<std::remove_cv_t<std::remove_pointer_t<std::remove_reference_t<T>>>*, id>> {};
 
 #else  // !defined(__OBJC__)
 

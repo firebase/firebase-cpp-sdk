@@ -528,7 +528,8 @@ class Env {
   template <typename T, typename... Args,
             typename = std::enable_if_t<!Constructor<T>::kHasTypedArgs>>
   Local<T> New(const Constructor<T>& ctor, Args&&... args) {
-    return New<T>(ctor.clazz(), ctor.id(), std::forward<Args>(args)...);
+    auto s = ctor.Get();
+    return New<T>(s.clazz, s.id, std::forward<Args>(args)...);
   }
 
   template <typename T, typename... ParamTypes, typename... Args>
@@ -536,9 +537,10 @@ class Env {
     static_assert(
         sizeof...(ParamTypes) == sizeof...(Args),
         "JNI Constructor call argument count does not match declaration");
-    if (!ok() || !ctor.clazz() || !ctor.id()) return {};
+    auto s = ctor.Get();
+    if (!ok() || !s.clazz || !s.id) return {};
     jobject result = env_->NewObject(
-        ctor.clazz(), ctor.id(),
+        s.clazz, s.id,
         internal::ConvertDeclaredArg<ParamTypes>(std::forward<Args>(args))...);
     return MakeResult<T>(result);
   }
@@ -582,8 +584,9 @@ class Env {
   template <typename R, typename... Args,
             typename = std::enable_if_t<!StaticMethod<R>::kHasTypedArgs>>
   auto Call(const StaticMethod<R>& method, Args&&... args) {
+    auto s = method.Get();
     return CallHelper<R>(internal::CallTraits<CallType<R>>::kCallStatic,
-                         method.clazz(), method.id(),
+                         s.clazz, s.id,
                          ToJni(std::forward<Args>(args))...);
   }
 
@@ -592,15 +595,17 @@ class Env {
     static_assert(
         sizeof...(ParamTypes) == sizeof...(Args),
         "JNI StaticMethod call argument count does not match declaration");
+    auto s = method.Get();
     return CallHelper<R>(
-        internal::CallTraits<CallType<R>>::kCallStatic, method.clazz(),
-        method.id(),
+        internal::CallTraits<CallType<R>>::kCallStatic, s.clazz,
+        s.id,
         internal::ConvertDeclaredArg<ParamTypes>(std::forward<Args>(args))...);
   }
 
   template <typename R>
   auto GetStaticField(const Class& clazz, jfieldID field) {
-    if (!ok() || !clazz || !field) return MakeResult<R>(CallType<R>{});
+    using Ret = std::conditional_t<IsReference<JniType<R>>::value, Local<R>, R>;
+    if (!ok() || !clazz || !field) return Ret{};
     constexpr auto kGetField =
         internal::CallTraits<CallType<R>>::kGetStaticField;
     CallType<R> result = (env_->*kGetField)(clazz.get(), field);
@@ -609,7 +614,8 @@ class Env {
 
   template <typename R>
   auto GetStaticField(jclass clazz, jfieldID field) {
-    if (!ok() || !clazz || !field) return MakeResult<R>(CallType<R>{});
+    using Ret = std::conditional_t<IsReference<JniType<R>>::value, Local<R>, R>;
+    if (!ok() || !clazz || !field) return Ret{};
     constexpr auto kGetField =
         internal::CallTraits<CallType<R>>::kGetStaticField;
     CallType<R> result = (env_->*kGetField)(clazz, field);
@@ -618,7 +624,8 @@ class Env {
 
   template <typename T>
   auto Get(const StaticField<T>& field) {
-    return GetStaticField<T>(field.clazz(), field.id());
+    auto s = field.Get();
+    return GetStaticField<T>(s.clazz, s.id);
   }
 
   template <typename T>
@@ -645,7 +652,7 @@ class Env {
 
   template <typename T>
   EnableForPrimitive<T, Local<Array<T>>> NewArray(size_t size) {
-    if (!ok()) return {};
+    if (!ok() || size > std::numeric_limits<jsize>::max()) return {};
     using ElementJniType = typename internal::ArrayElementJniType<T>::type;
     using Traits = internal::CallTraits<ElementJniType>;
     constexpr auto kNewArray = Traits::kNewArray;
@@ -656,7 +663,7 @@ class Env {
   template <typename T>
   EnableForReference<T, Local<T>> GetArrayElement(const Array<T>& array,
                                                   size_t index) {
-    if (!ok() || !array) return {};
+    if (!ok() || !array || index > std::numeric_limits<jsize>::max()) return {};
     jobject element = env_->GetObjectArrayElement(array.get(), ToJni(index));
     return MakeResult<T>(element);
   }
@@ -664,7 +671,7 @@ class Env {
   template <typename T, typename U>
   EnableForReference<T, void> SetArrayElement(const Array<T>& array,
                                               size_t index, const U& value) {
-    if (!ok() || !array) return;
+    if (!ok() || !array || index > std::numeric_limits<jsize>::max()) return;
     env_->SetObjectArrayElement(array.get(), ToJni(index), ToJni(value));
     if (!ok()) {
       RecordException();
@@ -676,7 +683,7 @@ class Env {
                                              size_t start, size_t len,
                                              T* buffer) {
     if (!ok() || !array || len == 0 || !buffer) return;
-    if (start > std::numeric_limits<jsize>::max() || len > std::numeric_limits<jsize>::max()) return;
+    if (start > std::numeric_limits<jsize>::max() || len > std::numeric_limits<jsize>::max() || start + len > std::numeric_limits<jsize>::max()) return;
     if constexpr (std::is_same_v<T, bool>) {
       std::vector<jboolean> raw(len, JNI_FALSE);
       env_->GetBooleanArrayRegion(ToJni(array), ToJni(start), ToJni(len),
@@ -707,6 +714,7 @@ class Env {
                                                        size_t start,
                                                        size_t len) {
     if (!ok() || !array || len == 0) return {};
+    if (start > std::numeric_limits<jsize>::max() || len > std::numeric_limits<jsize>::max() || start + len > std::numeric_limits<jsize>::max()) return {};
     if constexpr (std::is_same_v<T, bool>) {
       std::vector<jboolean> raw(len, JNI_FALSE);
       env_->GetBooleanArrayRegion(ToJni(array), ToJni(start), ToJni(len),
@@ -732,6 +740,7 @@ class Env {
   EnableForPrimitive<T, void> SetArrayRegion(Array<T>& array, size_t start,
                                              size_t len, const T* buffer) {
     if (!ok() || !array || len == 0 || !buffer) return;
+    if (start > std::numeric_limits<jsize>::max() || len > std::numeric_limits<jsize>::max() || start + len > std::numeric_limits<jsize>::max()) return;
     if constexpr (std::is_same_v<T, bool>) {
       std::vector<jboolean> raw(len, JNI_FALSE);
       for (size_t i = 0; i < len; ++i) {
@@ -797,7 +806,7 @@ class Env {
   std::enable_if_t<!std::is_void_v<R>,
                    std::conditional_t<IsReference<JniType<R>>::value, Local<R>, R>>
   CallHelper(MethodPtr method, Target target, jmethodID id, JniArgs... args) {
-    if (!ok() || !target || !id) return MakeResult<R>(CallType<R>{});
+    if (!ok() || !target || !id) return {};
     CallType<R> result = (env_->*method)(target, id, args...);
     return MakeResult<R>(result);
   }

@@ -47,11 +47,8 @@ class ConstructorBase {
   constexpr const char* name() const noexcept { return "<init>"; }
   constexpr const char* sig() const noexcept { return sig_; }
 
-  jclass clazz() const noexcept {
-    return state_.load(std::memory_order_acquire).clazz;
-  }
-  jmethodID id() const noexcept {
-    return state_.load(std::memory_order_acquire).id;
+  State Get() const noexcept {
+    return state_.load(std::memory_order_acquire);
   }
 
   explicit operator bool() const noexcept {
@@ -204,11 +201,8 @@ class StaticFieldBase {
   constexpr const char* name() const noexcept { return name_; }
   constexpr const char* sig() const noexcept { return sig_; }
 
-  jclass clazz() const noexcept {
-    return state_.load(std::memory_order_acquire).clazz;
-  }
-  jfieldID id() const noexcept {
-    return state_.load(std::memory_order_acquire).id;
+  State Get() const noexcept {
+    return state_.load(std::memory_order_acquire);
   }
 
   explicit operator bool() const noexcept {
@@ -258,11 +252,8 @@ class StaticMethodBase {
   constexpr const char* name() const noexcept { return name_; }
   constexpr const char* sig() const noexcept { return sig_; }
 
-  jclass clazz() const noexcept {
-    return state_.load(std::memory_order_acquire).clazz;
-  }
-  jmethodID id() const noexcept {
-    return state_.load(std::memory_order_acquire).id;
+  State Get() const noexcept {
+    return state_.load(std::memory_order_acquire);
   }
 
   explicit operator bool() const noexcept {
