@@ -1593,7 +1593,13 @@ TEST_F(FirebaseDatabaseTest, TestMultipleAppsShareSingleWebSocketIoLoop) {
   // thread scaling.
   for (int i = 0; i < kExtraApps; ++i) {
     std::string name = "multi_ws_app_" + std::to_string(i);
+#if defined(__ANDROID__)
+    apps[i] = firebase::App::Create(app_framework::GetJniEnv(),
+                                    app_framework::GetActivity(),
+                                    shared_app_->options(), name.c_str());
+#else
     apps[i] = firebase::App::Create(shared_app_->options(), name.c_str());
+#endif
     ASSERT_NE(apps[i], nullptr);
   }
   ProcessEvents(100);
