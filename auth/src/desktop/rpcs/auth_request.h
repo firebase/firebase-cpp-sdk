@@ -69,28 +69,18 @@ class AuthRequest
 
   void SetLocaleHeader(const char* language_code);
 
-  // Lazily populates heartbeat and AppCheck headers. Safe to call on a
-  // background worker thread prior to sending the request so that constructing
-  // an AuthRequest on the caller/UI thread never blocks on AppCheck or
-  // heartbeat futures.
-  void PrepareRequestHeaders() const;
-
-  const firebase::rest::RequestOptions& options() const {
-    PrepareRequestHeaders();
-    return firebase::rest::Request::options();
-  }
-
-  firebase::rest::RequestOptions& options() {
-    PrepareRequestHeaders();
-    return firebase::rest::Request::options();
-  }
+  // Populates heartbeat and AppCheck headers, which may block for up to
+  // kAppCheckTokenTimeoutMs. Must be called on a background worker thread
+  // before the request is sent so that constructing an AuthRequest on the
+  // caller/UI thread never blocks. Idempotent; not thread-safe.
+  void PrepareRequestHeaders();
 
   static std::string UrlEncode(const char* str);
 
  private:
   ::firebase::App& app;
   bool deliver_heartbeat_ = false;
-  mutable bool headers_prepared_ = false;
+  bool headers_prepared_ = false;
 };
 
 }  // namespace auth

@@ -75,7 +75,13 @@ Future<ResultT> CallAsync(
 // Note: this is a blocking call! Use in the callback given to CallAsync, or
 // otherwise on a separate thread.
 template <typename T>
-T GetResponse(const AuthRequest& request);
+T GetResponse(AuthRequest& request);
+
+// AuthRequest headers must be prepared before sending, which mutates the
+// request; reject const AuthRequests instead of silently falling back to the
+// rest::Request overload and sending without heartbeat/AppCheck headers.
+template <typename T>
+T GetResponse(const AuthRequest& request) = delete;
 
 template <typename T>
 T GetResponse(const rest::Request& request);
@@ -112,7 +118,7 @@ inline Future<ResultT> CallAsync(
 }
 
 template <typename T>
-inline T GetResponse(const AuthRequest& request) {
+inline T GetResponse(AuthRequest& request) {
   request.PrepareRequestHeaders();
   T response;
   firebase::rest::CreateTransport()->Perform(request, &response);

@@ -38,7 +38,7 @@ namespace auth {
 // it's invoked on the appropriate thread.
 GetAccountInfoResult GetAccountInfo(const AuthData& auth_data,
                                     const std::string& access_token);
-GetAccountInfoResult GetAccountInfo(const GetAccountInfoRequest& request);
+GetAccountInfoResult GetAccountInfo(GetAccountInfoRequest& request);
 
 // Makes a network call to one of the sign-in endpoints (e.g., verifyPassword or
 // verifyAssertion), and completes the promise contained within the given

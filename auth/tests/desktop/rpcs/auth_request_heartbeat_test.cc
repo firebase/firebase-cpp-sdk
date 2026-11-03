@@ -78,6 +78,7 @@ class AuthRequestHeartbeatTest : public ::testing::Test {
   }
 
   void ExpectHasHeartbeat(AuthRequest& request) {
+    request.PrepareRequestHeaders();
     // The first request headers should include both heartbeat payload and GMP
     // App ID.
     EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
@@ -92,6 +93,7 @@ TEST_F(AuthRequestHeartbeatTest, TestCreateAuthUriRequestHasHeartbeat) {
 
   // Subsequent request when no new heartbeats exist should omit both headers.
   CreateAuthUriRequest second_request(*app_, "APIKEY", "email");
+  second_request.PrepareRequestHeaders();
   EXPECT_EQ("", second_request.options().header[app_common::kApiClientHeader]);
   EXPECT_EQ(
       "", second_request.options().header[app_common::kXFirebaseGmpIdHeader]);
@@ -128,6 +130,7 @@ TEST_F(AuthRequestHeartbeatTest, TestResetPasswordRequestHasHeartbeat) {
 
 TEST_F(AuthRequestHeartbeatTest, TestSecureTokenRequestDoesNotHaveHeartbeat) {
   SecureTokenRequest request(*app_, "APIKEY", "email");
+  request.PrepareRequestHeaders();
 
   // SecureTokenRequest should not have heartbeat payload since it is sent
   // to a backend that does not support the payload.
@@ -210,6 +213,7 @@ TEST_F(AuthRequestHeartbeatTest, TestRequestAttachesAppCheckTokenHeader) {
       });
 
   CreateAuthUriRequest request(*app_, "APIKEY", "email");
+  request.PrepareRequestHeaders();
   EXPECT_EQ("fake_app_check_token",
             request.options().header["X-Firebase-AppCheck"]);
 

@@ -42,15 +42,13 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
                          bool deliver_heartbeat)
     : RequestJson(schema),
       app(app),
-      deliver_heartbeat_(deliver_heartbeat),
-      headers_prepared_(false) {}
+      deliver_heartbeat_(deliver_heartbeat) {}
 
-void AuthRequest::PrepareRequestHeaders() const {
+void AuthRequest::PrepareRequestHeaders() {
   if (headers_prepared_) {
     return;
   }
   headers_prepared_ = true;
-  auto* mutable_this = const_cast<AuthRequest*>(this);
 
   if (deliver_heartbeat_) {
     std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller =
@@ -59,10 +57,9 @@ void AuthRequest::PrepareRequestHeaders() const {
       std::string payload = heartbeat_controller->GetAndResetStoredHeartbeats();
       const char* gmp_app_id = app.options().app_id();
       if (!payload.empty()) {
-        mutable_this->add_header(app_common::kApiClientHeader, payload.c_str());
+        add_header(app_common::kApiClientHeader, payload.c_str());
         if (gmp_app_id && *gmp_app_id != '\0') {
-          mutable_this->add_header(app_common::kXFirebaseGmpIdHeader,
-                                   gmp_app_id);
+          add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id);
         }
       }
     }
@@ -80,7 +77,7 @@ void AuthRequest::PrepareRequestHeaders() const {
       const std::string* token =
           app_check_future.Await(kAppCheckTokenTimeoutMs);
       if (token && app_check_future.error() == 0 && !token->empty()) {
-        mutable_this->add_header("X-Firebase-AppCheck", token->c_str());
+        add_header("X-Firebase-AppCheck", token->c_str());
       }
     }
   }

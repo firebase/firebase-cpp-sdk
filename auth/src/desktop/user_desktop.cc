@@ -146,8 +146,8 @@ GetTokenResult EnsureFreshToken(AuthData* const auth_data,
     return GetTokenResult(old_token.token());
   }
 
-  const SecureTokenRequest request(*auth_data->app, GetApiKey(*auth_data),
-                                   refresh_token.c_str());
+  SecureTokenRequest request(*auth_data->app, GetApiKey(*auth_data),
+                             refresh_token.c_str());
   auto response = GetResponse<SecureTokenResponse>(request);
   if (!response.IsSuccessful()) {
     SignOutIfUserNoLongerValid(auth_data->auth, response.error_code());
