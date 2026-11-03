@@ -169,6 +169,7 @@ class GlobalRefReaper {
     }
     State& state = GetState();
     std::lock_guard<std::mutex> lock(state.mutex);
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
     try {
       state.pending_deletes.push_back(ref);
       state.pending_count.store(state.pending_deletes.size(),
@@ -176,6 +177,11 @@ class GlobalRefReaper {
     } catch (...) {
       // Just leak if we cannot allocate memory to queue the deletion.
     }
+#else
+    state.pending_deletes.push_back(ref);
+    state.pending_count.store(state.pending_deletes.size(),
+                              std::memory_order_release);
+#endif
   }
 
   static size_t PendingCount() noexcept {
