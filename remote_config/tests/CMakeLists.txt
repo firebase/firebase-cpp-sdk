@@ -27,9 +27,18 @@ firebase_cpp_cc_test(
 ]]
 
 firebase_cpp_cc_test(
-  firebase_remote_config_desktop_config_data_test
+  firebase_remote_config_cleanup_test
   SOURCES
     ../src/cleanup_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_remote_config
+    firebase_testing
+)
+
+firebase_cpp_cc_test(
+  firebase_remote_config_desktop_config_data_test
+  SOURCES
     desktop/config_data_test.cc
   DEPENDS
     firebase_app_for_testing
