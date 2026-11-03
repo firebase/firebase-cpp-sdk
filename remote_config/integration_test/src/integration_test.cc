@@ -552,7 +552,13 @@ TEST_F(FirebaseRemoteConfigTest, TestConcurrentMultiAppFetchAndActivate) {
 
   for (int i = 0; i < kNumApps; ++i) {
     std::string name = "concurrent_rc_app_" + std::to_string(i);
+#if defined(__ANDROID__)
+    apps[i] = firebase::App::Create(app_->options(), name.c_str(),
+                                    app_framework::GetJniEnv(),
+                                    app_framework::GetActivity());
+#else
     apps[i] = firebase::App::Create(app_->options(), name.c_str());
+#endif  // defined(__ANDROID__)
     ASSERT_NE(apps[i], nullptr);
     rcs[i] = RemoteConfig::GetInstance(apps[i]);
     ASSERT_NE(rcs[i], nullptr);

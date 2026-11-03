@@ -21,17 +21,8 @@ set(common_SRCS
     src/common/functions.cc)
 
 if(ANDROID)
-  # Define the resource build needed for Android
-  firebase_cpp_gradle(":functions:functions_resources:generateDexJarRelease"
-      "${CMAKE_CURRENT_LIST_DIR}/functions_resources/build/functions_resources_lib.jar")
-  binary_to_array("functions_resources"
-      "${CMAKE_CURRENT_LIST_DIR}/functions_resources/build/functions_resources_lib.jar"
-      "firebase_functions_gen"
-      "${FIREBASE_GEN_FILE_DIR}/functions")
-
   # Source files used by the Android implementation.
   set(functions_platform_SRCS
-      ${functions_resources_source}
       src/android/callable_reference_android.cc
       src/android/functions_android.cc)
 elseif(IOS)
