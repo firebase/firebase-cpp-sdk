@@ -119,14 +119,17 @@ struct AvailabilityData {
   Availability cached_availability;
 };
 
+// Intentionally leaked so JNI callbacks and threads still running at process
+// exit never touch destroyed statics.
 static Mutex& GetAvailabilityMutex() {
-  static Mutex mutex;
-  return mutex;
+  static Mutex* mutex = new Mutex();
+  return *mutex;
 }
 
 static std::shared_ptr<AvailabilityData>& GetAvailabilityDataRef() {
-  static std::shared_ptr<AvailabilityData> data;
-  return data;
+  static std::shared_ptr<AvailabilityData>* data =
+      new std::shared_ptr<AvailabilityData>();
+  return *data;
 }
 
 static JavaVM* g_vm = nullptr;
@@ -317,6 +320,9 @@ void Terminate(JNIEnv* env) {
 Availability CheckAvailability(JNIEnv* env, jobject activity) {
   if (!env || !activity) return kAvailabilityUnavailableOther;
   std::shared_ptr<AvailabilityData> data;
+  jclass availability_class_local = nullptr;
+  jmethodID get_instance_method = nullptr;
+  jmethodID is_available_method = nullptr;
   {
     MutexLock lock(GetAvailabilityMutex());
     if (GetAvailabilityDataLocked() == nullptr) {
@@ -330,33 +336,44 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
 
     data = GetAvailabilityDataLocked();
     if (data->fetched_availability) return data->cached_availability;
+
+    // Take a local reference under the lock: a concurrent Terminate() may
+    // release the cached global class reference.
+    if (data->classes_loaded && googleapiavailability::GetClass() != nullptr) {
+      availability_class_local = static_cast<jclass>(
+          env->NewLocalRef(googleapiavailability::GetClass()));
+      get_instance_method = googleapiavailability::GetMethodId(
+          googleapiavailability::kGetInstance);
+      is_available_method = googleapiavailability::GetMethodId(
+          googleapiavailability::kIsGooglePlayServicesAvailable);
+    }
   }
 
-  jobject api = env->CallStaticObjectMethod(
-      googleapiavailability::GetClass(),
-      googleapiavailability::GetMethodId(googleapiavailability::kGetInstance));
-  if (!firebase::util::CheckAndClearJniExceptions(env) && api != nullptr) {
-    jint result = env->CallIntMethod(
-        api,
-        googleapiavailability::GetMethodId(
-            googleapiavailability::kIsGooglePlayServicesAvailable),
-        activity);
-    bool exception = firebase::util::CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(api);
-    if (!exception) {
-      for (size_t i = 0; i < std::size(ConnectionResultToAvailability);
-           i++) {
-        if (result == ConnectionResultToAvailability[i].java) {
-          Availability availability = ConnectionResultToAvailability[i].cpp;
-          if (availability == kAvailabilityAvailable) {
-            MutexLock lock(GetAvailabilityMutex());
-            data->cached_availability = availability;
-            data->fetched_availability = true;
+  if (availability_class_local != nullptr && get_instance_method != nullptr &&
+      is_available_method != nullptr) {
+    jobject api = env->CallStaticObjectMethod(
+        availability_class_local, get_instance_method);
+    if (!firebase::util::CheckAndClearJniExceptions(env) && api != nullptr) {
+      jint result = env->CallIntMethod(api, is_available_method, activity);
+      bool exception = firebase::util::CheckAndClearJniExceptions(env);
+      env->DeleteLocalRef(api);
+      if (!exception) {
+        for (size_t i = 0; i < std::size(ConnectionResultToAvailability);
+             i++) {
+          if (result == ConnectionResultToAvailability[i].java) {
+            Availability availability = ConnectionResultToAvailability[i].cpp;
+            if (availability == kAvailabilityAvailable) {
+              MutexLock lock(GetAvailabilityMutex());
+              data->cached_availability = availability;
+              data->fetched_availability = true;
+            }
+            env->DeleteLocalRef(availability_class_local);
+            return availability;
           }
-          return availability;
         }
       }
     }
+    env->DeleteLocalRef(availability_class_local);
   }
   return kAvailabilityUnavailableOther;
 }
