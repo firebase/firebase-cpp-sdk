@@ -66,11 +66,13 @@ void CleanupNotifier::RegisterObject(void *object, CleanupCallback callback) {
 void CleanupNotifier::UnregisterObject(void *object) {
   std::unique_lock<std::mutex> lock(mutex_);
   callbacks_.erase(object);
-  cv_.wait(lock, [&]() {
-    if (in_flight_thread_ == std::this_thread::get_id()) return true;
-    return std::find(in_flight_objects_.begin(), in_flight_objects_.end(),
-                     object) == in_flight_objects_.end();
-  });
+  if (!in_flight_objects_.empty() &&
+      in_flight_thread_ != std::this_thread::get_id()) {
+    cv_.wait(lock, [&]() {
+      return std::find(in_flight_objects_.begin(), in_flight_objects_.end(),
+                       object) == in_flight_objects_.end();
+    });
+  }
 }
 
 void CleanupNotifier::CleanupAll() {

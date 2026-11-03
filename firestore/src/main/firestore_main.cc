@@ -17,7 +17,10 @@
 #include "firestore/src/main/firestore_main.h"
 #include <mutex>
 
-static std::mutex g_is_alive_mutex;
+static std::mutex& GetIsAliveMutex() {
+  static std::mutex* m = new std::mutex();
+  return *m;
+}
 
 #include <cstring>
 #include <memory>
@@ -132,7 +135,7 @@ FirestoreInternal::FirestoreInternal(
 
 FirestoreInternal::~FirestoreInternal() {
   {
-    std::scoped_lock lock(g_is_alive_mutex);
+    std::scoped_lock lock(GetIsAliveMutex());
     *is_alive_ = false;
   }
   ClearListeners();
@@ -241,7 +244,7 @@ Future<void> FirestoreInternal::RunTransaction(
              eventual_result_callback = std::move(eventual_result_callback)] {
               bool alive = false;
               {
-                std::scoped_lock lock(g_is_alive_mutex);
+                std::scoped_lock lock(GetIsAliveMutex());
                 alive = *is_alive;
               }
               if (!alive) {
@@ -347,6 +350,7 @@ void FirestoreInternal::ClearListeners() {
   }
   for (auto* listener : listeners) {
     listener->Remove();
+    delete listener;
   }
 }
 
@@ -375,11 +379,14 @@ void FirestoreInternal::RegisterListenerRegistration(
 
 void FirestoreInternal::UnregisterListenerRegistration(
     ListenerRegistrationInternal* registration) {
+  bool erased = false;
   {
     std::scoped_lock lock(listeners_mutex_);
-    listeners_.erase(registration);
+    erased = listeners_.erase(registration) > 0;
   }
-  delete registration;
+  if (erased) {
+    delete registration;
+  }
 }
 
 void FirestoreInternal::ApplyDefaultSettings() {

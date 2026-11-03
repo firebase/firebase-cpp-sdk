@@ -109,6 +109,12 @@ class TypedCleanupNotifier {
  public:
   using CleanupCallback = std::function<void(T *)>;
 
+  void RegisterObject(T *object, void (*callback)(T *)) {
+    notifier_.RegisterObject(object, [callback](void *obj) {
+      if (callback) callback(static_cast<T *>(obj));
+    });
+  }
+
   void RegisterObject(T *object, CleanupCallback callback) {
     notifier_.RegisterObject(object, [cb = std::move(callback)](void *obj) {
       if (cb) cb(static_cast<T *>(obj));

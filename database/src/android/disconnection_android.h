@@ -86,6 +86,9 @@ class DisconnectionHandlerInternal {
     return DisconnectionHandler(nullptr);
   }
 
+  DisconnectionHandlerInternal(const DisconnectionHandlerInternal&) = delete;
+  DisconnectionHandlerInternal& operator=(const DisconnectionHandlerInternal&) = delete;
+
  private:
   friend class DatabaseInternal;
   friend class DatabaseReferenceInternal;

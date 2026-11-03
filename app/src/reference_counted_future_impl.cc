@@ -385,7 +385,7 @@ FutureHandle ReferenceCountedFutureImpl::AllocInternal(
   FIREBASE_FUTURE_TRACE("API: Allocated handle id %zu",
                         static_cast<size_t>(id));
   backings_.insert(BackingPair(id, backing));
-  const FutureHandle handle(id, this);
+  FutureHandle handle(id, this);
 
   // Update the most recent Future for this function.
   if (0 <= fn_idx && fn_idx < static_cast<int>(last_results_.size())) {

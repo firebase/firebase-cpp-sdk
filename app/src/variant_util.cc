@@ -35,6 +35,23 @@ namespace util {
 
 namespace {
 constexpr size_t kMaxVariantDepth = 128;
+
+// Returns the byte length of a string Variant without copying std::string.
+// SmallString is stored inline inside `variant` and never contains embedded
+// nulls; heap MutableString stores its std::string outside `variant`, so
+// non-const mutable_string() returns the existing std::string& without
+// promoting or mutating `variant`.
+inline size_t GetVariantStringLength(const Variant& variant, const char* str) {
+  if (!variant.is_mutable_string()) {
+    return strlen(str);
+  }
+  const auto addr = reinterpret_cast<uintptr_t>(str);
+  const auto begin = reinterpret_cast<uintptr_t>(&variant);
+  if (addr >= begin && addr < begin + sizeof(Variant)) {
+    return strlen(str);
+  }
+  return const_cast<Variant&>(variant).mutable_string().size();
+}
 }  // namespace
 
 // Forward declarations for stringstream variations of the *ToJson functions
@@ -91,8 +108,7 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
     case Variant::kTypeMutableString: {
       std::string escaped_string;
       const char* str = variant.string_value();
-      size_t len = variant.is_mutable_string() ? variant.mutable_string().size()
-                                               : strlen(str);
+      size_t len = GetVariantStringLength(variant, str);
       flatbuffers::EscapeString(str, len, &escaped_string, true, false);
       *ss << escaped_string;
       break;
@@ -138,8 +154,12 @@ static bool StdMapToJson(const std::map<Variant, Variant>& map,
           "Variants of non-fundamental types may not be used as map keys.");
       return false;
     }
-    if (!VariantToJson(iter->first.AsString(), prettyPrint, nextIndent, ss,
-                       depth + 1)) {
+    if (iter->first.is_string()) {
+      if (!VariantToJson(iter->first, prettyPrint, nextIndent, ss, depth + 1)) {
+        return false;
+      }
+    } else if (!VariantToJson(iter->first.AsString(), prettyPrint, nextIndent,
+                              ss, depth + 1)) {
       return false;
     }
     *ss << ':';
@@ -282,6 +302,9 @@ static Variant FlexbufferToVariantInternal(const flexbuffers::Reference& ref,
       return Variant(ref.AsDouble());
     case flexbuffers::FBT_STRING: {
       flexbuffers::String str = ref.AsString();
+      if (memchr(str.c_str(), '\0', str.length()) == nullptr) {
+        return Variant::MutableStringFromStaticString(str.c_str());
+      }
       return Variant(std::string(str.c_str(), str.length()));
     }
     case flexbuffers::FBT_KEY:
@@ -451,8 +474,7 @@ static bool VariantToFlexbufferInternal(const Variant& variant,
     case Variant::kTypeStaticString:
     case Variant::kTypeMutableString: {
       const char* str = variant.string_value();
-      size_t len = variant.is_mutable_string() ? variant.mutable_string().size()
-                                               : strlen(str);
+      size_t len = GetVariantStringLength(variant, str);
       fbb->String(str, len);
       break;
     }

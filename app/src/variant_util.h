@@ -22,7 +22,9 @@
 #include <string>
 
 #include "app/src/include/firebase/variant.h"
+#if __has_include("flatbuffers/flexbuffers.h")
 #include "flatbuffers/flexbuffers.h"
+#endif  // __has_include("flatbuffers/flexbuffers.h")
 
 namespace firebase {
 namespace util {
@@ -40,6 +42,7 @@ std::string StdMapToJson(const std::map<Variant, Variant>& map);
 // Converts an std::vector<Variant> to Json
 std::string StdVectorToJson(const std::vector<Variant>& vector);
 
+#if __has_include("flatbuffers/flexbuffers.h")
 // Convert from a Flexbuffer reference to a Variant.
 Variant FlexbufferToVariant(const flexbuffers::Reference& ref);
 
@@ -73,6 +76,7 @@ bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
 // Returns true on success, false otherwise.
 bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
                                flexbuffers::Builder* fbb);
+#endif  // __has_include("flatbuffers/flexbuffers.h")
 
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden

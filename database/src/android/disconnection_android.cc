@@ -59,8 +59,8 @@ enum DisconnectionHandlerFn {
 
 DisconnectionHandlerInternal::DisconnectionHandlerInternal(DatabaseInternal* db,
                                                            jobject obj)
-    : db_(db) {
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
+    : db_(db), obj_(nullptr) {
+  if (obj != nullptr) obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
   db_->future_manager().AllocFutureApi(this, kDisconnectionHandlerFnCount);
 }
 
@@ -88,10 +88,14 @@ namespace {
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<void> handle_,
                      ReferenceCountedFutureImpl* impl_, DatabaseInternal* db_)
-      : handle(handle_), impl(impl_), db(db_) {}
+      : handle(handle_),
+        impl(impl_),
+        db_ref(db_->this_ref()),
+        backing_future(MakeFuture(impl_, handle_)) {}
   SafeFutureHandle<void> handle;
   ReferenceCountedFutureImpl* impl;
-  DatabaseInternal* db;
+  DatabaseInternal::ThisRef db_ref;
+  Future<void> backing_future;
 };
 
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
@@ -100,14 +104,18 @@ void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
   FutureCallbackData* data =
       reinterpret_cast<FutureCallbackData*>(callback_data);
   if (data != nullptr) {
-    Error error_code = kErrorNone;
-    std::string message = status_message != nullptr ? status_message : "";
-    if (result_code == util::kFutureResultCancelled) {
-      error_code = kErrorWriteCanceled;
-    } else if (result_code == util::kFutureResultFailure) {
-      error_code = data->db->ErrorFromJavaThrowable(result, &message);
+    DatabaseInternal::ThisRefLock lock(&data->db_ref);
+    DatabaseInternal* db = lock.GetReference();
+    if (db != nullptr) {
+      Error error_code = kErrorNone;
+      std::string message = status_message != nullptr ? status_message : "";
+      if (result_code == util::kFutureResultCancelled) {
+        error_code = kErrorWriteCanceled;
+      } else if (result_code == util::kFutureResultFailure) {
+        error_code = db->ErrorFromJavaThrowable(result, &message);
+      }
+      data->impl->Complete(data->handle, error_code, message.c_str());
     }
-    data->impl->Complete(data->handle, error_code, message.c_str());
     delete data;
   }
 }
@@ -124,12 +132,15 @@ Future<void> DisconnectionHandlerInternal::Cancel() {
     future()->Complete(handle, kErrorUnknownError, "Cancel failed");
     return MakeFuture(future(), handle);
   }
+  FutureCallbackData* callback_data = new FutureCallbackData(handle, future(), db_);
   util::RegisterCallbackOnTask(
       env, task, FutureCallback,
-      // FutureCallback will delete the newed FutureCallbackData.
-      reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
+      reinterpret_cast<void*>(callback_data),
       db_->jni_task_id());
-  util::CheckAndClearJniExceptions(env);
+  if (util::CheckAndClearJniExceptions(env)) {
+    delete callback_data;
+    future()->Complete(handle, kErrorUnknownError, "Cancel failed");
+  }
   env->DeleteLocalRef(task);
   return MakeFuture(future(), handle);
 }
@@ -150,12 +161,15 @@ Future<void> DisconnectionHandlerInternal::RemoveValue() {
     future()->Complete(handle, kErrorUnknownError, "RemoveValue failed");
     return MakeFuture(future(), handle);
   }
+  FutureCallbackData* callback_data = new FutureCallbackData(handle, future(), db_);
   util::RegisterCallbackOnTask(
       env, task, FutureCallback,
-      // FutureCallback will delete the newed FutureCallbackData.
-      reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
+      reinterpret_cast<void*>(callback_data),
       db_->jni_task_id());
-  util::CheckAndClearJniExceptions(env);
+  if (util::CheckAndClearJniExceptions(env)) {
+    delete callback_data;
+    future()->Complete(handle, kErrorUnknownError, "RemoveValue failed");
+  }
   env->DeleteLocalRef(task);
   return MakeFuture(future(), handle);
 }
@@ -181,13 +195,15 @@ Future<void> DisconnectionHandlerInternal::SetValue(const Variant& value) {
       if (task != nullptr) env->DeleteLocalRef(task);
       future()->Complete(handle, kErrorUnknownError, "SetValue failed");
     } else {
+      FutureCallbackData* callback_data = new FutureCallbackData(handle, future(), db_);
       util::RegisterCallbackOnTask(
           env, task, FutureCallback,
-          // FutureCallback will delete the newed FutureCallbackData.
-          reinterpret_cast<void*>(
-              new FutureCallbackData(handle, future(), db_)),
+          reinterpret_cast<void*>(callback_data),
           db_->jni_task_id());
-      util::CheckAndClearJniExceptions(env);
+      if (util::CheckAndClearJniExceptions(env)) {
+        delete callback_data;
+        future()->Complete(handle, kErrorUnknownError, "SetValue failed");
+      }
       env->DeleteLocalRef(task);
     }
   }
@@ -234,13 +250,15 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(
       future()->Complete(handle, kErrorUnknownError,
                          "SetValueAndPriority failed");
     } else {
+      FutureCallbackData* callback_data = new FutureCallbackData(handle, future(), db_);
       util::RegisterCallbackOnTask(
           env, task, FutureCallback,
-          // FutureCallback will delete the newed FutureCallbackData.
-          reinterpret_cast<void*>(
-              new FutureCallbackData(handle, future(), db_)),
+          reinterpret_cast<void*>(callback_data),
           db_->jni_task_id());
-      util::CheckAndClearJniExceptions(env);
+      if (util::CheckAndClearJniExceptions(env)) {
+        delete callback_data;
+        future()->Complete(handle, kErrorUnknownError, "SetValueAndPriority failed");
+      }
       env->DeleteLocalRef(task);
     }
   }
@@ -269,13 +287,15 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(const Variant& values)
       if (task != nullptr) env->DeleteLocalRef(task);
       future()->Complete(handle, kErrorUnknownError, "UpdateChildren failed");
     } else {
+      FutureCallbackData* callback_data = new FutureCallbackData(handle, future(), db_);
       util::RegisterCallbackOnTask(
           env, task, FutureCallback,
-          // FutureCallback will delete the newed FutureCallbackData.
-          reinterpret_cast<void*>(
-              new FutureCallbackData(handle, future(), db_)),
+          reinterpret_cast<void*>(callback_data),
           db_->jni_task_id());
-      util::CheckAndClearJniExceptions(env);
+      if (util::CheckAndClearJniExceptions(env)) {
+        delete callback_data;
+        future()->Complete(handle, kErrorUnknownError, "UpdateChildren failed");
+      }
       env->DeleteLocalRef(task);
     }
   }
