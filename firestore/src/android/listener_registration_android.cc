@@ -42,75 +42,60 @@ void ListenerRegistrationInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClassName, kRemove);
 }
 
+template <typename T>
 ListenerRegistrationInternal::ListenerRegistrationInternal(
+    FirestoreInternal* firestore,
+    EventListener<T>* event_listener,
+    bool owning_event_listener,
+    const Object& listener_registration,
+    const Object& java_listener)
+    : firestore_(firestore),
+      listener_registration_(listener_registration),
+      java_listener_(java_listener),
+      event_listener_(event_listener),
+      owning_event_listener_(owning_event_listener) {
+  FIREBASE_ASSERT(firestore != nullptr);
+  FIREBASE_ASSERT(event_listener != nullptr);
+  FIREBASE_ASSERT(listener_registration);
+
+  firestore->RegisterListenerRegistration(this);
+}
+
+template ListenerRegistrationInternal::ListenerRegistrationInternal(
     FirestoreInternal* firestore,
     EventListener<DocumentSnapshot>* event_listener,
     bool owning_event_listener,
     const Object& listener_registration,
-    const Object& java_listener)
-    : firestore_(firestore),
-      listener_registration_(listener_registration),
-      java_listener_(java_listener),
-      document_event_listener_(event_listener),
-      owning_event_listener_(owning_event_listener) {
-  FIREBASE_ASSERT(firestore != nullptr);
-  FIREBASE_ASSERT(event_listener != nullptr);
-  FIREBASE_ASSERT(listener_registration);
+    const Object& java_listener);
 
-  firestore->RegisterListenerRegistration(this);
-}
-
-ListenerRegistrationInternal::ListenerRegistrationInternal(
+template ListenerRegistrationInternal::ListenerRegistrationInternal(
     FirestoreInternal* firestore,
     EventListener<QuerySnapshot>* event_listener,
     bool owning_event_listener,
     const Object& listener_registration,
-    const Object& java_listener)
-    : firestore_(firestore),
-      listener_registration_(listener_registration),
-      java_listener_(java_listener),
-      query_event_listener_(event_listener),
-      owning_event_listener_(owning_event_listener) {
-  FIREBASE_ASSERT(firestore != nullptr);
-  FIREBASE_ASSERT(event_listener != nullptr);
-  FIREBASE_ASSERT(listener_registration);
+    const Object& java_listener);
 
-  firestore->RegisterListenerRegistration(this);
-}
-
-ListenerRegistrationInternal::ListenerRegistrationInternal(
+template ListenerRegistrationInternal::ListenerRegistrationInternal(
     FirestoreInternal* firestore,
     EventListener<void>* event_listener,
     bool owning_event_listener,
     const Object& listener_registration,
-    const Object& java_listener)
-    : firestore_(firestore),
-      listener_registration_(listener_registration),
-      java_listener_(java_listener),
-      void_event_listener_(event_listener),
-      owning_event_listener_(owning_event_listener) {
-  FIREBASE_ASSERT(firestore != nullptr);
-  FIREBASE_ASSERT(event_listener != nullptr);
-  FIREBASE_ASSERT(listener_registration);
-
-  firestore->RegisterListenerRegistration(this);
-}
+    const Object& java_listener);
 
 // Destruction happens when FirestoreInternal deallocates registrations (via
 // UnregisterListenerRegistration or ClearListeners). FirestoreInternal removes
 // the registration from its set before deleting `this`.
 ListenerRegistrationInternal::~ListenerRegistrationInternal() {
-  if (!listener_registration_) {
-    return;
-  }
-
-  // Remove listener, discard native pointers on the Java listener under its
-  // monitor lock, and release Java global references before deleting the C++
-  // listener object.
   Env env = GetEnv();
   ExceptionClearGuard exception_clear_guard(env);
-  env.Call(listener_registration_, kRemove);
-  listener_registration_.clear();
+
+  if (listener_registration_) {
+    // Remove listener, discard native pointers on the Java listener under its
+    // monitor lock, and release Java global references before deleting the C++
+    // listener object.
+    env.Call(listener_registration_, kRemove);
+    listener_registration_.clear();
+  }
 
   if (java_listener_) {
     EventListenerInternal::DiscardPointers(env, java_listener_);
@@ -119,9 +104,7 @@ ListenerRegistrationInternal::~ListenerRegistrationInternal() {
 
   // Deallocate owned EventListener object.
   if (owning_event_listener_) {
-    delete document_event_listener_;
-    delete query_event_listener_;
-    delete void_event_listener_;
+    std::visit([](auto* listener) { delete listener; }, event_listener_);
   }
 }
 

@@ -51,17 +51,12 @@ WriteBatch::WriteBatch(const WriteBatch& value) {
   if (value.internal_) {
     internal_ = new WriteBatchInternal(*value.internal_);
   }
-  try {
-    CleanupFnWriteBatch::Register(this, internal_);
-  } catch (...) {
-    delete internal_;
-    throw;
-  }
+  CleanupFnWriteBatch::Register(this, internal_);
 }
 
-WriteBatch::WriteBatch(WriteBatch&& value) noexcept {
-  CleanupFnWriteBatch::Unregister(&value, value.internal_);
-  std::swap(internal_, value.internal_);
+WriteBatch::WriteBatch(WriteBatch&& value) noexcept
+    : internal_(std::exchange(value.internal_, nullptr)) {
+  CleanupFnWriteBatch::Unregister(&value, nullptr);
   CleanupFnWriteBatch::Register(this, internal_);
 }
 
@@ -80,15 +75,8 @@ WriteBatch& WriteBatch::operator=(const WriteBatch& value) {
   if (this == &value) {
     return *this;
   }
-
-  CleanupFnWriteBatch::Unregister(this, internal_);
-  WriteBatchInternal* new_internal = nullptr;
-  if (value.internal_) {
-    new_internal = new WriteBatchInternal(*value.internal_);
-  }
-  delete internal_;
-  internal_ = new_internal;
-  CleanupFnWriteBatch::Register(this, internal_);
+  WriteBatch tmp(value);
+  *this = std::move(tmp);
   return *this;
 }
 
@@ -100,8 +88,7 @@ WriteBatch& WriteBatch::operator=(WriteBatch&& value) noexcept {
   CleanupFnWriteBatch::Unregister(&value, value.internal_);
   CleanupFnWriteBatch::Unregister(this, internal_);
   delete internal_;
-  internal_ = value.internal_;
-  value.internal_ = nullptr;
+  internal_ = std::exchange(value.internal_, nullptr);
   CleanupFnWriteBatch::Register(this, internal_);
   return *this;
 }

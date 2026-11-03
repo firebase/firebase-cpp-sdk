@@ -28,9 +28,9 @@
 #include "app/rest/util.h"
 #include "app/src/app_common.h"
 #include "app/src/base64.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/locale.h"
 #include "app/src/log.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/uuid.h"
 #include "firebase/app.h"
 #include "remote_config/src/common.h"
@@ -55,7 +55,8 @@ RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
       app_project_id_(app_options.project_id() ? app_options.project_id() : ""),
       api_key_(app_options.api_key() ? app_options.api_key() : ""),
       namespaces_(std::move(namespaces)),
-      configs_(configs) {
+      configs_(configs),
+      fetch_future_sem_(0) {
   rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -104,22 +105,22 @@ void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
   if (!app_instance_id_.empty() && !app_instance_id_token_.empty()) {
     return;
   }
-  static Mutex* s_id_mutex = new Mutex();
-  static auto* s_cached_ids =
-      new std::map<std::string, std::pair<std::string, std::string>>();
+  static auto& s_id_mutex = *new Mutex();
+  static auto& s_cached_ids =
+      *new std::map<std::string, std::pair<std::string, std::string>>();
 
   std::string cache_key =
       std::string(app.name() ? app.name() : "") + ":" + app_gmp_project_id_;
-  MutexLock lock(*s_id_mutex);
-  auto it = s_cached_ids->find(cache_key);
-  if (it != s_cached_ids->end()) {
+  MutexLock lock(s_id_mutex);
+  auto it = s_cached_ids.find(cache_key);
+  if (it != s_cached_ids.end()) {
     app_instance_id_ = it->second.first;
     app_instance_id_token_ = it->second.second;
     return;
   }
   app_instance_id_ = GenerateFakeId();
   app_instance_id_token_ = GenerateFakeId();
-  (*s_cached_ids)[cache_key] =
+  s_cached_ids[cache_key] =
       std::make_pair(app_instance_id_, app_instance_id_token_);
 }
 
@@ -194,22 +195,20 @@ void RemoteConfigREST::ParseRestResponse() {
   } else if (rc_response_.StatusMatch("UPDATE")) {
     config_map[namespaces_].clear();
     if (entries.is_map()) {
-      for (const auto& keyvalue : entries.map()) {
-        if (!keyvalue.first.is_string() || !keyvalue.second.is_string()) {
+      for (const auto& [key_var, val_var] : entries.map()) {
+        if (!key_var.is_string() || !val_var.is_string()) {
           continue;
         }
         std::string key =
-            keyvalue.first.is_mutable_string()
-                ? keyvalue.first.mutable_string()
-                : std::string(keyvalue.first.string_value()
-                                  ? keyvalue.first.string_value()
-                                  : "");
+            key_var.is_mutable_string()
+                ? key_var.mutable_string()
+                : std::string(key_var.string_value() ? key_var.string_value()
+                                                     : "");
         std::string val =
-            keyvalue.second.is_mutable_string()
-                ? keyvalue.second.mutable_string()
-                : std::string(keyvalue.second.string_value()
-                                  ? keyvalue.second.string_value()
-                                  : "");
+            val_var.is_mutable_string()
+                ? val_var.mutable_string()
+                : std::string(val_var.string_value() ? val_var.string_value()
+                                                     : "");
         config_map[namespaces_][key] = val;
         LogDebug("Update: ns=%s kv=(%s, %s)", namespaces_.c_str(), key.c_str(),
                  val.c_str());
@@ -250,9 +249,7 @@ void RemoteConfigREST::FetchFailure(FetchFailureReason reason) {
   uint64_t now = MillisecondsSinceEpoch();
   info.last_fetch_failure_reason = reason;
   if (reason == kFetchFailureReasonThrottled) {
-    info.throttled_end_time =
-        now + kDefaultCacheExpiration *
-                  ::firebase::internal::kMillisecondsPerSecond;
+    info.throttled_end_time = now + kDefaultCacheExpiration;
   }
   info.last_fetch_status = kLastFetchStatusFailure;
   info.fetch_time = now;

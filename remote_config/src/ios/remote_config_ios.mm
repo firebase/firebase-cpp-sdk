@@ -14,6 +14,8 @@
 
 #include "remote_config/src/ios/remote_config_ios.h"
 
+#include <dispatch/dispatch.h>
+
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -26,8 +28,10 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/reference_counted_future_impl.h"
 #include "app/src/time.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/config_update_listener_registration_internal.h"
@@ -62,9 +66,13 @@ static id VariantToNSObject(const Variant &variant) {
     return [NSNumber numberWithDouble:variant.double_value()];
   } else if (variant.is_mutable_string()) {
     const std::string &str = variant.mutable_string();
-    return [[NSString alloc] initWithBytes:str.data()
-                                    length:str.size()
-                                  encoding:NSUTF8StringEncoding];
+    NSString *ns_str = [[NSString alloc] initWithBytes:str.data()
+                                                length:str.size()
+                                              encoding:NSUTF8StringEncoding];
+#if !__has_feature(objc_arc)
+    [ns_str autorelease];
+#endif
+    return ns_str;
   } else if (variant.is_static_string()) {
     const char *str = variant.string_value();
     return str ? @(str) : @"";
@@ -212,6 +220,28 @@ static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
 }
 
 namespace internal {
+
+struct RemoteConfigIosState {
+  RemoteConfigIosState()
+      : future_impl(kRemoteConfigFnCount),
+        serial_queue(dispatch_queue_create(
+            "com.google.firebase.remote_config.ios", DISPATCH_QUEUE_SERIAL)) {}
+
+  ~RemoteConfigIosState() {
+#if !OS_OBJECT_USE_OBJC
+    if (serial_queue) {
+      dispatch_release(serial_queue);
+    }
+#endif
+  }
+
+  Mutex mutex;
+  bool alive = true;
+  ReferenceCountedFutureImpl future_impl;
+  dispatch_queue_t serial_queue;
+  std::vector<std::string> default_keys;
+  int64_t throttled_end_time_in_sec = 0;
+};
 
 static void UpdateThrottledEndTimeFromError(NSError *error, RemoteConfigIosState *state) {
   if (!error || !error.userInfo || !state) return;
@@ -796,7 +826,7 @@ std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
     if (!ns_key) continue;
     FIRRemoteConfigValue *f_value = [rc configValueForKey:ns_key];
     Variant v_value = FIRValueToVariant(f_value);
-    value.insert(std::make_pair(key, std::move(v_value)));
+    value.emplace(key, std::move(v_value));
   }
 
   return value;

@@ -33,8 +33,10 @@ QuerySnapshotInternal::QuerySnapshotInternal(api::QuerySnapshot&& snapshot)
 QuerySnapshotInternal::QuerySnapshotInternal(const QuerySnapshotInternal& other)
     : snapshot_{other.snapshot_} {}
 
+QuerySnapshotInternal::~QuerySnapshotInternal() = default;
+
 QuerySnapshotInternal::QuerySnapshotInternal(
-    QuerySnapshotInternal&& other)
+    QuerySnapshotInternal&& other) noexcept
     : snapshot_{std::move(other.snapshot_)} {}
 
 QuerySnapshotInternal& QuerySnapshotInternal::operator=(
@@ -50,7 +52,7 @@ QuerySnapshotInternal& QuerySnapshotInternal::operator=(
 }
 
 QuerySnapshotInternal& QuerySnapshotInternal::operator=(
-    QuerySnapshotInternal&& other) {
+    QuerySnapshotInternal&& other) noexcept {
   if (this != &other) {
     std::lock_guard<std::mutex> lock(mutex_);
     snapshot_ = std::move(other.snapshot_);

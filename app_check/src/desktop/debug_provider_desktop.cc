@@ -417,13 +417,13 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(
-    const std::string& token) {
+    const char* token) {
   std::lock_guard<std::mutex> lock(mutex_);
-  debug_token_ = token;
+  debug_token_ = token ? token : "";
   for (auto& [app, provider] : provider_map_) {
     (void)app;
     if (provider != nullptr) {
-      provider->SetDebugToken(token);
+      provider->SetDebugToken(debug_token_);
     }
   }
 }

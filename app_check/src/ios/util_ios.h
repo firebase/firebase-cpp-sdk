@@ -34,7 +34,7 @@ NSError* AppCheckErrorToNSError(AppCheckError cpp_error,
 AppCheckToken AppCheckTokenFromFIRAppCheckToken(
     FIRAppCheckToken* _Nullable token);
 
-FIRAppCheckToken* AppCheckTokenToFIRAppCheckToken(AppCheckToken cpp_token);
+FIRAppCheckToken* AppCheckTokenToFIRAppCheckToken(const AppCheckToken& cpp_token);
 
 }  // namespace internal
 }  // namespace app_check

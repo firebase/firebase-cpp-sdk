@@ -47,7 +47,7 @@ class PromiseFactory {
     });
   }
 
-  PromiseFactory(PromiseFactory&& rhs)
+  PromiseFactory(PromiseFactory&& rhs) noexcept
       : firestore_ref_(std::move(rhs.firestore_ref_)) {
     firestore_ref_.RunIfValid([this, &rhs](FirestoreInternal& firestore) {
       firestore.future_manager().MoveFutureApi(&rhs, this);
@@ -88,11 +88,13 @@ class PromiseFactory {
       typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
           nullptr) {
     if (!env.ok() || !task) {
+      jni::ExceptionClearGuard block(env);
+      auto promise = MakePromise<PublicT, InternalT>(completion);
       if (completion != nullptr) {
         completion->CompleteWith(Error::kErrorUnknown,
                                  "Failed to create Java Task", nullptr);
       }
-      return {};
+      return promise.GetFuture();
     }
 
     auto promise = MakePromise<PublicT, InternalT>(completion);

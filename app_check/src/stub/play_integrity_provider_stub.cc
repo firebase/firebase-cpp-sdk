@@ -23,20 +23,13 @@ PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
   return nullptr;
 }
 
-PlayIntegrityProviderFactory::PlayIntegrityProviderFactory()
-    : internal_(nullptr) {}
+PlayIntegrityProviderFactory::PlayIntegrityProviderFactory() = default;
 
 PlayIntegrityProviderFactory::~PlayIntegrityProviderFactory() {
-  if (internal_) {
-    internal_ = nullptr;
-  }
+  delete internal_;
 }
 
-AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(App* app) {
-  (void)app;
-  if (internal_) {
-    return nullptr;
-  }
+AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider([[maybe_unused]] App* app) {
   return nullptr;
 }
 

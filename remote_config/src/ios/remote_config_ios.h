@@ -15,22 +15,17 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
-#include <dispatch/dispatch.h>
-#include <stdint.h>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "firebase/app.h"
 #include "app/src/cleanup_notifier.h"
-#include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
+#include "firebase/app.h"
 #include "firebase/future.h"
-
-#include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef __OBJC__
@@ -46,19 +41,7 @@ namespace internal {
 // around the FIRRemoteConfig Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRRemoteConfig);
 
-struct RemoteConfigIosState {
-  RemoteConfigIosState()
-      : future_impl(kRemoteConfigFnCount),
-        serial_queue(dispatch_queue_create(
-            "com.google.firebase.remote_config.ios", DISPATCH_QUEUE_SERIAL)) {}
-
-  Mutex mutex;
-  bool alive = true;
-  ReferenceCountedFutureImpl future_impl;
-  dispatch_queue_t serial_queue;
-  std::vector<std::string> default_keys;
-  int64_t throttled_end_time_in_sec = 0;
-};
+struct RemoteConfigIosState;
 
 // This class implements functions from `firebase/remote_config.h` header.
 // See `firebase/remote_config.h` for all public functions documentation.

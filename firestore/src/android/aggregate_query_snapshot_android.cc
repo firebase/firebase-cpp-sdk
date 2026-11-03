@@ -35,6 +35,10 @@ using jni::StaticMethod;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/AggregateQuerySnapshot";
+StaticMethod<Object> kCreateWithCount(
+    "createWithCount",
+    "(Lcom/google/firebase/firestore/AggregateQuery;J)"
+    "Lcom/google/firebase/firestore/AggregateQuerySnapshot;");
 Method<int64_t> kGetCount("getCount", "()J");
 Method<Object> kGetQuery("getQuery",
                          "()Lcom/google/firebase/firestore/AggregateQuery;");
@@ -44,18 +48,13 @@ Method<int32_t> kHashCode("hashCode", "()I");
 }  // namespace
 
 void AggregateQuerySnapshotInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClassName, kGetCount, kGetQuery, kHashCode);
+  loader.LoadClass(kClassName, kCreateWithCount, kGetCount, kGetQuery, kHashCode);
 }
 
 AggregateQuerySnapshot AggregateQuerySnapshotInternal::Create(
     Env& env, AggregateQueryInternal& aggregate_query_internal, int64_t count) {
-  jni::Local<jni::Class> clazz = env.FindClass(kClassName);
-  jmethodID method = env.GetStaticMethodId(
-      clazz, "createWithCount",
-      "(Lcom/google/firebase/firestore/AggregateQuery;J)"
-      "Lcom/google/firebase/firestore/AggregateQuerySnapshot;");
   Local<Object> instance =
-      env.CallStatic<Object>(clazz, method, aggregate_query_internal.ToJava(), count);
+      env.Call(kCreateWithCount, aggregate_query_internal.ToJava(), count);
   return aggregate_query_internal.firestore_internal()
       ->NewAggregateQuerySnapshot(env, instance);
 }

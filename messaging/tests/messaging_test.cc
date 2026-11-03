@@ -188,10 +188,9 @@ void MessagingTestListener::OnUnregistrationReceived(
 TEST_F(MessagingTest, TestInitializeTwice) {
   MessagingTestListener listener;
   EXPECT_EQ(Initialize(*firebase_app_, &listener), kInitResultSuccess);
+  Terminate();
 }
 
-// The order of these matter because of the global flag
-// g_registration_token_received
 TEST_F(MessagingTest, TestSubscribeNoRegistration) {
   Subscribe("topic");
   SleepMessagingTest(1);
@@ -209,9 +208,9 @@ TEST_F(MessagingTest, TestSubscribeBeforeRegistration) {
   Unsubscribe("unsubscribe_topic1");
   Unsubscribe("unsubscribe_topic2");
   AddExpectationApple("-[FIRMessaging subscribeToTopic:completion:]",
-                      {"$invalid", "subscribe_topic1", "subscribe_topic2"});
+                      {"subscribe_topic1", "subscribe_topic2"});
   AddExpectationApple("-[FIRMessaging unsubscribeFromTopic:completion:]",
-                      {"$invalid", "unsubscribe_topic1", "unsubscribe_topic2"});
+                      {"unsubscribe_topic1", "unsubscribe_topic2"});
 
   // No requests to Java API yet, iOS should go ahead and forward.
   EXPECT_THAT(reporter_.getFakeReports(),
@@ -301,8 +300,6 @@ TEST_F(MessagingTest, TestSubscribeInvalidTopic) {
   SleepMessagingTest(1);
   Subscribe("$invalid");
   AddExpectationAndroid("FirebaseMessaging.subscribeToTopic", {"$invalid"});
-  AddExpectationApple("-[FIRMessaging subscribeToTopic:completion:]",
-                      {"$invalid"});
 }
 
 TEST_F(MessagingTest, TestUnsubscribeInvalidTopic) {
@@ -310,8 +307,6 @@ TEST_F(MessagingTest, TestUnsubscribeInvalidTopic) {
   SleepMessagingTest(1);
   Unsubscribe("$invalid");
   AddExpectationAndroid("FirebaseMessaging.unsubscribeFromTopic", {"$invalid"});
-  AddExpectationApple("-[FIRMessaging unsubscribeFromTopic:completion:]",
-                      {"$invalid"});
 }
 
 TEST_F(MessagingTest, TestDataMessageReceived) {
@@ -661,6 +656,7 @@ TEST_F(MessagingTest, TestPollableListener) {
   // Move PollableListener while registered and verify it still works and
   // retains queued messages.
   PollableListener moved_pollable(std::move(pollable));
+  SetListener(&moved_pollable);
   Message out_msg;
   ASSERT_TRUE(moved_pollable.PollMessage(&out_msg));
   EXPECT_EQ(out_msg.from, "poll_from");

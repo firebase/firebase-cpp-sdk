@@ -41,22 +41,22 @@ class RemoteConfigDesktopTest : public ::testing::Test {
  protected:
   void SetUp() override {
     rest::SetTransportBuilder([]() -> std::unique_ptr<rest::Transport> {
-      return std::unique_ptr<rest::Transport>(new rest::TransportMock);
+      return std::make_unique<rest::TransportMock>();
     });
-    char config[1000];
-    snprintf(config, sizeof(config),
-             "{"
-             "  config:["
-             "    {fake:'%s',"
-             "     httpresponse: {"
-             "       header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
-             "       body: ['{\"state\":\"NO_CHANGE\"}']"
-             "     }"
-             "    }"
-             "  ]"
-             "}",
-             kServerURL);
-    firebase::testing::cppsdk::ConfigSet(config);
+    std::string config = std::string(
+                             "{"
+                             "  config:["
+                             "    {fake:'") +
+                         kServerURL +
+                         "',"
+                         "     httpresponse: {"
+                         "       header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
+                         "       body: ['{\"state\":\"NO_CHANGE\"}']"
+                         "     }"
+                         "    }"
+                         "  ]"
+                         "}";
+    firebase::testing::cppsdk::ConfigSet(config.c_str());
     app_ = testing::CreateApp();
 
     file_manager_ =
@@ -140,6 +140,7 @@ TEST_F(RemoteConfigDesktopTest, SuccessLoadFromFile) {
 // Check async saving working well.
 TEST_F(RemoteConfigDesktopTest, SuccessAsyncSaveToFile) {
   // Let change the `configs_` variable.
+  LayeredConfigs expected_configs;
   {
     MutexLock lock(instance_->internal_mutex_);
     instance_->configs_.fetched = NamespacedConfigData(
@@ -147,6 +148,7 @@ TEST_F(RemoteConfigDesktopTest, SuccessAsyncSaveToFile) {
             {{"new_namespace1",
               {{"new_key1", "new_value1"}, {"new_key2", "new_value2"}}}}),
         999999);
+    expected_configs = instance_->configs_;
   }
 
   instance_->save_channel_.Put();
@@ -155,15 +157,14 @@ TEST_F(RemoteConfigDesktopTest, SuccessAsyncSaveToFile) {
   LayeredConfigs new_content;
   bool saved = false;
   for (int i = 0; i < 100; ++i) {
-    if (file_manager_->Load(&new_content) &&
-        new_content == instance_->configs_) {
+    if (file_manager_->Load(&new_content) && new_content == expected_configs) {
       saved = true;
       break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
   EXPECT_TRUE(saved);
-  EXPECT_EQ(new_content, instance_->configs_);
+  EXPECT_EQ(new_content, expected_configs);
 }
 
 TEST_F(RemoteConfigDesktopTest, SetDefaultsKeyValueVariant) {

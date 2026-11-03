@@ -38,7 +38,7 @@ namespace firestore {
 
 using CleanupFnDocumentSnapshot = CleanupFn<DocumentSnapshot>;
 
-DocumentSnapshot::DocumentSnapshot() {}
+DocumentSnapshot::DocumentSnapshot() = default;
 
 DocumentSnapshot::DocumentSnapshot(const DocumentSnapshot& snapshot) {
   if (snapshot.internal_) {
@@ -54,14 +54,24 @@ DocumentSnapshot::DocumentSnapshot(const DocumentSnapshot& snapshot) {
 
 DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) noexcept {
   CleanupFnDocumentSnapshot::Unregister(&snapshot, snapshot.internal_);
-  std::swap(internal_, snapshot.internal_);
-  CleanupFnDocumentSnapshot::Register(this, internal_);
+  internal_ = std::exchange(snapshot.internal_, nullptr);
+  try {
+    CleanupFnDocumentSnapshot::Register(this, internal_);
+  } catch (...) {
+    delete internal_;
+    internal_ = nullptr;
+  }
 }
 
 DocumentSnapshot::DocumentSnapshot(DocumentSnapshotInternal* internal)
     : internal_(internal) {
   SIMPLE_HARD_ASSERT(internal != nullptr);
-  CleanupFnDocumentSnapshot::Register(this, internal_);
+  try {
+    CleanupFnDocumentSnapshot::Register(this, internal_);
+  } catch (...) {
+    delete internal_;
+    throw;
+  }
 }
 
 DocumentSnapshot::~DocumentSnapshot() {
@@ -76,14 +86,21 @@ DocumentSnapshot& DocumentSnapshot::operator=(
     return *this;
   }
 
-  CleanupFnDocumentSnapshot::Unregister(this, internal_);
   DocumentSnapshotInternal* new_internal = nullptr;
   if (snapshot.internal_) {
     new_internal = new DocumentSnapshotInternal(*snapshot.internal_);
   }
+
+  CleanupFnDocumentSnapshot::Unregister(this, internal_);
   delete internal_;
   internal_ = new_internal;
-  CleanupFnDocumentSnapshot::Register(this, internal_);
+  try {
+    CleanupFnDocumentSnapshot::Register(this, internal_);
+  } catch (...) {
+    delete internal_;
+    internal_ = nullptr;
+    throw;
+  }
   return *this;
 }
 
@@ -95,9 +112,13 @@ DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) noexc
   CleanupFnDocumentSnapshot::Unregister(&snapshot, snapshot.internal_);
   CleanupFnDocumentSnapshot::Unregister(this, internal_);
   delete internal_;
-  internal_ = snapshot.internal_;
-  snapshot.internal_ = nullptr;
-  CleanupFnDocumentSnapshot::Register(this, internal_);
+  internal_ = std::exchange(snapshot.internal_, nullptr);
+  try {
+    CleanupFnDocumentSnapshot::Register(this, internal_);
+  } catch (...) {
+    delete internal_;
+    internal_ = nullptr;
+  }
   return *this;
 }
 

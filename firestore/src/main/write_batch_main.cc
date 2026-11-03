@@ -50,7 +50,6 @@ void WriteBatchInternal::Set(const DocumentReference& document,
                              const SetOptions& options) {
   if (!document.is_valid()) {
     SimpleThrowInvalidArgument("Invalid document reference provided.");
-    return;
   }
   ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
   batch_.SetData(GetCoreApi(document), std::move(parsed));
@@ -60,7 +59,6 @@ void WriteBatchInternal::Update(const DocumentReference& document,
                                 const MapFieldValue& data) {
   if (!document.is_valid()) {
     SimpleThrowInvalidArgument("Invalid document reference provided.");
-    return;
   }
   batch_.UpdateData(GetCoreApi(document),
                     user_data_converter_.ParseUpdateData(data));
@@ -70,7 +68,6 @@ void WriteBatchInternal::Update(const DocumentReference& document,
                                 const MapFieldPathValue& data) {
   if (!document.is_valid()) {
     SimpleThrowInvalidArgument("Invalid document reference provided.");
-    return;
   }
   batch_.UpdateData(GetCoreApi(document),
                     user_data_converter_.ParseUpdateData(data));
@@ -79,7 +76,6 @@ void WriteBatchInternal::Update(const DocumentReference& document,
 void WriteBatchInternal::Delete(const DocumentReference& document) {
   if (!document.is_valid()) {
     SimpleThrowInvalidArgument("Invalid document reference provided.");
-    return;
   }
   batch_.DeleteData(GetCoreApi(document));
 }

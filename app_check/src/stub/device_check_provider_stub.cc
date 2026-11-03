@@ -23,19 +23,13 @@ DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
   return nullptr;
 }
 
-DeviceCheckProviderFactory::DeviceCheckProviderFactory() : internal_(nullptr) {}
+DeviceCheckProviderFactory::DeviceCheckProviderFactory() = default;
 
 DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {
-  if (internal_) {
-    internal_ = nullptr;
-  }
+  delete internal_;
 }
 
-AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
-  (void)app;
-  if (internal_) {
-    return nullptr;
-  }
+AppCheckProvider* DeviceCheckProviderFactory::CreateProvider([[maybe_unused]] App* app) {
   return nullptr;
 }
 

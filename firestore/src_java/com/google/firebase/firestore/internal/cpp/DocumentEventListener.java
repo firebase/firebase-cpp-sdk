@@ -52,14 +52,10 @@ public class DocumentEventListener
   @Override
   public void onEvent(@Nullable DocumentSnapshot value,
       @Nullable FirebaseFirestoreException error) {
-    long firestorePtr;
-    long listenerPtr;
     synchronized (this) {
-      firestorePtr = cppFirestoreObject;
-      listenerPtr = cppListenerObject;
-    }
-    if (firestorePtr != 0 && listenerPtr != 0) {
-      nativeOnEvent(firestorePtr, listenerPtr, value, error);
+      if (cppFirestoreObject != 0 && cppListenerObject != 0) {
+        nativeOnEvent(cppFirestoreObject, cppListenerObject, value, error);
+      }
     }
   }
 
@@ -75,6 +71,6 @@ public class DocumentEventListener
    */
   private static native void nativeOnEvent(long firestoreObject,
       long listenerObject,
-      @Nullable DocumentSnapshot value,
+      @Nullable Object value,
       @Nullable FirebaseFirestoreException error);
 }

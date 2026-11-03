@@ -22,6 +22,7 @@
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/task.h"
 
 namespace firebase::firestore {
@@ -143,10 +144,11 @@ class JniRunnable : public JniRunnableBase {
   }
 
   void Run() override {
+    CallbackT callback_copy = callback_;
     if constexpr (std::is_invocable_v<CallbackT>) {
-      callback_();
+      callback_copy();
     } else {
-      callback_(*this);
+      callback_copy(*this);
     }
   }
 

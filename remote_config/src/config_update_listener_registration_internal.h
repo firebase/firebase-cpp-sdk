@@ -16,8 +16,7 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_
 
 #include <functional>
-
-#include "app/src/include/firebase/internal/mutex.h"
+#include <mutex>
 
 namespace firebase {
 namespace remote_config {
@@ -41,10 +40,13 @@ class ConfigUpdateListenerRegistrationInternal {
   void Remove();
 
   RemoteConfigInternal* remote_config() const { return remote_config_; }
+  RemoteConfigInternal* remote_config_internal() const {
+    return remote_config_;
+  }
 
  private:
   RemoteConfigInternal* remote_config_ = nullptr;
-  Mutex mutex_;
+  std::mutex mutex_;
   std::function<void()> listener_removal_function_;
 };
 

@@ -53,26 +53,32 @@ static const char* kFilePathSuffix = "remote_config_data";
 
 template <typename T>
 struct RCDataHandle {
-  RCDataHandle(ReferenceCountedFutureImpl* _future_api,
+  RCDataHandle(const firebase::internal::SafeReference<RemoteConfigInternal>&
+                   _rc_ref,
+               ReferenceCountedFutureImpl* _future_api,
                const SafeFutureHandle<T>& _future_handle,
-               RemoteConfigInternal* _rc_internal, uint64_t _cache_expiration)
-      : future_api(_future_api),
+               uint64_t _cache_expiration)
+      : rc_ref(_rc_ref),
+        future_api(_future_api),
         future_handle(_future_handle),
-        rc_internal(_rc_internal),
         cache_expiration_in_seconds(_cache_expiration),
         completed(false) {}
 
   ~RCDataHandle() {
-    if (!completed && future_api != nullptr) {
-      future_api->Complete(
-          future_handle, kFutureStatusFailure,
-          "RemoteConfig instance destroyed before operation completed.");
+    if (!completed) {
+      firebase::internal::SafeReferenceLock<RemoteConfigInternal> lock(&rc_ref);
+      RemoteConfigInternal* self = lock.GetReference();
+      if (self != nullptr && future_api != nullptr) {
+        future_api->Complete(
+            future_handle, kFutureStatusFailure,
+            "RemoteConfig instance destroyed before operation completed.");
+      }
     }
   }
 
+  firebase::internal::SafeReference<RemoteConfigInternal> rc_ref;
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
-  RemoteConfigInternal* rc_internal;
   uint64_t cache_expiration_in_seconds;
   bool completed;
 };
@@ -81,7 +87,8 @@ RemoteConfigInternal::RemoteConfigInternal(
     const firebase::App& app, const RemoteConfigFileManager& file_manager)
     : app_(app),
       file_manager_(file_manager),
-      cache_expiration_in_seconds_(kDefaultCacheExpiration),
+      cache_expiration_in_seconds_(kDefaultCacheExpiration /
+                                   ::firebase::internal::kMillisecondsPerSecond),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
@@ -93,7 +100,8 @@ RemoteConfigInternal::RemoteConfigInternal(
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
     : app_(app),
       file_manager_(kFilePathSuffix, app),
-      cache_expiration_in_seconds_(kDefaultCacheExpiration),
+      cache_expiration_in_seconds_(kDefaultCacheExpiration /
+                                   ::firebase::internal::kMillisecondsPerSecond),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
@@ -103,8 +111,8 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
 }
 
 RemoteConfigInternal::~RemoteConfigInternal() {
-  safe_this_.ClearReference();
   scheduler_.CancelAllAndShutdownWorkerThread();
+  safe_this_.ClearReference();
 
   save_channel_.Close();
   if (save_thread_.joinable()) {
@@ -199,7 +207,7 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   if (is_fetch_process_have_task_ ||
       IsCacheExpiredLocked(cache_expiration_in_seconds_)) {
     auto data_handle = std::make_shared<RCDataHandle<bool>>(
-        &future_impl_, future_handle, this, cache_expiration_in_seconds_);
+        safe_this_, &future_impl_, future_handle, cache_expiration_in_seconds_);
 
     is_fetch_process_have_task_ = true;
     auto callback = NewCallback(
@@ -592,7 +600,7 @@ int64_t RemoteConfigInternal::GetLong(const char* key, ValueInfo* info) {
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
       info->source = kValueSourceStaticValue;
-      info->conversion_successful = false;
+      info->conversion_successful = true;
     }
     return kDefaultValueForLong;
   }
@@ -618,7 +626,7 @@ double RemoteConfigInternal::GetDouble(const char* key, ValueInfo* info) {
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
       info->source = kValueSourceStaticValue;
-      info->conversion_successful = false;
+      info->conversion_successful = true;
     }
     return kDefaultValueForDouble;
   }
@@ -638,7 +646,7 @@ std::vector<unsigned char> RemoteConfigInternal::GetData(const char* key,
       info->source = kValueSourceStaticValue;
       info->conversion_successful = true;
     }
-    return {};
+    return kDefaultValueForData;
   }
 
   if (info) info->conversion_successful = true;
@@ -756,7 +764,7 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   if (is_fetch_process_have_task_ ||
       IsCacheExpiredLocked(cache_expiration_in_seconds_)) {
     auto data_handle = std::make_shared<RCDataHandle<void>>(
-        &future_impl_, future_handle, this, cache_expiration_in_seconds_);
+        safe_this_, &future_impl_, future_handle, cache_expiration_in_seconds_);
 
     is_fetch_process_have_task_ = true;
     auto callback = NewCallback(

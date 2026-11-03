@@ -40,7 +40,7 @@ Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
 
 Wrapper::~Wrapper() = default;
 
-jni::Env Wrapper::GetEnv() const { return firestore_->GetEnv(); }
+jni::Env Wrapper::GetEnv() const { return FirestoreInternal::GetEnv(); }
 
 Local<Object> Wrapper::ToJava() const {
   Env env = GetEnv();

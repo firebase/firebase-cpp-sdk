@@ -14,12 +14,12 @@
 
 #include "remote_config/src/desktop/metadata.h"
 
-#include <cerrno>
+#include <charconv>
 #include <cstdint>
-#include <cstdlib>
-#include <limits>
+#include <cstring>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "flatbuffers/flexbuffers.h"
@@ -48,21 +48,19 @@ std::string RemoteConfigMetadata::Serialize() const {
     });
 
     fbb.Map("digest_by_namespace", [&]() {
-      for (const auto& kv : digest_by_namespace_) {
-        fbb.String(kv.first.c_str(), kv.second);
+      for (const auto& [ns, digest] : digest_by_namespace_) {
+        fbb.String(ns.c_str(), digest);
       }
     });
 
     fbb.Map("settings", [&]() {
-      for (const auto& setting : settings_) {
-        fbb.String(std::to_string(setting.first).c_str(), setting.second);
+      for (const auto& [setting_key, setting_val] : settings_) {
+        fbb.String(std::to_string(setting_key).c_str(), setting_val);
       }
     });
 
     fbb.Map("custom_signals", [&]() {
-      for (const auto& signal : custom_signals_) {
-        const std::string& key = signal.first;
-        const Variant& val = signal.second;
+      for (const auto& [key, val] : custom_signals_) {
         if (val.is_mutable_string()) {
           fbb.String(key.c_str(), val.mutable_string());
         } else if (val.is_static_string()) {
@@ -81,7 +79,7 @@ std::string RemoteConfigMetadata::Serialize() const {
   return std::string(buffer.cbegin(), buffer.cend());
 }
 
-bool RemoteConfigMetadata::Deserialize(const std::string& buffer) {
+bool RemoteConfigMetadata::Deserialize(std::string_view buffer) {
   if (buffer.empty()) {
     return false;
   }
@@ -104,37 +102,37 @@ bool RemoteConfigMetadata::Deserialize(const std::string& buffer) {
       info["last_fetch_failure_reason"].AsInt32());
   info_.throttled_end_time = info["throttled_end_time"].AsUInt64();
 
-  digest_by_namespace_.clear();
   flexbuffers::Map digests = struct_map["digest_by_namespace"].AsMap();
   DeserializeMap(&digest_by_namespace_, digests);
 
   settings_.clear();
   flexbuffers::Map settings = struct_map["settings"].AsMap();
+  const auto setting_keys = settings.Keys();
+  const auto setting_values = settings.Values();
   for (size_t i = 0, n = settings.size(); i < n; ++i) {
-    const char* key_str = settings.Keys()[i].AsKey();
-    if (!key_str) continue;
-    char* endptr = nullptr;
-    errno = 0;
-    long raw_key = std::strtol(key_str, &endptr, 10);
-    if (endptr == key_str || *endptr != '\0' || errno == ERANGE) {
+    const char* key_str = setting_keys[i].AsKey();
+    if (!key_str || *key_str == '\0' || !setting_values[i].IsString()) {
       continue;
     }
-    if (raw_key < std::numeric_limits<int>::min() ||
-        raw_key > std::numeric_limits<int>::max()) {
+    int int_key = 0;
+    const char* end = key_str + std::strlen(key_str);
+    auto [ptr, ec] = std::from_chars(key_str, end, int_key);
+    if (ec != std::errc() || ptr != end) {
       continue;
     }
-    int int_key = static_cast<int>(raw_key);
-    flexbuffers::String val = settings.Values()[i].AsString();
-    settings_[static_cast<ConfigSetting>(int_key)] =
-        std::string(val.c_str(), val.length());
+    flexbuffers::String val = setting_values[i].AsString();
+    settings_.try_emplace(static_cast<ConfigSetting>(int_key), val.c_str(),
+                          val.length());
   }
 
   custom_signals_.clear();
   flexbuffers::Map custom_signals = struct_map["custom_signals"].AsMap();
+  const auto signal_keys = custom_signals.Keys();
+  const auto signal_values = custom_signals.Values();
   for (size_t i = 0, n = custom_signals.size(); i < n; ++i) {
-    const char* key_str = custom_signals.Keys()[i].AsKey();
-    if (!key_str) continue;
-    flexbuffers::Reference val_ref = custom_signals.Values()[i];
+    const char* key_str = signal_keys[i].AsKey();
+    if (!key_str || *key_str == '\0') continue;
+    flexbuffers::Reference val_ref = signal_values[i];
     if (val_ref.IsString()) {
       flexbuffers::String val = val_ref.AsString();
       custom_signals_[key_str] =

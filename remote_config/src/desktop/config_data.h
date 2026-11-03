@@ -19,6 +19,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <string_view>
 
 #include "remote_config/src/desktop/metadata.h"
 
@@ -29,8 +30,8 @@ namespace internal {
 // NOTE: Configs are organized per app (iOS or Android). Instead of containing
 // them all, we only store the set belonging to the app based on the AppOptions.
 
-typedef std::map<std::string, std::map<std::string, std::string>>
-    NamespaceKeyValueMap;
+using NamespaceKeyValueMap =
+    std::map<std::string, std::map<std::string, std::string>>;
 
 // Use to keep and work with key/value records. Each namespace contains some
 // amount of key/value records.
@@ -44,7 +45,7 @@ class NamespacedConfigData {
   // Serialization method.
   std::string Serialize() const;
   // Deserializes a string buffer previously Serialized.
-  bool Deserialize(const std::string& buffer);
+  bool Deserialize(std::string_view buffer);
 
   // Set key/value records from `map` by `namespace`.
   void SetNamespace(const std::map<std::string, std::string>& map,
@@ -97,7 +98,7 @@ struct LayeredConfigs {
                  const RemoteConfigMetadata& fetch_metadata);
 
   std::string Serialize() const;
-  bool Deserialize(const std::string& buffer);
+  bool Deserialize(std::string_view buffer);
 
   // For testing.
   bool operator==(const LayeredConfigs& right) const;

@@ -51,14 +51,10 @@ public class QueryEventListener
   @Override
   public void onEvent(@Nullable QuerySnapshot value,
       @Nullable FirebaseFirestoreException error) {
-    long firestorePtr;
-    long listenerPtr;
     synchronized (this) {
-      firestorePtr = cppFirestoreObject;
-      listenerPtr = cppListenerObject;
-    }
-    if (firestorePtr != 0 && listenerPtr != 0) {
-      nativeOnEvent(firestorePtr, listenerPtr, value, error);
+      if (cppFirestoreObject != 0 && cppListenerObject != 0) {
+        nativeOnEvent(cppFirestoreObject, cppListenerObject, value, error);
+      }
     }
   }
 
@@ -74,6 +70,6 @@ public class QueryEventListener
    */
   private static native void nativeOnEvent(long firestoreObject,
       long listenerObject,
-      @Nullable QuerySnapshot value,
+      @Nullable Object value,
       @Nullable FirebaseFirestoreException error);
 }

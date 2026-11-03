@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/util_android.h"
 
+#include <iterator>
 #include <utility>
 
 #include "app/src/assert.h"
@@ -36,10 +37,10 @@ using jni::String;
 
 Local<HashMap> MakeJavaMap(Env& env, const MapFieldValue& data) {
   Local<HashMap> result = HashMap::Create(env);
-  for (const auto& kv : data) {
-    Local<String> key = env.NewStringUtf(kv.first);
-    Local<Object> value = FieldValueInternal::ToJava(kv.second);
-    result.Put(env, key, value);
+  for (const auto& [key, val] : data) {
+    Local<String> java_key = env.NewStringUtf(key);
+    Local<Object> java_value = FieldValueInternal::ToJava(val);
+    result.Put(env, java_key, java_value);
   }
   return result;
 }
@@ -48,7 +49,7 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
                                             const MapFieldPathValue& data) {
   auto iter = data.begin();
   auto end = data.end();
-  FIREBASE_DEV_ASSERT_MESSAGE(iter != end, "data must be non-empty");
+  FIREBASE_ASSERT_MESSAGE(iter != end, "data must be non-empty");
 
   Local<Object> first_field = FieldPathConverter::Create(env, iter->first);
   Local<Object> first_value = FieldValueInternal::ToJava(iter->second);

@@ -38,13 +38,13 @@ using credentials::TokenListener;
 namespace {
 
 std::mutex& ListenerMutex() {
-  static std::mutex* mutex = new std::mutex();
-  return *mutex;
+  static std::mutex mutex;
+  return mutex;
 }
 
 std::unordered_set<CppAppCheckCredentialsProvider*>& ValidProviders() {
-  static auto* providers = new std::unordered_set<CppAppCheckCredentialsProvider*>();
-  return *providers;
+  static std::unordered_set<CppAppCheckCredentialsProvider*> providers;
+  return providers;
 }
 
 }  // namespace
@@ -63,9 +63,10 @@ CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
 
 void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<std::string> listener) {
+  bool has_listener = static_cast<bool>(listener);
   {
     std::lock_guard<std::mutex> lock(ListenerMutex());
-    if (!listener) {
+    if (!has_listener) {
       SIMPLE_HARD_ASSERT(change_listener_,
                          "Change listener removed without being set!");
       change_listener_ = {};
@@ -75,7 +76,7 @@ void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     }
   }
 
-  if (!listener) {
+  if (!has_listener) {
     RemoveAppCheckStateListener();
   } else {
     AddAppCheckStateListener();

@@ -67,7 +67,7 @@ class DeviceCheckProvider : public AppCheckProvider {
   /// and then calls the provided callback function with the token or with an
   /// error code and error message.
   void GetLimitedUseToken(
-      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) ;
+      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
 
  private:
   FIRDeviceCheckProvider* ios_provider_;
@@ -147,24 +147,27 @@ AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
   if (!app || app->GetPlatformApp() == nil) {
     return nullptr;
   }
-  MutexLock lock(GetFactoryMutex());
-  // Return the provider if it already exists.
-  auto it = created_providers_.find(app);
-  if (it != created_providers_.end()) {
-    return it->second;
+  AppCheckProvider* raw_provider = nullptr;
+  {
+    MutexLock lock(GetFactoryMutex());
+    // Return the provider if it already exists.
+    auto it = created_providers_.find(app);
+    if (it != created_providers_.end()) {
+      return it->second;
+    }
+    if (!ios_provider_factory_ || ios_provider_factory() == nil) {
+      return nullptr;
+    }
+    // Otherwise, create a new provider.
+    FIRDeviceCheckProvider* ios_provider =
+        [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
+    if (!ios_provider) {
+      return nullptr;
+    }
+    auto cpp_provider = std::make_unique<internal::DeviceCheckProvider>(ios_provider);
+    raw_provider = cpp_provider.release();
+    created_providers_[app] = raw_provider;
   }
-  if (!ios_provider_factory_ || ios_provider_factory() == nil) {
-    return nullptr;
-  }
-  // Otherwise, create a new provider.
-  FIRDeviceCheckProvider* ios_provider =
-      [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
-  if (!ios_provider) {
-    return nullptr;
-  }
-  auto cpp_provider = std::make_unique<internal::DeviceCheckProvider>(ios_provider);
-  AppCheckProvider* raw_provider = cpp_provider.release();
-  created_providers_[app] = raw_provider;
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
   if (notifier != nullptr) {

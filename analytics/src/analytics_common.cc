@@ -17,6 +17,7 @@
 #include "analytics/src/analytics_common.h"
 
 #include "analytics/src/include/firebase/analytics.h"
+#include "app/src/app_common.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/util.h"
 // Include the generated headers to force their compilation for test purposes.
@@ -50,13 +51,13 @@ const char* const kAnalyticsModuleName = "analytics";
 static App* s_registered_app = nullptr;
 
 std::shared_ptr<FutureData>& FutureData::FutureDataPtr() {
-  static auto* s_future_data = new std::shared_ptr<FutureData>();
-  return *s_future_data;
+  static std::shared_ptr<FutureData> s_future_data;
+  return s_future_data;
 }
 
 std::recursive_mutex& FutureData::mutex() {
-  static auto* s_mutex = new std::recursive_mutex();
-  return *s_mutex;
+  static std::recursive_mutex s_mutex;
+  return s_mutex;
 }
 
 // Create FutureData singleton.
@@ -75,7 +76,6 @@ void FutureData::Destroy() {
 
 // Get the Future data singleton.
 FutureData* FutureData::Get() {
-  std::lock_guard<std::recursive_mutex> lock(mutex());
   return FutureDataPtr().get();
 }
 
@@ -86,29 +86,26 @@ std::shared_ptr<FutureData> FutureData::GetShared() {
 
 void RegisterTerminateOnAppDestroy(const App* app) {
   App* target_app = const_cast<App*>(app ? app : App::GetInstance());
-  App* old_app = nullptr;
+  CleanupNotifier* old_notifier = nullptr;
+  CleanupNotifier* target_notifier = nullptr;
   {
     std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
     if (s_registered_app && s_registered_app != target_app) {
-      old_app = s_registered_app;
+      old_notifier = CleanupNotifier::FindByOwner(s_registered_app);
       s_registered_app = nullptr;
     }
     if (target_app) {
-      s_registered_app = target_app;
+      target_notifier = CleanupNotifier::FindByOwner(target_app);
+      if (target_notifier) {
+        s_registered_app = target_app;
+      }
     }
   }
-  if (old_app) {
-    CleanupNotifier* old_notifier = CleanupNotifier::FindByOwner(old_app);
-    if (old_notifier) {
-      old_notifier->UnregisterObject(const_cast<char*>(kAnalyticsModuleName));
-    }
+  if (old_notifier) {
+    old_notifier->UnregisterObject(const_cast<char*>(kAnalyticsModuleName));
   }
-  if (!target_app) {
-    return;
-  }
-  CleanupNotifier* cleanup_notifier = CleanupNotifier::FindByOwner(target_app);
-  if (cleanup_notifier) {
-    cleanup_notifier->RegisterObject(
+  if (target_notifier) {
+    target_notifier->RegisterObject(
         const_cast<char*>(kAnalyticsModuleName), [](void*) {
           {
             std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
@@ -118,39 +115,38 @@ void RegisterTerminateOnAppDestroy(const App* app) {
             firebase::analytics::Terminate();
           }
         });
-  } else {
-    std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
-    if (s_registered_app == target_app) {
-      s_registered_app = nullptr;
-    }
   }
 }
 
 // Registers a cleanup task for this module if auto-initialization is disabled.
 void RegisterTerminateOnDefaultAppDestroy() {
-  RegisterTerminateOnAppDestroy(App::GetInstance());
+  if (!AppCallback::GetEnabledByName(kAnalyticsModuleName)) {
+    RegisterTerminateOnAppDestroy(App::GetInstance());
+  }
 }
 
 void UnregisterTerminateOnAppDestroy() {
   App* target_app = nullptr;
+  CleanupNotifier* cleanup_notifier = nullptr;
   {
     std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
     target_app = s_registered_app;
     s_registered_app = nullptr;
-  }
-  if (target_app) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(target_app);
-    if (cleanup_notifier) {
-      cleanup_notifier->UnregisterObject(
-          const_cast<char*>(kAnalyticsModuleName));
+    if (target_app) {
+      cleanup_notifier = CleanupNotifier::FindByOwner(target_app);
     }
+  }
+  if (cleanup_notifier) {
+    cleanup_notifier->UnregisterObject(
+        const_cast<char*>(kAnalyticsModuleName));
   }
 }
 
 // Remove the cleanup task for this module if auto-initialization is disabled.
 void UnregisterTerminateOnDefaultAppDestroy() {
-  UnregisterTerminateOnAppDestroy();
+  if (!AppCallback::GetEnabledByName(kAnalyticsModuleName)) {
+    UnregisterTerminateOnAppDestroy();
+  }
 }
 
 }  // namespace internal

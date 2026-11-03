@@ -48,17 +48,12 @@ DocumentChange::DocumentChange(const DocumentChange& value) {
   if (value.internal_) {
     internal_ = new DocumentChangeInternal(*value.internal_);
   }
-  try {
-    CleanupFnDocumentChange::Register(this, internal_);
-  } catch (...) {
-    delete internal_;
-    throw;
-  }
+  CleanupFnDocumentChange::Register(this, internal_);
 }
 
-DocumentChange::DocumentChange(DocumentChange&& value) {
-  CleanupFnDocumentChange::Unregister(&value, value.internal_);
-  std::swap(internal_, value.internal_);
+DocumentChange::DocumentChange(DocumentChange&& value)
+    : internal_(std::exchange(value.internal_, nullptr)) {
+  CleanupFnDocumentChange::Unregister(&value, nullptr);
   CleanupFnDocumentChange::Register(this, internal_);
 }
 
@@ -78,16 +73,8 @@ DocumentChange& DocumentChange::operator=(const DocumentChange& value) {
   if (this == &value) {
     return *this;
   }
-
-  DocumentChangeInternal* new_internal = nullptr;
-  if (value.internal_) {
-    new_internal = new DocumentChangeInternal(*value.internal_);
-  }
-
-  CleanupFnDocumentChange::Unregister(this, internal_);
-  delete internal_;
-  internal_ = new_internal;
-  CleanupFnDocumentChange::Register(this, internal_);
+  DocumentChange tmp(value);
+  *this = std::move(tmp);
   return *this;
 }
 
@@ -99,8 +86,7 @@ DocumentChange& DocumentChange::operator=(DocumentChange&& value) {
   CleanupFnDocumentChange::Unregister(&value, value.internal_);
   CleanupFnDocumentChange::Unregister(this, internal_);
   delete internal_;
-  internal_ = value.internal_;
-  value.internal_ = nullptr;
+  internal_ = std::exchange(value.internal_, nullptr);
   CleanupFnDocumentChange::Register(this, internal_);
   return *this;
 }

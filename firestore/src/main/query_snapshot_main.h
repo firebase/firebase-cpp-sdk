@@ -42,9 +42,10 @@ class QuerySnapshotInternal {
  public:
   explicit QuerySnapshotInternal(api::QuerySnapshot&& snapshot);
   QuerySnapshotInternal(const QuerySnapshotInternal& other);
-  QuerySnapshotInternal(QuerySnapshotInternal&& other);
+  ~QuerySnapshotInternal();
+  QuerySnapshotInternal(QuerySnapshotInternal&& other) noexcept;
   QuerySnapshotInternal& operator=(const QuerySnapshotInternal& other);
-  QuerySnapshotInternal& operator=(QuerySnapshotInternal&& other);
+  QuerySnapshotInternal& operator=(QuerySnapshotInternal&& other) noexcept;
 
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;

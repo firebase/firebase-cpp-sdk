@@ -89,14 +89,18 @@ class ConfigUpdateListenerRegistration {
  private:
   friend class internal::RemoteConfigInternal;
   friend class internal::ConfigUpdateListenerRegistrationInternal;
+  template <typename T, typename R>
+  friend struct CleanupFn;
 
   explicit ConfigUpdateListenerRegistration(
       internal::ConfigUpdateListenerRegistrationInternal* internal);
 
+  void Cleanup();
   static void CleanupConfigUpdateListenerRegistration(void* registration);
 
-  internal::ConfigUpdateListenerRegistrationInternal* internal_ = nullptr;
   internal::RemoteConfigInternal* remote_config_ = nullptr;
+  mutable internal::ConfigUpdateListenerRegistrationInternal* internal_ =
+      nullptr;
 };
 
 }  // namespace remote_config

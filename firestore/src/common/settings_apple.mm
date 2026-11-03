@@ -40,7 +40,7 @@ Settings::Settings()
 
 std::unique_ptr<Executor> Settings::CreateExecutor() const {
   if (!executor_) {
-    return Executor::CreateSerial("com.google.firebase.firestore.callback");
+    return nullptr;
   }
   return std::make_unique<ExecutorLibdispatch>(dispatch_queue());
 }
@@ -55,7 +55,11 @@ dispatch_queue_t Settings::dispatch_queue() const {
 }
 
 void Settings::set_dispatch_queue(dispatch_queue_t queue) {
-  executor_ = std::make_unique<ExecutorLibdispatch>(queue);
+  if (queue) {
+    executor_ = std::make_shared<ExecutorLibdispatch>(queue);
+  } else {
+    executor_ = Executor::CreateSerial("com.google.firebase.firestore.callback");
+  }
 }
 
 }  // namespace firestore

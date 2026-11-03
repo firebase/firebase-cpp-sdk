@@ -20,6 +20,8 @@
 #include <jni.h>
 #include <memory>
 
+#include <utility>
+
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "firestore/src/android/aggregate_query_snapshot_android.h"
@@ -73,25 +75,23 @@ class Promise {
   Promise(Promise&& other) noexcept
       : firestore_ref_(std::move(other.firestore_ref_)),
         completer_(std::move(other.completer_)),
-        impl_(other.impl_),
-        handle_(other.handle_) {
-    other.impl_ = nullptr;
-    other.handle_ = SafeFutureHandle<PublicType>{};
-  }
+        impl_(std::exchange(other.impl_, nullptr)),
+        handle_(std::exchange(other.handle_, SafeFutureHandle<PublicType>{})) {}
   Promise& operator=(Promise&& other) noexcept {
     if (this != &other) {
       firestore_ref_ = std::move(other.firestore_ref_);
       completer_ = std::move(other.completer_);
-      impl_ = other.impl_;
-      handle_ = other.handle_;
-      other.impl_ = nullptr;
-      other.handle_ = SafeFutureHandle<PublicType>{};
+      impl_ = std::exchange(other.impl_, nullptr);
+      handle_ = std::exchange(other.handle_, SafeFutureHandle<PublicType>{});
     }
     return *this;
   }
 
   void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task) {
     if (!env.ok() || !task) {
+      FIREBASE_ASSERT(completer_ != nullptr);
+      handle_ = completer_->Alloc(static_cast<int>(op));
+      impl_->Complete(handle_, Error::kErrorUnknown, "Unknown error.");
       return;
     }
     FIREBASE_ASSERT(completer_ != nullptr);
@@ -169,8 +169,6 @@ class Promise {
                                     nullptr);
         }
 
-        delete this;
-
         return;
       }
 
@@ -195,7 +193,6 @@ class Promise {
       if (completion_ != nullptr) {
         completion_->CompleteWith(error_code, status_message, nullptr);
       }
-      delete this;
     }
 
     virtual void SucceedWithResult(jni::Env& env,
@@ -256,14 +253,18 @@ class Promise {
                              const char* status_message,
                              void* callback_data) {
     if (callback_data != nullptr) {
+      std::unique_ptr<Completer<PublicType, InternalType>> data(
+          static_cast<Completer<PublicType, InternalType>*>(callback_data));
 #if FIRESTORE_HAVE_EXCEPTIONS
       try {
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
-        auto* data =
-            static_cast<Completer<PublicType, InternalType>*>(callback_data);
         data->CompleteWithResult(env, result, result_code, status_message);
 #if FIRESTORE_HAVE_EXCEPTIONS
+      } catch (const std::exception& e) {
+        // Complete with error if exception was thrown
+        data->CompleteWithResult(env, result, ::firebase::util::kFutureResultFailure, e.what());
       } catch (...) {
+        data->CompleteWithResult(env, result, ::firebase::util::kFutureResultFailure, "Unknown exception.");
       }
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
     }

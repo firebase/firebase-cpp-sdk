@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/field_path_android.h"
 
+#include "Firestore/core/src/model/field_path.h"
 #include "firestore/src/android/field_path_portable.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/jni/array.h"
@@ -49,9 +50,6 @@ Local<Object> FieldPathConverter::Create(Env& env, const FieldPath& path) {
   if (path.internal_ == nullptr || path.internal_->size() == 0) {
     SimpleThrowInvalidArgument(
         "Invalid field path. Provided path must not be empty.");
-    Local<Array<String>> empty_args =
-        env.NewArray<String>(0, String::GetClass());
-    return env.Call(kOf, empty_args);
   }
   FieldPath::FieldPathInternal& internal = *path.internal_;
 

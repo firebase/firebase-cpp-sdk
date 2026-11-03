@@ -55,7 +55,8 @@ core::Filter UnaryFilterInternal::ToCoreFilter(
   const model::FieldPath& path = GetInternal(path_);
   Message<google_firestore_v1_Value> parsed =
       user_data_converter.ParseQueryValue(value_, allow_arrays_);
-  auto describer = [this] { return Describe(value_.type()); };
+  FieldValue::Type val_type = value_.type();
+  auto describer = [val_type] { return Describe(val_type); };
 
   return query.ParseFieldFilter(path, op_, std::move(parsed), describer);
 }

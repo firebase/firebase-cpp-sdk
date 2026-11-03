@@ -63,13 +63,7 @@ class DocumentChange {
   /**
    * The sentinel index used as a return value to indicate no matches.
    */
-#if defined(__ANDROID__)
-  // Older NDK (r16b) fails to define this properly. Fix this when support for
-  // the older NDK is removed.
-  static const std::size_t npos;
-#else
   static constexpr std::size_t npos = static_cast<std::size_t>(-1);
-#endif  // defined(__ANDROID__)
 
   /**
    * @brief Creates an invalid DocumentChange that has to be reassigned before
@@ -126,7 +120,7 @@ class DocumentChange {
   /**
    * Returns the type of change that occurred (added, modified, or removed).
    */
-  virtual Type type() const;
+  [[nodiscard]] virtual Type type() const;
 
   /**
    * @brief The document affected by this change.
@@ -135,7 +129,7 @@ class DocumentChange {
    * an updated document. Returns the deleted document if this document change
    * represents a removal.
    */
-  virtual DocumentSnapshot document() const;
+  [[nodiscard]] virtual DocumentSnapshot document() const;
 
   /**
    * The index of the changed document in the result set immediately prior to
@@ -143,7 +137,7 @@ class DocumentChange {
    * objects have been applied). Returns DocumentChange::npos for 'added'
    * events.
    */
-  virtual std::size_t old_index() const;
+  [[nodiscard]] virtual std::size_t old_index() const;
 
   /**
    * The index of the changed document in the result set immediately after this
@@ -151,7 +145,7 @@ class DocumentChange {
    * and the current DocumentChange object have been applied). Returns
    * DocumentChange::npos for 'removed' events.
    */
-  virtual std::size_t new_index() const;
+  [[nodiscard]] virtual std::size_t new_index() const;
 
   /**
    * @brief Returns true if this `DocumentChange` is valid, false if it is
@@ -164,7 +158,7 @@ class DocumentChange {
    * @return true if this `DocumentChange` is valid, false if this
    * `DocumentChange` is invalid.
    */
-  bool is_valid() const { return internal_ != nullptr; }
+  [[nodiscard]] bool is_valid() const { return internal_ != nullptr; }
 
  private:
   std::size_t Hash() const;

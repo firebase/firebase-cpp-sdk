@@ -16,18 +16,16 @@
 
 #include "messaging/src/common.h"
 
-namespace firebase {
-namespace messaging {
+namespace firebase::messaging {
 
 // Non-inline implementation of Listener's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-Listener::~Listener() { UnregisterListener(this); }
+Listener::~Listener() = default;
 
-void Listener::OnTokenReceived(const char* /*token*/) {}
+void Listener::OnTokenReceived([[maybe_unused]] const char* token) {}
 
-void Listener::OnRegistrationReceived(const char* /*installationId*/) {}
+void Listener::OnRegistrationReceived([[maybe_unused]] const char* installationId) {}
 
-void Listener::OnUnregistrationReceived(const char* /*installationId*/) {}
+void Listener::OnUnregistrationReceived([[maybe_unused]] const char* installationId) {}
 
-}  // namespace messaging
-}  // namespace firebase
+}  // namespace firebase::messaging

@@ -27,6 +27,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/util.h"
 #include "remote_config/src/common.h"
 
 // Querying the platform specific header files.
@@ -39,20 +40,33 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
+FIREBASE_APP_REGISTER_CALLBACKS(
+    remote_config, { return ::firebase::kInitResultSuccess; },
+    {
+      // Nothing to do, CleanupNotifier handles cleanup.
+    },
+    false);
+
 namespace firebase {
 namespace remote_config {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
 
-Mutex g_rc_lock;  // NOLINT
-static std::map<App*, RemoteConfig*>* g_rc_instances = nullptr;
-
 namespace {
+Mutex& GetRcLock() {
+  static auto* lock = new Mutex();
+  return *lock;
+}
+
 std::map<App*, RemoteConfig*>& GetRcInstances() {
-  if (!g_rc_instances) {
-    g_rc_instances = new std::map<App*, RemoteConfig*>();
-  }
-  return *g_rc_instances;
+  static auto* instances = new std::map<App*, RemoteConfig*>();
+  return *instances;
+}
+
+RemoteConfig* FindRemoteConfigLocked(App* app) {
+  auto& instances = GetRcInstances();
+  auto it = instances.find(app);
+  return it != instances.end() ? it->second : nullptr;
 }
 }  // namespace
 
@@ -61,9 +75,9 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
     LogError("RemoteConfig::GetInstance: App cannot be null.");
     return nullptr;
   }
-  MutexLock lock(g_rc_lock);
+  MutexLock lock(GetRcLock());
   // Return the RemoteConfig if it already exists.
-  RemoteConfig* existing_rc = FindRemoteConfig(app);
+  RemoteConfig* existing_rc = FindRemoteConfigLocked(app);
   if (existing_rc) {
     return existing_rc;
   }
@@ -98,14 +112,12 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
 }
 
 RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
-  MutexLock lock(g_rc_lock);
-  if (!g_rc_instances) return nullptr;
-  auto it = g_rc_instances->find(app);
-  return it != g_rc_instances->end() ? it->second : nullptr;
+  MutexLock lock(GetRcLock());
+  return FindRemoteConfigLocked(app);
 }
 
 void RemoteConfig::Cleanup() {
-  MutexLock lock(g_rc_lock);
+  MutexLock lock(GetRcLock());
   if (!internal_) return;
 
   if (app_) {
@@ -113,13 +125,7 @@ void RemoteConfig::Cleanup() {
     if (notifier) {
       notifier->UnregisterObject(this);
     }
-    if (g_rc_instances) {
-      g_rc_instances->erase(app_);
-      if (g_rc_instances->empty()) {
-        delete g_rc_instances;
-        g_rc_instances = nullptr;
-      }
-    }
+    GetRcInstances().erase(app_);
   }
 
   internal_->Cleanup();
@@ -130,7 +136,6 @@ void RemoteConfig::Cleanup() {
 RemoteConfig::RemoteConfig(App* app) : app_(app), internal_(nullptr) {}
 
 bool RemoteConfig::InitInternal() {
-  MutexLock lock(g_rc_lock);
   if (!app_) return false;
   if (!internal_) {
     internal_ = new internal::RemoteConfigInternal(*app_);
@@ -144,6 +149,10 @@ Future<ConfigInfo> RemoteConfig::EnsureInitialized() {
   return internal_ ? internal_->EnsureInitialized() : Future<ConfigInfo>();
 }
 
+Future<ConfigInfo> RemoteConfig::EnsureInitializedLastResult() {
+  return std::as_const(*this).EnsureInitializedLastResult();
+}
+
 Future<ConfigInfo> RemoteConfig::EnsureInitializedLastResult() const {
   return internal_ ? internal_->EnsureInitializedLastResult()
                    : Future<ConfigInfo>();
@@ -153,12 +162,20 @@ Future<bool> RemoteConfig::Activate() {
   return internal_ ? internal_->Activate() : Future<bool>();
 }
 
+Future<bool> RemoteConfig::ActivateLastResult() {
+  return std::as_const(*this).ActivateLastResult();
+}
+
 Future<bool> RemoteConfig::ActivateLastResult() const {
   return internal_ ? internal_->ActivateLastResult() : Future<bool>();
 }
 
 Future<bool> RemoteConfig::FetchAndActivate() {
   return internal_ ? internal_->FetchAndActivate() : Future<bool>();
+}
+
+Future<bool> RemoteConfig::FetchAndActivateLastResult() {
+  return std::as_const(*this).FetchAndActivateLastResult();
 }
 
 Future<bool> RemoteConfig::FetchAndActivateLastResult() const {
@@ -174,6 +191,10 @@ Future<void> RemoteConfig::Fetch() {
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
   return internal_ ? internal_->Fetch(cache_expiration_in_seconds)
                    : Future<void>();
+}
+
+Future<void> RemoteConfig::FetchLastResult() {
+  return std::as_const(*this).FetchLastResult();
 }
 
 Future<void> RemoteConfig::FetchLastResult() const {
@@ -199,6 +220,10 @@ Future<void> RemoteConfig::SetDefaults(const ConfigKeyValue* defaults,
                    : Future<void>();
 }
 
+Future<void> RemoteConfig::SetDefaultsLastResult() {
+  return std::as_const(*this).SetDefaultsLastResult();
+}
+
 Future<void> RemoteConfig::SetDefaultsLastResult() const {
   return internal_ ? internal_->SetDefaultsLastResult() : Future<void>();
 }
@@ -207,78 +232,196 @@ Future<void> RemoteConfig::SetConfigSettings(ConfigSettings settings) {
   return internal_ ? internal_->SetConfigSettings(settings) : Future<void>();
 }
 
+ConfigSettings RemoteConfig::GetConfigSettings() {
+  return std::as_const(*this).GetConfigSettings();
+}
+
 ConfigSettings RemoteConfig::GetConfigSettings() const {
-  return internal_ ? internal_->GetConfigSettings() : ConfigSettings();
+  return internal_ ? internal_->GetConfigSettings() : ConfigSettings{};
+}
+
+Future<void> RemoteConfig::SetConfigSettingsLastResult() {
+  return std::as_const(*this).SetConfigSettingsLastResult();
 }
 
 Future<void> RemoteConfig::SetConfigSettingsLastResult() const {
   return internal_ ? internal_->SetConfigSettingsLastResult() : Future<void>();
 }
 
+bool RemoteConfig::GetBoolean(const char* key) {
+  return std::as_const(*this).GetBoolean(key);
+}
+
 bool RemoteConfig::GetBoolean(const char* key) const {
   return GetBoolean(key, static_cast<ValueInfo*>(nullptr));
+}
+
+bool RemoteConfig::GetBoolean(const std::string& key) {
+  return GetBoolean(key.c_str());
+}
+
+bool RemoteConfig::GetBoolean(const char* key, ValueInfo* info) {
+  return std::as_const(*this).GetBoolean(key, info);
 }
 
 bool RemoteConfig::GetBoolean(const char* key, ValueInfo* info) const {
   return internal_ ? internal_->GetBoolean(key, info) : false;
 }
 
+bool RemoteConfig::GetBoolean(const std::string& key, ValueInfo* info) {
+  return GetBoolean(key.c_str(), info);
+}
+
+int64_t RemoteConfig::GetLong(const char* key) {
+  return std::as_const(*this).GetLong(key);
+}
+
 int64_t RemoteConfig::GetLong(const char* key) const {
   return GetLong(key, static_cast<ValueInfo*>(nullptr));
+}
+
+int64_t RemoteConfig::GetLong(const std::string& key) {
+  return GetLong(key.c_str());
+}
+
+int64_t RemoteConfig::GetLong(const char* key, ValueInfo* info) {
+  return std::as_const(*this).GetLong(key, info);
 }
 
 int64_t RemoteConfig::GetLong(const char* key, ValueInfo* info) const {
   return internal_ ? internal_->GetLong(key, info) : 0;
 }
 
+int64_t RemoteConfig::GetLong(const std::string& key, ValueInfo* info) {
+  return GetLong(key.c_str(), info);
+}
+
+double RemoteConfig::GetDouble(const char* key) {
+  return std::as_const(*this).GetDouble(key);
+}
+
 double RemoteConfig::GetDouble(const char* key) const {
   return GetDouble(key, static_cast<ValueInfo*>(nullptr));
+}
+
+double RemoteConfig::GetDouble(const std::string& key) {
+  return GetDouble(key.c_str());
+}
+
+double RemoteConfig::GetDouble(const char* key, ValueInfo* info) {
+  return std::as_const(*this).GetDouble(key, info);
 }
 
 double RemoteConfig::GetDouble(const char* key, ValueInfo* info) const {
   return internal_ ? internal_->GetDouble(key, info) : 0.0;
 }
 
+double RemoteConfig::GetDouble(const std::string& key, ValueInfo* info) {
+  return GetDouble(key.c_str(), info);
+}
+
+std::string RemoteConfig::GetString(const char* key) {
+  return std::as_const(*this).GetString(key);
+}
+
 std::string RemoteConfig::GetString(const char* key) const {
   return GetString(key, static_cast<ValueInfo*>(nullptr));
 }
 
+std::string RemoteConfig::GetString(const std::string& key) {
+  return GetString(key.c_str());
+}
+
+std::string RemoteConfig::GetString(const char* key, ValueInfo* info) {
+  return std::as_const(*this).GetString(key, info);
+}
+
 std::string RemoteConfig::GetString(const char* key, ValueInfo* info) const {
-  return internal_ ? internal_->GetString(key, info) : std::string();
+  return internal_ ? internal_->GetString(key, info) : std::string{};
+}
+
+std::string RemoteConfig::GetString(const std::string& key, ValueInfo* info) {
+  return GetString(key.c_str(), info);
+}
+
+std::vector<unsigned char> RemoteConfig::GetData(const char* key) {
+  return std::as_const(*this).GetData(key);
 }
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key) const {
   return GetData(key, static_cast<ValueInfo*>(nullptr));
 }
 
+std::vector<unsigned char> RemoteConfig::GetData(const std::string& key) {
+  return GetData(key.c_str());
+}
+
+std::vector<unsigned char> RemoteConfig::GetData(const char* key,
+                                                 ValueInfo* info) {
+  return std::as_const(*this).GetData(key, info);
+}
+
 std::vector<unsigned char> RemoteConfig::GetData(const char* key,
                                                  ValueInfo* info) const {
   return internal_ ? internal_->GetData(key, info)
-                   : std::vector<unsigned char>();
+                   : std::vector<unsigned char>{};
+}
+
+std::vector<unsigned char> RemoteConfig::GetData(const std::string& key,
+                                                 ValueInfo* info) {
+  return GetData(key.c_str(), info);
+}
+
+std::vector<std::string> RemoteConfig::GetKeysByPrefix(const char* prefix) {
+  return std::as_const(*this).GetKeysByPrefix(prefix);
 }
 
 std::vector<std::string> RemoteConfig::GetKeysByPrefix(
     const char* prefix) const {
   return internal_ ? internal_->GetKeysByPrefix(prefix)
-                   : std::vector<std::string>();
+                   : std::vector<std::string>{};
+}
+
+std::vector<std::string> RemoteConfig::GetKeysByPrefix(
+    const std::string& prefix) {
+  return GetKeysByPrefix(prefix.c_str());
+}
+
+std::vector<std::string> RemoteConfig::GetKeys() {
+  return std::as_const(*this).GetKeys();
 }
 
 std::vector<std::string> RemoteConfig::GetKeys() const {
-  return internal_ ? internal_->GetKeys() : std::vector<std::string>();
+  return internal_ ? internal_->GetKeys() : std::vector<std::string>{};
+}
+
+std::map<std::string, Variant> RemoteConfig::GetAll() {
+  return std::as_const(*this).GetAll();
 }
 
 std::map<std::string, Variant> RemoteConfig::GetAll() const {
-  return internal_ ? internal_->GetAll() : std::map<std::string, Variant>();
+  return internal_ ? internal_->GetAll() : std::map<std::string, Variant>{};
 }
 
-ConfigInfo RemoteConfig::GetInfo() const {
-  return internal_ ? internal_->GetInfo() : ConfigInfo();
+const ConfigInfo RemoteConfig::GetInfo() {
+  return std::as_const(*this).GetInfo();
+}
+
+const ConfigInfo RemoteConfig::GetInfo() const {
+  return internal_
+             ? internal_->GetInfo()
+             : ConfigInfo{0, kLastFetchStatusPending,
+                          kFetchFailureReasonInvalid, 0};
 }
 
 Future<void> RemoteConfig::SetCustomSignals(
     const std::map<std::string, Variant>& custom_signals) {
   return internal_ ? internal_->SetCustomSignals(custom_signals)
                    : Future<void>();
+}
+
+Future<void> RemoteConfig::SetCustomSignalsLastResult() {
+  return std::as_const(*this).SetCustomSignalsLastResult();
 }
 
 Future<void> RemoteConfig::SetCustomSignalsLastResult() const {

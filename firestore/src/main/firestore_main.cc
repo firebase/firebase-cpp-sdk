@@ -15,7 +15,7 @@
  */
 
 #include "firestore/src/main/firestore_main.h"
-#include <cstdint>
+#include <atomic>
 
 #include <cstring>
 #include <memory>
@@ -49,8 +49,7 @@
 #include "firestore/src/main/document_snapshot_main.h"
 #include "firestore/src/main/listener_main.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using credentials::AppCheckCredentialsProvider;
@@ -92,7 +91,7 @@ bool ValidateDoubleSlash(const char* path) {
     SimpleThrowInvalidArgument("Invalid path. Path must not be null.");
     return false;
   }
-  if (std::strstr(path, "//") != nullptr) {
+  if (std::string_view(path).find("//") != std::string_view::npos) {
     auto message = std::string("Invalid path (") + path +
                    "). Paths must not contain // in them.";
     SimpleThrowInvalidArgument(message);
@@ -100,8 +99,6 @@ bool ValidateDoubleSlash(const char* path) {
   }
   return true;
 }
-
-std::mutex g_is_alive_mutex;
 
 }  // namespace
 
@@ -120,7 +117,7 @@ FirestoreInternal::FirestoreInternal(
                                       database_id,
                                       std::move(auth_credentials),
                                       std::move(app_check_credentials))),
-      transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
+      transaction_executor_(std::shared_ptr<Executor>(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))),
       database_name_(database_id) {
   ApplyDefaultSettings();
@@ -133,7 +130,7 @@ FirestoreInternal::FirestoreInternal(
 
 FirestoreInternal::~FirestoreInternal() {
   {
-    std::lock_guard<std::mutex> lock(g_is_alive_mutex);
+    std::scoped_lock lock(g_is_alive_mutex);
     *is_alive_ = false;
   }
   ClearListeners();
@@ -242,7 +239,7 @@ Future<void> FirestoreInternal::RunTransaction(
              eventual_result_callback = std::move(eventual_result_callback)] {
               bool alive = false;
               {
-                std::lock_guard<std::mutex> lock(g_is_alive_mutex);
+                std::scoped_lock lock(g_is_alive_mutex);
                 alive = *is_alive;
               }
               if (!alive) {
@@ -343,7 +340,7 @@ Future<void> FirestoreInternal::ClearPersistence() {
 void FirestoreInternal::ClearListeners() {
   std::unordered_set<ListenerRegistrationInternal*> listeners;
   {
-    std::lock_guard<std::mutex> lock(listeners_mutex_);
+    std::scoped_lock lock(listeners_mutex_);
     listeners.swap(listeners_);
   }
   for (auto* listener : listeners) {
@@ -370,7 +367,7 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
 
 void FirestoreInternal::RegisterListenerRegistration(
     ListenerRegistrationInternal* registration) {
-  std::lock_guard<std::mutex> lock(listeners_mutex_);
+  std::scoped_lock lock(listeners_mutex_);
   listeners_.insert(registration);
 }
 
@@ -378,7 +375,7 @@ void FirestoreInternal::UnregisterListenerRegistration(
     ListenerRegistrationInternal* registration) {
   ListenerRegistrationInternal* to_delete = nullptr;
   {
-    std::lock_guard<std::mutex> lock(listeners_mutex_);
+    std::scoped_lock lock(listeners_mutex_);
     auto iter = listeners_.find(registration);
     if (iter != listeners_.end()) {
       to_delete = *iter;
@@ -477,5 +474,4 @@ Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
   return promise.future();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

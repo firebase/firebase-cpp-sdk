@@ -15,6 +15,7 @@
 #include "remote_config/src/desktop/config_data.h"
 
 #include <cstdint>
+#include <string_view>
 
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/desktop/metadata.h"
@@ -35,11 +36,11 @@ std::string NamespacedConfigData::Serialize() const {
   fbb.Map([&]() {
     // Map of Namespace to KeyVal
     fbb.Map("config_", [&]() {
-      for (const auto& key_to_map : config_) {
+      for (const auto& [ns_name, kv_map] : config_) {
         // Map of Key to Val
-        fbb.Map(key_to_map.first.c_str(), [&]() {
-          for (const auto& kv : key_to_map.second) {
-            fbb.String(kv.first.c_str(), kv.second);
+        fbb.Map(ns_name.c_str(), [&]() {
+          for (const auto& [key, val] : kv_map) {
+            fbb.String(key.c_str(), val);
           }
         });
       }
@@ -51,7 +52,7 @@ std::string NamespacedConfigData::Serialize() const {
   return std::string(buffer.cbegin(), buffer.cend());
 }
 
-bool NamespacedConfigData::Deserialize(const std::string& buffer) {
+bool NamespacedConfigData::Deserialize(std::string_view buffer) {
   if (buffer.empty()) {
     return false;
   }
@@ -67,11 +68,12 @@ bool NamespacedConfigData::Deserialize(const std::string& buffer) {
   auto struct_map = root.AsMap();
   config_.clear();
   flexbuffers::Map ns_config_map = struct_map["config_"].AsMap();
+  const auto ns_keys = ns_config_map.Keys();
+  const auto ns_values = ns_config_map.Values();
   for (size_t i = 0, in = ns_config_map.size(); i < in; ++i) {
-    const char* ns_key = ns_config_map.Keys()[i].AsKey();
-    if (!ns_key) continue;
+    const char* ns_key = ns_keys[i].AsKey();
     std::map<std::string, std::string>& kv_config = config_[ns_key];
-    auto kv_map = ns_config_map.Values()[i].AsMap();
+    auto kv_map = ns_values[i].AsMap();
     DeserializeMap(&kv_config, kv_map);
   }
   timestamp_ = struct_map["timestamp_"].AsUInt64();
@@ -90,11 +92,7 @@ bool NamespacedConfigData::HasValue(const std::string& key,
   if (name_space_iter == config_.end()) {
     return false;
   }
-  auto key_iter = name_space_iter->second.find(key);
-  if (key_iter == name_space_iter->second.end()) {
-    return false;
-  }
-  return true;
+  return name_space_iter->second.find(key) != name_space_iter->second.end();
 }
 
 std::string NamespacedConfigData::GetValue(
@@ -118,10 +116,14 @@ void NamespacedConfigData::GetKeysByPrefix(const std::string& prefix,
   }
   auto name_space_iter = config_.find(name_space);
   if (name_space_iter != config_.end()) {
-    for (const auto& key_iter : name_space_iter->second) {
-      if (key_iter.first.compare(0, prefix.length(), prefix) == 0) {
-        keys->insert(key_iter.first);
+    std::string_view prefix_sv(prefix);
+    for (auto it = name_space_iter->second.lower_bound(prefix);
+         it != name_space_iter->second.end(); ++it) {
+      if (std::string_view(it->first).substr(0, prefix_sv.size()) !=
+          prefix_sv) {
+        break;
       }
+      keys->insert(it->first);
     }
   }
 }
@@ -136,7 +138,7 @@ bool NamespacedConfigData::operator==(const NamespacedConfigData& right) const {
   return config_ == right.config_ && timestamp_ == right.timestamp_;
 }
 
-LayeredConfigs::LayeredConfigs() {}
+LayeredConfigs::LayeredConfigs() = default;
 LayeredConfigs::LayeredConfigs(const NamespacedConfigData& config_fetched,
                                const NamespacedConfigData& config_active,
                                const NamespacedConfigData& config_default,
@@ -160,7 +162,7 @@ std::string LayeredConfigs::Serialize() const {
   return std::string(buffer.cbegin(), buffer.cend());
 }
 
-bool LayeredConfigs::Deserialize(const std::string& buffer) {
+bool LayeredConfigs::Deserialize(std::string_view buffer) {
   if (buffer.empty()) {
     return false;
   }
@@ -174,19 +176,22 @@ bool LayeredConfigs::Deserialize(const std::string& buffer) {
     return false;
   }
   auto struct_map = root.AsMap();
-  flexbuffers::String fetched_str = struct_map["fetched"].AsString();
-  flexbuffers::String active_str = struct_map["active"].AsString();
-  flexbuffers::String defaults_str = struct_map["defaults"].AsString();
-  flexbuffers::String metadata_str = struct_map["metadata"].AsString();
-  bool ok = fetched.Deserialize(
-                std::string(fetched_str.c_str(), fetched_str.length())) &&
-            active.Deserialize(
-                std::string(active_str.c_str(), active_str.length())) &&
-            defaults.Deserialize(
-                std::string(defaults_str.c_str(), defaults_str.length())) &&
-            metadata.Deserialize(
-                std::string(metadata_str.c_str(), metadata_str.length()));
-  return ok;
+  auto deserialize_optional = [](const flexbuffers::Reference& ref,
+                                 auto* target) {
+    if (ref.IsNull()) {
+      *target = {};
+      return true;
+    }
+    if (!ref.IsString()) {
+      return false;
+    }
+    flexbuffers::String str = ref.AsString();
+    return target->Deserialize(std::string_view(str.c_str(), str.length()));
+  };
+  return deserialize_optional(struct_map["fetched"], &fetched) &&
+         deserialize_optional(struct_map["active"], &active) &&
+         deserialize_optional(struct_map["defaults"], &defaults) &&
+         deserialize_optional(struct_map["metadata"], &metadata);
 }
 
 bool LayeredConfigs::operator==(const LayeredConfigs& right) const {

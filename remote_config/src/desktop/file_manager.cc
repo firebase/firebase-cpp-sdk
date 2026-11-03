@@ -14,6 +14,7 @@
 
 #include "remote_config/src/desktop/file_manager.h"
 
+#include <atomic>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -24,20 +25,39 @@
 #include "remote_config/src/desktop/config_data.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
+#include <io.h>
 #include <windows.h>
-
-#include <codecvt>
-#include <locale>
+#else
+#include <unistd.h>
 #endif
 
 namespace firebase {
 namespace remote_config {
 namespace internal {
 
+namespace {
+#if FIREBASE_PLATFORM_WINDOWS
+std::wstring Utf8ToWideString(const std::string& str) {
+  if (str.empty()) return std::wstring();
+  int size_needed = MultiByteToWideChar(
+      CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
+  if (size_needed <= 0) return std::wstring();
+  std::wstring result(static_cast<size_t>(size_needed), L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()),
+                      result.data(), size_needed);
+  return result;
+}
+#endif
+
+uint64_t NextTempFileId() {
+  static std::atomic<uint64_t> counter{0};
+  return counter.fetch_add(1, std::memory_order_relaxed);
+}
+}  // namespace
+
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path) {
 #if FIREBASE_PLATFORM_WINDOWS
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_to_wstring;
-  file_path_ = utf8_to_wstring.from_bytes(file_path);
+  file_path_ = Utf8ToWideString(file_path);
 #else
   file_path_ = file_path;
 #endif
@@ -58,8 +78,7 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
     file_path = app_dir + "/" + app.name() + "_" + filename;
   }
 #if FIREBASE_PLATFORM_WINDOWS
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_to_wstring;
-  file_path_ = utf8_to_wstring.from_bytes(file_path);
+  file_path_ = Utf8ToWideString(file_path);
 #else
   file_path_ = file_path;
 #endif
@@ -86,30 +105,22 @@ bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
     return false;
   }
   std::string buffer = configs.Serialize();
+  const uint64_t tmp_id = NextTempFileId();
 #if FIREBASE_PLATFORM_WINDOWS
-  std::wstring tmp_path = file_path_ + L".tmp";
-#else
-  std::string tmp_path = file_path_ + ".tmp";
-#endif
-  {
-    std::ofstream output(tmp_path,
-                         std::ios::out | std::ios::binary | std::ios::trunc);
-    if (!output.is_open()) {
-      return false;
-    }
-    output.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-    output.flush();
-    if (!output.good()) {
-      output.close();
-#if FIREBASE_PLATFORM_WINDOWS
-      _wremove(tmp_path.c_str());
-#else
-      std::remove(tmp_path.c_str());
-#endif
-      return false;
-    }
+  std::wstring tmp_path = file_path_ + L".tmp." + std::to_wstring(tmp_id);
+  FILE* fp = _wfopen(tmp_path.c_str(), L"wb");
+  if (!fp) {
+    return false;
   }
-#if FIREBASE_PLATFORM_WINDOWS
+  const size_t written = std::fwrite(buffer.data(), 1, buffer.size(), fp);
+  const bool flush_ok =
+      (written == buffer.size()) && (std::fflush(fp) == 0) &&
+      (_commit(_fileno(fp)) == 0);
+  const bool close_ok = (std::fclose(fp) == 0);
+  if (!flush_ok || !close_ok) {
+    _wremove(tmp_path.c_str());
+    return false;
+  }
   if (!MoveFileExW(tmp_path.c_str(), file_path_.c_str(),
                    MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
     _wremove(tmp_path.c_str());
@@ -117,6 +128,20 @@ bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
   }
   return true;
 #else
+  std::string tmp_path = file_path_ + ".tmp." + std::to_string(tmp_id);
+  FILE* fp = std::fopen(tmp_path.c_str(), "wb");
+  if (!fp) {
+    return false;
+  }
+  const size_t written = std::fwrite(buffer.data(), 1, buffer.size(), fp);
+  const bool flush_ok =
+      (written == buffer.size()) && (std::fflush(fp) == 0) &&
+      (fsync(fileno(fp)) == 0);
+  const bool close_ok = (std::fclose(fp) == 0);
+  if (!flush_ok || !close_ok) {
+    std::remove(tmp_path.c_str());
+    return false;
+  }
   if (std::rename(tmp_path.c_str(), file_path_.c_str()) != 0) {
     std::remove(tmp_path.c_str());
     return false;

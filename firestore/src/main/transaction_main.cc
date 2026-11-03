@@ -39,9 +39,7 @@
 #include "firestore/src/main/set_options_main.h"
 #include "firestore/src/main/util_main.h"
 
-namespace firebase {
-namespace firestore {
-
+namespace firebase::firestore {
 namespace {
 
 using core::ParsedSetData;
@@ -166,8 +164,9 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   auto guard = std::make_shared<CancelGuard>();
   guard->state = state;
 
+  std::vector<model::DocumentKey> keys{key};
   transaction_->Lookup(
-      {key},
+      keys,
       [state, guard, firestore_core = std::move(firestore_core),
        key = std::move(key)](
           const util::StatusOr<std::vector<Document>>& maybe_docs) mutable {
@@ -235,14 +234,10 @@ void TransactionInternal::ValidateReference(const DocumentReference& document) {
   }
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
-
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 FirestoreInternal* TransactionInternal::firestore_internal() {
   return GetInternal(firestore_public_);
 }
-}
-}
+}  // namespace firebase::firestore

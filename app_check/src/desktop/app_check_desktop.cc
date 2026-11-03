@@ -29,9 +29,7 @@
 #include "app/src/log.h"
 #include "app_check/src/common/common.h"
 
-namespace firebase {
-namespace app_check {
-namespace internal {
+namespace firebase::app_check::internal {
 
 namespace {
 
@@ -85,11 +83,9 @@ std::shared_ptr<AppCheckInternal::LifetimeState> GetListenerLifetimeState(
 bool IsLifetimeStateAlive(
     const std::shared_ptr<AppCheckInternal::LifetimeState>& state) {
   if (!state) return false;
-  std::lock_guard<std::mutex> lock(state->mutex);
+  std::lock_guard lock(state->mutex);
   return state->owner != nullptr;
 }
-
-thread_local bool g_last_registry_listener_inserted = false;
 
 // 5-minute buffer before expiration (in milliseconds).
 constexpr int64_t kTokenRefreshBufferMillis = 5 * 60 * 1000;
@@ -552,21 +548,19 @@ bool AppCheckInternal::GetLimitedUseAppCheckTokenAsyncForRegistry(
   return false;
 }
 
-void FunctionRegistryAppCheckListener::AddListener(
+bool FunctionRegistryAppCheckListener::AddListener(
     FunctionRegistryCallback callback, void* context) {
   if (!callback) {
-    g_last_registry_listener_inserted = false;
-    return;
+    return false;
   }
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard lock(mutex_);
   Entry entry = {callback, context};
   if (std::find(callbacks_.begin(), callbacks_.end(), entry) ==
       callbacks_.end()) {
     callbacks_.push_back(entry);
-    g_last_registry_listener_inserted = true;
-  } else {
-    g_last_registry_listener_inserted = false;
+    return true;
   }
+  return false;
 }
 
 void FunctionRegistryAppCheckListener::RemoveListener(
@@ -585,7 +579,7 @@ void FunctionRegistryAppCheckListener::OnAppCheckTokenChanged(
       GetListenerLifetimeState(this);
   std::vector<Entry> snapshot;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     snapshot = callbacks_;
   }
   for (const Entry& entry : snapshot) {
@@ -594,16 +588,16 @@ void FunctionRegistryAppCheckListener::OnAppCheckTokenChanged(
     }
     bool still_registered = false;
     {
-      std::lock_guard<std::mutex> lock(mutex_);
+      std::lock_guard lock(mutex_);
       still_registered =
           std::find(callbacks_.begin(), callbacks_.end(), entry) !=
           callbacks_.end();
-    }
-    if (still_registered && entry.first) {
-      entry.first(token.token, entry.second);
-      if (state && !IsLifetimeStateAlive(state)) {
-        return;
+      if (still_registered && entry.first) {
+        entry.first(token.token, entry.second);
       }
+    }
+    if (state && !IsLifetimeStateAlive(state)) {
+      return;
     }
   }
 }
@@ -621,10 +615,10 @@ bool AppCheckInternal::AddAppCheckListenerForRegistry(App* app, void* callback,
     std::string cached_token_str;
     bool notify_immediately = false;
     {
-      std::lock_guard<std::mutex> lock(app_check->internal_->mutex_);
-      app_check->internal_->internal_listener_.AddListener(typed_callback,
+      std::lock_guard lock(app_check->internal_->mutex_);
+      bool inserted = app_check->internal_->internal_listener_.AddListener(typed_callback,
                                                            context);
-      if (g_last_registry_listener_inserted &&
+      if (inserted &&
           app_check->internal_->HasValidCacheTokenLocked()) {
         cached_token_str = app_check->internal_->cached_token_.token;
         notify_immediately = true;
@@ -656,6 +650,4 @@ bool AppCheckInternal::RemoveAppCheckListenerForRegistry(App* app,
   return false;
 }
 
-}  // namespace internal
-}  // namespace app_check
-}  // namespace firebase
+}  // namespace firebase::app_check::internal

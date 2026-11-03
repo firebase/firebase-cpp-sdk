@@ -192,6 +192,8 @@ class RemoteConfigInternal {
   static const double kDefaultValueForDouble;
   static const bool kDefaultValueForBool;
 
+  const std::vector<unsigned char> kDefaultValueForData;
+
   // app
   const firebase::App& app_;
 

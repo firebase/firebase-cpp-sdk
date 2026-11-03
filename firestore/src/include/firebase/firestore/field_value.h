@@ -21,6 +21,7 @@
 #include <iosfwd>
 #include <limits>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "firebase/firestore/map_field_value.h"
@@ -60,10 +61,10 @@ class FieldValue final {
   // an alias template).
   template <typename T>
   using EnableIfIntegral =
-      enable_if<::firebase::is_integer<T>::value && !is_same<T, bool>::value,
+      std::enable_if_t<::firebase::is_integer<T>::value && !std::is_same_v<T, bool>,
                 int>;
   template <typename T>
-  using EnableIfFloatingPoint = enable_if<is_floating_point<T>::value, int>;
+  using EnableIfFloatingPoint = std::enable_if_t<std::is_floating_point_v<T>, int>;
 
  public:
   /**
@@ -89,7 +90,6 @@ class FieldValue final {
     kArrayRemove,
     kIncrementInteger,
     kIncrementDouble,
-    kInvalid,
   };
 
   /**
@@ -346,7 +346,7 @@ class FieldValue final {
    * type not larger than `int64_t`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  template <typename T, typename EnableIfIntegral<T>::type = 0>
+  template <typename T, typename = EnableIfIntegral<T>>
   static FieldValue Increment(T by_value) {
     // Note: Doxygen will run into trouble if this function's definition is
     // moved outside the class body.
@@ -376,7 +376,7 @@ class FieldValue final {
    * point type no larger than `double`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  template <typename T, typename EnableIfFloatingPoint<T>::type = 0>
+  template <typename T, typename = EnableIfFloatingPoint<T>>
   static FieldValue Increment(T by_value) {
     // Note: Doxygen will run into trouble if this function's definition is
     // moved outside the class body.

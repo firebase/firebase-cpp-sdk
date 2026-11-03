@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include "app/src/assert.h"
 #include "firestore/src/jni/jni.h"
 #include "firestore/src/jni/traits.h"
 
@@ -49,9 +50,9 @@ class Object {
   Object& operator=(const Object&) = default;
  public:
 
-  explicit operator bool() const { return object_ != nullptr; }
+  [[nodiscard]] explicit operator bool() const { return object_ != nullptr; }
 
-  jobject get() const { return object_; }
+  [[nodiscard]] jobject get() const { return object_; }
 
   static void Initialize(Loader& loader);
 
@@ -59,7 +60,7 @@ class Object {
 
   /** Returns a non-owning proxy of type `U` that points to this object. */
   template <typename U>
-  U CastTo() const& {
+  [[nodiscard]] U CastTo() const& {
     return U(static_cast<JniType<U>>(get()));
   }
 
@@ -86,15 +87,15 @@ class Object {
  * test Java reference identity across distinct handles, or `Object::Equals` to
  * invoke `java.lang.Object.equals`.
  */
-inline bool operator==(const Object& lhs, const Object& rhs) {
+inline [[nodiscard]] bool operator==(const Object& lhs, const Object& rhs) {
   if (lhs.get() == rhs.get()) return true;
   if (!lhs || !rhs) return false;
   JNIEnv* env = GetEnv();
-  if (!env) return false;
+  FIREBASE_ASSERT(env != nullptr);
   return env->IsSameObject(lhs.get(), rhs.get());
 }
 
-inline bool operator!=(const Object& lhs, const Object& rhs) {
+inline [[nodiscard]] bool operator!=(const Object& lhs, const Object& rhs) {
   return !(lhs == rhs);
 }
 

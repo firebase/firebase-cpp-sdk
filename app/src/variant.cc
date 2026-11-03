@@ -18,14 +18,15 @@
 
 #include <limits.h>
 #include <stdlib.h>
-#include <utility>
 
-#include <cmath>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <string_view>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
@@ -34,7 +35,60 @@ namespace firebase {
 
 Variant& Variant::operator=(const Variant& other) {
   if (this != &other) {
-    Variant temp(other);
+    Variant temp;
+    temp.type_ = kInternalTypeNull;
+    temp.Clear(static_cast<Type>(other.type_));
+    switch (temp.type_) {
+      case kInternalTypeNull: {
+        break;
+      }
+      case kInternalTypeInt64: {
+        temp.set_int64_value(other.int64_value());
+        break;
+      }
+      case kInternalTypeDouble: {
+        temp.set_double_value(other.double_value());
+        break;
+      }
+      case kInternalTypeBool: {
+        temp.set_bool_value(other.bool_value());
+        break;
+      }
+      case kInternalTypeStaticString: {
+        temp.set_string_value(other.string_value());
+        break;
+      }
+      case kInternalTypeMutableString: {
+        temp.set_mutable_string(other.mutable_string());
+        break;
+      }
+      case kInternalTypeSmallString: {
+        strcpy(temp.value_.small_string, other.value_.small_string);  // NOLINT
+        break;
+      }
+      case kInternalTypeVector: {
+        temp.set_vector(other.vector());
+        break;
+      }
+      case kInternalTypeMap: {
+        temp.set_map(other.map());
+        break;
+      }
+      case kInternalTypeStaticBlob: {
+        temp.set_blob_pointer(other.value_.blob_value.ptr,
+                              other.value_.blob_value.size);
+        break;
+      }
+      case kInternalTypeMutableBlob: {
+        temp.set_mutable_blob(other.value_.blob_value.ptr,
+                              other.value_.blob_value.size);
+        break;
+      }
+      case kMaxTypeValue:
+        FIREBASE_ASSERT(false);  // Should never hit this
+        break;
+    }
+
     std::swap(type_, temp.type_);
     std::swap(value_, temp.value_);
   }
@@ -113,34 +167,13 @@ Variant& Variant::operator=(Variant&& other) noexcept {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 static int CompareStrings(const Variant& left, const Variant& right) {
-  const char* l_str;
-  size_t l_len;
-  if (left.is_mutable_string()) {
-    const std::string& l_str_val = left.mutable_string();
-    l_str = l_str_val.data();
-    l_len = l_str_val.size();
-  } else {
-    l_str = left.string_value();
-    l_len = strlen(l_str);
-  }
-
-  const char* r_str;
-  size_t r_len;
-  if (right.is_mutable_string()) {
-    const std::string& r_str_val = right.mutable_string();
-    r_str = r_str_val.data();
-    r_len = r_str_val.size();
-  } else {
-    r_str = right.string_value();
-    r_len = strlen(r_str);
-  }
-
-  size_t min_len = l_len < r_len ? l_len : r_len;
-  int cmp = memcmp(l_str, r_str, min_len);
-  if (cmp != 0) return cmp;
-  if (l_len < r_len) return -1;
-  if (l_len > r_len) return 1;
-  return 0;
+  std::string_view l_view = left.is_mutable_string()
+                                ? std::string_view(left.mutable_string())
+                                : std::string_view(left.string_value());
+  std::string_view r_view = right.is_mutable_string()
+                                ? std::string_view(right.mutable_string())
+                                : std::string_view(right.string_value());
+  return l_view.compare(r_view);
 }
 
 bool Variant::operator==(const Variant& other) const {
@@ -479,10 +512,12 @@ Variant Variant::AsString() const {
     case kInternalTypeBool: {
       return bool_value() ? Variant::FromMutableString("true") : Variant::FromMutableString("false");
     }
-    case kInternalTypeMutableString:
+    case kInternalTypeMutableString: {
+      return Variant::FromMutableString(mutable_string());
+    }
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
-      return *this;
+      return Variant::FromMutableString(string_value());
     }
     default: {
       return Variant::FromMutableString("");
@@ -546,6 +581,7 @@ Variant Variant::AsBool() const {
 }
 
 const char* Variant::TypeName(Variant::Type t) {
+  FIREBASE_ASSERT(t >= 0 && t <= kTypeMutableBlob);
   if (t < 0 || t > kTypeMutableBlob) return "Unknown";
   return kTypeNames[t];
 }

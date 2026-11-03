@@ -105,16 +105,16 @@ FieldValue FieldValueInternal::Create(Env& env,
 
 FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {}
 
-FieldValueInternal::FieldValueInternal(const FieldValueInternal& other)
-    : object_(other.object_) {
+FieldValueInternal::FieldValueInternal(const FieldValueInternal& other) {
   std::lock_guard<std::mutex> lock(other.mutex_);
+  object_ = other.object_;
   cached_type_ = other.cached_type_;
   cached_blob_ = other.cached_blob_;
 }
 
-FieldValueInternal::FieldValueInternal(FieldValueInternal&& other) noexcept
-    : object_(std::move(other.object_)) {
+FieldValueInternal::FieldValueInternal(FieldValueInternal&& other) noexcept {
   std::lock_guard<std::mutex> lock(other.mutex_);
+  object_ = std::move(other.object_);
   cached_type_ = other.cached_type_;
   cached_blob_ = std::move(other.cached_blob_);
 }
@@ -124,9 +124,7 @@ FieldValueInternal& FieldValueInternal::operator=(
   if (this == &other) {
     return *this;
   }
-  std::lock(mutex_, other.mutex_);
-  std::lock_guard<std::mutex> lhs_lock(mutex_, std::adopt_lock);
-  std::lock_guard<std::mutex> rhs_lock(other.mutex_, std::adopt_lock);
+  std::scoped_lock lock(mutex_, other.mutex_);
   object_ = other.object_;
   cached_type_ = other.cached_type_;
   cached_blob_ = other.cached_blob_;
@@ -138,9 +136,7 @@ FieldValueInternal& FieldValueInternal::operator=(
   if (this == &other) {
     return *this;
   }
-  std::lock(mutex_, other.mutex_);
-  std::lock_guard<std::mutex> lhs_lock(mutex_, std::adopt_lock);
-  std::lock_guard<std::mutex> rhs_lock(other.mutex_, std::adopt_lock);
+  std::scoped_lock lock(mutex_, other.mutex_);
   object_ = std::move(other.object_);
   cached_type_ = other.cached_type_;
   cached_blob_ = std::move(other.cached_blob_);
@@ -247,7 +243,11 @@ Type FieldValueInternal::type() const {
   // We do not have any knowledge on the type yet. Check the runtime type with
   // each known type.
   Env env = GetEnv();
-  Local<Object> object = object_.get(env);
+  Local<Object> object;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    object = object_.get(env);
+  }
   Type resolved_type = Type::kInvalid;
   if (!object) {
     resolved_type = Type::kNull;
@@ -334,9 +334,11 @@ size_t FieldValueInternal::blob_size() const {
 
 void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   auto blob = Cast<BlobInternal>(env, Type::kBlob);
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (cached_blob_ != nullptr) {
-    return;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (cached_blob_ != nullptr) {
+      return;
+    }
   }
 
   Local<Array<uint8_t>> bytes = blob.ToBytes(env);
@@ -345,6 +347,11 @@ void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   auto result = std::make_shared<std::vector<uint8_t>>(size);
   if (size > 0) {
     env.GetArrayRegion(bytes, 0, size, result->data());
+  }
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (cached_blob_ != nullptr) {
+    return;
   }
 
   if (env.ok()) {
@@ -449,8 +456,9 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
 
 template <typename T>
 Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
-  Local<Object> obj = object_.get(env);
+  Local<Object> obj;
   std::lock_guard<std::mutex> lock(mutex_);
+  obj = object_.get(env);
   if (cached_type_ == Type::kInvalid) {
     FIREBASE_ASSERT(env.IsInstanceOf(obj, T::GetClass()));
     cached_type_ = type;
@@ -462,8 +470,9 @@ Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
 
 template <>
 Local<String> FieldValueInternal::Cast<String>(jni::Env& env, Type type) const {
-  Local<Object> obj = object_.get(env);
+  Local<Object> obj;
   std::lock_guard<std::mutex> lock(mutex_);
+  obj = object_.get(env);
   if (cached_type_ == Type::kInvalid) {
     FIREBASE_ASSERT(env.IsInstanceOf(obj, String::GetClass()));
     cached_type_ = type;

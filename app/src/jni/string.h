@@ -161,9 +161,14 @@ inline std::string ModifiedUtf8ToUtf8(std::string_view mutf8) {
     if (b == 0xC0) {
       needs_decoding = true;
       break;
-    } else if (b == 0xED && i + 1 < mutf8.size()) {
-      const uint8_t b1 = static_cast<uint8_t>(mutf8[i + 1]);
-      if (b1 >= 0xA0 && b1 <= 0xBF) {
+    } else if (b == 0xED) {
+      if (i + 1 < mutf8.size()) {
+        const uint8_t b1 = static_cast<uint8_t>(mutf8[i + 1]);
+        if (b1 >= 0xA0 && b1 <= 0xBF) {
+          needs_decoding = true;
+          break;
+        }
+      } else {
         needs_decoding = true;
         break;
       }
@@ -224,10 +229,9 @@ inline std::string ModifiedUtf8ToUtf8(std::string_view mutf8) {
           continue;
         }
       } else {
-        // A single 0xED at the very end of the string.
-        // It's technically truncated, but could be a truncated surrogate or truncated valid char.
-        // If we want to strictly replace truncated surrogates, we can't tell here.
-        // Let's just leave it or replace it.
+        out.append("\xEF\xBF\xBD");
+        ++i;
+        continue;
       }
       out.push_back(static_cast<char>(b0));
       ++i;

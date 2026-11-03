@@ -161,14 +161,14 @@ class Local : public T {
   jni_type get() const override { return static_cast<jni_type>(T::object_); }
 
   jni_type release() {
-    jobject result = T::object_;
-    T::object_ = nullptr;
-    return static_cast<jni_type>(result);
+    return static_cast<jni_type>(std::exchange(T::object_, nullptr));
   }
 
   void clear() {
-    if (env_ && T::object_) {
-      env_->DeleteLocalRef(T::object_);
+    if (T::object_) {
+      if (env_) {
+        env_->DeleteLocalRef(T::object_);
+      }
       T::object_ = nullptr;
     }
   }
@@ -228,8 +228,8 @@ class Global : public T {
     if (T::object_ != nullptr || other.get() != nullptr) {
       env = EnsureEnv(other.env());
     }
-    if (T::object_ != nullptr && env != nullptr) {
-      env->DeleteGlobalRef(T::object_);
+    if (T::object_ != nullptr) {
+      if (env != nullptr) env->DeleteGlobalRef(T::object_);
       T::object_ = nullptr;
     }
     if (other.get() != nullptr && env != nullptr) {
@@ -303,8 +303,8 @@ class Global : public T {
     if (T::object_ != nullptr || other.get() != nullptr) {
       env = EnsureEnv(other.env());
     }
-    if (T::object_ != nullptr && env != nullptr) {
-      env->DeleteGlobalRef(T::object_);
+    if (T::object_ != nullptr) {
+      if (env != nullptr) env->DeleteGlobalRef(T::object_);
       T::object_ = nullptr;
     }
     if (other.get() != nullptr && env != nullptr) {
@@ -319,15 +319,15 @@ class Global : public T {
   jni_type get() const override { return static_cast<jni_type>(T::object_); }
 
   jni_type release() {
-    jobject result = T::object_;
-    T::object_ = nullptr;
-    return static_cast<jni_type>(result);
+    return static_cast<jni_type>(std::exchange(T::object_, nullptr));
   }
 
   void clear() {
     if (T::object_) {
       JNIEnv* env = GetEnv();
-      env->DeleteGlobalRef(T::object_);
+      if (env) {
+        env->DeleteGlobalRef(T::object_);
+      }
       T::object_ = nullptr;
     }
   }

@@ -90,15 +90,11 @@ std::string ValueToString(const uint8_t* blob, size_t size) {
 
 FieldValue::FieldValue() {}
 
-FieldValue::FieldValue(const FieldValue& value) {
-  if (value.internal_) {
-    internal_ = new FieldValueInternal(*value.internal_);
-  }
-}
+FieldValue::FieldValue(const FieldValue& value)
+    : internal_(value.internal_ ? new FieldValueInternal(*value.internal_) : nullptr) {}
 
-FieldValue::FieldValue(FieldValue&& value) noexcept {
-  std::swap(internal_, value.internal_);
-}
+FieldValue::FieldValue(FieldValue&& value) noexcept
+    : internal_(std::exchange(value.internal_, nullptr)) {}
 
 FieldValue::FieldValue(FieldValueInternal* internal) : internal_(internal) {
   SIMPLE_HARD_ASSERT(internal != nullptr);
@@ -110,27 +106,13 @@ FieldValue::~FieldValue() {
 }
 
 FieldValue& FieldValue::operator=(const FieldValue& value) {
-  if (this == &value) {
-    return *this;
-  }
-
-  FieldValueInternal* new_internal = nullptr;
-  if (value.internal_) {
-    new_internal = new FieldValueInternal(*value.internal_);
-  }
-  delete internal_;
-  internal_ = new_internal;
+  FieldValue tmp(value);
+  std::swap(internal_, tmp.internal_);
   return *this;
 }
 
 FieldValue& FieldValue::operator=(FieldValue&& value) noexcept {
-  if (this == &value) {
-    return *this;
-  }
-
-  delete internal_;
-  internal_ = value.internal_;
-  value.internal_ = nullptr;
+  std::swap(internal_, value.internal_);
   return *this;
 }
 

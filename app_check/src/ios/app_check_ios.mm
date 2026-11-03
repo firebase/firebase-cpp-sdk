@@ -213,12 +213,8 @@
     snapshot = [listeners_ copy];
   }
   for (NSValue* listener_value in snapshot) {
-    bool contains = false;
-    {
-      std::lock_guard<std::recursive_mutex> lock(listeners_mutex_);
-      contains = [listeners_ containsObject:listener_value];
-    }
-    if (!contains) {
+    std::lock_guard<std::recursive_mutex> lock(listeners_mutex_);
+    if (![listeners_ containsObject:listener_value]) {
       continue;
     }
     firebase::app_check::AppCheckListener* listener =
@@ -337,7 +333,7 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
                  }
                  if (future) {
                    future->CompleteWithResult(handle, kAppCheckErrorNone,
-                                                              cpp_token);
+                                                              std::move(cpp_token));
                  }
                }];
   return result;
@@ -403,7 +399,7 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
                      }
                    }
                    if (future) {
-                     future->CompleteWithResult(handle, kAppCheckErrorNone, cpp_token);
+                     future->CompleteWithResult(handle, kAppCheckErrorNone, std::move(cpp_token));
                    }
       }];
   return result;

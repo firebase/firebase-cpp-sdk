@@ -20,6 +20,7 @@
 
 #include "app/rest/request_json.h"
 #include "app/rest/response_json.h"
+#include "app/src/semaphore.h"
 #include "firebase/app.h"
 #include "remote_config/request_generated.h"
 #include "remote_config/request_resource.h"
@@ -122,6 +123,7 @@ class RemoteConfigREST {
 
   RemoteConfigRequest rc_request_;
   RemoteConfigResponse rc_response_;
+  Semaphore fetch_future_sem_;
 };
 
 }  // namespace internal

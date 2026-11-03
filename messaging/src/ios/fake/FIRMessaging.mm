@@ -48,7 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
   return messaging;
 }
 
-BOOL is_auto_init_enabled = true;
+static BOOL is_auto_init_enabled = YES;
 
 - (BOOL)isAutoInitEnabled {
   return is_auto_init_enabled;
@@ -83,7 +83,7 @@ BOOL is_auto_init_enabled = true;
 - (void)subscribeToTopic:(NSString *)topic NS_SWIFT_NAME(subscribe(toTopic:)) {
   static const char fake[] = "-[FIRMessaging subscribeToTopic:]";
   std::vector<std::string> args = FakeReporter->GetFakeArgs(fake);
-  args.push_back(topic.UTF8String);
+  args.push_back((topic && topic.UTF8String) ? topic.UTF8String : "");
   FakeReporter->AddReport(fake, "", args);
 }
 
@@ -91,7 +91,7 @@ BOOL is_auto_init_enabled = true;
               completion:(nullable FIRMessagingTopicOperationCompletion)completion {
   static const char fake[] = "-[FIRMessaging subscribeToTopic:completion:]";
   std::vector<std::string> args = FakeReporter->GetFakeArgs(fake);
-  args.push_back(topic.UTF8String);
+  args.push_back((topic && topic.UTF8String) ? topic.UTF8String : "");
   FakeReporter->AddReport(fake, "", args);
   if (completion) {
     completion(nil);
@@ -101,14 +101,14 @@ BOOL is_auto_init_enabled = true;
 - (void)unsubscribeFromTopic:(NSString *)topic NS_SWIFT_NAME(unsubscribe(fromTopic:)) {
   static const char fake[] = "-[FIRMessaging unsubscribeFromTopic:]";
   std::vector<std::string> args = FakeReporter->GetFakeArgs(fake);
-  args.push_back(topic.UTF8String);
+  args.push_back((topic && topic.UTF8String) ? topic.UTF8String : "");
   FakeReporter->AddReport(fake, "", args);
 }
 - (void)unsubscribeFromTopic:(NSString *)topic
                   completion:(nullable FIRMessagingTopicOperationCompletion)completion {
   static const char fake[] = "-[FIRMessaging unsubscribeFromTopic:completion:]";
   std::vector<std::string> args = FakeReporter->GetFakeArgs(fake);
-  args.push_back(topic.UTF8String);
+  args.push_back((topic && topic.UTF8String) ? topic.UTF8String : "");
   FakeReporter->AddReport(fake, "", args);
   if (completion) {
     completion(nil);
@@ -120,7 +120,7 @@ BOOL is_auto_init_enabled = true;
       withMessageID:(NSString *)messageID
          timeToLive:(int64_t)ttl {
   FakeReporter->AddReport("-[FIRMessaging sendMessage:to:withMessageID:timeToLive:]",
-      { receiver.UTF8String, messageID.UTF8String,
+      { (receiver && receiver.UTF8String) ? receiver.UTF8String : "", (messageID && messageID.UTF8String) ? messageID.UTF8String : "",
         [NSString stringWithFormat:@"%lld", ttl].UTF8String });
 }
 

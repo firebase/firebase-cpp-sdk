@@ -42,7 +42,7 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
   AppCheckProvider* CreateProvider(App* app) override;
 
-  void SetDebugToken(const std::string& token);
+  void SetDebugToken(const char* token);
 
  private:
   jobject android_provider_factory_;

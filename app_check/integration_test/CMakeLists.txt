@@ -161,7 +161,6 @@ if(ANDROID)
   set(ADDITIONAL_LIBS log android atomic native_app_glue)
 else()
   # Build a desktop application.
-  add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 
   # Prevent overriding the parent project's compiler/linker
   # settings on Windows

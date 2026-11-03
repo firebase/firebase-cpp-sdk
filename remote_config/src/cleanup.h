@@ -19,21 +19,36 @@
 
 namespace firebase {
 namespace remote_config {
-namespace internal {
 
-template <typename T>
-class CleanupFn {
- public:
+// T is a RemoteConfig public type that defines a Cleanup method.
+// R is almost always RemoteConfigInternal unless one wants something else to
+// manage the cleanup process. We define type R to make this CleanupFn
+// implementation platform-independent.
+template <typename T, typename R>
+struct CleanupFn {
+  using CreateInvalidObjectFn = T (*)();
+  static CreateInvalidObjectFn create_invalid_object;
+
   static void Cleanup(void* obj_void) {
     T* obj = static_cast<T*>(obj_void);
+    // T should define a Cleanup() method.
     obj->Cleanup();
   }
 
-  static void Register(T* instance, RemoteConfigInternal* internal);
-  static void Unregister(T* instance, RemoteConfigInternal* internal);
+  static void Register(T* obj, R* remote_config) {
+    if (remote_config) {
+      remote_config->cleanup_notifier().RegisterObject(
+          obj, CleanupFn<T, R>::Cleanup);
+    }
+  }
+
+  static void Unregister(T* obj, R* remote_config) {
+    if (remote_config) {
+      remote_config->cleanup_notifier().UnregisterObject(obj);
+    }
+  }
 };
 
-}  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase
 

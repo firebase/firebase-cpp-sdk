@@ -193,11 +193,6 @@ const char* GetErrorMessage(Error error);
 }  // namespace internal
 /// @endcond
 
-/// @brief Get the human-readable error message corresponding to an Error code.
-[[nodiscard]] inline const char* GetErrorMessage(Error error) {
-  return internal::GetErrorMessage(error);
-}
-
 }  // namespace functions
 }  // namespace firebase
 

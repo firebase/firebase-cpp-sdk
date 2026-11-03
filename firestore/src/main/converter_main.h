@@ -54,8 +54,7 @@
 #error "This header should not be used on Android."
 #endif
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 // Additional specializations of InternalTypeMap for iOS.
 template <>
@@ -187,7 +186,6 @@ inline const api::DocumentSnapshot& GetCoreApi(const DocumentSnapshot& from) {
   return NOT_NULL(GetInternal(&from))->document_snapshot_core();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_MAIN_CONVERTER_MAIN_H_

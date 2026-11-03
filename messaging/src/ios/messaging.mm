@@ -280,12 +280,12 @@ Future<void> RequestPermission() {
                             completionHandler:^(BOOL granted,
                                                 NSError * _Nullable error) {
         if (error != nil || !granted) {
-          const char* err_str =
-              error ? error.localizedDescription.UTF8String
-                    : "Notification permission was not granted.";
+          std::string err_str =
+              error && error.localizedDescription.UTF8String ? error.localizedDescription.UTF8String
+                                                             : "Notification permission was not granted.";
           CompletePermissionFuture(
               ::firebase::messaging::kErrorFailedToRegisterForRemoteNotifications,
-              err_str);
+              err_str.c_str());
         } else {
           dispatch_async(dispatch_get_main_queue(), ^{
             if ([appDelegate respondsToSelector:@selector(registerForRemoteNotifications)]) {
@@ -657,7 +657,7 @@ static void AppDelegateApplicationDidReceiveRemoteNotification(id self, SEL sele
                                                                UIApplication *application,
                                                                NSDictionary *user_info) {
 #if !defined(NDEBUG)
-  LogInfo("FCM: Received notification (no handler): %s", [user_info description].UTF8String);
+  LogInfo("FCM: Received notification (no handler): %s", user_info ? [user_info description].UTF8String : "null");
 #else
   LogInfo("FCM: Received notification (no handler)");
 #endif
@@ -690,7 +690,7 @@ static void AppDelegateApplicationDidReceiveRemoteNotificationFetchCompletionHan
     id self, SEL selector_value, UIApplication *application, NSDictionary *user_info,
     util::UIBackgroundFetchResultFunction handler) {
 #if !defined(NDEBUG)
-  LogInfo("FCM: Received notification (using handler): %s", [user_info description].UTF8String);
+  LogInfo("FCM: Received notification (using handler): %s", user_info ? [user_info description].UTF8String : "null");
 #else
   LogInfo("FCM: Received notification (using handler)");
 #endif
@@ -1035,7 +1035,7 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
     NSDictionary *userInfo = [[[notification request] content] userInfo];
 
 #if !defined(NDEBUG)
-    ::firebase::LogInfo("FCM: userInfo: %s.", userInfo.description.UTF8String);
+    ::firebase::LogInfo("FCM: userInfo: %s.", userInfo ? userInfo.description.UTF8String : "null");
 #endif
     ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo, false);
   }
@@ -1060,7 +1060,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   if (::firebase::messaging::MessagingIsInitialized()) {
     NSDictionary *userInfo = [[[[response notification] request] content] userInfo];
 #if !defined(NDEBUG)
-    ::firebase::LogInfo("FCM: userInfo: %s.", userInfo.description.UTF8String);
+    ::firebase::LogInfo("FCM: userInfo: %s.", userInfo ? userInfo.description.UTF8String : "null");
 #endif
     ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo, true);
   }

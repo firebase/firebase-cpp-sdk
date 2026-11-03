@@ -15,6 +15,7 @@
 #include "remote_config/src/config_update_listener_registration_internal.h"
 
 #include <functional>
+#include <mutex>
 #include <utility>
 
 namespace firebase {
@@ -36,7 +37,7 @@ ConfigUpdateListenerRegistrationInternal::
 void ConfigUpdateListenerRegistrationInternal::Remove() {
   std::function<void()> fn;
   {
-    MutexLock lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     fn = std::move(listener_removal_function_);
     listener_removal_function_ = nullptr;
   }

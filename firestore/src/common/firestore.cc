@@ -71,7 +71,7 @@ const char* GetPlatform() {
 using FirestoreMap = std::map<std::pair<App*, std::string>, Firestore*>;
 
 FirestoreMap::key_type MakeKey(App* app, std::string database_id) {
-  return std::make_pair(app, std::move(database_id));
+  return {app, std::move(database_id)};
 }
 
 Mutex* g_firestores_lock = new Mutex();
@@ -95,9 +95,7 @@ Firestore* FindFirestoreInCache(App* app,
   auto* cache = FirestoreCache();
 
   FirestoreMap::key_type key = MakeKey(app, database_id);
-  FirestoreMap::iterator found = cache->find(key);
-
-  if (found != cache->end()) {
+  if (auto found = cache->find(key); found != cache->end()) {
     if (init_result_out) *init_result_out = kInitResultSuccess;
     return found->second;
   }
@@ -198,6 +196,13 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
     *init_result_out = init_result;
   }
   if (init_result != kInitResultSuccess) {
+    FirestoreInternal* internal = firestore->internal_;
+    firestore->internal_ = nullptr;
+    if (internal) {
+      internal->ClearListeners();
+      internal->cleanup().CleanupAll();
+      delete internal;
+    }
     delete firestore;
     return nullptr;
   }
@@ -277,8 +282,7 @@ void Firestore::DeleteInternal() {
   // after Terminate()).
   if (g_firestores) {
     FirestoreMap::key_type key = MakeKey(my_app, database_id);
-    auto iter = g_firestores->find(key);
-    if (iter != g_firestores->end() && iter->second == this) {
+    if (auto iter = g_firestores->find(key); iter != g_firestores->end() && iter->second == this) {
       g_firestores->erase(iter);
     }
     if (g_firestores->empty()) {
@@ -302,49 +306,46 @@ CollectionReference Firestore::Collection(const char* collection_path) const {
   if (!collection_path) {
     SimpleThrowInvalidArgument("Collection path cannot be null.");
   }
-  return Collection(std::string(collection_path));
+  if (collection_path[0] == '\0') {
+    SimpleThrowInvalidArgument("Collection path cannot be empty.");
+  }
+  if (!internal_) return {};
+  return internal_->Collection(collection_path);
 }
 
 CollectionReference Firestore::Collection(
     const std::string& collection_path) const {
-  if (collection_path.empty()) {
-    SimpleThrowInvalidArgument("Collection path cannot be empty.");
-  }
-
-  if (!internal_) return {};
-  return internal_->Collection(collection_path.c_str());
+  return Collection(collection_path.c_str());
 }
 
 DocumentReference Firestore::Document(const char* document_path) const {
   if (!document_path) {
     SimpleThrowInvalidArgument("Document path cannot be null.");
   }
-  return Document(std::string(document_path));
+  if (document_path[0] == '\0') {
+    SimpleThrowInvalidArgument("Document path cannot be empty.");
+  }
+  if (!internal_) return {};
+  return internal_->Document(document_path);
 }
 
 DocumentReference Firestore::Document(const std::string& document_path) const {
-  if (document_path.empty()) {
-    SimpleThrowInvalidArgument("Document path cannot be empty.");
-  }
-
-  if (!internal_) return {};
-  return internal_->Document(document_path.c_str());
+  return Document(document_path.c_str());
 }
 
 Query Firestore::CollectionGroup(const char* collection_id) const {
   if (!collection_id) {
     SimpleThrowInvalidArgument("Collection ID cannot be null.");
   }
-  return CollectionGroup(std::string(collection_id));
+  if (collection_id[0] == '\0') {
+    SimpleThrowInvalidArgument("Collection ID cannot be empty.");
+  }
+  if (!internal_) return {};
+  return internal_->CollectionGroup(collection_id);
 }
 
 Query Firestore::CollectionGroup(const std::string& collection_id) const {
-  if (collection_id.empty()) {
-    SimpleThrowInvalidArgument("Collection ID cannot be empty.");
-  }
-
-  if (!internal_) return {};
-  return internal_->CollectionGroup(collection_id.c_str());
+  return CollectionGroup(collection_id.c_str());
 }
 
 Settings Firestore::settings() const {
@@ -395,8 +396,7 @@ Future<void> Firestore::Terminate() {
     MutexLock lock(*g_firestores_lock);
     if (g_firestores) {
       FirestoreMap::key_type key = MakeKey(app(), internal_->database_name());
-      auto iter = g_firestores->find(key);
-      if (iter != g_firestores->end() && iter->second == this) {
+      if (auto iter = g_firestores->find(key); iter != g_firestores->end() && iter->second == this) {
         g_firestores->erase(iter);
       }
       if (g_firestores->empty()) {

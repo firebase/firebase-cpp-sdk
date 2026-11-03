@@ -17,6 +17,8 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_LISTENER_REGISTRATION_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_LISTENER_REGISTRATION_ANDROID_H_
 
+#include <variant>
+
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/common/event_listener.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
@@ -42,24 +44,13 @@ class ListenerRegistrationInternal {
   // Global references will be created from the jobjects. The caller is
   // responsible for cleaning up any local references to jobjects after the
   // constructor returns.
+  template <typename T>
   ListenerRegistrationInternal(
       FirestoreInternal* firestore,
-      EventListener<DocumentSnapshot>* event_listener,
+      EventListener<T>* event_listener,
       bool owning_event_listener,
       const jni::Object& listener_registration,
-      const jni::Object& java_listener = jni::Object());
-  ListenerRegistrationInternal(
-      FirestoreInternal* firestore,
-      EventListener<QuerySnapshot>* event_listener,
-      bool owning_event_listener,
-      const jni::Object& listener_registration,
-      const jni::Object& java_listener = jni::Object());
-  ListenerRegistrationInternal(
-      FirestoreInternal* firestore,
-      EventListener<void>* event_listener,
-      bool owning_event_listener,
-      const jni::Object& listener_registration,
-      const jni::Object& java_listener = jni::Object());
+      const jni::Object& java_listener = {});
 
   // Delete the default one to make the ownership more obvious i.e.
   // FirestoreInternal owns each instance and forbid anyone else to make copy.
@@ -88,9 +79,10 @@ class ListenerRegistrationInternal {
   // May own it, see owning_event_listener_. If user pass in an EventListener
   // directly, then the registration does not own it. If user pass in a lambda,
   // then the registration owns the LambdaEventListener that wraps the lambda.
-  EventListener<DocumentSnapshot>* document_event_listener_ = nullptr;
-  EventListener<QuerySnapshot>* query_event_listener_ = nullptr;
-  EventListener<void>* void_event_listener_ = nullptr;
+  std::variant<EventListener<DocumentSnapshot>*,
+               EventListener<QuerySnapshot>*,
+               EventListener<void>*>
+      event_listener_ = static_cast<EventListener<void>*>(nullptr);
   bool owning_event_listener_ = false;
 };
 

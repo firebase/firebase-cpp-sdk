@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 
 #include "firebase/variant.h"
 #include "flatbuffers/flexbuffers.h"
@@ -26,9 +27,9 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-typedef std::map<std::string, std::string> MetaDigestMap;
-typedef std::map<ConfigSetting, std::string> MetaSettingsMap;
-typedef std::map<std::string, Variant> MetaCustomSignalsMap;
+using MetaDigestMap = std::map<std::string, std::string>;
+using MetaSettingsMap = std::map<ConfigSetting, std::string>;
+using MetaCustomSignalsMap = std::map<std::string, Variant>;
 
 // Contains metadata about Remote Config Client.
 //
@@ -44,7 +45,7 @@ class RemoteConfigMetadata {
   RemoteConfigMetadata();
 
   std::string Serialize() const;
-  bool Deserialize(const std::string& buffer);
+  bool Deserialize(std::string_view buffer);
 
   const ConfigInfo& info() const { return info_; }
   void set_info(const ConfigInfo& info) { info_ = info; }
@@ -97,11 +98,14 @@ class RemoteConfigMetadata {
 template <typename T>
 inline void DeserializeMap(T* map, const flexbuffers::Map& map_ref) {
   if (!map) return;
+  map->clear();
+  const auto keys = map_ref.Keys();
+  const auto values = map_ref.Values();
   for (size_t i = 0, n = map_ref.size(); i < n; ++i) {
-    const char* key = map_ref.Keys()[i].AsKey();
-    if (!key) continue;
-    flexbuffers::String val = map_ref.Values()[i].AsString();
-    (*map)[key] = std::string(val.c_str(), val.length());
+    const char* key = keys[i].AsKey();
+    if (!key || *key == '\0' || !values[i].IsString()) continue;
+    flexbuffers::String val = values[i].AsString();
+    map->try_emplace(key, val.c_str(), val.length());
   }
 }
 

@@ -29,9 +29,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app_check/src/include/firebase/app_check.h"
 
-namespace firebase {
-namespace app_check {
-namespace internal {
+namespace firebase::app_check::internal {
 
 // The callback type for psuedo-AppCheckListeners added via the
 // function registry.
@@ -39,7 +37,7 @@ using FunctionRegistryCallback = void (*)(const std::string&, void*);
 
 class FunctionRegistryAppCheckListener : public AppCheckListener {
  public:
-  void AddListener(FunctionRegistryCallback callback, void* context);
+  bool AddListener(FunctionRegistryCallback callback, void* context);
 
   void RemoveListener(FunctionRegistryCallback callback, void* context);
 
@@ -149,8 +147,6 @@ class AppCheckInternal {
   bool is_token_auto_refresh_enabled_{true};
 };
 
-}  // namespace internal
-}  // namespace app_check
-}  // namespace firebase
+}  // namespace firebase::app_check::internal
 
 #endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_

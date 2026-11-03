@@ -24,9 +24,7 @@
 #include "app_check/src/include/firebase/app_check.h"
 #include "firebase/app_check.h"
 
-namespace firebase {
-namespace app_check {
-namespace internal {
+namespace firebase::app_check::internal {
 
 // Used to setup the cache of AppCheckProvider interface method IDs to reduce
 // time spent looking up methods by string.
@@ -54,7 +52,7 @@ AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj);
 class AndroidAppCheckProvider : public AppCheckProvider {
  public:
   explicit AndroidAppCheckProvider(jobject debug_provider);
-  virtual ~AndroidAppCheckProvider();
+  ~AndroidAppCheckProvider() override;
 
   /// Fetches an AppCheckToken and then calls the provided callback method with
   /// the token or with an error code and error message.
@@ -66,7 +64,7 @@ class AndroidAppCheckProvider : public AppCheckProvider {
   /// custom App Check providers.
   void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) ;
+          completion_callback) override;
 
  private:
   jobject android_provider_;
@@ -75,8 +73,6 @@ class AndroidAppCheckProvider : public AppCheckProvider {
   std::string jni_task_id_;
 };
 
-}  // namespace internal
-}  // namespace app_check
-}  // namespace firebase
+}  // namespace firebase::app_check::internal
 
 #endif  // FIREBASE_APP_CHECK_SRC_ANDROID_COMMON_ANDROID_H_

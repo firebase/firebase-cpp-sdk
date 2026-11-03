@@ -17,6 +17,8 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_
 
+#include <string_view>
+
 #include "app/rest/response_json.h"
 #include "app/src/include/firebase/variant.h"
 #include "remote_config/response_generated.h"
@@ -39,7 +41,7 @@ class RemoteConfigResponse
 
   const Variant& GetEntries() const { return entries_; }
 
-  bool StatusMatch(const std::string& status_name) const {
+  bool StatusMatch(std::string_view status_name) const {
     return application_data_ && application_data_->state == status_name;
   }
 

@@ -57,22 +57,19 @@ Method<Task> kAdd("add",
 }  // namespace
 
 CollectionReferenceInternal::CollectionReferenceInternal(
-    const CollectionReferenceInternal& other) try
-    : QueryInternal((other.mutex_.lock(), other)) {
+    const CollectionReferenceInternal& other)
+    : QueryInternal(other) {
+  std::scoped_lock lock(other.mutex_);
   cached_id_ = other.cached_id_;
   cached_path_ = other.cached_path_;
-  other.mutex_.unlock();
-} catch (...) {
-  other.mutex_.unlock();
-  throw;
 }
 
 CollectionReferenceInternal::CollectionReferenceInternal(
     CollectionReferenceInternal&& other) noexcept
-    : QueryInternal((other.mutex_.lock(), std::move(other))) {
-  cached_id_ = other.cached_id_;
-  cached_path_ = other.cached_path_;
-  other.mutex_.unlock();
+    : QueryInternal(std::move(other)) {
+  std::scoped_lock lock(other.mutex_);
+  cached_id_ = std::move(other.cached_id_);
+  cached_path_ = std::move(other.cached_path_);
 }
 
 void CollectionReferenceInternal::Initialize(jni::Loader& loader) {

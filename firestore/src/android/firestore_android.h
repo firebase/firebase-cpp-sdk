@@ -254,7 +254,10 @@ class FirestoreInternalWeakReference {
       FirestoreInternalWeakReference&& rhs) noexcept = default;
 
   FirestoreInternalWeakReference& operator=(
-      const FirestoreInternalWeakReference& rhs) = delete;
+      const FirestoreInternalWeakReference& rhs) = default;
+
+  FirestoreInternalWeakReference& operator=(
+      FirestoreInternalWeakReference&& rhs) noexcept = default;
 
   ~FirestoreInternalWeakReference() = default;
 
@@ -276,13 +279,12 @@ class FirestoreInternalWeakReference {
    * thread and will not block.
    */
   template <typename CallbackT>
-  auto Run(CallbackT callback) const
-      -> decltype(callback( static_cast<FirestoreInternal*>(nullptr))) {
+  decltype(auto) Run(CallbackT&& callback) const {
     if (!target_) {
-      return callback(nullptr);
+      return std::forward<CallbackT>(callback)(nullptr);
     }
-    std::lock_guard<std::recursive_mutex> lock(target_->mutex);
-    return callback(target_->firestore);
+    std::lock_guard lock(target_->mutex);
+    return std::forward<CallbackT>(callback)(target_->firestore);
   }
 
   /**
@@ -290,13 +292,13 @@ class FirestoreInternalWeakReference {
    * `FirestoreInternal` pointer is non-null.
    */
   template <typename CallbackT>
-  void RunIfValid(CallbackT callback) const {
+  void RunIfValid(CallbackT&& callback) const {
     if (!target_) {
       return;
     }
-    std::lock_guard<std::recursive_mutex> lock(target_->mutex);
+    std::lock_guard lock(target_->mutex);
     if (target_->firestore != nullptr) {
-      callback(*target_->firestore);
+      std::forward<CallbackT>(callback)(*target_->firestore);
     }
   }
 };

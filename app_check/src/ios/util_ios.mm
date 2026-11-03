@@ -44,9 +44,9 @@ AppCheckError AppCheckErrorFromNSError(NSError* _Nullable error) {
   if (![error.domain isEqualToString:FIRAppCheckErrorDomain]) {
     return kAppCheckErrorUnknown;
   }
-  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
-    if (error.code == kIosToCppErrorMap[i].ios_error) {
-      return kIosToCppErrorMap[i].cpp_error;
+  for (const auto& [ios_error, cpp_error] : kIosToCppErrorMap) {
+    if (error.code == ios_error) {
+      return cpp_error;
     }
   }
   return kAppCheckErrorUnknown;
@@ -57,9 +57,10 @@ NSError* AppCheckErrorToNSError(AppCheckError cpp_error, const std::string& erro
     return nil;
   }
   int ios_error_code = FIRAppCheckErrorCodeUnknown;
-  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
-    if (cpp_error == kIosToCppErrorMap[i].cpp_error) {
-      ios_error_code = kIosToCppErrorMap[i].ios_error;
+  for (const auto& [ios_error, cpp_mapped] : kIosToCppErrorMap) {
+    if (cpp_error == cpp_mapped) {
+      ios_error_code = ios_error;
+      break;
     }
   }
   NSString* errorMsg = firebase::util::StringToNSString(error_message);
@@ -80,7 +81,7 @@ AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable toke
   return cpp_token;
 }
 
-FIRAppCheckToken* AppCheckTokenToFIRAppCheckToken(AppCheckToken cpp_token) {
+FIRAppCheckToken* AppCheckTokenToFIRAppCheckToken(const AppCheckToken& cpp_token) {
   if (cpp_token.token.empty()) {
     return nil;
   }

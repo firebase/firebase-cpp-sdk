@@ -64,20 +64,21 @@ class Promise {
     UnregisterForCleanup();
   }
 
-  Promise(const Promise& rhs)
-      : cleanup_{rhs.cleanup_},
-        future_api_{rhs.future_api_},
-        identifier_{rhs.identifier_},
-        handle_{rhs.handle_} {
+  Promise(const Promise& rhs) {
+    std::lock_guard lock(rhs.destruction_mutex_);
+    cleanup_ = rhs.cleanup_;
+    future_api_ = rhs.future_api_;
+    identifier_ = rhs.identifier_;
+    handle_ = rhs.handle_;
     RegisterForCleanup();
   }
 
-  Promise(Promise&& rhs) noexcept
-      : cleanup_{rhs.cleanup_},
-        future_api_{rhs.future_api_},
-        identifier_{rhs.identifier_},
-        handle_{rhs.handle_} {
+  Promise(Promise&& rhs) noexcept {
     rhs.UnregisterForCleanup();
+    cleanup_ = rhs.cleanup_;
+    future_api_ = rhs.future_api_;
+    identifier_ = rhs.identifier_;
+    handle_ = rhs.handle_;
     rhs.Reset();
 
     RegisterForCleanup();
@@ -87,6 +88,7 @@ class Promise {
     if (this == &rhs) return *this;
     UnregisterForCleanup();
 
+    std::lock_guard lock(rhs.destruction_mutex_);
     cleanup_ = rhs.cleanup_;
     future_api_ = rhs.future_api_;
     identifier_ = rhs.identifier_;
@@ -128,7 +130,7 @@ class Promise {
     ReferenceCountedFutureImpl* future_api = nullptr;
     SafeFutureHandle<ResultT> handle;
     {
-      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      std::lock_guard lock(destruction_mutex_);
       if (cleanup_ == nullptr) return;
       future_api = future_api_;
       handle = handle_;
@@ -147,7 +149,7 @@ class Promise {
     ReferenceCountedFutureImpl* future_api = nullptr;
     SafeFutureHandle<ResultT> handle;
     {
-      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      std::lock_guard lock(destruction_mutex_);
       if (cleanup_ == nullptr) return;
       future_api = future_api_;
       handle = handle_;
@@ -162,7 +164,7 @@ class Promise {
     ReferenceCountedFutureImpl* future_api = nullptr;
     SafeFutureHandle<ResultT> handle;
     {
-      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      std::lock_guard lock(destruction_mutex_);
       if (cleanup_ == nullptr) return;
       future_api = future_api_;
       handle = handle_;
@@ -176,7 +178,7 @@ class Promise {
     ReferenceCountedFutureImpl* future_api = nullptr;
     SafeFutureHandle<ResultT> handle;
     {
-      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      std::lock_guard lock(destruction_mutex_);
       if (cleanup_ == nullptr) {
         return Future<ResultT>{};
       }
@@ -208,7 +210,7 @@ class Promise {
 
     cleanup_->RegisterObject(this, [](void* raw_this) {
       auto* this_ptr = static_cast<Promise*>(raw_this);
-      std::lock_guard<std::mutex> lock(this_ptr->destruction_mutex_);
+      std::lock_guard lock(this_ptr->destruction_mutex_);
       this_ptr->Reset();
     });
   }
@@ -216,7 +218,7 @@ class Promise {
   void UnregisterForCleanup() {
     CleanupNotifier* cleanup = nullptr;
     {
-      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      std::lock_guard lock(destruction_mutex_);
       cleanup = cleanup_;
       cleanup_ = nullptr;
     }
@@ -226,14 +228,17 @@ class Promise {
   }
 
  public:
-  bool IsCleanedUp() const { return cleanup_ == nullptr; }
+  bool IsCleanedUp() const {
+    std::lock_guard lock(destruction_mutex_);
+    return cleanup_ == nullptr;
+  }
 
  private:
   CleanupNotifier* cleanup_ = nullptr;
   ReferenceCountedFutureImpl* future_api_ = nullptr;
   int identifier_ = 0;
   SafeFutureHandle<ResultT> handle_;
-  std::mutex destruction_mutex_;
+  mutable std::mutex destruction_mutex_;
 };
 
 }  // namespace firestore

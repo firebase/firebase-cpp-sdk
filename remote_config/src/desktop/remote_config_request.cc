@@ -46,19 +46,20 @@ void RemoteConfigRequest::UpdatePostFields() {
   // payload.
   if (!custom_signals_.empty()) {
     std::map<Variant, Variant> variant_map;
-    for (const auto& kv : custom_signals_) {
-      const Variant& val = kv.second;
+    for (const auto& [key, val] : custom_signals_) {
+      const Variant key_var = Variant::FromStaticString(key.c_str());
       if (val.is_mutable_string()) {
-        variant_map[Variant(kv.first)] = Variant(val.mutable_string());
+        variant_map[key_var] =
+            Variant::FromStaticString(val.mutable_string().c_str());
       } else if (val.is_static_string()) {
         const char* s = val.string_value();
-        variant_map[Variant(kv.first)] = Variant(s ? s : "");
+        variant_map[key_var] = Variant::FromStaticString(s ? s : "");
       } else if (val.is_int64()) {
-        variant_map[Variant(kv.first)] =
-            Variant(std::to_string(val.int64_value()));
+        variant_map[key_var] =
+            Variant::FromMutableString(std::to_string(val.int64_value()));
       } else if (val.is_double()) {
-        variant_map[Variant(kv.first)] =
-            Variant(ValueParser::FormatGeneralDouble(val.double_value()));
+        variant_map[key_var] = Variant::FromMutableString(
+            ValueParser::FormatGeneralDouble(val.double_value()));
       }
     }
     std::string custom_signals_json = util::VariantToJson(variant_map);

@@ -36,8 +36,7 @@
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
@@ -237,5 +236,4 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
 
 jni::Class DocumentReferenceInternal::GetClass() { return jni::Class(clazz); }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

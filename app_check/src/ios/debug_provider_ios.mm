@@ -34,9 +34,7 @@
 #include "app_check/src/ios/util_ios.h"
 #include "firebase/app_check.h"
 
-namespace firebase {
-namespace app_check {
-namespace internal {
+namespace firebase::app_check::internal {
 
 namespace {
 
@@ -71,7 +69,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
   /// and then calls the provided callback function with the token or with an
   /// error code and error message.
   void GetLimitedUseToken(
-      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) ;
+      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
 
  private:
   FIRAppCheckDebugProvider* ios_provider_;
@@ -152,24 +150,27 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
   if (!app || app->GetPlatformApp() == nil) {
     return nullptr;
   }
-  MutexLock lock(GetFactoryMutex());
-  // Return the provider if it already exists.
-  auto it = created_providers_.find(app);
-  if (it != created_providers_.end()) {
-    return it->second;
+  AppCheckProvider* raw_provider = nullptr;
+  {
+    MutexLock lock(GetFactoryMutex());
+    // Return the provider if it already exists.
+    auto it = created_providers_.find(app);
+    if (it != created_providers_.end()) {
+      return it->second;
+    }
+    if (!ios_provider_factory_ || ios_provider_factory() == nil) {
+      return nullptr;
+    }
+    // Otherwise, create a new provider.
+    FIRAppCheckDebugProvider* ios_provider =
+        [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
+    if (!ios_provider) {
+      return nullptr;
+    }
+    auto cpp_provider = std::make_unique<internal::DebugAppCheckProvider>(ios_provider);
+    raw_provider = cpp_provider.release();
+    created_providers_[app] = raw_provider;
   }
-  if (!ios_provider_factory_ || ios_provider_factory() == nil) {
-    return nullptr;
-  }
-  // Otherwise, create a new provider.
-  FIRAppCheckDebugProvider* ios_provider =
-      [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
-  if (!ios_provider) {
-    return nullptr;
-  }
-  auto cpp_provider = std::make_unique<internal::DebugAppCheckProvider>(ios_provider);
-  AppCheckProvider* raw_provider = cpp_provider.release();
-  created_providers_[app] = raw_provider;
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
   if (notifier != nullptr) {
@@ -194,15 +195,12 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
   return raw_provider;
 }
 
-void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
-  MutexLock lock(GetFactoryMutex());
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(const char* token) {
   // Write to the same location that the iOS SDK will read from.
-  NSString* token_string = (!token.empty()) ? util::StringToNSString(token) : nil;
+  NSString* token_string = (token && token[0] != '\0') ? util::StringToNSString(token) : nil;
   [[NSUserDefaults standardUserDefaults] setObject:token_string forKey:kDebugTokenUserDefaultsKey];
   [[NSUserDefaults standardUserDefaults] setObject:token_string
                                             forKey:kGACDebugTokenUserDefaultsKey];
 }
 
-}  // namespace internal
-}  // namespace app_check
-}  // namespace firebase
+}  // namespace firebase::app_check::internal

@@ -68,5 +68,5 @@ public class LoadBundleProgressListener extends CppEventListener
    * event_listener_android.cc}.
    */
   private static native void nativeOnProgress(
-      long firestoreObject, long listenerObject, @NonNull LoadBundleTaskProgress value);
+      long firestoreObject, long listenerObject, Object value);
 }
