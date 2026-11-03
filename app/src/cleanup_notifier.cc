@@ -20,91 +20,114 @@
 #include <algorithm>
 #include <condition_variable>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 namespace firebase {
 
 namespace {
+
 struct NotifierState {
   void* in_flight_object = nullptr;
   std::thread::id in_flight_thread;
   std::condition_variable cv;
 };
-static std::mutex g_state_mutex;
-static std::map<CleanupNotifier*, NotifierState> g_states;
+
+std::mutex& GetStateMutex() {
+  static std::mutex* m = new std::mutex();
+  return *m;
+}
+
+std::map<CleanupNotifier*, std::unique_ptr<NotifierState>>& GetStatesMap() {
+  static auto* m = new std::map<CleanupNotifier*, std::unique_ptr<NotifierState>>();
+  return *m;
+}
+
+std::mutex& GetOwnersMutex() {
+  static std::mutex* m = new std::mutex();
+  return *m;
+}
+
+std::map<void *, CleanupNotifier *>& GetOwnersMap() {
+  static auto* m = new std::map<void *, CleanupNotifier *>();
+  return *m;
+}
+
 }  // namespace
 
-
-Mutex *CleanupNotifier::cleanup_notifiers_by_owner_mutex_ = new Mutex();
-std::map<void *, CleanupNotifier *>
-    *CleanupNotifier::cleanup_notifiers_by_owner_;
-
-CleanupNotifier::CleanupNotifier() : cleaned_up_(false) {
-  MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
-  if (!cleanup_notifiers_by_owner_) {
-    cleanup_notifiers_by_owner_ = new std::map<void *, CleanupNotifier *>();
-  }
-}
+CleanupNotifier::CleanupNotifier() : cleaned_up_(false) {}
 
 CleanupNotifier::~CleanupNotifier() {
   CleanupAll();
   UnregisterAllOwners();
-  {
-    MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
-    if (cleanup_notifiers_by_owner_ && cleanup_notifiers_by_owner_->empty()) {
-      delete cleanup_notifiers_by_owner_;
-      cleanup_notifiers_by_owner_ = nullptr;
-    }
-  }
 }
 
 void CleanupNotifier::RegisterObject(void *object, CleanupCallback callback) {
-  MutexLock lock(mutex_);
-  callbacks_[object] = callback;
+  std::lock_guard<std::mutex> lock(mutex_);
+  callbacks_[object] = std::move(callback);
 }
+
 void CleanupNotifier::UnregisterObject(void *object) {
   {
-    MutexLock lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     callbacks_.erase(object);
   }
-  std::unique_lock<std::mutex> state_lock(g_state_mutex);
-  auto it = g_states.find(this);
-  if (it != g_states.end()) {
-    auto& state = it->second;
+  std::unique_lock<std::mutex> state_lock(GetStateMutex());
+  GetStatesMap()[this]->cv.wait(state_lock, [&]() {
+    auto it = GetStatesMap().find(this);
+    if (it == GetStatesMap().end()) return true;
+    auto& state = *(it->second);
     if (state.in_flight_object == object && state.in_flight_thread != std::this_thread::get_id()) {
-      state.cv.wait(state_lock, [&]() {
-        return state.in_flight_object != object;
-      });
+      return false;
+    }
+    return true;
+  });
+}
+
+void CleanupNotifier::CleanupAll() {
+  bool needs_cleanup = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!cleaned_up_) {
+      cleaned_up_ = true;
+      needs_cleanup = true;
     }
   }
-}
-void CleanupNotifier::CleanupAll() {
+  if (!needs_cleanup) return;
+
+  {
+    std::lock_guard<std::mutex> state_lock(GetStateMutex());
+    GetStatesMap()[this] = std::make_unique<NotifierState>();
+  }
+
   while (true) {
     void* obj = nullptr;
     CleanupCallback cb = nullptr;
     {
-      MutexLock lock(mutex_);
-      cleaned_up_ = true;
+      std::lock_guard<std::mutex> lock(mutex_);
       if (callbacks_.empty()) break;
       auto it = callbacks_.begin();
       obj = it->first;
-      cb = it->second;
+      cb = std::move(it->second);
       callbacks_.erase(it);
     }
     
     {
-      std::unique_lock<std::mutex> state_lock(g_state_mutex);
-      auto& state = g_states[this];
+      std::lock_guard<std::mutex> state_lock(GetStateMutex());
+      auto& state = *(GetStatesMap()[this]);
       state.in_flight_object = obj;
       state.in_flight_thread = std::this_thread::get_id();
     }
     
-    cb(obj);
+    if (cb) {
+      cb(obj);
+    }
     
     {
-      std::unique_lock<std::mutex> state_lock(g_state_mutex);
-      auto& state = g_states[this];
+      std::lock_guard<std::mutex> state_lock(GetStateMutex());
+      auto& state = *(GetStatesMap()[this]);
       state.in_flight_object = nullptr;
       state.in_flight_thread = std::thread::id();
       state.cv.notify_all();
@@ -112,51 +135,53 @@ void CleanupNotifier::CleanupAll() {
   }
   
   {
-    std::unique_lock<std::mutex> state_lock(g_state_mutex);
-    g_states.erase(this);
+    std::lock_guard<std::mutex> state_lock(GetStateMutex());
+    GetStatesMap().erase(this);
   }
 }
+
 void CleanupNotifier::UnregisterAllOwners() {
-  MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
+  std::lock_guard<std::mutex> lock(GetOwnersMutex());
   while (owners_.begin() != owners_.end()) {
-    UnregisterOwner(this, owners_[0]);
+    UnregisterOwner(GetOwnersMap().find(owners_[0]));
   }
 }
 
 void CleanupNotifier::RegisterOwner(CleanupNotifier *notifier, void *owner) {
-  MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
-  assert(cleanup_notifiers_by_owner_);
-  auto it = cleanup_notifiers_by_owner_->find(owner);
-  if (it != cleanup_notifiers_by_owner_->end()) UnregisterOwner(it);
-  (*cleanup_notifiers_by_owner_)[owner] = notifier;
+  std::lock_guard<std::mutex> lock(GetOwnersMutex());
+  auto& map = GetOwnersMap();
+  auto it = map.find(owner);
+  if (it != map.end()) UnregisterOwner(it);
+  map[owner] = notifier;
   notifier->owners_.push_back(owner);
 }
 
 void CleanupNotifier::UnregisterOwner(CleanupNotifier *notifier, void *owner) {
-  MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
-  assert(cleanup_notifiers_by_owner_);
-  auto it = cleanup_notifiers_by_owner_->find(owner);
-  if (it != cleanup_notifiers_by_owner_->end()) UnregisterOwner(it);
+  std::lock_guard<std::mutex> lock(GetOwnersMutex());
+  auto& map = GetOwnersMap();
+  auto it = map.find(owner);
+  if (it != map.end()) UnregisterOwner(it);
 }
 
 void CleanupNotifier::UnregisterOwner(
     std::map<void *, CleanupNotifier *>::iterator it) {
-  MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
-  assert(cleanup_notifiers_by_owner_);
+  auto& map = GetOwnersMap();
+  if (it == map.end()) return;
   void *owner = it->first;
   CleanupNotifier *notifier = it->second;
-  cleanup_notifiers_by_owner_->erase(it);
+  map.erase(it);
   auto *owners = &notifier->owners_;
   auto owner_it = std::find(owners->begin(), owners->end(), owner);
-  assert(owner_it != owners->end());
-  owners->erase(owner_it);
+  if (owner_it != owners->end()) {
+    owners->erase(owner_it);
+  }
 }
 
 CleanupNotifier *CleanupNotifier::FindByOwner(void *owner) {
-  MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
-  if (!cleanup_notifiers_by_owner_) return nullptr;
-  auto it = cleanup_notifiers_by_owner_->find(owner);
-  return it != cleanup_notifiers_by_owner_->end() ? it->second : nullptr;
+  std::lock_guard<std::mutex> lock(GetOwnersMutex());
+  auto& map = GetOwnersMap();
+  auto it = map.find(owner);
+  return it != map.end() ? it->second : nullptr;
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

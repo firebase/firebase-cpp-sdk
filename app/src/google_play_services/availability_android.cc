@@ -171,9 +171,8 @@ void ReleaseClasses(JNIEnv* env) {
 
 }  // namespace
 
-bool Initialize(JNIEnv* env, jobject activity) {
+bool InitializeLocked(JNIEnv* env, jobject activity) {
   if (!env || !activity) return false;
-  MutexLock lock(GetAvailabilityMutex());
   env->GetJavaVM(&g_vm);
   if (g_implicitly_initialized && GetAvailabilityDataLocked() != nullptr) {
     // Adopt the implicit initialization reference from a prior
@@ -248,6 +247,11 @@ bool Initialize(JNIEnv* env, jobject activity) {
   return false;
 }
 
+bool Initialize(JNIEnv* env, jobject activity) {
+  MutexLock lock(GetAvailabilityMutex());
+  return InitializeLocked(env, activity);
+}
+
 void Terminate(JNIEnv* env) {
   std::shared_ptr<AvailabilityData> data_to_destroy;
   jclass helper_class_local = nullptr;
@@ -319,7 +323,7 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
   {
     MutexLock lock(GetAvailabilityMutex());
     if (GetAvailabilityDataLocked() == nullptr) {
-      if (!Initialize(env, activity)) {
+      if (!InitializeLocked(env, activity)) {
         // Only initializes if necessary, e.g. before App.
         return kAvailabilityUnavailableOther;
       }

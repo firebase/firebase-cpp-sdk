@@ -20,7 +20,8 @@
 #include <map>
 #include <vector>
 
-#include "app/src/include/firebase/internal/mutex.h"
+#include <mutex>
+#include <functional>
 
 namespace firebase {
 
@@ -41,7 +42,7 @@ namespace firebase {
 //   owner (which is about to be deleted).
 class CleanupNotifier {
  public:
-  typedef void (*CleanupCallback)(void *object);
+  using CleanupCallback = std::function<void(void*)>;
 
   // Default constructor.
   CleanupNotifier();
@@ -90,17 +91,14 @@ class CleanupNotifier {
 
  private:
   // Guards callbacks_ and cleaned_up_.
-  Mutex mutex_;
+  std::mutex mutex_;
   std::map<void *, CleanupCallback> callbacks_;
   bool cleaned_up_;
   // List of owners of this notifier.
   // This is the inverse of cleanup_notifiers_by_owner_ for a notifier.
   std::vector<void *> owners_;
 
-  // Guards owners_ and cleanup_notifiers_by_owner_.
-  static Mutex *cleanup_notifiers_by_owner_mutex_;
-  // Global map of cleanup notifiers bucketed by owner object.
-  static std::map<void *, CleanupNotifier *> *cleanup_notifiers_by_owner_;
+
 };
 
 // Typed wrapper for CleanupNotifier. Helpful if you only need to clean
@@ -111,8 +109,9 @@ class TypedCleanupNotifier {
   typedef void (*CleanupCallback)(T *object);
 
   void RegisterObject(T *object, CleanupCallback callback) {
-    notifier_.RegisterObject(
-        object, reinterpret_cast<CleanupNotifier::CleanupCallback>(callback));
+    notifier_.RegisterObject(object, [callback](void* obj) {
+      callback(static_cast<T*>(obj));
+    });
   }
 
   void UnregisterObject(T *object) { notifier_.UnregisterObject(object); }

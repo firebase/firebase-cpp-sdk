@@ -53,8 +53,11 @@ FirebaseAppTest::FirebaseAppTest() {
 #if defined(__ANDROID__)
 #define APP_CREATE_PARAMS \
   app_framework::GetJniEnv(), app_framework::GetActivity()
+#define APP_CREATE_NAMED_PARAMS(options, name) \
+  options, name, app_framework::GetJniEnv(), app_framework::GetActivity()
 #else
 #define APP_CREATE_PARAMS
+#define APP_CREATE_NAMED_PARAMS(options, name) options, name
 #endif  // defined(__ANDROID__)
 
 TEST_F(FirebaseAppTest, TestDefaultAppWithDefaultOptions) {
@@ -73,12 +76,12 @@ TEST_F(FirebaseAppTest, TestGetAll) {
   EXPECT_THAT(firebase::App::GetApps(), UnorderedElementsAre(default_app));
 
   firebase::App* second_app =
-      firebase::App::Create(firebase::AppOptions(), "2ndApp");
+      firebase::App::Create(APP_CREATE_NAMED_PARAMS(firebase::AppOptions(), "2ndApp"));
   EXPECT_THAT(firebase::App::GetApps(),
               UnorderedElementsAre(default_app, second_app));
 
   firebase::App* third_app =
-      firebase::App::Create(firebase::AppOptions(), "3rdApp");
+      firebase::App::Create(APP_CREATE_NAMED_PARAMS(firebase::AppOptions(), "3rdApp"));
   EXPECT_THAT(firebase::App::GetApps(),
               UnorderedElementsAre(default_app, second_app, third_app));
 
