@@ -19,7 +19,8 @@
 
 #include "firebase/app_check.h"
 
-namespace firebase::app_check {
+namespace firebase {
+namespace app_check {
 
 namespace internal {
 class DebugAppCheckProviderFactoryInternal;
@@ -43,12 +44,18 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
-  [[nodiscard]] static DebugAppCheckProviderFactory* GetInstance();
+#if !defined(SWIG)
+  [[nodiscard]]
+#endif
+  static DebugAppCheckProviderFactory* GetInstance();
 
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
-  [[nodiscard]] firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
+#if !defined(SWIG)
+  [[nodiscard]]
+#endif
+  firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
   /// Sets the Debug Token to use when communicating with the backend.
   /// This should match a debug token set in the Firebase console for your
@@ -67,6 +74,7 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
   internal::DebugAppCheckProviderFactoryInternal* internal_{nullptr};
 };
 
-}  // namespace firebase::app_check
+}  // namespace app_check
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_DEBUG_PROVIDER_H_

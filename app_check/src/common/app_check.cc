@@ -199,11 +199,8 @@ AppCheck::AppCheck(::firebase::App* app)
   if (app_notifier) {
     app_notifier->RegisterObject(
         this, static_cast<CleanupNotifier::CleanupCallback>([](void* object) {
-          // Delete the AppCheck instance itself so the wrapper shell is never
-          // leaked when App is destroyed (matching FIREBASE_APP_REGISTER_CALLBACKS
-          // and Functions/Storage lifecycle cleanup).
           AppCheck* app_check = reinterpret_cast<AppCheck*>(object);
-          delete app_check;
+          app_check->DeleteInternal();
         }));
   }
 }

@@ -168,14 +168,24 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
 ConsentInfo::ConsentInfo() : app_(nullptr), internal_(nullptr) {}
 
 ConsentInfo::~ConsentInfo() {
-  MutexLock lock(UmpInstanceMutex());
-  UnbindFromApp();
-  if (internal_) {
-    delete internal_;
-    internal_ = nullptr;
+  ::firebase::App* app_to_unbind = nullptr;
+  {
+    MutexLock lock(UmpInstanceMutex());
+    app_to_unbind = app_;
+    app_ = nullptr;
+    if (internal_) {
+      delete internal_;
+      internal_ = nullptr;
+    }
+    if (s_instance_ == this) {
+      s_instance_ = nullptr;
+    }
   }
-  if (s_instance_ == this) {
-    s_instance_ = nullptr;
+  if (app_to_unbind) {
+    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_to_unbind);
+    if (notifier) {
+      notifier->UnregisterObject(this);
+    }
   }
 }
 
@@ -192,12 +202,17 @@ void ConsentInfo::BindToApp(::firebase::App* app) {
 }
 
 void ConsentInfo::UnbindFromApp() {
-  if (!app_) return;
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_);
+  ::firebase::App* app_to_unbind = nullptr;
+  {
+    MutexLock lock(UmpInstanceMutex());
+    app_to_unbind = app_;
+    app_ = nullptr;
+  }
+  if (!app_to_unbind) return;
+  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_to_unbind);
   if (notifier) {
     notifier->UnregisterObject(this);
   }
-  app_ = nullptr;
 }
 
 void ConsentInfo::OnAppDestroyed() {
