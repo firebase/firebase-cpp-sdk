@@ -203,9 +203,11 @@ TEST_F(FirestoreUnitTest, PromiseAndPromiseFactoryMoveAndCleanupSafety) {
     Promise<int> promise = factory1.CreatePromise<int>(TestAsyncOp::kOp);
 
     // Self-copy and self-move assignment must preserve the underlying state.
-    auto& promise_ref = promise;
-    promise = promise_ref;
-    promise = std::move(promise_ref);
+    // We use pointers to avoid compiler warnings (-Wself-assign-overloaded).
+    auto* p1 = &promise;
+    auto* p2 = &promise;
+    *p1 = *p2;
+    *p1 = std::move(*p2);
 
     // Moving PromiseFactory must not clean up futures when moved-from factory
     // is destroyed.
@@ -224,9 +226,10 @@ TEST_F(FirestoreUnitTest, PromiseAndPromiseFactoryMoveAndCleanupSafety) {
   // Triggering cleanup (via CleanupNotifier destruction) marks remaining
   // promises as cleaned up.
   auto cleanup2 = std::make_unique<CleanupNotifier>();
-  PromiseFactory<TestAsyncOp> factory3(cleanup2.get(), &future_mgr);
-  Promise<int> promise2 = factory3.CreatePromise<int>(TestAsyncOp::kOp);
+  auto factory3 = std::make_unique<PromiseFactory<TestAsyncOp>>(cleanup2.get(), &future_mgr);
+  Promise<int> promise2 = factory3->CreatePromise<int>(TestAsyncOp::kOp);
   EXPECT_FALSE(promise2.IsCleanedUp());
+  factory3.reset();
   cleanup2.reset();
   EXPECT_TRUE(promise2.IsCleanedUp());
   // Setting value after cleanup must be a safe no-op.
