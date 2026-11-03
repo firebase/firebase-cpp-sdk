@@ -120,38 +120,52 @@ Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
 }
 
 void Database::DeleteInternal() {
-  MutexLock lock(g_databases_lock);
+  App* my_app = nullptr;
+  CleanupNotifier* app_notifier = nullptr;
+  DatabaseInternal* internal_to_delete = nullptr;
 
-  if (!internal_) return;
+  {
+    MutexLock lock(g_databases_lock);
 
-  // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to g_databases, and app() may be null.
-  if (!internal_->initialized()) {
-    delete internal_;
+    if (!internal_) return;
+
+    // An instance whose initialization failed was never registered with the
+    // App's CleanupNotifier or added to g_databases, and app() may be null.
+    if (!internal_->initialized()) {
+      delete internal_;
+      internal_ = nullptr;
+      return;
+    }
+
+    my_app = app();
+    std::string url = internal_->constructor_url();
+    app_notifier = CleanupNotifier::FindByOwner(my_app);
+
+    // Remove from cache to avoid concurrent GetInstance calls finding it.
+    g_databases->erase(MakeKey(my_app, url));
+
+    internal_to_delete = internal_;
     internal_ = nullptr;
-    return;
   }
 
-  App* my_app = app();
-  std::string url = internal_->constructor_url();
-
-  CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
-  assert(app_notifier);
-  app_notifier->UnregisterObject(this);
+  if (app_notifier) {
+    app_notifier->UnregisterObject(this);
+  }
 
   {
     MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
     // Force cleanup to happen first.
-    internal_->cleanup().CleanupAll();
+    internal_to_delete->cleanup().CleanupAll();
   }
-  delete internal_;
-  internal_ = nullptr;
-  // If a Database is explicitly deleted, remove it from our cache.
-  g_databases->erase(MakeKey(my_app, url));
-  // If it's the last one, delete the map.
-  if (g_databases->empty()) {
-    delete g_databases;
-    g_databases = nullptr;
+  delete internal_to_delete;
+
+  {
+    MutexLock lock(g_databases_lock);
+    // If it's the last one, delete the map.
+    if (g_databases && g_databases->empty()) {
+      delete g_databases;
+      g_databases = nullptr;
+    }
   }
 }
 

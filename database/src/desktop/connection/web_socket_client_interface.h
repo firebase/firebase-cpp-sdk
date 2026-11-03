@@ -37,6 +37,9 @@ class WebSocketClientInterface {
 
   // Request to send message to the connected server
   virtual void Send(const char* msg) = 0;
+
+  // Request to refresh App Check token
+  virtual void RefreshAppCheckToken(const std::string& token) {}
 };
 
 // Context when OnError occurs.  Currently only contains the uri.
