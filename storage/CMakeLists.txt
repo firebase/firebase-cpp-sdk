@@ -1,4 +1,4 @@
-# Copyright 2019 Google
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,15 @@ set(common_SRCS
     src/common/storage_reference.cc
     src/common/storage_uri_parser.cc)
 
-# Define the resource build needed for Android
-firebase_cpp_gradle(":storage:storage_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/storage_resources_lib.jar")
-binary_to_array("storage_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/storage_resources_lib.jar"
-    "firebase_storage_resources"
-    "${FIREBASE_GEN_FILE_DIR}/storage")
+if(ANDROID)
+  # Define the resource build needed for Android
+  firebase_cpp_gradle(":storage:storage_resources:generateDexJarRelease"
+      "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/storage_resources_lib.jar")
+  binary_to_array("storage_resources"
+      "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/storage_resources_lib.jar"
+      "firebase_storage_resources"
+      "${FIREBASE_GEN_FILE_DIR}/storage")
+endif()
 
 # Source files used by the Android implementation.
 set(android_SRCS
@@ -103,8 +105,13 @@ target_include_directories(firebase_storage
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${FIREBASE_SPM_SWIFT_HEADERS_DIR}
 )
+if(IOS)
+  target_include_directories(firebase_storage
+    PRIVATE
+      ${FIREBASE_SPM_SWIFT_HEADERS_DIR}
+  )
+endif()
 target_compile_definitions(firebase_storage
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
@@ -114,11 +121,9 @@ target_compile_definitions(firebase_storage
 if(ANDROID)
   firebase_cpp_proguard_file(storage)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  # Enable Automatic Reference Counting (ARC).
   target_compile_options(firebase_storage
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_storage
-                        PUBLIC "-fembed-bitcode")
+                         PRIVATE "-fobjc-arc")
 
   setup_spm_headers(
     firebase_storage

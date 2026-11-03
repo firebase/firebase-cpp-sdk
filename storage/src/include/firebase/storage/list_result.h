@@ -67,24 +67,39 @@ class StorageListResult {
 
   /// @brief Returns the prefixes (folders) returned by the List operation.
   ///
-  /// @returns A list of prefixes (folders).
+  /// @returns A list of prefixes (folders), or an empty vector if this
+  /// StorageListResult is invalid.
   const std::vector<StorageReference>& prefixes() const;
 
   /// @brief Returns the items (files) returned by the List operation.
   ///
-  /// @returns A list of items (files).
+  /// @returns A list of items (files), or an empty vector if this
+  /// StorageListResult is invalid.
   const std::vector<StorageReference>& items() const;
 
   /// @brief Returns a token that can be used to resume a previous List
   /// operation.
   ///
   /// @returns A page token if more results are available, or an empty string if
-  /// there are no more results.
+  /// there are no more results or this StorageListResult is invalid.
   const std::string& next_page_token() const;
 
   /// @brief Returns true if this StorageListResult is valid, false if it is not
   /// valid.
   bool is_valid() const;
+
+#ifndef SWIG
+  /// @brief Returns a human-readable string representation of this result.
+  std::string ToString() const;
+
+  /// @brief Equality operator.
+  bool operator==(const StorageListResult& other) const;
+
+  /// @brief Inequality operator.
+  bool operator!=(const StorageListResult& other) const {
+    return !(*this == other);
+  }
+#endif  // SWIG
 
  private:
   /// @cond FIREBASE_APP_INTERNAL

@@ -15,11 +15,8 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_STORAGE_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_STORAGE_IOS_H_
 
-#include <dispatch/dispatch.h>
-
-#include <map>
 #include <memory>
-#include <set>
+#include <string>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
@@ -33,15 +30,16 @@
 #import "FirebaseStorage-Swift.h"
 
 // Some missing typedefs not included in Swift header.
-typedef NSString *FIRStorageHandle;
-typedef void (^FIRStorageVoidDataError)(NSData *_Nullable, NSError *_Nullable);
-typedef void (^FIRStorageVoidError)(NSError *_Nullable);
-typedef void (^FIRStorageVoidMetadata)(FIRStorageMetadata *_Nullable);
-typedef void (^FIRStorageVoidMetadataError)(FIRStorageMetadata *_Nullable,
-                                            NSError *_Nullable);
-typedef void (^FIRStorageVoidSnapshot)(FIRStorageTaskSnapshot *_Nonnull);
-typedef void (^FIRStorageVoidURLError)(NSURL *_Nullable, NSError *_Nullable);
-FOUNDATION_EXPORT NSString *const FIRStorageErrorDomain NS_SWIFT_NAME(StorageErrorDomain);
+typedef NSString* FIRStorageHandle;
+typedef void (^FIRStorageVoidDataError)(NSData* _Nullable, NSError* _Nullable);
+typedef void (^FIRStorageVoidError)(NSError* _Nullable);
+typedef void (^FIRStorageVoidMetadata)(FIRStorageMetadata* _Nullable);
+typedef void (^FIRStorageVoidMetadataError)(FIRStorageMetadata* _Nullable,
+                                            NSError* _Nullable);
+typedef void (^FIRStorageVoidSnapshot)(FIRStorageTaskSnapshot* _Nonnull);
+typedef void (^FIRStorageVoidURLError)(NSURL* _Nullable, NSError* _Nullable);
+FOUNDATION_EXPORT NSString* _Nonnull const FIRStorageErrorDomain NS_SWIFT_NAME(
+    StorageErrorDomain);
 
 #endif  // __OBJC__
 
@@ -55,24 +53,39 @@ OBJ_C_PTR_WRAPPER(FIRStorage);
 
 class StorageInternal {
  public:
-  StorageInternal(App* _Nonnull app, const char* _Nullable url);
+  struct LifetimeToken {
+    Mutex mutex;
+    StorageInternal* _Nullable storage = nullptr;
+    bool futures_alive = true;
+    explicit LifetimeToken(StorageInternal* _Nullable s)
+        : storage(s), futures_alive(s != nullptr) {}
+  };
+
+  // `app` may be null, in which case initialized() returns false.
+  StorageInternal(App* _Nullable app, const char* _Nullable url);
 
   ~StorageInternal();
 
+  StorageInternal(const StorageInternal&) = delete;
+  StorageInternal& operator=(const StorageInternal&) = delete;
+  StorageInternal(StorageInternal&&) = delete;
+  StorageInternal& operator=(StorageInternal&&) = delete;
+
   // Get the firebase::App that this Storage was created with.
-  App* _Nonnull app() const;
+  App* _Nullable app() const;
 
   // Return the URL we were created with.
   const std::string& url() const { return url_; }
 
   // Get a StorageReference to the root of the database.
-  StorageReferenceInternal* _Nullable GetReference() const;
+  StorageReferenceInternal* _Nullable GetReference();
 
   // Get a StorageReference for the specified path.
-  StorageReferenceInternal* _Nullable GetReference(const char* _Nullable path) const;
+  StorageReferenceInternal* _Nullable GetReference(const char* _Nullable path);
 
   // Get a StorageReference for the provided URL.
-  StorageReferenceInternal* _Nullable GetReferenceFromUrl(const char* _Nullable url) const;
+  StorageReferenceInternal* _Nullable GetReferenceFromUrl(
+      const char* _Nullable url);
 
   // Returns the maximum time in seconds to retry a download if a failure
   // occurs.
@@ -105,12 +118,16 @@ class StorageInternal {
   // objects.
   CleanupNotifier& cleanup() { return cleanup_; }
 
+  std::shared_ptr<LifetimeToken> lifetime_token() const {
+    return lifetime_token_;
+  }
+
  private:
 #ifdef __OBJC__
-  FIRStorage* _Nullable impl() const { return impl_->get(); }
+  FIRStorage* _Nullable impl() const { return impl_ ? impl_->get() : nil; }
 #endif
-  // The firease::App that this Storage was created with.
-  App* _Nonnull app_;
+  // The firebase::App that this Storage was created with.
+  App* _Nullable app_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStoragePointer> impl_;
@@ -120,6 +137,8 @@ class StorageInternal {
   std::string url_;
 
   CleanupNotifier cleanup_;
+
+  std::shared_ptr<LifetimeToken> lifetime_token_;
 };
 
 }  // namespace internal

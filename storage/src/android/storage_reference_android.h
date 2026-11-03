@@ -17,6 +17,9 @@
 
 #include <jni.h>
 
+#include <memory>
+#include <string>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -30,27 +33,27 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
+struct JniListenerToken;
+
 class StorageReferenceInternal {
  public:
   // StorageReferenceInternal will create its own global reference to ref_obj,
   // so you should delete the object you passed in after creating the
   // StorageReferenceInternal instance.
-  StorageReferenceInternal(StorageInternal* database, jobject ref_obj);
+  StorageReferenceInternal(StorageInternal* storage, jobject ref_obj);
 
   StorageReferenceInternal(const StorageReferenceInternal& ref);
 
   StorageReferenceInternal& operator=(const StorageReferenceInternal& ref);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  StorageReferenceInternal(StorageReferenceInternal&& ref);
+  StorageReferenceInternal(StorageReferenceInternal&& ref) noexcept;
 
-  StorageReferenceInternal& operator=(StorageReferenceInternal&& ref);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  StorageReferenceInternal& operator=(StorageReferenceInternal&& ref) noexcept;
 
   ~StorageReferenceInternal();
 
   // Gets the storage to which we refer.
-  Storage* storage();
+  Storage* storage() const;
 
   // Gets a reference to a location relative to this one.
   StorageReferenceInternal* Child(const char* path) const;
@@ -58,50 +61,50 @@ class StorageReferenceInternal {
   // Deletes the object at the current path.
   Future<void> Delete();
 
-  Future<void> DeleteLastResult();
+  Future<void> DeleteLastResult() const;
 
   // Return the Google Cloud Storage bucket that holds this object.
-  std::string bucket();
+  std::string bucket() const;
 
   // Return the full path of this object.
-  std::string full_path();
+  std::string full_path() const;
 
   // Asynchronously downloads the object from this StorageReferenceInternal.
   Future<size_t> GetFile(const char* path, Listener* listener,
                          Controller* controller_out);
 
   // Returns the result of the most recent call to GetFile();
-  Future<size_t> GetFileLastResult();
+  Future<size_t> GetFileLastResult() const;
 
   // Asynchronously downloads the object from this StorageReferenceInternal.
   Future<size_t> GetBytes(void* buffer, size_t buffer_size, Listener* listener,
                           Controller* controller_out);
 
   // Returns the result of the most recent call to GetBytes();
-  Future<size_t> GetBytesLastResult();
+  Future<size_t> GetBytesLastResult() const;
 
   // Asynchronously retrieves a long lived download URL with a revokable token.
   Future<std::string> GetDownloadUrl();
 
-  Future<std::string> GetDownloadUrlLastResult();
+  Future<std::string> GetDownloadUrlLastResult() const;
 
   // Retrieves metadata associated with an object at this
   // StorageReferenceInternal.
   Future<Metadata> GetMetadata();
 
-  Future<Metadata> GetMetadataLastResult();
+  Future<Metadata> GetMetadataLastResult() const;
 
   // Updates the metadata associated with this StorageReferenceInternal.
   Future<Metadata> UpdateMetadata(const Metadata* metadata);
 
-  Future<Metadata> UpdateMetadataLastResult();
+  Future<Metadata> UpdateMetadataLastResult() const;
 
   // Returns the short name of this object.
-  std::string name();
+  std::string name() const;
 
   // Returns a new instance of StorageReferenceInternal pointing to the parent
   // location or null if this instance references the root location.
-  StorageReferenceInternal* GetParent();
+  StorageReferenceInternal* GetParent() const;
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
@@ -109,13 +112,13 @@ class StorageReferenceInternal {
                             Listener* listener, Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified
-  // StorageReferenceInternal, without additional metadata.
+  // StorageReferenceInternal, with additional metadata.
   Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
                             const Metadata* metadata, Listener* listener,
                             Controller* controller_out);
 
   // Returns the result of the most recent call to PutBytes();
-  Future<Metadata> PutBytesLastResult();
+  Future<Metadata> PutBytesLastResult() const;
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
@@ -123,19 +126,25 @@ class StorageReferenceInternal {
                            Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified
-  // StorageReferenceInternal, without additional metadata.
+  // StorageReferenceInternal, with additional metadata.
   Future<Metadata> PutFile(const char* path, const Metadata* metadata,
                            Listener* listener, Controller* controller_out);
 
   // Returns the result of the most recent call to PutFile();
-  Future<Metadata> PutFileLastResult();
+  Future<Metadata> PutFileLastResult() const;
 
   // List items (files) and prefixes (folders) under this StorageReference.
   Future<StorageListResult> List(int max_results_per_page,
                                  const char* page_token);
 
   // Returns the result of the most recent call to List();
-  Future<StorageListResult> ListLastResult();
+  Future<StorageListResult> ListLastResult() const;
+
+  // List all items (files) and prefixes (folders) under this StorageReference.
+  Future<StorageListResult> ListAll();
+
+  // Returns the result of the most recent call to ListAll();
+  Future<StorageListResult> ListAllLastResult() const;
 
   // Initialize JNI bindings for this class.
   static bool Initialize(App* app);
@@ -167,13 +176,14 @@ class StorageReferenceInternal {
                              const char* status_message, void* callback_data);
 
   // If `listener` is not nullptr, create a Java listener class for it and
-  // assign it to the running task, returning the new Java listener.
-  jobject AssignListenerToTask(Listener* listener, jobject task);
+  // assign it to the running task, returning a shared token for the listener.
+  std::shared_ptr<JniListenerToken> AssignListenerToTask(Listener* listener,
+                                                         jobject task);
 
-  ReferenceCountedFutureImpl* future();
+  ReferenceCountedFutureImpl* future() const;
 
-  StorageInternal* storage_;
-  jobject obj_;
+  StorageInternal* storage_ = nullptr;
+  jobject obj_ = nullptr;
 };
 
 }  // namespace internal

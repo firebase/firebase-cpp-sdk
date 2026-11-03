@@ -25,14 +25,21 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
-namespace firebase {
-namespace storage {
+namespace firebase::storage {
 
-Listener::Listener() { impl_ = new internal::ListenerInternal(this); }
+Listener::Listener() : impl_(new internal::ListenerInternal(this)) {}
+
+void Listener::Detach() {
+  if (impl_) {
+    impl_->Detach();
+  }
+}
 
 // Non-inline implementation of Listener's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-Listener::~Listener() { delete impl_; }
+Listener::~Listener() {
+  Detach();
+  delete impl_;
+}
 
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage

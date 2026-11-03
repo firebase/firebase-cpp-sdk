@@ -17,6 +17,10 @@
 #include <jni.h>
 
 #include <cassert>
+#include <cmath>
+#include <limits>
+#include <utility>
+#include <vector>
 
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
@@ -32,6 +36,24 @@
 namespace firebase {
 namespace storage {
 namespace internal {
+
+namespace {
+
+bool SecondsToMillisClamped(double seconds, jlong* millis_out) {
+  if (!std::isfinite(seconds) || seconds < 0.0 || millis_out == nullptr) {
+    return false;
+  }
+  constexpr jlong kMaxSafeSeconds = std::numeric_limits<jlong>::max() / 1000;
+  const double kMaxSafeSecondsDouble = static_cast<double>(kMaxSafeSeconds);
+  if (seconds >= kMaxSafeSecondsDouble) {
+    *millis_out = kMaxSafeSeconds * 1000;
+  } else {
+    *millis_out = static_cast<jlong>(seconds * 1000.0);
+  }
+  return true;
+}
+
+}  // namespace
 
 // clang-format off
 #define FIREBASE_STORAGE_METHODS(X)                                     \
@@ -63,8 +85,6 @@ namespace internal {
   X(GetReferenceFromPath, "getReference",                               \
     "(Ljava/lang/String;)"                                              \
     "Lcom/google/firebase/storage/StorageReference;"),                  \
-  X(GetApp, "getApp",                                                   \
-    "()Lcom/google/firebase/FirebaseApp;"),                             \
   X(UseEmulator, "useEmulator",                                         \
     "(Ljava/lang/String;I)V")
 // clang-format on
@@ -93,18 +113,8 @@ METHOD_LOOKUP_DEFINITION(firebase_storage,
 
 // clang-format off
 #define STORAGE_EXCEPTION_METHODS(X)                                    \
-  X(FromErrorStatus, "fromErrorStatus",                                 \
-    "(Lcom/google/android/gms/common/api/Status;)"                      \
-    "Lcom/google/firebase/storage/StorageException;",                   \
-    util::kMethodTypeStatic),                                           \
-  X(FromException, "fromException",                                     \
-    "(Ljava/lang/Throwable;)"                                           \
-    "Lcom/google/firebase/storage/StorageException;",                   \
-    util::kMethodTypeStatic),                                           \
-  X(GetIsRecoverableException, "getIsRecoverableException", "()Z"),     \
   X(GetCause, "getCause", "()Ljava/lang/Throwable;"),                   \
   X(GetMessage, "getMessage", "()Ljava/lang/String;"),                  \
-  X(GetHttpResultCode, "getHttpResultCode", "()I"),                     \
   X(GetErrorCode, "getErrorCode", "()I")
 // clang-format on
 
@@ -140,47 +150,66 @@ Mutex StorageInternal::init_mutex_;  // NOLINT
 int StorageInternal::initialize_count_ = 0;
 std::map<jint, Error>* StorageInternal::java_error_to_cpp_ = nullptr;
 
-StorageInternal::StorageInternal(App* app, const char* url) {
-  app_ = nullptr;
-  if (!Initialize(app)) return;
+StorageInternal::StorageInternal(App* app, const char* url)
+    : app_(nullptr), obj_(nullptr) {
+  if (!app || !Initialize(app)) return;
   app_ = app;
   url_ = url ? url : "";
   const char kApiIdentifier[] = "Storage";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   JNIEnv* env = app_->GetJNIEnv();
-  jobject url_jstring = env->NewStringUTF(url_.c_str());
   jobject platform_app = app_->GetPlatformApp();
-  jobject storage_obj =
-      url_.empty()
-          ? env->CallStaticObjectMethod(
-                firebase_storage::GetClass(),
-                firebase_storage::GetMethodId(firebase_storage::kGetInstance),
-                platform_app)
-          : env->CallStaticObjectMethod(
-                firebase_storage::GetClass(),
-                firebase_storage::GetMethodId(
-                    firebase_storage::kGetInstanceWithUrl),
-                platform_app, url_jstring);
+  jobject storage_obj = nullptr;
+  if (url_.empty()) {
+    storage_obj = env->CallStaticObjectMethod(
+        firebase_storage::GetClass(),
+        firebase_storage::GetMethodId(firebase_storage::kGetInstance),
+        platform_app);
+  } else {
+    jobject url_jstring = env->NewStringUTF(url_.c_str());
+    storage_obj = env->CallStaticObjectMethod(
+        firebase_storage::GetClass(),
+        firebase_storage::GetMethodId(firebase_storage::kGetInstanceWithUrl),
+        platform_app, url_jstring);
+    if (url_jstring != nullptr) {
+      env->DeleteLocalRef(url_jstring);
+    }
+  }
   std::string exception = util::GetAndClearExceptionMessage(env);
-  env->DeleteLocalRef(platform_app);
-  env->DeleteLocalRef(url_jstring);
-  obj_ = nullptr;
-  FIREBASE_ASSERT_MESSAGE_RETURN_VOID(
-      storage_obj != nullptr && exception.empty(),
-      "firebase::Storage creation failed %s", exception.c_str());
+  if (platform_app != nullptr) {
+    env->DeleteLocalRef(platform_app);
+  }
+  if (storage_obj == nullptr || !exception.empty()) {
+    if (storage_obj != nullptr) {
+      env->DeleteLocalRef(storage_obj);
+    }
+    LogError("firebase::Storage creation failed: %s", exception.c_str());
+    Terminate(app_);
+    app_ = nullptr;
+    return;
+  }
   obj_ = env->NewGlobalRef(storage_obj);
   env->DeleteLocalRef(storage_obj);
+  if (obj_ == nullptr) {
+    LogError("firebase::Storage creation failed: NewGlobalRef returned null.");
+    Terminate(app_);
+    app_ = nullptr;
+    return;
+  }
 }
 
 StorageInternal::~StorageInternal() {
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
 
+  cleanup_.CleanupAll();
   JNIEnv* env = app_->GetJNIEnv();
   util::CancelCallbacks(env, jni_task_id_.c_str());
-  env->DeleteGlobalRef(obj_);
-  obj_ = nullptr;
+  if (obj_ != nullptr) {
+    env->DeleteGlobalRef(obj_);
+    obj_ = nullptr;
+  }
   Terminate(app_);
   app_ = nullptr;
 
@@ -210,15 +239,24 @@ bool StorageInternal::Initialize(App* app) {
   if (initialize_count_ == 0) {
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
-    if (!(firebase_storage::CacheMethodIds(env, activity) &&
-          storage_exception::CacheMethodIds(env, activity) &&
-          storage_exception::CacheFieldIds(env, activity) &&
-          index_out_of_bounds_exception::CacheClass(env, activity) &&
-          // Call Initialize on all other Storage internal classes.
-          StorageReferenceInternal::Initialize(app) &&
-          MetadataInternal::Initialize(app) &&
-          ControllerInternal::Initialize(app) &&
-          InitializeEmbeddedClasses(app))) {
+    const bool own_classes_ok =
+        firebase_storage::CacheMethodIds(env, activity) &&
+        storage_exception::CacheMethodIds(env, activity) &&
+        storage_exception::CacheFieldIds(env, activity) &&
+        index_out_of_bounds_exception::CacheClass(env, activity);
+    const bool ref_ok =
+        own_classes_ok && StorageReferenceInternal::Initialize(app);
+    const bool meta_ok = ref_ok && MetadataInternal::Initialize(app);
+    const bool controller_ok = meta_ok && ControllerInternal::Initialize(app);
+    const bool embedded_ok = controller_ok && InitializeEmbeddedClasses(app);
+    if (!embedded_ok) {
+      if (controller_ok) ControllerInternal::Terminate(app);
+      if (meta_ok) MetadataInternal::Terminate(app);
+      if (ref_ok) StorageReferenceInternal::Terminate(app);
+      index_out_of_bounds_exception::ReleaseClass(env);
+      storage_exception::ReleaseClass(env);
+      firebase_storage::ReleaseClass(env);
+      util::CheckAndClearJniExceptions(env);
       return false;
     }
 
@@ -256,7 +294,7 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
   // Terminate() handles tearing this down.
   // Load embedded classes.
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-      util::CacheEmbeddedFiles(
+       util::CacheEmbeddedFiles(
           env, app->activity(),
           firebase::internal::EmbeddedFile::ToVector(
               firebase_storage_resources::storage_resources_filename,
@@ -264,6 +302,8 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
               firebase_storage_resources::storage_resources_size));
   if (!(cpp_byte_downloader::CacheClassFromFiles(env, app->activity(),
                                                  &embedded_files) &&
+        cpp_byte_uploader::CacheClassFromFiles(env, app->activity(),
+                                               &embedded_files) &&
         cpp_storage_listener::CacheClassFromFiles(env, app->activity(),
                                                   &embedded_files) &&
         cpp_storage_listener::RegisterNatives(
@@ -276,6 +316,10 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
         cpp_byte_uploader::CacheMethodIds(env, app->activity()) &&
         cpp_byte_uploader::RegisterNatives(
             env, kCppByteUploader, FIREBASE_ARRAYSIZE(kCppByteUploader)))) {
+    cpp_storage_listener::ReleaseClass(env);
+    cpp_byte_downloader::ReleaseClass(env);
+    cpp_byte_uploader::ReleaseClass(env);
+    util::CheckAndClearJniExceptions(env);
     return false;
   }
   util::CheckAndClearJniExceptions(env);
@@ -326,20 +370,46 @@ Error StorageInternal::ErrorFromJavaStorageException(
   JNIEnv* env = app_->GetJNIEnv();
   Error code = kErrorNone;
   if (java_exception != nullptr) {
-    code = ErrorFromJavaErrorCode(env->CallIntMethod(
+    if (!env->IsInstanceOf(java_exception, storage_exception::GetClass())) {
+      if (error_message != nullptr &&
+          env->IsInstanceOf(java_exception, util::throwable::GetClass())) {
+        jobject msg_obj = env->CallObjectMethod(
+            java_exception,
+            util::throwable::GetMethodId(util::throwable::kGetMessage));
+        if (util::CheckAndClearJniExceptions(env)) {
+          if (msg_obj != nullptr) env->DeleteLocalRef(msg_obj);
+        } else if (msg_obj != nullptr) {
+          *error_message = util::JniStringToString(env, msg_obj);
+        }
+      }
+      util::CheckAndClearJniExceptions(env);
+      return kErrorUnknown;
+    }
+
+    jint raw_code = env->CallIntMethod(
         java_exception,
-        storage_exception::GetMethodId(storage_exception::kGetErrorCode)));
+        storage_exception::GetMethodId(storage_exception::kGetErrorCode));
+    if (util::CheckAndClearJniExceptions(env)) {
+      return kErrorUnknown;
+    }
+    code = ErrorFromJavaErrorCode(raw_code);
     if (error_message != nullptr) {
-      *error_message = util::JniStringToString(
-          env, env->CallObjectMethod(java_exception,
-                                     storage_exception::GetMethodId(
-                                         storage_exception::kGetMessage)));
+      jobject msg_obj = env->CallObjectMethod(
+          java_exception,
+          storage_exception::GetMethodId(storage_exception::kGetMessage));
+      if (util::CheckAndClearJniExceptions(env)) {
+        if (msg_obj != nullptr) env->DeleteLocalRef(msg_obj);
+      } else if (msg_obj != nullptr) {
+        *error_message = util::JniStringToString(env, msg_obj);
+      }
     }
     if (code == kErrorUnknown) {
       jobject cause = env->CallObjectMethod(
           java_exception,
           storage_exception::GetMethodId(storage_exception::kGetCause));
-      if (cause != nullptr) {
+      if (util::CheckAndClearJniExceptions(env)) {
+        if (cause != nullptr) env->DeleteLocalRef(cause);
+      } else if (cause != nullptr) {
         if (env->IsInstanceOf(cause,
                               index_out_of_bounds_exception::GetClass())) {
           code = kErrorDownloadSizeExceeded;
@@ -350,10 +420,14 @@ Error StorageInternal::ErrorFromJavaStorageException(
           // No special error code, but we can at least provide a more helpful
           // error message.
           if (error_message != nullptr) {
-            *error_message = util::JniStringToString(
-                env, env->CallObjectMethod(cause,
-                                           util::throwable::GetMethodId(
-                                               util::throwable::kGetMessage)));
+            jobject cause_msg = env->CallObjectMethod(
+                cause,
+                util::throwable::GetMethodId(util::throwable::kGetMessage));
+            if (util::CheckAndClearJniExceptions(env)) {
+              if (cause_msg != nullptr) env->DeleteLocalRef(cause_msg);
+            } else if (cause_msg != nullptr) {
+              *error_message = util::JniStringToString(env, cause_msg);
+            }
           }
         }
         env->DeleteLocalRef(cause);
@@ -368,7 +442,11 @@ StorageReferenceInternal* StorageInternal::GetReference() const {
   JNIEnv* env = app_->GetJNIEnv();
   jobject storage_reference_obj = env->CallObjectMethod(
       obj_, firebase_storage::GetMethodId(firebase_storage::kGetRootReference));
-  FIREBASE_ASSERT(storage_reference_obj != nullptr);
+  if (util::CheckAndClearJniExceptions(env) ||
+      storage_reference_obj == nullptr) {
+    if (storage_reference_obj) env->DeleteLocalRef(storage_reference_obj);
+    return nullptr;
+  }
   StorageReferenceInternal* internal = new StorageReferenceInternal(
       const_cast<StorageInternal*>(this), storage_reference_obj);
   env->DeleteLocalRef(storage_reference_obj);
@@ -386,9 +464,10 @@ StorageReferenceInternal* StorageInternal::GetReference(
       firebase_storage::GetMethodId(firebase_storage::kGetReferenceFromPath),
       path_string);
   env->DeleteLocalRef(path_string);
-  if (storage_reference_obj == nullptr) {
+  if (util::CheckAndClearJniExceptions(env) ||
+      storage_reference_obj == nullptr) {
+    if (storage_reference_obj) env->DeleteLocalRef(storage_reference_obj);
     LogWarning("Storage::GetReference(): Invalid path specified: %s", path);
-    util::CheckAndClearJniExceptions(env);
     return nullptr;
   }
   StorageReferenceInternal* internal = new StorageReferenceInternal(
@@ -407,12 +486,13 @@ StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
       firebase_storage::GetMethodId(firebase_storage::kGetReferenceFromUrl),
       url_string);
   env->DeleteLocalRef(url_string);
-  if (storage_reference_obj == nullptr) {
+  if (util::CheckAndClearJniExceptions(env) ||
+      storage_reference_obj == nullptr) {
+    if (storage_reference_obj) env->DeleteLocalRef(storage_reference_obj);
     LogWarning(
         "Storage::GetReferenceFromUrl(): URL '%s' does not match the "
         "Storage URL.",
         url);
-    util::CheckAndClearJniExceptions(env);
     return nullptr;
   }
   StorageReferenceInternal* internal = new StorageReferenceInternal(
@@ -426,17 +506,22 @@ double StorageInternal::max_download_retry_time() const {
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxDownloadRetryTimeMillis));
+  util::CheckAndClearJniExceptions(env);
   return millis / 1000.0;
 }
 
 void StorageInternal::set_max_download_retry_time(
     double maxTransferRetrySeconds) {
+  jlong millis = 0;
+  if (!SecondsToMillisClamped(maxTransferRetrySeconds, &millis)) {
+    return;
+  }
   JNIEnv* env = app_->GetJNIEnv();
-  jlong millis = static_cast<jlong>(maxTransferRetrySeconds * 1000.0);
   env->CallVoidMethod(obj_,
                       firebase_storage::GetMethodId(
                           firebase_storage::kSetMaxDownloadRetryTimeMillis),
                       millis);
+  util::CheckAndClearJniExceptions(env);
 }
 
 double StorageInternal::max_upload_retry_time() const {
@@ -444,17 +529,22 @@ double StorageInternal::max_upload_retry_time() const {
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxUploadRetryTimeMillis));
+  util::CheckAndClearJniExceptions(env);
   return millis / 1000.0;
 }
 
 void StorageInternal::set_max_upload_retry_time(
     double maxTransferRetrySeconds) {
+  jlong millis = 0;
+  if (!SecondsToMillisClamped(maxTransferRetrySeconds, &millis)) {
+    return;
+  }
   JNIEnv* env = app_->GetJNIEnv();
-  jlong millis = static_cast<jlong>(maxTransferRetrySeconds * 1000.0);
   env->CallVoidMethod(obj_,
                       firebase_storage::GetMethodId(
                           firebase_storage::kSetMaxUploadRetryTimeMillis),
                       millis);
+  util::CheckAndClearJniExceptions(env);
 }
 
 double StorageInternal::max_operation_retry_time() const {
@@ -462,26 +552,34 @@ double StorageInternal::max_operation_retry_time() const {
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxOperationRetryTimeMillis));
+  util::CheckAndClearJniExceptions(env);
   return millis / 1000.0;
 }
 
 void StorageInternal::set_max_operation_retry_time(
     double maxTransferRetrySeconds) {
+  jlong millis = 0;
+  if (!SecondsToMillisClamped(maxTransferRetrySeconds, &millis)) {
+    return;
+  }
   JNIEnv* env = app_->GetJNIEnv();
-  jlong millis = static_cast<jlong>(maxTransferRetrySeconds * 1000.0);
   env->CallVoidMethod(obj_,
                       firebase_storage::GetMethodId(
                           firebase_storage::kSetMaxOperationRetryTimeMillis),
                       millis);
+  util::CheckAndClearJniExceptions(env);
 }
 
 void StorageInternal::UseEmulator(const char* host, int port) {
+  if (host == nullptr || host[0] == '\0') {
+    LogError("Emulator host cannot be null or empty.");
+    return;
+  }
+  if (port <= 0 || port > 65535) {
+    LogError("Emulator port must be between 1 and 65535.");
+    return;
+  }
   JNIEnv* env = app_->GetJNIEnv();
-  FIREBASE_ASSERT_MESSAGE_RETURN_VOID((host != nullptr && host[0] != '\0'),
-                                      "Emulator host cannot be null or empty.")
-  FIREBASE_ASSERT_MESSAGE_RETURN_VOID(
-      (port > 0), "Emulator port must be a positive number.")
-
   jobject host_string = env->NewStringUTF(host);
   jint port_num = static_cast<jint>(port);
 

@@ -37,17 +37,16 @@ class RestOperation;
 /// StorageReference::GetBytes(), StorageReference::GetFile(),
 /// StorageReference::PutBytes(), or StorageReference::PutFile() to become
 /// associated with it. Each Controller can only be associated with one
-/// operation at a time.
+/// operation at a time. Note that on Android and iOS, only upload operations
+/// support Pause() and Resume(); download operations support Cancel() on all
+/// platforms and Pause()/Resume() on desktop.
 ///
 /// A Controller is also passed as an argument to Listener's callbacks. The
 /// Controller passed to a StorageReference operation is not the same object
 /// passed to Listener callbacks (though it refers to the same operation), so
 /// there are no restrictions on the lifetime of the Controller the user creates
-/// (but the Controller passed into a Listener callbacks should only be used
+/// (but the Controller passed into a Listener callback should only be used
 /// from within that callback).
-///
-/// This class is currently not thread safe and can only be called on the main
-/// thread.
 class Controller {
  public:
   /// @brief Default constructor.
@@ -71,28 +70,30 @@ class Controller {
   /// @returns Reference to the destination Controller.
   Controller& operator=(const Controller& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor. Moving is an efficient operation for
-  /// Controller instances.
+  /// Controller instances. The moved-from Controller becomes invalid.
   ///
   /// @param[in] other Controller to move from.
-  Controller(Controller&& other);
+  Controller(Controller&& other) noexcept;
 
   /// @brief Move assignment operator. Moving is an efficient operation for
-  /// Controller instances.
+  /// Controller instances. The moved-from Controller becomes invalid.
   ///
   /// @param[in] other Controller to move from.
   ///
   /// @returns Reference to the destination Controller.
-  Controller& operator=(Controller&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  Controller& operator=(Controller&& other) noexcept;
 
   /// @brief Pauses the operation currently in progress.
+  ///
+  /// @note On Android and iOS, only upload operations can be paused.
   ///
   /// @returns True if the operation was successfully paused, false otherwise.
   bool Pause();
 
   /// @brief Resumes the operation that is paused.
+  ///
+  /// @note On Android and iOS, only upload operations can be resumed.
   ///
   /// @returns True if the operation was successfully resumed, false otherwise.
   bool Resume();
@@ -103,22 +104,28 @@ class Controller {
   bool Cancel();
 
   /// @brief Returns true if the operation is paused.
+  ///
+  /// @returns True if the operation is currently paused, or false if the
+  /// operation is running, completed, or this Controller is invalid.
   bool is_paused() const;
 
   /// @brief Returns the number of bytes transferred so far.
   ///
-  /// @returns The number of bytes transferred so far.
+  /// @returns The number of bytes transferred so far, or 0 if this Controller
+  /// is invalid.
   int64_t bytes_transferred() const;
 
   /// @brief Returns the total bytes to be transferred.
   ///
-  /// @returns The total bytes to be transferred.  This will return -1 if
-  /// the size of the transfer is unknown.
+  /// @returns The total bytes to be transferred, or -1 if the size of the
+  /// transfer is unknown or this Controller is invalid.
   int64_t total_byte_count() const;
 
   /// @brief Returns the StorageReference associated with this Controller.
   ///
-  /// @returns The StorageReference associated with this Controller.
+  /// @returns The StorageReference associated with this Controller, or an
+  /// invalid StorageReference if this Controller is not associated with an
+  /// operation.
   StorageReference GetReference() const;
 
   /// @brief Returns true if this Controller is valid, false if it is not
@@ -129,6 +136,14 @@ class Controller {
   /// invalid.
   bool is_valid() const;
 
+#ifndef SWIG
+  /// @brief Equality operator.
+  bool operator==(const Controller& other) const;
+
+  /// @brief Inequality operator.
+  bool operator!=(const Controller& other) const { return !(*this == other); }
+#endif  // SWIG
+
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class internal::StorageReferenceInternal;
@@ -136,7 +151,7 @@ class Controller {
   friend class internal::ListenerInternal;
   friend class internal::RestOperation;
 
-  Controller(internal::ControllerInternal* internal);
+  explicit Controller(internal::ControllerInternal* internal);
 
   internal::ControllerInternal* internal_;
   /// @endcond

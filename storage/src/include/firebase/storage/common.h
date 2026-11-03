@@ -47,13 +47,16 @@ enum Error {
   kErrorDownloadSizeExceeded,
   /// User cancelled the operation.
   kErrorCancelled,
+  /// An invalid argument was provided.
+  kErrorInvalidArgument,
 };
 
 /// @brief Get the human-readable error message corresponding to an error code.
 ///
 /// @param[in] error Error code to get the error message for.
 ///
-/// @returns Statically-allocated string describing the error.
+/// @returns Statically-allocated string describing the error, or
+/// `"Unknown error."` if `error` is outside the valid `Error` enumerator range.
 const char* GetErrorMessage(Error error);
 
 }  // namespace storage

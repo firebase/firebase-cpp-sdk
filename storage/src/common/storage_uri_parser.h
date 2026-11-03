@@ -23,9 +23,22 @@ namespace internal {
 
 extern const char* kCloudStorageScheme;
 
+// Decode percent-encoded (%XX) sequences in a URI component.
+std::string PercentDecode(const std::string& input);
+
+// Percent-encode a URI object path component per RFC 3986 (leaving
+// unreserved characters A-Z, a-z, 0-9, '-', '.', '_', '~' unencoded).
+std::string PercentEncode(const std::string& input);
+
 // Validate a URI scheme and extract the bucket / host and path.
 bool UriToComponents(const std::string& url, const char* object_type,
                      std::string* bucket, std::string* path);
+
+inline bool UriToComponents(const char* url, const char* object_type,
+                            std::string* bucket, std::string* path) {
+  if (!url) return false;
+  return UriToComponents(std::string(url), object_type, bucket, path);
+}
 
 }  // namespace internal
 }  // namespace storage

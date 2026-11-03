@@ -15,23 +15,49 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_CONTROLLER_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_CONTROLLER_DESKTOP_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <memory>
+#include <mutex>
 
-#include "app/rest/controller_curl.h"
-#include "app/rest/request_binary.h"
-#include "app/rest/response_binary.h"
-#include "app/rest/transport_builder.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
-class RestOperation;
+// Shared, rebindable target for the Controller of an operation that may be
+// retried. Every attempt publishes its RestOperation handle here so that all
+// copies of the user's Controller always act on the current attempt, and a
+// Cancel() also stops any further retries.
+class ControllerBinding {
+ public:
+  ControllerBinding() = default;
+  ControllerBinding(const ControllerBinding&) = delete;
+  ControllerBinding& operator=(const ControllerBinding&) = delete;
+
+  // Points the binding at a new attempt. If Cancel() was already called, the
+  // new attempt is cancelled immediately so a racing Cancel() is never lost.
+  void Bind(std::shared_ptr<RestOperation::OperationHandle> handle);
+
+  // Marks the overall operation finished (the user-facing future completed).
+  void MarkFinished();
+
+  // Cancels the current attempt and prevents further retries. Returns true if
+  // the current attempt was cancelled or a pending retry was prevented.
+  bool Cancel();
+
+  // Whether Cancel() has been called.
+  bool is_cancelled() const;
+
+  // Handle of the current attempt, or null if no attempt has been bound.
+  std::shared_ptr<RestOperation::OperationHandle> current() const;
+
+ private:
+  mutable std::mutex mutex_;
+  std::shared_ptr<RestOperation::OperationHandle> current_;
+  bool cancelled_ = false;
+  bool finished_ = false;
+};
 
 class ControllerInternal {
  public:
@@ -42,6 +68,10 @@ class ControllerInternal {
   ControllerInternal(const ControllerInternal& other);
 
   ControllerInternal& operator=(const ControllerInternal& other);
+
+  ControllerInternal(ControllerInternal&& other) noexcept;
+
+  ControllerInternal& operator=(ControllerInternal&& other) noexcept;
 
   // Pauses the operation currently in progress.
   bool Pause();
@@ -56,44 +86,64 @@ class ControllerInternal {
   bool is_paused() const;
 
   // Returns the number of bytes transferred so far.
-  int64_t bytes_transferred();
+  int64_t bytes_transferred() const;
 
   // Returns the total bytes to be transferred.
-  int64_t total_byte_count();
+  int64_t total_byte_count() const;
 
   // Returns the StorageReference associated with this Controller.
   StorageReferenceInternal* GetReference() const;
 
-  // Returns if a controllerInternal is valid and ready to be used.
-  bool is_valid();
+  // Returns if a ControllerInternal is valid and ready to be used.
+  bool is_valid() const;
 
-  // Initialization.  Done outside the constructor, because the object is owned
+  bool operator==(const ControllerInternal& other) const;
+  bool operator!=(const ControllerInternal& other) const {
+    return !(*this == other);
+  }
+
+  // Initialization. Done outside the constructor, because the object is owned
   // (and constructed) by the caller, but needs to be initialized by the
   // storage library.
-  // reference is copied by this class and operation is referenced.
-  // It's safe for operation to be deleted before this class as this object
-  // registers for cleanup on RestOperation::cleanup().
+  // reference is copied by this class and operation is referenced through its
+  // shared OperationHandle, so it's safe for operation to be deleted before
+  // this class (final byte counts are read from the handle).
+  // Clears any ControllerBinding.
   void Initialize(const StorageReference& reference, RestOperation* operation);
 
+  // Routes Pause/Resume/Cancel/progress queries through `binding` (the current
+  // attempt of a retried operation) instead of the initially bound operation.
+  // Copies of this object share the binding.
+  void SetBinding(std::shared_ptr<ControllerBinding> binding);
+
+  // Handle of the RestOperation this controller was initialized with.
+  std::shared_ptr<RestOperation::OperationHandle> operation_handle() const;
+
  private:
+  // Returns the handle to act on: the binding's current attempt if bound,
+  // otherwise op_handle_.
+  std::shared_ptr<RestOperation::OperationHandle> CurrentHandle() const;
+
   // Update the internal state from the operation optionally returning
   // the current transfer state.
-  void UpdateFromOperation(int64_t* transferred, int64_t* total);
+  void UpdateFromOperation(int64_t* transferred, int64_t* total) const;
 
-  // Remove rest operation reference from this controller.
-  static void RemoveRestOperationReference(void* object);
+  // Reads the current (or, once the operation is gone, final) byte counts
+  // from handle under handle.mutex.
+  static void ReadHandle(RestOperation::OperationHandle& handle,
+                         int64_t* transferred, int64_t* total);
 
- private:
-  // Guards reference_ and operation_.
+  // Guards reference_, op_handle_, binding_, bytes_transferred_,
+  // total_byte_count_, and is_valid_.
   mutable Mutex mutex_;
+  std::shared_ptr<ControllerBinding> binding_;
   StorageReference reference_;
-  RestOperation* operation_;
-  int64_t bytes_transferred_;
-  int64_t total_byte_count_;
+  std::shared_ptr<RestOperation::OperationHandle> op_handle_;
+  mutable int64_t bytes_transferred_ = 0;
+  mutable int64_t total_byte_count_ = -1;
+  bool is_valid_ = false;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal
 
 #endif  // FIREBASE_STORAGE_SRC_DESKTOP_CONTROLLER_DESKTOP_H_

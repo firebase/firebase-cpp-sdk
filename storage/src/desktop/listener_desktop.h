@@ -15,43 +15,75 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_LISTENER_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_LISTENER_DESKTOP_H_
 
-#include <stdint.h>
+#include <condition_variable>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <vector>
 
-#include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/include/firebase/storage/controller.h"
 #include "storage/src/include/firebase/storage/listener.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
+
+struct ListenerSharedState {
+  std::mutex mutex;
+  std::condition_variable cv;
+  Listener* listener = nullptr;
+  ListenerInternal* listener_internal = nullptr;
+  RestOperation* rest_operation = nullptr;
+  std::shared_ptr<RestOperation::OperationHandle> op_handle;
+  std::vector<std::thread::id> callback_threads;
+  int64_t bytes_transferred = -1;
+  int64_t total_byte_count = -1;
+};
 
 class ListenerInternal {
  public:
+  using SharedState = ListenerSharedState;
+
   explicit ListenerInternal(Listener* listener);
   ~ListenerInternal();
+
+  ListenerInternal(const ListenerInternal&) = delete;
+  ListenerInternal& operator=(const ListenerInternal&) = delete;
+  ListenerInternal(ListenerInternal&&) = delete;
+  ListenerInternal& operator=(ListenerInternal&&) = delete;
+
+  // Detach this listener from any active operation and wait for in-flight
+  // callbacks on other threads to complete.
+  void Detach();
 
   // Notify the listener associated with this class with a progress update.
   // This will debounce updates if the controller doesn't report progress.
   void NotifyProgress(Controller* controller);
+
+  // Takes `state` by value so the shared state stays alive (and is never
+  // reached through a reference into a ListenerInternal) even if the user
+  // callback destroys the ListenerInternal.
+  static void NotifyProgress(std::shared_ptr<SharedState> state,
+                             Controller* controller);
+
+  // Notify the listener that the operation was paused.
+  void NotifyPaused(Controller* controller);
+
+  // See NotifyProgress(std::shared_ptr<SharedState>, Controller*).
+  static void NotifyPaused(std::shared_ptr<SharedState> state,
+                           Controller* controller);
 
   // Attach this listener to the specified rest operation.
   // If the rest operation is destroyed it will remove a reference to this
   // listener.
   void set_rest_operation(RestOperation* operation);
 
+  const std::shared_ptr<SharedState>& shared_state() const { return state_; }
+
  private:
-  Mutex mutex_;
-  Listener* listener_;
-  // Guards rest_operation_.
-  RestOperation* rest_operation_;
-  // Used to debounce the listener.
-  int64_t bytes_transferred_;
-  int64_t total_byte_count_;
+  std::shared_ptr<SharedState> state_;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal
 
 #endif  // FIREBASE_STORAGE_SRC_DESKTOP_LISTENER_DESKTOP_H_

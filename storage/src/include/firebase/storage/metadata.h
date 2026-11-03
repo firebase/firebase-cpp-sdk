@@ -17,10 +17,8 @@
 
 #include <stdint.h>
 
-#include <cassert>
 #include <map>
 #include <string>
-#include <vector>
 
 #include "firebase/internal/common.h"
 
@@ -30,11 +28,9 @@ namespace storage {
 namespace internal {
 class MetadataInternal;
 class MetadataInternalCommon;
-class StorageInternal;
 class StorageReferenceInternal;
 }  // namespace internal
 
-class Storage;
 class StorageReference;
 
 /// @brief Metadata stores default attributes such as size and content type.
@@ -46,10 +42,6 @@ class Metadata {
  public:
   /// @brief Create a default Metadata that you can modify and use.
   Metadata();
-
-#ifdef INTERNAL_EXPERIMENTAL
-  Metadata(internal::MetadataInternal* internal);
-#endif
 
   /// @brief Copy constructor.
   ///
@@ -83,15 +75,22 @@ class Metadata {
   /// @brief Return the owning Google Cloud Storage bucket for the
   /// StorageReference.
   ///
-  /// @returns The owning Google Cloud Storage bucket for the StorageReference.
+  /// @returns The owning Google Cloud Storage bucket for the StorageReference,
+  /// or nullptr if this Metadata is invalid. The returned pointer is valid only
+  /// until this Metadata object is modified or destroyed.
   const char* bucket() const;
 
   /// @brief Set the Cache Control setting of the StorageReference.
+  ///
+  /// @param[in] cache_control Cache-Control header value, or nullptr/empty to
+  /// clear.
   ///
   /// @see https://tools.ietf.org/html/rfc7234#section-5.2
   void set_cache_control(const char* cache_control);
 
   /// @brief Set the Cache Control setting of the StorageReference.
+  ///
+  /// @param[in] cache_control Cache-Control header value.
   ///
   /// @see https://tools.ietf.org/html/rfc7234#section-5.2
   void set_cache_control(const std::string& cache_control) {
@@ -100,17 +99,23 @@ class Metadata {
 
   /// @brief Return the Cache Control setting of the StorageReference.
   ///
-  /// @returns The Cache Control setting of the StorageReference.
+  /// @returns The Cache Control setting of the StorageReference, or nullptr if
+  /// this Metadata is invalid.
   ///
   /// @see https://tools.ietf.org/html/rfc7234#section-5.2
   const char* cache_control() const;
 
   /// @brief Set the content disposition of the StorageReference.
   ///
+  /// @param[in] disposition Content-Disposition header value, or nullptr/empty
+  /// to clear.
+  ///
   /// @see https://tools.ietf.org/html/rfc6266
   void set_content_disposition(const char* disposition);
 
   /// @brief Set the content disposition of the StorageReference.
+  ///
+  /// @param[in] disposition Content-Disposition header value.
   ///
   /// @see https://tools.ietf.org/html/rfc6266
   void set_content_disposition(const std::string& disposition) {
@@ -119,17 +124,23 @@ class Metadata {
 
   /// @brief Return the content disposition of the StorageReference.
   ///
-  /// @returns The content disposition of the StorageReference.
+  /// @returns The content disposition of the StorageReference, or nullptr if
+  /// this Metadata is invalid.
   ///
   /// @see https://tools.ietf.org/html/rfc6266
   const char* content_disposition() const;
 
   /// @brief Set the content encoding for the StorageReference.
   ///
+  /// @param[in] encoding Content-Encoding header value, or nullptr/empty to
+  /// clear.
+  ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.11
   void set_content_encoding(const char* encoding);
 
   /// @brief Set the content encoding for the StorageReference.
+  ///
+  /// @param[in] encoding Content-Encoding header value.
   ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.11
   void set_content_encoding(const std::string& encoding) {
@@ -138,39 +149,48 @@ class Metadata {
 
   /// @brief Return the content encoding for the StorageReference.
   ///
-  /// @returns The content encoding for the StorageReference.
+  /// @returns The content encoding for the StorageReference, or nullptr if this
+  /// Metadata is invalid.
   ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.11
   const char* content_encoding() const;
 
   /// @brief Set the content language for the StorageReference.
   ///
+  /// @param[in] language Content-Language header value (e.g. "en", "es"), or
+  /// nullptr/empty to clear.
+  ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.12
   void set_content_language(const char* language);
 
   /// @brief Set the content language for the StorageReference.
   ///
-  /// This must be an ISO 639-1 two-letter language code.
-  /// E.g. "zh", "es", "en".
+  /// @param[in] language Content-Language header value (e.g. "en", "es").
   ///
-  /// @see https://www.loc.gov/standards/iso639-2/php/code_list.php
+  /// @see https://tools.ietf.org/html/rfc2616#section-14.12
   void set_content_language(const std::string& language) {
     set_content_language(language.c_str());
   }
 
   /// @brief Return the content language for the StorageReference.
   ///
-  /// @returns The content language for the StorageReference.
+  /// @returns The content language for the StorageReference, or nullptr if this
+  /// Metadata is invalid.
   ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.12
   const char* content_language() const;
 
   /// @brief Set the content type of the StorageReference.
   ///
+  /// @param[in] type Content-Type (MIME type) header value, or nullptr/empty to
+  /// clear.
+  ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.17
   void set_content_type(const char* type);
 
   /// @brief Set the content type of the StorageReference.
+  ///
+  /// @param[in] type Content-Type (MIME type) header value.
   ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.17
   void set_content_type(const std::string& type) {
@@ -179,7 +199,8 @@ class Metadata {
 
   /// @brief Return the content type of the StorageReference.
   ///
-  /// @returns The content type of the StorageReference.
+  /// @returns The content type of the StorageReference, or nullptr if this
+  /// Metadata is invalid.
   ///
   /// @see https://tools.ietf.org/html/rfc2616#section-14.17
   const char* content_type() const;
@@ -188,7 +209,7 @@ class Metadata {
   /// since the epoch.
   ///
   /// @returns The time the StorageReference was created in milliseconds since
-  /// the epoch.
+  /// the epoch, or -1 if unset or invalid.
   int64_t creation_time() const;
 
   /// @brief Return a map of custom metadata key value pairs.
@@ -196,32 +217,37 @@ class Metadata {
   /// The pointer returned is only valid during the lifetime of the Metadata
   /// object that owns it.
   ///
-  /// @returns The keys for custom metadata.
+  /// @returns A pointer to the custom metadata map, or nullptr if this Metadata
+  /// is invalid.
   std::map<std::string, std::string>* custom_metadata() const;
 
   // download_url() and download_urls() are deprecated and removed.
   // Please use StorageReference::GetDownloadUrl() instead.
 
-  /// @brief Return a version String indicating what version of the
+  /// @brief Return a version number indicating what version of the
   /// StorageReference.
   ///
-  /// @returns A value indicating the version of the StorageReference.
+  /// @returns A value indicating the version of the StorageReference, or -1 if
+  /// unset or invalid.
   int64_t generation() const;
 
-  /// @brief Return a version String indicating the version of this
+  /// @brief Return a version number indicating the version of this
   /// StorageMetadata.
   ///
-  /// @returns A value indicating the version of this StorageMetadata.
+  /// @returns A value indicating the version of this StorageMetadata, or -1 if
+  /// unset or invalid.
   int64_t metadata_generation() const;
 
   /// @brief Return a simple name of the StorageReference object.
   ///
-  /// @returns A simple name of the StorageReference object.
+  /// @returns A simple name of the StorageReference object, or nullptr if this
+  /// Metadata is invalid.
   const char* name() const;
 
   /// @brief Return the path of the StorageReference object.
   ///
-  /// @returns The path of the StorageReference object.
+  /// @returns The path of the StorageReference object, or nullptr if this
+  /// Metadata is invalid.
   const char* path() const;
 
   /// @brief Return the associated StorageReference to which this Metadata
@@ -234,19 +260,22 @@ class Metadata {
 
   /// @brief Return the stored Size in bytes of the StorageReference object.
   ///
-  /// @returns The stored Size in bytes of the StorageReference object.
+  /// @returns The stored Size in bytes of the StorageReference object, or -1 if
+  /// unset or invalid.
   int64_t size_bytes() const;
 
   /// @brief Return the time the StorageReference was last updated in
   /// milliseconds since the epoch.
   ///
-  /// @return The time the StorageReference was last updated in milliseconds
-  /// since the epoch.
+  /// @returns The time the StorageReference was last updated in milliseconds
+  /// since the epoch, or -1 if unset or invalid.
   int64_t updated_time() const;
 
   /// @brief Returns true if this Metadata is valid, false if it is not
-  /// valid. An invalid Metadata is returned when a method such as
-  /// StorageReference::GetMetadata() completes with an error.
+  /// valid. A default-constructed Metadata is valid so it can be populated and
+  /// passed to PutBytes/PutFile/UpdateMetadata. An invalid Metadata is returned
+  /// when a method such as StorageReference::GetMetadata() completes with an
+  /// error, or after a Metadata instance has been moved from.
   ///
   /// @returns true if this Metadata is valid, false if this Metadata is
   /// invalid.
@@ -254,8 +283,17 @@ class Metadata {
 
   /// @brief MD5 hash of the data; encoded using base64.
   ///
-  /// @returns MD5 hash of the data; encoded using base64.
+  /// @returns MD5 hash of the data; encoded using base64, or nullptr if this
+  /// Metadata is invalid.
   const char* md5_hash() const;
+
+#ifndef SWIG
+  /// @brief Equality operator.
+  bool operator==(const Metadata& other) const;
+
+  /// @brief Inequality operator.
+  bool operator!=(const Metadata& other) const { return !(*this == other); }
+#endif  // SWIG
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
@@ -264,9 +302,7 @@ class Metadata {
   friend class internal::MetadataInternalCommon;
   friend class internal::StorageReferenceInternal;
 
-#ifndef INTERNAL_EXPERIMENTAL
-  Metadata(internal::MetadataInternal* internal);
-#endif
+  explicit Metadata(internal::MetadataInternal* internal);
 
   internal::MetadataInternal* internal_;
   /// @endcond

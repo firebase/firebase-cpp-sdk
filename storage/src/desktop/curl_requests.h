@@ -15,26 +15,28 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_CURL_REQUESTS_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_CURL_REQUESTS_H_
 
+#include <atomic>
+#include <cstddef>
 #include <fstream>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "app/rest/request.h"
 #include "app/rest/request_binary.h"
 #include "app/rest/request_file.h"
-#include "app/rest/response_binary.h"
-#include "app/rest/transport_builder.h"
+#include "app/rest/response.h"
 #include "app/rest/util.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/semaphore.h"
-#include "storage/src/desktop/listener_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage/common.h"
-#include "storage/src/include/firebase/storage/controller.h"
-#include "storage/src/include/firebase/storage/listener.h"
+#include "storage/src/include/firebase/storage/list_result.h"
+#include "storage/src/include/firebase/storage/metadata.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
 // Notifies a subscriber via Notifier::UpdateCallback of UpdateCallbackType
 // events (completion, cancelation and progress of a transfer).
@@ -48,14 +50,14 @@ class Notifier {
     kUpdateCallbackTypeProgress,
   };
 
-  // Used to notify a subscriber of an update to the response state,
-  typedef void (*UpdateCallback)(UpdateCallbackType update_type, void* data);
+  // Used to notify a subscriber of an update to the response state.
+  using UpdateCallback = void (*)(UpdateCallbackType update_type, void* data);
 
- public:
-  Notifier() : update_callback_(nullptr), update_callback_data_(nullptr) {}
+  Notifier() = default;
 
   // Set the callback to be notified about this object.
   void set_update_callback(UpdateCallback callback, void* callback_data) {
+    MutexLock lock(mutex_);
     update_callback_ = callback;
     update_callback_data_ = callback_data;
   }
@@ -64,83 +66,74 @@ class Notifier {
   // This should be the last thing a request calls.
   // This *must* be performed at a point where it's possible to delete this
   // object.
-  void NotifyComplete() {
-    if (update_callback_) {
-      update_callback_(kUpdateCallbackTypeComplete, update_callback_data_);
-    }
-  }
+  void NotifyComplete() { Notify(kUpdateCallbackTypeComplete); }
+
   // Report failure of this response.
   // This *must* be performed at a point where it's possible to delete this
   // object.
-  void NotifyFailed() {
-    if (update_callback_) {
-      update_callback_(kUpdateCallbackTypeFailed, update_callback_data_);
-    }
-  }
+  void NotifyFailed() { Notify(kUpdateCallbackTypeFailed); }
 
   // Convenience function to perform null checks and update the listener when
   // progress has happened.
-  void NotifyProgress() {
-    if (update_callback_) {
-      update_callback_(kUpdateCallbackTypeProgress, update_callback_data_);
+  void NotifyProgress() { Notify(kUpdateCallbackTypeProgress); }
+
+ private:
+  void Notify(UpdateCallbackType type) {
+    UpdateCallback callback = nullptr;
+    void* data = nullptr;
+    {
+      MutexLock lock(mutex_);
+      callback = update_callback_;
+      data = update_callback_data_;
+    }
+    if (callback) {
+      callback(type, data);
     }
   }
 
- private:
-  UpdateCallback update_callback_;
-  void* update_callback_data_;
+  mutable Mutex mutex_;
+  UpdateCallback update_callback_ = nullptr;
+  void* update_callback_data_ = nullptr;
 };
 
-// Generates the common body of a request class.
-#define FIREBASE_STORAGE_REQUEST_CLASS_BODY(base_class_name)             \
-  Notifier* notifier() { return &notifier_; }                            \
-                                                                         \
-  void MarkCompleted() override {                                        \
-    notifier_.NotifyProgress();                                          \
-    notifier_.NotifyComplete();                                          \
-    base_class_name::MarkCompleted();                                    \
-  }                                                                      \
-                                                                         \
-  void MarkFailed() override {                                           \
-    notifier_.NotifyProgress();                                          \
-    notifier_.NotifyFailed();                                            \
-    base_class_name::MarkFailed();                                       \
-  }                                                                      \
-                                                                         \
-  size_t ReadBody(char* buffer, size_t length, bool* abort) override {   \
-    size_t read_size = base_class_name::ReadBody(buffer, length, abort); \
-    notifier_.NotifyProgress();                                          \
-    return read_size;                                                    \
-  }                                                                      \
-                                                                         \
- protected:                                                              \
-  Notifier notifier_
+// C++17 mixin that wraps a rest::Request base class with Notifier callbacks.
+template <typename Base>
+class NotifyingRequest : public Base {
+ public:
+  using Base::Base;
+
+  Notifier* notifier() { return &notifier_; }
+
+  void MarkCompleted() override {
+    Base::MarkCompleted();
+    notifier_.NotifyProgress();
+    notifier_.NotifyComplete();
+  }
+
+  void MarkFailed() override {
+    Base::MarkFailed();
+    notifier_.NotifyProgress();
+    notifier_.NotifyFailed();
+  }
+
+  size_t ReadBody(char* buffer, size_t length, bool* abort) override {
+    size_t read_size = Base::ReadBody(buffer, length, abort);
+    notifier_.NotifyProgress();
+    return read_size;
+  }
+
+ protected:
+  Notifier notifier_;
+};
 
 // Base request.
-class Request : public rest::Request {
- public:
-  Request() {}
-
-  FIREBASE_STORAGE_REQUEST_CLASS_BODY(rest::Request);
-};
+using Request = NotifyingRequest<rest::Request>;
 
 // Reads from the specified buffer.
-class RequestBinary : public rest::RequestBinary {
- public:
-  RequestBinary(const char* buffer, size_t buffer_size)
-      : rest::RequestBinary(buffer, buffer_size) {}
-
-  FIREBASE_STORAGE_REQUEST_CLASS_BODY(rest::RequestBinary);
-};
+using RequestBinary = NotifyingRequest<rest::RequestBinary>;
 
 // Reads from a file.
-class RequestFile : public rest::RequestFile {
- public:
-  RequestFile(const char* filename, size_t offset)
-      : rest::RequestFile(filename, offset) {}
-
-  FIREBASE_STORAGE_REQUEST_CLASS_BODY(rest::RequestFile);
-};
+using RequestFile = NotifyingRequest<rest::RequestFile>;
 
 // TODO(b/68854714): merge with the blocking response in query_desktop.
 // b/68854714
@@ -149,10 +142,10 @@ class BlockingResponse : public rest::Response {
   // ref_future must be allocated using FutureManager to ensure ref_future
   // remains valid while the future handle isn't complete.
   BlockingResponse(FutureHandle handle, ReferenceCountedFutureImpl* ref_future);
-  virtual ~BlockingResponse();
+  ~BlockingResponse() override;
 
   // NOTE: This does *not* call the UpdateCallback.  Each subclass needs to
-  // manually complete with NotifyComplete.
+  // manually complete with NotifyComplete or NotifyFailed.
   void MarkCompleted() override;
 
   // NOTE: This calls NotifyFailed which will notify the UpdateCallback with
@@ -163,6 +156,12 @@ class BlockingResponse : public rest::Response {
   void set_update_callback(Notifier::UpdateCallback callback,
                            void* callback_data) {
     notifier_.set_update_callback(callback, callback_data);
+  }
+
+  // Optional shared atomic to record the final HTTP status code before the
+  // response may be destroyed by CleanupCompletedOperations.
+  void set_http_status_out(std::shared_ptr<std::atomic<int>> http_status_out) {
+    out_http_status_ = std::move(http_status_out);
   }
 
  protected:
@@ -178,12 +177,19 @@ class BlockingResponse : public rest::Response {
   // progress has happened.
   void NotifyProgress() { notifier_.NotifyProgress(); }
 
+  void RecordHttpStatus() {
+    if (out_http_status_) {
+      out_http_status_->store(status());
+    }
+  }
+
+  FutureHandle handle_;
+  ReferenceCountedFutureImpl* ref_future_ = nullptr;
+  bool completed_or_failed_ = false;
+
  private:
   Notifier notifier_;
-
- protected:
-  FutureHandle handle_;
-  ReferenceCountedFutureImpl* ref_future_;
+  std::shared_ptr<std::atomic<int>> out_http_status_;
 };
 
 // Response class for operations that don't return any data.  (i. e. delete.)
@@ -209,11 +215,14 @@ class GetBytesResponse : public BlockingResponse {
                    ReferenceCountedFutureImpl* ref_future);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
+  void MarkFailed() override;
 
  private:
-  void* output_buffer_;
-  size_t buffer_size_;
-  size_t buffer_index_;
+  void* output_buffer_ = nullptr;
+  size_t buffer_size_ = 0;
+  size_t buffer_index_ = 0;
+  std::string error_buffer_;
+  bool buffer_overflow_ = false;
 };
 
 // Response for downloading a storage resource directly into a file.
@@ -225,12 +234,14 @@ class GetFileResponse : public BlockingResponse {
                   ReferenceCountedFutureImpl* ref_future);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
+  void MarkFailed() override;
 
  private:
   std::string filename_;
   std::string error_buffer_;
   std::fstream file_;
-  size_t bytes_written_;
+  size_t bytes_written_ = 0;
+  bool file_error_ = false;
 };
 
 // Response for any operation that returns a blob of text that we need
@@ -260,7 +271,7 @@ class ReturnedListResponse : public BlockingResponse {
 
  private:
   std::string buffer_;
-  StorageInternal* storage_;
+  std::shared_ptr<StorageInternal::LifetimeToken> storage_token_;
 };
 
 // Utility class for parsing a Storage REST error response (in JSON form) and
@@ -269,29 +280,26 @@ class ReturnedListResponse : public BlockingResponse {
 // have the following format:
 //
 //  {
-//    {
-//      "error": {
+//    "error": {
 //      "code": 403,
 //      "message": "Permission denied. Could not perform this operation"
 //    }
 //  }
-class StorageNetworkError : rest::util::JsonData {
+class StorageNetworkError : private rest::util::JsonData {
  public:
-  StorageNetworkError() : error_code_(0), is_valid_(false) {}
+  StorageNetworkError() = default;
 
   bool Parse(const char* json_txt) override;
   int error_code() const { return error_code_; }
-  std::string error_message() const { return error_message_; }
+  const std::string& error_message() const { return error_message_; }
   bool is_valid() override { return is_valid_; }
 
  private:
-  int error_code_;
+  int error_code_ = 0;
   std::string error_message_;
-  bool is_valid_;
+  bool is_valid_ = false;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal
 
 #endif  // FIREBASE_STORAGE_SRC_DESKTOP_CURL_REQUESTS_H_

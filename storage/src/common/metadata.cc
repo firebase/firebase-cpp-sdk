@@ -15,6 +15,7 @@
 #include "storage/src/include/firebase/storage/metadata.h"
 
 #include <cstdint>
+#include <cstring>
 
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
@@ -88,9 +89,9 @@ Metadata::Metadata() : internal_(new MetadataInternal(nullptr)) {
   MetadataInternalCommon::RegisterForCleanup(this, internal_);
 }
 
-Metadata::Metadata(const Metadata& src) {
-  internal_ = src.internal_ ? new MetadataInternal(*src.internal_)
-                            : new MetadataInternal(nullptr);
+Metadata::Metadata(const Metadata& src)
+    : internal_(src.internal_ ? new MetadataInternal(*src.internal_)
+                              : nullptr) {
   MetadataInternalCommon::RegisterForCleanup(this, internal_);
 }
 
@@ -99,6 +100,9 @@ Metadata::Metadata(MetadataInternal* internal) : internal_(internal) {
 }
 
 Metadata& Metadata::operator=(const Metadata& src) {
+  if (this == &src) {
+    return *this;
+  }
   MetadataInternalCommon::DeleteInternal(this);
   internal_ = src.internal_ ? new MetadataInternal(*src.internal_) : nullptr;
   MetadataInternalCommon::RegisterForCleanup(this, internal_);
@@ -113,6 +117,9 @@ Metadata::Metadata(Metadata&& other) : internal_(other.internal_) {
 }
 
 Metadata& Metadata::operator=(Metadata&& other) {
+  if (this == &other) {
+    return *this;
+  }
   MetadataInternalCommon::DeleteInternal(this);
   MetadataInternalCommon::UnregisterForCleanup(&other, other.internal_);
   internal_ = other.internal_;
@@ -179,7 +186,7 @@ const char* Metadata::content_type() const {
 }
 
 int64_t Metadata::creation_time() const {
-  return internal_ ? internal_->creation_time() : 0;
+  return internal_ ? internal_->creation_time() : -1;
 }
 
 std::map<std::string, std::string>* Metadata::custom_metadata() const {
@@ -187,11 +194,11 @@ std::map<std::string, std::string>* Metadata::custom_metadata() const {
 }
 
 int64_t Metadata::generation() const {
-  return internal_ ? internal_->generation() : 0;
+  return internal_ ? internal_->generation() : -1;
 }
 
 int64_t Metadata::metadata_generation() const {
-  return internal_ ? internal_->metadata_generation() : 0;
+  return internal_ ? internal_->metadata_generation() : -1;
 }
 
 const char* Metadata::name() const {
@@ -219,6 +226,49 @@ bool Metadata::is_valid() const { return internal_ != nullptr; }
 
 const char* Metadata::md5_hash() const {
   return internal_ ? internal_->md5_hash() : nullptr;
+}
+
+static bool NullableStrEqual(const char* a, const char* b) {
+  const char* safe_a = a ? a : "";
+  const char* safe_b = b ? b : "";
+  return std::strcmp(safe_a, safe_b) == 0;
+}
+
+bool Metadata::operator==(const Metadata& other) const {
+  if (is_valid() != other.is_valid()) {
+    return false;
+  }
+  if (!is_valid()) {
+    return true;
+  }
+  if (!NullableStrEqual(bucket(), other.bucket()) ||
+      !NullableStrEqual(cache_control(), other.cache_control()) ||
+      !NullableStrEqual(content_disposition(), other.content_disposition()) ||
+      !NullableStrEqual(content_encoding(), other.content_encoding()) ||
+      !NullableStrEqual(content_language(), other.content_language()) ||
+      !NullableStrEqual(content_type(), other.content_type()) ||
+      !NullableStrEqual(name(), other.name()) ||
+      !NullableStrEqual(path(), other.path()) ||
+      !NullableStrEqual(md5_hash(), other.md5_hash()) ||
+      creation_time() != other.creation_time() ||
+      updated_time() != other.updated_time() ||
+      generation() != other.generation() ||
+      metadata_generation() != other.metadata_generation() ||
+      size_bytes() != other.size_bytes()) {
+    return false;
+  }
+  const auto* cm_a = custom_metadata();
+  const auto* cm_b = other.custom_metadata();
+  if (!cm_a && !cm_b) {
+    return true;
+  }
+  if (!cm_a) {
+    return cm_b->empty();
+  }
+  if (!cm_b) {
+    return cm_a->empty();
+  }
+  return *cm_a == *cm_b;
 }
 
 }  // namespace storage

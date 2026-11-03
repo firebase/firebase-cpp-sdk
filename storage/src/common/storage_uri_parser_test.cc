@@ -15,6 +15,7 @@
 #include "storage/src/common/storage_uri_parser.h"
 
 #include <cstddef>
+#include <string>
 
 #include "app/src/include/firebase/internal/common.h"
 #include "gmock/gmock.h"
@@ -34,8 +35,18 @@ struct UriAndComponents {
 };
 
 TEST(StorageUriParserTest, TestInvalidUris) {
+  EXPECT_FALSE(UriToComponents(nullptr, "test", nullptr, nullptr));
   EXPECT_FALSE(UriToComponents("", "test", nullptr, nullptr));
   EXPECT_FALSE(UriToComponents("invalid://uri", "test", nullptr, nullptr));
+  EXPECT_FALSE(UriToComponents("gs://", "test", nullptr, nullptr));
+  EXPECT_FALSE(UriToComponents("gs:///", "test", nullptr, nullptr));
+  EXPECT_FALSE(UriToComponents("gs:///object", "test", nullptr, nullptr));
+  EXPECT_FALSE(UriToComponents(
+      "https://firebasestorage.googleapis.com/v0/b/", "test", nullptr,
+      nullptr));
+  EXPECT_FALSE(UriToComponents(
+      "https://firebasestorage.googleapis.com/v0/b//o/obj", "test", nullptr,
+      nullptr));
 }
 
 TEST(StorageUriParserTest, TestValidUris) {
@@ -103,6 +114,13 @@ TEST(StorageUriParserTest, TestExtractGsSchemeComponents) {
           "somebucket",
           "/a/path/to/an/object",
       },
+      {
+          // gs:// URIs are not URL-encoded: '?' and '#' are literal
+          // object-name characters and must be preserved.
+          "gs://somebucket/a/path/to/an/object?generation=123#frag",
+          "somebucket",
+          "/a/path/to/an/object?generation=123#frag",
+      },
   };
   ExtractComponents(kTestParams, FIREBASE_ARRAYSIZE(kTestParams), "gsscheme");
 }
@@ -143,6 +161,12 @@ TEST(StorageUriParserTest, TestExtractHttpHttpsSchemeComponents) {
           "https://firebasestorage.googleapis.com/v0/b/somebucket/o/an/object/",
           "somebucket",
           "/an/object",
+      },
+      {
+          "https://firebasestorage.googleapis.com/v0/b/somebucket/o/"
+          "dir%2Fsub%2Ffile%20name.txt?alt=media&token=123#frag",
+          "somebucket",
+          "/dir/sub/file name.txt",
       },
   };
   ExtractComponents(kTestParams, FIREBASE_ARRAYSIZE(kTestParams), "http(s)");

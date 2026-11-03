@@ -75,5 +75,25 @@ const std::string& StorageListResult::next_page_token() const {
 
 bool StorageListResult::is_valid() const { return internal_ != nullptr; }
 
+std::string StorageListResult::ToString() const {
+  if (!is_valid()) {
+    return "StorageListResult(invalid)";
+  }
+  return "StorageListResult(prefixes=" + std::to_string(prefixes().size()) +
+         ", items=" + std::to_string(items().size()) +
+         ", next_page_token=\"" + next_page_token() + "\")";
+}
+
+bool StorageListResult::operator==(const StorageListResult& other) const {
+  if (is_valid() != other.is_valid()) {
+    return false;
+  }
+  if (!is_valid()) {
+    return true;
+  }
+  return prefixes() == other.prefixes() && items() == other.items() &&
+         next_page_token() == other.next_page_token();
+}
+
 }  // namespace storage
 }  // namespace firebase

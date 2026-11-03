@@ -15,6 +15,7 @@
 firebase_cpp_cc_test(
   firebase_storage_desktop_utils_test
   SOURCES
+    ../src/common/storage_uri_parser_test.cc
     desktop/storage_desktop_utils_tests.cc
   DEPENDS
     firebase_app_for_testing
@@ -22,4 +23,3 @@ firebase_cpp_cc_test(
     firebase_storage
     firebase_testing
 )
-

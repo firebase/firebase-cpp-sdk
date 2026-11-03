@@ -17,13 +17,23 @@
 
 #import <Foundation/Foundation.h>
 
+#include <string>
+
 #include "storage/src/include/firebase/storage/common.h"
 
 namespace firebase {
 namespace storage {
 namespace internal {
 
-Error NSErrorToErrorCode(NSError* error);
+Error NSErrorToErrorCode(NSError* _Nullable error);
+
+std::string GetNSErrorMessage(NSError* _Nullable error, Error code);
+
+// Returns a copy of `exception.reason` as a UTF-8 std::string, or
+// "Unknown exception" if the exception, its reason, or the reason's UTF-8
+// representation is unavailable. The copy is made while the reason NSString is
+// held in a strong local, so the result never refers to a released buffer.
+std::string GetNSExceptionReason(NSException* _Nullable exception);
 
 }  // namespace internal
 }  // namespace storage

@@ -15,18 +15,24 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
 
+#include <atomic>
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <string>
 
+#include "app/rest/request.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "storage/src/desktop/curl_requests.h"
 #include "storage/src/desktop/storage_path.h"
+#include "storage/src/include/firebase/storage/controller.h"
+#include "storage/src/include/firebase/storage/list_result.h"
+#include "storage/src/include/firebase/storage/listener.h"
+#include "storage/src/include/firebase/storage/metadata.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
@@ -46,20 +52,30 @@ enum StorageReferenceFn {
   kStorageReferenceFnPutFileInternal,
   kStorageReferenceFnList,
   kStorageReferenceFnListInternal,
+  kStorageReferenceFnListAll,
   kStorageReferenceFnCount,
 };
 
 class BlockingResponse;
-class MetadataChainData;
+class ControllerBinding;
+struct FutureApiOwner;
+struct ListAllChainData;
+struct ListenerSharedState;
+struct MetadataChainData;
 class Notifier;
+class StorageInternal;
 
 class StorageReferenceInternal {
  public:
-  StorageReferenceInternal(const std::string& storageUri,
+  StorageReferenceInternal(const std::string& storage_uri,
                            StorageInternal* storage);
-  StorageReferenceInternal(const StoragePath& storageUri,
+  StorageReferenceInternal(const StoragePath& storage_uri,
                            StorageInternal* storage);
   StorageReferenceInternal(const StorageReferenceInternal& other);
+  StorageReferenceInternal& operator=(const StorageReferenceInternal& other);
+  StorageReferenceInternal(StorageReferenceInternal&& other) noexcept;
+  StorageReferenceInternal& operator=(
+      StorageReferenceInternal&& other) noexcept;
 
   ~StorageReferenceInternal();
 
@@ -76,49 +92,49 @@ class StorageReferenceInternal {
   std::string full_path() const;
 
   // Returns the short name of this object.
-  std::string name();
+  std::string name() const;
 
   // Returns a new instance of StorageReference pointing to the parent location
   // or null if this instance references the root location.
-  StorageReferenceInternal* GetParent();
+  StorageReferenceInternal* GetParent() const;
 
   // Deletes the object at the current path.
   Future<void> Delete();
 
   // Returns the result of the most recent call to Delete();
-  Future<void> DeleteLastResult();
+  Future<void> DeleteLastResult() const;
 
   // Asynchronously downloads the object from this StorageReference.
   Future<size_t> GetFile(const char* path, Listener* listener,
                          Controller* controller_out);
 
   // Returns the result of the most recent call to GetFile();
-  Future<size_t> GetFileLastResult();
+  Future<size_t> GetFileLastResult() const;
 
   // Asynchronously downloads the object from this StorageReference.
   Future<size_t> GetBytes(void* buffer, size_t buffer_size, Listener* listener,
                           Controller* controller_out);
 
   // Returns the result of the most recent call to GetBytes();
-  Future<size_t> GetBytesLastResult();
+  Future<size_t> GetBytesLastResult() const;
 
   // Asynchronously retrieves a long lived download URL with a revokable token.
   Future<std::string> GetDownloadUrl();
 
   // Returns the result of the most recent call to GetDownloadUrl();
-  Future<std::string> GetDownloadUrlLastResult();
+  Future<std::string> GetDownloadUrlLastResult() const;
 
   // Retrieves metadata associated with an object at this StorageReference.
   Future<Metadata> GetMetadata();
 
   // Returns the result of the most recent call to GetMetadata();
-  Future<Metadata> GetMetadataLastResult();
+  Future<Metadata> GetMetadataLastResult() const;
 
   // Updates the metadata associated with this StorageReference.
   Future<Metadata> UpdateMetadata(const Metadata* metadata);
 
   // Returns the result of the most recent call to UpdateMetadata();
-  Future<Metadata> UpdateMetadataLastResult();
+  Future<Metadata> UpdateMetadataLastResult() const;
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
@@ -126,13 +142,13 @@ class StorageReferenceInternal {
                             Listener* listener, Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified StorageReference,
-  // without additional metadata.
+  // with additional metadata.
   Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
                             const Metadata* metadata, Listener* listener,
                             Controller* controller_out);
 
-  // Returns the result of the most recent call to Write();
-  Future<Metadata> PutBytesLastResult();
+  // Returns the result of the most recent call to PutBytes();
+  Future<Metadata> PutBytesLastResult() const;
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
@@ -140,19 +156,25 @@ class StorageReferenceInternal {
                            Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified StorageReference,
-  // without additional metadata.
+  // with additional metadata.
   Future<Metadata> PutFile(const char* path, const Metadata* metadata,
                            Listener* listener, Controller* controller_out);
 
-  // Returns the result of the most recent call to Write();
-  Future<Metadata> PutFileLastResult();
+  // Returns the result of the most recent call to PutFile();
+  Future<Metadata> PutFileLastResult() const;
 
   // List items (files) and prefixes (folders) under this StorageReference.
   Future<StorageListResult> List(int max_results_per_page,
                                  const char* page_token);
 
   // Returns the result of the most recent call to List();
-  Future<StorageListResult> ListLastResult();
+  Future<StorageListResult> ListLastResult() const;
+
+  // List all items (files) and prefixes (folders) under this StorageReference.
+  Future<StorageListResult> ListAll();
+
+  // Returns the result of the most recent call to ListAll();
+  Future<StorageListResult> ListAllLastResult() const;
 
   // Pointer to the StorageInternal instance we are a part of.
   StorageInternal* storage_internal() const { return storage_; }
@@ -162,25 +184,34 @@ class StorageReferenceInternal {
   StorageReference AsStorageReference() const;
 
  private:
-  // Function type that sends a Rest Request and returns the BlockingResponse.
-  typedef std::function<BlockingResponse*()> SendRequestFunct;
+  struct RequestAttempt {
+    FutureBase future;
+    std::shared_ptr<std::atomic<int>> http_status;
+    bool local_failure = false;
+  };
+
+  // Function type that sends a REST request and returns its RequestAttempt
+  // handle and shared HTTP status cell.
+  using SendRequestFunct =
+      std::function<RequestAttempt(Controller* attempt_controller_out)>;
 
   template <typename FutureType>
-  void SendRequestWithRetry(StorageReferenceFn internal_function_reference,
-                            SendRequestFunct send_request_funct,
+  void SendRequestWithRetry(SendRequestFunct send_request_funct,
                             SafeFutureHandle<FutureType> final_handle,
-                            double max_retry_time_seconds);
+                            double max_retry_time_seconds,
+                            Controller* controller_out = nullptr);
 
   template <typename FutureType>
-  void AsyncSendRequestWithRetry(StorageReferenceFn internal_function_reference,
-                                 SendRequestFunct send_request_funct,
-                                 SafeFutureHandle<FutureType> final_handle,
-                                 BlockingResponse* response,
-                                 double max_retry_time_seconds);
+  static void AsyncSendRequestWithRetry(
+      StorageReference self_ref,
+      std::shared_ptr<FutureApiOwner> future_api_owner,
+      SendRequestFunct send_request_funct,
+      SafeFutureHandle<FutureType> final_handle, RequestAttempt first_attempt,
+      double max_retry_time_seconds, bool retry_all_errors,
+      std::shared_ptr<ControllerBinding> binding);
 
-  // Returns whether or not an HTTP status or future error indicates a retryable
-  // failure.
-  static bool IsRetryableFailure(int httpStatus);
+  // Returns whether or not an HTTP status indicates a retryable failure.
+  static bool IsRetryableFailure(int http_status, bool retry_all_errors);
 
   // Upload data without metadata.
   Future<Metadata> PutBytesInternal(const void* buffer, size_t buffer_size,
@@ -192,29 +223,33 @@ class StorageReferenceInternal {
                                    Controller* controller_out,
                                    const char* content_type = nullptr);
 
-  void RestCall(rest::Request* request, internal::Notifier* request_notifier,
+  void RestCall(rest::Request* request, Notifier* request_notifier,
                 BlockingResponse* response, FutureHandle handle,
-                Listener* listener, Controller* controller_out);
+                Listener* listener,
+                const std::shared_ptr<ListenerSharedState>& listener_state,
+                Controller* controller_out);
 
   void PrepareRequestBlocking(rest::Request* request, const char* url,
                               const char* method,
                               const char* content_type = nullptr);
 
   void SetupMetadataChain(Future<Metadata> starting_future,
-                          MetadataChainData* data);
+                          const std::shared_ptr<MetadataChainData>& data);
 
-  ReferenceCountedFutureImpl* future();
+  static void ContinueListAll(Future<StorageListResult> page_future,
+                              const std::shared_ptr<ListAllChainData>& data);
+
+  ReferenceCountedFutureImpl* future() const;
 
   // Storage references are frequently duplicated.  Please avoid storing any
   // more state in them than is absolutely necessary, as it will be multiplied
   // over many allocations/copies.
 
-  StorageInternal* storage_;
-  StoragePath storageUri_;
+  StorageInternal* storage_ = nullptr;
+  StoragePath storage_uri_;
+  std::shared_ptr<FutureApiOwner> future_api_owner_;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal
 
 #endif  // FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_

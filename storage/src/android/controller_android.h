@@ -16,14 +16,17 @@
 #define FIREBASE_STORAGE_SRC_ANDROID_CONTROLLER_ANDROID_H_
 
 #include <jni.h>
-#include <stdint.h>
+
+#include <cstdint>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_reference_android.h"
 
 namespace firebase {
 namespace storage {
+class Listener;
 namespace internal {
 
 // Used for StorageTask.
@@ -84,6 +87,16 @@ class ControllerInternal {
 
   ControllerInternal& operator=(const ControllerInternal& other);
 
+  ControllerInternal(ControllerInternal&& other) noexcept;
+
+  ControllerInternal& operator=(ControllerInternal&& other) noexcept;
+
+  bool operator==(const ControllerInternal& other) const;
+
+  bool operator!=(const ControllerInternal& other) const {
+    return !(*this == other);
+  }
+
   // Pauses the operation currently in progress.
   bool Pause();
 
@@ -116,21 +129,59 @@ class ControllerInternal {
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
-  // Instantiate a ControllerInternal from a task snapshot by calling getTask on
-  // the snapshot. Returns nullptr if the type was unknown.
-  static ControllerInternal* ControllerFromTaskSnapshot(
-      StorageInternal* storage, jobject task_snapshot_obj);
+  static void RegisterActiveListener(StorageInternal* storage,
+                                     Listener* listener);
+  static void UnregisterActiveListener(StorageInternal* storage,
+                                       Listener* listener);
 
   static void CppStorageListenerCallback(JNIEnv* env, jclass clazz,
                                          jlong storage_ptr, jlong listener_ptr,
                                          jobject snapshot,
                                          jboolean is_on_paused);
 
-  bool is_valid() { return storage_ != nullptr && task_obj_ != nullptr; }
+  bool is_valid() const {
+    ControllerLock lock(mutex_);
+    return storage_ != nullptr && task_obj_ != nullptr;
+  }
 
  private:
-  StorageInternal* storage_;
-  jobject task_obj_;
+  using ControllerLock = std::lock_guard<std::recursive_mutex>;
+
+  // State shared with the cleanup callback registered on
+  // StorageInternal::cleanup().
+  //
+  // * `self` is cleared by the destructor under `mutex`; this blocks until any
+  //   in-flight callback has finished, and the callback is a no-op once
+  //   `self` is null.
+  // * CleanupNotifier::UnregisterObject() blocks while this object's callback
+  //   is running on another thread. Every Register/Unregister here happens
+  //   while holding `ControllerInternal::mutex_`, so the callback must never
+  //   block on `mutex_`: it only try-locks it, and if an unregistration is in
+  //   progress (`unregistering > 0`) it records the dying StorageInternal in
+  //   `dying_storage` and returns. UnregisterCleanupLocked() then releases the
+  //   binding itself without touching the dying StorageInternal.
+  struct CleanupGuard {
+    explicit CleanupGuard(ControllerInternal* owner) : self(owner) {}
+    std::mutex mutex;
+    ControllerInternal* self;
+    std::atomic<int> unregistering{0};
+    std::atomic<StorageInternal*> dying_storage{nullptr};
+  };
+
+  void UnregisterCleanupLocked();
+  void RegisterCleanupLocked();
+  // Deletes task_obj_ (if any) using the cached JavaVM, without dereferencing
+  // storage_. Must be called with mutex_ held.
+  void ReleaseTaskObjLocked();
+
+  mutable std::recursive_mutex mutex_;
+  StorageInternal* storage_ = nullptr;
+  jobject task_obj_ = nullptr;
+  // Cached from storage_->app() so global refs can be released even while the
+  // StorageInternal is being destroyed.
+  JavaVM* java_vm_ = nullptr;
+  std::shared_ptr<CleanupGuard> cleanup_guard_ =
+      std::make_shared<CleanupGuard>(this);
 };
 
 }  // namespace internal

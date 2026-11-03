@@ -28,8 +28,7 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
-namespace firebase {
-namespace storage {
+namespace firebase::storage {
 
 Controller::Controller() : internal_(new internal::ControllerInternal()) {}
 
@@ -42,29 +41,35 @@ Controller::Controller(const Controller& other)
                     : nullptr) {}
 
 Controller& Controller::operator=(const Controller& other) {
-  if (internal_) delete internal_;
-  internal_ = other.internal_
-                  ? new internal::ControllerInternal(*other.internal_)
-                  : nullptr;
+  if (this == &other) {
+    return *this;
+  }
+  internal::ControllerInternal* new_internal =
+      other.internal_ ? new internal::ControllerInternal(*other.internal_)
+                      : nullptr;
+  delete internal_;
+  internal_ = new_internal;
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-Controller::Controller(Controller&& other) {
-  internal_ = other.internal_;
+Controller::Controller(Controller&& other) noexcept
+    : internal_(other.internal_) {
   other.internal_ = nullptr;
 }
 
-Controller& Controller::operator=(Controller&& other) {
-  if (internal_) delete internal_;
+Controller& Controller::operator=(Controller&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+  delete internal_;
   internal_ = other.internal_;
   other.internal_ = nullptr;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Controller::~Controller() {
-  if (internal_) delete internal_;
+  delete internal_;
+  internal_ = nullptr;
 }
 
 bool Controller::Pause() { return internal_ ? internal_->Pause() : false; }
@@ -82,7 +87,7 @@ int64_t Controller::bytes_transferred() const {
 }
 
 int64_t Controller::total_byte_count() const {
-  return internal_ ? internal_->total_byte_count() : 0;
+  return internal_ ? internal_->total_byte_count() : -1;
 }
 
 StorageReference Controller::GetReference() const {
@@ -94,5 +99,19 @@ bool Controller::is_valid() const {
   return internal_ != nullptr && internal_->is_valid();
 }
 
-}  // namespace storage
-}  // namespace firebase
+bool Controller::operator==(const Controller& other) const {
+  if (internal_ == other.internal_) {
+    return true;
+  }
+  const bool this_valid = is_valid();
+  const bool other_valid = other.is_valid();
+  if (!this_valid && !other_valid) {
+    return true;
+  }
+  if (this_valid != other_valid) {
+    return false;
+  }
+  return *internal_ == *other.internal_;
+}
+
+}  // namespace firebase::storage

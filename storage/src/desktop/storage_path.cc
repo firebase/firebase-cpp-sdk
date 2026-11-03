@@ -16,7 +16,6 @@
 
 #include <string.h>
 
-#include <iostream>
 #include <string>
 
 #include "app/rest/util.h"
@@ -36,11 +35,11 @@ const size_t kHttpSchemeLength = FIREBASE_STRLEN(kHttpScheme);
 const char kHttpsScheme[] = "https://";
 const size_t kHttpsSchemeLength = FIREBASE_STRLEN(kHttpsScheme);
 
-const char kBucketStartString[] = "firebasestorage.googleapis.com/v0/b/";
-const size_t kBucketStartStringLength = FIREBASE_STRLEN(kBucketStartString);
 const char kBucketEndString[] = "/o/";
 const size_t kBucketEndStringLength = FIREBASE_STRLEN(kBucketEndString);
 const char kBucketIdentifierString[] = "/v0/b/";
+const size_t kBucketIdentifierStringLength =
+    FIREBASE_STRLEN(kBucketIdentifierString);
 
 StoragePath::StoragePath(StorageInternal* storage, const std::string& path) {
   storage_internal_ = storage;
@@ -68,8 +67,10 @@ StoragePath::StoragePath(StorageInternal* storage, const std::string& bucket,
 }
 
 // URIs have the format:  "gs://<appname>.appspot.com/path/to/object"
+// gs:// URIs are not URL-encoded and have no query or fragment component, so
+// '?' and '#' are literal characters of the object name and are kept as is.
 void StoragePath::ConstructFromGsUri(const std::string& uri, int path_start) {
-  std::string bucket_and_path = uri.substr(path_start);
+  const std::string bucket_and_path = uri.substr(path_start);
   std::string::size_type first_slash_pos = bucket_and_path.find(kSeparator);
   bucket_ = bucket_and_path.substr(0, first_slash_pos);
   path_ = Path(first_slash_pos == std::string::npos
@@ -77,29 +78,54 @@ void StoragePath::ConstructFromGsUri(const std::string& uri, int path_start) {
                    : bucket_and_path.substr(first_slash_pos));
 }
 
-// HTTP URLs the format:
-// http[s]://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path/to/object>
-// Note that slashes in the path need to be html-encoded.
+// HTTP URLs have the format:
+// http[s]://<host>/v0/b/<bucket>/o/<path/to/object>[?query][#fragment]
+// Note that slashes in the path need to be URL-encoded.
 void StoragePath::ConstructFromHttpUrl(const std::string& url, int path_start) {
-  std::string path = url.substr(path_start, url.length() - path_start);
-
-  std::string::size_type bucket_start = path.find(kBucketStartString);
-  std::string::size_type bucket_end = path.rfind(kBucketEndString);
-
-  if (bucket_start == std::string::npos || bucket_end == std::string::npos) {
-    return;
+  std::string path = url.substr(path_start);
+  std::string::size_type query_or_frag = path.find_first_of("?#");
+  if (query_or_frag != std::string::npos) {
+    path = path.substr(0, query_or_frag);
   }
 
-  bucket_start += kBucketStartStringLength;
-  size_t object_start = bucket_end + kBucketEndStringLength;
-  bucket_ = path.substr(bucket_start, bucket_end - bucket_start);
-  path_ = Path(rest::util::DecodeUrl(path.substr(object_start)));
+  std::string::size_type bucket_start = path.find(kBucketIdentifierString);
+  if (bucket_start == std::string::npos || bucket_start == 0) {
+    return;
+  }
+  bucket_start += kBucketIdentifierStringLength;
+
+  std::string::size_type bucket_end =
+      path.find(kBucketEndString, bucket_start);
+  std::string object_encoded;
+  if (bucket_end != std::string::npos) {
+    object_encoded = path.substr(bucket_end + kBucketEndStringLength);
+  } else if (path.size() >= bucket_start + 2 &&
+             path.compare(path.size() - 2, 2, "/o") == 0) {
+    bucket_end = path.size() - 2;
+  } else {
+    bucket_end = path.find('/', bucket_start);
+    if (bucket_end == std::string::npos) {
+      bucket_end = path.size();
+    } else if (bucket_end + 1 < path.size()) {
+      return;
+    }
+  }
+
+  std::string parsed_bucket =
+      path.substr(bucket_start, bucket_end - bucket_start);
+  if (parsed_bucket.empty() ||
+      parsed_bucket.find('/') != std::string::npos) {
+    return;
+  }
+  bucket_ = parsed_bucket;
+  path_ = Path(rest::util::DecodeUrl(object_encoded));
 }
 
 // Returns the contents of this object as a URL to the storage REST endpoint.
 // Is guaranteed to have a query string, so more arguments can be freely
 // added as necessary.
 std::string StoragePath::AsHttpUrl() const {
+  if (!storage_internal_) return "";
   static const char* kUrlEnd = "?alt=media";
   // Construct the URL.  Final format is:
   // http[s]://[host]:[port]/v0/b/[bucket]/o/[path and/or object]
@@ -107,6 +133,7 @@ std::string StoragePath::AsHttpUrl() const {
 }
 
 std::string StoragePath::AsHttpMetadataUrl() const {
+  if (!storage_internal_) return "";
   // Construct the URL.  Final format is:
   // [scheme]://[host]:[port]/v0/b/[bucket]/o/[path and/or object]
 

@@ -15,11 +15,13 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_METADATA_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_METADATA_IOS_H_
 
-#include <stdint.h>
+#include <cstdint>
 #include <map>
-#include <string>
-
 #include <memory>
+#include <string>
+#include <vector>
+
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 #include "storage/src/ios/storage_reference_ios.h"
@@ -36,68 +38,66 @@ namespace internal {
 // wrapper around the FIRStorageMetadata Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRStorageMetadata);
 
+using CustomMetadata = std::map<std::string, std::string>;
+
 #pragma clang assume_nonnull begin
 
 class MetadataInternal {
  public:
-  MetadataInternal();
-
   // Construct a MetadataInternal with an empty FIRStorageMetadata.
   explicit MetadataInternal(StorageInternal* _Nullable storage);
 
-  MetadataInternal(StorageInternal* storage,
+  MetadataInternal(StorageInternal* _Nullable storage,
                    std::unique_ptr<FIRStorageMetadataPointer> impl);
 
   MetadataInternal(const MetadataInternal& metadata);
 
   MetadataInternal& operator=(const MetadataInternal& metadata);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  MetadataInternal(MetadataInternal&& other);
+  MetadataInternal(MetadataInternal&& other) noexcept;
 
-  MetadataInternal& operator=(MetadataInternal&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  MetadataInternal& operator=(MetadataInternal&& other) noexcept;
 
   ~MetadataInternal();
 
   // Return the owning Google Cloud Storage bucket for the StorageReference.
-  const char* bucket();
+  const char* bucket() const;
 
   // Set the Cache Control setting of the StorageReference.
-  void set_cache_control(const char* cache_control);
+  void set_cache_control(const char* _Nullable cache_control);
 
   // Return the Cache Control setting of the StorageReference.
-  const char* cache_control();
+  const char* cache_control() const;
 
   // Set the content disposition of the StorageReference.
-  void set_content_disposition(const char* disposition);
+  void set_content_disposition(const char* _Nullable disposition);
 
   // Return the content disposition of the StorageReference.
-  const char* content_disposition();
+  const char* content_disposition() const;
 
   // Set the content encoding for the StorageReference.
-  void set_content_encoding(const char* encoding);
+  void set_content_encoding(const char* _Nullable encoding);
 
   // Return the content encoding for the StorageReference.
-  const char* content_encoding();
+  const char* content_encoding() const;
 
   // Set the content language for the StorageReference.
-  void set_content_language(const char* language);
+  void set_content_language(const char* _Nullable language);
 
   // Return the content language for the StorageReference.
-  const char* content_language();
+  const char* content_language() const;
 
   // Set the content type of the StorageReference.
-  void set_content_type(const char* type);
+  void set_content_type(const char* _Nullable type);
 
   // Return the content type of the StorageReference.
-  const char* content_type();
+  const char* content_type() const;
 
   // Return the time the StorageReference was created.
-  int64_t creation_time();
+  int64_t creation_time() const;
 
   // Return a map of custom metadata key value pairs.
-  std::map<std::string, std::string>* custom_metadata();
+  CustomMetadata* _Nullable custom_metadata() const;
 
   // Take the keys/values that are present in custom_metadata_ and write them
   // into the NSDictionary on the FIRStorageMetadata. This should be called
@@ -105,60 +105,67 @@ class MetadataInternal {
   void CommitCustomMetadata() const;
 
   // Return a version String indicating what version of the StorageReference.
-  int64_t generation();
+  int64_t generation() const;
 
   // Return a version String indicating the version of this StorageMetadata.
-  int64_t metadata_generation();
+  int64_t metadata_generation() const;
 
   // Return a simple name of the StorageReference object.
-  const char* name();
+  const char* name() const;
 
   // Return the path of the StorageReference object.
-  const char* path();
+  const char* path() const;
 
   // Return the associated StorageReference for which this metadata belongs to.
-  StorageReferenceInternal* GetReference();
+  StorageReferenceInternal* _Nullable GetReference() const;
 
   // Return the stored Size in bytes of the StorageReference object.
-  int64_t size_bytes();
+  int64_t size_bytes() const;
 
   // Return the time the StorageReference was last updated.
-  int64_t updated_time();
+  int64_t updated_time() const;
 
   // MD5 hash of the data; encoded using base64.
-  const char* md5_hash();
+  const char* md5_hash() const;
 
   // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
-
-  // Special method to create an invalid Metadata, because Metadata's default
-  // constructor now gives us a valid one.
-  static Metadata GetInvalidMetadata() { return Metadata(nullptr); }
+  StorageInternal* _Nullable storage_internal() const {
+    MutexLock lock(mutex_);
+    return storage_;
+  }
 
  private:
 #ifdef __OBJC__
-  FIRStorageMetadata* impl() const { return impl_->get(); }
+  FIRStorageMetadata* _Nullable impl() const {
+    return impl_ ? impl_->get() : nil;
+  }
 #endif  // __OBJC__
+
+  void RetireCachedStringsLocked() const;
 
   friend class StorageReferenceInternal;
 
-  StorageInternal* storage_;
+  mutable Mutex mutex_;
+
+  StorageInternal* _Nullable storage_ = nullptr;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStorageMetadataPointer> impl_;
 
-  // Backing store for string properties.
-  std::string bucket_;
-  std::string cache_control_;
-  std::string content_disposition_;
-  std::string content_encoding_;
-  std::string content_language_;
-  std::string content_type_;
-  std::string name_;
-  std::string path_;
-  std::string md5_hash_;
+  // Heap-backed string caches so returned const char* pointers remain stable
+  // across concurrent const getter calls and setters.
+  mutable std::unique_ptr<std::string> bucket_;
+  mutable std::unique_ptr<std::string> cache_control_;
+  mutable std::unique_ptr<std::string> content_disposition_;
+  mutable std::unique_ptr<std::string> content_encoding_;
+  mutable std::unique_ptr<std::string> content_language_;
+  mutable std::unique_ptr<std::string> content_type_;
+  mutable std::unique_ptr<std::string> name_;
+  mutable std::unique_ptr<std::string> path_;
+  mutable std::unique_ptr<std::string> md5_hash_;
+  mutable std::vector<std::unique_ptr<std::string>> retired_strings_;
 
-  std::map<std::string, std::string>* custom_metadata_;
+  mutable std::unique_ptr<CustomMetadata> custom_metadata_;
 };
 
 #pragma clang assume_nonnull end

@@ -15,8 +15,8 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_
 
-#include <stdint.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <string>
@@ -28,9 +28,7 @@
 #include "storage/src/include/firebase/storage/metadata.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
 class StorageInternal;
 class StorageReferenceInternal;
@@ -53,29 +51,30 @@ class MetadataInternal {
   static const char* kNameKey;
   static const char* kGenerationKey;
 
-  MetadataInternal(const StorageReference& storage_reference);
+  explicit MetadataInternal(const StorageReference& storage_reference);
+
+  explicit MetadataInternal(std::nullptr_t);
 
   MetadataInternal(const MetadataInternal& metadata);
 
   MetadataInternal& operator=(const MetadataInternal& metadata);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  MetadataInternal(MetadataInternal&& other);
+  MetadataInternal(MetadataInternal&& other) noexcept;
 
-  MetadataInternal& operator=(MetadataInternal&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  MetadataInternal& operator=(MetadataInternal&& other) noexcept;
 
-  ~MetadataInternal() {}
+  ~MetadataInternal() = default;
 
   // Return the owning Google Cloud Storage bucket for the StorageReference.
-  const char* bucket() { return bucket_.c_str(); }
+  const char* bucket() const { return bucket_.c_str(); }
 
   // Return the path of the StorageReference object.
-  const char* path() { return path_.c_str(); }
+  const char* path() const { return path_.c_str(); }
 
   // Set the Cache Control setting of the StorageReference.
   void set_cache_control(const char* cache_control) {
-    cache_control_ = cache_control;
+    cache_control_ = cache_control ? cache_control : "";
+    has_cache_control_ = true;
   }
 
   // Return the Cache Control setting of the StorageReference.
@@ -83,7 +82,8 @@ class MetadataInternal {
 
   // Set the content disposition of the StorageReference.
   void set_content_disposition(const char* content_disposition) {
-    content_disposition_ = content_disposition;
+    content_disposition_ = content_disposition ? content_disposition : "";
+    has_content_disposition_ = true;
   }
 
   // Return the content disposition of the StorageReference.
@@ -93,7 +93,8 @@ class MetadataInternal {
 
   // Set the content encoding for the StorageReference.
   void set_content_encoding(const char* content_encoding) {
-    content_encoding_ = content_encoding;
+    content_encoding_ = content_encoding ? content_encoding : "";
+    has_content_encoding_ = true;
   }
 
   // Return the content encoding for the StorageReference.
@@ -101,7 +102,8 @@ class MetadataInternal {
 
   // Set the content language for the StorageReference.
   void set_content_language(const char* language) {
-    content_language_ = language;
+    content_language_ = language ? language : "";
+    has_content_language_ = true;
   }
 
   // Return the content language for the StorageReference.
@@ -109,7 +111,8 @@ class MetadataInternal {
 
   // Set the content type of the StorageReference.
   void set_content_type(const char* content_type) {
-    content_type_ = content_type;
+    content_type_ = content_type ? content_type : "";
+    has_content_type_ = true;
   }
 
   // Return the content type of the StorageReference.
@@ -120,6 +123,9 @@ class MetadataInternal {
 
   // Return a map of custom metadata key value pairs.
   std::map<std::string, std::string>* custom_metadata() {
+    return &custom_metadata_;
+  }
+  const std::map<std::string, std::string>* custom_metadata() const {
     return &custom_metadata_;
   }
 
@@ -136,7 +142,7 @@ class MetadataInternal {
 
   // Return a simple name of the StorageReference object.  (Or an empty string
   // if there isn't one.)
-  const char* name() { return name_.c_str(); }
+  const char* name() const { return name_.c_str(); }
 
   // Return the associated StorageReference for which this metadata belongs to.
   StorageReferenceInternal* GetReference() const;
@@ -150,67 +156,64 @@ class MetadataInternal {
   // Gets the StorageInternal we are a part of.
   StorageInternal* storage_internal() const { return storage_internal_; }
 
-  const char* md5_hash() { return md5_hash_.c_str(); }
-
-  // Special method to create an invalid Metadata, because Metadata's default
-  // constructor now gives us a valid one.
-  static Metadata GetInvalidMetadata() { return Metadata(nullptr); }
+  const char* md5_hash() const { return md5_hash_.c_str(); }
 
   // Import and export functions for json text.
   bool ImportFromJson(const char* json);
-  std::string ExportAsJson();
+  std::string ExportAsJson() const;
 
- private:
-  // Cached the StorageInternal from the wrapped StorageReference object.
-  void UpdateStorageInternal();
-
- public:
   // Converts a metadata internal pointer into a metadata object.
   static Metadata AsMetadata(MetadataInternal* metadata_internal) {
     return Metadata(metadata_internal);
   }
 
  private:
-  // The storage reference this metadata belongs to.
-  StorageReference storage_reference_;
-  // Cached storage_internal_ this metadata belongs to.
-  // If storage_reference is invalidated before this object is invalidated this
-  // is required to remove the Metadata object from the Storage object's cleanup
-  // notifier.
-  StorageInternal* storage_internal_;
-
-  std::string path_;
-  std::string name_;
-  std::string bucket_;
-  std::string cache_control_;
-  std::string content_type_;
-  int64_t generation_;
-  int64_t metadata_generation_;
-  int64_t creation_time_;
-  int64_t updated_time_;
-  int64_t size_bytes_;
-  std::string md5_hash_;
-  std::string content_disposition_;
-  std::string content_encoding_;
-  std::string content_language_;
-  std::map<std::string, std::string> custom_metadata_;
-  std::list<std::string> download_tokens_;
-  // Holder for the first entry in the download_tokens_ list,
-  // as a downloadable URL.
-  std::string download_url_;
+  // Cache the StorageInternal from the wrapped StorageReference object.
+  void UpdateStorageInternal();
 
   std::string GetPathFromToken(const std::string& token) const;
 
   static int64_t GetTimeFromTimeString(const std::string& time_str);
 
   // Convenience functions for populating metadata from json.
-  std::string LookUpString(Variant* root, const char* key,
-                           const char* default_value = nullptr);
-  int64_t LookUpInt64(Variant* root, const char* key);
+  static std::string LookUpString(const Variant& root, const char* key,
+                                  const char* default_value = nullptr);
+  static int64_t LookUpInt64(const Variant& root, const char* key);
+
+  // The storage reference this metadata belongs to.
+  StorageReference storage_reference_;
+  // Cached storage_internal_ this metadata belongs to.
+  // If storage_reference is invalidated before this object is invalidated this
+  // is required to remove the Metadata object from the Storage object's cleanup
+  // notifier.
+  StorageInternal* storage_internal_ = nullptr;
+
+  std::string path_;
+  std::string name_;
+  std::string bucket_;
+  std::string cache_control_;
+  std::string content_type_;
+  int64_t generation_ = -1;
+  int64_t metadata_generation_ = -1;
+  int64_t creation_time_ = -1;
+  int64_t updated_time_ = -1;
+  int64_t size_bytes_ = -1;
+  std::string md5_hash_;
+  std::string content_disposition_;
+  std::string content_encoding_;
+  std::string content_language_;
+  bool has_cache_control_ = false;
+  bool has_content_disposition_ = false;
+  bool has_content_encoding_ = false;
+  bool has_content_language_ = false;
+  bool has_content_type_ = false;
+  std::map<std::string, std::string> custom_metadata_;
+  std::list<std::string> download_tokens_;
+  // Holder for the first entry in the download_tokens_ list,
+  // as a downloadable URL.
+  std::string download_url_;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal
 
 #endif  // FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_

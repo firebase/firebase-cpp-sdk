@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_STORAGE_REFERENCE_H_
 #define FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_STORAGE_REFERENCE_H_
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -68,12 +69,11 @@ class StorageReference {
   /// @returns Reference to the destination StorageReference.
   StorageReference& operator=(const StorageReference& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor. Moving is an efficient operation for
   /// StorageReference instances.
   ///
   /// @param[in] other StorageReference to move data from.
-  StorageReference(StorageReference&& other);
+  StorageReference(StorageReference&& other) noexcept;
 
   /// @brief Move assignment operator. Moving is an efficient operation for
   /// StorageReference instances.
@@ -81,16 +81,17 @@ class StorageReference {
   /// @param[in] other StorageReference to move data from.
   ///
   /// @returns Reference to the destination StorageReference.
-  StorageReference& operator=(StorageReference&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  StorageReference& operator=(StorageReference&& other) noexcept;
 
   /// @brief Gets the firebase::storage::Storage instance to which we refer.
   ///
-  /// The pointer will remain valid indefinitely.
+  /// The pointer will remain valid as long as the owning Storage instance and
+  /// App remain alive.
   ///
   /// @returns The firebase::storage::Storage instance that this
-  /// StorageReference refers to.
-  Storage* storage();
+  /// StorageReference refers to, or nullptr if this StorageReference is
+  /// invalid.
+  Storage* storage() const;
 
   /// @brief Gets a reference to a location relative to this one.
   ///
@@ -116,15 +117,15 @@ class StorageReference {
   /// kErrorNone, the operation succeeded.
   Future<void> Delete();
 
-  /// @brief Returns the result of the most recent call to RemoveValue();
+  /// @brief Returns the result of the most recent call to Delete().
   ///
-  /// @returns The result of the most recent call to RemoveValue();
-  Future<void> DeleteLastResult();
+  /// @returns The result of the most recent call to Delete().
+  Future<void> DeleteLastResult() const;
 
   /// @brief Return the Google Cloud Storage bucket that holds this object.
   ///
   /// @returns The bucket.
-  std::string bucket();
+  std::string bucket() const;
 
   /// @brief Return the full path of the storage reference, not including
   /// the Google Cloud Storage bucket.
@@ -132,60 +133,67 @@ class StorageReference {
   /// @returns Full path to the storage reference, not including GCS bucket.
   /// For example, for the reference "gs://bucket/path/to/object.txt", the full
   /// path would be "path/to/object.txt".
-  std::string full_path();
+  std::string full_path() const;
 
-  /// @brief Asynchronously downloads the object from this StorageReference.
-  ///
-  /// A byte array will be allocated large enough to hold the entire file in
-  /// memory. Therefore, using this method will impact memory usage of your
-  /// process.
+  /// @brief Asynchronously downloads the object from this StorageReference to a
+  /// local file on disk.
   ///
   /// @param[in] path Path to local file on device to download into.
-  /// @param[in] listener A listener that will respond to events on this read
-  /// operation. If not nullptr, a listener that will respond to events on this
-  /// read operation. The caller is responsible for allocating and deallocating
-  /// the listener. The same listener can be used for multiple operations.
-  /// @param[out] controller_out Controls the write operation, providing the
-  /// ability to pause, resume or cancel an ongoing write operation. If not
-  /// nullptr, this method will output a Controller here that you can use to
-  /// control the write operation.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// download operation. The caller is responsible for allocating and
+  /// deallocating the listener.
+  /// @param[out] controller_out Optional Controller output that provides the
+  /// ability to pause (on desktop), resume (on desktop), or cancel an ongoing
+  /// download operation.
   ///
-  /// @returns A future that returns the number of bytes read.
+  /// @returns A future that returns the number of bytes downloaded.
   Future<size_t> GetFile(const char* path, Listener* listener = nullptr,
                          Controller* controller_out = nullptr);
 
-  /// @brief Returns the result of the most recent call to GetFile();
+#ifndef SWIG
+  /// @brief Asynchronously downloads the object from this StorageReference to a
+  /// local file on disk.
   ///
-  /// @returns The result of the most recent call to GetFile();
-  Future<size_t> GetFileLastResult();
+  /// @param[in] path Path to local file on device to download into.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// download operation.
+  /// @param[out] controller_out Optional Controller output to control the
+  /// download operation.
+  ///
+  /// @returns A future that returns the number of bytes downloaded.
+  Future<size_t> GetFile(const std::string& path, Listener* listener = nullptr,
+                         Controller* controller_out = nullptr) {
+    return GetFile(path.c_str(), listener, controller_out);
+  }
+#endif  // SWIG
 
-  /// @brief Asynchronously downloads the object from this StorageReference.
+  /// @brief Returns the result of the most recent call to GetFile().
   ///
-  /// A byte array will be allocated large enough to hold the entire file in
-  /// memory. Therefore, using this method will impact memory usage of your
-  /// process.
+  /// @returns The result of the most recent call to GetFile().
+  Future<size_t> GetFileLastResult() const;
+
+  /// @brief Asynchronously downloads the object from this StorageReference into
+  /// a caller-provided memory buffer.
   ///
   /// @param[in] buffer A byte buffer to read the data into. This buffer must
-  /// be valid for the duration of the transfer.
+  /// remain valid for the duration of the transfer.
   /// @param[in] buffer_size The size of the byte buffer.
-  /// @param[in] listener A listener that will respond to events on this read
-  /// operation. If not nullptr, a listener that will respond to events on this
-  /// read operation. The caller is responsible for allocating and deallocating
-  /// the listener. The same listener can be used for multiple operations.
-  /// @param[out] controller_out Controls the write operation, providing the
-  /// ability to pause, resume or cancel an ongoing write operation. If not
-  /// nullptr, this method will output a Controller here that you can use to
-  /// control the write operation.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// download operation. The caller is responsible for allocating and
+  /// deallocating the listener.
+  /// @param[out] controller_out Optional Controller output that provides the
+  /// ability to pause (on desktop), resume (on desktop), or cancel an ongoing
+  /// download operation.
   ///
   /// @returns A future that returns the number of bytes read.
   Future<size_t> GetBytes(void* buffer, size_t buffer_size,
                           Listener* listener = nullptr,
                           Controller* controller_out = nullptr);
 
-  /// @brief Returns the result of the most recent call to GetBytes();
+  /// @brief Returns the result of the most recent call to GetBytes().
   ///
-  /// @returns The result of the most recent call to GetBytes();
-  Future<size_t> GetBytesLastResult();
+  /// @returns The result of the most recent call to GetBytes().
+  Future<size_t> GetBytesLastResult() const;
 
   /// @brief Asynchronously retrieves a long lived download URL with a revokable
   /// token.
@@ -198,10 +206,10 @@ class StorageReference {
   /// kErrorNone, the operation succeeded and the URL is returned.
   Future<std::string> GetDownloadUrl();
 
-  /// @brief Returns the result of the most recent call to GetDownloadUrl();
+  /// @brief Returns the result of the most recent call to GetDownloadUrl().
   ///
-  /// @returns The result of the most recent call to GetDownloadUrl();
-  Future<std::string> GetDownloadUrlLastResult();
+  /// @returns The result of the most recent call to GetDownloadUrl().
+  Future<std::string> GetDownloadUrlLastResult() const;
 
   /// @brief Retrieves metadata associated with an object at this
   /// StorageReference.
@@ -211,29 +219,31 @@ class StorageReference {
   /// kErrorNone, the operation succeeded and the Metadata is returned.
   Future<Metadata> GetMetadata();
 
-  /// @brief Returns the result of the most recent call to GetMetadata();
+  /// @brief Returns the result of the most recent call to GetMetadata().
   ///
-  /// @returns The result of the most recent call to GetMetadata();
-  Future<Metadata> GetMetadataLastResult();
+  /// @returns The result of the most recent call to GetMetadata().
+  Future<Metadata> GetMetadataLastResult() const;
 
   /// @brief Updates the metadata associated with this StorageReference.
+  ///
+  /// @param[in] metadata The valid Metadata attributes to apply to this object.
   ///
   /// @returns A Future result, which will complete when the operation either
   /// succeeds or fails. When the Future is completed, if its Error is
   /// kErrorNone, the operation succeeded and the Metadata is returned.
   Future<Metadata> UpdateMetadata(const Metadata& metadata);
 
-  /// @brief Returns the result of the most recent call to UpdateMetadata();
+  /// @brief Returns the result of the most recent call to UpdateMetadata().
   ///
-  /// @returns The result of the most recent call to UpdateMetadata();
-  Future<Metadata> UpdateMetadataLastResult();
+  /// @returns The result of the most recent call to UpdateMetadata().
+  Future<Metadata> UpdateMetadataLastResult() const;
 
   /// @brief List items (files) and prefixes (folders) under this
   /// StorageReference.
   ///
-  /// "/" is treated as a path delimiter. Storage does not support unsupported
-  /// object paths that end with "/" or contain two consecutive "/"s. All
-  /// invalid objects in GCS will be filtered.
+  /// "/" is treated as a path delimiter. Storage does not support object paths
+  /// that end with "/" or contain two consecutive "/"s. All invalid objects in
+  /// GCS will be filtered. Requires Firebase Storage Security Rules Version 2.
   ///
   /// @param[in] max_results_per_page The maximum number of results to return
   /// in a single page. Must be greater than 0 and at most 1000.
@@ -246,113 +256,184 @@ class StorageReference {
   Future<StorageListResult> List(int max_results_per_page = 1000,
                                  const char* page_token = nullptr);
 
-  /// @brief Returns the result of the most recent call to List();
+#ifndef SWIG
+  /// @brief List items (files) and prefixes (folders) under this
+  /// StorageReference.
   ///
-  /// @returns The result of the most recent call to List();
-  Future<StorageListResult> ListLastResult();
+  /// @param[in] max_results_per_page The maximum number of results to return
+  /// in a single page. Must be greater than 0 and at most 1000.
+  /// @param[in] page_token A page token from a previous call to List, or an
+  /// empty string if this is the first call.
+  ///
+  /// @returns A Future result containing the StorageListResult page.
+  Future<StorageListResult> List(int max_results_per_page,
+                                 const std::string& page_token) {
+    return List(max_results_per_page, page_token.c_str());
+  }
+#endif  // SWIG
+
+  /// @brief Returns the result of the most recent call to List().
+  ///
+  /// @returns The result of the most recent call to List().
+  Future<StorageListResult> ListLastResult() const;
+
+  /// @brief List all items (files) and prefixes (folders) under this
+  /// StorageReference.
+  ///
+  /// @returns A Future result, which will complete when the operation either
+  /// succeeds or fails. When the Future is completed, if its Error is
+  /// kErrorNone, the operation succeeded and the combined StorageListResult is
+  /// returned.
+  Future<StorageListResult> ListAll();
+
+  /// @brief Returns the result of the most recent call to ListAll().
+  ///
+  /// @returns The result of the most recent call to ListAll().
+  Future<StorageListResult> ListAllLastResult() const;
 
   /// @brief Returns the short name of this object.
   ///
   /// @returns the short name of this object.
-  std::string name();
+  std::string name() const;
 
   /// @brief Returns a new instance of StorageReference pointing to the parent
-  /// location or null if this instance references the root location.
+  /// location or an invalid StorageReference (`is_valid() == false`) if this
+  /// instance references the root location.
   ///
-  /// @returns The parent StorageReference.
-  StorageReference GetParent();
+  /// @returns The parent StorageReference, or an invalid StorageReference if at
+  /// the root.
+  StorageReference GetParent() const;
+
+  /// @brief Returns a new instance of StorageReference pointing to the root of
+  /// the bucket.
+  ///
+  /// @returns The root StorageReference, or an invalid StorageReference if this
+  /// reference is invalid.
+  StorageReference GetRoot() const;
+
+  /// @brief Returns true if this StorageReference points to the root of the
+  /// bucket.
+  bool is_root() const;
 
   /// @brief Asynchronously uploads data to the currently specified
   /// StorageReference, without additional metadata.
   ///
-  /// @param[in] buffer A byte buffer to write data from. This buffer must be
-  /// valid for the duration of the transfer.
+  /// @param[in] buffer A byte buffer to write data from. This buffer must
+  /// remain valid for the duration of the transfer.
   /// @param[in] buffer_size The size of the byte buffer.
-  /// @param[in] listener A listener that will respond to events on this read
-  /// operation. If not nullptr, a listener that will respond to events on this
-  /// write operation. The caller is responsible for allocating and deallocating
-  /// the listener. The same listener can be used for multiple operations.
-  /// @param[out] controller_out Controls the write operation, providing the
-  /// ability to pause, resume or cancel an ongoing write operation. If not
-  /// nullptr, this method will output a Controller here that you can use to
-  /// control the write operation.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// upload operation. The caller is responsible for allocating and
+  /// deallocating the listener.
+  /// @param[out] controller_out Optional Controller output that provides the
+  /// ability to pause, resume, or cancel an ongoing upload operation.
   ///
-  /// @returns A future that returns the Metadata.
+  /// @returns A future that returns the Metadata of the uploaded object.
   Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
                             Listener* listener = nullptr,
                             Controller* controller_out = nullptr);
 
   /// @brief Asynchronously uploads data to the currently specified
-  /// StorageReference, without additional metadata.
+  /// StorageReference, with custom metadata.
   ///
-  /// @param[in] buffer A byte buffer to write data from. This buffer must be
-  /// valid for the duration of the transfer.
+  /// @param[in] buffer A byte buffer to write data from. This buffer must
+  /// remain valid for the duration of the transfer.
   /// @param[in] buffer_size The number of bytes to write.
   /// @param[in] metadata Metadata containing additional information (MIME type,
   /// etc.) about the object being uploaded.
-  /// @param[in] listener A listener that will respond to events on this read
-  /// operation. If not nullptr, a listener that will respond to events on this
-  /// write operation. The caller is responsible for allocating and deallocating
-  /// the listener. The same listener can be used for multiple operations.
-  /// @param[out] controller_out Controls the write operation, providing the
-  /// ability to pause, resume or cancel an ongoing write operation. If not
-  /// nullptr, this method will output a Controller here that you can use to
-  /// control the write operation.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// upload operation. The caller is responsible for allocating and
+  /// deallocating the listener.
+  /// @param[out] controller_out Optional Controller output that provides the
+  /// ability to pause, resume, or cancel an ongoing upload operation.
   ///
-  /// @returns A future that returns the Metadata.
+  /// @returns A future that returns the Metadata of the uploaded object.
   Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
                             const Metadata& metadata,
                             Listener* listener = nullptr,
                             Controller* controller_out = nullptr);
 
-  /// @brief Returns the result of the most recent call to PutBytes();
+  /// @brief Returns the result of the most recent call to PutBytes().
   ///
-  /// @returns The result of the most recent call to PutBytes();
-  Future<Metadata> PutBytesLastResult();
+  /// @returns The result of the most recent call to PutBytes().
+  Future<Metadata> PutBytesLastResult() const;
 
-  /// @brief Asynchronously uploads data to the currently specified
-  /// StorageReference, without additional metadata.
+  /// @brief Asynchronously uploads data from a local file to the currently
+  /// specified StorageReference, without additional metadata.
   ///
   /// @param[in] path Path to local file on device to upload to Firebase
   /// Storage.
-  /// @param[in] listener A listener that will respond to events on this read
-  /// operation. If not nullptr, a listener that will respond to events on this
-  /// write operation. The caller is responsible for allocating and deallocating
-  /// the listener. The same listener can be used for multiple operations.
-  /// @param[out] controller_out Controls the write operation, providing the
-  /// ability to pause, resume or cancel an ongoing write operation. If not
-  /// nullptr, this method will output a Controller here that you can use to
-  /// control the write operation.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// upload operation. The caller is responsible for allocating and
+  /// deallocating the listener.
+  /// @param[out] controller_out Optional Controller output that provides the
+  /// ability to pause, resume, or cancel an ongoing upload operation.
   ///
-  /// @returns A future that returns the Metadata.
+  /// @returns A future that returns the Metadata of the uploaded object.
   Future<Metadata> PutFile(const char* path, Listener* listener = nullptr,
                            Controller* controller_out = nullptr);
 
-  /// @brief Asynchronously uploads data to the currently specified
-  /// StorageReference, without additional metadata.
+#ifndef SWIG
+  /// @brief Asynchronously uploads data from a local file to the currently
+  /// specified StorageReference, without additional metadata.
+  ///
+  /// @param[in] path Path to local file on device to upload to Firebase
+  /// Storage.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// upload operation.
+  /// @param[out] controller_out Optional Controller output to control the
+  /// upload operation.
+  ///
+  /// @returns A future that returns the Metadata of the uploaded object.
+  Future<Metadata> PutFile(const std::string& path,
+                           Listener* listener = nullptr,
+                           Controller* controller_out = nullptr) {
+    return PutFile(path.c_str(), listener, controller_out);
+  }
+#endif  // SWIG
+
+  /// @brief Asynchronously uploads data from a local file to the currently
+  /// specified StorageReference, with custom metadata.
   ///
   /// @param[in] path Path to local file on device to upload to Firebase
   /// Storage.
   /// @param[in] metadata Metadata containing additional information (MIME type,
   /// etc.) about the object being uploaded.
-  /// @param[in] listener A listener that will respond to events on this read
-  /// operation. If not nullptr, a listener that will respond to events on this
-  /// write operation. The caller is responsible for allocating and deallocating
-  /// the listener. The same listener can be used for multiple operations.
-  /// @param[out] controller_out Controls the write operation, providing the
-  /// ability to pause, resume or cancel an ongoing write operation. If not
-  /// nullptr, this method will output a Controller here that you can use to
-  /// control the write operation.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// upload operation. The caller is responsible for allocating and
+  /// deallocating the listener.
+  /// @param[out] controller_out Optional Controller output that provides the
+  /// ability to pause, resume, or cancel an ongoing upload operation.
   ///
-  /// @returns A future that returns the Metadata.
+  /// @returns A future that returns the Metadata of the uploaded object.
   Future<Metadata> PutFile(const char* path, const Metadata& metadata,
                            Listener* listener = nullptr,
                            Controller* controller_out = nullptr);
 
-  /// @brief Returns the result of the most recent call to PutFile();
+#ifndef SWIG
+  /// @brief Asynchronously uploads data from a local file to the currently
+  /// specified StorageReference, with custom metadata.
   ///
-  /// @returns The result of the most recent call to PutFile();
-  Future<Metadata> PutFileLastResult();
+  /// @param[in] path Path to local file on device to upload to Firebase
+  /// Storage.
+  /// @param[in] metadata Metadata containing additional information (MIME type,
+  /// etc.) about the object being uploaded.
+  /// @param[in] listener Optional listener that will respond to events on this
+  /// upload operation.
+  /// @param[out] controller_out Optional Controller output to control the
+  /// upload operation.
+  ///
+  /// @returns A future that returns the Metadata of the uploaded object.
+  Future<Metadata> PutFile(const std::string& path, const Metadata& metadata,
+                           Listener* listener = nullptr,
+                           Controller* controller_out = nullptr) {
+    return PutFile(path.c_str(), metadata, listener, controller_out);
+  }
+#endif  // SWIG
+
+  /// @brief Returns the result of the most recent call to PutFile().
+  ///
+  /// @returns The result of the most recent call to PutFile().
+  Future<Metadata> PutFileLastResult() const;
 
   /// @brief Returns true if this StorageReference is valid, false if it is not
   /// valid. An invalid StorageReference indicates that the reference is
@@ -362,6 +443,43 @@ class StorageReference {
   /// @returns true if this StorageReference is valid, false if this
   /// StorageReference is invalid.
   bool is_valid() const;
+
+#ifndef SWIG
+  /// @brief Returns the `gs://<bucket>/<full_path>` URI of this reference, or
+  /// an empty string if invalid.
+  std::string ToString() const;
+
+  /// @brief Equality operator.
+  bool operator==(const StorageReference& other) const;
+
+  /// @brief Inequality operator.
+  bool operator!=(const StorageReference& other) const {
+    return !(*this == other);
+  }
+#endif  // SWIG
+
+#if !defined(SWIG) && !defined(DOXYGEN)
+  /// @cond FIREBASE_APP_INTERNAL
+  // ABI compatibility: non-const overloads matching the pre-C++17 SDK's
+  // exported symbols, so binaries built against the older headers still link.
+  // Defined out-of-line (so the symbols are exported); each forwards to the
+  // const overload above.
+  Storage* storage();
+  Future<void> DeleteLastResult();
+  std::string bucket();
+  std::string full_path();
+  Future<size_t> GetFileLastResult();
+  Future<size_t> GetBytesLastResult();
+  Future<std::string> GetDownloadUrlLastResult();
+  Future<Metadata> GetMetadataLastResult();
+  Future<Metadata> UpdateMetadataLastResult();
+  Future<StorageListResult> ListLastResult();
+  std::string name();
+  StorageReference GetParent();
+  Future<Metadata> PutBytesLastResult();
+  Future<Metadata> PutFileLastResult();
+  /// @endcond
+#endif  // !defined(SWIG) && !defined(DOXYGEN)
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
@@ -373,7 +491,9 @@ class StorageReference {
   friend class internal::StorageReferenceInternal;
   friend class internal::StorageReferenceInternalCommon;
 
-  StorageReference(internal::StorageReferenceInternal* internal);
+  // Intentionally not explicit, to preserve source compatibility with the
+  // previous SDK (internal code converts StorageReferenceInternal* implicitly).
+  StorageReference(internal::StorageReferenceInternal* internal);  // NOLINT
 
   internal::StorageReferenceInternal* internal_;
   /// @endcond

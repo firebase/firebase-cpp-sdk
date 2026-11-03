@@ -16,19 +16,27 @@
 #define FIREBASE_STORAGE_SRC_ANDROID_METADATA_ANDROID_H_
 
 #include <jni.h>
-#include <stdint.h>
 
+#include <array>
+#include <cstdint>
 #include <map>
+#include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
-#include "storage/src/include/firebase/storage/metadata.h"
 
 namespace firebase {
 namespace storage {
 namespace internal {
+
+class StorageInternal;
+class StorageReferenceInternal;
+using CustomMetadata = std::map<std::string, std::string>;
 
 // Declared here because StorageReferenceInternal needs to refer to the Java
 // StorageMetadata class.
@@ -106,49 +114,49 @@ class MetadataInternal {
 
   MetadataInternal& operator=(const MetadataInternal& ref);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  MetadataInternal(MetadataInternal&& ref);
+  MetadataInternal(MetadataInternal&& ref) noexcept;
 
+  // Not noexcept: retiring previously cached strings (whose c_str() pointers
+  // callers may still hold) can allocate.
   MetadataInternal& operator=(MetadataInternal&& ref);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   ~MetadataInternal();
 
   // Return the owning Google Cloud Storage bucket for the StorageReference.
-  const char* bucket();
+  const char* bucket() const;
 
   // Set the Cache Control setting of the StorageReference.
   void set_cache_control(const char* cache_control);
 
   // Return the Cache Control setting of the StorageReference.
-  const char* cache_control();
+  const char* cache_control() const;
 
   // Set the content disposition of the StorageReference.
   void set_content_disposition(const char* disposition);
 
   // Return the content disposition of the StorageReference.
-  const char* content_disposition();
+  const char* content_disposition() const;
 
   // Set the content encoding for the StorageReference.
   void set_content_encoding(const char* encoding);
 
   // Return the content encoding for the StorageReference.
-  const char* content_encoding();
+  const char* content_encoding() const;
 
   // Set the content language for the StorageReference.
   void set_content_language(const char* language);
 
   // Return the content language for the StorageReference.
-  const char* content_language();
+  const char* content_language() const;
 
   // Set the content type of the StorageReference.
   void set_content_type(const char* type);
 
   // Return the content type of the StorageReference.
-  const char* content_type();
+  const char* content_type() const;
 
   // Return the time the StorageReference was created.
-  int64_t creation_time();
+  int64_t creation_time() const;
 
   // Return a map of custom metadata key value pairs.
   std::map<std::string, std::string>* custom_metadata();
@@ -159,39 +167,38 @@ class MetadataInternal {
   void CommitCustomMetadata();
 
   // Return a version number indicating what version of the StorageReference.
-  int64_t generation();
+  int64_t generation() const;
 
   // Return a version number indicating the version of this StorageMetadata.
-  int64_t metadata_generation();
+  int64_t metadata_generation() const;
 
   // Return a simple name of the StorageReference object.
-  const char* name();
+  const char* name() const;
 
   // Return the path of the StorageReference object.
-  const char* path();
+  const char* path() const;
 
   // Return the associated StorageReference for which this metadata belongs to.
-  StorageReferenceInternal* GetReference();
+  StorageReferenceInternal* GetReference() const;
 
   // Return the stored Size in bytes of the StorageReference object.
-  int64_t size_bytes();
+  int64_t size_bytes() const;
 
   // Return the time the StorageReference was last updated.
-  int64_t updated_time();
+  int64_t updated_time() const;
 
   // Get the MD5 hash of the blob referenced by StorageReference.
-  const char* md5_hash();
+  const char* md5_hash() const;
 
   // Initialize JNI bindings for this class.
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
   // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
-
-  // Special method to create an invalid Metadata, because Metadata's default
-  // constructor now gives us a valid one.
-  static Metadata GetInvalidMetadata() { return Metadata(nullptr); }
+  StorageInternal* storage_internal() const {
+    MutexLock lock(mutex_);
+    return storage_;
+  }
 
  private:
   friend class StorageReferenceInternal;
@@ -214,17 +221,19 @@ class MetadataInternal {
     kCacheStringCount,
   };
 
-  jobject obj() { return obj_; }
+  // Returns a new JNI local reference to obj_ under mutex_ protection.
+  // The caller is responsible for calling env->DeleteLocalRef() on the result.
+  jobject NewLocalObj(JNIEnv* env) const;
 
   void ReadCustomMetadata(
-      std::map<std::string, std::string>* custom_metadata_out);
+      std::map<std::string, std::string>* custom_metadata_out) const;
 
-  // Commit a pending builder into obj_. Deletes the builder.
-  void CommitBuilder(jobject builder);
+  // Commit a pending builder into obj_. Always deletes the builder local ref.
+  void CommitBuilder(JNIEnv* env, jobject builder);
 
   // Get the JNIEnv from the linked Storage instance, or from the default (or
   // any) App.
-  JNIEnv* GetJNIEnv();
+  JNIEnv* GetJNIEnv() const;
 
   // Copy the source Java StorageMetadata object to ourselves, as a new global
   // reference.
@@ -233,7 +242,7 @@ class MetadataInternal {
   // Read a metadata string property from the cache or fall back to reading
   // from Java object and caching it.
   const char* GetStringProperty(storage_metadata::Method string_method,
-                                CacheString cache_string);
+                                CacheString cache_string) const;
 
   // Write a metadata string property to Java object and clear the currently
   // cached value so that it's read from the Java object the next time it's
@@ -242,36 +251,29 @@ class MetadataInternal {
                          storage_metadata_builder::Method builder_method,
                          CacheString cache_string);
 
-  // Read a metadata string property from the cache or fall back to reading
-  // a Uri from the Java object and caching it.
-  const char* GetUriPropertyAsString(storage_metadata::Method uri_method,
-                                     CacheString cache_string);
-
   // Read a int64_t property from a cached value or fall back to reading
   // from the Java object and caching it.
   int64_t GetInt64Property(storage_metadata::Method long_method,
-                           int64_t* cached_value);
+                           int64_t* cached_value) const;
 
-  StorageInternal* storage_;
-  jobject obj_;
+  mutable Mutex mutex_;
+  StorageInternal* storage_ = nullptr;
+  jobject obj_ = nullptr;
 
-  std::map<std::string, std::string>* custom_metadata_;
+  mutable std::unique_ptr<CustomMetadata> custom_metadata_;
 
-  // We store pointers to std::string so that nullptr can mean "we
-  // don't have a cached value for this at the moment."
-  std::vector<std::string*> cache_;
+  mutable std::array<std::optional<std::string>, kCacheStringCount> cache_{};
+  mutable std::vector<std::unique_ptr<std::string>> retired_strings_;
 
   // Non-string properties of the StorageMetadata Java object that are lost
   // when constructing a new instance with StorageMetadata.Builder.  These
   // properties are cached when this object is constructed and returned
   // throughout the lifetime of the object.
   struct Constants {
-    Constants() : size_bytes(0), updated_time(0), creation_time(0) {}
-
-    int64_t size_bytes;
-    int64_t updated_time;
-    int64_t creation_time;
-  } constants_;
+    int64_t size_bytes = -1;
+    int64_t updated_time = -1;
+    int64_t creation_time = -1;
+  } mutable constants_;
 };
 
 }  // namespace internal

@@ -14,26 +14,29 @@
 
 #include "storage/src/desktop/curl_requests.h"
 
-#include <stdio.h>
-
+#include <cstddef>
 #include <cstring>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "app/rest/util.h"
+#include "app/src/log.h"
 #include "app/src/variant_util.h"
 #include "storage/src/common/list_result_internal.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_desktop.h"
+#include "storage/src/desktop/storage_reference_desktop.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/list_result.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
-static const char* kInvalidJsonResponse =
+static const char* const kInvalidJsonResponse =
     "The server did not return a valid JSON response.  "
     "Contact Firebase support if this issue persists.";
 
@@ -70,16 +73,25 @@ BlockingResponse::BlockingResponse(FutureHandle handle,
     : handle_(handle), ref_future_(ref_future) {}
 
 BlockingResponse::~BlockingResponse() {
-  // If the response isn't complete, cancel it.
-  if (status() == rest::util::HttpInvalid) {
+  // If the response wasn't completed or failed yet, cancel it.
+  if (!completed_or_failed_ && status() == rest::util::HttpInvalid) {
     set_status(rest::util::HttpNoContent);
-    MarkFailed();
+    BlockingResponse::MarkFailed();
   }
 }
 
-void BlockingResponse::MarkCompleted() { rest::Response::MarkCompleted(); }
+void BlockingResponse::MarkCompleted() {
+  completed_or_failed_ = true;
+  RecordHttpStatus();
+  rest::Response::MarkCompleted();
+}
 
 void BlockingResponse::MarkFailed() {
+  if (completed_or_failed_) {
+    return;
+  }
+  completed_or_failed_ = true;
+  RecordHttpStatus();
   rest::Response::MarkFailed();
   if (status() == rest::util::HttpRequestTimeout) {
     ref_future_->Complete(SafeFutureHandle<void>(handle_),
@@ -96,29 +108,30 @@ void BlockingResponse::NotifyFailed() { notifier_.NotifyFailed(); }
 
 // Read in the raw response string, and try to make sense of it.
 bool StorageNetworkError::Parse(const char* json_txt) {
+  if (!json_txt || json_txt[0] == '\0') return false;
   if (!rest::util::JsonData::Parse(json_txt)) return false;
 
   // Error checking!  Bail out if...
   if (!root_.is_map()) return false;  // Top level isn't a map.
-  // Top level doesn't have a child called "error".
-  if (root_.map().find(Variant("error")) == root_.map().end()) return false;
-  Variant error = root_.map()[Variant("error")];
-  if (!error.is_map()) return false;  // The "error" child is not a map.
-  // Error child does not contain code/message children.
-  if (error.map().find(Variant("code")) == error.map().end() ||
-      error.map().find(Variant("message")) == error.map().end()) {
+  const auto& root_map = root_.map();
+  auto error_it = root_map.find(Variant("error"));
+  if (error_it == root_map.end() || !error_it->second.is_map()) {
     return false;
   }
-  // Code and Message are not the correct type.
-  if (!error.map()[Variant("code")].is_int64() ||
-      !error.map()[Variant("message")].is_string()) {
+  const auto& error_map = error_it->second.map();
+  auto code_it = error_map.find(Variant("code"));
+  auto message_it = error_map.find(Variant("message"));
+  if (code_it == error_map.end() || message_it == error_map.end()) {
     return false;
   }
-  error_code_ = static_cast<int>(error.map()[Variant("code")].int64_value());
+  if (!code_it->second.is_int64() || !message_it->second.is_string()) {
+    return false;
+  }
+  error_code_ = static_cast<int>(code_it->second.int64_value());
   // Add the error code, as the message isn't always useful.
-  error_message_ = error.map()[Variant("message")].string_value() +
-                   std::string("  Http Code: ") +
-                   error.map()[Variant("code")].AsString().string_value();
+  error_message_ = std::string(message_it->second.string_value()) +
+                   "  Http Code: " +
+                   code_it->second.AsString().string_value();
   is_valid_ = true;
   return true;
 }
@@ -129,32 +142,75 @@ GetBytesResponse::GetBytesResponse(void* buffer, size_t buffer_size,
     : BlockingResponse(handle.get(), ref_future),
       output_buffer_(buffer),
       buffer_size_(buffer_size),
-      buffer_index_(0) {}
+      buffer_index_(0),
+      buffer_overflow_(false) {}
 
 // Since buffer may NOT necessarily end with \0, pass in length.
 bool GetBytesResponse::ProcessBody(const char* buffer, size_t length) {
-  size_t bytes_to_copy = (std::min)(length, buffer_size_ - buffer_index_);
-
-  if (bytes_to_copy) {
-    memcpy(static_cast<char*>(output_buffer_) + buffer_index_, buffer,
-           bytes_to_copy);
-    buffer_index_ += bytes_to_copy;
+  if (status() != rest::util::HttpSuccess) {
+    if (buffer && length > 0) {
+      error_buffer_.append(buffer, length);
+    }
     NotifyProgress();
     return true;
   }
-  // If we copied zero bytes, then we tried to overrun our buffer.  Return
-  // false to signal an error.
-  return false;
+  if (length == 0) {
+    NotifyProgress();
+    return true;
+  }
+  if (output_buffer_ == nullptr || buffer == nullptr) {
+    buffer_overflow_ = true;
+    return false;
+  }
+  size_t remaining =
+      buffer_index_ <= buffer_size_ ? (buffer_size_ - buffer_index_) : 0;
+  if (length > remaining) {
+    if (remaining > 0) {
+      std::memcpy(static_cast<char*>(output_buffer_) + buffer_index_, buffer,
+                  remaining);
+      buffer_index_ += remaining;
+    }
+    buffer_overflow_ = true;
+    return false;
+  }
+  std::memcpy(static_cast<char*>(output_buffer_) + buffer_index_, buffer,
+              length);
+  buffer_index_ += length;
+  NotifyProgress();
+  return true;
+}
+
+void GetBytesResponse::MarkFailed() {
+  if (completed_or_failed_) {
+    return;
+  }
+  if (buffer_overflow_) {
+    completed_or_failed_ = true;
+    RecordHttpStatus();
+    rest::Response::MarkFailed();
+    ref_future_->CompleteWithResult(
+        SafeFutureHandle<size_t>(handle_), kErrorDownloadSizeExceeded,
+        GetErrorMessage(kErrorDownloadSizeExceeded), buffer_index_);
+    NotifyFailed();
+    return;
+  }
+  BlockingResponse::MarkFailed();
 }
 
 void GetBytesResponse::MarkCompleted() {
   BlockingResponse::MarkCompleted();
   SafeFutureHandle<size_t> handle(handle_);
-  if (status() == rest::util::HttpSuccess) {
+  bool succeeded = false;
+  if (buffer_overflow_) {
+    ref_future_->CompleteWithResult(
+        handle, kErrorDownloadSizeExceeded,
+        GetErrorMessage(kErrorDownloadSizeExceeded), buffer_index_);
+  } else if (status() == rest::util::HttpSuccess) {
     ref_future_->CompleteWithResult(handle, kErrorNone, buffer_index_);
+    succeeded = true;
   } else {
     StorageNetworkError response;
-    if (response.Parse(static_cast<const char*>(output_buffer_))) {
+    if (response.Parse(error_buffer_.c_str())) {
       ref_future_->Complete(handle, HttpToErrorCode(status()),
                             response.error_message().c_str());
     } else {
@@ -163,7 +219,11 @@ void GetBytesResponse::MarkCompleted() {
     }
   }
   NotifyProgress();
-  BlockingResponse::NotifyComplete();
+  if (succeeded) {
+    BlockingResponse::NotifyComplete();
+  } else {
+    BlockingResponse::NotifyFailed();
+  }
 }
 
 EmptyResponse::EmptyResponse(SafeFutureHandle<void> handle,
@@ -171,7 +231,9 @@ EmptyResponse::EmptyResponse(SafeFutureHandle<void> handle,
     : BlockingResponse(handle.get(), ref_future) {}
 
 bool EmptyResponse::ProcessBody(const char* buffer, size_t length) {
-  buffer_ += std::string(buffer, length);
+  if (buffer && length > 0) {
+    buffer_.append(buffer, length);
+  }
   NotifyProgress();
   return true;
 }
@@ -179,7 +241,9 @@ bool EmptyResponse::ProcessBody(const char* buffer, size_t length) {
 void EmptyResponse::MarkCompleted() {
   BlockingResponse::MarkCompleted();
   SafeFutureHandle<void> handle(handle_);
-  if (status() == rest::util::HttpNoContent) {
+  const bool succeeded = (status() == rest::util::HttpNoContent ||
+                          status() == rest::util::HttpSuccess);
+  if (succeeded) {
     ref_future_->Complete(handle, kErrorNone);
   } else {
     StorageNetworkError response;
@@ -192,44 +256,112 @@ void EmptyResponse::MarkCompleted() {
     }
   }
   NotifyProgress();
-  BlockingResponse::NotifyComplete();
+  if (succeeded) {
+    BlockingResponse::NotifyComplete();
+  } else {
+    BlockingResponse::NotifyFailed();
+  }
 }
 
 GetFileResponse::GetFileResponse(const char* filename,
                                  SafeFutureHandle<size_t> handle,
                                  ReferenceCountedFutureImpl* ref_future)
     : BlockingResponse(handle.get(), ref_future),
-      filename_(filename),
-      bytes_written_(0) {}
+      filename_(filename ? filename : ""),
+      bytes_written_(0),
+      file_error_(false) {}
 
 // Since buffer may NOT necessarily end with \0, pass in length.
 bool GetFileResponse::ProcessBody(const char* buffer, size_t length) {
   // Things are fine, send the received data to a file.
   if (status() == rest::util::HttpSuccess) {
     if (!file_.is_open()) {
+      if (filename_.empty()) {
+        file_error_ = true;
+        return false;
+      }
       // Writing in binary mode prevents Windows from converting characters such
       // as "\n" to "\r\n".
-      file_.open(filename_, std::ios::out | std::ios::binary);
+      file_.open(filename_, std::ios::out | std::ios::binary | std::ios::trunc);
+      if (!file_.is_open() || file_.fail()) {
+        file_error_ = true;
+        return false;
+      }
     }
-    file_.write(buffer, length);
-    bytes_written_ += length;
+    if (buffer && length > 0) {
+      file_.write(buffer, static_cast<std::streamsize>(length));
+      if (file_.fail()) {
+        file_error_ = true;
+        return false;
+      }
+      bytes_written_ += length;
+    }
   } else {
-    // Things are not fine.  Send to a buffer so we can parse the error
+    // Things are not fine. Send to a buffer so we can parse the error
     // response later.
-    error_buffer_.append(buffer);
+    if (buffer && length > 0) {
+      error_buffer_.append(buffer, length);
+    }
   }
   NotifyProgress();
   return true;
 }
 
+void GetFileResponse::MarkFailed() {
+  if (completed_or_failed_) {
+    return;
+  }
+  if (file_.is_open()) {
+    file_.close();
+  }
+  if (file_error_) {
+    completed_or_failed_ = true;
+    RecordHttpStatus();
+    rest::Response::MarkFailed();
+    ref_future_->CompleteWithResult(
+        SafeFutureHandle<size_t>(handle_), kErrorUnknown,
+        "Failed to open or write local destination file.", bytes_written_);
+    NotifyFailed();
+    return;
+  }
+  BlockingResponse::MarkFailed();
+}
+
 void GetFileResponse::MarkCompleted() {
   BlockingResponse::MarkCompleted();
   SafeFutureHandle<size_t> future_handle_with_size(handle_);
+  bool succeeded = false;
   if (status() == rest::util::HttpSuccess) {
-    file_.close();
-    ref_future_->CompleteWithResult(future_handle_with_size, kErrorNone,
-                                    bytes_written_);
+    if (!file_.is_open() && !file_error_) {
+      if (filename_.empty()) {
+        file_error_ = true;
+      } else {
+        file_.open(filename_,
+                   std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!file_.is_open() || file_.fail()) {
+          file_error_ = true;
+        }
+      }
+    }
+    if (file_.is_open()) {
+      file_.close();
+      if (file_.fail()) {
+        file_error_ = true;
+      }
+    }
+    if (file_error_) {
+      ref_future_->CompleteWithResult(
+          future_handle_with_size, kErrorUnknown,
+          "Failed to open or write local destination file.", bytes_written_);
+    } else {
+      ref_future_->CompleteWithResult(future_handle_with_size, kErrorNone,
+                                      bytes_written_);
+      succeeded = true;
+    }
   } else {
+    if (file_.is_open()) {
+      file_.close();
+    }
     StorageNetworkError response;
     if (response.Parse(error_buffer_.c_str())) {
       ref_future_->CompleteWithResult(
@@ -243,7 +375,11 @@ void GetFileResponse::MarkCompleted() {
     }
   }
   NotifyProgress();
-  BlockingResponse::NotifyComplete();
+  if (succeeded) {
+    BlockingResponse::NotifyComplete();
+  } else {
+    BlockingResponse::NotifyFailed();
+  }
 }
 
 ReturnedMetadataResponse::ReturnedMetadataResponse(
@@ -253,7 +389,9 @@ ReturnedMetadataResponse::ReturnedMetadataResponse(
       storage_reference_(storage_reference) {}
 
 bool ReturnedMetadataResponse::ProcessBody(const char* buffer, size_t length) {
-  buffer_ += std::string(buffer, length);
+  if (buffer && length > 0) {
+    buffer_.append(buffer, length);
+  }
   NotifyProgress();
   return true;
 }
@@ -261,16 +399,18 @@ bool ReturnedMetadataResponse::ProcessBody(const char* buffer, size_t length) {
 void ReturnedMetadataResponse::MarkCompleted() {
   BlockingResponse::MarkCompleted();
   SafeFutureHandle<Metadata> handle(handle_);
+  bool succeeded = false;
   if (status() == rest::util::HttpSuccess) {
-    MetadataInternal* metadata_internal =
-        new MetadataInternal(storage_reference_);
+    auto metadata_internal =
+        std::make_unique<MetadataInternal>(storage_reference_);
     if (metadata_internal->ImportFromJson(buffer_.c_str())) {
       ref_future_->CompleteWithResult(
-          handle, kErrorNone, MetadataInternal::AsMetadata(metadata_internal));
+          handle, kErrorNone,
+          MetadataInternal::AsMetadata(metadata_internal.release()));
+      succeeded = true;
     } else {
       // The HTTP request was successful, but it returned invalid metadata JSON.
       ref_future_->Complete(handle, kErrorUnknown, kInvalidJsonResponse);
-      delete metadata_internal;
     }
   } else {
     StorageNetworkError response;
@@ -283,16 +423,23 @@ void ReturnedMetadataResponse::MarkCompleted() {
     }
   }
   NotifyProgress();
-  BlockingResponse::NotifyComplete();
+  if (succeeded) {
+    BlockingResponse::NotifyComplete();
+  } else {
+    BlockingResponse::NotifyFailed();
+  }
 }
 
 ReturnedListResponse::ReturnedListResponse(
     SafeFutureHandle<StorageListResult> handle,
     ReferenceCountedFutureImpl* ref_future, StorageInternal* storage)
-    : BlockingResponse(handle.get(), ref_future), storage_(storage) {}
+    : BlockingResponse(handle.get(), ref_future),
+      storage_token_(storage ? storage->lifetime_token() : nullptr) {}
 
 bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
-  buffer_ += std::string(buffer, length);
+  if (buffer && length > 0) {
+    buffer_.append(buffer, length);
+  }
   NotifyProgress();
   return true;
 }
@@ -300,59 +447,81 @@ bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
 void ReturnedListResponse::MarkCompleted() {
   BlockingResponse::MarkCompleted();
   SafeFutureHandle<StorageListResult> handle(handle_);
+  bool succeeded = false;
   if (status() == rest::util::HttpSuccess) {
     Variant response_variant = util::JsonToVariant(buffer_.c_str());
     if (response_variant.is_map()) {
-      auto& map = response_variant.map();
-      std::vector<StorageReference> prefixes;
-      std::vector<StorageReference> items;
-      std::string next_page_token;
-
-      if (map.find(Variant("prefixes")) != map.end() &&
-          map.at(Variant("prefixes")).is_vector()) {
-        for (auto& prefix_variant : map.at(Variant("prefixes")).vector()) {
-          if (prefix_variant.is_string()) {
-            std::string prefix_str = prefix_variant.string_value();
-            // The prefix returned from GCS/Firebase Storage is a path relative
-            // to the bucket root.
-            if (!prefix_str.empty() && prefix_str.back() == '/') {
-              prefix_str.pop_back();
-            }
-            prefixes.push_back(storage_->GetReference(prefix_str.c_str())
-                                   ->AsStorageReference());
-          }
+      std::unique_lock<std::mutex> token_lock;
+      StorageInternal* storage = nullptr;
+      if (storage_token_) {
+        token_lock = std::unique_lock<std::mutex>(storage_token_->mutex);
+        if (!storage_token_->shutting_down) {
+          storage = storage_token_->storage;
         }
       }
+      if (!storage) {
+        if (token_lock.owns_lock()) {
+          token_lock.unlock();
+        }
+        ref_future_->Complete(handle, kErrorCancelled,
+                              GetErrorMessage(kErrorCancelled));
+      } else {
+        const auto& map = response_variant.map();
+        std::vector<StorageReference> prefixes;
+        std::vector<StorageReference> items;
+        std::string next_page_token;
 
-      if (map.find(Variant("items")) != map.end() &&
-          map.at(Variant("items")).is_vector()) {
-        for (auto& item_variant : map.at(Variant("items")).vector()) {
-          if (item_variant.is_map()) {
-            auto& item_map = item_variant.map();
-            if (item_map.find(Variant("name")) != item_map.end() &&
-                item_map.at(Variant("name")).is_string()) {
-              items.push_back(
-                  storage_
-                      ->GetReference(
-                          item_map.at(Variant("name")).string_value())
-                      ->AsStorageReference());
+        auto prefixes_it = map.find(Variant("prefixes"));
+        if (prefixes_it != map.end() && prefixes_it->second.is_vector()) {
+          for (const auto& prefix_variant : prefixes_it->second.vector()) {
+            if (prefix_variant.is_string()) {
+              std::string prefix_str = prefix_variant.string_value();
+              // The prefix returned from GCS/Firebase Storage is a path
+              // relative to the bucket root.
+              if (!prefix_str.empty() && prefix_str.back() == '/') {
+                prefix_str.pop_back();
+              }
+              std::unique_ptr<StorageReferenceInternal> ref_internal(
+                  storage->GetReference(prefix_str.c_str()));
+              prefixes.push_back(ref_internal
+                                     ? ref_internal->AsStorageReference()
+                                     : StorageReference());
             }
           }
         }
-      }
 
-      if (map.find(Variant("nextPageToken")) != map.end() &&
-          map.at(Variant("nextPageToken")).is_string()) {
-        next_page_token = map.at(Variant("nextPageToken")).string_value();
-      }
+        auto items_it = map.find(Variant("items"));
+        if (items_it != map.end() && items_it->second.is_vector()) {
+          for (const auto& item_variant : items_it->second.vector()) {
+            if (item_variant.is_map()) {
+              const auto& item_map = item_variant.map();
+              auto name_it = item_map.find(Variant("name"));
+              if (name_it != item_map.end() && name_it->second.is_string()) {
+                std::unique_ptr<StorageReferenceInternal> ref_internal(
+                    storage->GetReference(name_it->second.string_value()));
+                items.push_back(ref_internal
+                                    ? ref_internal->AsStorageReference()
+                                    : StorageReference());
+              }
+            }
+          }
+        }
 
-      internal::StorageListResultInternal* result_internal =
-          new internal::StorageListResultInternal(prefixes, items,
-                                                  next_page_token);
-      ref_future_->CompleteWithResult(
-          handle, kErrorNone, "",
-          internal::StorageListResultInternal::AsStorageListResult(
-              result_internal));
+        token_lock.unlock();
+
+        auto token_it = map.find(Variant("nextPageToken"));
+        if (token_it != map.end() && token_it->second.is_string()) {
+          next_page_token = token_it->second.string_value();
+        }
+
+        auto* result_internal = new internal::StorageListResultInternal(
+            std::move(prefixes), std::move(items), next_page_token);
+        ref_future_->CompleteWithResult(
+            handle, kErrorNone, "",
+            internal::StorageListResultInternal::AsStorageListResult(
+                result_internal));
+        succeeded = true;
+      }
     } else {
       LogWarning("Failed to parse list response. Buffer: %s", buffer_.c_str());
       ref_future_->Complete(handle, kErrorUnknown, kInvalidJsonResponse);
@@ -370,9 +539,11 @@ void ReturnedListResponse::MarkCompleted() {
     }
   }
   NotifyProgress();
-  BlockingResponse::NotifyComplete();
+  if (succeeded) {
+    BlockingResponse::NotifyComplete();
+  } else {
+    BlockingResponse::NotifyFailed();
+  }
 }
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal

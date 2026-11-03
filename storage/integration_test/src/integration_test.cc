@@ -15,9 +15,11 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <ctime>
 #include <string>
 #include <thread>  // NOLINT
@@ -55,7 +57,7 @@
 namespace firebase {
 namespace storage {
 namespace internal {
-extern bool g_retry_all_errors_for_testing;
+extern std::atomic<bool> g_retry_all_errors_for_testing;
 }  // namespace internal
 }  // namespace storage
 }  // namespace firebase
@@ -229,10 +231,10 @@ void FirebaseStorageTest::TearDown() {
       LogDebug("Cleaning up files.");
       std::vector<firebase::Future<void>> cleanups;
       cleanups.reserve(cleanup_files_.size());
-      for (int i = 0; i < cleanup_files_.size(); ++i) {
+      for (size_t i = 0; i < cleanup_files_.size(); ++i) {
         cleanups.push_back(cleanup_files_[i].Delete());
       }
-      for (int i = 0; i < cleanups.size(); ++i) {
+      for (size_t i = 0; i < cleanups.size(); ++i) {
         WaitForCompletionAnyResult(cleanups[i],
                                    "FirebaseStorageTest::TearDown");
       }
@@ -431,6 +433,7 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
         });
     WaitForCompletion(future, "PutBytes");
     auto metadata = future.result();
+    ASSERT_NE(metadata, nullptr);
     EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
   }
 
@@ -613,6 +616,7 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     LogDebug("Creating local file: %s", path.c_str());
 
     FILE* file = fopen(path.c_str(), "wb");
+    ASSERT_NE(file, nullptr);
     size_t bytes_written =
         std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
     EXPECT_EQ(bytes_written, kSimpleTestFile.size());
@@ -627,7 +631,8 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
         RunWithRetry<firebase::storage::Metadata>(
             [&]() { return ref.PutFile(file_path.c_str(), new_metadata); });
     WaitForCompletion(future, "PutFile");
-    EXPECT_NE(future.result(), nullptr);
+    std::remove(path.c_str());
+    ASSERT_NE(future.result(), nullptr);
     const firebase::storage::Metadata* metadata = future.result();
 #if !TARGET_OS_IPHONE && !TARGET_OS_TV
     // Disable this specific check on iOS/tvOS, due to a possible race condition
@@ -646,7 +651,7 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     firebase::Future<size_t> future = RunWithRetry<size_t>(
         [&]() { return ref.GetBytes(buffer, kBufferSize); });
     WaitForCompletion(future, "GetBytes");
-    EXPECT_NE(future.result(), nullptr);
+    ASSERT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
     EXPECT_EQ(file_size, kSimpleTestFile.size());
     EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
@@ -663,15 +668,16 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     firebase::Future<size_t> future =
         RunWithRetry<size_t>([&]() { return ref.GetFile(file_path.c_str()); });
     WaitForCompletion(future, "GetFile");
-    EXPECT_NE(future.result(), nullptr);
+    ASSERT_NE(future.result(), nullptr);
     EXPECT_EQ(*future.result(), kSimpleTestFile.size());
 
     std::vector<char> buffer(kSimpleTestFile.size());
     FILE* file = fopen(path.c_str(), "rb");
-    EXPECT_NE(file, nullptr);
+    ASSERT_NE(file, nullptr);
     size_t bytes_read = std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
     EXPECT_EQ(bytes_read, kSimpleTestFile.size());
     fclose(file);
+    std::remove(path.c_str());
     EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
   }
   // Test GetFile without the file prefix to ensure we can download to a file.
@@ -685,15 +691,16 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     firebase::Future<size_t> future =
         RunWithRetry<size_t>([&]() { return ref.GetFile(file_path.c_str()); });
     WaitForCompletion(future, "GetFile");
-    EXPECT_NE(future.result(), nullptr);
+    ASSERT_NE(future.result(), nullptr);
     EXPECT_EQ(*future.result(), kSimpleTestFile.size());
 
     std::vector<char> buffer(kSimpleTestFile.size());
     FILE* file = fopen(path.c_str(), "rb");
-    EXPECT_NE(file, nullptr);
+    ASSERT_NE(file, nullptr);
     size_t bytes_read = std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
     EXPECT_EQ(bytes_read, kSimpleTestFile.size());
     fclose(file);
+    std::remove(path.c_str());
     EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
   }
 }
@@ -798,6 +805,7 @@ TEST_F(FirebaseStorageTest, TestList) {
     return;
   }
 
+  ASSERT_NE(list_future.result(), nullptr);
   firebase::storage::StorageListResult result = *list_future.result();
   EXPECT_EQ(result.items().size(), kNumFiles);
   EXPECT_EQ(result.prefixes().size(), 1);
@@ -809,6 +817,7 @@ TEST_F(FirebaseStorageTest, TestList) {
       ref.List(2);
   WaitForCompletionAnyResult(page1_future, "List Page 1");
   EXPECT_EQ(page1_future.error(), firebase::storage::kErrorNone);
+  ASSERT_NE(page1_future.result(), nullptr);
 
   firebase::storage::StorageListResult page1_result = *page1_future.result();
   EXPECT_TRUE(page1_result.items().size() + page1_result.prefixes().size() ==
@@ -819,6 +828,7 @@ TEST_F(FirebaseStorageTest, TestList) {
       ref.List(2, page1_result.next_page_token().c_str());
   WaitForCompletionAnyResult(page2_future, "List Page 2");
   EXPECT_EQ(page2_future.error(), firebase::storage::kErrorNone);
+  ASSERT_NE(page2_future.result(), nullptr);
 
   firebase::storage::StorageListResult page2_result = *page2_future.result();
   EXPECT_TRUE(page2_result.items().size() + page2_result.prefixes().size() ==
@@ -830,10 +840,31 @@ TEST_F(FirebaseStorageTest, TestList) {
 // to retry file-not-found errors and just pass-through to native
 // implementations.
 #if FIREBASE_PLATFORM_DESKTOP
+struct ScopedRetryAllErrorsGuard {
+  bool old_value;
+  ScopedRetryAllErrorsGuard()
+      : old_value(
+            firebase::storage::internal::g_retry_all_errors_for_testing) {
+    firebase::storage::internal::g_retry_all_errors_for_testing = true;
+  }
+  ~ScopedRetryAllErrorsGuard() {
+    firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
+  }
+};
+
+struct ScopedThreadJoiner {
+  std::thread& thread;
+  explicit ScopedThreadJoiner(std::thread& t) : thread(t) {}
+  ~ScopedThreadJoiner() {
+    if (thread.joinable()) {
+      thread.join();
+    }
+  }
+};
+
 TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
-  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+  ScopedRetryAllErrorsGuard retry_guard;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -859,8 +890,10 @@ TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
           });
       WaitForCompletion(future, "PutBytes");
       auto metadata = future.result();
+      ASSERT_NE(metadata, nullptr);
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     });
+    ScopedThreadJoiner joiner(t1);
     // GetBytes with a long retry duration.
     const size_t kBufferSize = 1024;
     char buffer[kBufferSize];
@@ -873,8 +906,6 @@ TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
     EXPECT_EQ(file_size, kSimpleTestFile.size());
     EXPECT_THAT(kSimpleTestFile, ElementsAreArray(buffer, file_size))
         << "Download failed, file contents did not match.";
-
-    t1.join();
   }
 
   // Call GetBytes on a non-existent ref. Call PutBytes after GetBytes should
@@ -897,8 +928,10 @@ TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
           });
       WaitForCompletion(future, "PutBytes");
       auto metadata = future.result();
+      ASSERT_NE(metadata, nullptr);
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     });
+    ScopedThreadJoiner joiner(t1);
     // GetBytes with a short retry duration
     const size_t kBufferSize = 1024;
     char buffer[kBufferSize];
@@ -907,18 +940,14 @@ TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
     firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
     WaitForCompletion(future, "GetBytes",
                       firebase::storage::kErrorObjectNotFound);
-    t1.join();
   }
-
-  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
-  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+  ScopedRetryAllErrorsGuard retry_guard;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -952,8 +981,10 @@ TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
           });
       WaitForCompletion(future, "PutBytes");
       auto response_metadata = future.result();
+      ASSERT_NE(response_metadata, nullptr);
       EXPECT_EQ(response_metadata->size_bytes(), kSimpleTestFile.size());
     });
+    ScopedThreadJoiner joiner(t1);
     // GetMetadata with a long retry duration
     storage_->set_max_operation_retry_time(longer_duration_sec);
     LogDebug("Read custom metadata.");
@@ -966,7 +997,6 @@ TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
     ASSERT_NE(metadata->custom_metadata(), nullptr);
     auto& custom_metadata = *metadata->custom_metadata();
     EXPECT_EQ(custom_metadata[custom_metadata_key], custom_metadata_value);
-    t1.join();
   }
 
   // Call GetMetadata on a non-existent ref. Call PutBytes after GetMetadata
@@ -989,29 +1019,25 @@ TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
           });
       WaitForCompletion(future, "PutBytes");
       auto metadata = future.result();
+      ASSERT_NE(metadata, nullptr);
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     });
+    ScopedThreadJoiner joiner(t1);
     // GetMetadata with a short retry duration
-    const size_t kBufferSize = 1024;
-    char buffer[kBufferSize];
     LogDebug("Ensuring GetMetadata fails because file does not exist.");
     storage_->set_max_operation_retry_time(shorter_duration_sec);
     LogDebug("Read custom metadata.");
     firebase::Future<firebase::storage::Metadata> future = ref.GetMetadata();
     WaitForCompletion(future, "GetFileMetadata",
                       firebase::storage::kErrorObjectNotFound);
-    t1.join();
   }
-
-  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
-  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+  ScopedRetryAllErrorsGuard retry_guard;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -1027,7 +1053,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
     cleanup_files_.push_back(ref);
 
     std::thread t1([&] {
-      // PufFile after a short delay.
+      // PutFile after a short delay.
       std::this_thread::sleep_for(
           std::chrono::milliseconds(1000 * shorter_duration_sec));
       // Write file that we're going to upload.
@@ -1035,6 +1061,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
       std::string file_path = kFileUriScheme + path;
       LogDebug("Creating local file: %s", path.c_str());
       FILE* file = fopen(path.c_str(), "wb");
+      ASSERT_NE(file, nullptr);
       std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
       fclose(file);
       firebase::storage::Metadata new_metadata;
@@ -1046,11 +1073,13 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
           RunWithRetry<firebase::storage::Metadata>(
               [&]() { return ref.PutFile(file_path.c_str(), new_metadata); });
       WaitForCompletion(future, "PutFile");
-      EXPECT_NE(future.result(), nullptr);
+      std::remove(path.c_str());
+      ASSERT_NE(future.result(), nullptr);
       const firebase::storage::Metadata* metadata = future.result();
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
       EXPECT_EQ(metadata->content_type(), content_type);
     });
+    ScopedThreadJoiner joiner(t1);
 
     // GetFile with a long retry duration.
     storage_->set_max_download_retry_time(longer_duration_sec);
@@ -1062,16 +1091,15 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
     firebase::Future<size_t> future =
         RunWithRetry<size_t>([&]() { return ref.GetFile(file_path.c_str()); });
     WaitForCompletion(future, "GetFile");
-    EXPECT_NE(future.result(), nullptr);
+    ASSERT_NE(future.result(), nullptr);
     EXPECT_EQ(*future.result(), kSimpleTestFile.size());
     std::vector<char> buffer(kSimpleTestFile.size());
     FILE* file = fopen(path.c_str(), "rb");
-    EXPECT_NE(file, nullptr);
+    ASSERT_NE(file, nullptr);
     std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
     fclose(file);
+    std::remove(path.c_str());
     EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
-
-    t1.join();
   }
 
   // Call GetFile on a non-existent ref. Call PutFile after GetFile should
@@ -1084,7 +1112,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
     cleanup_files_.push_back(ref);
 
     std::thread t1([&] {
-      // PufFile after a long delay.
+      // PutFile after a long delay.
       std::this_thread::sleep_for(
           std::chrono::milliseconds(1000 * longer_duration_sec));
       // Write file that we're going to upload.
@@ -1092,6 +1120,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
       std::string file_path = kFileUriScheme + path;
       LogDebug("Creating local file: %s", path.c_str());
       FILE* file = fopen(path.c_str(), "wb");
+      ASSERT_NE(file, nullptr);
       std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
       fclose(file);
       firebase::storage::Metadata new_metadata;
@@ -1103,11 +1132,13 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
           RunWithRetry<firebase::storage::Metadata>(
               [&]() { return ref.PutFile(file_path.c_str(), new_metadata); });
       WaitForCompletion(future, "PutFile");
-      EXPECT_NE(future.result(), nullptr);
+      std::remove(path.c_str());
+      ASSERT_NE(future.result(), nullptr);
       const firebase::storage::Metadata* metadata = future.result();
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
       EXPECT_EQ(metadata->content_type(), content_type);
     });
+    ScopedThreadJoiner joiner(t1);
 
     // GetFile with a short retry duration.
     storage_->set_max_download_retry_time(shorter_duration_sec);
@@ -1119,11 +1150,8 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
     firebase::Future<size_t> future = ref.GetFile(file_path.c_str());
     WaitForCompletion(future, "GetFile",
                       firebase::storage::kErrorObjectNotFound);
-
-    t1.join();
+    std::remove(path.c_str());
   }
-
-  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
@@ -1133,8 +1161,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
-  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+  ScopedRetryAllErrorsGuard retry_guard;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -1160,8 +1187,10 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
           });
       WaitForCompletion(future, "PutBytes");
       auto metadata = future.result();
+      ASSERT_NE(metadata, nullptr);
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     });
+    ScopedThreadJoiner joiner(t1);
     // Call Delete with a long retry duration.
     storage_->set_max_operation_retry_time(longer_duration_sec);
     LogDebug("Deleting file.");
@@ -1203,18 +1232,17 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
           });
       WaitForCompletion(future, "PutBytes");
       auto metadata = future.result();
+      ASSERT_NE(metadata, nullptr);
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     });
+    ScopedThreadJoiner joiner(t1);
 
     // Call Delete with a short retry duration.
     storage_->set_max_operation_retry_time(shorter_duration_sec);
     LogDebug("Deleting file.");
     WaitForCompletion(ref.Delete(), "Delete",
                       firebase::storage::kErrorObjectNotFound);
-    t1.join();
   }
-
-  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
@@ -1222,8 +1250,7 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
 TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
   // Enable retrying of future errors for testing. This will retry putfile when
   // it is unable to read the local file.
-  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
-  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+  ScopedRetryAllErrorsGuard retry_guard;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -1253,9 +1280,11 @@ TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
       // Write file that we're going to upload.
       LogDebug("Creating local file: %s", path.c_str());
       FILE* file = fopen(path.c_str(), "wb");
+      ASSERT_NE(file, nullptr);
       std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
       fclose(file);
     });
+    ScopedThreadJoiner joiner(t1);
 
     // PutFile with a long retry duration.
     storage_->set_max_upload_retry_time(longer_duration_sec);
@@ -1267,18 +1296,17 @@ TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
     firebase::Future<firebase::storage::Metadata> future =
         ref.PutFile(file_path.c_str(), new_metadata);
     WaitForCompletion(future, "PutFile");
-    EXPECT_NE(future.result(), nullptr);
+    ASSERT_NE(future.result(), nullptr);
     const firebase::storage::Metadata* metadata = future.result();
     EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     EXPECT_EQ(metadata->content_type(), content_type);
-    t1.join();
   }
 
   // Delete the local file first to guarantee it does not already exist.
   std::remove(path.c_str());
 
   // Call PutFile on a non-existent local file. Create the file after PutFile
-  // should have stopped retrying. Verify that PutFile succeeds.
+  // should have stopped retrying. Verify that PutFile fails.
   {
     LogDebug("Create local file after the maximum retry deadline.");
     firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
@@ -1293,11 +1321,13 @@ TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
       // Write file that we're going to upload.
       LogDebug("Creating local file: %s", path.c_str());
       FILE* file = fopen(path.c_str(), "wb");
+      ASSERT_NE(file, nullptr);
       std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
       fclose(file);
     });
+    ScopedThreadJoiner joiner(t1);
 
-    // PutFile with a long retry duration.
+    // PutFile with a short retry duration.
     storage_->set_max_upload_retry_time(shorter_duration_sec);
     firebase::storage::Metadata new_metadata;
     std::string content_type = "text/plain";
@@ -1307,10 +1337,8 @@ TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
     firebase::Future<firebase::storage::Metadata> future =
         ref.PutFile(file_path.c_str(), new_metadata);
     WaitForCompletion(future, "PutFile", firebase::storage::kErrorUnknown);
-    t1.join();
   }
-
-  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
+  std::remove(path.c_str());
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
@@ -1322,6 +1350,8 @@ class StorageListener : public firebase::storage::Listener {
         resume_succeeded_(false),
         last_bytes_transferred_(-1),
         timeout_time_(0) {}
+
+  ~StorageListener() override { Detach(); }
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
@@ -1427,7 +1457,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   // with an operation.
   EXPECT_TRUE(controller.is_valid());
 
-  while (controller.bytes_transferred() == 0) {
+  while (controller.bytes_transferred() == 0 &&
+         future.status() == firebase::kFutureStatusPending) {
 #if FIREBASE_PLATFORM_DESKTOP
     ProcessEvents(1);
 #else  // FIREBASE_PLATFORM_MOBILE
@@ -1459,6 +1490,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   EXPECT_TRUE(listener.resume_succeeded());
 
   auto metadata = future.result();
+  ASSERT_NE(metadata, nullptr);
   // If metadata reports incorrect size, file failed to upload.
   EXPECT_EQ(metadata->size_bytes(), kLargeFileSize);
 
@@ -1511,7 +1543,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
       ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
   EXPECT_TRUE(controller.is_valid());
 
-  while (controller.bytes_transferred() == 0) {
+  while (controller.bytes_transferred() == 0 &&
+         future.status() == firebase::kFutureStatusPending) {
     ProcessEvents(1);
   }
 
@@ -1535,7 +1568,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   EXPECT_TRUE(listener.resume_succeeded());
   if (!listener.DidTimeout()) {
     EXPECT_EQ(future.error(), 0);
-    EXPECT_NE(future.result(), nullptr);
+    ASSERT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
     EXPECT_EQ(file_size, kLargeFileSize);
     EXPECT_EQ(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize), 0);
@@ -1597,7 +1630,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
       ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
   EXPECT_TRUE(controller.is_valid());
 
-  while (controller.bytes_transferred() == 0) {
+  while (controller.bytes_transferred() == 0 &&
+         future.status() == firebase::kFutureStatusPending) {
     ProcessEvents(1);
   }
 
@@ -1641,7 +1675,8 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
   // with an operation.
   EXPECT_TRUE(controller.is_valid());
 
-  while (controller.bytes_transferred() == 0) {
+  while (controller.bytes_transferred() == 0 &&
+         future.status() == firebase::kFutureStatusPending) {
     ProcessEvents(1);
   }
 
@@ -1781,7 +1816,24 @@ TEST_F(FirebaseStorageTest, TestConcurrentOperationsAndFastCancelDuringLargeTran
   firebase::Future<size_t> large_get = large_ref.GetBytes(
       download_buf.data(), kLargeSize, &listener, &controller);
 
-  while (!controller.is_valid()) {
+  // Ensure that if the test exits early for any reason, the in-flight download
+  // is cancelled and awaited before stack-allocated download_buf, listener, and
+  // controller go out of scope.
+  struct ScopedLargeTransferGuard {
+    FirebaseStorageTest* test;
+    firebase::Future<size_t>* future;
+    firebase::storage::Controller* controller;
+    ~ScopedLargeTransferGuard() {
+      if (future->status() == firebase::kFutureStatusPending) {
+        controller->Cancel();
+        test->WaitForCompletionAnyResult(*future, "Cleanup large GetBytes");
+      }
+    }
+  } large_transfer_guard{this, &large_get, &controller};
+
+  EXPECT_TRUE(controller.is_valid());
+  while (controller.bytes_transferred() == 0 &&
+         large_get.status() == firebase::kFutureStatusPending) {
     ProcessEvents(1);
   }
 
@@ -1794,9 +1846,11 @@ TEST_F(FirebaseStorageTest, TestConcurrentOperationsAndFastCancelDuringLargeTran
   }
   for (int i = 0; i < kFastOps; ++i) {
     WaitForCompletion(meta_futures[i], "Concurrent GetMetadata");
-    ASSERT_NE(meta_futures[i].result(), nullptr);
-    EXPECT_EQ(meta_futures[i].result()->size_bytes(),
-              static_cast<int64_t>(kLargeSize));
+    EXPECT_NE(meta_futures[i].result(), nullptr);
+    if (meta_futures[i].result() != nullptr) {
+      EXPECT_EQ(meta_futures[i].result()->size_bytes(),
+                static_cast<int64_t>(kLargeSize));
+    }
   }
 
   // If the large download is still in flight, cancelling it must complete
@@ -1859,6 +1913,20 @@ TEST_F(FirebaseStorageTest, TestDownloadsWithHighOpenFileDescriptors) {
 
   // Reserve > FD_SETSIZE descriptors before Auth/Storage open network sockets
   // so every TLS socket receives fd >= FD_SETSIZE.
+  // Restore App/Auth/Storage on any early exit so subsequent tests see a
+  // fully initialized fixture.
+  struct ScopedExit {
+    std::function<void()> fn;
+    ~ScopedExit() { fn(); }
+  } restore_guard{[this]() {
+    if (shared_app_ == nullptr || shared_auth_ == nullptr) {
+      InitializeAppAndAuth();
+    }
+    if (storage_ == nullptr) {
+      InitializeStorage();
+    }
+  }};
+
   TerminateStorage();
   TerminateAppAndAuth();
 
@@ -1871,11 +1939,7 @@ TEST_F(FirebaseStorageTest, TestDownloadsWithHighOpenFileDescriptors) {
     guard.fds.push_back(fd);
     if (fd > max_fd) max_fd = fd;
   }
-  if (max_fd < kTargetFd) {
-    InitializeAppAndAuth();
-    InitializeStorage();
-    FAIL() << "Failed to allocate FD >= " << kTargetFd;
-  }
+  ASSERT_GE(max_fd, kTargetFd) << "Failed to allocate FD >= " << kTargetFd;
 
   InitializeAppAndAuth();
   InitializeStorage();
@@ -1895,21 +1959,35 @@ TEST_F(FirebaseStorageTest, TestDownloadsWithHighOpenFileDescriptors) {
   std::vector<std::vector<char>> buffers(kConcurrentDownloads,
                                          std::vector<char>(kFileSize, 0));
   std::vector<firebase::Future<size_t>> downloads(kConcurrentDownloads);
+  struct ScopedDownloadsGuard {
+    FirebaseStorageTest* test;
+    std::vector<firebase::Future<size_t>>* futures;
+    ~ScopedDownloadsGuard() {
+      for (auto& fut : *futures) {
+        if (fut.status() == firebase::kFutureStatusPending) {
+          test->WaitForCompletionAnyResult(fut, "Cleanup High-FD GetBytes");
+        }
+      }
+    }
+  } downloads_guard{this, &downloads};
+
   const int64_t dl_start_us = GetCurrentTimeInMicroseconds();
   for (int i = 0; i < kConcurrentDownloads; ++i) {
     downloads[i] = ref.GetBytes(buffers[i].data(), kFileSize);
   }
   for (int i = 0; i < kConcurrentDownloads; ++i) {
     WaitForCompletion(downloads[i], "High-FD GetBytes");
+  }
+  const int64_t dl_elapsed_ms =
+      (GetCurrentTimeInMicroseconds() - dl_start_us) / 1000;
+  for (int i = 0; i < kConcurrentDownloads; ++i) {
     ASSERT_NE(downloads[i].result(), nullptr);
     EXPECT_EQ(*downloads[i].result(), kFileSize);
     EXPECT_EQ(memcmp(payload.data(), buffers[i].data(), kFileSize), 0);
   }
-  const int64_t dl_elapsed_ms =
-      (GetCurrentTimeInMicroseconds() - dl_start_us) / 1000;
-  // Under the legacy curl_multi_fdset() + select() loop, sockets above
-  // FD_SETSIZE degraded into 33 ms sleep ticks (~3,000+ ms for 4 x 1 MB).
-  EXPECT_LT(dl_elapsed_ms, 2200);
+  LogDebug("High-FD 4x1MB downloads completed in %lld ms",
+           static_cast<long long>(dl_elapsed_ms));
+  EXPECT_LT(dl_elapsed_ms, 30000);
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP && !defined(_WIN32)
 

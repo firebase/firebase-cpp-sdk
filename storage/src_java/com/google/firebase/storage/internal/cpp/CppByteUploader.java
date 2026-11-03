@@ -59,11 +59,13 @@ public class CppByteUploader extends InputStream {
 
   @Override
   public int available() {
-    long remaining = cppBufferSize - cppBufferOffset;
-    if (cppBufferSize < 0 || remaining > Integer.MAX_VALUE) {
-      return DEFAULT_BYTES_AVAILABLE;
+    synchronized (lockObject) {
+      long remaining = cppBufferSize - cppBufferOffset;
+      if (cppBufferSize < 0 || remaining > Integer.MAX_VALUE) {
+        return DEFAULT_BYTES_AVAILABLE;
+      }
+      return remaining > 0 ? (int) remaining : 0;
     }
-    return (int) remaining;
   }
 
   @Override
@@ -86,7 +88,7 @@ public class CppByteUploader extends InputStream {
   @Override
   public int read() throws IOException {
     synchronized (lockObject) {
-      return read(readByteBuffer, 0, 1) == 1 ? readByteBuffer[0] : END_OF_STREAM;
+      return read(readByteBuffer, 0, 1) == 1 ? (readByteBuffer[0] & 0xFF) : END_OF_STREAM;
     }
   }
 

@@ -33,7 +33,7 @@ class StorageInternal;
 class StoragePath {
  public:
   // Default constructor.
-  StoragePath() {}
+  StoragePath() : storage_internal_(nullptr) {}
 
   // Constructs a storage path, based on an input URL.  The URL can either be
   // an HTTP[s] link, or a gs URI.
