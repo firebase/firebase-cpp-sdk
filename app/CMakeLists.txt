@@ -128,6 +128,7 @@ set(common_SRCS
     src/secure/user_secure_manager.cc
     src/util.cc
     src/variant.cc
+    src/variant_util.cc
     src/base64.cc)
 
 if (MSVC)
@@ -173,7 +174,6 @@ build_flatbuffers("${desktop_flatbuffers_schemas}"
 
 set(app_desktop_SRCS
     src/app_desktop.cc
-    src/variant_util.cc
     src/heartbeat/date_provider.cc
     src/heartbeat/heartbeat_storage_desktop.cc
     src/heartbeat/heartbeat_controller_desktop.cc
@@ -259,11 +259,11 @@ set(utility_common_HDRS
     src/semaphore.h
     src/thread.h
     src/time.h
-    src/util.h)
+    src/util.h
+    src/variant_util.h)
 set(utility_android_HDRS)
 set(utility_ios_HDRS)
-set(utility_desktop_HDRS
-    src/variant_util.h)
+set(utility_desktop_HDRS)
 if(ANDROID)
   set(utility_HDRS
       "${utility_common_HDRS}"
@@ -490,6 +490,19 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/listener.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/metadata.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/storage_reference.h)
+  set(ai_HDRS
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/chat.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/function_calling.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/generate_content_response.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/generation_config.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/generative_model.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/model_content.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/safety.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/schema.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/template_chat_session.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/template_generative_model.h
+    ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/types.h)
   set(ump_HDRS
     ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump.h
     ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/consent_info.h
@@ -497,6 +510,7 @@ if (IOS)
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
+    ${ai_HDRS}
     ${analytics_HDRS}
     ${app_check_HDRS}
     ${auth_HDRS}
