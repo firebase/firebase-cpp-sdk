@@ -87,7 +87,7 @@ class ExceptionClearGuard {
 
   // Consumes the saved exception so it will not be re-thrown on destruction.
   ScopedLocalRef<jthrowable> ReleaseSavedException() noexcept {
-    return ScopedLocalRef<jthrowable>(env_, saved_exception_.release());
+    return std::move(saved_exception_);
   }
 
  private:
@@ -101,7 +101,7 @@ inline std::string ExtractExceptionMessage(JNIEnv* env, jthrowable exception) {
   if (!env || !exception) return std::string();
   ExceptionClearGuard guard(env);
 
-  ScopedLocalRef<jclass> throwable_class(env, env->GetObjectClass(exception));
+  ScopedLocalRef<jclass> throwable_class(env, env->GetObjectClass(exception), /*adopt_existing_local=*/true);
   if (!throwable_class || env->ExceptionCheck()) {
     env->ExceptionClear();
     return std::string();
@@ -116,7 +116,7 @@ inline std::string ExtractExceptionMessage(JNIEnv* env, jthrowable exception) {
       return std::string();
     }
     ScopedLocalRef<jobject> msg_obj(
-        env, env->CallObjectMethod(exception, mid));
+        env, env->CallObjectMethod(exception, mid), /*adopt_existing_local=*/true);
     if (env->ExceptionCheck() || !msg_obj) {
       env->ExceptionClear();
       return std::string();
@@ -149,7 +149,7 @@ inline bool CheckAndClearException(JNIEnv* env) noexcept {
 // clears the exception, and returns the message (or a non-empty fallback).
 inline std::string GetAndClearExceptionMessage(JNIEnv* env) {
   if (!env || !env->ExceptionCheck()) return std::string();
-  ScopedLocalRef<jthrowable> exception(env, env->ExceptionOccurred());
+  ScopedLocalRef<jthrowable> exception(env, env->ExceptionOccurred(), /*adopt_existing_local=*/true);
   env->ExceptionClear();
   if (!exception) return "Unknown JNI exception";
   std::string msg = ExtractExceptionMessage(env, exception.get());

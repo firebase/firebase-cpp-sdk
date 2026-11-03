@@ -22,9 +22,9 @@
 namespace firebase {
 namespace jni {
 
-template <typename T, std::enable_if_t<std::is_pointer_v<T>, int> = 0>
+template <typename T, std::enable_if_t<IsReferenceV<T>, int> = 0>
 inline ScopedLocalRef<T> MakeScopedLocalRef(JNIEnv* env, T object) noexcept {
-  return ScopedLocalRef<T>(env, object);
+  return ScopedLocalRef<T>(env, object, /*adopt_existing_local=*/true);
 }
 
 }  // namespace jni

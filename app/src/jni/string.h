@@ -248,11 +248,11 @@ inline jstring NewRawJString(JNIEnv* env, std::string_view utf8) {
 }
 
 inline ScopedLocalRef<jstring> NewJString(JNIEnv* env, const char* utf8) {
-  return ScopedLocalRef<jstring>(env, NewRawJString(env, utf8));
+  return ScopedLocalRef<jstring>(env, NewRawJString(env, utf8), /*adopt_existing_local=*/true);
 }
 
 inline ScopedLocalRef<jstring> NewJString(JNIEnv* env, std::string_view utf8) {
-  return ScopedLocalRef<jstring>(env, NewRawJString(env, utf8));
+  return ScopedLocalRef<jstring>(env, NewRawJString(env, utf8), /*adopt_existing_local=*/true);
 }
 
 // Converts a JNI jstring to a standard UTF-8 std::string without deleting `str`.

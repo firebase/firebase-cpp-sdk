@@ -401,7 +401,7 @@ class Env {
   Local<Throwable> ExceptionOccurred() noexcept {
     if (!env_ || !env_->ExceptionCheck()) return {};
     jthrowable occurred = env_->ExceptionOccurred();
-    return Local<Throwable>(env_, occurred);
+    return Local<Throwable>(env_, occurred, /*adopt_existing_local=*/true);
   }
 
   // Clears the currently pending Java exception and returns it.
@@ -824,7 +824,7 @@ class Env {
   template <typename R>
   EnableForReference<R, Local<R>> MakeResult(jobject result) {
     if (ok()) {
-      return Local<R>(env_, static_cast<JniType<R>>(result));
+      return Local<R>(env_, static_cast<JniType<R>>(result), /*adopt_existing_local=*/true);
     }
     RecordException();
     if (result) {
