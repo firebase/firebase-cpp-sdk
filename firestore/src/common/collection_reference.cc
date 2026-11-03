@@ -71,7 +71,7 @@ CollectionReference& CollectionReference::operator=(
 }
 
 CollectionReference& CollectionReference::operator=(
-    CollectionReference&& reference) noexcept {
+    CollectionReference&& reference) {
   Query::operator=(std::move(reference));
   return *this;
 }

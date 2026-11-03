@@ -87,14 +87,16 @@ class Promise {
     return *this;
   }
 
-  void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task) {
+  void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task, const char* fallback_error = "Unknown error.") {
     if (!completer_) return;
     if (!env.ok() || !task) {
       handle_ = completer_->Alloc(static_cast<int>(op));
-      impl_->Complete(handle_, Error::kErrorUnknown, "Unknown error.");
-      if (completer_->completion_) {
-        completer_->completion_->CompleteWith(Error::kErrorUnknown, "Unknown error.", nullptr);
-      }
+      firestore_ref_.RunIfValid([this, fallback_error](FirestoreInternal&) {
+        impl_->Complete(handle_, Error::kErrorUnknown, fallback_error);
+        if (completer_->completion_) {
+          completer_->completion_->CompleteWith(Error::kErrorUnknown, fallback_error, nullptr);
+        }
+      });
       return;
     }
     handle_ = completer_->Alloc(static_cast<int>(op));

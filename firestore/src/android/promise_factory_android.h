@@ -90,12 +90,8 @@ class PromiseFactory {
           nullptr) {
     if (!env.ok() || !task) {
       auto promise = MakePromise<PublicT, InternalT>(completion);
-      promise.RegisterForTask(env, op, task);
       jni::ExceptionClearGuard block(env);
-      if (completion != nullptr) {
-        completion->CompleteWith(Error::kErrorUnknown,
-                                 "Failed to create Java Task", nullptr);
-      }
+      promise.RegisterForTask(env, op, jni::Task(), "Failed to create Java Task");
       return promise.GetFuture();
     }
 

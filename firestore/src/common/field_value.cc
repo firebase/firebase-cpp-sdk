@@ -314,9 +314,6 @@ std::string FieldValue::ToString() const {
     case Type::kIncrementDouble:
       return "FieldValue::Increment()";
 
-    case Type::kInvalid:
-      return "<invalid>";
-  }
 
   // TODO(b/147444199): use string formatting.
   // HARD_FAIL("Unexpected FieldValue type: %s", static_cast<int>(type()));

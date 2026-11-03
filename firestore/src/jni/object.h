@@ -52,7 +52,7 @@ class Object {
 
   [[nodiscard]] explicit operator bool() const { return object_ != nullptr; }
 
-  [[nodiscard]] jobject get() const { return object_; }
+  [[nodiscard]] virtual jobject get() const { return object_; }
 
   static void Initialize(Loader& loader);
 

@@ -278,9 +278,6 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
 
 std::string Describe(Type type) {
   switch (type) {
-    case Type::kInvalid:
-      return "FieldValue()";
-    // Scalars
     case Type::kNull:
       return "FieldValue::Null()";
     case Type::kBoolean:
