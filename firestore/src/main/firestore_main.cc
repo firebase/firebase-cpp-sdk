@@ -375,16 +375,8 @@ void FirestoreInternal::RegisterListenerRegistration(
 
 void FirestoreInternal::UnregisterListenerRegistration(
     ListenerRegistrationInternal* registration) {
-  ListenerRegistrationInternal* to_delete = nullptr;
-  {
-    std::scoped_lock lock(listeners_mutex_);
-    auto iter = listeners_.find(registration);
-    if (iter != listeners_.end()) {
-      to_delete = *iter;
-      listeners_.erase(iter);
-    }
-  }
-  delete to_delete;
+  std::scoped_lock lock(listeners_mutex_);
+  listeners_.erase(registration);
 }
 
 void FirestoreInternal::ApplyDefaultSettings() {
