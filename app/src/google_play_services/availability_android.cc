@@ -18,6 +18,7 @@
 
 #include <jni.h>
 
+#include <iterator>
 #include <memory>
 #include <string>
 #include <utility>
@@ -119,13 +120,13 @@ struct AvailabilityData {
 };
 
 static Mutex& GetAvailabilityMutex() {
-  static Mutex* mutex = new Mutex();
-  return *mutex;
+  static Mutex mutex;
+  return mutex;
 }
 
 static std::shared_ptr<AvailabilityData>& GetAvailabilityDataRef() {
-  static std::shared_ptr<AvailabilityData>* data = new std::shared_ptr<AvailabilityData>();
-  return *data;
+  static std::shared_ptr<AvailabilityData> data;
+  return data;
 }
 
 static JavaVM* g_vm = nullptr;
@@ -169,8 +170,6 @@ void ReleaseClasses(JNIEnv* env) {
   googleapiavailabilityhelper::ReleaseClass(env);
 }
 
-}  // namespace
-
 bool InitializeLocked(JNIEnv* env, jobject activity) {
   if (!env || !activity) return false;
   env->GetJavaVM(&g_vm);
@@ -189,9 +188,6 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
   }
 
   // Instantiate where we store stuff.
-  
-    
-  }
   GetAvailabilityDataRef() = std::make_shared<AvailabilityData>();
 
   // We depend on firebase::util, so initialize it.
@@ -216,9 +212,9 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
                                                            &embedded_files) &&
           googleapiavailabilityhelper::CacheMethodIds(env, activity) &&
           googleapiavailabilityhelper::RegisterNatives(
-              env, kHelperMethods, FIREBASE_ARRAYSIZE(kHelperMethods))) {
+              env, kHelperMethods, std::size(kHelperMethods))) {
         // Everything initialized properly.
-        (*g_data)->classes_loaded = true;
+        GetAvailabilityDataRef()->classes_loaded = true;
         return true;
       }
       if (env->ExceptionCheck()) {
@@ -241,11 +237,12 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
       "Unable to check Google Play services availability as the "
       "com.google.android.gms.common.GoogleApiAvailability class is not "
       "present in this application.");
-  
-  
+  GetAvailabilityDataRef().reset();
   g_initialized_count--;
   return false;
 }
+
+}  // namespace
 
 bool Initialize(JNIEnv* env, jobject activity) {
   MutexLock lock(GetAvailabilityMutex());
@@ -347,7 +344,7 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
     bool exception = firebase::util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(api);
     if (!exception) {
-      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(ConnectionResultToAvailability);
+      for (size_t i = 0; i < std::size(ConnectionResultToAvailability);
            i++) {
         if (result == ConnectionResultToAvailability[i].java) {
           Availability availability = ConnectionResultToAvailability[i].cpp;

@@ -531,7 +531,15 @@ Variant Variant::AsInt64() const {
       return *this;
     }
     case kInternalTypeDouble: {
-      return Variant::FromInt64(static_cast<int64_t>(double_value()));
+      double d = double_value();
+      if (std::isnan(d)) return Variant::Zero();
+      if (d >= static_cast<double>(INT64_MAX)) {
+        return Variant::FromInt64(INT64_MAX);
+      }
+      if (d <= static_cast<double>(INT64_MIN)) {
+        return Variant::FromInt64(INT64_MIN);
+      }
+      return Variant::FromInt64(static_cast<int64_t>(d));
     }
     case kInternalTypeBool: {
       return bool_value() ? Variant::One() : Variant::Zero();
@@ -539,7 +547,7 @@ Variant Variant::AsInt64() const {
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
-      return Variant::FromInt64(strtol(string_value(), nullptr, 10));  // NOLINT
+      return Variant::FromInt64(strtoll(string_value(), nullptr, 10));  // NOLINT
     }
     default: {
       return Variant::Zero();
@@ -553,7 +561,7 @@ Variant Variant::AsDouble() const {
       return Variant::FromDouble(static_cast<double>(int64_value()));
     }
     case kInternalTypeDouble: {
-      return *this;
+      return std::isfinite(double_value()) ? *this : Variant::ZeroPointZero();
     }
     case kInternalTypeBool: {
       return bool_value() ? Variant::OnePointZero() : Variant::ZeroPointZero();
@@ -561,7 +569,9 @@ Variant Variant::AsDouble() const {
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
-      return Variant::FromDouble(strtod(string_value(), nullptr));
+      double d = strtod(string_value(), nullptr);
+      return std::isfinite(d) ? Variant::FromDouble(d)
+                              : Variant::ZeroPointZero();
     }
     default: {
       return Variant::ZeroPointZero();
@@ -570,14 +580,41 @@ Variant Variant::AsDouble() const {
 }
 
 Variant Variant::AsBool() const {
-  if (*this == Variant::Null() || *this == Variant::Zero() ||
-      *this == Variant::ZeroPointZero() || *this == Variant::False() ||
-      *this == Variant::EmptyString() || *this == Variant::EmptyVector() ||
-      *this == Variant::EmptyMap() || *this == Variant("false") ||
-      (is_blob() && blob_size() == 0))
-    return Variant::False();
-  else
-    return Variant::True();
+  switch (type_) {
+    case kInternalTypeNull:
+      return Variant::False();
+    case kInternalTypeInt64:
+      return int64_value() != 0 ? Variant::True() : Variant::False();
+    case kInternalTypeDouble: {
+      double d = double_value();
+      return (d != 0.0 && !std::isnan(d)) ? Variant::True() : Variant::False();
+    }
+    case kInternalTypeBool:
+      return *this;
+    case kInternalTypeMutableString:
+    case kInternalTypeStaticString:
+    case kInternalTypeSmallString: {
+      std::string_view sv = is_mutable_string()
+                                ? std::string_view(mutable_string())
+                                : std::string_view(string_value());
+      if (sv.empty() || sv == "0") return Variant::False();
+      if (sv.size() == 5 && (sv[0] == 'f' || sv[0] == 'F') &&
+          (sv[1] == 'a' || sv[1] == 'A') && (sv[2] == 'l' || sv[2] == 'L') &&
+          (sv[3] == 's' || sv[3] == 'S') && (sv[4] == 'e' || sv[4] == 'E')) {
+        return Variant::False();
+      }
+      return Variant::True();
+    }
+    case kInternalTypeVector:
+      return vector().empty() ? Variant::False() : Variant::True();
+    case kInternalTypeMap:
+      return map().empty() ? Variant::False() : Variant::True();
+    case kInternalTypeStaticBlob:
+    case kInternalTypeMutableBlob:
+      return blob_size() == 0 ? Variant::False() : Variant::True();
+    default:
+      return Variant::False();
+  }
 }
 
 const char* Variant::TypeName(Variant::Type t) {

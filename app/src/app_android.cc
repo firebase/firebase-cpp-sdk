@@ -43,15 +43,8 @@ namespace internal {
 class AppInternal : public JObjectReference {
  public:
   using JObjectReference::JObjectReference;
-  explicit AppInternal(const JObjectReference& ref,
-                       bool created_by_cpp_in = false)
-      : JObjectReference(ref), created_by_cpp(created_by_cpp_in) {}
-
-  static AppInternal FromLocalReference(JNIEnv* env, jobject local_ref,
-                                        bool created_by_cpp_in = false) {
-    return AppInternal(JObjectReference::FromLocalReference(env, local_ref),
-                       created_by_cpp_in);
-  }
+  AppInternal(JNIEnv* env, jobject object, bool created_by_cpp_in = false)
+      : JObjectReference(env, object), created_by_cpp(created_by_cpp_in) {}
 
   bool created_by_cpp = false;
   bool registered_in_app_common = false;
@@ -174,7 +167,10 @@ METHOD_LOOKUP_DEFINITION(
 namespace {
 
 const char* const kAndroidDefaultAppName = "[DEFAULT]";
-static Mutex g_methods_mutex;
+Mutex& GetMethodsMutex() {
+  static Mutex m;
+  return m;
+}
 int g_methods_cached_count = 0;
 bool g_initialized_google_play_services = false;
 
@@ -200,14 +196,14 @@ void ReleaseClassesLocked(JNIEnv* env) {
 }
 
 void ReleaseClasses(JNIEnv* env) {
-  MutexLock lock(g_methods_mutex);
+  MutexLock lock(GetMethodsMutex());
   ReleaseClassesLocked(env);
 }
 
 // Cache FirebaseApp and FirebaseOptions method IDs.
 bool CacheMethods(JNIEnv* env, jobject activity) {
   if (!env || !activity) return false;
-  MutexLock lock(g_methods_mutex);
+  MutexLock lock(GetMethodsMutex());
   bool initialize = g_methods_cached_count == 0;
   g_methods_cached_count++;
   if (initialize) {
@@ -238,6 +234,7 @@ void PlatformOptionsBuilderSetString(JNIEnv* jni_env, jobject builder,
   if (util::LogException(jni_env, kLogLevelWarning,
                          "Failed to allocate string for AppOption") ||
       !string_value) {
+    if (string_value) jni_env->DeleteLocalRef(string_value);
     return;
   }
   jobject builder_discard =
@@ -257,35 +254,36 @@ jobject AppOptionsToPlatformOptions(JNIEnv* jni_env,
   if (util::LogException(jni_env, kLogLevelError,
                          "Could not allocate FirebaseOptions.Builder") ||
       !builder) {
+    if (builder) jni_env->DeleteLocalRef(builder);
     return nullptr;
   }
   PlatformOptionsBuilderSetString(jni_env, builder, app_options.api_key(),
                                   options_builder::kSetApiKey);
 
-  if (strlen(app_options.database_url())) {
+  if (app_options.database_url()[0] != '\0') {
     PlatformOptionsBuilderSetString(jni_env, builder,
                                     app_options.database_url(),
                                     options_builder::kSetDatabaseUrl);
   }
-  if (strlen(app_options.app_id())) {
+  if (app_options.app_id()[0] != '\0') {
     PlatformOptionsBuilderSetString(jni_env, builder, app_options.app_id(),
                                     options_builder::kSetApplicationId);
   }
-  if (strlen(app_options.messaging_sender_id())) {
+  if (app_options.messaging_sender_id()[0] != '\0') {
     PlatformOptionsBuilderSetString(jni_env, builder,
                                     app_options.messaging_sender_id(),
                                     options_builder::kSetGcmSenderId);
   }
-  if (strlen(app_options.storage_bucket())) {
+  if (app_options.storage_bucket()[0] != '\0') {
     PlatformOptionsBuilderSetString(jni_env, builder,
                                     app_options.storage_bucket(),
                                     options_builder::kSetStorageBucket);
   }
-  if (strlen(app_options.project_id())) {
+  if (app_options.project_id()[0] != '\0') {
     PlatformOptionsBuilderSetString(jni_env, builder, app_options.project_id(),
                                     options_builder::kSetProjectId);
   }
-  if (strlen(app_options.ga_tracking_id())) {
+  if (app_options.ga_tracking_id()[0] != '\0') {
     PlatformOptionsBuilderSetString(jni_env, builder,
                                     app_options.ga_tracking_id(),
                                     options_builder::kSetGaTrackingId);
@@ -310,7 +308,7 @@ jobject AppOptionsToPlatformOptions(JNIEnv* jni_env,
 void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
                                  AppOptions* app_options) {
   if (!firebase_options || !app_options) return;
-  if ((app_options->api_key()[0] == \'\0\')) {
+  if (app_options->api_key()[0] == '\0') {
     jobject api_key = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetApiKey));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -319,7 +317,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (api_key) jni_env->DeleteLocalRef(api_key);
   }
-  if ((app_options->app_id()[0] == \'\0\')) {
+  if (app_options->app_id()[0] == '\0') {
     jobject app_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetApplicationId));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -327,7 +325,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (app_id) jni_env->DeleteLocalRef(app_id);
   }
-  if ((app_options->database_url()[0] == \'\0\')) {
+  if (app_options->database_url()[0] == '\0') {
     jobject database_url = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetDatabaseUrl));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -336,7 +334,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (database_url) jni_env->DeleteLocalRef(database_url);
   }
-  if ((app_options->messaging_sender_id()[0] == \'\0\')) {
+  if (app_options->messaging_sender_id()[0] == '\0') {
     jobject gcm_sender_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetGcmSenderId));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -345,7 +343,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (gcm_sender_id) jni_env->DeleteLocalRef(gcm_sender_id);
   }
-  if ((app_options->storage_bucket()[0] == \'\0\')) {
+  if (app_options->storage_bucket()[0] == '\0') {
     jobject storage_bucket = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetStorageBucket));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -354,7 +352,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (storage_bucket) jni_env->DeleteLocalRef(storage_bucket);
   }
-  if ((app_options->project_id()[0] == \'\0\')) {
+  if (app_options->project_id()[0] == '\0') {
     jobject project_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetProjectId));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -363,7 +361,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (project_id) jni_env->DeleteLocalRef(project_id);
   }
-  if ((app_options->ga_tracking_id()[0] == \'\0\') &&
+  if (app_options->ga_tracking_id()[0] == '\0' &&
       options::GetMethodId(options::kGetGaTrackingId) != nullptr) {
     jobject ga_tracking_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetGaTrackingId));
@@ -385,10 +383,12 @@ jobject GetPlatformAppByName(JNIEnv* jni_env, const char* name) {
         app::GetClass(), app::GetMethodId(app::kGetInstance));
   } else {
     jobject name_string = jni_env->NewStringUTF(name);
-    if (!jni_env->ExceptionCheck() && name_string != nullptr) {
-      platform_app = jni_env->CallStaticObjectMethod(
-          app::GetClass(), app::GetMethodId(app::kGetInstanceByName),
-          name_string);
+    if (name_string != nullptr) {
+      if (!jni_env->ExceptionCheck()) {
+        platform_app = jni_env->CallStaticObjectMethod(
+            app::GetClass(), app::GetMethodId(app::kGetInstanceByName),
+            name_string);
+      }
       jni_env->DeleteLocalRef(name_string);
     }
   }
@@ -428,11 +428,15 @@ jobject CreatePlatformApp(JNIEnv* jni_env, const AppOptions& options,
           activity, platform_options);
     } else {
       jstring app_name = jni_env->NewStringUTF(name);
-      if (!util::CheckAndClearJniExceptions(jni_env) && app_name != nullptr) {
-        platform_app = jni_env->CallStaticObjectMethod(
-            app::GetClass(), app::GetMethodId(app::kInitializeApp), activity,
-            platform_options, app_name);
+      if (app_name != nullptr) {
+        if (!util::CheckAndClearJniExceptions(jni_env)) {
+          platform_app = jni_env->CallStaticObjectMethod(
+              app::GetClass(), app::GetMethodId(app::kInitializeApp), activity,
+              platform_options, app_name);
+        }
         jni_env->DeleteLocalRef(app_name);
+      } else {
+        util::CheckAndClearJniExceptions(jni_env);
       }
     }
     jni_env->DeleteLocalRef(platform_options);
@@ -464,7 +468,7 @@ jobject CreateOrGetPlatformApp(JNIEnv* jni_env, const AppOptions& options,
     // If a FirebaseApp exists, make sure it has the requested options.
     AppOptions existing_options;
     GetAppOptionsFromPlatformApp(jni_env, platform_app, &existing_options);
-    if ((existing_options.ga_tracking_id()[0] == \'\0\')) {
+    if (existing_options.ga_tracking_id()[0] == '\0') {
       options_to_compare.set_ga_tracking_id("");
     }
     if (options_to_compare != existing_options) {
@@ -609,7 +613,7 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
       app->activity_ = jni_env->NewGlobalRef(activity);
       app->options_ = options;
       GetAppOptionsFromPlatformApp(jni_env, platform_app, &app->options_);
-      if ((app->options_.package_name()[0] == \'\0\') &&
+      if (app->options_.package_name()[0] == '\0' &&
           util::context::GetMethodId(util::context::kGetPackageName)) {
         jobject package_name = jni_env->CallObjectMethod(
             activity,
@@ -620,9 +624,9 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
         }
         if (package_name) jni_env->DeleteLocalRef(package_name);
       }
-      app->internal_ = new internal::AppInternal(
-          internal::AppInternal::FromLocalReference(jni_env, platform_app,
-                                                    created_by_cpp));
+      app->internal_ =
+          new internal::AppInternal(jni_env, platform_app, created_by_cpp);
+      jni_env->DeleteLocalRef(platform_app);
       App* added_app = app_common::AddApp(app, &app->init_results_);
       if (added_app != app) {
         if (added_app && added_app->internal_ && created_by_cpp) {
@@ -672,11 +676,13 @@ static void RegisterLibraryWithVersionRegistrar(JNIEnv* env,
       version_registrar::GetClass(),
       version_registrar::GetMethodId(version_registrar::kGetInstance));
   if (util::CheckAndClearJniExceptions(env) || !registrar) {
+    if (registrar) env->DeleteLocalRef(registrar);
     return;
   }
 
   jstring library_string = env->NewStringUTF(library);
   if (util::CheckAndClearJniExceptions(env) || !library_string) {
+    if (library_string) env->DeleteLocalRef(library_string);
     env->DeleteLocalRef(registrar);
     return;
   }
@@ -688,8 +694,8 @@ static void RegisterLibraryWithVersionRegistrar(JNIEnv* env,
         version_registrar::GetMethodId(version_registrar::kRegisterVersion),
         library_string, version_string);
     util::CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(version_string);
   }
+  if (version_string) env->DeleteLocalRef(version_string);
   env->DeleteLocalRef(library_string);
   env->DeleteLocalRef(registrar);
 }

@@ -85,77 +85,66 @@ namespace {
 // Copy values of FIROptions into AppOptions.
 static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions* app_options) {
   if (!platform_options || !app_options) return;
-  if (!strlen(app_options->app_id())) {
+  if (app_options->app_id()[0] == '\0') {
     const char* value = platform_options.googleAppID.UTF8String;
     if (value) app_options->set_app_id(value);
   }
-  if (!strlen(app_options->api_key())) {
+  if (app_options->api_key()[0] == '\0') {
     const char* value = platform_options.APIKey.UTF8String;
     if (value) app_options->set_api_key(value);
   }
-  if (!strlen(app_options->package_name())) {
+  if (app_options->package_name()[0] == '\0') {
     const char* value = platform_options.bundleID.UTF8String;
     if (value) app_options->set_package_name(value);
   }
-  if (!strlen(app_options->messaging_sender_id())) {
+  if (app_options->messaging_sender_id()[0] == '\0') {
     const char* value = platform_options.GCMSenderID.UTF8String;
     if (value) app_options->set_messaging_sender_id(value);
   }
-  if (!strlen(app_options->database_url())) {
+  if (app_options->database_url()[0] == '\0') {
     const char* value = platform_options.databaseURL.UTF8String;
     if (value) app_options->set_database_url(value);
   }
-  if (!strlen(app_options->storage_bucket())) {
+  if (app_options->storage_bucket()[0] == '\0') {
     const char* value = platform_options.storageBucket.UTF8String;
     if (value) app_options->set_storage_bucket(value);
   }
-  if (!strlen(app_options->project_id())) {
+  if (app_options->project_id()[0] == '\0') {
     NSString* value = platform_options.projectID;
     if (value) app_options->set_project_id(value.UTF8String);
   }
-  if (!strlen(app_options->client_id())) {
+  if (app_options->client_id()[0] == '\0') {
     const char* value = platform_options.clientID.UTF8String;
     if (value) app_options->set_client_id(value);
-  }
-  if (!strlen(app_options->package_name())) {
-    const char* value = platform_options.bundleID.UTF8String;
-    if (value) app_options->set_package_name(value);
-  }
-  if (!strlen(app_options->ga_tracking_id())) {
-    const char* value = platform_options.trackingID.UTF8String;
-    if (value) app_options->set_ga_tracking_id(value);
   }
 }
 
 // Copy AppOptions into a FIROptions instance.
 static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
   FIROptions* platform_options = [[FIROptions alloc] initWithGoogleAppID:@"" GCMSenderID:@""];
-  if (strlen(app_options.app_id())) {
+  if (app_options.app_id()[0] != '\0') {
     platform_options.googleAppID = @(app_options.app_id());
   }
-  if (strlen(app_options.api_key())) {
+  if (app_options.api_key()[0] != '\0') {
     platform_options.APIKey = @(app_options.api_key());
   }
-  if (strlen(app_options.package_name())) {
+  if (app_options.package_name()[0] != '\0') {
     platform_options.bundleID = @(app_options.package_name());
   }
-  if (strlen(app_options.messaging_sender_id())) {
+  if (app_options.messaging_sender_id()[0] != '\0') {
     platform_options.GCMSenderID = @(app_options.messaging_sender_id());
   }
-  if (strlen(app_options.database_url())) {
+  if (app_options.database_url()[0] != '\0') {
     platform_options.databaseURL = @(app_options.database_url());
   }
-  if (strlen(app_options.storage_bucket())) {
+  if (app_options.storage_bucket()[0] != '\0') {
     platform_options.storageBucket = @(app_options.storage_bucket());
   }
-  if (strlen(app_options.project_id())) {
+  if (app_options.project_id()[0] != '\0') {
     platform_options.projectID = @(app_options.project_id());
   }
-  if (strlen(app_options.client_id())) {
+  if (app_options.client_id()[0] != '\0') {
     platform_options.clientID = @(app_options.client_id());
-  }
-  if (strlen(app_options.ga_tracking_id())) {
-    platform_options.trackingID = @(app_options.ga_tracking_id());
   }
   return platform_options;
 }
@@ -236,7 +225,7 @@ static FIRApp* CreateOrGetPlatformApp(const AppOptions& options, const char* nam
     // If a FIRApp exists, make sure it has the requested options.
     AppOptions options_to_compare = options;
     options_to_compare.PopulateRequiredWithDefaults();
-    if (!strlen(options_to_compare.package_name())) {
+    if (options_to_compare.package_name()[0] == '\0') {
       const char* bundle_id = [[NSBundle mainBundle] bundleIdentifier].UTF8String;
       if (bundle_id) {
         options_to_compare.set_package_name(bundle_id);
@@ -244,7 +233,7 @@ static FIRApp* CreateOrGetPlatformApp(const AppOptions& options, const char* nam
     }
     AppOptions existing_options;
     PlatformOptionsToAppOptions(platform_app.options, &existing_options);
-    if (!strlen(existing_options.package_name())) {
+    if (existing_options.package_name()[0] == '\0') {
       options_to_compare.set_package_name("");
     }
     if (options_to_compare != existing_options) {
@@ -410,44 +399,41 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
 }
 
 // Guards g_partial_apps.
-static Mutex* g_partial_apps_mutex = new Mutex();
-// Stores partially initialized apps, indexed by app name
-static std::map<std::string, App*, std::less<>>* g_partial_apps;
+static Mutex& GetPartialAppsMutex() {
+  static Mutex m;
+  return m;
+}
+
+// Stores partially initialized apps, indexed by app name.
+static std::map<std::string, App*, std::less<>>& GetPartialAppsMap() {
+  static std::map<std::string, App*, std::less<>> partial_apps;
+  return partial_apps;
+}
 
 App* FindPartialAppByName(const char* name) {
   if (!name) return nullptr;
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(name);
-    if (it == g_partial_apps->end()) {
-      return nullptr;
-    }
-    return it->second;
+  MutexLock lock(GetPartialAppsMutex());
+  auto& partial_apps = GetPartialAppsMap();
+  auto it = partial_apps.find(name);
+  if (it == partial_apps.end()) {
+    return nullptr;
   }
-  return nullptr;
+  return it->second;
 }
 
 void AddPartialApp(App* app) {
   if (!app || !app->name()) return;
-  MutexLock lock(*g_partial_apps_mutex);
-  if (!g_partial_apps) {
-    g_partial_apps = new std::map<std::string, App*, std::less<>>();
-  }
-  g_partial_apps->insert_or_assign(app->name(), app);
+  MutexLock lock(GetPartialAppsMutex());
+  GetPartialAppsMap().insert_or_assign(app->name(), app);
 }
 
 void RemovePartialApp(App* app) {
   if (!app || !app->name()) return;
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(app->name());
-    if (it != g_partial_apps->end() && it->second == app) {
-      g_partial_apps->erase(it);
-      if (g_partial_apps->empty()) {
-        delete g_partial_apps;
-        g_partial_apps = nullptr;
-      }
-    }
+  MutexLock lock(GetPartialAppsMutex());
+  auto& partial_apps = GetPartialAppsMap();
+  auto it = partial_apps.find(app->name());
+  if (it != partial_apps.end() && it->second == app) {
+    partial_apps.erase(it);
   }
 }
 
