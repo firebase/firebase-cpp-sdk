@@ -114,9 +114,10 @@ class AppCheckProvider {
   ///
   /// If you do not implement this method, the default implementation invokes
   /// the GetToken method whenever a limited-use token is requested.
-  void GetLimitedUseToken(
+  virtual void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback);};
+          completion_callback);
+};
 
 /// Interface for a factory that generates {@link AppCheckProvider}s.
 class AppCheckProviderFactory {

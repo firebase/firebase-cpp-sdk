@@ -207,10 +207,18 @@
   firebase::app_check::AppCheckToken cpp_token;
   cpp_token.token = firebase::util::NSStringToString(token);
 
-  std::lock_guard<std::recursive_mutex> lock(listeners_mutex_);
-  NSArray<NSValue*>* snapshot = [listeners_ copy];
+  NSArray<NSValue*>* snapshot;
+  {
+    std::lock_guard<std::recursive_mutex> lock(listeners_mutex_);
+    snapshot = [listeners_ copy];
+  }
   for (NSValue* listener_value in snapshot) {
-    if (![listeners_ containsObject:listener_value]) {
+    bool contains = false;
+    {
+      std::lock_guard<std::recursive_mutex> lock(listeners_mutex_);
+      contains = [listeners_ containsObject:listener_value];
+    }
+    if (!contains) {
       continue;
     }
     firebase::app_check::AppCheckListener* listener =
@@ -291,27 +299,44 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
                    NSLog(@"Unable to retrieve App Check token: %@", error);
                    int error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
                    std::string error_message = util::NSStringToString(error.localizedDescription);
-                   std::lock_guard<std::mutex> lock(state->mutex);
-                   if (state->owner != nullptr) {
-                     state->owner->future()->CompleteWithResult(
-                         handle, error_code, error_message.c_str(), AppCheckToken{});
+                   firebase::ReferenceCountedFutureImpl* future = nullptr;
+                   {
+                     std::lock_guard<std::mutex> lock(state->mutex);
+                     if (state->owner != nullptr) {
+                       future = state->owner->future();
+                     }
+                   }
+                   if (future) {
+                     future->CompleteWithResult(handle, error_code, error_message.c_str(), AppCheckToken{});
                    }
                    return;
                  }
                  if (token == nil) {
                    NSLog(@"App Check token is nil.");
-                   std::lock_guard<std::mutex> lock(state->mutex);
-                   if (state->owner != nullptr) {
-                     state->owner->future()->CompleteWithResult(
+                   firebase::ReferenceCountedFutureImpl* future = nullptr;
+                   {
+                     std::lock_guard<std::mutex> lock(state->mutex);
+                     if (state->owner != nullptr) {
+                       future = state->owner->future();
+                     }
+                   }
+                   if (future) {
+                     future->CompleteWithResult(
                          handle, kAppCheckErrorUnknown,
                          "AppCheck GetToken returned an empty token.", AppCheckToken{});
                    }
                    return;
                  }
                  AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
-                 std::lock_guard<std::mutex> lock(state->mutex);
-                 if (state->owner != nullptr) {
-                   state->owner->future()->CompleteWithResult(handle, kAppCheckErrorNone,
+                 firebase::ReferenceCountedFutureImpl* future = nullptr;
+                 {
+                   std::lock_guard<std::mutex> lock(state->mutex);
+                   if (state->owner != nullptr) {
+                     future = state->owner->future();
+                   }
+                 }
+                 if (future) {
+                   future->CompleteWithResult(handle, kAppCheckErrorNone,
                                                               cpp_token);
                  }
                }];
@@ -340,28 +365,46 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
           NSLog(@"Unable to retrieve limited-use App Check token: %@", error);
           int error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
           std::string error_message = util::NSStringToString(error.localizedDescription);
-          std::lock_guard<std::mutex> lock(state->mutex);
-          if (state->owner != nullptr) {
-            state->owner->future()->CompleteWithResult(handle, error_code, error_message.c_str(),
+          firebase::ReferenceCountedFutureImpl* future = nullptr;
+          {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            if (state->owner != nullptr) {
+              future = state->owner->future();
+            }
+          }
+          if (future) {
+            future->CompleteWithResult(handle, error_code, error_message.c_str(),
                                                        AppCheckToken{});
           }
           return;
         }
         if (token == nil) {
           NSLog(@"App Check token is nil.");
-          std::lock_guard<std::mutex> lock(state->mutex);
-          if (state->owner != nullptr) {
-            state->owner->future()->CompleteWithResult(
+          firebase::ReferenceCountedFutureImpl* future = nullptr;
+          {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            if (state->owner != nullptr) {
+              future = state->owner->future();
+            }
+          }
+          if (future) {
+            future->CompleteWithResult(
                 handle, kAppCheckErrorUnknown,
                 "AppCheck GetLimitedUseToken returned an empty token.", AppCheckToken{});
           }
           return;
         }
         AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
-        std::lock_guard<std::mutex> lock(state->mutex);
-        if (state->owner != nullptr) {
-          state->owner->future()->CompleteWithResult(handle, kAppCheckErrorNone, cpp_token);
-        }
+        firebase::ReferenceCountedFutureImpl* future = nullptr;
+                   {
+                     std::lock_guard<std::mutex> lock(state->mutex);
+                     if (state->owner != nullptr) {
+                       future = state->owner->future();
+                     }
+                   }
+                   if (future) {
+                     future->CompleteWithResult(handle, kAppCheckErrorNone, cpp_token);
+                   }
       }];
   return result;
 }
