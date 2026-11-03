@@ -10,6 +10,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 #include "performance/src/android/performance_android_internal.h"
 #include "performance/src/include/firebase/performance.h"
 #include "performance/src/performance_common.h"
@@ -26,8 +27,11 @@ static jobject g_performance_class_instance = nullptr;
 // Android Performance class.
 static const ::firebase::App* g_app = nullptr;
 
+static Mutex g_app_mutex;
+
 // Initialize the Performance API.
 InitResult Initialize(const ::firebase::App& app) {
+  MutexLock lock(g_app_mutex);
   if (g_app) {
     LogWarning("%s API already initialized", internal::kPerformanceModuleName);
     return kInitResultSuccess;
@@ -92,13 +96,20 @@ InitResult Initialize(const ::firebase::App& app) {
 namespace internal {
 
 // Determine whether the performance module is initialized.
-bool IsInitialized() { return g_app != nullptr; }
+bool IsInitialized() { 
+  MutexLock lock(g_app_mutex);
+  return g_app != nullptr; 
+}
 
 jobject GetFirebasePerformanceClassInstance() {
+  MutexLock lock(g_app_mutex);
   return g_performance_class_instance;
 }
 
-const ::firebase::App* GetFirebaseApp() { return g_app; }
+const ::firebase::App* GetFirebaseApp() { 
+  MutexLock lock(g_app_mutex);
+  return g_app; 
+}
 
 DEFINE_FIREBASE_VERSION_STRING(FirebasePerformance);
 
@@ -118,6 +129,7 @@ METHOD_LOOKUP_DEFINITION(trace_jni, "com/google/firebase/perf/metrics/Trace",
 
 // Clean up the API.
 void Terminate() {
+  MutexLock lock(g_app_mutex);
   if (!g_app) {
     LogWarning("%s API already shut down", internal::kPerformanceModuleName);
     return;
@@ -138,7 +150,8 @@ void Terminate() {
 
 // Determines if performance collection is enabled.
 bool GetPerformanceCollectionEnabled() {
-  FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
+  MutexLock lock(g_app_mutex);
+  FIREBASE_ASSERT_RETURN(false, g_app != nullptr);
   JNIEnv* env = g_app->GetJNIEnv();
   jboolean result =
       env->CallBooleanMethod(g_performance_class_instance,
@@ -150,7 +163,8 @@ bool GetPerformanceCollectionEnabled() {
 
 // Sets performance collection enabled or disabled.
 void SetPerformanceCollectionEnabled(bool enabled) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  MutexLock lock(g_app_mutex);
+  FIREBASE_ASSERT_RETURN_VOID(g_app != nullptr);
   JNIEnv* env = g_app->GetJNIEnv();
   jboolean collection_enabled = enabled;
   env->CallVoidMethod(g_performance_class_instance,

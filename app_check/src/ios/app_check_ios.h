@@ -64,6 +64,7 @@ class AppCheckInternal {
   struct LifetimeState {
     std::mutex mutex;
     AppCheckInternal* owner{nullptr};
+    std::vector<SafeFutureHandle<AppCheckToken>> pending_futures;
   };
 
   explicit AppCheckInternal(::firebase::App* app);

@@ -371,7 +371,7 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetLimitedUseAppCheckToken));
 }
 
-Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
+Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal(bool force_refresh) {
   auto handle =
       future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckStringInternal);
   Future<std::string> result = MakeFuture(future(), handle);
@@ -380,7 +380,7 @@ Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
   bool auto_refresh_enabled = true;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (HasValidCacheTokenLocked()) {
+    if (!force_refresh && HasValidCacheTokenLocked()) {
       cached_token_str = cached_token_.token;
       has_valid_cached = true;
     } else {
@@ -516,16 +516,18 @@ void AppCheckInternal::CleanupRegistryCalls() {
 
 // Static functions used by the internal registry tool
 bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
-                                                        void* /*unused*/,
+                                                        void* force_refresh_ptr,
                                                         void* out) {
   Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
   if (!app || !out_future) {
     return false;
   }
+  
+  bool force_refresh = force_refresh_ptr ? *static_cast<bool*>(force_refresh_ptr) : false;
 
   AppCheck* app_check = GetExistingAppCheckInstance(app);
   if (app_check && app_check->internal_) {
-    *out_future = app_check->internal_->GetAppCheckTokenStringInternal();
+    *out_future = app_check->internal_->GetAppCheckTokenStringInternal(force_refresh);
     return true;
   }
   return false;
@@ -592,9 +594,9 @@ void FunctionRegistryAppCheckListener::OnAppCheckTokenChanged(
       still_registered =
           std::find(callbacks_.begin(), callbacks_.end(), entry) !=
           callbacks_.end();
-      if (still_registered && entry.first) {
-        entry.first(token.token, entry.second);
-      }
+    }
+    if (still_registered && entry.first) {
+      entry.first(token.token, entry.second);
     }
     if (state && !IsLifetimeStateAlive(state)) {
       return;

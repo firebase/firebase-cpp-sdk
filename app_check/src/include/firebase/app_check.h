@@ -54,10 +54,10 @@ enum AppCheckError {
 /// independent of the mechanism by which the application was verified.
 struct AppCheckToken {
   /// A Firebase App Check token.
-  std::string token{};
+  std::string token = "";
 
   /// The time at which the token will expire in milliseconds since epoch.
-  int64_t expire_time_millis{0};
+  int64_t expire_time_millis = 0;
 
 #if !defined(SWIG)
   /// Returns true if the token is non-empty and has a positive expiration time.

@@ -8,7 +8,9 @@
 #include "firebase/performance/http_metric.h"
 #include "firebase/performance/trace.h"
 
+#if !defined(SWIG) && !defined(DOXYGEN)
 FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(performance)
+#endif  // !defined(SWIG) && !defined(DOXYGEN)
 
 /// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {

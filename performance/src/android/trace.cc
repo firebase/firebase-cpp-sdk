@@ -28,11 +28,21 @@ class TraceInternal {
 
   ~TraceInternal() {
     MutexLock lock(mutex_);
-    if (IsInitialized() && active_trace_) {
-      if (stop_on_destroy_ && is_started_) {
-        StopTrace();
+    if (active_trace_) {
+      JNIEnv* env = nullptr;
+      if (IsInitialized()) {
+        env = GetFirebaseApp()->GetJNIEnv();
+        if (stop_on_destroy_ && is_started_) {
+          env->CallVoidMethod(
+              active_trace_,
+              trace_jni::GetMethodId(trace_jni::kStopTrace));
+          util::CheckAndClearJniExceptions(env);
+        }
       } else {
-        CancelTrace();
+        env = firebase::util::GetJNIEnvFromApp();
+      }
+      if (env) {
+        env->DeleteGlobalRef(active_trace_);
       }
     }
     active_trace_ = nullptr;

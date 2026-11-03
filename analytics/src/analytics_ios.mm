@@ -598,8 +598,9 @@ Future<std::string> GetAnalyticsInstanceId() {
   static const int64_t kPollTimeoutMs = 6500;
   std::weak_ptr<internal::FutureData> weak_future_data = future_data;
   Thread get_id_thread([weak_future_data, future_handle]() {
-    const auto start_time = std::chrono::steady_clock::now();
-    for (;;) {
+    @autoreleasepool {
+      const auto start_time = std::chrono::steady_clock::now();
+      for (;;) {
       {
         MutexLock lock(g_mutex);
         auto locked_future_data = weak_future_data.lock();
@@ -627,6 +628,7 @@ Future<std::string> GetAnalyticsInstanceId() {
         }
       }
       firebase::internal::Sleep(kPollTimeMs);
+      }
     }
   });
   get_id_thread.Detach();

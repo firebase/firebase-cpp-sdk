@@ -41,6 +41,7 @@ class DebugTokenRequest
  public:
   explicit DebugTokenRequest(App* app)
       : RequestJson(debug_token_request_resource_data) {
+    options().timeout_ms = 10000;
     std::string server_url(kDebugTokenRequestServerUrlBase);
     server_url.append(app->options().project_id());
     server_url.append("/apps/");

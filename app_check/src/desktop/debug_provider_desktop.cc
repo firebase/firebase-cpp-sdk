@@ -97,6 +97,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
     std::mutex mutex;
     DebugAppCheckProviderFactoryInternal* factory{nullptr};
     App* app{nullptr};
+    flatbuffers::unique_ptr<firebase::rest::Controller> controller;
   };
 
   DebugAppCheckProvider(App* app, DebugAppCheckProviderFactoryInternal* factory,
@@ -108,7 +109,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
 
   void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) ;
+          completion_callback) override;
 
   void SetDebugToken(const std::string& token);
 
@@ -159,6 +160,12 @@ DebugAppCheckProvider::DebugAppCheckProvider(
 DebugAppCheckProvider::~DebugAppCheckProvider() {
   DetachCleanupState();
   alive_->store(false);
+  {
+    std::lock_guard<std::mutex> lock(cleanup_state_->mutex);
+    if (cleanup_state_->controller) {
+      cleanup_state_->controller->Cancel();
+    }
+  }
   scheduler_.CancelAllAndShutdownWorkerThread();
   firebase::rest::CleanupTransportCurl();
   firebase::rest::util::Terminate();
@@ -173,6 +180,7 @@ void DebugAppCheckProvider::SetDebugToken(const std::string& token) {
 // response.
 void GetTokenAsync(std::shared_ptr<std::atomic<bool>> alive,
                    std::shared_ptr<DebugTokenRequest> request,
+                   std::shared_ptr<DebugAppCheckProvider::CleanupState> cleanup_state,
                    std::function<void(AppCheckToken, int, const std::string&)>
                        completion_callback) {
   if (!alive || !alive->load()) {
@@ -183,7 +191,7 @@ void GetTokenAsync(std::shared_ptr<std::atomic<bool>> alive,
     return;
   }
   TokenResponse response;
-  firebase::rest::CreateTransport()->Perform(*request, &response);
+  firebase::rest::CreateTransport()->Perform(*request, &response, &cleanup_state->controller);
   if (!alive->load()) {
     if (completion_callback) {
       completion_callback(AppCheckToken{}, kAppCheckErrorUnknown,
@@ -328,6 +336,7 @@ void DebugAppCheckProvider::GetTokenInternal(
         scoped_cb->Invoke(token, error_code, error_message);
       };
   auto async_call = callback::NewCallback(GetTokenAsync, alive_, request,
+                                          cleanup_state_,
                                           std::move(wrapped_callback));
   scheduler_.Schedule(async_call);
 }

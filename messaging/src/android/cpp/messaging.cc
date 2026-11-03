@@ -766,7 +766,7 @@ void Terminate() {
   }
   TerminateMessageProcessingThread();
 
-  g_registration_token_mutex.reset();
+  // g_registration_token_mutex.reset();
   g_file_locker_mutex.reset();
   g_pending_topic_ops.reset();
   g_local_storage_file_path.reset();
@@ -817,21 +817,20 @@ static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,
                                        util::FutureResult result_code,
                                        const char* status_message,
                                        void* callback_data) {
-  SafeFutureHandle<void>* handle =
-      reinterpret_cast<SafeFutureHandle<void>*>(callback_data);
+  FutureHandleId future_id = reinterpret_cast<FutureHandleId>(callback_data);
+  auto handle = SafeFutureHandle<void>(FutureHandle(future_id));
   Error error =
       (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
   {
     MutexLock lock(g_future_data_mutex);
     if (FutureData::Get() && FutureData::Get()->api()) {
       ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-      api->Complete(*handle, error, status_message);
+      api->Complete(handle, error, status_message);
     } else {
       LogWarning("Failed to complete Future as it was likely already deleted.");
     }
   }
   if (result) env->DeleteLocalRef(result);
-  delete handle;
 }
 
 static const char kErrorMessageInvalidTopicName[] =
@@ -864,8 +863,11 @@ static void UpdateTopicSubscriptionInternal(
     }
   }
   if (!messaging_obj) {
+    MutexLock lock(g_future_data_mutex);
     if (FutureData* fd = FutureData::Get()) {
-      fd->api()->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
+      if (fd->api()) {
+        fd->api()->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
+      }
     }
     return;
   }
@@ -889,7 +891,7 @@ static void UpdateTopicSubscriptionInternal(
   } else if (result) {
     util::RegisterCallbackOnTask(
         env, result, SubscriptionUpdateComplete,
-        reinterpret_cast<void*>(new SafeFutureHandle<void>(handle)),
+        reinterpret_cast<void*>(handle.get().id()),
         kApiIdentifier);
     util::CheckAndClearJniExceptions(env);
 
@@ -963,24 +965,27 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
   if (result) {
     env->DeleteLocalRef(result);
   }
-  SafeFutureHandle<std::string>* handle =
-      reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data);
+  FutureHandleId future_id = reinterpret_cast<FutureHandleId>(callback_data);
+  auto handle = SafeFutureHandle<std::string>(FutureHandle(future_id));
   Error error = success ? kErrorNone : kErrorUnknown;
   MutexLock lock(g_future_data_mutex);
   if (FutureData::Get() && FutureData::Get()->api()) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-    api->CompleteWithResult(*handle, error, status_message, result_value);
+    api->CompleteWithResult(handle, error, status_message, result_value);
   } else {
     LogWarning("Failed to complete Future as it was likely already deleted.");
   }
-  delete handle;
 }
 
 Future<void> Subscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
-  MutexLock app_lock(g_app_mutex);
-  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+  bool initialized = false;
+  {
+    MutexLock app_lock(g_app_mutex);
+    initialized = (g_app && g_registration_token_mutex && g_firebase_messaging);
+  }
+  if (!initialized) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
     api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
@@ -1020,8 +1025,12 @@ Future<void> SubscribeLastResult() {
 Future<void> Unsubscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
-  MutexLock app_lock(g_app_mutex);
-  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+  bool initialized = false;
+  {
+    MutexLock app_lock(g_app_mutex);
+    initialized = (g_app && g_registration_token_mutex && g_firebase_messaging);
+  }
+  if (!initialized) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
     api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
@@ -1167,10 +1176,12 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
   }
 
   if (!messaging_obj || !g_registration_token_mutex) {
+    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
+    MutexLock lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
     api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
-    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
     return MakeFuture(api, handle);
   }
 
@@ -1245,10 +1256,12 @@ Future<std::string> GetToken() {
   }
 
   if (!messaging_obj || !g_registration_token_mutex) {
+    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
+    MutexLock lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) return Future<std::string>();
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<std::string> handle = api->SafeAlloc<std::string>(kMessagingFnGetToken);
     api->CompleteWithResult(handle, kErrorUnknown, "Messaging is uninitialized.", std::string());
-    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
     return MakeFuture(api, handle);
   }
 
@@ -1266,7 +1279,7 @@ Future<std::string> GetToken() {
   if (error.empty() && task != nullptr) {
     util::RegisterCallbackOnTask(
         env, task, CompleteStringCallback,
-        reinterpret_cast<void*>(new SafeFutureHandle<std::string>(handle)),
+        reinterpret_cast<void*>(handle.get().id()),
         kApiIdentifier);
   } else {
     api->CompleteWithResult(handle, kErrorUnknown, error.c_str(),

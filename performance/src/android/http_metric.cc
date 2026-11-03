@@ -48,11 +48,21 @@ class HttpMetricInternal {
 
   ~HttpMetricInternal() {
     MutexLock lock(mutex_);
-    if (IsInitialized() && active_http_metric_) {
-      if (stop_on_destroy_ && is_started_) {
-        StopHttpMetric();
+    if (active_http_metric_) {
+      JNIEnv* env = nullptr;
+      if (IsInitialized()) {
+        env = GetFirebaseApp()->GetJNIEnv();
+        if (stop_on_destroy_ && is_started_) {
+          env->CallVoidMethod(
+              active_http_metric_,
+              http_metric_jni::GetMethodId(http_metric_jni::kStopHttpMetric));
+          util::CheckAndClearJniExceptions(env);
+        }
       } else {
-        CancelHttpMetric();
+        env = firebase::util::GetJNIEnvFromApp();
+      }
+      if (env) {
+        env->DeleteGlobalRef(active_http_metric_);
       }
     }
     active_http_metric_ = nullptr;

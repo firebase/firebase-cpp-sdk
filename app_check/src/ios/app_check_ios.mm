@@ -14,6 +14,8 @@
 
 #include "app_check/src/ios/app_check_ios.h"
 
+#include <algorithm>
+
 #import "FIRApp.h"
 #import "FIRAppCheck.h"
 #import "FIRAppCheckProvider.h"
@@ -31,6 +33,7 @@
 @interface CppAppCheckProvider : NSObject <FIRAppCheckProvider>
 
 @property(nonatomic, nullable) firebase::app_check::AppCheckProvider* cppProvider;
+@property(nonatomic, assign) std::shared_ptr<std::atomic<bool>> aliveGuard;
 
 - (id)initWithProvider:(firebase::app_check::AppCheckProvider* _Nonnull)provider;
 
@@ -42,8 +45,15 @@
   self = [super init];
   if (self) {
     self.cppProvider = provider;
+    self.aliveGuard = std::make_shared<std::atomic<bool>>(true);
   }
   return self;
+}
+
+- (void)dealloc {
+  if (self.aliveGuard) {
+    self.aliveGuard->store(false);
+  }
 }
 
 - (void)getTokenWithCompletion:(nonnull void (^)(FIRAppCheckToken* _Nullable,
@@ -54,8 +64,15 @@
     handler(nil, ios_error);
     return;
   }
-  auto token_callback{[handler](firebase::app_check::AppCheckToken token, int error_code,
+  std::shared_ptr<std::atomic<bool>> alive = self.aliveGuard;
+  auto token_callback{[handler, alive](firebase::app_check::AppCheckToken token, int error_code,
                                 const std::string& error_message) {
+    if (!alive || !alive->load()) {
+      NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
+          firebase::app_check::kAppCheckErrorUnknown, "Provider destroyed.");
+      handler(nil, ios_error);
+      return;
+    }
     if (error_code != firebase::app_check::kAppCheckErrorNone) {
       NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
           static_cast<firebase::app_check::AppCheckError>(error_code), error_message);
@@ -77,8 +94,15 @@
     handler(nil, ios_error);
     return;
   }
-  auto token_callback{[handler](firebase::app_check::AppCheckToken token, int error_code,
+  std::shared_ptr<std::atomic<bool>> alive = self.aliveGuard;
+  auto token_callback{[handler, alive](firebase::app_check::AppCheckToken token, int error_code,
                                 const std::string& error_message) {
+    if (!alive || !alive->load()) {
+      NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
+          firebase::app_check::kAppCheckErrorUnknown, "Provider destroyed.");
+      handler(nil, ios_error);
+      return;
+    }
     if (error_code != firebase::app_check::kAppCheckErrorNone) {
       NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
           static_cast<firebase::app_check::AppCheckError>(error_code), error_message);
@@ -245,13 +269,16 @@ AppCheckInternal::AppCheckInternal(App* app)
 
 AppCheckInternal::~AppCheckInternal() {
   [notification_center_wrapper() stopListening];
+  std::vector<SafeFutureHandle<AppCheckToken>> pending;
   if (lifetime_state_) {
     std::lock_guard<std::mutex> lock(lifetime_state_->mutex);
     lifetime_state_->owner = nullptr;
-    future_manager().ReleaseFutureApi(this);
-  } else {
-    future_manager().ReleaseFutureApi(this);
+    pending = std::move(lifetime_state_->pending_futures);
   }
+  for (auto& handle : pending) {
+    future()->CompleteWithResult(handle, kAppCheckErrorUnknown, "AppCheck instance destroyed.", AppCheckToken{});
+  }
+  future_manager().ReleaseFutureApi(this);
   app_ = nullptr;
 }
 
@@ -287,41 +314,38 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
     return result;
   }
   std::shared_ptr<LifetimeState> state = lifetime_state_;
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->pending_futures.push_back(handle);
+  }
 
   [impl()
       tokenForcingRefresh:force_refresh
                completion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+                 int error_code = kAppCheckErrorNone;
+                 std::string error_message = "";
+                 AppCheckToken cpp_token;
                  if (error != nil) {
                    NSLog(@"Unable to retrieve App Check token: %@", error);
-                   int error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
-                   std::string error_message = util::NSStringToString(error.localizedDescription);
-                   {
-                     std::lock_guard<std::mutex> lock(state->mutex);
-                     if (state->owner != nullptr) {
-                       state->owner->future()->CompleteWithResult(
-                           handle, error_code, error_message.c_str(), AppCheckToken{});
-                     }
-                   }
-                   return;
-                 }
-                 if (token == nil) {
+                   error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
+                   error_message = util::NSStringToString(error.localizedDescription);
+                 } else if (token == nil) {
                    NSLog(@"App Check token is nil.");
-                   {
-                     std::lock_guard<std::mutex> lock(state->mutex);
-                     if (state->owner != nullptr) {
-                       state->owner->future()->CompleteWithResult(
-                           handle, kAppCheckErrorUnknown,
-                           "AppCheck GetToken returned an empty token.", AppCheckToken{});
-                     }
-                   }
-                   return;
+                   error_code = kAppCheckErrorUnknown;
+                   error_message = "AppCheck GetToken returned an empty token.";
+                 } else {
+                   cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
                  }
-                 AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
                  {
                    std::lock_guard<std::mutex> lock(state->mutex);
+                   auto it = std::find_if(state->pending_futures.begin(), state->pending_futures.end(),
+                       [&](const SafeFutureHandle<AppCheckToken>& h) { return h.get().id() == handle.get().id(); });
+                   if (it != state->pending_futures.end()) {
+                     state->pending_futures.erase(it);
+                   }
                    if (state->owner != nullptr) {
-                     state->owner->future()->CompleteWithResult(handle, kAppCheckErrorNone,
-                                                                std::move(cpp_token));
+                     state->owner->future()->CompleteWithResult(
+                         handle, error_code, error_message.c_str(), std::move(cpp_token));
                    }
                  }
                }];
@@ -343,39 +367,36 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
     return result;
   }
   std::shared_ptr<LifetimeState> state = lifetime_state_;
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->pending_futures.push_back(handle);
+  }
 
   [impl()
       limitedUseTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        int error_code = kAppCheckErrorNone;
+        std::string error_message = "";
+        AppCheckToken cpp_token;
         if (error != nil) {
           NSLog(@"Unable to retrieve limited-use App Check token: %@", error);
-          int error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
-          std::string error_message = util::NSStringToString(error.localizedDescription);
-          {
-            std::lock_guard<std::mutex> lock(state->mutex);
-            if (state->owner != nullptr) {
-              state->owner->future()->CompleteWithResult(handle, error_code, error_message.c_str(),
-                                                         AppCheckToken{});
-            }
-          }
-          return;
-        }
-        if (token == nil) {
+          error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
+          error_message = util::NSStringToString(error.localizedDescription);
+        } else if (token == nil) {
           NSLog(@"App Check token is nil.");
-          {
-            std::lock_guard<std::mutex> lock(state->mutex);
-            if (state->owner != nullptr) {
-              state->owner->future()->CompleteWithResult(
-                  handle, kAppCheckErrorUnknown,
-                  "AppCheck GetLimitedUseToken returned an empty token.", AppCheckToken{});
-            }
-          }
-          return;
+          error_code = kAppCheckErrorUnknown;
+          error_message = "AppCheck GetLimitedUseToken returned an empty token.";
+        } else {
+          cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
         }
-        AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
         {
           std::lock_guard<std::mutex> lock(state->mutex);
+          auto it = std::find_if(state->pending_futures.begin(), state->pending_futures.end(),
+              [&](const SafeFutureHandle<AppCheckToken>& h) { return h.get().id() == handle.get().id(); });
+          if (it != state->pending_futures.end()) {
+            state->pending_futures.erase(it);
+          }
           if (state->owner != nullptr) {
-            state->owner->future()->CompleteWithResult(handle, kAppCheckErrorNone,
+            state->owner->future()->CompleteWithResult(handle, error_code, error_message.c_str(),
                                                        std::move(cpp_token));
           }
         }
