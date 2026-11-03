@@ -131,7 +131,11 @@ void RemoteConfig::Cleanup() {
     if (notifier) {
       notifier->UnregisterObject(this);
     }
-    GetRcInstances().erase(app_);
+    auto& instances = GetRcInstances();
+    if (auto it = instances.find(app_);
+        it != instances.end() && it->second == this) {
+      instances.erase(it);
+    }
   }
 
   internal_->Cleanup();

@@ -120,8 +120,6 @@ struct CallExecutionContext
           return;
         }
         ResolveFuture(self->future_api, self->handle, &self->response);
-      } else if (!self->lifetime_state.expired()) {
-        ResolveFuture(self->future_api, self->handle, &self->response);
       }
     });
     transport->Perform(&request, &response, nullptr);

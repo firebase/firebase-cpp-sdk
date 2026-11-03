@@ -94,22 +94,16 @@ void RemoteConfigREST::Fetch(const App& app,
                              uint64_t fetch_timeout_in_milliseconds) {
   RemoteConfigRequest request;
   RemoteConfigResponse response;
-  {
-    MutexLock lock(mutex_);
-    TryGetInstallationsAndToken(app);
-    SetupRestRequest(app, fetch_timeout_in_milliseconds, &request);
-  }
+  TryGetInstallationsAndToken(app);
+  SetupRestRequest(app, fetch_timeout_in_milliseconds, &request);
 
   flatbuffers::unique_ptr<rest::Transport> transport =
       firebase::rest::CreateTransport();
   transport->Perform(request, &response);
 
-  {
-    MutexLock lock(mutex_);
-    ParseRestResponse(response);
-    rc_request_ = std::move(request);
-    rc_response_ = std::move(response);
-  }
+  ParseRestResponse(response);
+  rc_request_ = std::move(request);
+  rc_response_ = std::move(response);
 }
 
 static std::string GenerateFakeId() {

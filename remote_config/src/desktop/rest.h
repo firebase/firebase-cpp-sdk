@@ -20,7 +20,6 @@
 
 #include "app/rest/request_json.h"
 #include "app/rest/response_json.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/semaphore.h"
 #include "firebase/app.h"
 #include "remote_config/request_generated.h"
@@ -55,6 +54,9 @@ inline constexpr int kHTTPStatusTooManyRequests = 429;
 inline constexpr const char* kHTTPFetchKeyString = ":fetch?key=";
 inline constexpr const char* kNameSpaceString = "namespaces";
 
+// Single-threaded REST helper for executing a Remote Config fetch against a
+// caller-owned `LayeredConfigs` instance. Concurrency across fetches and config
+// reads is synchronized by `RemoteConfigInternal::internal_mutex_`.
 class RemoteConfigREST {
  public:
 #ifdef FIREBASE_TESTING
@@ -127,7 +129,6 @@ class RemoteConfigREST {
   std::string app_instance_id_;
   std::string app_instance_id_token_;
 
-  mutable Mutex mutex_;
   RemoteConfigRequest rc_request_;
   RemoteConfigResponse rc_response_;
   Semaphore fetch_future_sem_;

@@ -97,8 +97,6 @@ class HttpsCallableReferenceInternal {
   FunctionsInternal* functions_;
 
   std::unique_ptr<FIRHTTPSCallablePointer> impl_;
-
-  std::shared_ptr<FunctionsLifetimeState> ref_lifetime_state_;
 };
 
 }  // namespace firebase::functions::internal

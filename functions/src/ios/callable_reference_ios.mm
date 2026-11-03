@@ -38,9 +38,7 @@ enum HttpsCallableReferenceFn {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, std::unique_ptr<FIRHTTPSCallablePointer> impl)
-    : functions_(functions),
-      impl_(std::move(impl)),
-      ref_lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
+    : functions_(functions), impl_(std::move(impl)) {
   if (functions_) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -48,10 +46,6 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
-  if (ref_lifetime_state_) {
-    MutexLock lock(ref_lifetime_state_->mutex);
-    ref_lifetime_state_->alive = false;
-  }
   if (functions_) {
     functions_->future_manager().ReleaseFutureApi(this);
   }
@@ -60,8 +54,7 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
     : functions_(other.functions_),
-      impl_(std::make_unique<FIRHTTPSCallablePointer>(other.impl())),
-      ref_lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
+      impl_(std::make_unique<FIRHTTPSCallablePointer>(other.impl())) {
   if (functions_) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -74,30 +67,24 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     return *this;
   }
   auto new_impl = std::make_unique<FIRHTTPSCallablePointer>(other.impl());
-  auto new_lifetime = std::make_shared<FunctionsLifetimeState>();
-
-  if (ref_lifetime_state_) {
-    MutexLock lock(ref_lifetime_state_->mutex);
-    ref_lifetime_state_->alive = false;
+  if (functions_ != other.functions_) {
+    if (functions_) {
+      functions_->future_manager().ReleaseFutureApi(this);
+    }
+    functions_ = other.functions_;
+    if (functions_) {
+      functions_->future_manager().AllocFutureApi(
+          this, kHttpsCallableReferenceFnCount);
+    }
   }
-  if (functions_) {
-    functions_->future_manager().ReleaseFutureApi(this);
-  }
-  functions_ = other.functions_;
-  ref_lifetime_state_ = std::move(new_lifetime);
   impl_ = std::move(new_impl);
-  if (functions_) {
-    functions_->future_manager().AllocFutureApi(this,
-                                                kHttpsCallableReferenceFnCount);
-  }
   return *this;
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other) noexcept
     : functions_(std::exchange(other.functions_, nullptr)),
-      impl_(std::move(other.impl_)),
-      ref_lifetime_state_(std::move(other.ref_lifetime_state_)) {
+      impl_(std::move(other.impl_)) {
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&other, this);
   }
@@ -108,16 +95,11 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &other) {
     return *this;
   }
-  if (ref_lifetime_state_) {
-    MutexLock lock(ref_lifetime_state_->mutex);
-    ref_lifetime_state_->alive = false;
-  }
   if (functions_) {
     functions_->future_manager().ReleaseFutureApi(this);
   }
   functions_ = std::exchange(other.functions_, nullptr);
   impl_ = std::move(other.impl_);
-  ref_lifetime_state_ = std::move(other.ref_lifetime_state_);
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&other, this);
   }
@@ -144,15 +126,12 @@ bool HttpsCallableReferenceInternal::operator==(
 namespace {
 void CompleteFromCompletionBlock(
     const std::shared_ptr<FunctionsLifetimeState>& functions_lifetime,
-    const std::shared_ptr<FunctionsLifetimeState>& ref_lifetime,
     ReferenceCountedFutureImpl* future_impl,
     SafeFutureHandle<HttpsCallableResult> handle,
     FIRHTTPSCallableResult* result, NSError* error) {
-  if (!functions_lifetime || !ref_lifetime || !future_impl) return;
+  if (!functions_lifetime || !future_impl) return;
   MutexLock fn_lock(functions_lifetime->mutex);
   if (!functions_lifetime->alive) return;
-  MutexLock ref_lock(ref_lifetime->mutex);
-  if (!ref_lifetime->alive) return;
 
   if (error) {
     Error code = FunctionsInternal::ErrorFromNSError(error);
@@ -184,12 +163,11 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
       future_impl->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
   std::shared_ptr<FunctionsLifetimeState> fn_lifetime =
       functions_->lifetime_state();
-  std::shared_ptr<FunctionsLifetimeState> ref_lifetime = ref_lifetime_state_;
   @autoreleasepool {
     [impl() callWithCompletion:^(FIRHTTPSCallableResult* _Nullable result,
                                  NSError* _Nullable error) {
-      CompleteFromCompletionBlock(fn_lifetime, ref_lifetime, future_impl,
-                                  handle, result, error);
+      CompleteFromCompletionBlock(fn_lifetime, future_impl, handle, result,
+                                  error);
     }];
   }
   return MakeFuture(future_impl, handle);
@@ -205,15 +183,13 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
       future_impl->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
   std::shared_ptr<FunctionsLifetimeState> fn_lifetime =
       functions_->lifetime_state();
-  std::shared_ptr<FunctionsLifetimeState> ref_lifetime = ref_lifetime_state_;
   @autoreleasepool {
     id objc_data = util::VariantToId(data);
     [impl() callWithObject:objc_data
                 completion:^(FIRHTTPSCallableResult* _Nullable result,
                              NSError* _Nullable error) {
-                  CompleteFromCompletionBlock(fn_lifetime, ref_lifetime,
-                                              future_impl, handle, result,
-                                              error);
+                  CompleteFromCompletionBlock(fn_lifetime, future_impl, handle,
+                                              result, error);
                 }];
   }
   return MakeFuture(future_impl, handle);
