@@ -76,50 +76,6 @@ Loader::Loader(App* app)
 
 Loader::~Loader() { Unload(); }
 
-Loader::Loader(Loader&& other) noexcept
-    : app_(other.app_),
-      env_(other.env_),
-      last_class_name_(std::move(other.last_class_name_)),
-      last_class_(other.last_class_),
-      owns_last_class_(other.owns_last_class_),
-      ok_(other.ok_),
-      loaded_classes_(std::move(other.loaded_classes_)),
-      cached_class_refs_(std::move(other.cached_class_refs_)),
-      embedded_files_(std::move(other.embedded_files_)) {
-  other.app_ = nullptr;
-  other.env_ = nullptr;
-  other.last_class_ = nullptr;
-  other.owns_last_class_ = false;
-  other.ok_ = false;
-  other.loaded_classes_.clear();
-  other.cached_class_refs_.clear();
-  other.embedded_files_.clear();
-}
-
-Loader& Loader::operator=(Loader&& other) noexcept {
-  if (this != &other) {
-    Unload();
-    app_ = other.app_;
-    env_ = other.env_;
-    last_class_name_ = std::move(other.last_class_name_);
-    last_class_ = other.last_class_;
-    owns_last_class_ = other.owns_last_class_;
-    ok_ = other.ok_;
-    loaded_classes_ = std::move(other.loaded_classes_);
-    cached_class_refs_ = std::move(other.cached_class_refs_);
-    embedded_files_ = std::move(other.embedded_files_);
-    other.app_ = nullptr;
-    other.env_ = nullptr;
-    other.last_class_ = nullptr;
-    other.owns_last_class_ = false;
-    other.ok_ = false;
-    other.loaded_classes_.clear();
-    other.cached_class_refs_.clear();
-    other.embedded_files_.clear();
-  }
-  return *this;
-}
-
 void Loader::AddEmbeddedFile(const char* name,
                              const unsigned char* data,
                              size_t size) {

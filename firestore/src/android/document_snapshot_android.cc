@@ -65,13 +65,13 @@ Method<int32_t> kHashCode("hashCode", "()I");
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     const DocumentSnapshotInternal& other)
-    : Wrapper(other.firestore_, other.obj_) {
+    : Wrapper(other) {
   cached_id_ = other.cached_id_;
 }
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     DocumentSnapshotInternal&& other) noexcept
-    : Wrapper(other.firestore_, other.obj_) {
+    : Wrapper(std::move(other)) {
   cached_id_ = std::move(other.cached_id_);
 }
 

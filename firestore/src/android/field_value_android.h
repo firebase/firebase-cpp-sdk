@@ -1,3 +1,4 @@
+#include <optional>
 /*
  * Copyright 2020 Google LLC
  *
@@ -127,7 +128,7 @@ class FieldValueInternal {
   // Below are cached type information. It is costly to get type info from
   // jobject of Object type. So we cache it if we have already known.
   mutable std::mutex mutex_;
-  mutable Type cached_type_ = Type::kInvalid;
+  mutable std::optional<Type> cached_type_;
   mutable std::shared_ptr<std::vector<uint8_t>> cached_blob_;
 };
 

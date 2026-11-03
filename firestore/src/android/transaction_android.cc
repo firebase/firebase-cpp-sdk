@@ -268,16 +268,15 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   TransactionFunction* transaction_function =
       reinterpret_cast<TransactionFunction*>(transaction_function_ptr);
 
-  Transaction transaction;
   std::string message;
   Error code = Error::kErrorOk;
+
+  Transaction transaction(
+      new TransactionInternal(firestore, Object(java_transaction)));
 
 #if FIRESTORE_HAVE_EXCEPTIONS
   try {
 #endif
-
-    transaction = Transaction(
-        new TransactionInternal(firestore, Object(java_transaction)));
     code = transaction_function->Apply(transaction, message);
 
 #if FIRESTORE_HAVE_EXCEPTIONS

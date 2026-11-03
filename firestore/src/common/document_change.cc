@@ -34,13 +34,7 @@ namespace firestore {
 using CleanupFnDocumentChange = CleanupFn<DocumentChange>;
 using Type = DocumentChange::Type;
 
-#if defined(__ANDROID__)
-// Older NDK (r16b) fails to define this properly. Fix this when support for
-// the older NDK is removed.
-const std::size_t DocumentChange::npos = static_cast<std::size_t>(-1);
-#else
 constexpr std::size_t DocumentChange::npos;
-#endif  // defined(__ANDROID__)
 
 DocumentChange::DocumentChange() {}
 

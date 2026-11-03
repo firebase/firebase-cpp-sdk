@@ -144,7 +144,7 @@ FieldValueInternal& FieldValueInternal::operator=(
 }
 
 FieldValueInternal::FieldValueInternal(const Object& object)
-    : cached_type_(object ? Type::kInvalid : Type::kNull) {
+    : cached_type_(object ? std::nullopt : std::make_optional(Type::kNull)) {
   Env env = GetEnv();
   object_.reset(env, object);
 }
@@ -235,8 +235,8 @@ FieldValueInternal::FieldValueInternal(const MapFieldValue& value)
 Type FieldValueInternal::type() const {
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (cached_type_ != Type::kInvalid) {
-      return cached_type_;
+    if (cached_type_.has_value()) {
+      return cached_type_.value();
     }
   }
 
@@ -248,7 +248,7 @@ Type FieldValueInternal::type() const {
     std::lock_guard<std::mutex> lock(mutex_);
     object = object_.get(env);
   }
-  Type resolved_type = Type::kInvalid;
+  Type resolved_type = Type::kNull;
   if (!object) {
     resolved_type = Type::kNull;
   } else if (env.IsInstanceOf(object, Boolean::GetClass())) {
@@ -461,11 +461,11 @@ Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
   Local<Object> obj;
   std::lock_guard<std::mutex> lock(mutex_);
   obj = object_.get(env);
-  if (cached_type_ == Type::kInvalid) {
+  if (!cached_type_.has_value()) {
     FIREBASE_ASSERT(env.IsInstanceOf(obj, T::GetClass()));
     cached_type_ = type;
   } else {
-    FIREBASE_ASSERT(cached_type_ == type);
+    FIREBASE_ASSERT(*cached_type_ == type);
   }
   return std::move(obj).CastTo<T>();
 }
@@ -475,11 +475,11 @@ Local<String> FieldValueInternal::Cast<String>(jni::Env& env, Type type) const {
   Local<Object> obj;
   std::lock_guard<std::mutex> lock(mutex_);
   obj = object_.get(env);
-  if (cached_type_ == Type::kInvalid) {
+  if (!cached_type_.has_value()) {
     FIREBASE_ASSERT(env.IsInstanceOf(obj, String::GetClass()));
     cached_type_ = type;
   } else {
-    FIREBASE_ASSERT(cached_type_ == type);
+    FIREBASE_ASSERT(*cached_type_ == type);
   }
   return std::move(obj).CastTo<String>();
 }

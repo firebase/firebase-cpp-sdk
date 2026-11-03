@@ -24,7 +24,7 @@
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
-#include "firestore/src/include/firebase/future.h"
+#include "firebase/future.h"
 #include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase::firestore {

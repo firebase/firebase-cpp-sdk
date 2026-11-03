@@ -81,7 +81,7 @@ class FirestoreInternal {
     kCount,  // Must be the last enum value.
   };
 
-  FirestoreInternal(App* app, Firestore* firestore_public, const std::string& database_id);
+  FirestoreInternal(App* app, const std::string& database_id);
   ~FirestoreInternal();
 
   App* app() const { return app_; }

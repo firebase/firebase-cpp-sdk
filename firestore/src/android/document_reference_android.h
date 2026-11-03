@@ -191,6 +191,7 @@ class DocumentReferenceInternal : public Wrapper {
 
  private:
   friend class FirestoreInternal;
+  friend class FieldValueInternal;
 
   static void Initialize(jni::Loader& loader);
 
