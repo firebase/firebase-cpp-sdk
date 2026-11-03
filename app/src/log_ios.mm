@@ -14,22 +14,34 @@
  * limitations under the License.
  */
 
-#include <cassert>
 #include "app/src/log.h"
 
 #import <Foundation/Foundation.h>
+
+#include <atomic>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
 
 #import "FIRConfiguration.h"
 
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/internal/common.h"
-
-#include <stdarg.h>
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 
 // Key used in Info.plist to configure the log level before a load of code is executed.
-static NSString* kLogLevelInfoPlistKey = @"FIRCPPLogLevel";
+static NSString* const kLogLevelInfoPlistKey = @"FIRCPPLogLevel";
+static std::atomic<bool> g_platform_log_level_set{false};
+static std::atomic<bool> g_read_log_level_from_plist{false};
+
+static Mutex* GetIosLogMutex() {
+  static Mutex* mutex = new Mutex();
+  return mutex;
+}
 
 // Maps C++ to iOS SDK log levels.
 static const FIRLoggerLevel kCppToIOSLogLevel[] = {
@@ -45,48 +57,111 @@ static const FIRLoggerLevel kCppToIOSLogLevel[] = {
 
 // Initialize the logging system.
 void LogInitialize() {
-  static bool read_log_level_from_plist = false;
-  if (read_log_level_from_plist) return;
-  read_log_level_from_plist = true;
-  NSNumber* log_level_number =
-      (NSNumber*)([[NSBundle mainBundle] objectForInfoDictionaryKey:kLogLevelInfoPlistKey]);
-  if (log_level_number) {
-    int log_level_value = log_level_number.intValue;
-    if (log_level_value >= kLogLevelVerbose && log_level_value <= kLogLevelAssert) {
-      SetLogLevel(static_cast<LogLevel>(log_level_value));
+  if (g_read_log_level_from_plist.load(std::memory_order_acquire)) return;
+  MutexLock lock(*GetIosLogMutex());
+  if (g_read_log_level_from_plist.load(std::memory_order_relaxed)) return;
+  @autoreleasepool {
+    if (!g_platform_log_level_set.load(std::memory_order_acquire)) {
+      id log_level_obj = [[NSBundle mainBundle]
+          objectForInfoDictionaryKey:kLogLevelInfoPlistKey];
+      bool has_valid_value = false;
+      long log_level_value = 0;
+      if ([log_level_obj isKindOfClass:[NSNumber class]]) {
+        log_level_value = [log_level_obj integerValue];
+        has_valid_value = true;
+      } else if ([log_level_obj isKindOfClass:[NSString class]]) {
+        const char* str = [(NSString*)log_level_obj UTF8String];
+        if (str && str[0] != '\0') {
+          char* endptr = nullptr;
+          log_level_value = std::strtol(str, &endptr, 10);
+          if (endptr != str) {
+            while (std::isspace(static_cast<unsigned char>(*endptr))) endptr++;
+            if (*endptr == '\0') {
+              has_valid_value = true;
+            }
+          }
+        }
+      }
+      if (has_valid_value && log_level_value >= kLogLevelVerbose &&
+          log_level_value <= kLogLevelAssert) {
+        SetLogLevel(static_cast<LogLevel>(log_level_value));
+      }
     }
+    // Synchronize the platform logger with the C++ log level.
+    LogSetPlatformLevelLocked(GetLogLevel());
   }
-  // Synchronize the platform logger with the C++ log level.
-  LogSetPlatformLevel(GetLogLevel());
+  g_read_log_level_from_plist.store(true, std::memory_order_release);
+}
+
+static void LogSetPlatformLevelLocked(LogLevel level) {
+  g_platform_log_level_set.store(true, std::memory_order_relaxed);
+  const size_t kNumLevels = FIREBASE_ARRAYSIZE(kCppToIOSLogLevel);
+  size_t index = (level >= kLogLevelVerbose &&
+                  static_cast<size_t>(level) < kNumLevels)
+                     ? static_cast<size_t>(level)
+                     : static_cast<size_t>(kLogLevelInfo);
+  firebase::internal::SetFirConfigurationLoggerLevel(kCppToIOSLogLevel[index]);
 }
 
 // Set the platform specific SDK log level.
 void LogSetPlatformLevel(LogLevel level) {
-  assert(level < FIREBASE_ARRAYSIZE(kCppToIOSLogLevel));
-  firebase::internal::SetFirConfigurationLoggerLevel(kCppToIOSLogLevel[level]);
+  MutexLock lock(*GetIosLogMutex());
+  LogSetPlatformLevelLocked(level);
 }
 
 // Log a firebase message.
 void LogMessageV(LogLevel log_level, const char* format, va_list args) {
-  switch (log_level) {
-    case kLogLevelVerbose:
-      NSLogv([@"VERBOSE: " stringByAppendingString:@(format)], args);
-      break;
-    case kLogLevelDebug:
-      NSLogv([@"DEBUG: " stringByAppendingString:@(format)], args);
-      break;
-    case kLogLevelInfo:
-      NSLogv(@(format), args);
-      break;
-    case kLogLevelWarning:
-      NSLogv([@"WARNING: " stringByAppendingString:@(format)], args);
-      break;
-    case kLogLevelError:
-      NSLogv([@"ERROR: " stringByAppendingString:@(format)], args);
-      break;
-    case kLogLevelAssert:
-      NSLogv([@"ASSERT: " stringByAppendingString:@(format)], args);
-      break;
+  if (!format) return;
+  va_list args_copy;
+  va_copy(args_copy, args);
+  char message_buffer[1024];
+  int result = vsnprintf(message_buffer, sizeof(message_buffer), format, args);
+  char* final_buffer = message_buffer;
+  if (result < 0) {
+    va_end(args_copy);
+    return;
+  }
+  if (static_cast<size_t>(result) >= sizeof(message_buffer)) {
+    final_buffer = new char[result + 1];
+    vsnprintf(final_buffer, result + 1, format, args_copy);
+  }
+  va_end(args_copy);
+  @autoreleasepool {
+    NSString* message = @(final_buffer);
+    if (!message) {
+      message = [[NSString alloc] initWithBytes:final_buffer
+                                         length:std::strlen(final_buffer)
+                                       encoding:NSISOLatin1StringEncoding];
+#if !__has_feature(objc_arc)
+      [message autorelease];
+#endif
+    }
+    switch (log_level) {
+      case kLogLevelVerbose:
+        NSLog(@"VERBOSE: %@", message);
+        break;
+      case kLogLevelDebug:
+        NSLog(@"DEBUG: %@", message);
+        break;
+      case kLogLevelInfo:
+        NSLog(@"%@", message);
+        break;
+      case kLogLevelWarning:
+        NSLog(@"WARNING: %@", message);
+        break;
+      case kLogLevelError:
+        NSLog(@"ERROR: %@", message);
+        break;
+      case kLogLevelAssert:
+        NSLog(@"ASSERT: %@", message);
+        break;
+      default:
+        NSLog(@"UNKNOWN: %@", message);
+        break;
+    }
+  }
+  if (final_buffer != message_buffer) {
+    delete[] final_buffer;
   }
 }
 

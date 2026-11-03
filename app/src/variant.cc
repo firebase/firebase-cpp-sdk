@@ -19,6 +19,7 @@
 #include <limits.h>
 #include <stdlib.h>
 
+#include <cmath>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -32,57 +33,66 @@ namespace firebase {
 
 Variant& Variant::operator=(const Variant& other) {
   if (this != &other) {
-    Clear(static_cast<Type>(other.type_));
-    switch (type_) {
+    Variant temp;
+    temp.type_ = kInternalTypeNull;
+    temp.Clear(static_cast<Type>(other.type_));
+    switch (temp.type_) {
       case kInternalTypeNull: {
         break;
       }
       case kInternalTypeInt64: {
-        set_int64_value(other.int64_value());
+        temp.set_int64_value(other.int64_value());
         break;
       }
       case kInternalTypeDouble: {
-        set_double_value(other.double_value());
+        temp.set_double_value(other.double_value());
         break;
       }
       case kInternalTypeBool: {
-        set_bool_value(other.bool_value());
+        temp.set_bool_value(other.bool_value());
         break;
       }
       case kInternalTypeStaticString: {
-        set_string_value(other.string_value());
+        temp.set_string_value(other.string_value());
         break;
       }
       case kInternalTypeMutableString: {
-        set_mutable_string(other.mutable_string());
+        temp.set_mutable_string(other.mutable_string());
         break;
       }
       case kInternalTypeSmallString: {
-        strcpy(value_.small_string, other.value_.small_string);  // NOLINT
+        strcpy(temp.value_.small_string, other.value_.small_string);  // NOLINT
         break;
       }
       case kInternalTypeVector: {
-        set_vector(other.vector());
+        temp.set_vector(other.vector());
         break;
       }
       case kInternalTypeMap: {
-        set_map(other.map());
+        temp.set_map(other.map());
         break;
       }
       case kInternalTypeStaticBlob: {
-        set_blob_pointer(other.value_.blob_value.ptr,
-                         other.value_.blob_value.size);
+        temp.set_blob_pointer(other.value_.blob_value.ptr,
+                              other.value_.blob_value.size);
         break;
       }
       case kInternalTypeMutableBlob: {
-        set_mutable_blob(other.value_.blob_value.ptr,
-                         other.value_.blob_value.size);
+        temp.set_mutable_blob(other.value_.blob_value.ptr,
+                              other.value_.blob_value.size);
         break;
       }
       case kMaxTypeValue:
         FIREBASE_ASSERT(false);  // Should never hit this
         break;
     }
+
+    InternalType swap_type = type_;
+    Value swap_value = value_;
+    type_ = temp.type_;
+    value_ = temp.value_;
+    temp.type_ = swap_type;
+    temp.value_ = swap_value;
   }
   return *this;
 }
@@ -158,6 +168,37 @@ Variant& Variant::operator=(Variant&& other) noexcept {
 
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
+static int CompareStrings(const Variant& left, const Variant& right) {
+  const char* l_str;
+  size_t l_len;
+  if (left.is_mutable_string()) {
+    const std::string& l_str_val = left.mutable_string();
+    l_str = l_str_val.data();
+    l_len = l_str_val.size();
+  } else {
+    l_str = left.string_value();
+    l_len = strlen(l_str);
+  }
+
+  const char* r_str;
+  size_t r_len;
+  if (right.is_mutable_string()) {
+    const std::string& r_str_val = right.mutable_string();
+    r_str = r_str_val.data();
+    r_len = r_str_val.size();
+  } else {
+    r_str = right.string_value();
+    r_len = strlen(r_str);
+  }
+
+  size_t min_len = l_len < r_len ? l_len : r_len;
+  int cmp = memcmp(l_str, r_str, min_len);
+  if (cmp != 0) return cmp;
+  if (l_len < r_len) return -1;
+  if (l_len > r_len) return 1;
+  return 0;
+}
+
 bool Variant::operator==(const Variant& other) const {
   // If types don't match and we aren't both strings or blobs, fail.
   if (type_ != other.type_ && !(is_string() && other.is_string()) &&
@@ -170,14 +211,15 @@ bool Variant::operator==(const Variant& other) const {
     case kInternalTypeInt64:
       return int64_value() == other.int64_value();
     case kInternalTypeDouble:
+      if (std::isnan(double_value()) && std::isnan(other.double_value())) return true;
       return double_value() == other.double_value();
     case kInternalTypeBool:
       return bool_value() == other.bool_value();
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString:
-      // string == performs string comparison
-      return strcmp(string_value(), other.string_value()) == 0;
+      // string == performs string comparison (handles embedded nulls)
+      return CompareStrings(*this, other) == 0;
     case kInternalTypeVector:
       // std::vector == performs element-by-element comparison
       return vector() == other.vector();
@@ -240,7 +282,14 @@ bool Variant::operator<(const Variant& other) const {
       return int64_value() < other.int64_value();
     }
     case kInternalTypeDouble: {
-      return double_value() < other.double_value();
+      double l = double_value();
+      double r = other.double_value();
+      bool l_nan = std::isnan(l);
+      bool r_nan = std::isnan(r);
+      if (l_nan && r_nan) return false;
+      if (l_nan) return false;
+      if (r_nan) return true;
+      return l < r;
     }
     case kInternalTypeBool: {
       return bool_value() < other.bool_value();
@@ -248,7 +297,7 @@ bool Variant::operator<(const Variant& other) const {
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString:
-      return strcmp(string_value(), other.string_value()) < 0;
+      return CompareStrings(*this, other) < 0;
     case kInternalTypeVector: {
       auto i = vector().begin();
       auto j = other.vector().begin();
@@ -426,13 +475,13 @@ void Variant::assert_is_type(Variant::Type type) const {
       "Type Enum should match kTypeNames");
 
   FIREBASE_ASSERT_MESSAGE(
-      this->type_ == static_cast<InternalType>(type),
+      this->type() == type,
       "Expected Variant to be of type %s, but it was of type %s.",
       kTypeNames[type], kTypeNames[this->type_]);
 }
 
 void Variant::assert_is_not_type(Variant::Type type) const {
-  FIREBASE_ASSERT_MESSAGE(this->type_ == static_cast<InternalType>(type),
+  FIREBASE_ASSERT_MESSAGE(this->type() != type,
                           "Expected Variant to NOT be of type %s, but it is.",
                           kTypeNames[type]);
 }
@@ -475,24 +524,24 @@ Variant Variant::AsString() const {
     case kInternalTypeDouble: {
 #ifdef FIREBASE_USE_SNPRINTF
       char buffer[kBufferSize];
-      snprintf(buffer, kBufferSize, "%.16f", double_value());
+      snprintf(buffer, kBufferSize, "%.16g", double_value());
       return Variant::FromMutableString(buffer);
 #else
       std::stringstream ss;
-      ss << std::fixed << std::setprecision(16) << double_value();
+      ss << std::setprecision(16) << double_value();
       return Variant::FromMutableString(ss.str());
 #endif  // FIREBASE_USE_SNPRINTF
     }
     case kInternalTypeBool: {
-      return bool_value() ? Variant("true") : Variant("false");
+      return bool_value() ? Variant::FromMutableString("true") : Variant::FromMutableString("false");
     }
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
-      return *this;
+      return Variant::FromMutableString(string_value());
     }
     default: {
-      return Variant::EmptyString();
+      return Variant::FromMutableString("");
     }
   }
 }
@@ -553,15 +602,8 @@ Variant Variant::AsBool() const {
 }
 
 const char* Variant::TypeName(Variant::Type t) {
-  static int num_variant_types = -1;
-  if (num_variant_types == -1) {
-    int i;
-    for (i = 0; kTypeNames[i] != nullptr; i++) {
-      // Count the number of types.
-    }
-    num_variant_types = i;
-  }
-  FIREBASE_ASSERT(t >= 0 && t <= num_variant_types);
+  FIREBASE_ASSERT(t >= 0 && t <= kTypeMutableBlob);
+  if (t < 0 || t > kTypeMutableBlob) abort();
   return kTypeNames[t];
 }
 

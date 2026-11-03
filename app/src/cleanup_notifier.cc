@@ -17,10 +17,24 @@
 #include "app/src/cleanup_notifier.h"
 
 #include <assert.h>
-
 #include <algorithm>
+#include <condition_variable>
+#include <map>
+#include <mutex>
+#include <thread>
 
 namespace firebase {
+
+namespace {
+struct NotifierState {
+  void* in_flight_object = nullptr;
+  std::thread::id in_flight_thread;
+  std::condition_variable cv;
+};
+static std::mutex g_state_mutex;
+static std::map<CleanupNotifier*, NotifierState> g_states;
+}  // namespace
+
 
 Mutex *CleanupNotifier::cleanup_notifiers_by_owner_mutex_ = new Mutex();
 std::map<void *, CleanupNotifier *>
@@ -47,32 +61,61 @@ CleanupNotifier::~CleanupNotifier() {
 
 void CleanupNotifier::RegisterObject(void *object, CleanupCallback callback) {
   MutexLock lock(mutex_);
-  auto i = callbacks_.find(object);
-  if (i != callbacks_.end()) {
-    i->second = callback;
-  } else {
-    callbacks_.insert(std::make_pair(object, callback));
-  }
+  callbacks_[object] = callback;
 }
-
 void CleanupNotifier::UnregisterObject(void *object) {
-  MutexLock lock(mutex_);
-  callbacks_.erase(object);
-}
-
-void CleanupNotifier::CleanupAll() {
-  MutexLock lock(mutex_);
-  if (!cleaned_up_) {
-    while (callbacks_.begin() != callbacks_.end()) {
-      std::pair<void *, CleanupCallback> object_and_callback =
-          *callbacks_.begin();
-      object_and_callback.second(object_and_callback.first);
-      UnregisterObject(object_and_callback.first);
+  {
+    MutexLock lock(mutex_);
+    callbacks_.erase(object);
+  }
+  std::unique_lock<std::mutex> state_lock(g_state_mutex);
+  auto it = g_states.find(this);
+  if (it != g_states.end()) {
+    auto& state = it->second;
+    if (state.in_flight_object == object && state.in_flight_thread != std::this_thread::get_id()) {
+      state.cv.wait(state_lock, [&]() {
+        return state.in_flight_object != object;
+      });
     }
-    cleaned_up_ = true;
   }
 }
-
+void CleanupNotifier::CleanupAll() {
+  while (true) {
+    void* obj = nullptr;
+    CleanupCallback cb = nullptr;
+    {
+      MutexLock lock(mutex_);
+      cleaned_up_ = true;
+      if (callbacks_.empty()) break;
+      auto it = callbacks_.begin();
+      obj = it->first;
+      cb = it->second;
+      callbacks_.erase(it);
+    }
+    
+    {
+      std::unique_lock<std::mutex> state_lock(g_state_mutex);
+      auto& state = g_states[this];
+      state.in_flight_object = obj;
+      state.in_flight_thread = std::this_thread::get_id();
+    }
+    
+    cb(obj);
+    
+    {
+      std::unique_lock<std::mutex> state_lock(g_state_mutex);
+      auto& state = g_states[this];
+      state.in_flight_object = nullptr;
+      state.in_flight_thread = std::thread::id();
+      state.cv.notify_all();
+    }
+  }
+  
+  {
+    std::unique_lock<std::mutex> state_lock(g_state_mutex);
+    g_states.erase(this);
+  }
+}
 void CleanupNotifier::UnregisterAllOwners() {
   MutexLock lock(*cleanup_notifiers_by_owner_mutex_);
   while (owners_.begin() != owners_.end()) {
