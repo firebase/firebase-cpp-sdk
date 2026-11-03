@@ -14,8 +14,10 @@
 
 #include "remote_config/src/desktop/file_manager.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -31,37 +33,36 @@
 #include <unistd.h>
 #endif
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 namespace {
-#if FIREBASE_PLATFORM_WINDOWS
-std::wstring Utf8ToWideString(const std::string& str) {
-  if (str.empty()) return std::wstring();
-  int size_needed = MultiByteToWideChar(
-      CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
-  if (size_needed <= 0) return std::wstring();
-  std::wstring result(static_cast<size_t>(size_needed), L'\0');
-  MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()),
-                      result.data(), size_needed);
-  return result;
-}
-#endif
 
 uint64_t NextTempFileId() {
   static std::atomic<uint64_t> counter{0};
   return counter.fetch_add(1, std::memory_order_relaxed);
 }
-}  // namespace
 
-RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path) {
+uint64_t CurrentProcessId() {
 #if FIREBASE_PLATFORM_WINDOWS
-  file_path_ = Utf8ToWideString(file_path);
+  return static_cast<uint64_t>(GetCurrentProcessId());
 #else
-  file_path_ = file_path;
+  return static_cast<uint64_t>(getpid());
 #endif
 }
+
+std::string SanitizeFilenameComponent(const char* name) {
+  if (!name) return "";
+  std::string sanitized(name);
+  std::replace_if(
+      sanitized.begin(), sanitized.end(),
+      [](char c) { return c == '/' || c == '\\' || c == ':'; }, '_');
+  return sanitized;
+}
+
+}  // namespace
+
+RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path)
+    : file_path_(std::filesystem::u8path(file_path)) {}
 
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
                                                  const firebase::App& app) {
@@ -73,15 +74,11 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
   std::string error;
   std::string app_dir =
       AppDataDir(app_data_prefix.c_str(), /*should_create=*/true, &error);
-  std::string file_path;
   if (error.empty() && !app_dir.empty()) {
-    file_path = app_dir + "/" + app.name() + "_" + filename;
+    std::string safe_app_name = SanitizeFilenameComponent(app.name());
+    std::string combined = app_dir + "/" + safe_app_name + "_" + filename;
+    file_path_ = std::filesystem::u8path(combined);
   }
-#if FIREBASE_PLATFORM_WINDOWS
-  file_path_ = Utf8ToWideString(file_path);
-#else
-  file_path_ = file_path;
-#endif
 }
 
 bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {
@@ -106,8 +103,12 @@ bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
   }
   std::string buffer = configs.Serialize();
   const uint64_t tmp_id = NextTempFileId();
+  const uint64_t pid = CurrentProcessId();
+  std::string suffix =
+      ".tmp." + std::to_string(pid) + "." + std::to_string(tmp_id);
+  std::filesystem::path tmp_path = file_path_;
+  tmp_path += suffix;
 #if FIREBASE_PLATFORM_WINDOWS
-  std::wstring tmp_path = file_path_ + L".tmp." + std::to_wstring(tmp_id);
   FILE* fp = _wfopen(tmp_path.c_str(), L"wb");
   if (!fp) {
     return false;
@@ -128,7 +129,6 @@ bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
   }
   return true;
 #else
-  std::string tmp_path = file_path_ + ".tmp." + std::to_string(tmp_id);
   FILE* fp = std::fopen(tmp_path.c_str(), "wb");
   if (!fp) {
     return false;
@@ -150,6 +150,4 @@ bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
 #endif
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

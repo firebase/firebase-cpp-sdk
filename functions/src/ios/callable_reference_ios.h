@@ -30,9 +30,7 @@
 @class FIRHTTPSCallable;
 #endif  // __OBJC__
 
-namespace firebase {
-namespace functions {
-namespace internal {
+namespace firebase::functions::internal {
 
 // This defines the class FIRHTTPSCallablePointer, which is a C++-compatible
 // wrapper around the FIRHTTPSCallable Obj-C class.
@@ -66,9 +64,11 @@ class HttpsCallableReferenceInternal {
       HttpsCallableReferenceInternal&& other) noexcept;
 
   // Gets the Functions instance to which we refer.
-  Functions* functions() const;
+  [[nodiscard]] Functions* functions() const;
 
-  FunctionsInternal* functions_internal() const { return functions_; }
+  [[nodiscard]] FunctionsInternal* functions_internal() const {
+    return functions_;
+  }
 
   // Asynchronously calls the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
@@ -81,7 +81,7 @@ class HttpsCallableReferenceInternal {
 
   // Returns true if this HttpsCallableReference is valid, false if it is not
   // valid.
-  bool is_valid() const;
+  [[nodiscard]] bool is_valid() const;
 
   bool operator==(const HttpsCallableReferenceInternal& other) const;
 
@@ -101,8 +101,6 @@ class HttpsCallableReferenceInternal {
   std::shared_ptr<FunctionsLifetimeState> ref_lifetime_state_;
 };
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal
 
 #endif  // FIREBASE_FUNCTIONS_SRC_IOS_CALLABLE_REFERENCE_IOS_H_

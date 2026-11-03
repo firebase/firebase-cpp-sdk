@@ -18,9 +18,7 @@
 #include <mutex>
 #include <utility>
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 ConfigUpdateListenerRegistrationInternal::
     ConfigUpdateListenerRegistrationInternal(
@@ -37,7 +35,7 @@ ConfigUpdateListenerRegistrationInternal::
 void ConfigUpdateListenerRegistrationInternal::Remove() {
   std::function<void()> fn;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_);
     fn = std::move(listener_removal_function_);
     listener_removal_function_ = nullptr;
   }
@@ -46,6 +44,4 @@ void ConfigUpdateListenerRegistrationInternal::Remove() {
   }
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

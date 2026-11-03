@@ -23,9 +23,7 @@
 
 #include "remote_config/src/desktop/metadata.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 // NOTE: Configs are organized per app (iOS or Android). Instead of containing
 // them all, we only store the set belonging to the app based on the AppOptions.
@@ -38,33 +36,34 @@ using NamespaceKeyValueMap =
 class NamespacedConfigData {
  public:
   NamespacedConfigData();
-  NamespacedConfigData(const NamespaceKeyValueMap& config, uint64_t timestamp);
+  NamespacedConfigData(NamespaceKeyValueMap config, uint64_t timestamp);
 
   // Serialize to a buffer as a string.
   // This happens to be using Flexbuffers, but could be implemented with any
   // Serialization method.
-  std::string Serialize() const;
+  [[nodiscard]] std::string Serialize() const;
   // Deserializes a string buffer previously Serialized.
-  bool Deserialize(std::string_view buffer);
+  [[nodiscard]] bool Deserialize(std::string_view buffer);
 
   // Set key/value records from `map` by `namespace`.
   void SetNamespace(const std::map<std::string, std::string>& map,
                     const std::string& name_space);
   // Return true if `config` contains value by namespace and key.
-  bool HasValue(const std::string& key, const std::string& name_space) const;
+  [[nodiscard]] bool HasValue(std::string_view key,
+                              std::string_view name_space) const;
 
   // Return value by namespace and key. Will return empty string if no value in
   // `config`.
-  std::string GetValue(const std::string& key,
-                       const std::string& name_space) const;
+  [[nodiscard]] std::string GetValue(std::string_view key,
+                                     std::string_view name_space) const;
 
   // Assign keys that start with `prefix` from `name_space` namespace to the
   // `keys` variable.
-  void GetKeysByPrefix(const std::string& prefix, const std::string& name_space,
+  void GetKeysByPrefix(std::string_view prefix, std::string_view name_space,
                        std::set<std::string>* keys) const;
 
-  const NamespaceKeyValueMap& config() const;
-  uint64_t timestamp() const;
+  [[nodiscard]] const NamespaceKeyValueMap& config() const;
+  [[nodiscard]] uint64_t timestamp() const;
 
   bool operator==(const NamespacedConfigData& right) const;
 
@@ -97,8 +96,8 @@ struct LayeredConfigs {
                  const NamespacedConfigData& config_default,
                  const RemoteConfigMetadata& fetch_metadata);
 
-  std::string Serialize() const;
-  bool Deserialize(std::string_view buffer);
+  [[nodiscard]] std::string Serialize() const;
+  [[nodiscard]] bool Deserialize(std::string_view buffer);
 
   // For testing.
   bool operator==(const LayeredConfigs& right) const;
@@ -109,8 +108,6 @@ struct LayeredConfigs {
   RemoteConfigMetadata metadata;
 };
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal
 
 #endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_CONFIG_DATA_H_

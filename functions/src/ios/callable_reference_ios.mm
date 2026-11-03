@@ -29,9 +29,7 @@
 #include "functions/src/include/firebase/functions/common.h"
 #include "functions/src/ios/functions_ios.h"
 
-namespace firebase {
-namespace functions {
-namespace internal {
+namespace firebase::functions::internal {
 
 enum HttpsCallableReferenceFn {
   kHttpsCallableReferenceFnCall = 0,
@@ -75,13 +73,17 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &other) {
     return *this;
   }
-  impl_ = std::make_unique<FIRHTTPSCallablePointer>(other.impl());
+  auto new_impl = std::make_unique<FIRHTTPSCallablePointer>(other.impl());
+  auto new_lifetime = std::make_shared<FunctionsLifetimeState>();
+
+  if (ref_lifetime_state_) {
+    MutexLock lock(ref_lifetime_state_->mutex);
+    ref_lifetime_state_->alive = false;
+  }
+  ref_lifetime_state_ = std::move(new_lifetime);
+  impl_ = std::move(new_impl);
+
   if (functions_ != other.functions_) {
-    if (ref_lifetime_state_) {
-      MutexLock lock(ref_lifetime_state_->mutex);
-      ref_lifetime_state_->alive = false;
-    }
-    ref_lifetime_state_ = std::make_shared<FunctionsLifetimeState>();
     if (functions_) {
       functions_->future_manager().ReleaseFutureApi(this);
     }
@@ -231,6 +233,4 @@ ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
   return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
 }
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal

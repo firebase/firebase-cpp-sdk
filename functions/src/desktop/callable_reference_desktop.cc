@@ -38,9 +38,7 @@
 #include "functions/src/include/firebase/functions/callable_result.h"
 #include "functions/src/include/firebase/functions/common.h"
 
-namespace firebase {
-namespace functions {
-namespace internal {
+namespace firebase::functions::internal {
 
 enum HttpsCallableReferenceFn {
   kHttpsCallableReferenceFnCall = 0,
@@ -97,7 +95,7 @@ struct CallExecutionContext
         transport(rest::CreateTransport()),
         future_api(future_api_in),
         handle(handle_in),
-        lifetime_state(std::move(lifetime_state_in)) {
+        lifetime_state(lifetime_state_in) {
     request.options().timeout_ms =
         timeout_ms > 0 ? timeout_ms : kDefaultTimeoutMilliseconds;
     if (auto* curl_transport =
@@ -109,15 +107,20 @@ struct CallExecutionContext
   void StartPerform() {
     auto self = shared_from_this();
     response.SetCallback([self]() {
-      if (self->lifetime_state) {
-        MutexLock lock(self->lifetime_state->mutex);
-        // Defer destruction of `self` until outside Response::MarkCompleted().
-        self->lifetime_state->retired_calls.push_back(self);
-        if (!self->lifetime_state->alive) {
+      std::vector<std::shared_ptr<void>> previously_retired;
+      if (auto state = self->lifetime_state.lock()) {
+        MutexLock lock(state->mutex);
+        // Drain previously completed calls so retired_calls never accumulates
+        // unboundedly, and defer destruction of `self` until outside
+        // Response::MarkCompleted(). Because `lifetime_state` is a
+        // std::weak_ptr, `retired_calls` never creates a reference cycle.
+        previously_retired.swap(state->retired_calls);
+        state->retired_calls.push_back(self);
+        if (!state->alive) {
           return;
         }
         ResolveFuture(self->future_api, self->handle, &self->response);
-      } else {
+      } else if (!self->lifetime_state.expired()) {
         ResolveFuture(self->future_api, self->handle, &self->response);
       }
     });
@@ -129,7 +132,7 @@ struct CallExecutionContext
   flatbuffers::unique_ptr<rest::Transport> transport;
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<HttpsCallableResult> handle;
-  std::shared_ptr<FunctionsLifetimeState> lifetime_state;
+  std::weak_ptr<FunctionsLifetimeState> lifetime_state;
 };
 
 }  // namespace
@@ -491,11 +494,13 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   auto fetch_app_check_and_perform = [ctx, app,
                                       limited_use =
                                           options_.limited_use_app_check_tokens]() {
-    if (ctx->lifetime_state) {
-      MutexLock lock(ctx->lifetime_state->mutex);
-      if (!ctx->lifetime_state->alive) {
+    if (auto state = ctx->lifetime_state.lock()) {
+      MutexLock lock(state->mutex);
+      if (!state->alive) {
         return;
       }
+    } else {
+      return;
     }
     Future<std::string> future_app_check;
     ::firebase::internal::FunctionId app_check_fn =
@@ -507,11 +512,13 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
         future_app_check.status() != kFutureStatusInvalid) {
       future_app_check.OnCompletion(
           [ctx](const Future<std::string>& future_token) {
-            if (ctx->lifetime_state) {
-              MutexLock lock(ctx->lifetime_state->mutex);
-              if (!ctx->lifetime_state->alive) {
+            if (auto state = ctx->lifetime_state.lock()) {
+              MutexLock lock(state->mutex);
+              if (!state->alive) {
                 return;
               }
+            } else {
+              return;
             }
             if (future_token.error() == 0 && future_token.result() != nullptr &&
                 !future_token.result()->empty()) {
@@ -536,11 +543,13 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   if (has_async_auth && future_auth.status() != kFutureStatusInvalid) {
     future_auth.OnCompletion([ctx, fetch_app_check_and_perform](
                                  const Future<std::string>& completed_auth) {
-      if (ctx->lifetime_state) {
-        MutexLock lock(ctx->lifetime_state->mutex);
-        if (!ctx->lifetime_state->alive) {
+      if (auto state = ctx->lifetime_state.lock()) {
+        MutexLock lock(state->mutex);
+        if (!state->alive) {
           return;
         }
+      } else {
+        return;
       }
       if (completed_auth.error() == 0 && completed_auth.result() != nullptr &&
           !completed_auth.result()->empty()) {
@@ -573,6 +582,4 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
                     : Future<HttpsCallableResult>();
 }
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal

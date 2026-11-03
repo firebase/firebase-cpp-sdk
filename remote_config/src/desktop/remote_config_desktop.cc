@@ -19,6 +19,7 @@
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <thread>  // NOLINT
@@ -37,9 +38,7 @@
 #include "firebase/variant.h"
 #endif  // SWIG
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 using callback::NewCallback;
 
@@ -389,13 +388,15 @@ void RemoteConfigInternal::AsyncSaveToFile() {
         MutexLock lock(internal_mutex_);
         copy = configs_;
       }
-      file_manager_.Save(copy);
+      if (!file_manager_.Save(copy)) {
+        LogWarning("Remote Config: Failed to save config to file.");
+      }
     }
   });
 }
 
-std::string RemoteConfigInternal::VariantToString(const Variant& variant,
-                                                  bool* failure) {
+std::optional<std::string> RemoteConfigInternal::VariantToString(
+    const Variant& variant) {
   if (variant.is_blob()) {
     const uint8_t* blob_data = variant.blob_data();
     size_t blob_size = variant.blob_size();
@@ -410,8 +411,7 @@ std::string RemoteConfigInternal::VariantToString(const Variant& variant,
   if (variant.is_static_string()) {
     const char* s = variant.string_value();
     if (!s) {
-      *failure = true;
-      return std::string();
+      return std::nullopt;
     }
     return std::string(s);
   }
@@ -424,8 +424,7 @@ std::string RemoteConfigInternal::VariantToString(const Variant& variant,
   if (variant.is_double()) {
     return ValueParser::FormatGeneralDouble(variant.double_value());
   }
-  *failure = true;
-  return std::string();
+  return std::nullopt;
 }
 
 #ifndef SWIG
@@ -441,10 +440,9 @@ Future<void> RemoteConfigInternal::SetDefaults(
   std::map<std::string, std::string> defaults_map;
   for (size_t i = 0; i < number_of_defaults; i++) {
     const char* key = defaults[i].key;
-    bool failure = false;
-    std::string value = VariantToString(defaults[i].value, &failure);
-    if (key && !failure) {
-      defaults_map[key] = std::move(value);
+    std::optional<std::string> value = VariantToString(defaults[i].value);
+    if (key && value.has_value()) {
+      defaults_map[key] = std::move(*value);
     } else {
       LogWarning("SetDefaults: ignoring invalid default entry at index %zu.",
                  i);
@@ -812,6 +810,4 @@ Future<void> RemoteConfigInternal::FetchLastResult() {
       future_impl_.LastResult(kRemoteConfigFnFetch));
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

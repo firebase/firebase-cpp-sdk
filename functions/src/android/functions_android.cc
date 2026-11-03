@@ -18,6 +18,7 @@
 
 #include <charconv>
 #include <string>
+#include <string_view>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
@@ -27,9 +28,7 @@
 #include "functions/src/include/firebase/functions/callable_reference.h"
 #include "functions/src/include/firebase/functions/common.h"
 
-namespace firebase {
-namespace functions {
-namespace internal {
+namespace firebase::functions::internal {
 
 // clang-format off
 #define FUNCTIONS_METHODS(X)                                                   \
@@ -311,8 +310,9 @@ void FunctionsInternal::Terminate(App* app) {
     ReleaseClasses(env);
 
     if (code_map_) {
-      for (const auto& entry : *code_map_) {
-        env->DeleteGlobalRef(entry.first);
+      for (const auto& [code_obj, mapped_error] : *code_map_) {
+        (void)mapped_error;
+        env->DeleteGlobalRef(code_obj);
       }
       delete code_map_;
       code_map_ = nullptr;
@@ -482,23 +482,23 @@ void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   jmethodID use_emulator_id =
       functions::GetMethodId(functions::kUseEmulator);
   if (use_emulator_id) {
-    std::string str(origin);
-    if (str.compare(0, 7, "http://") == 0) {
-      str.erase(0, 7);
-    } else if (str.compare(0, 8, "https://") == 0) {
-      str.erase(0, 8);
+    std::string_view sv(origin);
+    if (sv.substr(0, 7) == "http://") {
+      sv.remove_prefix(7);
+    } else if (sv.substr(0, 8) == "https://") {
+      sv.remove_prefix(8);
     }
-    while (!str.empty() && str.back() == '/') {
-      str.pop_back();
+    while (!sv.empty() && sv.back() == '/') {
+      sv.remove_suffix(1);
     }
-    size_t colon = str.rfind(':');
-    if (colon != std::string::npos && colon > 0 && colon + 1 < str.size()) {
+    size_t colon = sv.rfind(':');
+    if (colon != std::string_view::npos && colon > 0 && colon + 1 < sv.size()) {
       int port = 0;
-      const char* p_begin = str.data() + colon + 1;
-      const char* p_end = str.data() + str.size();
+      const char* p_begin = sv.data() + colon + 1;
+      const char* p_end = sv.data() + sv.size();
       auto [ptr, ec] = std::from_chars(p_begin, p_end, port);
       if (ec == std::errc() && ptr == p_end && port > 0) {
-        std::string host = str.substr(0, colon);
+        std::string host(sv.substr(0, colon));
         jstring jhost = env->NewStringUTF(host.c_str());
         env->CallVoidMethod(obj_, use_emulator_id, jhost,
                             static_cast<jint>(port));
@@ -537,9 +537,9 @@ Error FunctionsInternal::ErrorFromJavaFunctionsException(
     if (!util::CheckAndClearJniExceptions(env) && code != nullptr) {
       error = kErrorInternal;
       if (code_map_) {
-        for (const auto& entry : *code_map_) {
-          if (env->IsSameObject(code, entry.first)) {
-            error = entry.second;
+        for (const auto& [code_obj, mapped_error] : *code_map_) {
+          if (env->IsSameObject(code, code_obj)) {
+            error = mapped_error;
             break;
           }
         }
@@ -566,6 +566,4 @@ Error FunctionsInternal::ErrorFromJavaFunctionsException(
   return error;
 }
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal

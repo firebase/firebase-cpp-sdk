@@ -19,6 +19,10 @@
 
 namespace firebase {
 namespace remote_config {
+
+template <typename T, typename R>
+struct CleanupFn;
+
 namespace internal {
 
 class ConfigUpdateListenerRegistrationInternal;
@@ -76,7 +80,7 @@ class ConfigUpdateListenerRegistration {
 
   /// @brief Returns `true` if this registration refers to an active listener
   /// registration object.
-  bool is_valid() const { return internal_ != nullptr; }
+  [[nodiscard]] bool is_valid() const { return internal_ != nullptr; }
 
   bool operator==(const ConfigUpdateListenerRegistration& other) const {
     return internal_ == other.internal_;
@@ -90,7 +94,7 @@ class ConfigUpdateListenerRegistration {
   friend class internal::RemoteConfigInternal;
   friend class internal::ConfigUpdateListenerRegistrationInternal;
   template <typename T, typename R>
-  friend struct CleanupFn;
+  friend struct ::firebase::remote_config::CleanupFn;
 
   explicit ConfigUpdateListenerRegistration(
       internal::ConfigUpdateListenerRegistrationInternal* internal);
@@ -99,8 +103,7 @@ class ConfigUpdateListenerRegistration {
   static void CleanupConfigUpdateListenerRegistration(void* registration);
 
   internal::RemoteConfigInternal* remote_config_ = nullptr;
-  mutable internal::ConfigUpdateListenerRegistrationInternal* internal_ =
-      nullptr;
+  internal::ConfigUpdateListenerRegistrationInternal* internal_ = nullptr;
 };
 
 }  // namespace remote_config

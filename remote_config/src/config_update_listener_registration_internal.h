@@ -18,9 +18,7 @@
 #include <functional>
 #include <mutex>
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 class RemoteConfigInternal;
 
@@ -34,13 +32,19 @@ class ConfigUpdateListenerRegistrationInternal {
       const ConfigUpdateListenerRegistrationInternal&) = delete;
   ConfigUpdateListenerRegistrationInternal& operator=(
       const ConfigUpdateListenerRegistrationInternal&) = delete;
+  ConfigUpdateListenerRegistrationInternal(
+      ConfigUpdateListenerRegistrationInternal&&) = delete;
+  ConfigUpdateListenerRegistrationInternal& operator=(
+      ConfigUpdateListenerRegistrationInternal&&) = delete;
 
   ~ConfigUpdateListenerRegistrationInternal();
 
   void Remove();
 
-  RemoteConfigInternal* remote_config() const { return remote_config_; }
-  RemoteConfigInternal* remote_config_internal() const {
+  [[nodiscard]] RemoteConfigInternal* remote_config() const {
+    return remote_config_;
+  }
+  [[nodiscard]] RemoteConfigInternal* remote_config_internal() const {
     return remote_config_;
   }
 
@@ -50,8 +54,6 @@ class ConfigUpdateListenerRegistrationInternal {
   std::function<void()> listener_removal_function_;
 };
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal
 
 #endif  // FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_

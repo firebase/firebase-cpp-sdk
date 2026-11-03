@@ -30,9 +30,7 @@
 #include "functions/src/include/firebase/functions/callable_result.h"
 #include "functions/src/include/firebase/functions/common.h"
 
-namespace firebase {
-namespace functions {
-namespace internal {
+namespace firebase::functions::internal {
 
 class FunctionsCallableRequest : public rest::Request {
  public:
@@ -46,7 +44,7 @@ class FunctionsCallableResponse : public rest::Response {
 
   FunctionsCallableResponse() = default;
   void SetCallback(Callback callback);
-  bool failed() const { return failed_; }
+  [[nodiscard]] bool failed() const { return failed_; }
 
   void MarkCompleted() override;
   void MarkFailed() override;
@@ -59,10 +57,10 @@ class FunctionsCallableResponse : public rest::Response {
 };
 
 // Maps an HTTP status code to a Cloud Functions Error code.
-Error ErrorFromHttpStatus(int status);
+[[nodiscard]] Error ErrorFromHttpStatus(int status);
 
 // Maps a canonical gRPC status string (e.g. "NOT_FOUND") to an Error code.
-Error ErrorFromStatus(const std::string& status);
+[[nodiscard]] Error ErrorFromStatus(const std::string& status);
 
 // Resolves a callable Future from a completed or failed HTTP response.
 void ResolveFuture(ReferenceCountedFutureImpl* future_api,
@@ -103,9 +101,11 @@ class HttpsCallableReferenceInternal {
       HttpsCallableReferenceInternal&& other) noexcept;
 
   // Gets the Functions instance to which we refer.
-  Functions* functions() const;
+  [[nodiscard]] Functions* functions() const;
 
-  FunctionsInternal* functions_internal() const { return functions_; }
+  [[nodiscard]] FunctionsInternal* functions_internal() const {
+    return functions_;
+  }
 
   // Asynchronously calls the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
@@ -118,20 +118,25 @@ class HttpsCallableReferenceInternal {
 
   // Returns true if this HttpsCallableReference is valid, false if it is not
   // valid.
-  bool is_valid() const;
+  [[nodiscard]] bool is_valid() const;
 
   // Returns the resolved target URL for this callable reference.
-  std::string url() const;
+  [[nodiscard]] std::string url() const;
 
-  const HttpsCallableOptions& options() const { return options_; }
+  [[nodiscard]] const HttpsCallableOptions& options() const { return options_; }
 
   static void ResolveFuture(ReferenceCountedFutureImpl* future_api,
                             SafeFutureHandle<HttpsCallableResult> handle,
                             rest::Response* response);
 
   bool operator==(const HttpsCallableReferenceInternal& other) const {
-    return functions_ == other.functions_ && url() == other.url() &&
-           options_ == other.options_;
+    if (functions_ != other.functions_ || !(options_ == other.options_)) {
+      return false;
+    }
+    if (is_url_ == other.is_url_) {
+      return target_ == other.target_;
+    }
+    return url() == other.url();
   }
 
  private:
@@ -144,8 +149,6 @@ class HttpsCallableReferenceInternal {
   HttpsCallableOptions options_;
 };
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal
 
 #endif  // FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_

@@ -20,6 +20,7 @@
 
 #include "app/rest/request_json.h"
 #include "app/rest/response_json.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/semaphore.h"
 #include "firebase/app.h"
 #include "remote_config/request_generated.h"
@@ -34,9 +35,7 @@
 #include "gtest/gtest.h"
 #endif  // FIREBASE_TESTING
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 // SDK version numbers reported in REST fetch requests.
 extern const int SDK_MAJOR_VERSION;
@@ -83,11 +82,15 @@ class RemoteConfigREST {
 
   // After Fetch() will return updated fetched holder. Otherwise will return not
   // updated fetched holder.
-  const NamespacedConfigData& fetched() const { return configs_.fetched; }
+  [[nodiscard]] const NamespacedConfigData& fetched() const {
+    return configs_.fetched;
+  }
 
   // After Fetch() will return updated metadata. Otherwise will return not
   // updated metadata.
-  const RemoteConfigMetadata& metadata() const { return configs_.metadata; }
+  [[nodiscard]] const RemoteConfigMetadata& metadata() const {
+    return configs_.metadata;
+  }
 
  private:
   // Obtain a stable installation ID and auth token for the app.
@@ -121,13 +124,12 @@ class RemoteConfigREST {
   std::string app_instance_id_;
   std::string app_instance_id_token_;
 
+  mutable Mutex mutex_;
   RemoteConfigRequest rc_request_;
   RemoteConfigResponse rc_response_;
   Semaphore fetch_future_sem_;
 };
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal
 
 #endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REST_H_

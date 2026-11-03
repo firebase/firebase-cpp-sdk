@@ -67,7 +67,13 @@ void UnregisterForCleanup(HttpsCallableReference* obj,
 HttpsCallableReference::HttpsCallableReference(
     internal::HttpsCallableReferenceInternal* internal)
     : internal_(internal) {
-  RegisterForCleanup(this, internal_);
+  try {
+    RegisterForCleanup(this, internal_);
+  } catch (...) {
+    delete internal_;
+    internal_ = nullptr;
+    throw;
+  }
 }
 
 HttpsCallableReference::HttpsCallableReference(
@@ -75,7 +81,13 @@ HttpsCallableReference::HttpsCallableReference(
     : internal_(other.internal_ ? new internal::HttpsCallableReferenceInternal(
                                       *other.internal_)
                                 : nullptr) {
-  RegisterForCleanup(this, internal_);
+  try {
+    RegisterForCleanup(this, internal_);
+  } catch (...) {
+    delete internal_;
+    internal_ = nullptr;
+    throw;
+  }
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
@@ -90,15 +102,24 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   UnregisterForCleanup(this, internal_);
   delete internal_;
   internal_ = new_internal;
-  RegisterForCleanup(this, internal_);
+  try {
+    RegisterForCleanup(this, internal_);
+  } catch (...) {
+    delete internal_;
+    internal_ = nullptr;
+    throw;
+  }
   return *this;
 }
 
 HttpsCallableReference::HttpsCallableReference(
     HttpsCallableReference&& other) noexcept
     : internal_(std::exchange(other.internal_, nullptr)) {
-  UnregisterForCleanup(&other, internal_);
-  RegisterForCleanup(this, internal_);
+  try {
+    UnregisterForCleanup(&other, internal_);
+    RegisterForCleanup(this, internal_);
+  } catch (...) {
+  }
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
@@ -106,17 +127,26 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   if (this == &other) {
     return *this;
   }
-  UnregisterForCleanup(this, internal_);
+  try {
+    UnregisterForCleanup(this, internal_);
+  } catch (...) {
+  }
   delete internal_;
   internal_ = std::exchange(other.internal_, nullptr);
-  UnregisterForCleanup(&other, internal_);
-  RegisterForCleanup(this, internal_);
+  try {
+    UnregisterForCleanup(&other, internal_);
+    RegisterForCleanup(this, internal_);
+  } catch (...) {
+  }
   return *this;
 }
 
 HttpsCallableReference::~HttpsCallableReference() {
   if (internal_) {
-    UnregisterForCleanup(this, internal_);
+    try {
+      UnregisterForCleanup(this, internal_);
+    } catch (...) {
+    }
     delete internal_;
     internal_ = nullptr;
   }

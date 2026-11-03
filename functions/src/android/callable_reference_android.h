@@ -86,9 +86,11 @@ class HttpsCallableReferenceInternal {
       HttpsCallableReferenceInternal&& other) noexcept;
 
   // Gets the Functions instance to which we refer.
-  Functions* functions() const;
+  [[nodiscard]] Functions* functions() const;
 
-  FunctionsInternal* functions_internal() const { return functions_; }
+  [[nodiscard]] FunctionsInternal* functions_internal() const {
+    return functions_;
+  }
 
   // Asynchronously calls the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
@@ -101,7 +103,7 @@ class HttpsCallableReferenceInternal {
 
   // Returns true if this HttpsCallableReference is valid, false if it is not
   // valid.
-  bool is_valid() const;
+  [[nodiscard]] bool is_valid() const;
 
   bool operator==(const HttpsCallableReferenceInternal& other) const;
 
@@ -109,6 +111,8 @@ class HttpsCallableReferenceInternal {
   static void FutureCallback(JNIEnv* env, jobject result,
                              util::FutureResult result_code,
                              const char* status_message, void* callback_data);
+
+  void Cleanup(FunctionsInternal* fallback_functions = nullptr) noexcept;
 
   // Get the Future for the HttpsCallableReferenceInternal.
   ReferenceCountedFutureImpl* future();

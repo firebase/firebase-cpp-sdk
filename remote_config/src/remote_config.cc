@@ -88,8 +88,15 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
 
   if (!rc->InitInternal()) {
     // Release the newly created RemoteConfig if internal initialization failed.
+    // Clean up `internal_` before deleting `rc` so `~RemoteConfig()` does not
+    // re-acquire `GetRcLock()` while it is already held on this thread.
     LogError("Failed to initialize RemoteConfig instance for App %s",
              app->name());
+    if (rc->internal_) {
+      rc->internal_->Cleanup();
+      delete rc->internal_;
+      rc->internal_ = nullptr;
+    }
     delete rc;
     return nullptr;
   }
@@ -117,6 +124,7 @@ RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
 }
 
 void RemoteConfig::Cleanup() {
+  if (!internal_) return;
   MutexLock lock(GetRcLock());
   if (!internal_) return;
 
@@ -256,20 +264,12 @@ bool RemoteConfig::GetBoolean(const char* key) const {
   return GetBoolean(key, static_cast<ValueInfo*>(nullptr));
 }
 
-bool RemoteConfig::GetBoolean(const std::string& key) {
-  return GetBoolean(key.c_str());
-}
-
 bool RemoteConfig::GetBoolean(const char* key, ValueInfo* info) {
   return std::as_const(*this).GetBoolean(key, info);
 }
 
 bool RemoteConfig::GetBoolean(const char* key, ValueInfo* info) const {
   return internal_ ? internal_->GetBoolean(key, info) : false;
-}
-
-bool RemoteConfig::GetBoolean(const std::string& key, ValueInfo* info) {
-  return GetBoolean(key.c_str(), info);
 }
 
 int64_t RemoteConfig::GetLong(const char* key) {
@@ -280,20 +280,12 @@ int64_t RemoteConfig::GetLong(const char* key) const {
   return GetLong(key, static_cast<ValueInfo*>(nullptr));
 }
 
-int64_t RemoteConfig::GetLong(const std::string& key) {
-  return GetLong(key.c_str());
-}
-
 int64_t RemoteConfig::GetLong(const char* key, ValueInfo* info) {
   return std::as_const(*this).GetLong(key, info);
 }
 
 int64_t RemoteConfig::GetLong(const char* key, ValueInfo* info) const {
   return internal_ ? internal_->GetLong(key, info) : 0;
-}
-
-int64_t RemoteConfig::GetLong(const std::string& key, ValueInfo* info) {
-  return GetLong(key.c_str(), info);
 }
 
 double RemoteConfig::GetDouble(const char* key) {
@@ -304,20 +296,12 @@ double RemoteConfig::GetDouble(const char* key) const {
   return GetDouble(key, static_cast<ValueInfo*>(nullptr));
 }
 
-double RemoteConfig::GetDouble(const std::string& key) {
-  return GetDouble(key.c_str());
-}
-
 double RemoteConfig::GetDouble(const char* key, ValueInfo* info) {
   return std::as_const(*this).GetDouble(key, info);
 }
 
 double RemoteConfig::GetDouble(const char* key, ValueInfo* info) const {
   return internal_ ? internal_->GetDouble(key, info) : 0.0;
-}
-
-double RemoteConfig::GetDouble(const std::string& key, ValueInfo* info) {
-  return GetDouble(key.c_str(), info);
 }
 
 std::string RemoteConfig::GetString(const char* key) {
@@ -328,10 +312,6 @@ std::string RemoteConfig::GetString(const char* key) const {
   return GetString(key, static_cast<ValueInfo*>(nullptr));
 }
 
-std::string RemoteConfig::GetString(const std::string& key) {
-  return GetString(key.c_str());
-}
-
 std::string RemoteConfig::GetString(const char* key, ValueInfo* info) {
   return std::as_const(*this).GetString(key, info);
 }
@@ -340,20 +320,12 @@ std::string RemoteConfig::GetString(const char* key, ValueInfo* info) const {
   return internal_ ? internal_->GetString(key, info) : std::string{};
 }
 
-std::string RemoteConfig::GetString(const std::string& key, ValueInfo* info) {
-  return GetString(key.c_str(), info);
-}
-
 std::vector<unsigned char> RemoteConfig::GetData(const char* key) {
   return std::as_const(*this).GetData(key);
 }
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key) const {
   return GetData(key, static_cast<ValueInfo*>(nullptr));
-}
-
-std::vector<unsigned char> RemoteConfig::GetData(const std::string& key) {
-  return GetData(key.c_str());
 }
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key,
@@ -367,11 +339,6 @@ std::vector<unsigned char> RemoteConfig::GetData(const char* key,
                    : std::vector<unsigned char>{};
 }
 
-std::vector<unsigned char> RemoteConfig::GetData(const std::string& key,
-                                                 ValueInfo* info) {
-  return GetData(key.c_str(), info);
-}
-
 std::vector<std::string> RemoteConfig::GetKeysByPrefix(const char* prefix) {
   return std::as_const(*this).GetKeysByPrefix(prefix);
 }
@@ -380,11 +347,6 @@ std::vector<std::string> RemoteConfig::GetKeysByPrefix(
     const char* prefix) const {
   return internal_ ? internal_->GetKeysByPrefix(prefix)
                    : std::vector<std::string>{};
-}
-
-std::vector<std::string> RemoteConfig::GetKeysByPrefix(
-    const std::string& prefix) {
-  return GetKeysByPrefix(prefix.c_str());
 }
 
 std::vector<std::string> RemoteConfig::GetKeys() {
@@ -403,11 +365,9 @@ std::map<std::string, Variant> RemoteConfig::GetAll() const {
   return internal_ ? internal_->GetAll() : std::map<std::string, Variant>{};
 }
 
-const ConfigInfo RemoteConfig::GetInfo() {
-  return std::as_const(*this).GetInfo();
-}
+ConfigInfo RemoteConfig::GetInfo() { return std::as_const(*this).GetInfo(); }
 
-const ConfigInfo RemoteConfig::GetInfo() const {
+ConfigInfo RemoteConfig::GetInfo() const {
   return internal_
              ? internal_->GetInfo()
              : ConfigInfo{0, kLastFetchStatusPending,

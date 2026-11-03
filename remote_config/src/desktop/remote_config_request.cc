@@ -24,9 +24,7 @@
 #include "app/src/variant_util.h"
 #include "remote_config/src/value_parser.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 RemoteConfigRequest::RemoteConfigRequest(const char* schema)
     : RequestJson(schema), custom_signals_() {
@@ -43,17 +41,18 @@ void RemoteConfigRequest::UpdatePostFields() {
   FIREBASE_ASSERT_RETURN_VOID(generate_status);
 
   // If custom signals are set, inject them into the POST request body JSON
-  // payload.
+  // payload. Note that RemoteConfig::SetCustomSignals only accepts String,
+  // Int64, and Double values (Null removes a key); all wire values in the
+  // Remote Config REST protocol's `customSignals` map are JSON strings.
   if (!custom_signals_.empty()) {
     std::map<Variant, Variant> variant_map;
     for (const auto& [key, val] : custom_signals_) {
-      const Variant key_var = Variant::FromStaticString(key.c_str());
+      const Variant key_var = Variant::FromMutableString(key);
       if (val.is_mutable_string()) {
-        variant_map[key_var] =
-            Variant::FromStaticString(val.mutable_string().c_str());
+        variant_map[key_var] = Variant::FromMutableString(val.mutable_string());
       } else if (val.is_static_string()) {
         const char* s = val.string_value();
-        variant_map[key_var] = Variant::FromStaticString(s ? s : "");
+        variant_map[key_var] = Variant::FromMutableString(s ? s : "");
       } else if (val.is_int64()) {
         variant_map[key_var] =
             Variant::FromMutableString(std::to_string(val.int64_value()));
@@ -66,8 +65,7 @@ void RemoteConfigRequest::UpdatePostFields() {
 
     // Insert the "customSignals" field before the closing brace of the JSON
     // object.
-    size_t last_brace = json.rfind('}');
-    if (last_brace != std::string::npos) {
+    if (size_t last_brace = json.rfind('}'); last_brace != std::string::npos) {
       size_t first_brace = json.find('{');
       std::string insertion;
       if (first_brace != std::string::npos &&
@@ -83,6 +81,4 @@ void RemoteConfigRequest::UpdatePostFields() {
   set_post_fields(json.c_str());
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

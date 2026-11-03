@@ -38,8 +38,7 @@
 #include "remote_config/src/include/firebase/remote_config.h"
 #include "remote_config/src/value_parser.h"
 
-namespace firebase {
-namespace remote_config {
+namespace firebase::remote_config {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
 
@@ -66,13 +65,9 @@ static id VariantToNSObject(const Variant &variant) {
     return [NSNumber numberWithDouble:variant.double_value()];
   } else if (variant.is_mutable_string()) {
     const std::string &str = variant.mutable_string();
-    NSString *ns_str = [[NSString alloc] initWithBytes:str.data()
-                                                length:str.size()
-                                              encoding:NSUTF8StringEncoding];
-#if !__has_feature(objc_arc)
-    [ns_str autorelease];
-#endif
-    return ns_str;
+    return [[NSString alloc] initWithBytes:str.data()
+                                    length:str.size()
+                                  encoding:NSUTF8StringEncoding];
   } else if (variant.is_static_string()) {
     const char *str = variant.string_value();
     return str ? @(str) : @"";
@@ -145,7 +140,7 @@ static std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
 
 static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo *out_info,
                                        int64_t throttled_end_time) {
-  FIREBASE_DEV_ASSERT(out_info != nullptr);
+  FIREBASE_ASSERT(out_info != nullptr);
   if (!out_info) return;
   *out_info = ConfigInfo{};
   if (!rc_instance) return;
@@ -597,17 +592,17 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
   }
   NSMutableDictionary* dict =
       [[NSMutableDictionary alloc] initWithCapacity:custom_signals.size()];
-  for (const auto& pair : custom_signals) {
-    if (pair.first.empty() || pair.first.size() > kCustomSignalsMaxKeyLength) {
+  for (const auto& [key, signal_val] : custom_signals) {
+    if (key.empty() || key.size() > kCustomSignalsMaxKeyLength) {
       LogError("Remote Config: Custom signal key length (%zu) must be in 1..%zu.",
-               pair.first.size(), kCustomSignalsMaxKeyLength);
+               key.size(), kCustomSignalsMaxKeyLength);
       state_->future_impl.Complete(
           handle, kFutureStatusFailure,
           "Custom signal key must be non-empty and at most 256 characters.");
       return MakeFuture<void>(&state_->future_impl, handle);
     }
-    NSString *ns_key = [[NSString alloc] initWithBytes:pair.first.data()
-                                                length:pair.first.size()
+    NSString *ns_key = [[NSString alloc] initWithBytes:key.data()
+                                                length:key.size()
                                               encoding:NSUTF8StringEncoding];
     if (!ns_key) {
       LogError("Remote Config: Custom signal key is not valid UTF-8.");
@@ -615,14 +610,16 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
                                    "Custom signal key is not valid UTF-8.");
       return MakeFuture<void>(&state_->future_impl, handle);
     }
-    if (pair.second.is_null()) {
+    if (signal_val.is_null()) {
       dict[ns_key] = [NSNull null];
-    } else if (pair.second.is_string() || pair.second.is_int64() ||
-               pair.second.is_double()) {
-      if (pair.second.is_string()) {
-        size_t str_len = pair.second.is_mutable_string()
-                             ? pair.second.mutable_string().size()
-                             : (pair.second.string_value() ? strlen(pair.second.string_value()) : 0);
+    } else if (signal_val.is_string() || signal_val.is_int64() ||
+               signal_val.is_double()) {
+      if (signal_val.is_string()) {
+        size_t str_len =
+            signal_val.is_mutable_string()
+                ? signal_val.mutable_string().size()
+                : (signal_val.string_value() ? strlen(signal_val.string_value())
+                                             : 0);
         if (str_len > kCustomSignalsMaxStringValueLength) {
           LogError("Remote Config: Custom signal string value length (%zu) exceeds %zu.",
                    str_len, kCustomSignalsMaxStringValueLength);
@@ -632,7 +629,7 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
           return MakeFuture<void>(&state_->future_impl, handle);
         }
       }
-      id value = VariantToNSObject(pair.second);
+      id value = VariantToNSObject(signal_val);
       if (value) {
         dict[ns_key] = value;
       } else {
@@ -644,7 +641,7 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
     } else {
       LogError(
           "Remote Config: Invalid Variant type for SetCustomSignals() key %s.",
-          pair.first.c_str());
+          key.c_str());
       state_->future_impl.Complete(
           handle, kFutureStatusFailure,
           "Invalid value type. Must be String, Int, Double, or Null.");
@@ -883,5 +880,4 @@ ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener
 }
 
 }  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config

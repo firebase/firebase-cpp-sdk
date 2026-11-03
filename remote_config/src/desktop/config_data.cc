@@ -16,19 +16,18 @@
 
 #include <cstdint>
 #include <string_view>
+#include <utility>
 
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/desktop/metadata.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 NamespacedConfigData::NamespacedConfigData() : timestamp_(0) {}
 
-NamespacedConfigData::NamespacedConfigData(const NamespaceKeyValueMap& config,
+NamespacedConfigData::NamespacedConfigData(NamespaceKeyValueMap config,
                                            uint64_t timestamp)
-    : config_(config), timestamp_(timestamp) {}
+    : config_(std::move(config)), timestamp_(timestamp) {}
 
 std::string NamespacedConfigData::Serialize() const {
   flexbuffers::Builder fbb;
@@ -86,41 +85,40 @@ void NamespacedConfigData::SetNamespace(
   config_[name_space] = map;
 }
 
-bool NamespacedConfigData::HasValue(const std::string& key,
-                                    const std::string& name_space) const {
-  auto name_space_iter = config_.find(name_space);
+bool NamespacedConfigData::HasValue(std::string_view key,
+                                    std::string_view name_space) const {
+  auto name_space_iter = config_.find(std::string(name_space));
   if (name_space_iter == config_.end()) {
     return false;
   }
-  return name_space_iter->second.find(key) != name_space_iter->second.end();
+  return name_space_iter->second.find(std::string(key)) !=
+         name_space_iter->second.end();
 }
 
-std::string NamespacedConfigData::GetValue(
-    const std::string& key, const std::string& name_space) const {
-  auto name_space_iter = config_.find(name_space);
+std::string NamespacedConfigData::GetValue(std::string_view key,
+                                           std::string_view name_space) const {
+  auto name_space_iter = config_.find(std::string(name_space));
   if (name_space_iter == config_.end()) {
     return "";
   }
-  auto key_iter = name_space_iter->second.find(key);
+  auto key_iter = name_space_iter->second.find(std::string(key));
   if (key_iter == name_space_iter->second.end()) {
     return "";
   }
   return key_iter->second;
 }
 
-void NamespacedConfigData::GetKeysByPrefix(const std::string& prefix,
-                                           const std::string& name_space,
+void NamespacedConfigData::GetKeysByPrefix(std::string_view prefix,
+                                           std::string_view name_space,
                                            std::set<std::string>* keys) const {
   if (!keys) {
     return;
   }
-  auto name_space_iter = config_.find(name_space);
+  auto name_space_iter = config_.find(std::string(name_space));
   if (name_space_iter != config_.end()) {
-    std::string_view prefix_sv(prefix);
-    for (auto it = name_space_iter->second.lower_bound(prefix);
+    for (auto it = name_space_iter->second.lower_bound(std::string(prefix));
          it != name_space_iter->second.end(); ++it) {
-      if (std::string_view(it->first).substr(0, prefix_sv.size()) !=
-          prefix_sv) {
+      if (std::string_view(it->first).substr(0, prefix.size()) != prefix) {
         break;
       }
       keys->insert(it->first);
@@ -199,6 +197,4 @@ bool LayeredConfigs::operator==(const LayeredConfigs& right) const {
          defaults == right.defaults && metadata == right.metadata;
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

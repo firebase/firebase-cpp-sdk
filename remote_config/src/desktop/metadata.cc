@@ -25,9 +25,7 @@
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 RemoteConfigMetadata::RemoteConfigMetadata()
     : info_({0, kLastFetchStatusPending, kFetchFailureReasonInvalid, 0}) {}
@@ -55,7 +53,8 @@ std::string RemoteConfigMetadata::Serialize() const {
 
     fbb.Map("settings", [&]() {
       for (const auto& [setting_key, setting_val] : settings_) {
-        fbb.String(std::to_string(setting_key).c_str(), setting_val);
+        fbb.String(std::to_string(static_cast<int>(setting_key)).c_str(),
+                   setting_val);
       }
     });
 
@@ -102,6 +101,7 @@ bool RemoteConfigMetadata::Deserialize(std::string_view buffer) {
       info["last_fetch_failure_reason"].AsInt32());
   info_.throttled_end_time = info["throttled_end_time"].AsUInt64();
 
+  digest_by_namespace_.clear();
   flexbuffers::Map digests = struct_map["digest_by_namespace"].AsMap();
   DeserializeMap(&digest_by_namespace_, digests);
 
@@ -117,7 +117,7 @@ bool RemoteConfigMetadata::Deserialize(std::string_view buffer) {
     int int_key = 0;
     const char* end = key_str + std::strlen(key_str);
     auto [ptr, ec] = std::from_chars(key_str, end, int_key);
-    if (ec != std::errc() || ptr != end) {
+    if (ec != std::errc{} || ptr != end) {
       continue;
     }
     flexbuffers::String val = setting_values[i].AsString();
@@ -170,6 +170,4 @@ bool RemoteConfigMetadata::operator==(const RemoteConfigMetadata& right) const {
          info_.throttled_end_time == right.info_.throttled_end_time;
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

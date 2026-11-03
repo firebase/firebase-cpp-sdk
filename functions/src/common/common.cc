@@ -14,9 +14,7 @@
 
 #include "functions/src/include/firebase/functions/common.h"
 
-namespace firebase {
-namespace functions {
-namespace internal {
+namespace firebase::functions::internal {
 
 const char* GetErrorMessage(Error error) {
   switch (error) {
@@ -63,6 +61,4 @@ const char* GetErrorMessage(Error error) {
   return "Unknown error";
 }
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal

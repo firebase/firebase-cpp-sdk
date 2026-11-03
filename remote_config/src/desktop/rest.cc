@@ -33,12 +33,35 @@
 #include "app/src/log.h"
 #include "app/src/uuid.h"
 #include "firebase/app.h"
+#include "flatbuffers/stl_emulation.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/desktop/config_data.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
+
+namespace {
+
+// Percent-encodes reserved URL characters while leaving RFC 3986 unreserved
+// characters (ALPHA, DIGIT, '-', '.', '_', '~') intact.
+std::string UrlEncodeComponent(const std::string& input) {
+  static constexpr char kHex[] = "0123456789ABCDEF";
+  std::string out;
+  out.reserve(input.size());
+  for (unsigned char c : input) {
+    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+        (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' ||
+        c == '~') {
+      out.push_back(static_cast<char>(c));
+    } else {
+      out.push_back('%');
+      out.push_back(kHex[(c >> 4) & 0x0F]);
+      out.push_back(kHex[c & 0x0F]);
+    }
+  }
+  return out;
+}
+
+}  // namespace
 
 // The Java library's FirebaseRemoteConfig.java references this file to keep
 // this value in sync.
@@ -66,15 +89,22 @@ RemoteConfigREST::~RemoteConfigREST() {
   rest::util::Terminate();
 }
 
+// Synchronizes access to `rc_request_`, `rc_response_`, and `configs_` across
+// `Fetch()`. Note that `RemoteConfigInternal::FetchInternal()` also constructs
+// a per-fetch `RemoteConfigREST` instance operating on a thread-local copy of
+// `LayeredConfigs` before merging results under `internal_mutex_`.
 void RemoteConfigREST::Fetch(const App& app,
                              uint64_t fetch_timeout_in_milliseconds) {
+  MutexLock lock(mutex_);
   rc_request_ = RemoteConfigRequest();
   rc_response_ = RemoteConfigResponse();
 
   TryGetInstallationsAndToken(app);
 
   SetupRestRequest(app, fetch_timeout_in_milliseconds);
-  firebase::rest::CreateTransport()->Perform(rc_request_, &rc_response_);
+  flatbuffers::unique_ptr<rest::Transport> transport =
+      firebase::rest::CreateTransport();
+  transport->Perform(rc_request_, &rc_response_);
   ParseRestResponse();
 }
 
@@ -129,13 +159,13 @@ void RemoteConfigREST::SetupRestRequest(
   (void)app;
   std::string server_url(kServerURL);
   server_url.append("/");
-  server_url.append(app_project_id_);
+  server_url.append(UrlEncodeComponent(app_project_id_));
   server_url.append("/");
   server_url.append(kNameSpaceString);
   server_url.append("/");
-  server_url.append(namespaces_);
+  server_url.append(UrlEncodeComponent(namespaces_));
   server_url.append(kHTTPFetchKeyString);
-  server_url.append(api_key_);
+  server_url.append(UrlEncodeComponent(api_key_));
 
   rc_request_.set_url(server_url.c_str());
   rc_request_.set_method(kHTTPMethodPost);
@@ -262,6 +292,4 @@ uint64_t RemoteConfigREST::MillisecondsSinceEpoch() {
       .count();
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

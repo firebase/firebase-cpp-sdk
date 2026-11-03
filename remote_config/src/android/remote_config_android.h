@@ -15,9 +15,8 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
-#include <stdint.h>
-
 #include <atomic>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -32,9 +31,7 @@
 #include "firebase/future.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 // Remote Config Client implementation for Android.
 //
 // This class implements functions from `firebase/remote_config.h` header.
@@ -43,6 +40,11 @@ class RemoteConfigInternal {
  public:
   explicit RemoteConfigInternal(const firebase::App& app);
   ~RemoteConfigInternal();
+
+  RemoteConfigInternal(const RemoteConfigInternal&) = delete;
+  RemoteConfigInternal& operator=(const RemoteConfigInternal&) = delete;
+  RemoteConfigInternal(RemoteConfigInternal&&) = delete;
+  RemoteConfigInternal& operator=(RemoteConfigInternal&&) = delete;
 
   Future<ConfigInfo> EnsureInitialized();
   Future<ConfigInfo> EnsureInitializedLastResult();
@@ -71,41 +73,44 @@ class RemoteConfigInternal {
   Future<void> SetCustomSignals(
       const std::map<std::string, Variant>& custom_signals);
   Future<void> SetCustomSignalsLastResult();
-  ConfigSettings GetConfigSettings();
-  bool GetBoolean(const char* key, ValueInfo* info);
+  [[nodiscard]] ConfigSettings GetConfigSettings();
+  [[nodiscard]] bool GetBoolean(const char* key, ValueInfo* info);
 
-  std::string GetString(const char* key, ValueInfo* info);
+  [[nodiscard]] std::string GetString(const char* key, ValueInfo* info);
 
-  int64_t GetLong(const char* key, ValueInfo* info);
+  [[nodiscard]] int64_t GetLong(const char* key, ValueInfo* info);
 
-  double GetDouble(const char* key, ValueInfo* info);
+  [[nodiscard]] double GetDouble(const char* key, ValueInfo* info);
 
-  std::vector<unsigned char> GetData(const char* key, ValueInfo* info);
+  [[nodiscard]] std::vector<unsigned char> GetData(const char* key,
+                                                   ValueInfo* info);
 
-  std::vector<std::string> GetKeys();
+  [[nodiscard]] std::vector<std::string> GetKeys();
 
-  std::vector<std::string> GetKeysByPrefix(const char* prefix);
+  [[nodiscard]] std::vector<std::string> GetKeysByPrefix(const char* prefix);
 
-  std::map<std::string, Variant> GetAll();
+  [[nodiscard]] std::map<std::string, Variant> GetAll();
 
-  ConfigInfo GetInfo() const;
+  [[nodiscard]] ConfigInfo GetInfo() const;
 
-  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
+  [[nodiscard]] ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 
-  bool Initialized() const;
+  [[nodiscard]] bool Initialized() const;
 
   void Cleanup();
 
   // When this is deleted, it will clean up all ListenerRegistrations.
-  CleanupNotifier& cleanup_notifier() { return cleanup_; }
+  [[nodiscard]] CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
   void set_throttled_end_time(int64_t end_time) {
     throttled_end_time_.store(end_time);
   }
 
-  int64_t throttled_end_time() const { return throttled_end_time_.load(); }
+  [[nodiscard]] int64_t throttled_end_time() const {
+    return throttled_end_time_.load();
+  }
 
   void SaveTmpKeysToDefault(std::vector<std::string> tmp_default_keys) {
     MutexLock lock(default_key_mutex_);
@@ -136,8 +141,6 @@ class RemoteConfigInternal {
   std::string jni_task_id_;
 };
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal
 
 #endif  // FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_

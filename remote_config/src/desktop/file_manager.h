@@ -15,15 +15,14 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_FILE_MANAGER_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_FILE_MANAGER_H_
 
+#include <filesystem>
 #include <string>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/desktop/config_data.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 // Use this class to save Remote Config Client `LayeredConfigs` to file and
 // load from file.
@@ -34,22 +33,16 @@ class RemoteConfigFileManager {
                           const firebase::App& app);
 
   // Load `configs` from file. Will return `true` if success.
-  bool Load(LayeredConfigs* configs) const;
+  [[nodiscard]] bool Load(LayeredConfigs* configs) const;
 
   // Save `configs` to file. Will return `true` if success.
-  bool Save(const LayeredConfigs& configs) const;
+  [[nodiscard]] bool Save(const LayeredConfigs& configs) const;
 
  private:
-  // Path to file with data. On Windows, use a UTF-16 path string.
-#if FIREBASE_PLATFORM_WINDOWS
-  std::wstring file_path_;
-#else
-  std::string file_path_;
-#endif
+  // Path to file with data.
+  std::filesystem::path file_path_;
 };
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal
 
 #endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_FILE_MANAGER_H_

@@ -16,6 +16,7 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_DESKTOP_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <thread>  // NOLINT
 
@@ -40,9 +41,7 @@
 #include "firebase/variant.h"
 #endif  // SWIG
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 const char* const kFutureNoErrorMessage = "No Error Message";
 
@@ -79,6 +78,11 @@ class RemoteConfigInternal {
 
   explicit RemoteConfigInternal(const firebase::App& app);
 
+  RemoteConfigInternal(const RemoteConfigInternal&) = delete;
+  RemoteConfigInternal& operator=(const RemoteConfigInternal&) = delete;
+  RemoteConfigInternal(RemoteConfigInternal&&) = delete;
+  RemoteConfigInternal& operator=(RemoteConfigInternal&&) = delete;
+
   ~RemoteConfigInternal();
 
   Future<ConfigInfo> EnsureInitialized();
@@ -95,7 +99,7 @@ class RemoteConfigInternal {
 
   Future<void> SetConfigSettings(ConfigSettings settings);
   Future<void> SetConfigSettingsLastResult();
-  ConfigSettings GetConfigSettings();
+  [[nodiscard]] ConfigSettings GetConfigSettings();
 
   Future<void> SetCustomSignals(
       const std::map<std::string, Variant>& custom_signals);
@@ -109,47 +113,50 @@ class RemoteConfigInternal {
                            size_t number_of_defaults);
   Future<void> SetDefaultsLastResult();
 
-  std::string GetConfigSetting(ConfigSetting setting);
+  [[nodiscard]] std::string GetConfigSetting(ConfigSetting setting);
   void SetConfigSetting(ConfigSetting setting, const char* value);
 
-  bool GetBoolean(const char* key, ValueInfo* info);
+  [[nodiscard]] bool GetBoolean(const char* key, ValueInfo* info);
 
-  std::string GetString(const char* key, ValueInfo* info);
+  [[nodiscard]] std::string GetString(const char* key, ValueInfo* info);
 
-  int64_t GetLong(const char* key, ValueInfo* info);
+  [[nodiscard]] int64_t GetLong(const char* key, ValueInfo* info);
 
-  double GetDouble(const char* key, ValueInfo* info);
+  [[nodiscard]] double GetDouble(const char* key, ValueInfo* info);
 
-  std::vector<unsigned char> GetData(const char* key, ValueInfo* info);
+  [[nodiscard]] std::vector<unsigned char> GetData(const char* key,
+                                                   ValueInfo* info);
 
-  std::vector<std::string> GetKeys();
+  [[nodiscard]] std::vector<std::string> GetKeys();
 
-  std::vector<std::string> GetKeysByPrefix(const char* prefix);
+  [[nodiscard]] std::vector<std::string> GetKeysByPrefix(const char* prefix);
 
-  std::map<std::string, Variant> GetAll();
+  [[nodiscard]] std::map<std::string, Variant> GetAll();
 
   bool ActivateFetched();
 
-  ConfigInfo GetInfo() const;
+  [[nodiscard]] ConfigInfo GetInfo() const;
 
-  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
+  [[nodiscard]] ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 
-  static bool IsBoolTrue(const std::string& str);
-  static bool IsBoolFalse(const std::string& str);
-  static bool ConvertToBool(const std::string& from, bool* out);
-  static bool IsLong(const std::string& str);
-  static bool ConvertToLong(const std::string& from, int64_t* out);
-  static bool IsDouble(const std::string& str);
-  static bool ConvertToDouble(const std::string& from, double* out);
-  static Variant StringToVariant(const std::string& from);
+  [[nodiscard]] static bool IsBoolTrue(const std::string& str);
+  [[nodiscard]] static bool IsBoolFalse(const std::string& str);
+  [[nodiscard]] static bool ConvertToBool(const std::string& from, bool* out);
+  [[nodiscard]] static bool IsLong(const std::string& str);
+  [[nodiscard]] static bool ConvertToLong(const std::string& from,
+                                          int64_t* out);
+  [[nodiscard]] static bool IsDouble(const std::string& str);
+  [[nodiscard]] static bool ConvertToDouble(const std::string& from,
+                                            double* out);
+  [[nodiscard]] static Variant StringToVariant(const std::string& from);
 
-  bool Initialized() const;
+  [[nodiscard]] bool Initialized() const;
   void Cleanup();
 
   // When this is deleted, it will clean up all ListenerRegistrations.
-  CleanupNotifier& cleanup_notifier() { return cleanup_; }
+  [[nodiscard]] CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
  private:
   // Open a new thread for saving state in the file. Thread will wait
@@ -160,9 +167,10 @@ class RemoteConfigInternal {
 
   // Convert the `firebase::Variant` type to the `std::string` type.
   //
-  // Support only boolean, integer, double, string values and binary data.
-  // Otherwise will assign `true` to the `failure` variable.
-  std::string VariantToString(const Variant& variant, bool* failure);
+  // Supports only boolean, integer, double, string values and binary data;
+  // returns `std::nullopt` for unsupported types or null static strings.
+  [[nodiscard]] std::optional<std::string> VariantToString(
+      const Variant& variant);
 
   // Set default values to `configs_.defaults` holder.
   void SetDefaults(const std::map<std::string, std::string>& defaults_map);
@@ -244,8 +252,6 @@ class RemoteConfigInternal {
   ConfigSettings config_settings_;
 };
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal
 
 #endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_DESKTOP_H_

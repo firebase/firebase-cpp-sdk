@@ -47,7 +47,7 @@ FIREBASE_APP_REGISTER_CALLBACKS(
     {
       if (app == ::firebase::App::GetInstance()) {
         firebase::InitResult init_result;
-        firebase::functions::Functions::GetInstance(app, &init_result);
+        (void)firebase::functions::Functions::GetInstance(app, &init_result);
         return init_result;
       }
       return kInitResultSuccess;

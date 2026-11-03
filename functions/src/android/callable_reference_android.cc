@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 
+#include "app/src/app_common.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -31,9 +32,7 @@
 #include "functions/src/include/firebase/functions/callable_result.h"
 #include "functions/src/include/firebase/functions/common.h"
 
-namespace firebase {
-namespace functions {
-namespace internal {
+namespace firebase::functions::internal {
 
 METHOD_LOOKUP_DEFINITION(callable_reference,
                          PROGUARD_KEEP_CLASS
@@ -50,6 +49,24 @@ enum HttpsCallableReferenceFn {
   kHttpsCallableReferenceFnCount,
 };
 
+namespace {
+
+JNIEnv* ResolveJniEnv(FunctionsInternal* primary,
+                      FunctionsInternal* secondary = nullptr) noexcept {
+  if (primary && primary->app()) {
+    return primary->app()->GetJNIEnv();
+  }
+  if (secondary && secondary->app()) {
+    return secondary->app()->GetJNIEnv();
+  }
+  if (App* any_app = app_common::GetAnyApp()) {
+    return any_app->GetJNIEnv();
+  }
+  return nullptr;
+}
+
+}  // namespace
+
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, jobject wrapper_obj)
     : functions_(functions),
@@ -65,21 +82,26 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
   }
 }
 
-HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
+void HttpsCallableReferenceInternal::Cleanup(
+    FunctionsInternal* fallback_functions) noexcept {
   if (lifetime_state_) {
     MutexLock lock(lifetime_state_->mutex);
     lifetime_state_->alive = false;
   }
-  if (obj_ != nullptr && functions_ != nullptr &&
-      functions_->app() != nullptr) {
-    functions_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
+  lifetime_state_.reset();
+  if (obj_ != nullptr) {
+    if (JNIEnv* env = ResolveJniEnv(functions_, fallback_functions)) {
+      env->DeleteGlobalRef(obj_);
+    }
+    obj_ = nullptr;
   }
-  obj_ = nullptr;
   if (functions_ != nullptr) {
     functions_->future_manager().ReleaseFutureApi(this);
     functions_ = nullptr;
   }
 }
+
+HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() { Cleanup(); }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& src)
@@ -101,23 +123,28 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &src) {
     return *this;
   }
+  auto new_lifetime =
+      std::make_shared<CallableReferenceAndroidLifetimeState>();
+  jobject new_obj = nullptr;
+  if (src.obj_ != nullptr && src.functions_ != nullptr &&
+      src.functions_->app() != nullptr) {
+    new_obj = src.functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
+  }
+
+  if (lifetime_state_) {
+    MutexLock lock(lifetime_state_->mutex);
+    lifetime_state_->alive = false;
+  }
+  lifetime_state_ = std::move(new_lifetime);
+
   if (obj_ != nullptr) {
-    JNIEnv* env = (functions_ && functions_->app())
-                      ? functions_->app()->GetJNIEnv()
-                      : ((src.functions_ && src.functions_->app())
-                             ? src.functions_->app()->GetJNIEnv()
-                             : nullptr);
-    if (env != nullptr) {
+    if (JNIEnv* env = ResolveJniEnv(functions_, src.functions_)) {
       env->DeleteGlobalRef(obj_);
     }
-    obj_ = nullptr;
   }
+  obj_ = new_obj;
+
   if (functions_ != src.functions_) {
-    if (lifetime_state_) {
-      MutexLock lock(lifetime_state_->mutex);
-      lifetime_state_->alive = false;
-    }
-    lifetime_state_ = std::make_shared<CallableReferenceAndroidLifetimeState>();
     if (functions_) {
       functions_->future_manager().ReleaseFutureApi(this);
     }
@@ -126,10 +153,6 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
       functions_->future_manager().AllocFutureApi(
           this, kHttpsCallableReferenceFnCount);
     }
-  }
-  if (src.obj_ != nullptr && functions_ != nullptr &&
-      functions_->app() != nullptr) {
-    obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
   }
   return *this;
 }
@@ -149,24 +172,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &src) {
     return *this;
   }
-  if (lifetime_state_) {
-    MutexLock lock(lifetime_state_->mutex);
-    lifetime_state_->alive = false;
-  }
-  if (obj_ != nullptr) {
-    JNIEnv* env = (functions_ && functions_->app())
-                      ? functions_->app()->GetJNIEnv()
-                      : ((src.functions_ && src.functions_->app())
-                             ? src.functions_->app()->GetJNIEnv()
-                             : nullptr);
-    if (env != nullptr) {
-      env->DeleteGlobalRef(obj_);
-    }
-    obj_ = nullptr;
-  }
-  if (functions_) {
-    functions_->future_manager().ReleaseFutureApi(this);
-  }
+  Cleanup(src.functions_);
   functions_ = std::exchange(src.functions_, nullptr);
   obj_ = std::exchange(src.obj_, nullptr);
   lifetime_state_ = std::move(src.lifetime_state_);
@@ -333,6 +339,4 @@ ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
   return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
 }
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal
