@@ -81,16 +81,17 @@ Query& Query::operator=(const Query& src) {
   return *this;
 }
 
-Query::Query(Query&& query) : internal_(query.internal_) {
+Query::Query(Query&& query) : internal_(nullptr) {
   query.UnregisterCleanup();
+  internal_ = query.internal_;
   query.internal_ = nullptr;
   RegisterCleanup();
 }
 
 Query& Query::operator=(Query&& query) {
   if (&query == this) return *this;
-  QueryInternal* internal = query.internal_;
   query.UnregisterCleanup();
+  QueryInternal* internal = query.internal_;
   query.internal_ = nullptr;
   SetInternal(internal);
   return *this;

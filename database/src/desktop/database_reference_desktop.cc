@@ -43,11 +43,12 @@ namespace {
 // before the operation is handed off to Repo.
 template <typename T>
 struct AsyncOpState {
-  AsyncOpState(ReferenceCountedFutureImpl* api_in,
+  AsyncOpState(Repo::ThisRef ref_in, ReferenceCountedFutureImpl* api_in,
                SafeFutureHandle<T> handle_in, Future<T> backing_future_in,
                void* context_in = nullptr,
                void (*delete_context_in)(void*) = nullptr)
-      : api(api_in),
+      : ref(std::move(ref_in)),
+        api(api_in),
         handle(handle_in),
         backing_future(std::move(backing_future_in)),
         context(context_in),
@@ -65,12 +66,16 @@ struct AsyncOpState {
       delete_context(context);
       delete_context = nullptr;
     }
-    if (api != nullptr && backing_future.status() == kFutureStatusPending) {
-      api->Complete(handle, kErrorUnknownError,
-                    "The database is being destroyed.");
+    Repo::ThisRefLock lock(&ref);
+    if (lock.GetReference() != nullptr) {
+      if (api != nullptr && backing_future.status() == kFutureStatusPending) {
+        api->Complete(handle, kErrorUnknownError,
+                      "The database is being destroyed.");
+      }
     }
   }
 
+  Repo::ThisRef ref;
   ReferenceCountedFutureImpl* api;
   SafeFutureHandle<T> handle;
   Future<T> backing_future;
@@ -212,7 +217,7 @@ Future<void> DatabaseReferenceInternal::RemoveValue() {
   SafeFutureHandle<void> handle =
       api->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
   Future<void> result = MakeFuture(api, handle);
-  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+  auto state = std::make_shared<AsyncOpState<void>>(database_->repo()->this_ref(), api, handle, result);
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, Path path,
@@ -251,7 +256,7 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
   Future<DataSnapshot> result = MakeFuture(api, handle);
   auto state = std::make_shared<AsyncOpState<DataSnapshot>>(
-      api, handle, result, context, delete_context);
+      database_->repo()->this_ref(), api, handle, result, context, delete_context);
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, Path path,
@@ -302,7 +307,7 @@ Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
   SafeFutureHandle<void> handle =
       api->SafeAlloc<void>(kDatabaseReferenceFnSetPriority);
   Future<void> result = MakeFuture(api, handle);
-  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+  auto state = std::make_shared<AsyncOpState<void>>(database_->repo()->this_ref(), api, handle, result);
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, Path path, Variant priority,
@@ -342,7 +347,7 @@ Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
   SafeFutureHandle<void> handle =
       api->SafeAlloc<void>(kDatabaseReferenceFnSetValue);
   Future<void> result = MakeFuture(api, handle);
-  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+  auto state = std::make_shared<AsyncOpState<void>>(database_->repo()->this_ref(), api, handle, result);
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, Path path, Variant value,
@@ -413,7 +418,7 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(
         std::make_pair(kVirtualChildKeyPriority, priority)};
   }
   Future<void> result = MakeFuture(api, handle);
-  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+  auto state = std::make_shared<AsyncOpState<void>>(database_->repo()->this_ref(), api, handle, result);
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, Path path, Variant value_priority,
@@ -453,7 +458,7 @@ Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
   SafeFutureHandle<void> handle =
       api->SafeAlloc<void>(kDatabaseReferenceFnUpdateChildren);
   Future<void> result = MakeFuture(api, handle);
-  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+  auto state = std::make_shared<AsyncOpState<void>>(database_->repo()->this_ref(), api, handle, result);
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, Path path, Variant values,

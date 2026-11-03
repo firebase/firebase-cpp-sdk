@@ -188,11 +188,22 @@ class OnDisconnectResponse : public connection::Response {
         handle_(handle),
         ref_future_(ref_future),
         path_(path),
-        data_(data) {
+        data_(data),
+        completed_(false) {
     assert(ref_future != nullptr);
   }
 
+  ~OnDisconnectResponse() override {
+    if (!completed_) {
+      Repo::ThisRefLock lock(&repo_ref_);
+      if (lock.GetReference() != nullptr && ref_future_) {
+        ref_future_->Complete(handle_, kErrorUnknownError, "The database is being destroyed.");
+      }
+    }
+  }
+
   void MarkComplete() {
+    completed_ = true;
     if (!HasError()) {
       ref_future_->Complete(handle_, kErrorNone);
     } else {
@@ -210,6 +221,7 @@ class OnDisconnectResponse : public connection::Response {
   ReferenceCountedFutureImpl* ref_future_;
   Path path_;
   Variant data_;
+  bool completed_;
 };
 
 void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
