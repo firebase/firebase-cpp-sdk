@@ -316,7 +316,7 @@ CollectionReference Firestore::Collection(
     SimpleThrowInvalidArgument("Collection path cannot be empty.");
   }
   if (!internal_) return {};
-  return internal_->Collection(collection_path);
+  return internal_->Collection(collection_path.c_str());
 }
 
 DocumentReference Firestore::Document(const char* document_path) const {
@@ -331,7 +331,7 @@ DocumentReference Firestore::Document(const std::string& document_path) const {
     SimpleThrowInvalidArgument("Document path cannot be empty.");
   }
   if (!internal_) return {};
-  return internal_->Document(document_path);
+  return internal_->Document(document_path.c_str());
 }
 
 Query Firestore::CollectionGroup(const char* collection_id) const {
@@ -346,7 +346,7 @@ Query Firestore::CollectionGroup(const std::string& collection_id) const {
     SimpleThrowInvalidArgument("Collection ID cannot be empty.");
   }
   if (!internal_) return {};
-  return internal_->CollectionGroup(collection_id);
+  return internal_->CollectionGroup(collection_id.c_str());
 }
 
 Settings Firestore::settings() const {

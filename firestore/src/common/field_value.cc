@@ -313,6 +313,7 @@ std::string FieldValue::ToString() const {
     case Type::kIncrementInteger:
     case Type::kIncrementDouble:
       return "FieldValue::Increment()";
+  }
 
 
   // TODO(b/147444199): use string formatting.
