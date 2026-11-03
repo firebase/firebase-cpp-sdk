@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_REST_CURL_CURL_IO_LOOP_H_
 #define FIREBASE_APP_REST_CURL_CURL_IO_LOOP_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>
