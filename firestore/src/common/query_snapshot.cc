@@ -30,12 +30,11 @@
 #include "firestore/src/main/query_snapshot_main.h"
 #endif  // defined(__ANDROID__)
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 using CleanupFnQuerySnapshot = CleanupFn<QuerySnapshot>;
 
-QuerySnapshot::QuerySnapshot() {}
+QuerySnapshot::QuerySnapshot() = default;
 
 QuerySnapshot::QuerySnapshot(const QuerySnapshot& snapshot) {
   if (snapshot.internal_) {
@@ -59,7 +58,6 @@ QuerySnapshot::QuerySnapshot(QuerySnapshotInternal* internal)
 QuerySnapshot::~QuerySnapshot() {
   CleanupFnQuerySnapshot::Unregister(this, internal_);
   delete internal_;
-  internal_ = nullptr;
 }
 
 QuerySnapshot& QuerySnapshot::operator=(const QuerySnapshot& snapshot) {
@@ -67,14 +65,13 @@ QuerySnapshot& QuerySnapshot::operator=(const QuerySnapshot& snapshot) {
     return *this;
   }
 
-  QuerySnapshotInternal* new_internal = nullptr;
-  if (snapshot.internal_) {
-    new_internal = new QuerySnapshotInternal(*snapshot.internal_);
-  }
-
   CleanupFnQuerySnapshot::Unregister(this, internal_);
   delete internal_;
-  internal_ = new_internal;
+  if (snapshot.internal_) {
+    internal_ = new QuerySnapshotInternal(*snapshot.internal_);
+  } else {
+    internal_ = nullptr;
+  }
   CleanupFnQuerySnapshot::Register(this, internal_);
   return *this;
 }
@@ -128,5 +125,4 @@ size_t QuerySnapshot::Hash() const {
   return internal_->Hash();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

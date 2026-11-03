@@ -44,34 +44,47 @@ DocumentSnapshot::DocumentSnapshot(const DocumentSnapshot& snapshot) {
   if (snapshot.internal_) {
     internal_ = new DocumentSnapshotInternal(*snapshot.internal_);
   }
+#if FIRESTORE_HAVE_EXCEPTIONS
   try {
     CleanupFnDocumentSnapshot::Register(this, internal_);
   } catch (...) {
     delete internal_;
     throw;
   }
+#else
+  CleanupFnDocumentSnapshot::Register(this, internal_);
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
-DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) noexcept {
+DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) {
   CleanupFnDocumentSnapshot::Unregister(&snapshot, snapshot.internal_);
   internal_ = std::exchange(snapshot.internal_, nullptr);
+#if FIRESTORE_HAVE_EXCEPTIONS
   try {
     CleanupFnDocumentSnapshot::Register(this, internal_);
   } catch (...) {
     delete internal_;
     internal_ = nullptr;
+    throw;
   }
+#else
+  CleanupFnDocumentSnapshot::Register(this, internal_);
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 DocumentSnapshot::DocumentSnapshot(DocumentSnapshotInternal* internal)
     : internal_(internal) {
   SIMPLE_HARD_ASSERT(internal != nullptr);
+#if FIRESTORE_HAVE_EXCEPTIONS
   try {
     CleanupFnDocumentSnapshot::Register(this, internal_);
   } catch (...) {
     delete internal_;
     throw;
   }
+#else
+  CleanupFnDocumentSnapshot::Register(this, internal_);
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 DocumentSnapshot::~DocumentSnapshot() {
@@ -94,6 +107,7 @@ DocumentSnapshot& DocumentSnapshot::operator=(
   CleanupFnDocumentSnapshot::Unregister(this, internal_);
   delete internal_;
   internal_ = new_internal;
+#if FIRESTORE_HAVE_EXCEPTIONS
   try {
     CleanupFnDocumentSnapshot::Register(this, internal_);
   } catch (...) {
@@ -101,10 +115,13 @@ DocumentSnapshot& DocumentSnapshot::operator=(
     internal_ = nullptr;
     throw;
   }
+#else
+  CleanupFnDocumentSnapshot::Register(this, internal_);
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
   return *this;
 }
 
-DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) noexcept {
+DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) {
   if (this == &snapshot) {
     return *this;
   }
@@ -113,12 +130,17 @@ DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) noexc
   CleanupFnDocumentSnapshot::Unregister(this, internal_);
   delete internal_;
   internal_ = std::exchange(snapshot.internal_, nullptr);
+#if FIRESTORE_HAVE_EXCEPTIONS
   try {
     CleanupFnDocumentSnapshot::Register(this, internal_);
   } catch (...) {
     delete internal_;
     internal_ = nullptr;
+    throw;
   }
+#else
+  CleanupFnDocumentSnapshot::Register(this, internal_);
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
   return *this;
 }
 

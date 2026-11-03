@@ -74,7 +74,7 @@ class CollectionReference : public Query {
    *
    * @param[in] other `CollectionReference` to move data from.
    */
-  CollectionReference(CollectionReference&& other);
+  CollectionReference(CollectionReference&& other) noexcept;
 
   /**
    * @brief Copy assignment operator.

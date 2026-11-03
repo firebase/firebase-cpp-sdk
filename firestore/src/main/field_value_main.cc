@@ -271,8 +271,6 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
     case Type::kMap:
       return absl::get<MapT>(lhs.value_) == absl::get<MapT>(rhs.value_);
 
-    case Type::kInvalid:
-      return true;
   }
 
   FIRESTORE_UNREACHABLE();

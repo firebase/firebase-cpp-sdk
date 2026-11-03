@@ -81,16 +81,15 @@ public final class SilentRejectionSingleThreadExecutor implements Executor {
     }
     if (Thread.currentThread() != executorThread) {
       boolean interrupted = false;
-      try {
-        while (!internalExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
-          // Wait for the in-flight task (if any) to complete.
+      while (!internalExecutor.isTerminated()) {
+        try {
+          internalExecutor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+          interrupted = true;
         }
-      } catch (InterruptedException e) {
-        interrupted = true;
-      } finally {
-        if (interrupted) {
-          Thread.currentThread().interrupt();
-        }
+      }
+      if (interrupted) {
+        Thread.currentThread().interrupt();
       }
     }
   }

@@ -58,7 +58,7 @@ Method<Task> kAdd("add",
 
 CollectionReferenceInternal::CollectionReferenceInternal(
     const CollectionReferenceInternal& other)
-    : QueryInternal(other) {
+    : QueryInternal(other.firestore_internal(), other.ToJava()) {
   std::scoped_lock lock(other.mutex_);
   cached_id_ = other.cached_id_;
   cached_path_ = other.cached_path_;
@@ -66,7 +66,7 @@ CollectionReferenceInternal::CollectionReferenceInternal(
 
 CollectionReferenceInternal::CollectionReferenceInternal(
     CollectionReferenceInternal&& other) noexcept
-    : QueryInternal(std::move(other)) {
+    : QueryInternal(other.firestore_internal(), other.ToJava()) {
   std::scoped_lock lock(other.mutex_);
   cached_id_ = std::move(other.cached_id_);
   cached_path_ = std::move(other.cached_path_);

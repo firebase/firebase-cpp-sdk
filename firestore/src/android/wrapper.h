@@ -33,10 +33,8 @@ class Wrapper {
  public:
   Wrapper(FirestoreInternal* firestore, const jni::Object& obj);
 
-  Wrapper();
-  Wrapper(Wrapper* rhs);
-  Wrapper(const Wrapper& wrapper) = default;
-  Wrapper(Wrapper&& wrapper) noexcept = default;
+  Wrapper(const Wrapper& wrapper) = delete;
+  Wrapper(Wrapper&& wrapper) = delete;
 
   virtual ~Wrapper();
 

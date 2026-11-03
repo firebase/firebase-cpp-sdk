@@ -382,6 +382,7 @@ std::vector<FieldValue> FieldValueInternal::array_value() const {
   result.reserve(size);
 
   for (size_t i = 0; i < size; ++i) {
+    if (!env.ok()) break;
     Local<Object> element = list.Get(env, i);
     result.push_back(FieldValueInternal::Create(env, element));
   }
@@ -398,6 +399,7 @@ MapFieldValue FieldValueInternal::map_value() const {
   Local<Iterator> iter = map.KeySet(env).Iterator(env);
 
   while (iter.HasNext(env)) {
+    if (!env.ok()) break;
     Local<Object> java_key = iter.Next(env);
     std::string key = java_key.ToString(env);
 
@@ -422,14 +424,14 @@ FieldValue FieldValueInternal::ServerTimestamp() {
 }
 
 FieldValue FieldValueInternal::ArrayUnion(
-    const std::vector<FieldValue>& elements) {
+    std::vector<FieldValue> elements) {
   Env env = GetEnv();
   auto array = MakeArray(env, elements);
   return Create(env, Type::kArrayUnion, env.Call(kArrayUnion, array));
 }
 
 FieldValue FieldValueInternal::ArrayRemove(
-    const std::vector<FieldValue>& elements) {
+    std::vector<FieldValue> elements) {
   Env env = GetEnv();
   auto array = MakeArray(env, elements);
   return Create(env, Type::kArrayRemove, env.Call(kArrayRemove, array));
@@ -495,6 +497,7 @@ Env FieldValueInternal::GetEnv() { return FirestoreInternal::GetEnv(); }
 
 Local<Object> FieldValueInternal::ToJava() const {
   Env env = GetEnv();
+  std::lock_guard<std::mutex> lock(mutex_);
   return object_.get(env);
 }
 

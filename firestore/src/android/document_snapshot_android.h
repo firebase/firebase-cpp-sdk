@@ -72,7 +72,7 @@ class DocumentSnapshotInternal : public Wrapper {
   std::size_t Hash() const;
 
  private:
-  mutable std::mutex mutex_;
+  mutable std::once_flag id_once_flag_;
   mutable std::string cached_id_;
 };
 

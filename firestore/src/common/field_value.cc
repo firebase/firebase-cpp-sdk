@@ -167,7 +167,7 @@ FieldValue FieldValue::Map(MapFieldValue value) {
 }
 
 Type FieldValue::type() const {
-  if (!internal_) return Type::kInvalid;
+  if (!internal_) return Type::kNull;
   return internal_->type();
 }
 

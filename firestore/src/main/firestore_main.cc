@@ -15,7 +15,9 @@
  */
 
 #include "firestore/src/main/firestore_main.h"
-#include <atomic>
+#include <mutex>
+
+static std::mutex g_is_alive_mutex;
 
 #include <cstring>
 #include <memory>

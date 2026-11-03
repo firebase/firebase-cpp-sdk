@@ -346,7 +346,7 @@ class FieldValue final {
    * type not larger than `int64_t`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  template <typename T, typename = EnableIfIntegral<T>>
+  template <typename T, EnableIfIntegral<T> = 0>
   static FieldValue Increment(T by_value) {
     // Note: Doxygen will run into trouble if this function's definition is
     // moved outside the class body.
@@ -376,7 +376,7 @@ class FieldValue final {
    * point type no larger than `double`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  template <typename T, typename = EnableIfFloatingPoint<T>>
+  template <typename T, EnableIfFloatingPoint<T> = 0>
   static FieldValue Increment(T by_value) {
     // Note: Doxygen will run into trouble if this function's definition is
     // moved outside the class body.

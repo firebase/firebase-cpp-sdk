@@ -64,7 +64,7 @@ core::Filter UnaryFilterInternal::ToCoreFilter(
 bool operator==(const UnaryFilterInternal& lhs,
                 const UnaryFilterInternal& rhs) {
   return lhs.op_ == rhs.op_ && lhs.path_ == rhs.path_ &&
-         lhs.value_ == rhs.value_;
+         lhs.value_ == rhs.value_ && lhs.allow_arrays_ == rhs.allow_arrays_;
 }
 
 }  // namespace firestore

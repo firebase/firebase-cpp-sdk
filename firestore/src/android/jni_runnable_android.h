@@ -144,11 +144,10 @@ class JniRunnable : public JniRunnableBase {
   }
 
   void Run() override {
-    CallbackT callback_copy = callback_;
     if constexpr (std::is_invocable_v<CallbackT>) {
-      callback_copy();
+      callback_();
     } else {
-      callback_copy(*this);
+      callback_(*this);
     }
   }
 

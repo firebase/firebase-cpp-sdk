@@ -301,6 +301,8 @@ set_property(TARGET firebase_firestore PROPERTY FOLDER "Firebase Cpp")
 target_link_libraries(firebase_firestore
   PUBLIC
     firebase_app
+  PRIVATE
+    firebase_auth
 )
 
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)

@@ -66,14 +66,12 @@ Method<int32_t> kHashCode("hashCode", "()I");
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     const DocumentSnapshotInternal& other)
     : Wrapper(other) {
-  std::lock_guard<std::mutex> lock(other.mutex_);
   cached_id_ = other.cached_id_;
 }
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     DocumentSnapshotInternal&& other) noexcept
     : Wrapper(std::move(other)) {
-  std::lock_guard<std::mutex> lock(other.mutex_);
   cached_id_ = std::move(other.cached_id_);
 }
 
@@ -90,11 +88,10 @@ Firestore* DocumentSnapshotInternal::firestore() const {
 }
 
 const std::string& DocumentSnapshotInternal::id() const {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (cached_id_.empty()) {
+  std::call_once(id_once_flag_, [this]() {
     Env env = GetEnv();
     cached_id_ = env.Call(obj_, kGetId).ToString(env);
-  }
+  });
   return cached_id_;
 }
 

@@ -88,13 +88,15 @@ class Promise {
   }
 
   void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task) {
+    if (!completer_) return;
     if (!env.ok() || !task) {
-      FIREBASE_ASSERT(completer_ != nullptr);
       handle_ = completer_->Alloc(static_cast<int>(op));
       impl_->Complete(handle_, Error::kErrorUnknown, "Unknown error.");
+      if (completer_->completion_) {
+        completer_->completion_->CompleteWith(Error::kErrorUnknown, "Unknown error.", nullptr);
+      }
       return;
     }
-    FIREBASE_ASSERT(completer_ != nullptr);
     handle_ = completer_->Alloc(static_cast<int>(op));
 
     // Ownership of the completer will pass to RegisterCallbackOnTask
@@ -122,10 +124,12 @@ class Promise {
       : firestore_ref_(firestore_ref),
         completer_(std::make_unique<Completer<PublicType, InternalType>>(
             firestore_ref, impl, completion)),
-        impl_(impl) {}
+        impl_(impl),
+        handle_(SafeFutureHandle<PublicType>{}) {}
 
   template <typename PublicT>
   class CompleterBase {
+    friend class Promise;
    public:
     CompleterBase(const FirestoreInternalWeakReference& firestore_ref,
                   ReferenceCountedFutureImpl* impl,
@@ -155,20 +159,10 @@ class Promise {
       jni::Object result(raw_result);
 
       if (result_code == ::firebase::util::kFutureResultSuccess) {
-        bool succeeded = firestore_ref_.Run(
-            [this, &env, &result](FirestoreInternal* firestore) {
-              if (firestore == nullptr) {
-                return false;
-              }
-              SucceedWithResult(env, result, *firestore);
-              return true;
+        firestore_ref_.RunIfValid(
+            [this, &env, &result](FirestoreInternal& firestore) {
+              SucceedWithResult(env, result, firestore);
             });
-        if (!succeeded && completion_ != nullptr) {
-          completion_->CompleteWith(Error::kErrorCancelled,
-                                    "Firestore instance has been destroyed",
-                                    nullptr);
-        }
-
         return;
       }
 
@@ -189,10 +183,10 @@ class Promise {
       firestore_ref_.RunIfValid(
           [this, error_code, status_message](FirestoreInternal& firestore) {
             impl_->Complete(handle_, error_code, status_message);
+            if (completion_ != nullptr) {
+              completion_->CompleteWith(error_code, status_message, nullptr);
+            }
           });
-      if (completion_ != nullptr) {
-        completion_->CompleteWith(error_code, status_message, nullptr);
-      }
     }
 
     virtual void SucceedWithResult(jni::Env& env,
@@ -261,10 +255,9 @@ class Promise {
         data->CompleteWithResult(env, result, result_code, status_message);
 #if FIRESTORE_HAVE_EXCEPTIONS
       } catch (const std::exception& e) {
-        // Complete with error if exception was thrown
-        data->CompleteWithResult(env, result, ::firebase::util::kFutureResultFailure, e.what());
+        // Drop the exception to avoid double-completion bugs.
       } catch (...) {
-        data->CompleteWithResult(env, result, ::firebase::util::kFutureResultFailure, "Unknown exception.");
+        // Drop the exception to avoid double-completion bugs.
       }
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
     }

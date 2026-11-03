@@ -37,8 +37,8 @@ using credentials::TokenListener;
 
 namespace {
 
-std::mutex& ListenerMutex() {
-  static std::mutex mutex;
+std::recursive_mutex& ListenerMutex() {
+  static std::recursive_mutex mutex;
   return mutex;
 }
 
@@ -51,34 +51,28 @@ std::unordered_set<CppAppCheckCredentialsProvider*>& ValidProviders() {
 
 CppAppCheckCredentialsProvider::CppAppCheckCredentialsProvider(App& app)
     : app_(app) {
-  std::lock_guard<std::mutex> lock(ListenerMutex());
+  std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
   ValidProviders().insert(this);
 }
 
 CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
   RemoveAppCheckStateListener();
-  std::lock_guard<std::mutex> lock(ListenerMutex());
+  std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
   ValidProviders().erase(this);
 }
 
 void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<std::string> listener) {
+  std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
   bool has_listener = static_cast<bool>(listener);
-  {
-    std::lock_guard<std::mutex> lock(ListenerMutex());
-    if (!has_listener) {
-      SIMPLE_HARD_ASSERT(change_listener_,
-                         "Change listener removed without being set!");
-      change_listener_ = {};
-    } else {
-      SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
-      change_listener_ = std::move(listener);
-    }
-  }
-
   if (!has_listener) {
+    SIMPLE_HARD_ASSERT(change_listener_,
+                       "Change listener removed without being set!");
+    change_listener_ = {};
     RemoveAppCheckStateListener();
   } else {
+    SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
+    change_listener_ = std::move(listener);
     AddAppCheckStateListener();
   }
 }
@@ -87,7 +81,7 @@ void CppAppCheckCredentialsProvider::GetToken(
     TokenListener<std::string> listener) {
   bool force_refresh = false;
   {
-    std::lock_guard<std::mutex> lock(ListenerMutex());
+    std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
     force_refresh = force_refresh_;
     force_refresh_ = false;
   }
@@ -137,7 +131,7 @@ void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(
   
   CredentialChangeListener<std::string> listener;
   {
-    std::lock_guard<std::mutex> lock(ListenerMutex());
+    std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
     if (ValidProviders().find(provider) == ValidProviders().end()) return;
     listener = provider->change_listener_;
   }

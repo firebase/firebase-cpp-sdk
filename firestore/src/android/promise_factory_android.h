@@ -19,6 +19,7 @@
 
 #include <utility>
 
+#include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/jni/task.h"
@@ -88,8 +89,9 @@ class PromiseFactory {
       typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
           nullptr) {
     if (!env.ok() || !task) {
-      jni::ExceptionClearGuard block(env);
       auto promise = MakePromise<PublicT, InternalT>(completion);
+      promise.RegisterForTask(env, op, task);
+      jni::ExceptionClearGuard block(env);
       if (completion != nullptr) {
         completion->CompleteWith(Error::kErrorUnknown,
                                  "Failed to create Java Task", nullptr);

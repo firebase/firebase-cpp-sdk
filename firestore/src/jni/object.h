@@ -44,8 +44,8 @@ class Object {
  public:
   Object() = default;
   constexpr explicit Object(jobject object) : object_(object) {}
+ protected:
   ~Object() = default;
-  protected:
   Object(const Object&) = default;
   Object& operator=(const Object&) = default;
  public:
@@ -81,11 +81,9 @@ class Object {
 };
 
 /**
- * Compares two `Object` wrappers for exact JNI handle equality (`lhs.get() ==
- * rhs.get()`). Note that two distinct JNI local/global references to the same
- * Java object have different `jobject` handles; use `Env::IsSameObject` to
- * test Java reference identity across distinct handles, or `Object::Equals` to
- * invoke `java.lang.Object.equals`.
+ * Compares two `Object` wrappers for Java object identity using
+ * `JNIEnv::IsSameObject()`. To invoke `java.lang.Object.equals`,
+ * use `Object::Equals()`.
  */
 inline [[nodiscard]] bool operator==(const Object& lhs, const Object& rhs) {
   if (lhs.get() == rhs.get()) return true;

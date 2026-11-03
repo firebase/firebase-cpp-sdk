@@ -34,6 +34,7 @@
 #include "firebase/firestore/aggregate_query.h"
 #include "firebase/firestore/aggregate_query_snapshot.h"
 #include "firestore/src/common/type_mapping.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/main/aggregate_query_main.h"
 #include "firestore/src/main/aggregate_query_snapshot_main.h"

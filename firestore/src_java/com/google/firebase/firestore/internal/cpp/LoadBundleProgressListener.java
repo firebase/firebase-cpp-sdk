@@ -17,7 +17,6 @@
 package com.google.firebase.firestore.internal.cpp;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import com.google.firebase.firestore.LoadBundleTaskProgress;
 import com.google.firebase.firestore.OnProgressListener;
 
@@ -68,5 +67,5 @@ public class LoadBundleProgressListener extends CppEventListener
    * event_listener_android.cc}.
    */
   private static native void nativeOnProgress(
-      long firestoreObject, long listenerObject, Object value);
+      long firestoreObject, long listenerObject, @NonNull Object value);
 }

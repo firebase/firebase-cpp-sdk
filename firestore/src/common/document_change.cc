@@ -53,7 +53,7 @@ DocumentChange::DocumentChange(const DocumentChange& value) {
 
 DocumentChange::DocumentChange(DocumentChange&& value)
     : internal_(std::exchange(value.internal_, nullptr)) {
-  CleanupFnDocumentChange::Unregister(&value, nullptr);
+  CleanupFnDocumentChange::Unregister(&value, internal_);
   CleanupFnDocumentChange::Register(this, internal_);
 }
 

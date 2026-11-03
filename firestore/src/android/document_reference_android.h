@@ -58,6 +58,7 @@ class DocumentReferenceInternal : public Wrapper {
 
   DocumentReferenceInternal(const DocumentReferenceInternal& other);
   DocumentReferenceInternal(DocumentReferenceInternal&& other) noexcept;
+  ~DocumentReferenceInternal() override = default;
   DocumentReferenceInternal& operator=(
       const DocumentReferenceInternal& other) = delete;
   DocumentReferenceInternal& operator=(
@@ -109,7 +110,7 @@ class DocumentReferenceInternal : public Wrapper {
    *
    * @return A Future that will be resolved with the contents of the document.
    */
-  Future<DocumentSnapshot> Get(Source source) const;
+  Future<DocumentSnapshot> Get(Source source);
 
   /**
    * Writes to this document.
@@ -171,24 +172,19 @@ class DocumentReferenceInternal : public Wrapper {
       std::function<void(const DocumentSnapshot&, Error, const std::string&)>
           callback);
 
-  /**
-   * Starts listening to the document referenced by this DocumentReference.
-   *
-   * @param[in] metadata_changes Indicates whether metadata-only changes (i.e.
-   * only DocumentSnapshot.getMetadata() changed) should trigger snapshot
-   * events.
-   * @param[in] listener The event listener that will be called with the
-   * snapshots. If `passing_listener_ownership` is false, the caller retains
-   * ownership and must keep `listener` alive until the listener is removed.
-   * @param[in] passing_listener_ownership Whether to pass the ownership of the
-   * listener.
-   *
-   * @return A registration object that can be used to remove the listener.
-   */
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
+      EventListener<DocumentSnapshot>* listener);
+
+  ListenerRegistration AddSnapshotListener(
+      MetadataChanges metadata_changes,
+      std::unique_ptr<EventListener<DocumentSnapshot>> listener);
+
+ private:
+  ListenerRegistration AddSnapshotListenerInternal(
+      MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener,
-      bool passing_listener_ownership = false);
+      bool passing_listener_ownership);
 
   /** @brief Gets the class object of Java DocumentReference class. */
   static jni::Class GetClass();

@@ -45,15 +45,17 @@ public class TransactionFunction
       try {
         byte[] result = nativeApply(firestorePtr, listenerPtr, transaction);
         if (result == null) {
-          FirebaseFirestoreException exception =
-              (FirebaseFirestoreException) nativeGetException(firestorePtr, listenerPtr);
+          Exception exception =
+              (Exception) nativeGetException(firestorePtr, listenerPtr);
           throw exception;
         }
-      } catch (FirebaseFirestoreException e) {
-        throw e;
-      } catch (RuntimeException e) {
-        throw e;
       } catch (Exception e) {
+        if (e instanceof FirebaseFirestoreException) {
+          throw (FirebaseFirestoreException) e;
+        }
+        if (e instanceof RuntimeException) {
+          throw (RuntimeException) e;
+        }
         throw new FirebaseFirestoreException(e.getMessage(), Code.UNKNOWN, e);
       }
     }

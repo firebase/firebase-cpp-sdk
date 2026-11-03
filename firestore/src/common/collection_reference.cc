@@ -29,8 +29,7 @@
 #include "firestore/src/main/collection_reference_main.h"
 #endif  // defined(__ANDROID__)
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 // Design for the internal_:
 //
@@ -48,7 +47,7 @@ CollectionReference::CollectionReference(const CollectionReference& reference)
                 ? new CollectionReferenceInternal(*reference.internal())
                 : nullptr) {}
 
-CollectionReference::CollectionReference(CollectionReference&& reference)
+CollectionReference::CollectionReference(CollectionReference&& reference) noexcept
     : Query(std::move(reference)) {}
 
 CollectionReference::CollectionReference(CollectionReferenceInternal* internal)
@@ -72,7 +71,7 @@ CollectionReference& CollectionReference::operator=(
 }
 
 CollectionReference& CollectionReference::operator=(
-    CollectionReference&& reference) {
+    CollectionReference&& reference) noexcept {
   Query::operator=(std::move(reference));
   return *this;
 }
@@ -127,5 +126,4 @@ CollectionReferenceInternal* CollectionReference::internal() const {
   return static_cast<CollectionReferenceInternal*>(internal_);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

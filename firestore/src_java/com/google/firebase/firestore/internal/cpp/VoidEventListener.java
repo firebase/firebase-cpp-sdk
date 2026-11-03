@@ -39,13 +39,9 @@ public class VoidEventListener extends CppEventListener implements Runnable {
   }
 
   @Override
-  public void run() {
-    long listenerPtr;
-    synchronized (this) {
-      listenerPtr = cppListenerObject;
-    }
-    if (listenerPtr != 0) {
-      nativeOnEvent(listenerPtr);
+  public synchronized void run() {
+    if (cppListenerObject != 0) {
+      nativeOnEvent(cppListenerObject);
     }
   }
 

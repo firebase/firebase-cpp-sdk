@@ -74,13 +74,20 @@ class Promise {
   }
 
   Promise(Promise&& rhs) noexcept {
-    rhs.UnregisterForCleanup();
-    cleanup_ = rhs.cleanup_;
-    future_api_ = rhs.future_api_;
-    identifier_ = rhs.identifier_;
-    handle_ = rhs.handle_;
-    rhs.Reset();
+    CleanupNotifier* cleanup = nullptr;
+    {
+      std::lock_guard lock(rhs.destruction_mutex_);
+      cleanup = rhs.cleanup_;
+      future_api_ = rhs.future_api_;
+      identifier_ = rhs.identifier_;
+      handle_ = rhs.handle_;
+      rhs.Reset();
+    }
+    if (cleanup != nullptr) {
+      cleanup->UnregisterObject(&rhs);
+    }
 
+    cleanup_ = cleanup;
     RegisterForCleanup();
   }
 
@@ -88,11 +95,15 @@ class Promise {
     if (this == &rhs) return *this;
     UnregisterForCleanup();
 
-    std::lock_guard lock(rhs.destruction_mutex_);
-    cleanup_ = rhs.cleanup_;
-    future_api_ = rhs.future_api_;
-    identifier_ = rhs.identifier_;
-    handle_ = rhs.handle_;
+    {
+      std::lock(destruction_mutex_, rhs.destruction_mutex_);
+      std::lock_guard lock_this(destruction_mutex_, std::adopt_lock);
+      std::lock_guard lock_rhs(rhs.destruction_mutex_, std::adopt_lock);
+      cleanup_ = rhs.cleanup_;
+      future_api_ = rhs.future_api_;
+      identifier_ = rhs.identifier_;
+      handle_ = rhs.handle_;
+    }
 
     RegisterForCleanup();
 
@@ -101,17 +112,28 @@ class Promise {
 
   Promise& operator=(Promise&& rhs) noexcept {
     if (this == &rhs) return *this;
-    rhs.UnregisterForCleanup();
     UnregisterForCleanup();
 
-    cleanup_ = rhs.cleanup_;
-    future_api_ = rhs.future_api_;
-    identifier_ = rhs.identifier_;
-    handle_ = rhs.handle_;
-
+    CleanupNotifier* cleanup = nullptr;
+    {
+      std::lock(destruction_mutex_, rhs.destruction_mutex_);
+      std::lock_guard lock_this(destruction_mutex_, std::adopt_lock);
+      std::lock_guard lock_rhs(rhs.destruction_mutex_, std::adopt_lock);
+      cleanup = rhs.cleanup_;
+      future_api_ = rhs.future_api_;
+      identifier_ = rhs.identifier_;
+      handle_ = rhs.handle_;
+      rhs.Reset();
+    }
+    if (cleanup != nullptr) {
+      cleanup->UnregisterObject(&rhs);
+    }
+    
+    {
+      std::lock_guard lock_this(destruction_mutex_);
+      cleanup_ = cleanup;
+    }
     RegisterForCleanup();
-
-    rhs.Reset();
 
     return *this;
   }

@@ -94,6 +94,9 @@ ListenerRegistrationInternal::~ListenerRegistrationInternal() {
     // monitor lock, and release Java global references before deleting the C++
     // listener object.
     env.Call(listener_registration_, kRemove);
+    if (!env.ok()) {
+      env.ExceptionClear();
+    }
     listener_registration_.clear();
   }
 

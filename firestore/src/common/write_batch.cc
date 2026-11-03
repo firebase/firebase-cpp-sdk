@@ -56,7 +56,7 @@ WriteBatch::WriteBatch(const WriteBatch& value) {
 
 WriteBatch::WriteBatch(WriteBatch&& value) noexcept
     : internal_(std::exchange(value.internal_, nullptr)) {
-  CleanupFnWriteBatch::Unregister(&value, nullptr);
+  CleanupFnWriteBatch::Unregister(&value, static_cast<WriteBatchInternal*>(nullptr));
   CleanupFnWriteBatch::Register(this, internal_);
 }
 

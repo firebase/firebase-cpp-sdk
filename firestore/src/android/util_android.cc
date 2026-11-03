@@ -51,8 +51,9 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
   auto end = data.end();
   FIREBASE_ASSERT_MESSAGE(iter != end, "data must be non-empty");
 
-  Local<Object> first_field = FieldPathConverter::Create(env, iter->first);
-  Local<Object> first_value = FieldValueInternal::ToJava(iter->second);
+  const auto& [first_key, first_val] = *iter;
+  Local<Object> first_field = FieldPathConverter::Create(env, first_key);
+  Local<Object> first_value = FieldValueInternal::ToJava(first_val);
   ++iter;
 
   const auto size = std::distance(iter, end) * 2;
@@ -60,8 +61,9 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
 
   int index = 0;
   for (; iter != end; ++iter) {
-    Local<Object> field = FieldPathConverter::Create(env, iter->first);
-    Local<Object> value = FieldValueInternal::ToJava(iter->second);
+    const auto& [key, val] = *iter;
+    Local<Object> field = FieldPathConverter::Create(env, key);
+    Local<Object> value = FieldValueInternal::ToJava(val);
 
     varargs.Set(env, index++, field);
     varargs.Set(env, index++, value);

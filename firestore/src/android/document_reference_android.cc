@@ -202,14 +202,26 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
-  LambdaEventListener<DocumentSnapshot>* listener =
-      new LambdaEventListener<DocumentSnapshot>(std::move(callback));
-  return AddSnapshotListener(metadata_changes, listener,
-                             /*passing_listener_ownership=*/true);
+  auto listener = std::make_unique<LambdaEventListener<DocumentSnapshot>>(
+      std::move(callback));
+  return AddSnapshotListener(metadata_changes, std::move(listener));
 }
 
-// TODO(b/191969080): Remove the passing_listener_ownership if possible.
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
+    MetadataChanges metadata_changes,
+    EventListener<DocumentSnapshot>* listener) {
+  return AddSnapshotListenerInternal(metadata_changes, listener,
+                                     /*passing_listener_ownership=*/false);
+}
+
+ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
+    MetadataChanges metadata_changes,
+    std::unique_ptr<EventListener<DocumentSnapshot>> listener) {
+  return AddSnapshotListenerInternal(metadata_changes, listener.release(),
+                                     /*passing_listener_ownership=*/true);
+}
+
+ListenerRegistration DocumentReferenceInternal::AddSnapshotListenerInternal(
     MetadataChanges metadata_changes,
     EventListener<DocumentSnapshot>* listener,
     bool passing_listener_ownership) {
