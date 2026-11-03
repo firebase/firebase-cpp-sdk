@@ -32,6 +32,7 @@ class GlobalRefReaper {
  public:
   static GlobalRefReaper& GetInstance();
   void DeferDelete(jobject ref);
+  void Reap(JNIEnv* env);
 };
 
 /**

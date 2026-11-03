@@ -658,12 +658,6 @@ class ExceptionClearGuard {
   Local<Throwable> exception_;
 };
 
-class GlobalRefReaper {
- public:
-  static GlobalRefReaper& GetInstance();
-  void DeferDelete(jobject ref);
-  void Reap(JNIEnv* env);
-};
 
 }  // namespace jni
 }  // namespace firestore
