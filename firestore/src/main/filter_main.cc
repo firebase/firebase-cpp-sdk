@@ -103,7 +103,7 @@ Filter FilterInternal::CompositeFilter(core::CompositeFilter::Operator op,
   std::vector<std::unique_ptr<FilterInternal>> non_empty_filters{};
   non_empty_filters.reserve(filters.size());
   for (const Filter& filter : filters) {
-    FilterInternal* filter_internal = GetInternal(&filter);
+    const FilterInternal* filter_internal = GetInternal(&filter);
     if (filter_internal && !filter_internal->IsEmpty()) {
       non_empty_filters.push_back(std::unique_ptr<FilterInternal>(filter_internal->clone()));
     }

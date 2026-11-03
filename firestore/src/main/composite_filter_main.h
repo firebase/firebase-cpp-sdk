@@ -47,7 +47,7 @@ class CompositeFilterInternal : public FilterInternal {
   bool IsEmpty() const override;
 
  private:
-  CompositeFilterInternal* clone() override;
+  CompositeFilterInternal* clone() const override;
 
   const core::CompositeFilter::Operator op_;
   std::vector<std::shared_ptr<FilterInternal>> filters_;

@@ -151,7 +151,7 @@ size_t FieldValueInternal::blob_size() const {
   return value ? value->size : 0;
 }
 
-const DocumentReference& FieldValueInternal::reference_value() const {
+DocumentReference FieldValueInternal::reference_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kReference);
   return absl::get<DocumentReference>(value_);
 }
@@ -162,17 +162,17 @@ GeoPoint FieldValueInternal::geo_point_value() const {
   return GeoPoint{value.latitude, value.longitude};
 }
 
-const std::vector<FieldValue>& FieldValueInternal::array_value() const {
+std::vector<FieldValue> FieldValueInternal::array_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kArray);
   return absl::get<ArrayT>(value_);
 }
 
-const MapFieldValue& FieldValueInternal::map_value() const {
+MapFieldValue FieldValueInternal::map_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kMap);
   return absl::get<MapT>(value_);
 }
 
-const std::vector<FieldValue>& FieldValueInternal::array_transform_value()
+std::vector<FieldValue> FieldValueInternal::array_transform_value()
     const {
   SIMPLE_HARD_ASSERT(type_ == Type::kArrayUnion || type_ == Type::kArrayRemove);
   return absl::get<ArrayT>(value_);

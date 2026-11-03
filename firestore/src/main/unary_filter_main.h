@@ -49,7 +49,7 @@ class UnaryFilterInternal final : public FilterInternal {
   bool IsEmpty() const override { return false; }
 
  private:
-  UnaryFilterInternal* clone() override;
+  UnaryFilterInternal* clone() const override;
 
   const bool allow_arrays_ = false;
   const FieldPath path_;

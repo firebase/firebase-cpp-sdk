@@ -237,3 +237,12 @@ void TransactionInternal::ValidateReference(const DocumentReference& document) {
 
 }  // namespace firestore
 }  // namespace firebase
+
+
+namespace firebase {
+namespace firestore {
+FirestoreInternal* TransactionInternal::firestore_internal() {
+  return GetInternal(firestore_public_);
+}
+}
+}

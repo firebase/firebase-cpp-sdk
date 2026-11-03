@@ -150,7 +150,7 @@ FieldValue FieldValue::Double(double value) {
 }
 
 /* static */
-FieldValue FieldValue::Timestamp(Timestamp value) {
+FieldValue FieldValue::Timestamp(firebase::Timestamp value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
@@ -165,12 +165,12 @@ FieldValue FieldValue::Blob(const uint8_t* value, size_t size) {
 }
 
 /* static */
-FieldValue FieldValue::Reference(DocumentReference value) {
+FieldValue FieldValue::Reference(firebase::firestore::DocumentReference value) {
   return FieldValue{new FieldValueInternal(std::move(value))};
 }
 
 /* static */
-FieldValue FieldValue::GeoPoint(GeoPoint value) {
+FieldValue FieldValue::GeoPoint(firebase::firestore::GeoPoint value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 

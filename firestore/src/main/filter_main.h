@@ -77,7 +77,7 @@ class FilterInternal {
   friend class Filter;
   friend class QueryInternal;
 
-  virtual FilterInternal* clone() = 0;
+  virtual FilterInternal* clone() const = 0;
 
   using FieldFilterOperator = core::FieldFilter::Operator;
   using CompositeOperator = core::CompositeFilter::Operator;

@@ -34,7 +34,7 @@ CompositeFilterInternal::CompositeFilterInternal(
       filters_(std::make_move_iterator(filters.begin()),
                std::make_move_iterator(filters.end())) {}
 
-CompositeFilterInternal* CompositeFilterInternal::clone() {
+CompositeFilterInternal* CompositeFilterInternal::clone() const {
   return new CompositeFilterInternal(*this);
 }
 

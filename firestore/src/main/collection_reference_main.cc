@@ -70,7 +70,7 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
     const MapFieldValue& data) {
   ParsedSetData parsed = converter().ParseSetData(data);
   auto promise = promise_factory().CreatePromise<DocumentReference>(
-      AsyncApis::kCollectionReferenceAdd);
+      AsyncApis::kDocumentAdd);
 
   api::DocumentReference new_doc = collection_core_api().Document();
   auto callback = [promise, new_doc](const util::Status& status) mutable {

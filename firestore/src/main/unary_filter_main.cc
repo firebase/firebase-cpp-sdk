@@ -45,7 +45,7 @@ UnaryFilterInternal::UnaryFilterInternal(FieldPath field_path,
       op_(op),
       value_(FieldValue::Array(values)) {}
 
-UnaryFilterInternal* UnaryFilterInternal::clone() {
+UnaryFilterInternal* UnaryFilterInternal::clone() const {
   return new UnaryFilterInternal(*this);
 }
 

@@ -43,6 +43,7 @@ class TransactionInternal {
                       Firestore* firestore_public);
 
   [[nodiscard]] Firestore* firestore();
+  FirestoreInternal* firestore_internal();
 
   void Set(const DocumentReference& document,
            const MapFieldValue& data,
