@@ -69,6 +69,8 @@ class TestWebSocketEchoServer {
     kBehaviorEcho = 0,
     kBehaviorSendFragmentedWithInterleavedPing,
     kBehaviorServerInitiatedClose,
+    kBehaviorSendOversizedFragmentedMessage,
+    kBehaviorSendOversizedPingFrame,
   };
 
   explicit TestWebSocketEchoServer(int port = 0,
@@ -345,6 +347,29 @@ class TestWebSocketEchoServer {
       SendFrame(sock, 0x00, "Part2-", 6);
       // Fragment 3: FIN=1, opcode=0x0 (CONT), payload="Part3"
       SendFrame(sock, 0x80, "Part3", 5);
+    }
+
+    if (behavior_ == kBehaviorSendOversizedFragmentedMessage) {
+      SendFrame(sock, 0x01, "hello", 5);
+      const uint64_t kContinuationLen = 256ULL * 1024 * 1024;
+      uint8_t header_and_first_byte[11];
+      header_and_first_byte[0] = 0x80;
+      header_and_first_byte[1] = 127;
+      for (int i = 0; i < 8; ++i) {
+        header_and_first_byte[2 + i] =
+            static_cast<uint8_t>((kContinuationLen >> ((7 - i) * 8)) & 0xFF);
+      }
+      header_and_first_byte[10] = 'x';
+      SendAll(sock, header_and_first_byte, sizeof(header_and_first_byte));
+      firebase::internal::Sleep(200);
+      return;
+    }
+
+    if (behavior_ == kBehaviorSendOversizedPingFrame) {
+      const std::string oversized_ping(126, 'p');
+      SendFrame(sock, 0x89, oversized_ping.data(), oversized_ping.size());
+      firebase::internal::Sleep(200);
+      return;
     }
 
     // Read client frames and echo data frames back.
@@ -651,6 +676,92 @@ TEST(WebSocketClientImpl, ConnectionFailureTriggersOnError) {
   EXPECT_TRUE(handler.is_error_);
   EXPECT_FALSE(handler.is_connected_);
   EXPECT_EQ(handler.error_uri_, uri);
+}
+
+TEST(WebSocketClientImpl, RejectsNonWebSocketUriSchemes) {
+  TestWebSocketEchoServer server(0);
+  server.Start();
+
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+
+  const std::string http_uri =
+      "http://127.0.0.1:" + std::to_string(server.GetPort(true)) + "/";
+  {
+    Semaphore semaphore(0);
+    TestClientEventHandler handler(&semaphore);
+    WebSocketClientImpl ws_client(http_uri, "", &logger, &scheduler, "",
+                                  &handler);
+    ws_client.Connect(5000);
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    EXPECT_TRUE(handler.is_error_);
+    EXPECT_FALSE(handler.is_connected_);
+    EXPECT_EQ(http_uri, handler.error_uri_);
+    EXPECT_TRUE(server.GetLastHandshakeRequest().empty());
+  }
+
+  const std::string file_uri = "file:///etc/hosts";
+  {
+    Semaphore semaphore(0);
+    TestClientEventHandler handler(&semaphore);
+    WebSocketClientImpl ws_client(file_uri, "", &logger, &scheduler, "",
+                                  &handler);
+    ws_client.Connect(5000);
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    EXPECT_TRUE(handler.is_error_);
+    EXPECT_FALSE(handler.is_connected_);
+    EXPECT_EQ(file_uri, handler.error_uri_);
+  }
+
+  server.Stop();
+}
+
+TEST(WebSocketClientImpl, RejectsOversizedInboundMessageAcrossFragments) {
+  TestWebSocketEchoServer server(
+      0, TestWebSocketEchoServer::kBehaviorSendOversizedFragmentedMessage);
+  server.Start();
+
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl ws_client(GetLocalHostUri(server.GetPort(true)), "",
+                                &logger, &scheduler, "", &handler);
+
+  ws_client.Connect(5000);
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_connected_);
+  EXPECT_FALSE(handler.is_msg_received_);
+  EXPECT_TRUE(handler.is_error_);
+  EXPECT_TRUE(handler.is_closed_);
+
+  server.Stop();
+}
+
+TEST(WebSocketClientImpl, RejectsOversizedInboundPingFrame) {
+  TestWebSocketEchoServer server(
+      0, TestWebSocketEchoServer::kBehaviorSendOversizedPingFrame);
+  server.Start();
+
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl ws_client(GetLocalHostUri(server.GetPort(true)), "",
+                                &logger, &scheduler, "", &handler);
+
+  ws_client.Connect(5000);
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_connected_);
+  EXPECT_TRUE(handler.is_error_);
+  EXPECT_TRUE(handler.is_closed_);
+  EXPECT_FALSE(server.pong_received());
+
+  server.Stop();
 }
 
 }  // namespace connection

@@ -15,6 +15,7 @@
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -36,6 +37,13 @@ namespace connection {
 namespace {
 // Size of the stack buffer used for each curl_ws_recv() read pass.
 constexpr size_t kRecvBufferSize = 16384;
+// RFC 6455 section 5.5 caps all WebSocket control frame payloads at 125 bytes
+// and forbids fragmenting control frames.
+constexpr size_t kMaxPingPayloadBytes = 125;
+// Upper bound on a single reassembled inbound WebSocket message (256 MiB,
+// matching Realtime Database's single-read payload limit) so a misbehaving peer
+// streaming CURLWS_CONT fragments cannot grow memory without bound.
+constexpr size_t kMaxMessagePayloadBytes = 256 * 1024 * 1024;
 // Poll timeout in milliseconds while waiting for handshake completion.
 constexpr int kConnectingPollTimeoutMs = 100;
 // Poll timeout in milliseconds while connected or idle (woken immediately by
@@ -234,6 +242,18 @@ void WebSocketClientImpl::ConnectSync(int timeout_ms) {
   }
 
   curl_easy_setopt(easy, CURLOPT_URL, uri_.c_str());
+  // Restrict schemes to ws/wss so system-libcurl builds that compile in extra
+  // protocols (file://, http://, ftp://, ...) cannot open non-WebSocket URIs.
+  CURLcode proto_result =
+      curl_easy_setopt(easy, CURLOPT_PROTOCOLS_STR, "ws,wss");
+  if (proto_result != CURLE_OK) {
+    logger_->LogError("Failed to restrict WebSocket protocols for %s: (%d) %s",
+                      uri_.c_str(), static_cast<int>(proto_result),
+                      curl_easy_strerror(proto_result));
+    curl_easy_cleanup(easy);
+    OnError();
+    return;
+  }
   // CURLOPT_CONNECT_ONLY = 2L instructs libcurl to perform the HTTP/1.1
   // WebSocket Upgrade handshake and stop after receiving 101 Switching
   // Protocols so framing can be driven via curl_ws_recv() and curl_ws_send().
@@ -430,7 +450,23 @@ void WebSocketClientImpl::ReceiveFrames() {
       break;
     }
 
+    const uint64_t frame_remaining =
+        meta->bytesleft > 0 ? static_cast<uint64_t>(meta->bytesleft) : 0;
+
     if (meta->flags & CURLWS_PING) {
+      if ((meta->flags & CURLWS_CONT) != 0 ||
+          rlen > kMaxPingPayloadBytes - incoming_ping_buffer_.size() ||
+          frame_remaining >
+              kMaxPingPayloadBytes - (incoming_ping_buffer_.size() + rlen)) {
+        logger_->LogError(
+            "Invalid or oversized WebSocket PING frame from %s; closing",
+            uri_.c_str());
+        CleanupEasyHandle();
+        state_ = kStateClosed;
+        OnError();
+        OnDisconnection();
+        break;
+      }
       if (rlen > 0) {
         incoming_ping_buffer_.append(buffer, rlen);
       }
@@ -451,6 +487,19 @@ void WebSocketClientImpl::ReceiveFrames() {
     }
 
     if (meta->flags & (CURLWS_TEXT | CURLWS_BINARY | CURLWS_CONT)) {
+      if (rlen > kMaxMessagePayloadBytes - incoming_message_buffer_.size() ||
+          frame_remaining >
+              kMaxMessagePayloadBytes -
+                  (incoming_message_buffer_.size() + rlen)) {
+        logger_->LogError(
+            "Inbound WebSocket message from %s exceeds %zu-byte limit; closing",
+            uri_.c_str(), kMaxMessagePayloadBytes);
+        CleanupEasyHandle();
+        state_ = kStateClosed;
+        OnError();
+        OnDisconnection();
+        break;
+      }
       if (rlen > 0) {
         incoming_message_buffer_.append(buffer, rlen);
       }
