@@ -146,8 +146,11 @@ Storage* Storage::GetInstance(::firebase::App* app, const char* url,
     }
   }
 
+  // url_idx is only the cache key. As on origin/main, the instance is built
+  // from the caller's URL (nullptr for the default bucket), so url() keeps
+  // returning exactly what was requested ("" for the default instance).
   Storage* storage =
-      new Storage(app, url_idx.empty() ? nullptr : url_idx.c_str());
+      new Storage(app, (url != nullptr && url[0] != '\0') ? url : nullptr);
   if (!storage->internal_ || !storage->internal_->initialized()) {
     if (init_result_out != nullptr) {
       *init_result_out = kInitResultFailedMissingDependency;
