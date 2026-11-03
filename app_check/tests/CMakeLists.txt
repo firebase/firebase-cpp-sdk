@@ -21,3 +21,24 @@ firebase_cpp_cc_test(
     firebase_app_check
     firebase_testing
 )
+
+firebase_cpp_cc_test(
+  firebase_app_check_test
+  SOURCES
+    desktop/debug_provider_desktop_test.cc
+    ${FIREBASE_CPP_SDK_ROOT_DIR}/app/rest/transport_mock.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_app_check
+    firebase_rest_lib
+    firebase_testing
+  DEFINES
+    -DFIREBASE_TESTING
+)
+
+if(TARGET firebase_app_check_test)
+  add_custom_target(firebase_app_check_desktop_test
+                    DEPENDS firebase_app_check_test)
+  add_test(NAME firebase_app_check_desktop_test
+           COMMAND firebase_app_check_test)
+endif()

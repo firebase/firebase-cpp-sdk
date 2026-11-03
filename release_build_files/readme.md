@@ -615,6 +615,11 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - App Check (Desktop): The App Check Debug Provider now automatically loads
+      CLI-provisioned debug tokens from `~/.config/configstore/firebase-appcheck.json`
+      and the `FIREBASE_APPCHECK_DEBUG_TOKEN` / `AppCheckDebugToken` environment
+      variables, and logs an actionable recovery hint when a debug token is
+      rejected with HTTP 403.
     - App Check: Default-initialized `AppCheckToken::expire_time_millis` to `0`
       and populated it from the JWT `exp` claim in iOS token change
       notifications, fixing an `ArgumentOutOfRangeException` crash on iOS when
