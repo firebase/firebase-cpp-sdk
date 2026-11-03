@@ -301,9 +301,9 @@ Error ErrorFromHttpStatus(int status) {
   }
 }
 
-Error ErrorFromStatus(const std::string& status) {
+Error ErrorFromStatus(std::string_view status) {
   struct StatusEntry {
-    const char* name;
+    std::string_view name;
     Error error;
   };
   static constexpr StatusEntry kStatusTable[] = {
@@ -331,12 +331,6 @@ Error ErrorFromStatus(const std::string& status) {
     }
   }
   return kErrorInternal;
-}
-
-void HttpsCallableReferenceInternal::ResolveFuture(
-    ReferenceCountedFutureImpl* future_api,
-    SafeFutureHandle<HttpsCallableResult> handle, rest::Response* response) {
-  ::firebase::functions::internal::ResolveFuture(future_api, handle, response);
 }
 
 void ResolveFuture(ReferenceCountedFutureImpl* future_api,

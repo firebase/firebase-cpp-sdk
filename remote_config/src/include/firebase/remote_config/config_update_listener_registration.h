@@ -15,8 +15,6 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
 
-#include "firebase/internal/common.h"
-
 namespace firebase {
 namespace remote_config {
 
@@ -55,7 +53,7 @@ class ConfigUpdateListenerRegistration {
   ConfigUpdateListenerRegistration(
       ConfigUpdateListenerRegistration&& other) noexcept;
 
-  ~ConfigUpdateListenerRegistration();
+  virtual ~ConfigUpdateListenerRegistration();
 
   /// @brief Copy assignment operator.
   ///

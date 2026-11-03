@@ -35,9 +35,7 @@
 #include "remote_config/src/config_update_listener_registration_internal.h"
 #include "remote_config/src/value_parser.h"
 
-namespace firebase {
-namespace remote_config {
-namespace internal {
+namespace firebase::remote_config::internal {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
 
@@ -688,22 +686,32 @@ struct ConfigUpdateListenerWrapper {
 };
 
 static Mutex g_listener_wrappers_mutex;
-static std::set<ConfigUpdateListenerWrapper*>* g_active_listener_wrappers =
-    nullptr;
+static jlong g_next_listener_id = 1;
+static std::map<jlong, ConfigUpdateListenerWrapper*>*
+    g_active_listener_wrappers = nullptr;
 
-static void RegisterListenerWrapper(ConfigUpdateListenerWrapper* wrapper) {
+static jlong RegisterListenerWrapper(ConfigUpdateListenerWrapper* wrapper) {
   MutexLock lock(g_listener_wrappers_mutex);
   if (!g_active_listener_wrappers) {
-    g_active_listener_wrappers = new std::set<ConfigUpdateListenerWrapper*>();
+    g_active_listener_wrappers =
+        new std::map<jlong, ConfigUpdateListenerWrapper*>();
   }
-  g_active_listener_wrappers->insert(wrapper);
+  jlong id = g_next_listener_id++;
+  (*g_active_listener_wrappers)[id] = wrapper;
+  return id;
 }
 
-static void UnregisterAndDeleteListenerWrapper(
-    ConfigUpdateListenerWrapper* wrapper) {
-  MutexLock lock(g_listener_wrappers_mutex);
-  if (g_active_listener_wrappers) {
-    g_active_listener_wrappers->erase(wrapper);
+static void UnregisterAndDeleteListenerWrapper(jlong listener_id) {
+  ConfigUpdateListenerWrapper* wrapper = nullptr;
+  {
+    MutexLock lock(g_listener_wrappers_mutex);
+    if (g_active_listener_wrappers) {
+      auto it = g_active_listener_wrappers->find(listener_id);
+      if (it != g_active_listener_wrappers->end()) {
+        wrapper = it->second;
+        g_active_listener_wrappers->erase(it);
+      }
+    }
   }
   delete wrapper;
 }
@@ -1338,9 +1346,12 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
   std::vector<std::string> keys;
   std::set<std::string> key_set;
   JNIEnv* env = app_.GetJNIEnv();
-  jstring prefix_string = prefix ? env->NewStringUTF(prefix) : nullptr;
-  if (util::CheckAndClearJniExceptions(env)) {
-    prefix_string = nullptr;
+  jstring prefix_string = nullptr;
+  if (prefix) {
+    prefix_string = env->NewStringUTF(prefix);
+    if (util::CheckAndClearJniExceptions(env) || !prefix_string) {
+      return keys;
+    }
   }
   jobject key_set_java = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kGetKeysByPrefix),
@@ -1496,16 +1507,16 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
   // Create a struct to wrap the listener function.
   ConfigUpdateListenerWrapper* listener_wrapper =
       new ConfigUpdateListenerWrapper(std::move(config_update_listener));
-  RegisterListenerWrapper(listener_wrapper);
+  jlong listener_id = RegisterListenerWrapper(listener_wrapper);
 
-  // Create a Java Listener and give it a pointer to the listener struct.
+  // Create a Java Listener and give it the unique listener ID.
   jobject j_listener =
       env->NewObject(jni_config_update_listener::GetClass(),
                      jni_config_update_listener::GetMethodId(
                          jni_config_update_listener::kConstructor),
-                     reinterpret_cast<jlong>(listener_wrapper));
+                     listener_id);
   if (util::CheckAndClearJniExceptions(env) || !j_listener) {
-    UnregisterAndDeleteListenerWrapper(listener_wrapper);
+    UnregisterAndDeleteListenerWrapper(listener_id);
     return ConfigUpdateListenerRegistration();
   }
 
@@ -1514,7 +1525,7 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
       j_listener);
   env->DeleteLocalRef(j_listener);
   if (util::CheckAndClearJniExceptions(env) || !j_local_registration) {
-    UnregisterAndDeleteListenerWrapper(listener_wrapper);
+    UnregisterAndDeleteListenerWrapper(listener_id);
     return ConfigUpdateListenerRegistration();
   }
 
@@ -1525,7 +1536,7 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
   // Create a C++ registration to wrap the native registration
   ConfigUpdateListenerRegistrationInternal* registration_internal =
       new ConfigUpdateListenerRegistrationInternal(
-          this, [j_registration, listener_wrapper]() {
+          this, [j_registration, listener_id]() {
             JNIEnv* env = firebase::util::GetJNIEnvFromApp();
             if (env && j_registration) {
               env->CallVoidMethod(
@@ -1535,7 +1546,7 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
               util::CheckAndClearJniExceptions(env);
               env->DeleteGlobalRef(j_registration);
             }
-            UnregisterAndDeleteListenerWrapper(listener_wrapper);
+            UnregisterAndDeleteListenerWrapper(listener_id);
           });
   // Delete the internal registration when RemoteConfigInternal is cleaned up.
   cleanup_notifier().RegisterObject(
@@ -1550,17 +1561,17 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jobject j_config_update) {
   (void)clazz;
-  auto* wrapper =
-      reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
   std::function<void(ConfigUpdate&&, RemoteConfigError)> listener_copy;
   {
     MutexLock lock(g_listener_wrappers_mutex);
-    if (!wrapper || !g_active_listener_wrappers ||
-        g_active_listener_wrappers->find(wrapper) ==
-            g_active_listener_wrappers->end()) {
+    if (!g_active_listener_wrappers) {
       return;
     }
-    listener_copy = wrapper->listener;
+    auto it = g_active_listener_wrappers->find(c_listener_ptr);
+    if (it == g_active_listener_wrappers->end() || !it->second) {
+      return;
+    }
+    listener_copy = it->second->listener;
   }
   if (listener_copy) {
     listener_copy(ConfigUpdateFromJavaConfigUpdate(env, j_config_update),
@@ -1572,17 +1583,17 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jint j_error_code) {
   (void)env;
   (void)clazz;
-  auto* wrapper =
-      reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
   std::function<void(ConfigUpdate&&, RemoteConfigError)> listener_copy;
   {
     MutexLock lock(g_listener_wrappers_mutex);
-    if (!wrapper || !g_active_listener_wrappers ||
-        g_active_listener_wrappers->find(wrapper) ==
-            g_active_listener_wrappers->end()) {
+    if (!g_active_listener_wrappers) {
       return;
     }
-    listener_copy = wrapper->listener;
+    auto it = g_active_listener_wrappers->find(c_listener_ptr);
+    if (it == g_active_listener_wrappers->end() || !it->second) {
+      return;
+    }
+    listener_copy = it->second->listener;
   }
   if (listener_copy) {
     listener_copy({}, RemoteConfigErrorFromJavaErrorCode(
@@ -1590,6 +1601,4 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
   }
 }
 
-}  // namespace internal
-}  // namespace remote_config
-}  // namespace firebase
+}  // namespace firebase::remote_config::internal

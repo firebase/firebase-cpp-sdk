@@ -61,6 +61,8 @@ std::string UrlEncodeComponent(const std::string& input) {
   return out;
 }
 
+std::string SafeCString(const char* str) { return str ? str : ""; }
+
 }  // namespace
 
 // The Java library's FirebaseRemoteConfig.java references this file to keep
@@ -72,11 +74,10 @@ const int SDK_PATCH_VERSION = 0;
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
                                    LayeredConfigs& configs,
                                    std::string namespaces)
-    : app_package_name_(
-          app_options.package_name() ? app_options.package_name() : ""),
-      app_gmp_project_id_(app_options.app_id() ? app_options.app_id() : ""),
-      app_project_id_(app_options.project_id() ? app_options.project_id() : ""),
-      api_key_(app_options.api_key() ? app_options.api_key() : ""),
+    : app_package_name_(SafeCString(app_options.package_name())),
+      app_gmp_project_id_(SafeCString(app_options.app_id())),
+      app_project_id_(SafeCString(app_options.project_id())),
+      api_key_(SafeCString(app_options.api_key())),
       namespaces_(std::move(namespaces)),
       configs_(configs),
       fetch_future_sem_(0) {
@@ -89,23 +90,26 @@ RemoteConfigREST::~RemoteConfigREST() {
   rest::util::Terminate();
 }
 
-// Synchronizes access to `rc_request_`, `rc_response_`, and `configs_` across
-// `Fetch()`. Note that `RemoteConfigInternal::FetchInternal()` also constructs
-// a per-fetch `RemoteConfigREST` instance operating on a thread-local copy of
-// `LayeredConfigs` before merging results under `internal_mutex_`.
 void RemoteConfigREST::Fetch(const App& app,
                              uint64_t fetch_timeout_in_milliseconds) {
-  MutexLock lock(mutex_);
-  rc_request_ = RemoteConfigRequest();
-  rc_response_ = RemoteConfigResponse();
+  RemoteConfigRequest request;
+  RemoteConfigResponse response;
+  {
+    MutexLock lock(mutex_);
+    TryGetInstallationsAndToken(app);
+    SetupRestRequest(app, fetch_timeout_in_milliseconds, &request);
+  }
 
-  TryGetInstallationsAndToken(app);
-
-  SetupRestRequest(app, fetch_timeout_in_milliseconds);
   flatbuffers::unique_ptr<rest::Transport> transport =
       firebase::rest::CreateTransport();
-  transport->Perform(rc_request_, &rc_response_);
-  ParseRestResponse();
+  transport->Perform(request, &response);
+
+  {
+    MutexLock lock(mutex_);
+    ParseRestResponse(response);
+    rc_request_ = std::move(request);
+    rc_response_ = std::move(response);
+  }
 }
 
 static std::string GenerateFakeId() {
@@ -156,7 +160,16 @@ void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
 
 void RemoteConfigREST::SetupRestRequest(
     const App& app, uint64_t fetch_timeout_in_milliseconds) {
+  SetupRestRequest(app, fetch_timeout_in_milliseconds, &rc_request_);
+}
+
+void RemoteConfigREST::SetupRestRequest(const App& app,
+                                        uint64_t fetch_timeout_in_milliseconds,
+                                        RemoteConfigRequest* request) {
   (void)app;
+  if (!request) {
+    return;
+  }
   std::string server_url(kServerURL);
   server_url.append("/");
   server_url.append(UrlEncodeComponent(app_project_id_));
@@ -167,62 +180,64 @@ void RemoteConfigREST::SetupRestRequest(
   server_url.append(kHTTPFetchKeyString);
   server_url.append(UrlEncodeComponent(api_key_));
 
-  rc_request_.set_url(server_url.c_str());
-  rc_request_.set_method(kHTTPMethodPost);
-  rc_request_.add_header(kContentTypeHeaderName, kJSONContentTypeValue);
-  rc_request_.add_header(kAcceptHeaderName, kJSONContentTypeValue);
-  rc_request_.options().timeout_ms = fetch_timeout_in_milliseconds;
+  request->set_url(server_url.c_str());
+  request->set_method(kHTTPMethodPost);
+  request->add_header(kContentTypeHeaderName, kJSONContentTypeValue);
+  request->add_header(kAcceptHeaderName, kJSONContentTypeValue);
+  request->options().timeout_ms = fetch_timeout_in_milliseconds;
 
-  rc_request_.SetAppId(app_gmp_project_id_);
-  rc_request_.SetAppInstanceId(app_instance_id_);
-  rc_request_.SetAppInstanceIdToken(app_instance_id_token_);
+  request->SetAppId(app_gmp_project_id_);
+  request->SetAppInstanceId(app_instance_id_);
+  request->SetAppInstanceIdToken(app_instance_id_token_);
 
-  rc_request_.SetPlatformVersion("2");
+  request->SetPlatformVersion("2");
   std::string locale = firebase::internal::GetLocale();
   if (!locale.empty()) {
-    rc_request_.SetLanguageCode(locale);
+    request->SetLanguageCode(locale);
   }
-  rc_request_.SetTimeZone(firebase::internal::GetTimezone());
-  rc_request_.SetPackageName(app_package_name_);
-  rc_request_.SetSdkVersion(std::to_string(
+  request->SetTimeZone(firebase::internal::GetTimezone());
+  request->SetPackageName(app_package_name_);
+  request->SetSdkVersion(std::to_string(
       SDK_MAJOR_VERSION * 10000 + SDK_MINOR_VERSION * 100 + SDK_PATCH_VERSION));
-  rc_request_.SetCustomSignals(configs_.metadata.custom_signals());
+  request->SetCustomSignals(configs_.metadata.custom_signals());
 
-  rc_request_.UpdatePost();
+  request->UpdatePost();
 }
 
-void RemoteConfigREST::ParseRestResponse() {
-  if (rc_response_.status() == kHTTPStatusTooManyRequests) {
+void RemoteConfigREST::ParseRestResponse() { ParseRestResponse(rc_response_); }
+
+void RemoteConfigREST::ParseRestResponse(const RemoteConfigResponse& response) {
+  if (response.status() == kHTTPStatusTooManyRequests) {
     FetchFailure(kFetchFailureReasonThrottled);
     LogError("fetching failure: throttled (http code 429)");
     return;
   }
 
-  if (rc_response_.status() != kHTTPStatusOk) {
+  if (response.status() != kHTTPStatusOk) {
     FetchFailure(kFetchFailureReasonError);
-    LogError("fetching failure: http code %d", rc_response_.status());
+    LogError("fetching failure: http code %d", response.status());
     return;
   }
 
-  const char* body = rc_response_.GetBody();
-  if (!body || std::strlen(body) == 0 || rc_response_.sdk_error_code() != 0) {
+  const char* body = response.GetBody();
+  if (!body || std::strlen(body) == 0 || response.sdk_error_code() != 0) {
     FetchFailure(kFetchFailureReasonError);
     LogError("fetching failure: empty or invalid response body (http code %d)",
-             rc_response_.status());
+             response.status());
     return;
   }
 
-  const Variant& entries = rc_response_.GetEntries();
+  const Variant& entries = response.GetEntries();
 
   NamespaceKeyValueMap config_map(configs_.fetched.config());
   LogDebug("Parsing config response...");
-  if (rc_response_.StatusMatch("NO_CHANGE")) {
+  if (response.StatusMatch("NO_CHANGE")) {
     LogDebug("No change");
     if (configs_.fetched.timestamp() == 0) {
       configs_.fetched =
           NamespacedConfigData(config_map, MillisecondsSinceEpoch());
     }
-  } else if (rc_response_.StatusMatch("UPDATE")) {
+  } else if (response.StatusMatch("UPDATE")) {
     config_map[namespaces_].clear();
     if (entries.is_map()) {
       for (const auto& [key_var, val_var] : entries.map()) {
@@ -246,12 +261,12 @@ void RemoteConfigREST::ParseRestResponse() {
     }
     configs_.fetched =
         NamespacedConfigData(config_map, MillisecondsSinceEpoch());
-  } else if (rc_response_.StatusMatch("NO_TEMPLATE")) {
+  } else if (response.StatusMatch("NO_TEMPLATE")) {
     LogDebug("NotAuthorized: ns=%s", namespaces_.c_str());
     config_map.erase(namespaces_);
     configs_.fetched =
         NamespacedConfigData(config_map, MillisecondsSinceEpoch());
-  } else if (rc_response_.StatusMatch("EMPTY_CONFIG")) {
+  } else if (response.StatusMatch("EMPTY_CONFIG")) {
     LogDebug("EmptyConfig: ns=%s", namespaces_.c_str());
     config_map[namespaces_].clear();
     configs_.fetched =

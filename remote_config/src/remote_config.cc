@@ -27,6 +27,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/time.h"
 #include "app/src/util.h"
 #include "remote_config/src/common.h"
 
@@ -75,47 +76,45 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
     LogError("RemoteConfig::GetInstance: App cannot be null.");
     return nullptr;
   }
-  MutexLock lock(GetRcLock());
-  // Return the RemoteConfig if it already exists.
-  RemoteConfig* existing_rc = FindRemoteConfigLocked(app);
-  if (existing_rc) {
-    return existing_rc;
-  }
-
-  // Create a new RemoteConfig and initialize.
-  RemoteConfig* rc = new RemoteConfig(app);
-  LogDebug("Creating a new RemoteConfig instance for App %s", app->name());
-
-  if (!rc->InitInternal()) {
-    // Release the newly created RemoteConfig if internal initialization failed.
-    // Clean up `internal_` before deleting `rc` so `~RemoteConfig()` does not
-    // re-acquire `GetRcLock()` while it is already held on this thread.
-    LogError("Failed to initialize RemoteConfig instance for App %s",
-             app->name());
-    if (rc->internal_) {
-      rc->internal_->Cleanup();
-      delete rc->internal_;
-      rc->internal_ = nullptr;
+  RemoteConfig* failed_rc = nullptr;
+  {
+    MutexLock lock(GetRcLock());
+    // Return the RemoteConfig if it already exists.
+    RemoteConfig* existing_rc = FindRemoteConfigLocked(app);
+    if (existing_rc) {
+      return existing_rc;
     }
-    delete rc;
-    return nullptr;
+
+    // Create a new RemoteConfig and initialize.
+    RemoteConfig* rc = new RemoteConfig(app);
+    LogDebug("Creating a new RemoteConfig instance for App %s", app->name());
+
+    if (!rc->InitInternal()) {
+      LogError("Failed to initialize RemoteConfig instance for App %s",
+               app->name());
+      failed_rc = rc;
+    } else {
+      // Register the new RemoteConfig instance with CleanupNotifier so that it
+      // will be cleaned up when the App is destroyed.
+      CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+      FIREBASE_ASSERT(notifier);
+      notifier->RegisterObject(rc, [](void* object) {
+        RemoteConfig* remote_config = reinterpret_cast<RemoteConfig*>(object);
+        LogWarning(
+            "RemoteConfig object %p should be deleted before the App %p it "
+            "depends upon.",
+            remote_config, remote_config->app());
+        remote_config->Cleanup();
+      });
+
+      GetRcInstances()[app] = rc;
+      return rc;
+    }
   }
-
-  // Register the new RemoteConfig instance with CleanupNotifier so that it will
-  // be cleaned up when the App is destroyed.
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-  FIREBASE_ASSERT(notifier);
-  notifier->RegisterObject(rc, [](void* object) {
-    RemoteConfig* remote_config = reinterpret_cast<RemoteConfig*>(object);
-    LogWarning(
-        "RemoteConfig object %p should be deleted before the App %p it "
-        "depends upon.",
-        remote_config, remote_config->app());
-    remote_config->Cleanup();
-  });
-
-  GetRcInstances()[app] = rc;
-  return rc;
+  // Delete outside `GetRcLock()` so `~RemoteConfig()` -> `Cleanup()` can safely
+  // acquire `GetRcLock()` without recursion.
+  delete failed_rc;
+  return nullptr;
 }
 
 RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
@@ -124,7 +123,6 @@ RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
 }
 
 void RemoteConfig::Cleanup() {
-  if (!internal_) return;
   MutexLock lock(GetRcLock());
   if (!internal_) return;
 
@@ -193,7 +191,7 @@ Future<bool> RemoteConfig::FetchAndActivateLastResult() const {
 Future<void> RemoteConfig::Fetch() {
   if (!internal_) return Future<void>();
   return Fetch(GetConfigSettings().minimum_fetch_interval_in_milliseconds /
-               1000);
+               firebase::internal::kMillisecondsPerSecond);
 }
 
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
@@ -365,9 +363,11 @@ std::map<std::string, Variant> RemoteConfig::GetAll() const {
   return internal_ ? internal_->GetAll() : std::map<std::string, Variant>{};
 }
 
-ConfigInfo RemoteConfig::GetInfo() { return std::as_const(*this).GetInfo(); }
+const ConfigInfo RemoteConfig::GetInfo() {
+  return std::as_const(*this).GetInfo();
+}
 
-ConfigInfo RemoteConfig::GetInfo() const {
+const ConfigInfo RemoteConfig::GetInfo() const {
   return internal_
              ? internal_->GetInfo()
              : ConfigInfo{0, kLastFetchStatusPending,

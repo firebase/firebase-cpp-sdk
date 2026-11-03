@@ -98,9 +98,12 @@ class RemoteConfigREST {
 
   // Populate REST request headers, URL, and JSON payload.
   void SetupRestRequest(const App& app, uint64_t fetch_timeout_in_milliseconds);
+  void SetupRestRequest(const App& app, uint64_t fetch_timeout_in_milliseconds,
+                        RemoteConfigRequest* request);
 
   // Parse REST response. Check response status and body.
   void ParseRestResponse();
+  void ParseRestResponse(const RemoteConfigResponse& response);
 
   // Return timestamp in milliseconds.
   uint64_t MillisecondsSinceEpoch();

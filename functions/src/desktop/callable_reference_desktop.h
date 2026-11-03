@@ -17,6 +17,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 
 #include "app/rest/request.h"
 #include "app/rest/response.h"
@@ -60,7 +61,7 @@ class FunctionsCallableResponse : public rest::Response {
 [[nodiscard]] Error ErrorFromHttpStatus(int status);
 
 // Maps a canonical gRPC status string (e.g. "NOT_FOUND") to an Error code.
-[[nodiscard]] Error ErrorFromStatus(const std::string& status);
+[[nodiscard]] Error ErrorFromStatus(std::string_view status);
 
 // Resolves a callable Future from a completed or failed HTTP response.
 void ResolveFuture(ReferenceCountedFutureImpl* future_api,
@@ -124,10 +125,6 @@ class HttpsCallableReferenceInternal {
   [[nodiscard]] std::string url() const;
 
   [[nodiscard]] const HttpsCallableOptions& options() const { return options_; }
-
-  static void ResolveFuture(ReferenceCountedFutureImpl* future_api,
-                            SafeFutureHandle<HttpsCallableResult> handle,
-                            rest::Response* response);
 
   bool operator==(const HttpsCallableReferenceInternal& other) const {
     if (functions_ != other.functions_ || !(options_ == other.options_)) {

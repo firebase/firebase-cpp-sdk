@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -29,13 +28,24 @@
 #if FIREBASE_PLATFORM_WINDOWS
 #include <io.h>
 #include <windows.h>
+
+#include "app/src/util_windows.h"
 #else
 #include <unistd.h>
 #endif
 
+// Note: Desktop-only compilation unit (never compiled for iOS/tvOS).
 namespace firebase::remote_config::internal {
 
 namespace {
+
+std::filesystem::path MakeFilesystemPath(const std::string& utf8_path) {
+#if FIREBASE_PLATFORM_WINDOWS
+  return std::filesystem::path(Utf8ToWideString(utf8_path));
+#else
+  return std::filesystem::path(utf8_path);
+#endif
+}
 
 uint64_t NextTempFileId() {
   static std::atomic<uint64_t> counter{0};
@@ -55,14 +65,18 @@ std::string SanitizeFilenameComponent(const char* name) {
   std::string sanitized(name);
   std::replace_if(
       sanitized.begin(), sanitized.end(),
-      [](char c) { return c == '/' || c == '\\' || c == ':'; }, '_');
+      [](char c) {
+        return c == '/' || c == '\\' || c == ':' || c == '<' || c == '>' ||
+               c == '"' || c == '|' || c == '?' || c == '*';
+      },
+      '_');
   return sanitized;
 }
 
 }  // namespace
 
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path)
-    : file_path_(std::filesystem::u8path(file_path)) {}
+    : file_path_(MakeFilesystemPath(file_path)) {}
 
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
                                                  const firebase::App& app) {
@@ -77,7 +91,7 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
   if (error.empty() && !app_dir.empty()) {
     std::string safe_app_name = SanitizeFilenameComponent(app.name());
     std::string combined = app_dir + "/" + safe_app_name + "_" + filename;
-    file_path_ = std::filesystem::u8path(combined);
+    file_path_ = MakeFilesystemPath(combined);
   }
 }
 

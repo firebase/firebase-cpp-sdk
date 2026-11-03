@@ -14,6 +14,7 @@
 
 #include "functions/src/include/firebase/functions/callable_reference.h"
 
+#include <memory>
 #include <utility>
 
 #include "app/src/cleanup_notifier.h"
@@ -21,6 +22,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/log.h"
 #include "functions/src/include/firebase/functions.h"
 
 // Include the header that matches the platform being used.
@@ -36,8 +38,7 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
-namespace firebase {
-namespace functions {
+namespace firebase::functions {
 
 namespace {
 void CleanupHttpsCallableReference(void* ref_void) {
@@ -56,24 +57,57 @@ void RegisterForCleanup(HttpsCallableReference* obj,
   }
 }
 
-void UnregisterForCleanup(HttpsCallableReference* obj,
-                          internal::HttpsCallableReferenceInternal* internal) {
+void UnregisterForCleanup(
+    HttpsCallableReference* obj,
+    internal::HttpsCallableReferenceInternal* internal) noexcept {
   if (internal && internal->functions_internal()) {
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+    try {
+      internal->functions_internal()->cleanup().UnregisterObject(obj);
+    } catch (...) {
+      LogWarning("HttpsCallableReference: Failed to unregister object.");
+    }
+#else
     internal->functions_internal()->cleanup().UnregisterObject(obj);
+#endif
   }
+}
+
+void SafeRegisterForCleanup(
+    HttpsCallableReference* obj,
+    internal::HttpsCallableReferenceInternal* internal) noexcept {
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+  try {
+    RegisterForCleanup(obj, internal);
+  } catch (...) {
+    LogWarning("HttpsCallableReference: Failed to register moved-to object.");
+  }
+#else
+  RegisterForCleanup(obj, internal);
+#endif
+}
+
+void RegisterForCleanupOrDelete(
+    HttpsCallableReference* obj,
+    internal::HttpsCallableReferenceInternal*& internal) {
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+  try {
+    RegisterForCleanup(obj, internal);
+  } catch (...) {
+    delete internal;
+    internal = nullptr;
+    throw;
+  }
+#else
+  RegisterForCleanup(obj, internal);
+#endif
 }
 }  // namespace
 
 HttpsCallableReference::HttpsCallableReference(
     internal::HttpsCallableReferenceInternal* internal)
     : internal_(internal) {
-  try {
-    RegisterForCleanup(this, internal_);
-  } catch (...) {
-    delete internal_;
-    internal_ = nullptr;
-    throw;
-  }
+  RegisterForCleanupOrDelete(this, internal_);
 }
 
 HttpsCallableReference::HttpsCallableReference(
@@ -81,13 +115,7 @@ HttpsCallableReference::HttpsCallableReference(
     : internal_(other.internal_ ? new internal::HttpsCallableReferenceInternal(
                                       *other.internal_)
                                 : nullptr) {
-  try {
-    RegisterForCleanup(this, internal_);
-  } catch (...) {
-    delete internal_;
-    internal_ = nullptr;
-    throw;
-  }
+  RegisterForCleanupOrDelete(this, internal_);
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
@@ -95,31 +123,22 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   if (this == &other) {
     return *this;
   }
-  internal::HttpsCallableReferenceInternal* new_internal =
+  std::unique_ptr<internal::HttpsCallableReferenceInternal> new_internal(
       other.internal_
           ? new internal::HttpsCallableReferenceInternal(*other.internal_)
-          : nullptr;
+          : nullptr);
   UnregisterForCleanup(this, internal_);
   delete internal_;
-  internal_ = new_internal;
-  try {
-    RegisterForCleanup(this, internal_);
-  } catch (...) {
-    delete internal_;
-    internal_ = nullptr;
-    throw;
-  }
+  internal_ = new_internal.release();
+  RegisterForCleanupOrDelete(this, internal_);
   return *this;
 }
 
 HttpsCallableReference::HttpsCallableReference(
     HttpsCallableReference&& other) noexcept
     : internal_(std::exchange(other.internal_, nullptr)) {
-  try {
-    UnregisterForCleanup(&other, internal_);
-    RegisterForCleanup(this, internal_);
-  } catch (...) {
-  }
+  UnregisterForCleanup(&other, internal_);
+  SafeRegisterForCleanup(this, internal_);
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
@@ -127,26 +146,17 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   if (this == &other) {
     return *this;
   }
-  try {
-    UnregisterForCleanup(this, internal_);
-  } catch (...) {
-  }
+  UnregisterForCleanup(this, internal_);
   delete internal_;
   internal_ = std::exchange(other.internal_, nullptr);
-  try {
-    UnregisterForCleanup(&other, internal_);
-    RegisterForCleanup(this, internal_);
-  } catch (...) {
-  }
+  UnregisterForCleanup(&other, internal_);
+  SafeRegisterForCleanup(this, internal_);
   return *this;
 }
 
 HttpsCallableReference::~HttpsCallableReference() {
   if (internal_) {
-    try {
-      UnregisterForCleanup(this, internal_);
-    } catch (...) {
-    }
+    UnregisterForCleanup(this, internal_);
     delete internal_;
     internal_ = nullptr;
   }
@@ -193,5 +203,4 @@ bool HttpsCallableReference::operator==(
   return *internal_ == *other.internal_;
 }
 
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions

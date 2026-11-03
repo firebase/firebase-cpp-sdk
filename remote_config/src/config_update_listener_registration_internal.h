@@ -22,8 +22,11 @@ namespace firebase::remote_config::internal {
 
 class RemoteConfigInternal;
 
+/// @brief Internal implementation for `ConfigUpdateListenerRegistration`.
 class ConfigUpdateListenerRegistrationInternal {
  public:
+  /// @brief Constructs a registration internal instance bound to a
+  /// `RemoteConfigInternal` instance and a removal callback.
   ConfigUpdateListenerRegistrationInternal(
       RemoteConfigInternal* remote_config,
       std::function<void()> listener_removal_function);
@@ -39,12 +42,11 @@ class ConfigUpdateListenerRegistrationInternal {
 
   ~ConfigUpdateListenerRegistrationInternal();
 
+  /// @brief Removes the listener being tracked by this registration.
   void Remove();
 
+  /// @brief Returns the owning `RemoteConfigInternal` instance.
   [[nodiscard]] RemoteConfigInternal* remote_config() const {
-    return remote_config_;
-  }
-  [[nodiscard]] RemoteConfigInternal* remote_config_internal() const {
     return remote_config_;
   }
 

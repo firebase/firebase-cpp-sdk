@@ -80,18 +80,15 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     MutexLock lock(ref_lifetime_state_->mutex);
     ref_lifetime_state_->alive = false;
   }
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
+  functions_ = other.functions_;
   ref_lifetime_state_ = std::move(new_lifetime);
   impl_ = std::move(new_impl);
-
-  if (functions_ != other.functions_) {
-    if (functions_) {
-      functions_->future_manager().ReleaseFutureApi(this);
-    }
-    functions_ = other.functions_;
-    if (functions_) {
-      functions_->future_manager().AllocFutureApi(
-          this, kHttpsCallableReferenceFnCount);
-    }
+  if (functions_) {
+    functions_->future_manager().AllocFutureApi(this,
+                                                kHttpsCallableReferenceFnCount);
   }
   return *this;
 }

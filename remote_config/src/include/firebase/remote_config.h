@@ -420,7 +420,9 @@ class RemoteConfig {
   /// the key is missing or cannot be converted to a `bool`.
   bool GetBoolean(const char* key);
   bool GetBoolean(const char* key) const;
+  /// @brief Returns the value associated with a key, converted to a `bool`.
   bool GetBoolean(const std::string& key) { return GetBoolean(key.c_str()); }
+  /// @brief Returns the value associated with a key, converted to a `bool`.
   bool GetBoolean(const std::string& key) const {
     return GetBoolean(key.c_str());
   }
@@ -435,9 +437,11 @@ class RemoteConfig {
   /// the key is missing or conversion fails.
   bool GetBoolean(const char* key, ValueInfo* info);
   bool GetBoolean(const char* key, ValueInfo* info) const;
+  /// @brief Returns the value associated with a key, converted to a `bool`.
   bool GetBoolean(const std::string& key, ValueInfo* info) {
     return GetBoolean(key.c_str(), info);
   }
+  /// @brief Returns the value associated with a key, converted to a `bool`.
   bool GetBoolean(const std::string& key, ValueInfo* info) const {
     return GetBoolean(key.c_str(), info);
   }
@@ -451,7 +455,11 @@ class RemoteConfig {
   /// if the key is missing or cannot be converted to a 64-bit integer.
   int64_t GetLong(const char* key);
   int64_t GetLong(const char* key) const;
+  /// @brief Returns the value associated with a key, converted to a 64-bit
+  /// integer.
   int64_t GetLong(const std::string& key) { return GetLong(key.c_str()); }
+  /// @brief Returns the value associated with a key, converted to a 64-bit
+  /// integer.
   int64_t GetLong(const std::string& key) const { return GetLong(key.c_str()); }
 
   /// @brief Returns the value associated with a key, converted to a 64-bit
@@ -465,9 +473,13 @@ class RemoteConfig {
   /// if the key is missing or conversion fails.
   int64_t GetLong(const char* key, ValueInfo* info);
   int64_t GetLong(const char* key, ValueInfo* info) const;
+  /// @brief Returns the value associated with a key, converted to a 64-bit
+  /// integer.
   int64_t GetLong(const std::string& key, ValueInfo* info) {
     return GetLong(key.c_str(), info);
   }
+  /// @brief Returns the value associated with a key, converted to a 64-bit
+  /// integer.
   int64_t GetLong(const std::string& key, ValueInfo* info) const {
     return GetLong(key.c_str(), info);
   }
@@ -480,7 +492,9 @@ class RemoteConfig {
   /// the key is missing or cannot be converted to a `double`.
   double GetDouble(const char* key);
   double GetDouble(const char* key) const;
+  /// @brief Returns the value associated with a key, converted to a `double`.
   double GetDouble(const std::string& key) { return GetDouble(key.c_str()); }
+  /// @brief Returns the value associated with a key, converted to a `double`.
   double GetDouble(const std::string& key) const {
     return GetDouble(key.c_str());
   }
@@ -495,9 +509,11 @@ class RemoteConfig {
   /// the key is missing or conversion fails.
   double GetDouble(const char* key, ValueInfo* info);
   double GetDouble(const char* key, ValueInfo* info) const;
+  /// @brief Returns the value associated with a key, converted to a `double`.
   double GetDouble(const std::string& key, ValueInfo* info) {
     return GetDouble(key.c_str(), info);
   }
+  /// @brief Returns the value associated with a key, converted to a `double`.
   double GetDouble(const std::string& key, ValueInfo* info) const {
     return GetDouble(key.c_str(), info);
   }
@@ -509,9 +525,11 @@ class RemoteConfig {
   /// @return Value as a string, or `""` if the key was not found.
   std::string GetString(const char* key);
   std::string GetString(const char* key) const;
+  /// @brief Returns the value associated with a key, converted to a string.
   std::string GetString(const std::string& key) {
     return GetString(key.c_str());
   }
+  /// @brief Returns the value associated with a key, converted to a string.
   std::string GetString(const std::string& key) const {
     return GetString(key.c_str());
   }
@@ -525,9 +543,11 @@ class RemoteConfig {
   /// @return Value as a string, or `""` if the key was not found.
   std::string GetString(const char* key, ValueInfo* info);
   std::string GetString(const char* key, ValueInfo* info) const;
+  /// @brief Returns the value associated with a key, converted to a string.
   std::string GetString(const std::string& key, ValueInfo* info) {
     return GetString(key.c_str(), info);
   }
+  /// @brief Returns the value associated with a key, converted to a string.
   std::string GetString(const std::string& key, ValueInfo* info) const {
     return GetString(key.c_str(), info);
   }
@@ -539,9 +559,11 @@ class RemoteConfig {
   /// @return Vector of bytes, or an empty vector if the key was not found.
   std::vector<unsigned char> GetData(const char* key);
   std::vector<unsigned char> GetData(const char* key) const;
+  /// @brief Returns the value associated with a key as a vector of raw bytes.
   std::vector<unsigned char> GetData(const std::string& key) {
     return GetData(key.c_str());
   }
+  /// @brief Returns the value associated with a key as a vector of raw bytes.
   std::vector<unsigned char> GetData(const std::string& key) const {
     return GetData(key.c_str());
   }
@@ -555,9 +577,11 @@ class RemoteConfig {
   /// @return Vector of bytes, or an empty vector if the key was not found.
   std::vector<unsigned char> GetData(const char* key, ValueInfo* info);
   std::vector<unsigned char> GetData(const char* key, ValueInfo* info) const;
+  /// @brief Returns the value associated with a key as a vector of raw bytes.
   std::vector<unsigned char> GetData(const std::string& key, ValueInfo* info) {
     return GetData(key.c_str(), info);
   }
+  /// @brief Returns the value associated with a key as a vector of raw bytes.
   std::vector<unsigned char> GetData(const std::string& key,
                                      ValueInfo* info) const {
     return GetData(key.c_str(), info);
@@ -571,9 +595,11 @@ class RemoteConfig {
   /// @return Vector of keys that start with the specified prefix.
   std::vector<std::string> GetKeysByPrefix(const char* prefix);
   std::vector<std::string> GetKeysByPrefix(const char* prefix) const;
+  /// @brief Gets the list of keys that start with the given prefix.
   std::vector<std::string> GetKeysByPrefix(const std::string& prefix) {
     return GetKeysByPrefix(prefix.c_str());
   }
+  /// @brief Gets the list of keys that start with the given prefix.
   std::vector<std::string> GetKeysByPrefix(const std::string& prefix) const {
     return GetKeysByPrefix(prefix.c_str());
   }
@@ -601,9 +627,12 @@ class RemoteConfig {
   /// @brief Returns information about the last fetch request, in the form
   /// of a `ConfigInfo` struct.
   ///
+  /// Note: `const ConfigInfo` return type is retained for MSVC ABI
+  /// compatibility.
+  ///
   /// @return A `ConfigInfo` struct.
-  ConfigInfo GetInfo();
-  ConfigInfo GetInfo() const;
+  const ConfigInfo GetInfo();
+  const ConfigInfo GetInfo() const;
 
   /// @brief Sets the custom signals for this Remote Config instance.
   ///
@@ -634,6 +663,9 @@ class RemoteConfig {
   ///
   /// @note Real-time config updates are not supported on Desktop; on Desktop
   /// the listener is invoked with `kRemoteConfigErrorUnimplemented`.
+  ///
+  /// @param[in] config_update_listener Callback invoked when a real-time config
+  /// update or error occurs.
   ///
   /// @return A `ConfigUpdateListenerRegistration` that can be used to remove
   /// the listener.
