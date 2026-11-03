@@ -106,7 +106,17 @@ class AppCheckProvider {
   /// the token or with an error code and error message.
   virtual void GetToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) = 0;};
+          completion_callback) = 0;
+
+  /// Fetches an AppCheckToken suitable for consumption in limited-use scenarios
+  /// and then calls the provided callback function with the token or with an
+  /// error code and error message.
+  ///
+  /// If you do not implement this method, the default implementation invokes
+  /// the GetToken method whenever a limited-use token is requested.
+  void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback);};
 
 /// Interface for a factory that generates {@link AppCheckProvider}s.
 class AppCheckProviderFactory {

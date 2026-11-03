@@ -27,7 +27,7 @@
 #include "functions/src/ios/functions_ios.h"
 
 #ifdef __OBJC__
-#import "FirebaseFunctions-Swift.h"
+@class FIRHTTPSCallable;
 #endif  // __OBJC__
 
 namespace firebase {
@@ -55,7 +55,6 @@ class HttpsCallableReferenceInternal {
   HttpsCallableReferenceInternal& operator=(
       const HttpsCallableReferenceInternal& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
   // Move constructor. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal(
@@ -65,7 +64,6 @@ class HttpsCallableReferenceInternal {
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal& operator=(
       HttpsCallableReferenceInternal&& other) noexcept;
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   // Gets the Functions instance to which we refer.
   Functions* functions() const;
@@ -99,6 +97,8 @@ class HttpsCallableReferenceInternal {
   FunctionsInternal* functions_;
 
   std::unique_ptr<FIRHTTPSCallablePointer> impl_;
+
+  std::shared_ptr<FunctionsLifetimeState> ref_lifetime_state_;
 };
 
 }  // namespace internal

@@ -16,6 +16,7 @@
 
 #include <jni.h>
 
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -51,7 +52,10 @@ enum HttpsCallableReferenceFn {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, jobject wrapper_obj)
-    : functions_(functions), obj_(nullptr) {
+    : functions_(functions),
+      obj_(nullptr),
+      lifetime_state_(
+          std::make_shared<CallableReferenceAndroidLifetimeState>()) {
   if (functions_ && functions_->app()) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -62,11 +66,15 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
+  if (lifetime_state_) {
+    MutexLock lock(lifetime_state_->mutex);
+    lifetime_state_->alive = false;
+  }
   if (obj_ != nullptr && functions_ != nullptr &&
       functions_->app() != nullptr) {
     functions_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
-    obj_ = nullptr;
   }
+  obj_ = nullptr;
   if (functions_ != nullptr) {
     functions_->future_manager().ReleaseFutureApi(this);
     functions_ = nullptr;
@@ -75,7 +83,10 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& src)
-    : functions_(src.functions_), obj_(nullptr) {
+    : functions_(src.functions_),
+      obj_(nullptr),
+      lifetime_state_(
+          std::make_shared<CallableReferenceAndroidLifetimeState>()) {
   if (functions_ && functions_->app()) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -90,12 +101,23 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &src) {
     return *this;
   }
-  if (obj_ != nullptr && functions_ != nullptr &&
-      functions_->app() != nullptr) {
-    functions_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
+  if (obj_ != nullptr) {
+    JNIEnv* env = (functions_ && functions_->app())
+                      ? functions_->app()->GetJNIEnv()
+                      : ((src.functions_ && src.functions_->app())
+                             ? src.functions_->app()->GetJNIEnv()
+                             : nullptr);
+    if (env != nullptr) {
+      env->DeleteGlobalRef(obj_);
+    }
     obj_ = nullptr;
   }
   if (functions_ != src.functions_) {
+    if (lifetime_state_) {
+      MutexLock lock(lifetime_state_->mutex);
+      lifetime_state_->alive = false;
+    }
+    lifetime_state_ = std::make_shared<CallableReferenceAndroidLifetimeState>();
     if (functions_) {
       functions_->future_manager().ReleaseFutureApi(this);
     }
@@ -112,12 +134,11 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& src) noexcept
-    : functions_(src.functions_), obj_(src.obj_) {
-  src.functions_ = nullptr;
-  src.obj_ = nullptr;
+    : functions_(std::exchange(src.functions_, nullptr)),
+      obj_(std::exchange(src.obj_, nullptr)),
+      lifetime_state_(std::move(src.lifetime_state_)) {
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&src, this);
   }
@@ -128,24 +149,32 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &src) {
     return *this;
   }
-  if (obj_ != nullptr && functions_ != nullptr &&
-      functions_->app() != nullptr) {
-    functions_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
+  if (lifetime_state_) {
+    MutexLock lock(lifetime_state_->mutex);
+    lifetime_state_->alive = false;
+  }
+  if (obj_ != nullptr) {
+    JNIEnv* env = (functions_ && functions_->app())
+                      ? functions_->app()->GetJNIEnv()
+                      : ((src.functions_ && src.functions_->app())
+                             ? src.functions_->app()->GetJNIEnv()
+                             : nullptr);
+    if (env != nullptr) {
+      env->DeleteGlobalRef(obj_);
+    }
     obj_ = nullptr;
   }
   if (functions_) {
     functions_->future_manager().ReleaseFutureApi(this);
   }
-  functions_ = src.functions_;
-  obj_ = src.obj_;
-  src.functions_ = nullptr;
-  src.obj_ = nullptr;
+  functions_ = std::exchange(src.functions_, nullptr);
+  obj_ = std::exchange(src.obj_, nullptr);
+  lifetime_state_ = std::move(src.lifetime_state_);
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&src, this);
   }
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 Functions* HttpsCallableReferenceInternal::functions() const {
   if (!functions_) return nullptr;
@@ -168,13 +197,16 @@ bool HttpsCallableReferenceInternal::operator==(
 namespace {
 
 struct FutureCallbackData {
-  FutureCallbackData(SafeFutureHandle<HttpsCallableResult> handle_,
-                     ReferenceCountedFutureImpl* impl_,
-                     FunctionsInternal* functions_)
-      : handle(handle_), future_impl(impl_), functions(functions_) {}
+  FutureCallbackData(
+      SafeFutureHandle<HttpsCallableResult> handle_,
+      ReferenceCountedFutureImpl* impl_,
+      std::shared_ptr<CallableReferenceAndroidLifetimeState> lifetime_state_)
+      : handle(handle_),
+        future_impl(impl_),
+        lifetime_state(std::move(lifetime_state_)) {}
   SafeFutureHandle<HttpsCallableResult> handle;
   ReferenceCountedFutureImpl* future_impl;
-  FunctionsInternal* functions;
+  std::shared_ptr<CallableReferenceAndroidLifetimeState> lifetime_state;
 };
 
 }  // namespace
@@ -182,49 +214,47 @@ struct FutureCallbackData {
 void HttpsCallableReferenceInternal::FutureCallback(
     JNIEnv* env, jobject result, util::FutureResult result_code,
     const char* status_message, void* callback_data) {
-  FutureCallbackData* data = static_cast<FutureCallbackData*>(callback_data);
-  if (!data) return;
+  std::unique_ptr<FutureCallbackData> data(
+      static_cast<FutureCallbackData*>(callback_data));
+  if (!data || !data->future_impl || !data->lifetime_state) return;
 
-  if (data->future_impl != nullptr) {
-    if (result_code == util::kFutureResultCancelled) {
-      data->future_impl->Complete(data->handle, kErrorCancelled,
-                                  GetErrorMessage(kErrorCancelled));
-    } else if (result_code == util::kFutureResultFailure) {
-      std::string error_msg = status_message ? status_message : "";
-      Variant details;
-      Error code = kErrorInternal;
-      if (data->functions != nullptr) {
-        code = data->functions->ErrorFromJavaFunctionsException(
-            env, result, &error_msg, &details);
-      }
-      if (error_msg.empty()) {
-        error_msg = GetErrorMessage(code);
-      }
-      HttpsCallableResult callable_result(std::move(details));
-      data->future_impl->CompleteWithResult(data->handle, code,
-                                            error_msg.c_str(), callable_result);
-    } else if (!result) {
+  MutexLock lock(data->lifetime_state->mutex);
+  if (!data->lifetime_state->alive) return;
+
+  if (result_code == util::kFutureResultCancelled) {
+    data->future_impl->Complete(data->handle, kErrorCancelled,
+                                GetErrorMessage(kErrorCancelled));
+  } else if (result_code == util::kFutureResultFailure) {
+    std::string error_msg = status_message ? status_message : "";
+    Variant details;
+    Error code = FunctionsInternal::ErrorFromJavaFunctionsException(
+        env, result, &error_msg, &details);
+    if (error_msg.empty()) {
+      error_msg = GetErrorMessage(code);
+    }
+    HttpsCallableResult callable_result(std::move(details));
+    data->future_impl->CompleteWithResult(data->handle, code, error_msg.c_str(),
+                                          callable_result);
+  } else if (!result) {
+    data->future_impl->Complete(data->handle, kErrorInternal,
+                                GetErrorMessage(kErrorInternal));
+  } else {
+    jobject java_result = env->CallObjectMethod(
+        result, callable_result::GetMethodId(callable_result::kGetData));
+    if (util::CheckAndClearJniExceptions(env)) {
       data->future_impl->Complete(data->handle, kErrorInternal,
                                   GetErrorMessage(kErrorInternal));
     } else {
-      jobject java_result = env->CallObjectMethod(
-          result, callable_result::GetMethodId(callable_result::kGetData));
-      if (util::CheckAndClearJniExceptions(env)) {
-        data->future_impl->Complete(data->handle, kErrorInternal,
-                                    GetErrorMessage(kErrorInternal));
-      } else {
-        Variant result_variant = util::JavaObjectToVariant(env, java_result);
-        util::CheckAndClearJniExceptions(env);
-        if (java_result != nullptr) {
-          env->DeleteLocalRef(java_result);
-        }
-        HttpsCallableResult callable_result(std::move(result_variant));
-        data->future_impl->CompleteWithResult(data->handle, kErrorNone, "",
-                                              callable_result);
+      Variant result_variant = util::JavaObjectToVariant(env, java_result);
+      util::CheckAndClearJniExceptions(env);
+      if (java_result != nullptr) {
+        env->DeleteLocalRef(java_result);
       }
+      HttpsCallableResult callable_result(std::move(result_variant));
+      data->future_impl->CompleteWithResult(data->handle, kErrorNone, "",
+                                            callable_result);
     }
   }
-  delete data;
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
@@ -245,7 +275,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
   }
 
   FutureCallbackData* callback_data =
-      new FutureCallbackData(handle, future_api, functions_);
+      new FutureCallbackData(handle, future_api, lifetime_state_);
   util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
                                "Functions");
   env->DeleteLocalRef(task);
@@ -266,6 +296,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
 
   jobject java_object = util::VariantToJavaObject(env, data);
   if (util::CheckAndClearJniExceptions(env)) {
+    if (java_object) env->DeleteLocalRef(java_object);
     future_api->Complete(handle, kErrorInvalidArgument,
                          GetErrorMessage(kErrorInvalidArgument));
     return MakeFuture(future_api, handle);
@@ -282,7 +313,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   }
 
   FutureCallbackData* callback_data =
-      new FutureCallbackData(handle, future_api, functions_);
+      new FutureCallbackData(handle, future_api, lifetime_state_);
   util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
                                "Functions");
   env->DeleteLocalRef(task);

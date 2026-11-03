@@ -27,8 +27,7 @@
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Constructor;
@@ -104,5 +103,4 @@ Local<Task> JniRunnableBase::RunOnNewThread(Env& env) {
   return env.Call(java_runnable_, kRunOnNewThread);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/src/include/firebase/variant.h"
@@ -29,9 +30,28 @@ namespace functions {
 namespace internal {
 
 namespace {
-constexpr const char kTypeLong[] = "type.google.com/google.protobuf.Int64Value";
-constexpr const char kTypeUnsignedLong[] =
+inline constexpr char kTypeLong[] =
+    "type.googleapis.com/google.protobuf.Int64Value";
+inline constexpr char kTypeLongLegacy[] =
+    "type.google.com/google.protobuf.Int64Value";
+inline constexpr char kTypeUnsignedLong[] =
+    "type.googleapis.com/google.protobuf.UInt64Value";
+inline constexpr char kTypeUnsignedLongLegacy[] =
     "type.google.com/google.protobuf.UInt64Value";
+
+std::string_view TrimAsciiWhitespace(std::string_view sv) {
+  while (!sv.empty() &&
+         (sv.front() == ' ' || sv.front() == '\t' || sv.front() == '\n' ||
+          sv.front() == '\r')) {
+    sv.remove_prefix(1);
+  }
+  while (!sv.empty() &&
+         (sv.back() == ' ' || sv.back() == '\t' || sv.back() == '\n' ||
+          sv.back() == '\r')) {
+    sv.remove_suffix(1);
+  }
+  return sv;
+}
 }  // namespace
 
 Variant Encode(const Variant& variant) {
@@ -71,16 +91,15 @@ Variant Encode(const Variant& variant) {
 
     case Variant::kTypeMap: {
       Variant map = Variant::EmptyMap();
-      for (const auto& pair : variant.map()) {
-        const Variant& key = pair.first;
+      for (const auto& [key, raw_val] : variant.map()) {
         if (!key.is_fundamental_type()) {
           LogError("Cannot serialize map with non-fundamental key type %s",
                    Variant::TypeName(key.type()));
           return Variant::Null();
         }
         Variant k = key.AsString();
-        Variant v = Encode(pair.second);
-        if (v.is_null() && !pair.second.is_null()) {
+        Variant v = Encode(raw_val);
+        if (v.is_null() && !raw_val.is_null()) {
           return Variant::Null();
         }
         map.map()[k] = v;
@@ -115,43 +134,56 @@ Variant Decode(const Variant& variant) {
                    Variant::TypeName(type_it->second.type()));
           return Variant::Null();
         }
-        std::string type = type_it->second.string_value();
+        std::string_view type = type_it->second.string_value();
         auto val_it = variant.map().find("value");
         if (val_it == variant.map().end()) {
-          LogError("No value field in %s", type.c_str());
+          LogError("No value field in %s", type_it->second.string_value());
           return Variant::Null();
         }
-        if (type == kTypeLong) {
+        if (type == kTypeLong || type == kTypeLongLegacy) {
           if (!val_it->second.is_string()) {
             LogError("Invalid value of type %s for %s",
-                     Variant::TypeName(val_it->second.type()), type.c_str());
+                     Variant::TypeName(val_it->second.type()),
+                     type_it->second.string_value());
             return Variant::Null();
           }
-          const std::string val_str = val_it->second.string_value();
+          std::string_view trimmed =
+              TrimAsciiWhitespace(val_it->second.string_value());
+          if (!trimmed.empty() && trimmed.front() == '+') {
+            trimmed.remove_prefix(1);
+          }
           int64_t val = 0;
-          const char* begin = val_str.data();
-          const char* end = begin + val_str.size();
+          const char* begin = trimmed.data();
+          const char* end = begin + trimmed.size();
           auto [ptr, ec] = std::from_chars(begin, end, val);
-          if (val_str.empty() || ec != std::errc() || ptr != end) {
-            LogError("Failed to parse %s from %s", type.c_str(),
-                     val_str.c_str());
+          if (trimmed.empty() || ec != std::errc() || ptr != end) {
+            LogError("Failed to parse %s from %s",
+                     type_it->second.string_value(),
+                     val_it->second.string_value());
             return Variant::Null();
           }
           return Variant(val);
-        } else if (type == kTypeUnsignedLong) {
+        } else if (type == kTypeUnsignedLong ||
+                   type == kTypeUnsignedLongLegacy) {
           if (!val_it->second.is_string()) {
             LogError("Invalid value of type %s for %s",
-                     Variant::TypeName(val_it->second.type()), type.c_str());
+                     Variant::TypeName(val_it->second.type()),
+                     type_it->second.string_value());
             return Variant::Null();
           }
-          const std::string val_str = val_it->second.string_value();
+          std::string_view trimmed =
+              TrimAsciiWhitespace(val_it->second.string_value());
+          if (!trimmed.empty() && trimmed.front() == '+') {
+            trimmed.remove_prefix(1);
+          }
           uint64_t uval = 0;
-          const char* begin = val_str.data();
-          const char* end = begin + val_str.size();
+          const char* begin = trimmed.data();
+          const char* end = begin + trimmed.size();
           auto [ptr, ec] = std::from_chars(begin, end, uval);
-          if (val_str.empty() || ec != std::errc() || ptr != end) {
-            LogError("Failed to parse %s from %s", type.c_str(),
-                     val_str.c_str());
+          if (trimmed.empty() || ec != std::errc() || ptr != end) {
+            LogError("Failed to parse %s from %s",
+                     type_it->second.string_value(),
+                     val_it->second.string_value());
             return Variant::Null();
           }
           return Variant(static_cast<int64_t>(uval));
@@ -159,18 +191,17 @@ Variant Decode(const Variant& variant) {
         // If the type is not recognized, just treat it as a normal map.
       }
       Variant map = Variant::EmptyMap();
-      for (const auto& pair : variant.map()) {
-        if (!pair.first.is_string()) {
+      for (const auto& [key, raw_val] : variant.map()) {
+        if (!key.is_string()) {
           LogError("Map has non-string key of type %s",
-                   Variant::TypeName(pair.first.type()));
+                   Variant::TypeName(key.type()));
           return Variant::Null();
         }
-        Variant k = pair.first;
-        Variant v = Decode(pair.second);
-        if (v.is_null() && !pair.second.is_null()) {
+        Variant v = Decode(raw_val);
+        if (v.is_null() && !raw_val.is_null()) {
           return Variant::Null();
         }
-        map.map()[k] = v;
+        map.map()[key] = v;
       }
       return map;
     }

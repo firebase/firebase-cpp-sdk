@@ -32,8 +32,7 @@
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Constructor;
@@ -318,5 +317,4 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   return nullptr;
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

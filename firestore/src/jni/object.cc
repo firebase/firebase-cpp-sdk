@@ -21,9 +21,7 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
-namespace jni {
+namespace firebase::firestore::jni {
 namespace {
 
 Method<bool> kEquals("equals", "(Ljava/lang/Object;)Z");
@@ -75,6 +73,4 @@ bool Object::Equals(Env& env, const Object& lhs, const Object& rhs) {
   return lhs.Equals(env, rhs);
 }
 
-}  // namespace jni
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore::jni

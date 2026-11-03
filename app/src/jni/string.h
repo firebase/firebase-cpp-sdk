@@ -156,11 +156,17 @@ inline std::string Utf8ToModifiedUtf8(std::string_view utf8) {
 // pairs) back into standard C++ UTF-8.
 inline std::string ModifiedUtf8ToUtf8(std::string_view mutf8) {
   bool needs_decoding = false;
-  for (char c : mutf8) {
-    const uint8_t b = static_cast<uint8_t>(c);
-    if (b == 0xC0 || b == 0xED) {
+  for (size_t i = 0; i < mutf8.size(); ++i) {
+    const uint8_t b = static_cast<uint8_t>(mutf8[i]);
+    if (b == 0xC0) {
       needs_decoding = true;
       break;
+    } else if (b == 0xED && i + 1 < mutf8.size()) {
+      const uint8_t b1 = static_cast<uint8_t>(mutf8[i + 1]);
+      if (b1 >= 0xA0 && b1 <= 0xBF) {
+        needs_decoding = true;
+        break;
+      }
     }
   }
   if (!needs_decoding) {
@@ -210,6 +216,18 @@ inline std::string ModifiedUtf8ToUtf8(std::string_view mutf8) {
           i += 3;
           continue;
         }
+      } else if (i + 1 < n) {
+        const uint8_t b1 = static_cast<uint8_t>(mutf8[i + 1]);
+        if (b1 >= 0xA0 && b1 <= 0xBF) {
+          out.append("\xEF\xBF\xBD");
+          i += 2;
+          continue;
+        }
+      } else {
+        // A single 0xED at the very end of the string.
+        // It's technically truncated, but could be a truncated surrogate or truncated valid char.
+        // If we want to strictly replace truncated surrogates, we can't tell here.
+        // Let's just leave it or replace it.
       }
       out.push_back(static_cast<char>(b0));
       ++i;
@@ -239,6 +257,15 @@ inline jstring NewRawJString(JNIEnv* env, const char* utf8) {
   return env->NewStringUTF(mutf8.c_str());
 }
 
+inline jstring NewRawJString(JNIEnv* env, const std::string& utf8) {
+  if (!env || env->ExceptionCheck()) return nullptr;
+  if (IsValidModifiedUtf8(utf8)) {
+    return env->NewStringUTF(utf8.c_str());
+  }
+  std::string mutf8 = Utf8ToModifiedUtf8(utf8);
+  return env->NewStringUTF(mutf8.c_str());
+}
+
 // Creates a raw jstring local reference from a std::string_view (preserving
 // embedded NUL bytes and converting 4-byte UTF-8 emojis).
 inline jstring NewRawJString(JNIEnv* env, std::string_view utf8) {
@@ -248,6 +275,10 @@ inline jstring NewRawJString(JNIEnv* env, std::string_view utf8) {
 }
 
 inline ScopedLocalRef<jstring> NewJString(JNIEnv* env, const char* utf8) {
+  return ScopedLocalRef<jstring>(env, NewRawJString(env, utf8), /*adopt_existing_local=*/true);
+}
+
+inline ScopedLocalRef<jstring> NewJString(JNIEnv* env, const std::string& utf8) {
   return ScopedLocalRef<jstring>(env, NewRawJString(env, utf8), /*adopt_existing_local=*/true);
 }
 

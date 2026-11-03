@@ -108,7 +108,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
 
   void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) override;
+          completion_callback) ;
 
   void SetDebugToken(const std::string& token);
 
@@ -396,7 +396,9 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     std::shared_ptr<DebugAppCheckProvider::CleanupState> cleanup_state =
         raw_provider->cleanup_state();
     notifier->RegisterObject(
-        raw_provider, [cleanup_state](void* /*object*/) {
+        raw_provider, [](void* object) {
+          auto* provider = static_cast<DebugAppCheckProvider*>(object);
+          std::shared_ptr<DebugAppCheckProvider::CleanupState> cleanup_state = provider->cleanup_state();
           DebugAppCheckProviderFactoryInternal* factory = nullptr;
           App* owner_app = nullptr;
           {

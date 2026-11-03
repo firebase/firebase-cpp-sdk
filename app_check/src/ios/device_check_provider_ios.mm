@@ -67,7 +67,7 @@ class DeviceCheckProvider : public AppCheckProvider {
   /// and then calls the provided callback function with the token or with an
   /// error code and error message.
   void GetLimitedUseToken(
-      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
+      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) ;
 
  private:
   FIRDeviceCheckProvider* ios_provider_;

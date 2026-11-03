@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <tuple>
 
+#include "app/src/jni/ownership.h"
+
 namespace firebase {
 namespace jni {
 
@@ -56,13 +58,21 @@ class ConstructorBase {
     return s.id != nullptr && s.clazz != nullptr;
   }
 
-  // Stores a borrowed global `jclass` reference and resolved `jmethodID`.
-  void Set(jclass global_clazz, jmethodID id) noexcept {
-    state_.store({global_clazz, id}, std::memory_order_release);
+  // Stores a JVM global `jclass` reference and resolved `jmethodID`.
+  void Set(JNIEnv* env, jclass clazz, jmethodID id) noexcept {
+    JavaVM* jvm = internal::GlobalRefReaper::RecordJavaVM(env);
+    jobject global_clazz = internal::GlobalRefReaper::NewGlobalRef(env, clazz, jvm);
+    State old = state_.exchange({static_cast<jclass>(global_clazz), id}, std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env, jvm);
+    }
   }
 
-  void Reset() noexcept {
-    state_.store({nullptr, nullptr}, std::memory_order_release);
+  void Reset(JNIEnv* env = nullptr) noexcept {
+    State old = state_.exchange({nullptr, nullptr}, std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env);
+    }
   }
 
  private:
@@ -210,12 +220,20 @@ class StaticFieldBase {
     return s.id != nullptr && s.clazz != nullptr;
   }
 
-  void Set(jclass global_clazz, jfieldID id) noexcept {
-    state_.store({global_clazz, id}, std::memory_order_release);
+  void Set(JNIEnv* env, jclass clazz, jfieldID id) noexcept {
+    JavaVM* jvm = internal::GlobalRefReaper::RecordJavaVM(env);
+    jobject global_clazz = internal::GlobalRefReaper::NewGlobalRef(env, clazz, jvm);
+    State old = state_.exchange({static_cast<jclass>(global_clazz), id}, std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env, jvm);
+    }
   }
 
-  void Reset() noexcept {
-    state_.store({nullptr, nullptr}, std::memory_order_release);
+  void Reset(JNIEnv* env = nullptr) noexcept {
+    State old = state_.exchange({nullptr, nullptr}, std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env);
+    }
   }
 
  private:
@@ -261,12 +279,20 @@ class StaticMethodBase {
     return s.id != nullptr && s.clazz != nullptr;
   }
 
-  void Set(jclass global_clazz, jmethodID id) noexcept {
-    state_.store({global_clazz, id}, std::memory_order_release);
+  void Set(JNIEnv* env, jclass clazz, jmethodID id) noexcept {
+    JavaVM* jvm = internal::GlobalRefReaper::RecordJavaVM(env);
+    jobject global_clazz = internal::GlobalRefReaper::NewGlobalRef(env, clazz, jvm);
+    State old = state_.exchange({static_cast<jclass>(global_clazz), id}, std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env, jvm);
+    }
   }
 
-  void Reset() noexcept {
-    state_.store({nullptr, nullptr}, std::memory_order_release);
+  void Reset(JNIEnv* env = nullptr) noexcept {
+    State old = state_.exchange({nullptr, nullptr}, std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env);
+    }
   }
 
  private:

@@ -24,8 +24,7 @@
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 /**
  * A proxy for a Java `Runnable` that calls a C++ function.
@@ -155,7 +154,6 @@ class JniRunnable : public JniRunnableBase {
   CallbackT callback_;
 };
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_

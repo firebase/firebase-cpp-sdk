@@ -56,20 +56,30 @@ class FunctionsInternal {
 
   // Whether this object was successfully initialized by the constructor.
   bool is_valid() const { return app_ != nullptr && obj_ != nullptr; }
+  bool initialized() const { return is_valid(); }
 
   HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
+  HttpsCallableReferenceInternal* GetHttpsCallable(
+      const char* name, const HttpsCallableOptions& options) const {
+    return GetHttpsCallableWithOptions(name, options);
+  }
   HttpsCallableReferenceInternal* GetHttpsCallableWithOptions(
       const char* name, const HttpsCallableOptions& options) const;
   HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
       const char* url) const;
+  HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
+      const char* url, const HttpsCallableOptions& options) const {
+    return GetHttpsCallableFromURLWithOptions(url, options);
+  }
   HttpsCallableReferenceInternal* GetHttpsCallableFromURLWithOptions(
       const char* url, const HttpsCallableOptions& options) const;
 
   void UseFunctionsEmulator(const char* origin);
 
-  Error ErrorFromJavaFunctionsException(JNIEnv* env, jobject java_exception,
-                                        std::string* error_message,
-                                        Variant* details_out = nullptr);
+  static Error ErrorFromJavaFunctionsException(JNIEnv* env,
+                                               jobject java_exception,
+                                               std::string* error_message,
+                                               Variant* details_out = nullptr);
 
  private:
   // Initialize JNI classes and method IDs.

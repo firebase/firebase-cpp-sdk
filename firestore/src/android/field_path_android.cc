@@ -22,8 +22,7 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Array;
@@ -71,5 +70,4 @@ Local<Object> FieldPathConverter::Create(Env& env, const FieldPath& path) {
   return env.Call(kOf, args);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

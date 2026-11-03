@@ -83,7 +83,6 @@ DEFINE_FIREBASE_VERSION_STRING(Firebase);
 namespace {
 
 // Copy values of FIROptions into AppOptions.
-static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions* app_options) {
   if (!platform_options || !app_options) return;
   if (!strlen(app_options->app_id())) {
     const char* value = platform_options.googleAppID.UTF8String;
@@ -243,7 +242,6 @@ static FIRApp* CreateOrGetPlatformApp(const AppOptions& options, const char* nam
       }
     }
     AppOptions existing_options;
-    PlatformOptionsToAppOptions(platform_app.options, &existing_options);
     if (!strlen(existing_options.package_name())) {
       options_to_compare.set_package_name("");
     }
@@ -279,7 +277,6 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options) {
   }
   if (platform_options) {
     app_options = app_options ? app_options : new AppOptions();
-    PlatformOptionsToAppOptions(platform_options, app_options);
     return app_options;
   } else {
     LogError("Failed to read Firebase options from the app's resources (%s). "
@@ -331,7 +328,6 @@ App* App::Create(const AppOptions& options, const char* name) {
   // Once the app is initialized, the entry in the temporary map is not needed.
   internal::RemovePartialApp(app);
   if (platform_app) {
-    PlatformOptionsToAppOptions(platform_app.options, &app->options_);
     app->internal_ = new internal::AppInternal(platform_app);
     App* added_app = app_common::AddApp(app, &app->init_results_);
     if (added_app != app) {

@@ -23,11 +23,13 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/util_ios.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
 #include "functions/src/include/firebase/functions/common.h"
 
 #ifdef __OBJC__
-#import "FirebaseFunctions-Swift.h"
+@class FIRFunctions;
+@class NSError;
 #endif  // __OBJC__
 
 namespace firebase {
@@ -52,46 +54,58 @@ class FunctionsInternal {
   FunctionsInternal& operator=(const FunctionsInternal&) = delete;
 
   // Return the App we were created with.
-  App* app() const { return app_; }
+  [[nodiscard]] App* app() const;
 
   // Return the region or custom domain we were created with.
-  const char* region() const { return region_.c_str(); }
+  [[nodiscard]] const char* region() const;
 
   // Manage Future implementations.
-  FutureManager& future_manager() { return future_manager_; }
+  [[nodiscard]] FutureManager& future_manager() { return future_manager_; }
 
-  CleanupNotifier& cleanup() { return cleanup_; }
+  [[nodiscard]] CleanupNotifier& cleanup() { return cleanup_; }
 
-  const std::shared_ptr<FunctionsLifetimeState>& lifetime_state() const {
+  [[nodiscard]] const std::shared_ptr<FunctionsLifetimeState>& lifetime_state()
+      const {
     return lifetime_state_;
   }
 
   // Whether this object was successfully initialized by the constructor.
-  bool is_valid() const;
+  [[nodiscard]] bool is_valid() const;
+  [[nodiscard]] bool initialized() const { return is_valid(); }
 
-  HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
-  HttpsCallableReferenceInternal* GetHttpsCallableWithOptions(
+  [[nodiscard]] HttpsCallableReferenceInternal* GetHttpsCallable(
+      const char* name) const;
+  [[nodiscard]] HttpsCallableReferenceInternal* GetHttpsCallable(
+      const char* name, const HttpsCallableOptions& options) const {
+    return GetHttpsCallableWithOptions(name, options);
+  }
+  [[nodiscard]] HttpsCallableReferenceInternal* GetHttpsCallableWithOptions(
       const char* name, const HttpsCallableOptions& options) const;
-  HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
+  [[nodiscard]] HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
       const char* url) const;
-  HttpsCallableReferenceInternal* GetHttpsCallableFromURLWithOptions(
-      const char* url, const HttpsCallableOptions& options) const;
+  [[nodiscard]] HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
+      const char* url, const HttpsCallableOptions& options) const {
+    return GetHttpsCallableFromURLWithOptions(url, options);
+  }
+  [[nodiscard]] HttpsCallableReferenceInternal*
+  GetHttpsCallableFromURLWithOptions(const char* url,
+                                     const HttpsCallableOptions& options) const;
 
   void UseFunctionsEmulator(const char* origin);
 
 #ifdef __OBJC__
-  static Error ErrorFromNSError(NSError* error);
+  [[nodiscard]] static Error ErrorFromNSError(NSError* error);
 
-  FIRFunctions* impl() const { return impl_->get(); }
+  [[nodiscard]] FIRFunctions* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
  private:
-  FutureManager future_manager_;
-  CleanupNotifier cleanup_;
   App* app_;
   std::string region_;
   std::unique_ptr<FIRFunctionsPointer> impl_;
+  FutureManager future_manager_;
   std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
+  CleanupNotifier cleanup_;
 };
 
 }  // namespace internal

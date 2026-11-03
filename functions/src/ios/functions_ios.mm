@@ -19,6 +19,7 @@
 #include <charconv>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
@@ -33,8 +34,8 @@ namespace functions {
 namespace internal {
 
 namespace {
-bool HasHttpScheme(const std::string& s) {
-  return s.compare(0, 7, "http://") == 0 || s.compare(0, 8, "https://") == 0;
+bool HasHttpScheme(std::string_view s) {
+  return s.substr(0, 7) == "http://" || s.substr(0, 8) == "https://";
 }
 
 void ApplyCallableTimeout(FIRHTTPSCallable* callable,
@@ -50,26 +51,32 @@ void ApplyCallableTimeout(FIRHTTPSCallable* callable,
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
     : app_(app),
       region_(region ? region : "us-central1"),
+      impl_(nullptr),
       lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
   FIRFunctions* fir_functions = nil;
-  if (app_ && app_->data_) {
-    if (HasHttpScheme(region_)) {
-      fir_functions =
-          [FIRFunctions functionsForApp:app_->data_->GetPlatformApp()
-                           customDomain:@(region_.c_str())];
-    } else {
-      fir_functions =
-          [FIRFunctions functionsForApp:app_->data_->GetPlatformApp()
-                                 region:@(region_.c_str())];
+  if (app_) {
+    FIRApp* platform_app = app_->GetPlatformApp();
+    if (platform_app) {
+      if (HasHttpScheme(region_)) {
+        fir_functions = [FIRFunctions functionsForApp:platform_app
+                                         customDomain:@(region_.c_str())];
+      } else {
+        fir_functions = [FIRFunctions functionsForApp:platform_app
+                                               region:@(region_.c_str())];
+      }
     }
   }
-  impl_.reset(new FIRFunctionsPointer(fir_functions));
+  impl_ = std::make_unique<FIRFunctionsPointer>(fir_functions);
 }
 
 FunctionsInternal::~FunctionsInternal() {
   MutexLock lock(lifetime_state_->mutex);
   lifetime_state_->alive = false;
 }
+
+App* FunctionsInternal::app() const { return app_; }
+
+const char* FunctionsInternal::region() const { return region_.c_str(); }
 
 bool FunctionsInternal::is_valid() const {
   return app_ != nullptr && impl_ && impl() != nil;
@@ -82,8 +89,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
   if (!callable) return nullptr;
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::unique_ptr<FIRHTTPSCallablePointer>(
-          new FIRHTTPSCallablePointer(callable)));
+      std::make_unique<FIRHTTPSCallablePointer>(callable));
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableWithOptions(
@@ -98,8 +104,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableWithOptions(
   ApplyCallableTimeout(callable, options);
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::unique_ptr<FIRHTTPSCallablePointer>(
-          new FIRHTTPSCallablePointer(callable)));
+      std::make_unique<FIRHTTPSCallablePointer>(callable));
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
@@ -111,8 +116,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
   if (!callable) return nullptr;
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::unique_ptr<FIRHTTPSCallablePointer>(
-          new FIRHTTPSCallablePointer(callable)));
+      std::make_unique<FIRHTTPSCallablePointer>(callable));
 }
 
 HttpsCallableReferenceInternal*
@@ -130,35 +134,34 @@ FunctionsInternal::GetHttpsCallableFromURLWithOptions(
   ApplyCallableTimeout(callable, options);
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::unique_ptr<FIRHTTPSCallablePointer>(
-          new FIRHTTPSCallablePointer(callable)));
+      std::make_unique<FIRHTTPSCallablePointer>(callable));
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   if (!is_valid() || !origin || origin[0] == '\0') return;
-  std::string str(origin);
-  if (str.compare(0, 7, "http://") == 0) {
-    str.erase(0, 7);
-  } else if (str.compare(0, 8, "https://") == 0) {
-    str.erase(0, 8);
+  std::string_view sv(origin);
+  if (sv.substr(0, 7) == "http://") {
+    sv.remove_prefix(7);
+  } else if (sv.substr(0, 8) == "https://") {
+    sv.remove_prefix(8);
   }
-  while (!str.empty() && str.back() == '/') {
-    str.pop_back();
+  while (!sv.empty() && sv.back() == '/') {
+    sv.remove_suffix(1);
   }
-  size_t pos = str.rfind(':');
-  if (pos == std::string::npos || pos == 0 || pos + 1 >= str.size()) {
+  size_t pos = sv.rfind(':');
+  if (pos == std::string_view::npos || pos == 0 || pos + 1 >= sv.size()) {
     LogError("Invalid emulator origin: %s", origin);
     return;
   }
   int port = 0;
-  const char* p_begin = str.data() + pos + 1;
-  const char* p_end = str.data() + str.size();
+  const char* p_begin = sv.data() + pos + 1;
+  const char* p_end = sv.data() + sv.size();
   auto [ptr, ec] = std::from_chars(p_begin, p_end, port);
   if (ec != std::errc() || ptr != p_end || port <= 0 || port > 65535) {
     LogError("Invalid emulator port in origin: %s", origin);
     return;
   }
-  std::string host = str.substr(0, pos);
+  std::string host(sv.substr(0, pos));
   [impl() useEmulatorWithHost:@(host.c_str()) port:port];
 }
 

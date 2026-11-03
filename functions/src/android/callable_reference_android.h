@@ -17,17 +17,22 @@
 
 #include <jni.h>
 
+#include <memory>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "functions/src/android/functions_android.h"
 #include "functions/src/include/firebase/functions.h"
-#include "functions/src/include/firebase/functions/callable_result.h"
 
 namespace firebase {
 namespace functions {
+
+class HttpsCallableResult;
+
 namespace internal {
 
 // clang-format off
@@ -48,6 +53,11 @@ METHOD_LOOKUP_DECLARATION(callable_reference, CALLABLE_REFERENCE_METHODS)
 
 METHOD_LOOKUP_DECLARATION(callable_result, CALLABLE_RESULT_METHODS)
 
+struct CallableReferenceAndroidLifetimeState {
+  Mutex mutex;
+  bool alive = true;
+};
+
 class HttpsCallableReferenceInternal {
  public:
   HttpsCallableReferenceInternal(FunctionsInternal* functions,
@@ -65,7 +75,6 @@ class HttpsCallableReferenceInternal {
   HttpsCallableReferenceInternal& operator=(
       const HttpsCallableReferenceInternal& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
   // Move constructor. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal(
@@ -75,14 +84,13 @@ class HttpsCallableReferenceInternal {
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal& operator=(
       HttpsCallableReferenceInternal&& other) noexcept;
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   // Gets the Functions instance to which we refer.
   Functions* functions() const;
 
   FunctionsInternal* functions_internal() const { return functions_; }
 
-  // Blocking call to the trigger endpoint with no parameters.
+  // Asynchronously calls the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
 
   // Asynchronously calls the trigger endpoint with the given parameter.
@@ -110,6 +118,9 @@ class HttpsCallableReferenceInternal {
 
   // The Java HttpsCallableReference instance.
   jobject obj_ = nullptr;
+
+  // Shared lifetime state guarding asynchronous JNI completion callbacks.
+  std::shared_ptr<CallableReferenceAndroidLifetimeState> lifetime_state_;
 };
 
 }  // namespace internal

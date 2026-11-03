@@ -33,8 +33,7 @@
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/task.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 template <typename EnumT>
 class PromiseFactory;
@@ -105,7 +104,7 @@ class Promise {
         env.get(), task.get(), ResultCallback, completer, kApiIdentifier);
   }
 
-  Future<PublicType> GetFuture() {
+  [[nodiscard]] Future<PublicType> GetFuture() {
     return firestore_ref_.Run([this](FirestoreInternal* firestore) {
       if (firestore == nullptr) {
         return Future<PublicType>{};
@@ -280,7 +279,6 @@ class Promise {
   SafeFutureHandle<PublicType> handle_;
 };
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_ANDROID_H_

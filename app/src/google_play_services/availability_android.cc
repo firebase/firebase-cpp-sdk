@@ -118,15 +118,23 @@ struct AvailabilityData {
   Availability cached_availability;
 };
 
-static Mutex* g_availability_mutex = new Mutex();
-static std::shared_ptr<AvailabilityData>* g_data = nullptr;
+static Mutex& GetAvailabilityMutex() {
+  static Mutex* mutex = new Mutex();
+  return *mutex;
+}
+
+static std::shared_ptr<AvailabilityData>& GetAvailabilityDataRef() {
+  static std::shared_ptr<AvailabilityData>* data = new std::shared_ptr<AvailabilityData>();
+  return *data;
+}
+
 static JavaVM* g_vm = nullptr;
 // Number of references to this module via Initialize() vs. Terminate().
 static unsigned int g_initialized_count = 0;
 static bool g_implicitly_initialized = false;
 
 std::shared_ptr<AvailabilityData> GetAvailabilityDataLocked() {
-  return g_data ? *g_data : nullptr;
+  return GetAvailabilityDataRef();
 }
 
 JNIEXPORT void JNICALL GoogleApiAvailabilityHelper_onCompleteNative(
@@ -137,7 +145,7 @@ JNIEXPORT void JNICALL GoogleApiAvailabilityHelper_onCompleteNative(
   std::shared_ptr<AvailabilityData> data;
   firebase::SafeFutureHandle<void> handle;
   {
-    MutexLock lock(*g_availability_mutex);
+    MutexLock lock(GetAvailabilityMutex());
     data = GetAvailabilityDataLocked();
     if (data != nullptr) {
       if (status_code == 0) {
@@ -165,7 +173,7 @@ void ReleaseClasses(JNIEnv* env) {
 
 bool Initialize(JNIEnv* env, jobject activity) {
   if (!env || !activity) return false;
-  MutexLock lock(*g_availability_mutex);
+  MutexLock lock(GetAvailabilityMutex());
   env->GetJavaVM(&g_vm);
   if (g_implicitly_initialized && GetAvailabilityDataLocked() != nullptr) {
     // Adopt the implicit initialization reference from a prior
@@ -182,10 +190,10 @@ bool Initialize(JNIEnv* env, jobject activity) {
   }
 
   // Instantiate where we store stuff.
-  if (!g_data) {
-    g_data = new std::shared_ptr<AvailabilityData>();
+  
+    
   }
-  *g_data = std::make_shared<AvailabilityData>();
+  GetAvailabilityDataRef() = std::make_shared<AvailabilityData>();
 
   // We depend on firebase::util, so initialize it.
   if (firebase::util::Initialize(env, activity)) {
@@ -234,8 +242,8 @@ bool Initialize(JNIEnv* env, jobject activity) {
       "Unable to check Google Play services availability as the "
       "com.google.android.gms.common.GoogleApiAvailability class is not "
       "present in this application.");
-  delete g_data;
-  g_data = nullptr;
+  
+  
   g_initialized_count--;
   return false;
 }
@@ -246,7 +254,7 @@ void Terminate(JNIEnv* env) {
   jmethodID stop_callbacks_method = nullptr;
   bool should_cleanup_classes = false;
   {
-    MutexLock lock(*g_availability_mutex);
+    MutexLock lock(GetAvailabilityMutex());
     if (g_initialized_count == 0 && !g_implicitly_initialized) {
       // Nothing to terminate.
       firebase::LogWarning("Extraneous call to google_play_services::Terminate");
@@ -271,9 +279,9 @@ void Terminate(JNIEnv* env) {
     }
     g_implicitly_initialized = false;
     if (current_data && g_initialized_count == 0) {
-      data_to_destroy = std::move(*g_data);
-      delete g_data;
-      g_data = nullptr;
+      data_to_destroy = std::move(GetAvailabilityDataRef());
+      
+      
       if (data_to_destroy->classes_loaded && env != nullptr) {
         should_cleanup_classes = true;
         jclass helper_class = googleapiavailabilityhelper::GetClass();
@@ -295,7 +303,7 @@ void Terminate(JNIEnv* env) {
       env->DeleteLocalRef(helper_class_local);
     }
     {
-      MutexLock lock(*g_availability_mutex);
+      MutexLock lock(GetAvailabilityMutex());
       if (g_initialized_count == 0) {
         ReleaseClasses(env);
         firebase::util::Terminate(env);
@@ -309,7 +317,7 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
   if (!env || !activity) return kAvailabilityUnavailableOther;
   std::shared_ptr<AvailabilityData> data;
   {
-    MutexLock lock(*g_availability_mutex);
+    MutexLock lock(GetAvailabilityMutex());
     if (GetAvailabilityDataLocked() == nullptr) {
       if (!Initialize(env, activity)) {
         // Only initializes if necessary, e.g. before App.
@@ -340,7 +348,7 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
         if (result == ConnectionResultToAvailability[i].java) {
           Availability availability = ConnectionResultToAvailability[i].cpp;
           if (availability == kAvailabilityAvailable) {
-            MutexLock lock(*g_availability_mutex);
+            MutexLock lock(GetAvailabilityMutex());
             data->cached_availability = availability;
             data->fetched_availability = true;
           }
@@ -367,7 +375,7 @@ void CallMakeAvailable(void* data) {
     jclass helper_class_local = nullptr;
     jmethodID make_available_method = nullptr;
     {
-      MutexLock lock(*g_availability_mutex);
+      MutexLock lock(GetAvailabilityMutex());
       std::shared_ptr<AvailabilityData> current_data =
           GetAvailabilityDataLocked();
       if (current_data != nullptr &&
@@ -423,7 +431,7 @@ Future<void> MakeAvailable(JNIEnv* env, jobject activity) {
   int complete_error = 0;
   const char* complete_message = "";
   {
-    MutexLock lock(*g_availability_mutex);
+    MutexLock lock(GetAvailabilityMutex());
     bool is_initialized = (GetAvailabilityDataLocked() != nullptr);
     if (!is_initialized) {
       is_initialized = InitializeLocked(env, activity);
@@ -488,7 +496,7 @@ Future<void> MakeAvailable(JNIEnv* env, jobject activity) {
 Future<void> MakeAvailableLastResult() {
   std::shared_ptr<AvailabilityData> data;
   {
-    MutexLock lock(*g_availability_mutex);
+    MutexLock lock(GetAvailabilityMutex());
     data = GetAvailabilityDataLocked();
   }
   if (data != nullptr) {

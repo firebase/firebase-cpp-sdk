@@ -27,8 +27,7 @@
 #include "firestore/src/include/firebase/future.h"
 #include "firestore/src/jni/jni_fwd.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 // This is the Android implementation of CollectionReference.
 class CollectionReferenceInternal : public QueryInternal {
@@ -52,11 +51,11 @@ class CollectionReferenceInternal : public QueryInternal {
 
   static void Initialize(jni::Loader& loader);
 
-  const std::string& id() const;
-  const std::string& path() const;
-  DocumentReference Parent() const;
-  DocumentReference Document() const;
-  DocumentReference Document(const std::string& document_path) const;
+  [[nodiscard]] const std::string& id() const;
+  [[nodiscard]] const std::string& path() const;
+  [[nodiscard]] DocumentReference Parent() const;
+  [[nodiscard]] DocumentReference Document() const;
+  [[nodiscard]] DocumentReference Document(const std::string& document_path) const;
   Future<DocumentReference> Add(const MapFieldValue& data);
 
  private:
@@ -68,6 +67,5 @@ class CollectionReferenceInternal : public QueryInternal {
   mutable std::string cached_path_;
 };
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_COLLECTION_REFERENCE_ANDROID_H_

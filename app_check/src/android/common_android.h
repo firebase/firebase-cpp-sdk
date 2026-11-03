@@ -66,7 +66,7 @@ class AndroidAppCheckProvider : public AppCheckProvider {
   /// custom App Check providers.
   void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) override;
+          completion_callback) ;
 
  private:
   jobject android_provider_;

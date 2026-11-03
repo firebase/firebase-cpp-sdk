@@ -14,6 +14,8 @@
 
 #include "functions/src/ios/callable_reference_ios.h"
 
+#import "FirebaseFunctions-Swift.h"
+
 #include <memory>
 #include <utility>
 
@@ -38,7 +40,9 @@ enum HttpsCallableReferenceFn {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, std::unique_ptr<FIRHTTPSCallablePointer> impl)
-    : functions_(functions), impl_(std::move(impl)) {
+    : functions_(functions),
+      impl_(std::move(impl)),
+      ref_lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
   if (functions_) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -46,6 +50,10 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
+  if (ref_lifetime_state_) {
+    MutexLock lock(ref_lifetime_state_->mutex);
+    ref_lifetime_state_->alive = false;
+  }
   if (functions_) {
     functions_->future_manager().ReleaseFutureApi(this);
   }
@@ -53,8 +61,9 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
-    : functions_(other.functions_) {
-  impl_.reset(new FIRHTTPSCallablePointer(other.impl()));
+    : functions_(other.functions_),
+      impl_(std::make_unique<FIRHTTPSCallablePointer>(other.impl())),
+      ref_lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
   if (functions_) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -66,8 +75,13 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &other) {
     return *this;
   }
-  impl_.reset(new FIRHTTPSCallablePointer(other.impl()));
+  impl_ = std::make_unique<FIRHTTPSCallablePointer>(other.impl());
   if (functions_ != other.functions_) {
+    if (ref_lifetime_state_) {
+      MutexLock lock(ref_lifetime_state_->mutex);
+      ref_lifetime_state_->alive = false;
+    }
+    ref_lifetime_state_ = std::make_shared<FunctionsLifetimeState>();
     if (functions_) {
       functions_->future_manager().ReleaseFutureApi(this);
     }
@@ -80,12 +94,11 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other) noexcept
-    : functions_(other.functions_), impl_(std::move(other.impl_)) {
-  other.functions_ = nullptr;
-  other.impl_.reset(new FIRHTTPSCallablePointer(nil));
+    : functions_(std::exchange(other.functions_, nullptr)),
+      impl_(std::move(other.impl_)),
+      ref_lifetime_state_(std::move(other.ref_lifetime_state_)) {
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&other, this);
   }
@@ -96,19 +109,21 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &other) {
     return *this;
   }
+  if (ref_lifetime_state_) {
+    MutexLock lock(ref_lifetime_state_->mutex);
+    ref_lifetime_state_->alive = false;
+  }
   if (functions_) {
     functions_->future_manager().ReleaseFutureApi(this);
   }
-  functions_ = other.functions_;
+  functions_ = std::exchange(other.functions_, nullptr);
   impl_ = std::move(other.impl_);
-  other.functions_ = nullptr;
-  other.impl_.reset(new FIRHTTPSCallablePointer(nil));
+  ref_lifetime_state_ = std::move(other.ref_lifetime_state_);
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&other, this);
   }
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 Functions* HttpsCallableReferenceInternal::functions() const {
   if (!functions_) return nullptr;
@@ -129,13 +144,16 @@ bool HttpsCallableReferenceInternal::operator==(
 
 namespace {
 void CompleteFromCompletionBlock(
-    const std::shared_ptr<FunctionsLifetimeState>& lifetime_state,
+    const std::shared_ptr<FunctionsLifetimeState>& functions_lifetime,
+    const std::shared_ptr<FunctionsLifetimeState>& ref_lifetime,
     ReferenceCountedFutureImpl* future_impl,
     SafeFutureHandle<HttpsCallableResult> handle,
     FIRHTTPSCallableResult* result, NSError* error) {
-  if (!lifetime_state || !future_impl) return;
-  MutexLock lock(lifetime_state->mutex);
-  if (!lifetime_state->alive) return;
+  if (!functions_lifetime || !ref_lifetime || !future_impl) return;
+  MutexLock fn_lock(functions_lifetime->mutex);
+  if (!functions_lifetime->alive) return;
+  MutexLock ref_lock(ref_lifetime->mutex);
+  if (!ref_lifetime->alive) return;
 
   if (error) {
     Error code = FunctionsInternal::ErrorFromNSError(error);
@@ -165,12 +183,16 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
   }
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
-  std::shared_ptr<FunctionsLifetimeState> lifetime =
+  std::shared_ptr<FunctionsLifetimeState> fn_lifetime =
       functions_->lifetime_state();
-  [impl() callWithCompletion:^(FIRHTTPSCallableResult* _Nullable result,
-                               NSError* _Nullable error) {
-    CompleteFromCompletionBlock(lifetime, future_impl, handle, result, error);
-  }];
+  std::shared_ptr<FunctionsLifetimeState> ref_lifetime = ref_lifetime_state_;
+  @autoreleasepool {
+    [impl() callWithCompletion:^(FIRHTTPSCallableResult* _Nullable result,
+                                 NSError* _Nullable error) {
+      CompleteFromCompletionBlock(fn_lifetime, ref_lifetime, future_impl,
+                                  handle, result, error);
+    }];
+  }
   return MakeFuture(future_impl, handle);
 }
 
@@ -182,15 +204,19 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   }
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
-  id objc_data = util::VariantToId(data);
-  std::shared_ptr<FunctionsLifetimeState> lifetime =
+  std::shared_ptr<FunctionsLifetimeState> fn_lifetime =
       functions_->lifetime_state();
-  [impl() callWithObject:objc_data
-              completion:^(FIRHTTPSCallableResult* _Nullable result,
-                           NSError* _Nullable error) {
-                CompleteFromCompletionBlock(lifetime, future_impl, handle,
-                                            result, error);
-              }];
+  std::shared_ptr<FunctionsLifetimeState> ref_lifetime = ref_lifetime_state_;
+  @autoreleasepool {
+    id objc_data = util::VariantToId(data);
+    [impl() callWithObject:objc_data
+                completion:^(FIRHTTPSCallableResult* _Nullable result,
+                             NSError* _Nullable error) {
+                  CompleteFromCompletionBlock(fn_lifetime, ref_lifetime,
+                                              future_impl, handle, result,
+                                              error);
+                }];
+  }
   return MakeFuture(future_impl, handle);
 }
 

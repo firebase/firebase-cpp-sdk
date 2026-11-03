@@ -27,8 +27,7 @@
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/jni/jni_fwd.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 class Firestore;
 
@@ -207,6 +206,5 @@ class DocumentReferenceInternal : public Wrapper {
   mutable std::string cached_path_;
 };
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
