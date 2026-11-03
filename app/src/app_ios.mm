@@ -357,44 +357,46 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
   }
 }
 
-// Guards g_partial_apps.
-static Mutex* g_partial_apps_mutex = new Mutex();
-// Stores partially initialized apps, indexed by app name
-static std::map<std::string, App*>* g_partial_apps;
+namespace {
+template <typename T>
+class NoDestructor {
+ public:
+  NoDestructor() { new (storage_) T(); }
+  T& get() { return *reinterpret_cast<T*>(storage_); }
+ private:
+  alignas(T) char storage_[sizeof(T)];
+};
+
+std::mutex& GetPartialAppsMutex() {
+  static NoDestructor<std::mutex> m;
+  return m.get();
+}
+
+std::map<std::string, App*, std::less<>>& GetPartialAppsMap() {
+  static NoDestructor<std::map<std::string, App*, std::less<>>> m;
+  return m.get();
+}
+}  // namespace
 
 App* FindPartialAppByName(const char* name) {
   assert(name);
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(name));
-    if (it == g_partial_apps->end()) {
-      return nullptr;
-    }
-    return it->second;
+  std::lock_guard<std::mutex> lock(GetPartialAppsMutex());
+  auto& map = GetPartialAppsMap();
+  auto it = map.find(name); // Uses transparent std::less<>
+  if (it == map.end()) {
+    return nullptr;
   }
-  return nullptr;
+  return it->second;
 }
 
 void AddPartialApp(App* app) {
-  MutexLock lock(*g_partial_apps_mutex);
-  if (!g_partial_apps) {
-    g_partial_apps = new std::map<std::string, App*>();
-  }
-  (*g_partial_apps)[std::string(app->name())] = app;
+  std::lock_guard<std::mutex> lock(GetPartialAppsMutex());
+  GetPartialAppsMap()[std::string(app->name())] = app;
 }
 
 void RemovePartialApp(App* app) {
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(app->name()));
-    if (it != g_partial_apps->end()) {
-      g_partial_apps->erase(it);
-      if (g_partial_apps->empty()) {
-        delete g_partial_apps;
-        g_partial_apps = nullptr;
-      }
-    }
-  }
+  std::lock_guard<std::mutex> lock(GetPartialAppsMutex());
+  GetPartialAppsMap().erase(app->name()); // Uses transparent std::less<>
 }
 
 }  // namespace internal

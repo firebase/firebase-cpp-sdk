@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_
 #define FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_
 
+#include <condition_variable>
+#include <thread>
 #include <map>
 #include <vector>
 
@@ -94,6 +96,9 @@ class CleanupNotifier {
   std::mutex mutex_;
   std::map<void *, CleanupCallback> callbacks_;
   bool cleaned_up_;
+  std::condition_variable cv_;
+  void* in_flight_object_ = nullptr;
+  std::thread::id in_flight_thread_;
   // List of owners of this notifier.
   // This is the inverse of cleanup_notifiers_by_owner_ for a notifier.
   std::vector<void *> owners_;

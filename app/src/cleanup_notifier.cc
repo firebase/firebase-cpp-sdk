@@ -1,60 +1,35 @@
-/*
- * Copyright 2018 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "app/src/cleanup_notifier.h"
 
 #include <assert.h>
 #include <algorithm>
-#include <condition_variable>
-#include <map>
-#include <memory>
 #include <mutex>
 #include <thread>
+#include <map>
 #include <vector>
+#include <new>
 
 namespace firebase {
 
 namespace {
 
-struct NotifierState {
-  void* in_flight_object = nullptr;
-  std::thread::id in_flight_thread;
-  std::condition_variable cv;
+template <typename T>
+class NoDestructor {
+ public:
+  NoDestructor() { new (storage_) T(); }
+  T& get() { return *reinterpret_cast<T*>(storage_); }
+ private:
+  alignas(T) char storage_[sizeof(T)];
 };
 
-std::mutex& GetStateMutex() {
-  static std::mutex* m = new std::mutex();
-  return *m;
-}
-
-std::map<CleanupNotifier*, std::unique_ptr<NotifierState>>& GetStatesMap() {
-  static auto* m = new std::map<CleanupNotifier*, std::unique_ptr<NotifierState>>();
-  return *m;
-}
-
 std::mutex& GetOwnersMutex() {
-  static std::mutex* m = new std::mutex();
-  return *m;
+  static NoDestructor<std::mutex> m;
+  return m.get();
 }
 
 std::map<void *, CleanupNotifier *>& GetOwnersMap() {
-  static auto* m = new std::map<void *, CleanupNotifier *>();
-  return *m;
+  static NoDestructor<std::map<void *, CleanupNotifier *>> m;
+  return m.get();
 }
-
 }  // namespace
 
 CleanupNotifier::CleanupNotifier() : cleaned_up_(false) {}
@@ -70,55 +45,32 @@ void CleanupNotifier::RegisterObject(void *object, CleanupCallback callback) {
 }
 
 void CleanupNotifier::UnregisterObject(void *object) {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    callbacks_.erase(object);
-  }
-  std::unique_lock<std::mutex> state_lock(GetStateMutex());
-  GetStatesMap()[this]->cv.wait(state_lock, [&]() {
-    auto it = GetStatesMap().find(this);
-    if (it == GetStatesMap().end()) return true;
-    auto& state = *(it->second);
-    if (state.in_flight_object == object && state.in_flight_thread != std::this_thread::get_id()) {
-      return false;
-    }
-    return true;
+  std::unique_lock<std::mutex> lock(mutex_);
+  callbacks_.erase(object);
+  cv_.wait(lock, [&]() {
+    return in_flight_object_ != object || in_flight_thread_ == std::this_thread::get_id();
   });
 }
 
 void CleanupNotifier::CleanupAll() {
-  bool needs_cleanup = false;
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!cleaned_up_) {
-      cleaned_up_ = true;
-      needs_cleanup = true;
-    }
-  }
-  if (!needs_cleanup) return;
-
-  {
-    std::lock_guard<std::mutex> state_lock(GetStateMutex());
-    GetStatesMap()[this] = std::make_unique<NotifierState>();
-  }
-
   while (true) {
     void* obj = nullptr;
     CleanupCallback cb = nullptr;
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      if (callbacks_.empty()) break;
+      if (cleaned_up_ && callbacks_.empty()) {
+        break;
+      }
+      if (callbacks_.empty()) {
+        cleaned_up_ = true;
+        break;
+      }
       auto it = callbacks_.begin();
       obj = it->first;
       cb = std::move(it->second);
       callbacks_.erase(it);
-    }
-    
-    {
-      std::lock_guard<std::mutex> state_lock(GetStateMutex());
-      auto& state = *(GetStatesMap()[this]);
-      state.in_flight_object = obj;
-      state.in_flight_thread = std::this_thread::get_id();
+      in_flight_object_ = obj;
+      in_flight_thread_ = std::this_thread::get_id();
     }
     
     if (cb) {
@@ -126,23 +78,17 @@ void CleanupNotifier::CleanupAll() {
     }
     
     {
-      std::lock_guard<std::mutex> state_lock(GetStateMutex());
-      auto& state = *(GetStatesMap()[this]);
-      state.in_flight_object = nullptr;
-      state.in_flight_thread = std::thread::id();
-      state.cv.notify_all();
+      std::lock_guard<std::mutex> lock(mutex_);
+      in_flight_object_ = nullptr;
+      in_flight_thread_ = std::thread::id();
+      cv_.notify_all();
     }
-  }
-  
-  {
-    std::lock_guard<std::mutex> state_lock(GetStateMutex());
-    GetStatesMap().erase(this);
   }
 }
 
 void CleanupNotifier::UnregisterAllOwners() {
   std::lock_guard<std::mutex> lock(GetOwnersMutex());
-  while (owners_.begin() != owners_.end()) {
+  while (!owners_.empty()) {
     UnregisterOwner(GetOwnersMap().find(owners_[0]));
   }
 }
@@ -184,5 +130,4 @@ CleanupNotifier *CleanupNotifier::FindByOwner(void *owner) {
   return it != map.end() ? it->second : nullptr;
 }
 
-// NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase

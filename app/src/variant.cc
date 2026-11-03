@@ -18,6 +18,7 @@
 
 #include <limits.h>
 #include <stdlib.h>
+#include <utility>
 
 #include <cmath>
 #include <cassert>
@@ -33,66 +34,9 @@ namespace firebase {
 
 Variant& Variant::operator=(const Variant& other) {
   if (this != &other) {
-    Variant temp;
-    temp.type_ = kInternalTypeNull;
-    temp.Clear(static_cast<Type>(other.type_));
-    switch (temp.type_) {
-      case kInternalTypeNull: {
-        break;
-      }
-      case kInternalTypeInt64: {
-        temp.set_int64_value(other.int64_value());
-        break;
-      }
-      case kInternalTypeDouble: {
-        temp.set_double_value(other.double_value());
-        break;
-      }
-      case kInternalTypeBool: {
-        temp.set_bool_value(other.bool_value());
-        break;
-      }
-      case kInternalTypeStaticString: {
-        temp.set_string_value(other.string_value());
-        break;
-      }
-      case kInternalTypeMutableString: {
-        temp.set_mutable_string(other.mutable_string());
-        break;
-      }
-      case kInternalTypeSmallString: {
-        strcpy(temp.value_.small_string, other.value_.small_string);  // NOLINT
-        break;
-      }
-      case kInternalTypeVector: {
-        temp.set_vector(other.vector());
-        break;
-      }
-      case kInternalTypeMap: {
-        temp.set_map(other.map());
-        break;
-      }
-      case kInternalTypeStaticBlob: {
-        temp.set_blob_pointer(other.value_.blob_value.ptr,
-                              other.value_.blob_value.size);
-        break;
-      }
-      case kInternalTypeMutableBlob: {
-        temp.set_mutable_blob(other.value_.blob_value.ptr,
-                              other.value_.blob_value.size);
-        break;
-      }
-      case kMaxTypeValue:
-        FIREBASE_ASSERT(false);  // Should never hit this
-        break;
-    }
-
-    InternalType swap_type = type_;
-    Value swap_value = value_;
-    type_ = temp.type_;
-    value_ = temp.value_;
-    temp.type_ = swap_type;
-    temp.value_ = swap_value;
+    Variant temp(other);
+    std::swap(type_, temp.type_);
+    std::swap(value_, temp.value_);
   }
   return *this;
 }
@@ -538,7 +482,7 @@ Variant Variant::AsString() const {
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
-      return Variant::FromMutableString(string_value());
+      return *this;
     }
     default: {
       return Variant::FromMutableString("");
@@ -602,8 +546,7 @@ Variant Variant::AsBool() const {
 }
 
 const char* Variant::TypeName(Variant::Type t) {
-  FIREBASE_ASSERT(t >= 0 && t <= kTypeMutableBlob);
-  if (t < 0 || t > kTypeMutableBlob) abort();
+  if (t < 0 || t > kTypeMutableBlob) return "Unknown";
   return kTypeNames[t];
 }
 

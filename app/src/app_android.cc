@@ -310,7 +310,7 @@ jobject AppOptionsToPlatformOptions(JNIEnv* jni_env,
 void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
                                  AppOptions* app_options) {
   if (!firebase_options || !app_options) return;
-  if (!strlen(app_options->api_key())) {
+  if ((app_options->api_key()[0] == \'\0\')) {
     jobject api_key = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetApiKey));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -319,7 +319,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (api_key) jni_env->DeleteLocalRef(api_key);
   }
-  if (!strlen(app_options->app_id())) {
+  if ((app_options->app_id()[0] == \'\0\')) {
     jobject app_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetApplicationId));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -327,7 +327,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (app_id) jni_env->DeleteLocalRef(app_id);
   }
-  if (!strlen(app_options->database_url())) {
+  if ((app_options->database_url()[0] == \'\0\')) {
     jobject database_url = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetDatabaseUrl));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -336,7 +336,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (database_url) jni_env->DeleteLocalRef(database_url);
   }
-  if (!strlen(app_options->messaging_sender_id())) {
+  if ((app_options->messaging_sender_id()[0] == \'\0\')) {
     jobject gcm_sender_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetGcmSenderId));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -345,7 +345,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (gcm_sender_id) jni_env->DeleteLocalRef(gcm_sender_id);
   }
-  if (!strlen(app_options->storage_bucket())) {
+  if ((app_options->storage_bucket()[0] == \'\0\')) {
     jobject storage_bucket = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetStorageBucket));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -354,7 +354,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (storage_bucket) jni_env->DeleteLocalRef(storage_bucket);
   }
-  if (!strlen(app_options->project_id())) {
+  if ((app_options->project_id()[0] == \'\0\')) {
     jobject project_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetProjectId));
     if (!util::CheckAndClearJniExceptions(jni_env)) {
@@ -363,7 +363,7 @@ void PlatformOptionsToAppOptions(JNIEnv* jni_env, jobject firebase_options,
     }
     if (project_id) jni_env->DeleteLocalRef(project_id);
   }
-  if (!strlen(app_options->ga_tracking_id()) &&
+  if ((app_options->ga_tracking_id()[0] == \'\0\') &&
       options::GetMethodId(options::kGetGaTrackingId) != nullptr) {
     jobject ga_tracking_id = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetGaTrackingId));
@@ -464,7 +464,7 @@ jobject CreateOrGetPlatformApp(JNIEnv* jni_env, const AppOptions& options,
     // If a FirebaseApp exists, make sure it has the requested options.
     AppOptions existing_options;
     GetAppOptionsFromPlatformApp(jni_env, platform_app, &existing_options);
-    if (!strlen(existing_options.ga_tracking_id())) {
+    if ((existing_options.ga_tracking_id()[0] == \'\0\')) {
       options_to_compare.set_ga_tracking_id("");
     }
     if (options_to_compare != existing_options) {
@@ -609,7 +609,7 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
       app->activity_ = jni_env->NewGlobalRef(activity);
       app->options_ = options;
       GetAppOptionsFromPlatformApp(jni_env, platform_app, &app->options_);
-      if (!strlen(app->options_.package_name()) &&
+      if ((app->options_.package_name()[0] == \'\0\') &&
           util::context::GetMethodId(util::context::kGetPackageName)) {
         jobject package_name = jni_env->CallObjectMethod(
             activity,

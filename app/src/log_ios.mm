@@ -19,6 +19,8 @@
 #import <Foundation/Foundation.h>
 
 #include <atomic>
+#include <vector>
+#include <iterator>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -38,8 +40,8 @@ static NSString* const kLogLevelInfoPlistKey = @"FIRCPPLogLevel";
 static std::atomic<bool> g_platform_log_level_set{false};
 static std::atomic<bool> g_read_log_level_from_plist{false};
 
-static Mutex* GetIosLogMutex() {
-  static Mutex* mutex = new Mutex();
+static Mutex& GetIosLogMutex() {
+  static Mutex mutex;
   return mutex;
 }
 
@@ -58,7 +60,7 @@ static const FIRLoggerLevel kCppToIOSLogLevel[] = {
 // Initialize the logging system.
 void LogInitialize() {
   if (g_read_log_level_from_plist.load(std::memory_order_acquire)) return;
-  MutexLock lock(*GetIosLogMutex());
+  MutexLock lock(GetIosLogMutex());
   if (g_read_log_level_from_plist.load(std::memory_order_relaxed)) return;
   @autoreleasepool {
     if (!g_platform_log_level_set.load(std::memory_order_acquire)) {
@@ -95,7 +97,7 @@ void LogInitialize() {
 
 static void LogSetPlatformLevelLocked(LogLevel level) {
   g_platform_log_level_set.store(true, std::memory_order_relaxed);
-  const size_t kNumLevels = FIREBASE_ARRAYSIZE(kCppToIOSLogLevel);
+  const size_t kNumLevels = std::size(kCppToIOSLogLevel);
   size_t index = (level >= kLogLevelVerbose &&
                   static_cast<size_t>(level) < kNumLevels)
                      ? static_cast<size_t>(level)
@@ -105,7 +107,7 @@ static void LogSetPlatformLevelLocked(LogLevel level) {
 
 // Set the platform specific SDK log level.
 void LogSetPlatformLevel(LogLevel level) {
-  MutexLock lock(*GetIosLogMutex());
+  MutexLock lock(GetIosLogMutex());
   LogSetPlatformLevelLocked(level);
 }
 
@@ -116,13 +118,17 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
   va_copy(args_copy, args);
   char message_buffer[1024];
   int result = vsnprintf(message_buffer, sizeof(message_buffer), format, args);
+  
+  std::vector<char> dynamic_buffer;
   char* final_buffer = message_buffer;
+  
   if (result < 0) {
     va_end(args_copy);
     return;
   }
   if (static_cast<size_t>(result) >= sizeof(message_buffer)) {
-    final_buffer = new char[result + 1];
+    dynamic_buffer.resize(result + 1);
+    final_buffer = dynamic_buffer.data();
     vsnprintf(final_buffer, result + 1, format, args_copy);
   }
   va_end(args_copy);
@@ -159,9 +165,6 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
         NSLog(@"UNKNOWN: %@", message);
         break;
     }
-  }
-  if (final_buffer != message_buffer) {
-    delete[] final_buffer;
   }
 }
 
