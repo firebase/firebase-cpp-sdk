@@ -41,13 +41,6 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
-FIREBASE_APP_REGISTER_CALLBACKS(
-    remote_config, { return ::firebase::kInitResultSuccess; },
-    {
-      // Nothing to do, CleanupNotifier handles cleanup.
-    },
-    false);
-
 namespace firebase {
 namespace remote_config {
 

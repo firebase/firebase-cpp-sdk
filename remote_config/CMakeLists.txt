@@ -17,6 +17,7 @@
 # Common source files used by all platforms
 set(common_SRCS
     src/cleanup.h
+    src/common.cc
     src/config_update_listener_registration.cc
     src/config_update_listener_registration_internal.cc
     src/remote_config.cc)
