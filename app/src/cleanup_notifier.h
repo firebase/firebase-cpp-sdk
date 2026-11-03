@@ -18,12 +18,12 @@
 #define FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_
 
 #include <condition_variable>
-#include <thread>
-#include <map>
-#include <vector>
-
-#include <mutex>
 #include <functional>
+#include <map>
+#include <mutex>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace firebase {
 
@@ -92,18 +92,14 @@ class CleanupNotifier {
   static void UnregisterOwner(std::map<void *, CleanupNotifier *>::iterator it);
 
  private:
-  // Guards callbacks_ and cleaned_up_.
+  // Guards callbacks_, in_flight_objects_, and in_flight_thread_.
   std::mutex mutex_;
   std::map<void *, CleanupCallback> callbacks_;
-  bool cleaned_up_;
   std::condition_variable cv_;
-  void* in_flight_object_ = nullptr;
+  std::vector<void *> in_flight_objects_;
   std::thread::id in_flight_thread_;
-  // List of owners of this notifier.
-  // This is the inverse of cleanup_notifiers_by_owner_ for a notifier.
+  // List of owner objects registered with this notifier.
   std::vector<void *> owners_;
-
-
 };
 
 // Typed wrapper for CleanupNotifier. Helpful if you only need to clean
@@ -111,11 +107,11 @@ class CleanupNotifier {
 template <typename T>
 class TypedCleanupNotifier {
  public:
-  typedef void (*CleanupCallback)(T *object);
+  using CleanupCallback = std::function<void(T *)>;
 
   void RegisterObject(T *object, CleanupCallback callback) {
-    notifier_.RegisterObject(object, [callback](void* obj) {
-      callback(static_cast<T*>(obj));
+    notifier_.RegisterObject(object, [cb = std::move(callback)](void *obj) {
+      if (cb) cb(static_cast<T *>(obj));
     });
   }
 

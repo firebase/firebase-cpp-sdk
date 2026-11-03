@@ -57,6 +57,16 @@ static const FIRLoggerLevel kCppToIOSLogLevel[] = {
     FIRLoggerLevelError,    // kLogLevelAssert,
 };
 
+static void LogSetPlatformLevelLocked(LogLevel level) {
+  g_platform_log_level_set.store(true, std::memory_order_relaxed);
+  const size_t kNumLevels = std::size(kCppToIOSLogLevel);
+  size_t index = (level >= kLogLevelVerbose &&
+                  static_cast<size_t>(level) < kNumLevels)
+                     ? static_cast<size_t>(level)
+                     : static_cast<size_t>(kLogLevelInfo);
+  firebase::internal::SetFirConfigurationLoggerLevel(kCppToIOSLogLevel[index]);
+}
+
 // Initialize the logging system.
 void LogInitialize() {
   if (g_read_log_level_from_plist.load(std::memory_order_acquire)) return;
@@ -93,16 +103,6 @@ void LogInitialize() {
     LogSetPlatformLevelLocked(GetLogLevel());
   }
   g_read_log_level_from_plist.store(true, std::memory_order_release);
-}
-
-static void LogSetPlatformLevelLocked(LogLevel level) {
-  g_platform_log_level_set.store(true, std::memory_order_relaxed);
-  const size_t kNumLevels = std::size(kCppToIOSLogLevel);
-  size_t index = (level >= kLogLevelVerbose &&
-                  static_cast<size_t>(level) < kNumLevels)
-                     ? static_cast<size_t>(level)
-                     : static_cast<size_t>(kLogLevelInfo);
-  firebase::internal::SetFirConfigurationLoggerLevel(kCppToIOSLogLevel[index]);
 }
 
 // Set the platform specific SDK log level.

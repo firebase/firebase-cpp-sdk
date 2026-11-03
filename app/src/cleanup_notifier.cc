@@ -51,7 +51,7 @@ std::map<void *, CleanupNotifier *>& GetOwnersMap() {
 }
 }  // namespace
 
-CleanupNotifier::CleanupNotifier() : cleaned_up_(false) {}
+CleanupNotifier::CleanupNotifier() = default;
 
 CleanupNotifier::~CleanupNotifier() {
   CleanupAll();
@@ -60,7 +60,6 @@ CleanupNotifier::~CleanupNotifier() {
 
 void CleanupNotifier::RegisterObject(void *object, CleanupCallback callback) {
   std::scoped_lock lock(mutex_);
-  cleaned_up_ = false;
   callbacks_[object] = std::move(callback);
 }
 
@@ -68,8 +67,9 @@ void CleanupNotifier::UnregisterObject(void *object) {
   std::unique_lock<std::mutex> lock(mutex_);
   callbacks_.erase(object);
   cv_.wait(lock, [&]() {
-    return in_flight_object_ != object ||
-           in_flight_thread_ == std::this_thread::get_id();
+    if (in_flight_thread_ == std::this_thread::get_id()) return true;
+    return std::find(in_flight_objects_.begin(), in_flight_objects_.end(),
+                     object) == in_flight_objects_.end();
   });
 }
 
@@ -77,39 +77,49 @@ void CleanupNotifier::CleanupAll() {
   std::unique_lock<std::mutex> lock(mutex_);
   while (true) {
     cv_.wait(lock, [&]() {
-      return in_flight_object_ == nullptr ||
+      return in_flight_objects_.empty() ||
              in_flight_thread_ == std::this_thread::get_id();
     });
     if (callbacks_.empty()) {
-      cleaned_up_ = true;
       break;
     }
     auto it = callbacks_.begin();
     void* obj = it->first;
     CleanupCallback cb = std::move(it->second);
     callbacks_.erase(it);
-    void* prev_in_flight_object = in_flight_object_;
-    std::thread::id prev_in_flight_thread = in_flight_thread_;
-    in_flight_object_ = obj;
+    in_flight_objects_.push_back(obj);
     in_flight_thread_ = std::this_thread::get_id();
     lock.unlock();
+
+    struct InFlightGuard {
+      CleanupNotifier* self;
+      std::unique_lock<std::mutex>& lock;
+      ~InFlightGuard() {
+        lock.lock();
+        self->in_flight_objects_.pop_back();
+        if (self->in_flight_objects_.empty()) {
+          self->in_flight_thread_ = std::thread::id();
+        }
+        self->cv_.notify_all();
+      }
+    } guard{this, lock};
 
     if (cb) {
       cb(obj);
     }
-
-    lock.lock();
-    in_flight_object_ = prev_in_flight_object;
-    in_flight_thread_ = prev_in_flight_thread;
-    cv_.notify_all();
   }
 }
 
 void CleanupNotifier::UnregisterAllOwners() {
   std::scoped_lock lock(GetOwnersMutex());
-  while (!owners_.empty()) {
-    UnregisterOwner(GetOwnersMap().find(owners_[0]));
+  auto& map = GetOwnersMap();
+  for (void* owner : owners_) {
+    auto it = map.find(owner);
+    if (it != map.end() && it->second == this) {
+      map.erase(it);
+    }
   }
+  owners_.clear();
 }
 
 void CleanupNotifier::RegisterOwner(CleanupNotifier *notifier, void *owner) {
@@ -125,7 +135,9 @@ void CleanupNotifier::UnregisterOwner(CleanupNotifier *notifier, void *owner) {
   std::scoped_lock lock(GetOwnersMutex());
   auto& map = GetOwnersMap();
   auto it = map.find(owner);
-  if (it != map.end()) UnregisterOwner(it);
+  if (it != map.end() && it->second == notifier) {
+    UnregisterOwner(it);
+  }
 }
 
 void CleanupNotifier::UnregisterOwner(

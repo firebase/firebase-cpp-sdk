@@ -59,7 +59,7 @@ Variant& Variant::operator=(const Variant& other) {
         break;
       }
       case kInternalTypeMutableString: {
-        temp.set_mutable_string(other.mutable_string());
+        temp.set_mutable_string(*other.value_.mutable_string_value);
         break;
       }
       case kInternalTypeSmallString: {
@@ -166,20 +166,6 @@ Variant& Variant::operator=(Variant&& other) noexcept {
 
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
-static int CompareStrings(const Variant& left, const Variant& right) {
-  const std::string l_buf =
-      left.is_mutable_string() ? left.mutable_string() : std::string();
-  const std::string r_buf =
-      right.is_mutable_string() ? right.mutable_string() : std::string();
-  std::string_view l_view = left.is_mutable_string()
-                                ? std::string_view(l_buf)
-                                : std::string_view(left.string_value());
-  std::string_view r_view = right.is_mutable_string()
-                                ? std::string_view(r_buf)
-                                : std::string_view(right.string_value());
-  return l_view.compare(r_view);
-}
-
 bool Variant::operator==(const Variant& other) const {
   // If types don't match and we aren't both strings or blobs, fail.
   if (type_ != other.type_ && !(is_string() && other.is_string()) &&
@@ -198,9 +184,18 @@ bool Variant::operator==(const Variant& other) const {
       return bool_value() == other.bool_value();
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
-    case kInternalTypeSmallString:
+    case kInternalTypeSmallString: {
       // string == performs string comparison (handles embedded nulls)
-      return CompareStrings(*this, other) == 0;
+      std::string_view l_view =
+          type_ == kInternalTypeMutableString
+              ? std::string_view(*value_.mutable_string_value)
+              : std::string_view(string_value());
+      std::string_view r_view =
+          other.type_ == kInternalTypeMutableString
+              ? std::string_view(*other.value_.mutable_string_value)
+              : std::string_view(other.string_value());
+      return l_view == r_view;
+    }
     case kInternalTypeVector:
       // std::vector == performs element-by-element comparison
       return vector() == other.vector();
@@ -277,8 +272,17 @@ bool Variant::operator<(const Variant& other) const {
     }
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
-    case kInternalTypeSmallString:
-      return CompareStrings(*this, other) < 0;
+    case kInternalTypeSmallString: {
+      std::string_view l_view =
+          type_ == kInternalTypeMutableString
+              ? std::string_view(*value_.mutable_string_value)
+              : std::string_view(string_value());
+      std::string_view r_view =
+          other.type_ == kInternalTypeMutableString
+              ? std::string_view(*other.value_.mutable_string_value)
+              : std::string_view(other.string_value());
+      return l_view < r_view;
+    }
     case kInternalTypeVector: {
       auto i = vector().begin();
       auto j = other.vector().begin();
@@ -517,7 +521,7 @@ Variant Variant::AsString() const {
       return bool_value() ? Variant::FromMutableString("true") : Variant::FromMutableString("false");
     }
     case kInternalTypeMutableString: {
-      return Variant::FromMutableString(mutable_string());
+      return Variant::FromMutableString(*value_.mutable_string_value);
     }
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
@@ -598,11 +602,10 @@ Variant Variant::AsBool() const {
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
-      const std::string buf =
-          is_mutable_string() ? mutable_string() : std::string();
-      std::string_view sv = is_mutable_string()
-                                ? std::string_view(buf)
-                                : std::string_view(string_value());
+      std::string_view sv =
+          type_ == kInternalTypeMutableString
+              ? std::string_view(*value_.mutable_string_value)
+              : std::string_view(string_value());
       if (sv.empty() || sv == "0") return Variant::False();
       if (sv.size() == 5 && (sv[0] == 'f' || sv[0] == 'F') &&
           (sv[1] == 'a' || sv[1] == 'A') && (sv[2] == 'l' || sv[2] == 'L') &&
