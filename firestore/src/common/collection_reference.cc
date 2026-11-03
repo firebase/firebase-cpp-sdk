@@ -18,7 +18,6 @@
 
 #include <utility>
 #include "app/src/include/firebase/future.h"
-#include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/util.h"
@@ -47,7 +46,7 @@ CollectionReference::CollectionReference(const CollectionReference& reference)
                 ? new CollectionReferenceInternal(*reference.internal())
                 : nullptr) {}
 
-CollectionReference::CollectionReference(CollectionReference&& reference) noexcept
+CollectionReference::CollectionReference(CollectionReference&& reference)
     : Query(std::move(reference)) {}
 
 CollectionReference::CollectionReference(CollectionReferenceInternal* internal)
@@ -55,24 +54,15 @@ CollectionReference::CollectionReference(CollectionReferenceInternal* internal)
 
 CollectionReference& CollectionReference::operator=(
     const CollectionReference& reference) {
-  if (this == &reference) {
-    return *this;
-  }
-
-  CleanupFn<Query>::Unregister(this, internal_);
-  delete internal_;
-  if (reference.internal()) {
-    internal_ = new CollectionReferenceInternal(*reference.internal());
-  } else {
-    internal_ = nullptr;
-  }
-  CleanupFn<Query>::Register(this, internal_);
+  CollectionReference tmp(reference);
+  Query::operator=(std::move(tmp));
   return *this;
 }
 
 CollectionReference& CollectionReference::operator=(
-    CollectionReference&& reference) {
-  Query::operator=(std::move(reference));
+    const CollectionReference& reference) {
+  CollectionReference tmp(reference);
+  Query::operator=(std::move(tmp));
   return *this;
 }
 
@@ -111,9 +101,6 @@ DocumentReference CollectionReference::Document(
 
 DocumentReference CollectionReference::Document(
     const std::string& document_path) const {
-  if (document_path.empty()) {
-    SimpleThrowInvalidArgument("Document path cannot be empty.");
-  }
   return Document(document_path.c_str());
 }
 

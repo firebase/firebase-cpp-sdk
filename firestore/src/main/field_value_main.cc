@@ -172,8 +172,7 @@ MapFieldValue FieldValueInternal::map_value() const {
   return absl::get<MapT>(value_);
 }
 
-std::vector<FieldValue> FieldValueInternal::array_transform_value()
-    const {
+std::vector<FieldValue> FieldValueInternal::array_transform_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kArrayUnion || type_ == Type::kArrayRemove);
   return absl::get<ArrayT>(value_);
 }
@@ -270,7 +269,6 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
 
     case Type::kMap:
       return absl::get<MapT>(lhs.value_) == absl::get<MapT>(rhs.value_);
-
   }
 
   FIRESTORE_UNREACHABLE();

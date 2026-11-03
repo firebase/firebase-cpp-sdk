@@ -141,8 +141,30 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
-  return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
+Firestore* Firestore::GetInstance(App* app,
+                                  const char* db_name,
+                                  InitResult* init_result_out) {
+  ValidateApp(app);
+  ValidateDatabase(db_name);
+
+  Firestore* to_delete = nullptr;
+  Firestore* result = nullptr;
+  {
+    MutexLock lock(*g_firestores_lock);
+    Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
+    if (from_cache) {
+      return from_cache;
+    }
+
+    Firestore* new_firestore = new Firestore(app, db_name);
+    result = AddFirestoreToCache(new_firestore, init_result_out);
+    if (!result) {
+      to_delete = new_firestore;
+    }
+  }
+
+  if (to_delete) delete to_delete;
+  return result;
 }
 
 Firestore* Firestore::GetInstance(const char* db_name,
@@ -162,13 +184,24 @@ Firestore* Firestore::GetInstance(App* app,
   ValidateApp(app);
   ValidateDatabase(db_name);
 
-  MutexLock lock(*g_firestores_lock);
-  Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
-  if (from_cache) {
-    return from_cache;
+  Firestore* to_delete = nullptr;
+  Firestore* result = nullptr;
+  {
+    MutexLock lock(*g_firestores_lock);
+    Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
+    if (from_cache) {
+      return from_cache;
+    }
+
+    Firestore* new_firestore = new Firestore(app, db_name);
+    result = AddFirestoreToCache(new_firestore, init_result_out);
+    if (!result) {
+      to_delete = new_firestore;
+    }
   }
 
-  return AddFirestoreToCache(new Firestore(app, db_name), init_result_out);
+  if (to_delete) delete to_delete;
+  return result;
 }
 
 Firestore* Firestore::CreateFirestore(App* app,
@@ -178,15 +211,26 @@ Firestore* Firestore::CreateFirestore(App* app,
   SIMPLE_HARD_ASSERT(internal != nullptr,
                      "Provided FirestoreInternal must not be null.");
 
-  MutexLock lock(*g_firestores_lock);
+  Firestore* to_delete = nullptr;
+  Firestore* result = nullptr;
+  {
+    MutexLock lock(*g_firestores_lock);
 
-  const std::string& database_id = internal->database_name();
-  Firestore* from_cache =
-      FindFirestoreInCache(app, database_id, init_result_out);
-  SIMPLE_HARD_ASSERT(from_cache == nullptr,
-                     "Firestore must not be created already");
+    const std::string& database_id = internal->database_name();
+    Firestore* from_cache =
+        FindFirestoreInCache(app, database_id, init_result_out);
+    SIMPLE_HARD_ASSERT(from_cache == nullptr,
+                       "Firestore must not be created already");
 
-  return AddFirestoreToCache(new Firestore(internal), init_result_out);
+    Firestore* new_firestore = new Firestore(internal);
+    result = AddFirestoreToCache(new_firestore, init_result_out);
+    if (!result) {
+      to_delete = new_firestore;
+    }
+  }
+
+  if (to_delete) delete to_delete;
+  return result;
 }
 
 Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
@@ -196,14 +240,6 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
     *init_result_out = init_result;
   }
   if (init_result != kInitResultSuccess) {
-    FirestoreInternal* internal = firestore->internal_;
-    firestore->internal_ = nullptr;
-    if (internal) {
-      internal->ClearListeners();
-      internal->cleanup().CleanupAll();
-      delete internal;
-    }
-    delete firestore;
     return nullptr;
   }
 
@@ -245,17 +281,32 @@ Firestore::Firestore(FirestoreInternal* internal) : internal_(internal) {
 Firestore::~Firestore() { DeleteInternal(); }
 
 void Firestore::DeleteInternal() {
-  if (!internal_) return;
-  MutexLock lock(*g_firestores_lock);
+  FirestoreInternal* internal_to_delete = nullptr;
+  App* my_app = nullptr;
+  std::string database_id;
 
-  if (!internal_) return;
+  {
+    MutexLock lock(*g_firestores_lock);
+    if (!internal_) return;
 
-  App* my_app = app();
-  // Store the database id before deleting the firestore instance.
-  const std::string database_id = internal_->database_name();
+    internal_to_delete = internal_;
+    internal_ = nullptr;
+    my_app = internal_to_delete->app();
+    database_id = internal_to_delete->database_name();
 
-  // Only need to unregister if internal_ is initialized.
-  if (internal_->initialized()) {
+    if (g_firestores) {
+      FirestoreMap::key_type key = MakeKey(my_app, database_id);
+      if (auto iter = g_firestores->find(key); iter != g_firestores->end() && iter->second == this) {
+        g_firestores->erase(iter);
+      }
+      if (g_firestores->empty()) {
+        delete g_firestores;
+        g_firestores = nullptr;
+      }
+    }
+  }
+
+  if (internal_to_delete->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
     assert(app_notifier);
     if (app_notifier) {
@@ -263,34 +314,9 @@ void Firestore::DeleteInternal() {
     }
   }
 
-  // Make sure to clear the listeners _before_ triggering cleanup. This avoids
-  // a potential deadlock that can happen if the Firestore instance is destroyed
-  // in parallel with or shortly after a snapshot listener's invocation:
-  // - the thread on which cleanup is being executed holds the cleanup lock and
-  // tries to mute listeners, which requires the listeners' lock;
-  // - in parallel on the user callbacks' thread which holds the listeners'
-  // lock, one of the user callbacks is being destroyed, which leads to an
-  // attempt to unregister an object from cleanup, requiring the cleanup lock.
-  internal_->ClearListeners();
-
-  // Force cleanup to happen first.
-  internal_->cleanup().CleanupAll();
-  delete internal_;
-  internal_ = nullptr;
-
-  // If a Firestore is explicitly deleted, remove it from our cache only if
-  // the cached entry is still this instance (and not a replacement created
-  // after Terminate()).
-  if (g_firestores) {
-    FirestoreMap::key_type key = MakeKey(my_app, database_id);
-    if (auto iter = g_firestores->find(key); iter != g_firestores->end() && iter->second == this) {
-      g_firestores->erase(iter);
-    }
-    if (g_firestores->empty()) {
-      delete g_firestores;
-      g_firestores = nullptr;
-    }
-  }
+  internal_to_delete->ClearListeners();
+  internal_to_delete->cleanup().CleanupAll();
+  delete internal_to_delete;
 }
 
 const App* Firestore::app() const {
@@ -307,7 +333,11 @@ CollectionReference Firestore::Collection(const char* collection_path) const {
   if (!collection_path) {
     SimpleThrowInvalidArgument("Collection path cannot be null.");
   }
-  return Collection(std::string(collection_path));
+  if (collection_path[0] == '\0') {
+    SimpleThrowInvalidArgument("Collection path cannot be empty.");
+  }
+  if (!internal_) return {};
+  return internal_->Collection(collection_path);
 }
 
 CollectionReference Firestore::Collection(
@@ -323,30 +353,30 @@ DocumentReference Firestore::Document(const char* document_path) const {
   if (!document_path) {
     SimpleThrowInvalidArgument("Document path cannot be null.");
   }
-  return Document(std::string(document_path));
-}
-
-DocumentReference Firestore::Document(const std::string& document_path) const {
-  if (document_path.empty()) {
+  if (document_path[0] == '\0') {
     SimpleThrowInvalidArgument("Document path cannot be empty.");
   }
   if (!internal_) return {};
-  return internal_->Document(document_path.c_str());
+  return internal_->Document(document_path);
+}
+
+DocumentReference Firestore::Document(const std::string& document_path) const {
+  return Document(document_path.c_str());
 }
 
 Query Firestore::CollectionGroup(const char* collection_id) const {
   if (!collection_id) {
     SimpleThrowInvalidArgument("Collection ID cannot be null.");
   }
-  return CollectionGroup(std::string(collection_id));
-}
-
-Query Firestore::CollectionGroup(const std::string& collection_id) const {
-  if (collection_id.empty()) {
+  if (collection_id[0] == '\0') {
     SimpleThrowInvalidArgument("Collection ID cannot be empty.");
   }
   if (!internal_) return {};
-  return internal_->CollectionGroup(collection_id.c_str());
+  return internal_->CollectionGroup(collection_id);
+}
+
+Query Firestore::CollectionGroup(const std::string& collection_id) const {
+  return CollectionGroup(collection_id.c_str());
 }
 
 Settings Firestore::settings() const {
