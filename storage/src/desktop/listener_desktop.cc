@@ -101,6 +101,15 @@ void ListenerInternal::NotifyProgress(std::shared_ptr<SharedState> state,
   if (!state || !controller) {
     return;
   }
+  // Sample the byte counts BEFORE taking state->mutex. Reading them goes
+  // through ControllerInternal, which locks the operation's
+  // OperationHandle::mutex (and then RestOperation::mutex_), whereas
+  // set_rest_operation() locks OperationHandle::mutex before state->mutex.
+  // Querying the controller under state->mutex would therefore be an AB/BA
+  // deadlock. state->mutex is only ever a leaf lock here.
+  const int64_t new_bytes_transferred = controller->bytes_transferred();
+  const int64_t new_total_byte_count = controller->total_byte_count();
+
   Listener* target = nullptr;
   const std::thread::id self_id = std::this_thread::get_id();
   {
@@ -108,14 +117,16 @@ void ListenerInternal::NotifyProgress(std::shared_ptr<SharedState> state,
     if (!state->listener) {
       return;
     }
-    const int64_t new_bytes_transferred = controller->bytes_transferred();
-    const int64_t new_total_byte_count = controller->total_byte_count();
-    if (new_bytes_transferred > state->bytes_transferred ||
-        (state->bytes_transferred < 0 && new_bytes_transferred >= 0) ||
-        new_total_byte_count != state->total_byte_count) {
-      if (new_bytes_transferred >= state->bytes_transferred) {
-        state->bytes_transferred = new_bytes_transferred;
-      }
+    // Progress is monotonic. Since the counts were sampled outside the lock,
+    // two notifying threads may get here out of order; a sample older than the
+    // last reported one is dropped rather than moving progress backwards.
+    // (bytes_transferred is reset to -1 whenever a new operation is attached,
+    // so the first sample of an operation is always accepted.)
+    const bool stale = new_bytes_transferred < state->bytes_transferred;
+    const bool changed = new_bytes_transferred > state->bytes_transferred ||
+                         new_total_byte_count != state->total_byte_count;
+    if (!stale && changed) {
+      state->bytes_transferred = new_bytes_transferred;
       state->total_byte_count = new_total_byte_count;
       target = state->listener;
       state->callback_threads.push_back(self_id);
@@ -174,7 +185,6 @@ void ListenerInternal::set_rest_operation(RestOperation* operation) {
   if (prev_op && prev_op != operation && prev_handle) {
     std::lock_guard<std::recursive_mutex> op_lock(prev_handle->mutex);
     if (prev_handle->op == prev_op) {
-      prev_op->cleanup().UnregisterObject(this);
       prev_op->DetachListener(this);
     }
   }
@@ -190,14 +200,6 @@ void ListenerInternal::set_rest_operation(RestOperation* operation) {
       }
       if (should_register) {
         operation->AttachListenerState(this, state);
-        operation->cleanup().RegisterObjectFunction(
-            this, [state, operation](void*) {
-              std::lock_guard<std::mutex> lock(state->mutex);
-              if (state->rest_operation == operation) {
-                state->rest_operation = nullptr;
-                state->op_handle.reset();
-              }
-            });
       }
     }
   }

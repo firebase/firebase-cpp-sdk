@@ -247,10 +247,15 @@ class Storage {
   /// @returns The current LogLevel.
   LogLevel log_level() const;
 
-#if !defined(SWIG) && !defined(DOXYGEN)
+#if defined(FIREBASE_STORAGE_BUILDING_SDK) && !defined(SWIG) && \
+    !defined(DOXYGEN)
   /// @cond FIREBASE_APP_INTERNAL
   // ABI compatibility: non-const overloads matching the pre-C++17 SDK's
   // exported symbols, so binaries built against the older headers still link.
+  // Only visible while compiling the SDK (FIREBASE_STORAGE_BUILDING_SDK is a
+  // PRIVATE define of the firebase_storage target), so newly compiled client
+  // code always binds to the const overloads. These are non-virtual and do
+  // not affect object layout.
   // New code resolves to the const overloads above.
   // Defined out-of-line so the symbols are exported from the library.
   ::firebase::App* app();
@@ -259,7 +264,8 @@ class Storage {
   double max_upload_retry_time();
   double max_operation_retry_time();
   /// @endcond
-#endif  // !defined(SWIG) && !defined(DOXYGEN)
+#endif  // defined(FIREBASE_STORAGE_BUILDING_SDK) && !defined(SWIG) &&
+        // !defined(DOXYGEN)
 
  private:
   /// @cond FIREBASE_APP_INTERNAL

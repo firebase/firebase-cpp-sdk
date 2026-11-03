@@ -14,19 +14,15 @@
 
 #include "database/src/desktop/core/event_registration.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
-EventRegistration::~EventRegistration() {}
+EventRegistration::~EventRegistration() = default;
 
 void EventRegistration::SafelyFireEvent(const Event& event) {
-  // Ensure that the listener has not already been removed.
-  //
-  // The main thread may remove listeners at any time, so we should not call any
-  // callbacks on a listener that has been removed. This does not protect
-  // callbacks that are currently running when the listener is removed: those
-  // must handled by a mutex from within the callback.
+  // Hold status_mutex_ across the status check and callback execution so that
+  // set_status(kRemoved) waits for any in-flight callback to complete and no
+  // callback can fire after set_status(kRemoved) returns.
+  MutexLock lock(status_mutex_);
   if (status_ == kRemoved) {
     return;
   }
@@ -35,12 +31,10 @@ void EventRegistration::SafelyFireEvent(const Event& event) {
 }
 
 void EventRegistration::SafelyFireCancelEvent(Error error) {
-  // Ensure that the listener has not already been removed.
-  //
-  // The main thread may remove listeners at any time, so we should not call any
-  // callbacks on a listener that has been removed. This does not protect
-  // callbacks that are currently running when the listener is removed: those
-  // must handled by a mutex from within the callback.
+  // Hold status_mutex_ across the status check and callback execution so that
+  // set_status(kRemoved) waits for any in-flight callback to complete and no
+  // callback can fire after set_status(kRemoved) returns.
+  MutexLock lock(status_mutex_);
   if (status_ == kRemoved) {
     return;
   }
@@ -48,6 +42,4 @@ void EventRegistration::SafelyFireCancelEvent(Error error) {
   FireCancelEvent(error);
 }
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal

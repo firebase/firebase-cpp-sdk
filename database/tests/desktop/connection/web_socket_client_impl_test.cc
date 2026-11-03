@@ -15,6 +15,7 @@
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 #include <atomic>
+#include <cerrno>
 #include <chrono>  // NOLINT
 #include <cstdint>
 #include <cstring>
@@ -64,10 +65,17 @@ namespace {
 typedef SOCKET SocketHandle;
 constexpr SocketHandle kInvalidSocket = INVALID_SOCKET;
 void CloseSocket(SocketHandle s) { closesocket(s); }
+bool IsSocketTimeoutOrInterrupted() {
+  int err = WSAGetLastError();
+  return err == WSAETIMEDOUT || err == WSAEWOULDBLOCK || err == WSAEINTR;
+}
 #else
 typedef int SocketHandle;
 constexpr SocketHandle kInvalidSocket = -1;
 void CloseSocket(SocketHandle s) { close(s); }
+bool IsSocketTimeoutOrInterrupted() {
+  return errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR;
+}
 #endif
 
 // RFC 6455 magic GUID concatenated with Sec-WebSocket-Key before SHA-1 hashing.
@@ -89,6 +97,10 @@ class TestWebSocketEchoServer {
     // Waits before answering the handshake so clients can be torn down while
     // the upgrade is still in flight.
     kBehaviorDelayedHandshake,
+    // Sends a PING frame with a 126-byte payload (> 125-byte RFC 6455 limit).
+    kBehaviorSendOversizedPing,
+    // Sends a TEXT frame header advertising > 64 MiB payload length.
+    kBehaviorSendOversizedMessage,
   };
 
   static const char* kTextWithHandshakePayload() { return "hello-with-101"; }
@@ -149,14 +161,14 @@ class TestWebSocketEchoServer {
 
   void Stop() {
     run_.store(false);
-    if (listen_sock_ != kInvalidSocket) {
-      CloseSocket(listen_sock_);
-      listen_sock_ = kInvalidSocket;
-    }
     if (thread_ != nullptr) {
       thread_->join();
       delete thread_;
       thread_ = nullptr;
+    }
+    if (listen_sock_ != kInvalidSocket) {
+      CloseSocket(listen_sock_);
+      listen_sock_ = kInvalidSocket;
     }
   }
 
@@ -197,17 +209,23 @@ class TestWebSocketEchoServer {
     return true;
   }
 
-  static bool RecvExact(SocketHandle sock, void* buf, size_t len) {
+  bool RecvExact(SocketHandle sock, void* buf, size_t len) const {
     char* ptr = static_cast<char*>(buf);
-    while (len > 0) {
+    while (len > 0 && run_.load()) {
       auto r = recv(sock, ptr, static_cast<int>(len), 0);
-      if (r <= 0) {
+      if (r == 0) {
+        return false;
+      }
+      if (r < 0) {
+        if (IsSocketTimeoutOrInterrupted()) {
+          continue;
+        }
         return false;
       }
       ptr += r;
       len -= static_cast<size_t>(r);
     }
-    return true;
+    return len == 0;
   }
 
   static bool SendFrame(SocketHandle sock, uint8_t first_byte,
@@ -295,8 +313,17 @@ class TestWebSocketEchoServer {
     std::string request;
     char ch = 0;
     while (request.find("\r\n\r\n") == std::string::npos) {
+      if (!run_.load()) {
+        return;
+      }
       auto r = recv(sock, &ch, 1, 0);
-      if (r <= 0) {
+      if (r == 0) {
+        return;
+      }
+      if (r < 0) {
+        if (IsSocketTimeoutOrInterrupted()) {
+          continue;
+        }
         return;
       }
       request.push_back(ch);
@@ -380,6 +407,31 @@ class TestWebSocketEchoServer {
     if (behavior_ == kBehaviorServerInitiatedClose) {
       const uint8_t close_code[2] = {0x03, 0xe8};  // 1000 Normal Closure
       SendFrame(sock, 0x88, close_code, sizeof(close_code));
+      return;
+    }
+
+    if (behavior_ == kBehaviorSendOversizedPing) {
+      std::string oversized_ping(126, 'p');
+      SendFrame(sock, 0x89, oversized_ping.data(), oversized_ping.size());
+      SleepWhileRunning(200);
+      return;
+    }
+
+    if (behavior_ == kBehaviorSendOversizedMessage) {
+      // Craft a 64-bit extended length TEXT frame header claiming 64 MiB + 1 B
+      // without needing to allocate 64 MiB in the test server.
+      const uint64_t claimed_len = 64ULL * 1024ULL * 1024ULL + 1ULL;
+      uint8_t header[10];
+      header[0] = 0x81;  // FIN=1, TEXT
+      header[1] = 127;   // 64-bit extended payload length
+      for (int i = 0; i < 8; ++i) {
+        header[2 + i] =
+            static_cast<uint8_t>((claimed_len >> ((7 - i) * 8)) & 0xFF);
+      }
+      SendAll(sock, header, sizeof(header));
+      const char initial_chunk[] = "oversized-prefix";
+      SendAll(sock, initial_chunk, sizeof(initial_chunk) - 1);
+      SleepWhileRunning(200);
       return;
     }
 
@@ -481,42 +533,64 @@ class TestClientEventHandler : public WebSocketClientEventHandler {
   explicit TestClientEventHandler(Semaphore* s)
       : is_connected_(false),
         is_msg_received_(false),
-        msg_received_(),
         is_closed_(false),
         is_error_(false),
         semaphore_(s) {}
-  ~TestClientEventHandler() override {}
+  ~TestClientEventHandler() override = default;
 
   void OnOpen() override {
-    is_connected_ = true;
+    is_connected_.store(true);
     semaphore_->Post();
   }
 
   void OnMessage(const char* msg) override {
-    is_msg_received_ = true;
-    msg_received_ = msg;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      msg_received_ = msg != nullptr ? msg : "";
+      is_msg_received_.store(true);
+    }
     semaphore_->Post();
   }
 
   void OnClose() override {
-    is_closed_ = true;
+    is_closed_.store(true);
     semaphore_->Post();
   }
 
   void OnError(const WebSocketClientErrorData& error_data) override {
-    is_error_ = true;
-    error_uri_ = error_data.GetUri();
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      error_uri_ = error_data.GetUri();
+      is_error_.store(true);
+    }
     semaphore_->Post();
   }
 
-  bool is_connected_ = false;
-  bool is_msg_received_ = false;
-  std::string msg_received_;
-  bool is_closed_ = false;
-  bool is_error_ = false;
-  std::string error_uri_;
+  void ResetMessage() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    is_msg_received_.store(false);
+    msg_received_.clear();
+  }
+
+  std::string msg_received() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return msg_received_;
+  }
+
+  std::string error_uri() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return error_uri_;
+  }
+
+  std::atomic<bool> is_connected_{false};
+  std::atomic<bool> is_msg_received_{false};
+  std::atomic<bool> is_closed_{false};
+  std::atomic<bool> is_error_{false};
 
  private:
+  mutable std::mutex mutex_;
+  std::string msg_received_;
+  std::string error_uri_;
   Semaphore* semaphore_;
 };
 
@@ -549,7 +623,7 @@ TEST(WebSocketClientImpl, Test1) {
   semaphore.Wait();
   semaphore.Post();
   EXPECT_TRUE(handler.is_msg_received_ && !handler.is_error_);
-  EXPECT_STREQ("Hello World", handler.msg_received_.c_str());
+  EXPECT_EQ("Hello World", handler.msg_received());
 
   // Close the connection
   EXPECT_TRUE(semaphore.TryWait());
@@ -615,7 +689,7 @@ TEST(WebSocketClientImpl, LargeAndFragmentedMessagesWithInterleavedPing) {
   EXPECT_TRUE(handler.is_connected_);
   EXPECT_FALSE(handler.is_error_);
   EXPECT_TRUE(handler.is_msg_received_);
-  EXPECT_EQ(handler.msg_received_, "Part1-Part2-Part3");
+  EXPECT_EQ(handler.msg_received(), "Part1-Part2-Part3");
 
   // Send a large 100KB payload to exercise multi-chunk curl_ws_recv reassembly
   // and flush the client's PONG back to the server.
@@ -623,12 +697,11 @@ TEST(WebSocketClientImpl, LargeAndFragmentedMessagesWithInterleavedPing) {
   for (size_t i = 0; i < large_payload.size(); ++i) {
     large_payload[i] = static_cast<char>('A' + (i % 26));
   }
-  handler.is_msg_received_ = false;
-  handler.msg_received_.clear();
+  handler.ResetMessage();
   ws_client.Send(large_payload.c_str());
   EXPECT_TRUE(semaphore.TimedWait(5000));
   EXPECT_TRUE(handler.is_msg_received_);
-  EXPECT_EQ(handler.msg_received_, large_payload);
+  EXPECT_EQ(handler.msg_received(), large_payload);
 
   // Verify the server received the PONG matching its interleaved PING.
   EXPECT_TRUE(server.pong_received());
@@ -699,7 +772,84 @@ TEST(WebSocketClientImpl, ConnectionFailureTriggersOnError) {
   EXPECT_TRUE(semaphore.TimedWait(5000));
   EXPECT_TRUE(handler.is_error_);
   EXPECT_FALSE(handler.is_connected_);
-  EXPECT_EQ(handler.error_uri_, uri);
+  EXPECT_EQ(handler.error_uri(), uri);
+}
+
+// Test that a non-ws/wss URI scheme is rejected by CURLOPT_PROTOCOLS_STR.
+TEST(WebSocketClientImpl, RejectsNonWebSocketSchemeUri) {
+  firebase::rest::test::TestHttpServer http_server;
+  ASSERT_TRUE(http_server.Start());
+
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl ws_client(http_server.BaseUrl(), "", &logger, &scheduler,
+                                "", &handler);
+
+  ws_client.Connect(2000);
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_error_);
+  EXPECT_FALSE(handler.is_connected_);
+  EXPECT_EQ(handler.error_uri(), http_server.BaseUrl());
+}
+
+// Test that an oversized PING frame (> 125 bytes per RFC 6455 section 5.5)
+// triggers OnError() and closes the connection without sending a PONG.
+TEST(WebSocketClientImpl, RejectsOversizedPingFrame) {
+  TestWebSocketEchoServer server(
+      0, TestWebSocketEchoServer::kBehaviorSendOversizedPing);
+  server.Start();
+
+  auto uri = GetLocalHostUri(server.GetPort(true));
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl ws_client(uri.c_str(), "", &logger, &scheduler, "",
+                                &handler);
+
+  ws_client.Connect(5000);
+  // Expect OnOpen(), then OnError() and OnClose() when the oversized PING
+  // arrives.
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_connected_);
+  EXPECT_TRUE(handler.is_error_);
+  EXPECT_TRUE(handler.is_closed_);
+  EXPECT_FALSE(server.pong_received());
+
+  server.Stop();
+}
+
+// Test that an incoming message exceeding the 64 MiB limit is rejected
+// immediately with OnError() and OnClose() instead of buffering unbounded data.
+TEST(WebSocketClientImpl, RejectsOversizedIncomingMessage) {
+  TestWebSocketEchoServer server(
+      0, TestWebSocketEchoServer::kBehaviorSendOversizedMessage);
+  server.Start();
+
+  auto uri = GetLocalHostUri(server.GetPort(true));
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+  WebSocketClientImpl ws_client(uri.c_str(), "", &logger, &scheduler, "",
+                                &handler);
+
+  ws_client.Connect(5000);
+  // Expect OnOpen(), then OnError() and OnClose() when the oversized frame
+  // header is inspected.
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(semaphore.TimedWait(5000));
+  EXPECT_TRUE(handler.is_connected_);
+  EXPECT_TRUE(handler.is_error_);
+  EXPECT_TRUE(handler.is_closed_);
+  EXPECT_FALSE(handler.is_msg_received_);
+
+  server.Stop();
 }
 
 // ---------------------------------------------------------------------------
@@ -819,8 +969,8 @@ TEST(WebSocketClientImpl, TwoClientsShareOneLoop) {
   client_b.Send("from-b");
   EXPECT_TRUE(semaphore_a.TimedWait(5000));
   EXPECT_TRUE(semaphore_b.TimedWait(5000));
-  EXPECT_EQ("from-a", handler_a.msg_received_);
-  EXPECT_EQ("from-b", handler_b.msg_received_);
+  EXPECT_EQ("from-a", handler_a.msg_received());
+  EXPECT_EQ("from-b", handler_b.msg_received());
 
   client_a.Close();
   EXPECT_TRUE(semaphore_a.TimedWait(5000));
@@ -828,11 +978,11 @@ TEST(WebSocketClientImpl, TwoClientsShareOneLoop) {
   EXPECT_EQ(1u, scope.extra_fd_count());
 
   // B is unaffected.
-  handler_b.is_msg_received_ = false;
+  handler_b.ResetMessage();
   client_b.Send("still-alive");
   EXPECT_TRUE(semaphore_b.TimedWait(5000));
   EXPECT_TRUE(handler_b.is_msg_received_);
-  EXPECT_EQ("still-alive", handler_b.msg_received_);
+  EXPECT_EQ("still-alive", handler_b.msg_received());
   EXPECT_FALSE(handler_b.is_closed_);
   EXPECT_FALSE(handler_a.is_error_);
   EXPECT_FALSE(handler_b.is_error_);
@@ -878,12 +1028,12 @@ TEST(WebSocketClientImpl,
 
   // WebSocket round trips are not held up by it.
   for (int i = 0; i < 5; ++i) {
-    handler.is_msg_received_ = false;
+    handler.ResetMessage();
     auto start = std::chrono::steady_clock::now();
     client.Send("ping-while-rest-busy");
     ASSERT_TRUE(ws_semaphore.TimedWait(5000));
     EXPECT_LT(ElapsedMs(start), 200) << "round trip " << i;
-    EXPECT_EQ("ping-while-rest-busy", handler.msg_received_);
+    EXPECT_EQ("ping-while-rest-busy", handler.msg_received());
   }
 
   // Nor is a quick REST request held up by the open WebSocket.
@@ -931,7 +1081,7 @@ TEST(WebSocketClientImpl, FrameInSameSegmentAsHandshakeIsDelivered) {
   EXPECT_TRUE(handler.is_connected_);
   EXPECT_TRUE(handler.is_msg_received_);
   EXPECT_EQ(TestWebSocketEchoServer::kTextWithHandshakePayload(),
-            handler.msg_received_);
+            handler.msg_received());
   EXPECT_FALSE(handler.is_error_);
 
   client.Close();
@@ -946,22 +1096,24 @@ TEST(WebSocketClientImpl, DestroyDuringHandshakeLeavesSharedLoopClean) {
   TestWebSocketEchoServer server(
       0, TestWebSocketEchoServer::kBehaviorDelayedHandshake);
   server.Start();
+  Semaphore churn_semaphore(0);
+  TestClientEventHandler churn_handler(&churn_semaphore);
+  Semaphore semaphore(0);
+  TestClientEventHandler handler(&semaphore);
   Logger logger(nullptr);
   scheduler::Scheduler scheduler;
   auto uri = GetLocalHostUri(server.GetPort(true));
 
   for (int i = 0; i < 20; ++i) {
-    Semaphore semaphore(0);
-    TestClientEventHandler handler(&semaphore);
-    WebSocketClientImpl* client =
-        new WebSocketClientImpl(uri, "", &logger, &scheduler, "", &handler);
+    WebSocketClientImpl* client = new WebSocketClientImpl(
+        uri, "", &logger, &scheduler, "", &churn_handler);
     client->Connect(5000);
     if (i % 2 == 1) {
       // Let the handshake actually get registered before tearing down.
       EXPECT_EQ(1u, scope.transfer_count());
     }
     delete client;
-    EXPECT_FALSE(handler.is_connected_);
+    EXPECT_FALSE(churn_handler.is_connected_);
   }
   EXPECT_EQ(0u, scope.transfer_count());
   EXPECT_EQ(0u, scope.extra_fd_count());
@@ -969,16 +1121,18 @@ TEST(WebSocketClientImpl, DestroyDuringHandshakeLeavesSharedLoopClean) {
   // The loop is still perfectly usable afterwards.
   TestWebSocketEchoServer echo_server(0);
   echo_server.Start();
-  Semaphore semaphore(0);
-  TestClientEventHandler handler(&semaphore);
-  WebSocketClientImpl client(GetLocalHostUri(echo_server.GetPort(true)), "",
-                             &logger, &scheduler, "", &handler);
-  client.Connect(5000);
-  EXPECT_TRUE(semaphore.TimedWait(5000));
-  EXPECT_TRUE(handler.is_connected_);
-  client.Send("after-churn");
-  EXPECT_TRUE(semaphore.TimedWait(5000));
-  EXPECT_EQ("after-churn", handler.msg_received_);
+  {
+    WebSocketClientImpl client(GetLocalHostUri(echo_server.GetPort(true)), "",
+                               &logger, &scheduler, "", &handler);
+    client.Connect(5000);
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    EXPECT_TRUE(handler.is_connected_);
+    client.Send("after-churn");
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    EXPECT_EQ("after-churn", handler.msg_received());
+    client.Close();
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+  }
 
   server.Stop();
   echo_server.Stop();
@@ -1008,8 +1162,9 @@ TEST(WebSocketClientImpl, PingDuringPartialSendStillGetsPong) {
   client.Send(large_payload.c_str());
   EXPECT_TRUE(semaphore.TimedWait(30000));
   EXPECT_TRUE(handler.is_msg_received_);
-  EXPECT_EQ(large_payload.size(), handler.msg_received_.size());
-  EXPECT_EQ(large_payload, handler.msg_received_);
+  std::string received_msg = handler.msg_received();
+  EXPECT_EQ(large_payload.size(), received_msg.size());
+  EXPECT_EQ(large_payload, received_msg);
 
   // The PONG was sent after the frame completed; give the server a moment to
   // read it.
@@ -1033,10 +1188,10 @@ TEST(WebSocketClientImpl, ClientDoesNotCreateAThread) {
   SharedLoopScope scope;
   TestWebSocketEchoServer server(0);
   server.Start();
-  Logger logger(nullptr);
-  scheduler::Scheduler scheduler;
   Semaphore semaphore(0);
   TestClientEventHandler handler(&semaphore);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
   // The scheduler starts its worker thread lazily; warm it up so the baseline
   // below already includes it.
   scheduler.Schedule([&semaphore]() { semaphore.Post(); });

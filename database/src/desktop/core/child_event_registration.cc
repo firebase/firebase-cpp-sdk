@@ -17,16 +17,42 @@
 #include <cassert>
 
 #include "database/src/desktop/data_snapshot_desktop.h"
+#include "database/src/desktop/database_desktop.h"
 #include "database/src/desktop/view/event.h"
 #include "database/src/desktop/view/event_type.h"
 #include "database/src/include/firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
-ChildEventRegistration::~ChildEventRegistration() {}
+ChildEventRegistration::ChildEventRegistration(DatabaseInternal* database,
+                                               ChildListener* listener,
+                                               const QuerySpec& query_spec)
+    : EventRegistration(query_spec),
+      database_ref_(
+          database
+              ? database->this_ref()
+              : firebase::internal::SafeReference<DatabaseInternal>(nullptr)),
+      listener_(listener) {}
+
+ChildEventRegistration::~ChildEventRegistration() {
+  // Only unregister if still active. When DatabaseInternal unregisters a
+  // listener, RemoveActiveEventRegistrations marks status as kRemoved and
+  // erases the lookup entry beforehand, avoiding redundant re-entrant calls.
+  // Lock order is always SafeReferenceLock(database_ref_) -> listener_mutex_:
+  // ~DatabaseInternal() calls safe_this_.ClearReference() before acquiring any
+  // mutex or tearing down Repo, and DatabaseInternal never acquires safe_this_
+  // or destroys EventRegistrations while holding listener_mutex_.
+  if (status() == kActive) {
+    set_status(kRemoved);
+    firebase::internal::SafeReferenceLock<DatabaseInternal> lock(
+        &database_ref_);
+    DatabaseInternal* db = lock.GetReference();
+    if (db != nullptr) {
+      db->RemoveEventRegistration(query_spec(), listener_, this);
+    }
+  }
+}
 
 bool ChildEventRegistration::RespondsTo(EventType event_type) {
   return event_type == kEventTypeChildRemoved ||
@@ -37,30 +63,38 @@ bool ChildEventRegistration::RespondsTo(EventType event_type) {
 
 Event ChildEventRegistration::GenerateEvent(const Change& change,
                                             const QuerySpec& query_spec) {
+  firebase::internal::SafeReferenceLock<DatabaseInternal> lock(&database_ref_);
   return Event(
       change.event_type, this,
-      DataSnapshotInternal(database_, change.indexed_variant.variant(),
+      DataSnapshotInternal(lock.GetReference(),
+                           change.indexed_variant.variant(),
                            QuerySpec(query_spec.path.GetChild(change.child_key),
                                      change.indexed_variant.query_params())),
       change.prev_name);
 }
 
 void ChildEventRegistration::FireEvent(const Event& event) {
-  DataSnapshot snapshot(new DataSnapshotInternal(*event.snapshot));
+  if (!listener_ || !event.snapshot.has_value()) {
+    return;
+  }
   switch (event.type) {
     case kEventTypeChildAdded: {
+      DataSnapshot snapshot(new DataSnapshotInternal(*event.snapshot));
       listener_->OnChildAdded(snapshot, event.prev_name.c_str());
       break;
     }
     case kEventTypeChildChanged: {
+      DataSnapshot snapshot(new DataSnapshotInternal(*event.snapshot));
       listener_->OnChildChanged(snapshot, event.prev_name.c_str());
       break;
     }
     case kEventTypeChildMoved: {
+      DataSnapshot snapshot(new DataSnapshotInternal(*event.snapshot));
       listener_->OnChildMoved(snapshot, event.prev_name.c_str());
       break;
     }
     case kEventTypeChildRemoved: {
+      DataSnapshot snapshot(new DataSnapshotInternal(*event.snapshot));
       listener_->OnChildRemoved(snapshot);
       break;
     }
@@ -69,11 +103,15 @@ void ChildEventRegistration::FireEvent(const Event& event) {
     case kEventTypeError:
     default: {
       assert(false);
+      break;
     }
   }
 }
 
 void ChildEventRegistration::FireCancelEvent(Error error) {
+  if (!listener_) {
+    return;
+  }
   listener_->OnCancelled(error, GetErrorMessage(error));
 }
 
@@ -81,6 +119,4 @@ bool ChildEventRegistration::MatchesListener(const void* listener_ptr) const {
   return static_cast<const void*>(listener_) == listener_ptr;
 }
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal

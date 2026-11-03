@@ -15,13 +15,13 @@
  */
 
 #include <cassert>
+#include <cerrno>
+#include <cstring>
 
 #include "app/src/include/firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
 #include <combaseapi.h>
-#elif HAVE_LIBUUID
-#include <uuid/uuid.h>
 #else
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -36,19 +36,42 @@ namespace internal {
 
 void Uuid::Generate() {
 #if FIREBASE_PLATFORM_WINDOWS
-  FIREBASE_ASSERT(sizeof(GUID) == sizeof(data));
-  HRESULT result = CoCreateGuid(reinterpret_cast<GUID*>(data));
+  static_assert(sizeof(GUID) == sizeof(data), "GUID size mismatch");
+  GUID guid;
+  HRESULT result = CoCreateGuid(&guid);
   FIREBASE_ASSERT(result == S_OK);
   (void)result;
-#elif HAVE_LIBUUID
-  static_assert(sizeof(uuid_t) == sizeof(data));
-  uuid_generate_time(reinterpret_cast<uuid_t>(data));
+  memcpy(data, &guid, sizeof(data));
+#else
+  memset(data, 0, sizeof(data));
+#ifdef O_CLOEXEC
+  int file = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
 #else
   int file = open("/dev/urandom", O_RDONLY);
+#endif
   FIREBASE_ASSERT(file >= 0);
-  size_t bytes_read = read(file, data, sizeof(data));
-  FIREBASE_ASSERT(bytes_read == sizeof(data));
+  if (file < 0) {
+    return;
+  }
+  size_t total_read = 0;
+  while (total_read < sizeof(data)) {
+    ssize_t n = read(file, data + total_read, sizeof(data) - total_read);
+    if (n < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      break;
+    }
+    if (n == 0) {
+      break;
+    }
+    total_read += static_cast<size_t>(n);
+  }
   close(file);
+  FIREBASE_ASSERT(total_read == sizeof(data));
+  // Set RFC 4122 version 4 and variant bits.
+  data[6] = static_cast<uint8_t>((data[6] & 0x0f) | 0x40);
+  data[8] = static_cast<uint8_t>((data[8] & 0x3f) | 0x80);
 #endif  // FIREBASE_PLATFORM_WINDOWS
 }
 

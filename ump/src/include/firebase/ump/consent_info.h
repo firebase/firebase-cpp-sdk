@@ -17,6 +17,10 @@
 #ifndef FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_CONSENT_INFO_H_
 #define FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_CONSENT_INFO_H_
 
+#if !defined(SWIG)
+#include <type_traits>
+#endif  // !defined(SWIG)
+
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/platform.h"
@@ -50,10 +54,12 @@ class ConsentInfo {
   /// Shut down the User Messaging Platform Consent SDK.
   ~ConsentInfo();
 
+  ConsentInfo(const ConsentInfo&) = delete;
+  ConsentInfo& operator=(const ConsentInfo&) = delete;
+
   /// Initializes the User Messaging Platform Consent SDK.
   ///
   /// @param[in] app Any Firebase App instance.
-  ///
   /// @param[out] init_result_out Optional: If provided, write the basic init
   /// result here. kInitResultSuccess if initialization succeeded, or
   /// kInitResultFailedMissingDependency on Android if there are Android
@@ -66,20 +72,26 @@ class ConsentInfo {
   static ConsentInfo* GetInstance(const ::firebase::App& app,
                                   InitResult* init_result_out = nullptr);
 
+  /// Initializes the User Messaging Platform Consent SDK from a Firebase App
+  /// pointer.
+  static ConsentInfo* GetInstance(::firebase::App* app,
+                                  InitResult* init_result_out);
+
+#if !defined(SWIG)
+  /// Single-argument pointer overload disambiguated via SFINAE so that
+  /// `ConsentInfo::GetInstance(nullptr)` resolves unambiguously to
+  /// `GetInstance(InitResult* = nullptr)`.
+  template <typename AppPtr,
+            typename std::enable_if<
+                std::is_same<AppPtr, ::firebase::App*>::value, int>::type = 0>
+  static ConsentInfo* GetInstance(AppPtr app) {
+    return GetInstance(app, nullptr);
+  }
+#endif  // !defined(SWIG)
+
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// Initializes the User Messaging Platform Consent SDK without Firebase for
   /// Android.
-  ///
-  /// The arguments to GetInstance() are platform-specific so the caller must
-  /// do something like this:
-  /// @code
-  /// #if defined(__ANDROID__)
-  /// consent_info = firebase::ump::ConsentInfo::GetInstance(jni_env,
-  /// activity);
-  /// #else
-  /// consent_info = firebase::ump::GetInstance();
-  /// #endif
-  /// @endcode
   ///
   /// @param[in] jni_env JNIEnv pointer.
   /// @param[in] activity Activity used to start the application.
@@ -89,38 +101,22 @@ class ConsentInfo {
   /// dependencies missing.
   ///
   /// @return A pointer to the ConsentInfo instance if UMP was successfully
-  /// initialized, nullptr otherwise. Each call to GetInstance() will return the
-  /// same pointer; when you are finished using the SDK, you can delete the
-  /// pointer and the UMP SDK will shut down.
+  /// initialized, nullptr otherwise.
   static ConsentInfo* GetInstance(JNIEnv* jni_env, jobject activity,
                                   InitResult* init_result_out = nullptr);
 
-#if !defined(DOXYGEN)
-  // On Android, this convenience function exists so you can easily get the
-  // existing ConsentInfo instance after it's first initialized. Returns nullptr
-  // if no instance has been created yet; make sure you have called
-  // GetInstance(JNIEnv*, jobject) first.
-  static ConsentInfo* GetInstance();
-#endif  // defined(DOXYGEN)
+  /// Updates the active Android Activity reference after a configuration change
+  /// or Activity recreation.
+  void SetActivity(JNIEnv* jni_env, jobject activity);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
-#if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// Initializes User Messaging Platform for iOS without Firebase.
-  ///
-  /// @param[out] init_result_out Optional: If provided, write the basic init
-  /// result here. kInitResultSuccess if initialization succeeded, or
-  /// kInitResultFailedMissingDependency if a dependency is missing. On iOS,
-  /// this will always return kInitResultSuccess, as missing dependencies would
-  /// have caused a linker error at build time.
-  ///
-  /// @return A pointer to the ConsentInfo instance. Each call to GetInstance()
-  /// will return the same pointer; when you are finished using the SDK, you can
-  /// delete the pointer, and the UMP SDK will shut down.
-  ///
-  /// @note Once any overload of ConsentInfo::GetInstance has been called, you
-  /// can use this method to obtain the same instance again.
+  /// Obtains the existing `ConsentInfo` instance, or initializes UMP using the
+  /// default `firebase::App` (on Android) or platform SDK (on iOS/Desktop).
   static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
-#endif  // !defined(__ANDROID__) || defined(DOXYGEN)
+
+  /// Returns the `firebase::App` this `ConsentInfo` was initialized with, or
+  /// `nullptr` if initialized without Firebase.
+  ::firebase::App* app() const { return app_; }
 
   /// The user’s consent status. This value defaults to kConsentStatusUnknown
   /// until RequestConsentInfoUpdate() is called, and defaults to the previous
@@ -128,12 +124,9 @@ class ConsentInfo {
   ConsentStatus GetConsentStatus();
 
   /// Requests consent information update. Must be called in every app session
-  /// before checking the user’s consent status or loading a consent form. After
-  /// calling this method, GetConsentStatus() and CanRequestAds() will be
-  /// updated immediately to hold the consent state from the previous app
-  /// session, if one exists. GetConsentStatus() and CanRequestAds() may be
-  /// updated again immediately before the returned future is completed.
-  Future<void> RequestConsentInfoUpdate(const ConsentRequestParameters& params);
+  /// before checking the user’s consent status or loading a consent form.
+  Future<void> RequestConsentInfoUpdate(
+      const ConsentRequestParameters& params = ConsentRequestParameters());
 
   /// Get the Future from the most recent call to RequestConsentInfoUpdate().
   Future<void> RequestConsentInfoUpdateLastResult();
@@ -150,36 +143,15 @@ class ConsentInfo {
   Future<void> LoadConsentFormLastResult();
 
   /// Presents the full screen consent form using the given FormParent, which is
-  /// defined as an Activity on Android and a UIViewController on iOS. The form
-  /// will be dismissed and the Future will be completed after the user selects
-  /// an option.
-  ///
-  /// GetConsentStatus() and CanRequestAds() are updated when the returned
-  /// Future is completed.
-  ///
-  /// @param[in] parent A FormParent, which is an Activity object on Android and
-  /// a UIViewController object on iOS.
-  ///
-  /// @note You must call LoadConsentForm() and wait for it to complete before
-  /// calling this method.
-  Future<void> ShowConsentForm(FormParent parent);
+  /// defined as an Activity on Android and a UIViewController on iOS.
+  Future<void> ShowConsentForm(FormParent parent = nullptr);
 
   /// Get the Future from the most recent call to ShowConsentForm().
   Future<void> ShowConsentFormLastResult();
 
   /// Loads a consent form and immediately presents it using the given
-  /// FormParent, if ConsentStatus is kConsentStatusRequired. The FormParent is
-  /// defined as an Activity on Android and a UIViewController on iOS. The
-  /// Future will be completed successfully after the user selects an option
-  /// (and the form is dismissed), or if the form is not required. The Future
-  /// will be completed with an error if the form fails to load or show.
-  ///
-  /// GetConsentStatus() and CanRequestAds() will be updated prior to the Future
-  /// being completed.
-  ///
-  /// @param[in] parent A FormParent, which is an Activity object on Android and
-  /// a UIViewController object on iOS.
-  Future<void> LoadAndShowConsentFormIfRequired(FormParent parent);
+  /// FormParent, if ConsentStatus is kConsentStatusRequired.
+  Future<void> LoadAndShowConsentFormIfRequired(FormParent parent = nullptr);
 
   /// Get the Future from the most recent call to
   /// LoadAndShowConsentFormIfRequired().
@@ -191,29 +163,14 @@ class ConsentInfo {
 
   /// If GetPrivacyOptionsRequirementStatus() is
   /// kPrivacyOptionsRequirementStatusRequired, presents a privacy options form
-  /// from the provided FormParent, which is defined as an Activity on Android
-  /// and a UIViewController on iOS.
-  ///
-  /// This method should only be called in response to a user input to request a
-  /// privacy options form to be shown.
-  ///
-  /// The future completes when the user selects an option and dismisses the
-  /// form or is completed immediately with an error code if no form is
-  /// presented. The privacy options form is preloaded by the SDK automatically
-  /// when a form becomes available. If no form has been preloaded, the SDK will
-  /// try to load one asynchronously.
-  ///
-  /// @param[in] parent A FormParent, which is an Activity object on Android and
-  /// a UIViewController object on iOS.
-  Future<void> ShowPrivacyOptionsForm(FormParent parent);
+  /// from the provided FormParent.
+  Future<void> ShowPrivacyOptionsForm(FormParent parent = nullptr);
 
   /// Get the Future from the most recent call to ShowPrivacyOptionsForm().
   Future<void> ShowPrivacyOptionsFormLastResult();
 
   /// Indicates whether the app has completed the necessary steps for gathering
-  /// updated user consent. Returns true if RequestConsentInfoUpdate() has been
-  /// called and GetConsentStatus returns either kConsentStatusNotRequired or
-  /// kConsentStatusObtained.
+  /// updated user consent.
   bool CanRequestAds();
 
   /// Clears all consent state from persistent storage. This can be used in
@@ -227,14 +184,13 @@ class ConsentInfo {
 #else
   InitResult Initialize();
 #endif  // FIREBASE_PLATFORM_ANDROID
-  void Terminate();
+  void BindToApp(::firebase::App* app);
+  void UnbindFromApp();
+  void OnAppDestroyed();
 
   static ConsentInfo* s_instance_;
 
-#if FIREBASE_PLATFORM_ANDROID
-  JavaVM* java_vm() { return java_vm_; }
-  JavaVM* java_vm_;
-#endif
+  ::firebase::App* app_;
 
   // An internal, platform-specific implementation object that this class uses
   // to interact with the User Messaging Platform SDKs for iOS and Android.

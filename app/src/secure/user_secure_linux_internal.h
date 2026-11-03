@@ -35,6 +35,11 @@ class UserSecureLinuxInternal : public UserSecureInternal {
   // key_namespace = app ID (e.g. "com.mycompany.myapp");
   UserSecureLinuxInternal(const char* domain, const char* key_namespace);
 
+  UserSecureLinuxInternal(const UserSecureLinuxInternal&) = delete;
+  UserSecureLinuxInternal& operator=(const UserSecureLinuxInternal&) = delete;
+  UserSecureLinuxInternal(UserSecureLinuxInternal&&) = delete;
+  UserSecureLinuxInternal& operator=(UserSecureLinuxInternal&&) = delete;
+
   std::string LoadUserData(const std::string& app_name) override;
 
   void SaveUserData(const std::string& app_name,

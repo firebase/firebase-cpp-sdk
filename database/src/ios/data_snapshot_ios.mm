@@ -14,8 +14,11 @@
 
 #include "database/src/ios/data_snapshot_ios.h"
 
-#include <stddef.h>
+#include <cstddef>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
@@ -30,75 +33,113 @@ namespace internal {
 
 using util::IdToVariant;
 
-DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
-                                           std::unique_ptr<FIRDataSnapshotPointer> impl)
-    : database_(database), impl_(std::move(impl)) {}
+DataSnapshotInternal::DataSnapshotInternal(
+    DatabaseInternal* database, std::unique_ptr<FIRDataSnapshotPointer> impl)
+    : database_(database), impl_(std::move(impl)) {
+  const char* key = impl_ && impl_->get() ? [impl_->get().key UTF8String] : nullptr;
+  cached_key_ = key ? key : "";
+}
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& other)
-    : database_(other.database_) {
-  impl_.reset(new FIRDataSnapshotPointer(*other.impl_));
-}
+    : database_(other.database_),
+      impl_(std::make_unique<FIRDataSnapshotPointer>(other.impl())),
+      cached_key_(other.cached_key_) {}
 
-DataSnapshotInternal& DataSnapshotInternal::operator=(const DataSnapshotInternal& other) {
+DataSnapshotInternal& DataSnapshotInternal::operator=(
+    const DataSnapshotInternal& other) {
+  if (&other == this) return *this;
   database_ = other.database_;
-  impl_.reset(new FIRDataSnapshotPointer(*other.impl_));
+  impl_ = std::make_unique<FIRDataSnapshotPointer>(other.impl());
+  cached_key_ = other.cached_key_;
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& other) {
-  database_ = std::move(other.database_);
-  impl_ = std::move(other.impl_);
-  other.impl_ = std::make_unique<FIRDataSnapshotPointer>(nil);
+DataSnapshotInternal::DataSnapshotInternal(
+    DataSnapshotInternal&& other) noexcept
+    : database_(other.database_),
+      impl_(std::move(other.impl_)),
+      cached_key_(std::move(other.cached_key_)) {
+  other.database_ = nullptr;
 }
 
-DataSnapshotInternal& DataSnapshotInternal::operator=(DataSnapshotInternal&& other) {
-  database_ = std::move(other.database_);
+DataSnapshotInternal& DataSnapshotInternal::operator=(
+    DataSnapshotInternal&& other) noexcept {
+  if (&other == this) return *this;
+  database_ = other.database_;
+  other.database_ = nullptr;
   impl_ = std::move(other.impl_);
-  other.impl_ = std::make_unique<FIRDataSnapshotPointer>(nil);
+  cached_key_ = std::move(other.cached_key_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-DataSnapshotInternal::~DataSnapshotInternal() {}
+DataSnapshotInternal::~DataSnapshotInternal() = default;
 
-bool DataSnapshotInternal::Exists() const { return [impl() exists] != NO ? true : false; }
+bool DataSnapshotInternal::Exists() const { return [impl() exists] != NO; }
 
 DataSnapshotInternal* DataSnapshotInternal::Child(const char* path) const {
-  return new DataSnapshotInternal(
-      database_, std::make_unique<FIRDataSnapshotPointer>([impl() childSnapshotForPath:@(path)]));
+  if (path == nullptr || !impl()) return nullptr;
+  @try {
+    NSString* path_str = @(path);
+    if (!path_str) return nullptr;
+    FIRDataSnapshot* child_snapshot = [impl() childSnapshotForPath:path_str];
+    if (!child_snapshot) return nullptr;
+    return new DataSnapshotInternal(
+        database_, std::make_unique<FIRDataSnapshotPointer>(child_snapshot));
+  } @catch (NSException* exception) {
+    return nullptr;
+  }
 }
 
-std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() {
+std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
   std::vector<DataSnapshot> result;
+  if (!impl()) return result;
+  result.reserve(GetChildrenCount());
   for (FIRDataSnapshot* child in impl().children) {
-    result.push_back(DataSnapshot(
-        new DataSnapshotInternal(database_, std::make_unique<FIRDataSnapshotPointer>(child))));
+    result.push_back(DataSnapshot(new DataSnapshotInternal(
+        database_, std::make_unique<FIRDataSnapshotPointer>(child))));
   }
   return result;
 }
 
-size_t DataSnapshotInternal::GetChildrenCount() { return impl().childrenCount; }
+size_t DataSnapshotInternal::GetChildrenCount() const {
+  return impl() ? static_cast<size_t>(impl().childrenCount) : 0;
+}
 
-bool DataSnapshotInternal::HasChildren() { return [impl() hasChildren] != NO ? true : false; }
+bool DataSnapshotInternal::HasChildren() const {
+  return [impl() hasChildren] != NO;
+}
 
-const char* DataSnapshotInternal::GetKey() const { return [impl().key UTF8String]; }
+const char* DataSnapshotInternal::GetKey() const {
+  return cached_key_.c_str();
+}
 
 std::string DataSnapshotInternal::GetKeyString() const {
-  return std::string([impl().key UTF8String]);
+  return cached_key_;
 }
 
-Variant DataSnapshotInternal::GetValue() const { return IdToVariant(impl().value); }
+Variant DataSnapshotInternal::GetValue() const {
+  return IdToVariant(impl().value);
+}
 
-Variant DataSnapshotInternal::GetPriority() { return IdToVariant(impl().priority); }
+Variant DataSnapshotInternal::GetPriority() const {
+  return IdToVariant(impl().priority);
+}
 
 DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
-  return new DatabaseReferenceInternal(database_,
-                                       std::make_unique<FIRDatabaseReferencePointer>(impl().ref));
+  if (!database_ || !impl()) return nullptr;
+  return new DatabaseReferenceInternal(
+      database_, std::make_unique<FIRDatabaseReferencePointer>(impl().ref));
 }
 
-bool DataSnapshotInternal::HasChild(const char* path) {
-  return [impl() hasChild:@(path)] != NO ? true : false;
+bool DataSnapshotInternal::HasChild(const char* path) const {
+  if (path == nullptr || !impl()) return false;
+  @try {
+    NSString* path_str = @(path);
+    if (!path_str) return false;
+    return [impl() hasChild:path_str] != NO;
+  } @catch (NSException* exception) {
+    return false;
+  }
 }
 
 }  // namespace internal

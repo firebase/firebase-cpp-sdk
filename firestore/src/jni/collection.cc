@@ -16,7 +16,6 @@
 
 #include "firestore/src/jni/collection.h"
 
-#include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/iterator.h"
 #include "firestore/src/jni/loader.h"
@@ -41,7 +40,7 @@ bool Collection::Add(Env& env, const Object& object) {
   return env.Call(*this, kAdd, object);
 }
 
-Local<Iterator> Collection::Iterator(Env& env) {
+Local<Iterator> Collection::Iterator(Env& env) const {
   return env.Call(*this, kIterator);
 }
 

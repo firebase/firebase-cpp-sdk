@@ -45,10 +45,10 @@ Mutex::~Mutex() {
 
 void Mutex::Acquire() {
   int ret = pthread_mutex_lock(&mutex_);
+#if defined(__APPLE__)
   if (ret == EINVAL) {
     return;
   }
-#if defined(__APPLE__)
   // Lock / unlock will fail in a static initializer on OSX and iOS.
   FIREBASE_ASSERT(ret == 0 || ret == EINVAL);
 #else

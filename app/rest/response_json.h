@@ -59,10 +59,12 @@ class ResponseJson : public Response {
   // defined move constructors, so one has to be provided. Copy constructor is
   // implicitly deleted anyway (because parser_ and application_data_ are
   // non-copyable).
-  ResponseJson(ResponseJson&& rhs)
+  ResponseJson(ResponseJson&& rhs) noexcept
       : Response(std::move(rhs)),
         parser_(std::move(rhs.parser_)),
         application_data_(std::move(rhs.application_data_)) {}
+
+  ResponseJson& operator=(ResponseJson&& rhs) noexcept = default;
 
   // When transmission is completed, we parse the response JSON string.
   void MarkCompleted() override {
@@ -80,6 +82,9 @@ class ResponseJson : public Response {
     if (!parse_status) {
       LogError("flatbuffers::Parser::Parse() failed: %s",
                parser_->error_.c_str());
+      if (sdk_error_code() == 0) {
+        set_sdk_error_code(-1);
+      }
       application_data_.reset(new FbsTypeT());
       Response::MarkCompleted();
       return;
@@ -91,6 +96,9 @@ class ResponseJson : public Response {
     bool verify_status = verifier.VerifyBuffer<FbsType>(nullptr);
     if (!verify_status) {
       LogError("flatbuffers::Verifier::VerifyBuffer() failed");
+      if (sdk_error_code() == 0) {
+        set_sdk_error_code(-1);
+      }
       application_data_.reset(new FbsTypeT());
       Response::MarkCompleted();
       return;

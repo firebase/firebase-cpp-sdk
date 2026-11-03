@@ -105,7 +105,7 @@ class Path {
   //     Path from("first_star/on_left");
   //     Path to("first_star/on_left/straight_on/till_morning");
   //     Path::GetRelative(from, to, &result);
-  //     assert(result.FullPath() == "straight_on/till_morning");
+  //     assert(result.str() == "straight_on/till_morning");
   static Optional<Path> GetRelative(const Path& from, const Path& to);
 
   FIREBASE_DEPRECATED static bool GetRelative(const Path& from, const Path& to,

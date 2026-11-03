@@ -15,6 +15,7 @@
  */
 
 #include <vector>
+#include <memory>
 
 #include "firestore/src/main/composite_filter_main.h"
 #include "firestore/src/main/converter_main.h"
@@ -99,17 +100,19 @@ Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
 
 Filter FilterInternal::CompositeFilter(core::CompositeFilter::Operator op,
                                        const std::vector<Filter>& filters) {
-  std::vector<FilterInternal*> nonEmptyFilters{};
+  std::vector<std::unique_ptr<FilterInternal>> non_empty_filters{};
+  non_empty_filters.reserve(filters.size());
   for (const Filter& filter : filters) {
-    FilterInternal* filterInternal = GetInternal(&filter);
-    if (!filterInternal->IsEmpty()) {
-      nonEmptyFilters.push_back(filterInternal->clone());
+    FilterInternal* filter_internal = GetInternal(&filter);
+    if (filter_internal && !filter_internal->IsEmpty()) {
+      non_empty_filters.push_back(std::unique_ptr<FilterInternal>(filter_internal->clone()));
     }
   }
-  if (nonEmptyFilters.size() == 1) {
-    return Filter(nonEmptyFilters[0]);
+  if (non_empty_filters.size() == 1) {
+    return Filter(non_empty_filters[0]->clone());
   }
-  return MakePublic(CompositeFilterInternal(op, nonEmptyFilters));
+  return MakePublic(
+      CompositeFilterInternal(op, std::move(non_empty_filters)));
 }
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs) {

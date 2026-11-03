@@ -173,7 +173,6 @@ else()
       firebase_rest_lib
       leveldb
       libcurl
-      OpenSSL::SSL
       OpenSSL::Crypto)
 
   set(additional_DEFINES

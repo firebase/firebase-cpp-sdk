@@ -44,6 +44,10 @@ endif()
 
 message(STATUS "Swift Package dependencies resolved successfully.")
 
+# Discover all binary framework header paths once after package resolution.
+file(GLOB_RECURSE _firebase_spm_all_headers "${FIREBASE_SPM_ARTIFACTS_DIR}/*.h")
+set(FIREBASE_SPM_ALL_ARTIFACT_HEADERS "${_firebase_spm_all_headers}" CACHE INTERNAL "Cached SwiftPM artifact header paths")
+
 # Sets up a target with the include directories for the specified SwiftPM modules.
 #
 # Usage: setup_spm_headers(<target_name>
@@ -74,14 +78,19 @@ function(setup_spm_headers target_name)
         "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/${module}/Interop/Public"
         "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/${module}/Interop/Public/${module}"
         "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/${module}/Public"
-        "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include"
-        "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/Source/Public"
-        "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/Source/Public/FirebaseFirestore"
         "${FIREBASE_SPM_CHECKOUTS_DIR}/${module}"
         "${FIREBASE_SPM_CHECKOUTS_DIR}/${module}/spm_headers"
         "${FIREBASE_SPM_CHECKOUTS_DIR}/interop-ios-for-google-sdks/${module}/Public"
         "${FIREBASE_SPM_CHECKOUTS_DIR}/interop-ios-for-google-sdks/${module}/Public/${module}"
       )
+
+      if(module STREQUAL "FirebaseFirestore" OR module STREQUAL "FirebaseFirestoreInternal")
+        list(APPEND public_dirs
+          "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include"
+          "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/Source/Public"
+          "${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/Source/Public/FirebaseFirestore"
+        )
+      endif()
 
       foreach(pdir ${public_dirs})
         if(EXISTS "${pdir}")
@@ -106,7 +115,7 @@ function(setup_spm_headers target_name)
       endif()
 
       # Also attempt to symlink any binary xcframework headers for this module
-      symlink_spm_headers(${target_name} ${module} DIR_NAME ${module})
+      symlink_spm_headers(${target_name} ${module})
     endforeach()
   endif()
 endfunction()
@@ -121,21 +130,15 @@ endfunction()
 # Args:
 #   target_name: Name of target to add includes to
 #   module_name: Name of the binary target / artifact
-#   DIR_NAME: Name of the directory for the symlink (defaults to module_name)
+#   DIR_NAME: Optional custom directory name for the symlink (defaults to matched framework name)
 #
 function(symlink_spm_headers target_name module_name)
   set(single DIR_NAME)
   cmake_parse_arguments(SYMLINK_SPM "" "${single}" "" ${ARGN})
 
-  set(dir_name "${module_name}")
-  if(NOT "${SYMLINK_SPM_DIR_NAME}" STREQUAL "")
-    set(dir_name "${SYMLINK_SPM_DIR_NAME}")
-  endif()
+  set(dir_name "${SYMLINK_SPM_DIR_NAME}")
 
   set(symlink_base_dir "${CMAKE_CURRENT_BINARY_DIR}/spm_sym_links")
-
-  # Search for all header files in .build/artifacts to discover binary frameworks
-  file(GLOB_RECURSE all_headers "${FIREBASE_SPM_ARTIFACTS_DIR}/*.h")
 
   # Determine target slice priority if possible
   string(TOLOWER "${CMAKE_OSX_SYSROOT}" sysroot_lower)
@@ -153,54 +156,56 @@ function(symlink_spm_headers target_name module_name)
     endif()
   endif()
 
-  # Build list of patterns to match
-  set(patterns "${module_name}" "${dir_name}")
-  if(module_name MATCHES "^(abseil|absl)$")
+  # Build list of exact framework names to match (using IN_LIST to avoid regex metacharacter issues).
+  set(patterns "${module_name}")
+  if(NOT "${dir_name}" STREQUAL "")
+    list(APPEND patterns "${dir_name}")
+  endif()
+  if("${module_name}" STREQUAL "abseil" OR "${module_name}" STREQUAL "absl")
     list(APPEND patterns "absl")
-  elseif(module_name MATCHES "^(grpc|gRPC|gRPC-C\\+\\+|gRPC-Core|grpcpp)$")
+  elseif("${module_name}" STREQUAL "grpc" OR
+         "${module_name}" STREQUAL "gRPC" OR
+         "${module_name}" STREQUAL "gRPC-C++" OR
+         "${module_name}" STREQUAL "gRPC-Core" OR
+         "${module_name}" STREQUAL "grpcpp")
     list(APPEND patterns "grpc" "grpcpp")
-  elseif(module_name MATCHES "^(GoogleUserMessagingPlatform|UserMessagingPlatform)$")
+  elseif("${module_name}" STREQUAL "GoogleUserMessagingPlatform" OR
+         "${module_name}" STREQUAL "UserMessagingPlatform")
     list(APPEND patterns "UserMessagingPlatform")
   endif()
 
   set(processed_frameworks "")
 
-  foreach(hdr ${all_headers})
-    if(hdr MATCHES "([^/\\\\]+)\\.framework.*Headers")
-      set(fw_name "${CMAKE_MATCH_1}")
-      string(REGEX MATCH "(.*[/\\\\]${fw_name}\\.framework([^/\\\\]*)?[/\\\\]Headers)" _ "${hdr}")
-      set(fw_headers "${CMAKE_MATCH_1}")
+  # Pass 1: Prefer headers matching preferred_slice; Pass 2: Fallback to any slice.
+  foreach(require_preferred TRUE FALSE)
+    foreach(hdr IN LISTS FIREBASE_SPM_ALL_ARTIFACT_HEADERS)
+      # Extract both the full .../Foo.framework/Headers path and Foo in a single regex.
+      if(hdr MATCHES "^(.*/([^/\\\\]+)\\.framework([^/\\\\]*)?/Headers)/")
+        set(fw_headers "${CMAKE_MATCH_1}")
+        set(fw_name "${CMAKE_MATCH_2}")
 
-      if(NOT "${fw_name}" IN_LIST processed_frameworks)
-        set(matches FALSE)
-        foreach(pat ${patterns})
-          if(fw_name MATCHES "^${pat}$")
-            set(matches TRUE)
-            break()
-          endif()
-        endforeach()
-
-        if(matches)
-          # Check if this header matches preferred slice or if we don't have one yet
-          if(fw_headers MATCHES "${preferred_slice}" OR NOT EXISTS "${symlink_base_dir}/${fw_name}")
+        if(NOT "${fw_name}" IN_LIST processed_frameworks AND "${fw_name}" IN_LIST patterns)
+          if((require_preferred AND fw_headers MATCHES "${preferred_slice}") OR NOT require_preferred)
             file(MAKE_DIRECTORY "${symlink_base_dir}")
-            if(EXISTS "${symlink_base_dir}/${fw_name}")
-              file(REMOVE "${symlink_base_dir}/${fw_name}")
+            set(link_name "${fw_name}")
+            if(NOT "${dir_name}" STREQUAL "")
+              set(link_name "${dir_name}")
             endif()
-            file(CREATE_LINK "${fw_headers}" "${symlink_base_dir}/${fw_name}" SYMBOLIC COPY_ON_ERROR)
+            if(EXISTS "${symlink_base_dir}/${link_name}" OR IS_SYMLINK "${symlink_base_dir}/${link_name}")
+              file(REMOVE_RECURSE "${symlink_base_dir}/${link_name}")
+            endif()
+            file(CREATE_LINK "${fw_headers}" "${symlink_base_dir}/${link_name}" SYMBOLIC COPY_ON_ERROR)
 
             target_include_directories(${target_name}
               PUBLIC
                 "${symlink_base_dir}"
-                "${symlink_base_dir}/${fw_name}"
+                "${symlink_base_dir}/${link_name}"
                 "${fw_headers}"
             )
-            if(fw_headers MATCHES "${preferred_slice}")
-              list(APPEND processed_frameworks "${fw_name}")
-            endif()
+            list(APPEND processed_frameworks "${fw_name}")
           endif()
         endif()
       endif()
-    endif()
+    endforeach()
   endforeach()
 endfunction()

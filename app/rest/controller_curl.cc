@@ -16,130 +16,167 @@
 
 #include "app/rest/controller_curl.h"
 
+#include <atomic>
 #include <cstdint>
+#include <memory>
 #include <utility>
 
 #include "app/rest/transport_curl.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/log.h"
 
 namespace firebase {
 namespace rest {
 
+namespace {
+
+void UpdateMaxAtomic(std::atomic<int64_t>* target, int64_t value) {
+  int64_t prev = target->load(std::memory_order_relaxed);
+  while (value > prev &&
+         !target->compare_exchange_weak(prev, value, std::memory_order_relaxed,
+                                        std::memory_order_relaxed)) {
+  }
+}
+
+}  // namespace
+
 ControllerCurl::ControllerCurl(TransportCurl* transport,
-                               TransferDirection direction, Response* response)
-    : transport_(transport),
-      direction_(direction),
-      is_paused_(false),
-      response_(response),
-      transferring_(false),
-      bytes_transferred_(0),
-      transfer_size_(0),
-      this_handle_(nullptr),
-      this_handle_mutex_(nullptr) {}
-
-ControllerCurl::~ControllerCurl() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    *this_handle_ = nullptr;
-  }
+                               TransferDirection direction, Response* response,
+                               uint64_t transfer_id)
+    : control_(std::make_shared<TransferControl>(transport, direction,
+                                                 transfer_id)) {
+  (void)response;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-ControllerCurl::ControllerCurl(ControllerCurl&& other) noexcept {
-  *this = std::move(other);
-}
+ControllerCurl::~ControllerCurl() = default;
 
-ControllerCurl& ControllerCurl::operator=(ControllerCurl&& other) noexcept {
-  direction_ = other.direction_;
-  transport_ = other.transport_;
-  is_paused_ = other.is_paused_;
-  response_ = other.response_;
-  transferring_ = other.transferring_;
-  bytes_transferred_ = other.bytes_transferred_;
-  transfer_size_ = other.transfer_size_;
-  this_handle_ = other.this_handle_;
-  this_handle_mutex_ = other.this_handle_mutex_;
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    *this_handle_ = this;
-  }
-  other.this_handle_mutex_ = nullptr;
-  other.transport_ = nullptr;
-  return *this;
-}
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+ControllerCurl::ControllerCurl(ControllerCurl&& other) noexcept = default;
+
+ControllerCurl& ControllerCurl::operator=(ControllerCurl&& other) noexcept =
+    default;
 
 bool ControllerCurl::Pause() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    if (transferring_ && !is_paused_) {
-      transport_->PauseRequest(response_);
-      is_paused_ = true;
-      return true;
+  std::shared_ptr<TransferControl> ctrl = control_;
+  if (!ctrl) return false;
+  TransportCurl* transport = nullptr;
+  uint64_t transfer_id = 0;
+  {
+    MutexLock lock(ctrl->mutex);
+    if (!ctrl->transferring.load(std::memory_order_acquire) ||
+        ctrl->is_paused.load(std::memory_order_relaxed) ||
+        ctrl->transport == nullptr) {
+      return false;
     }
+    ctrl->is_paused.store(true, std::memory_order_release);
+    transport = ctrl->transport;
+    transfer_id = ctrl->transfer_id;
   }
-  return false;
+  TransportCurl::PauseRequestById(transport, transfer_id);
+  return true;
 }
 
 bool ControllerCurl::Resume() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    if (transferring_ && is_paused_) {
-      transport_->ResumeRequest(response_);
-      is_paused_ = false;
-      return true;
+  std::shared_ptr<TransferControl> ctrl = control_;
+  if (!ctrl) return false;
+  TransportCurl* transport = nullptr;
+  uint64_t transfer_id = 0;
+  {
+    MutexLock lock(ctrl->mutex);
+    if (!ctrl->transferring.load(std::memory_order_acquire) ||
+        !ctrl->is_paused.load(std::memory_order_relaxed) ||
+        ctrl->transport == nullptr) {
+      return false;
     }
+    ctrl->is_paused.store(false, std::memory_order_release);
+    transport = ctrl->transport;
+    transfer_id = ctrl->transfer_id;
   }
-  return false;
+  TransportCurl::ResumeRequestById(transport, transfer_id);
+  return true;
 }
 
 bool ControllerCurl::IsPaused() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    return is_paused_;
-  }
-  return false;
+  std::shared_ptr<TransferControl> ctrl = control_;
+  if (!ctrl) return false;
+  MutexLock lock(ctrl->mutex);
+  return ctrl->is_paused.load(std::memory_order_acquire);
 }
 
 bool ControllerCurl::Cancel() {
-  if (this_handle_mutex_) {
-    MutexLock lock(*this_handle_mutex_);
-    if (transferring_) {
-      transport_->CancelRequest(response_);
-      transferring_ = false;
-      return true;
+  std::shared_ptr<TransferControl> ctrl = control_;
+  if (!ctrl) return false;
+  TransportCurl* transport = nullptr;
+  uint64_t transfer_id = 0;
+  {
+    MutexLock lock(ctrl->mutex);
+    if (!ctrl->transferring.load(std::memory_order_acquire) ||
+        ctrl->transport == nullptr) {
+      return false;
     }
+    ctrl->transferring.store(false, std::memory_order_release);
+    ctrl->is_paused.store(false, std::memory_order_release);
+    transport = ctrl->transport;
+    transfer_id = ctrl->transfer_id;
   }
-  return false;
+  TransportCurl::CancelRequestById(transport, transfer_id);
+  return true;
 }
 
 float ControllerCurl::Progress() {
-  auto transferred = static_cast<float>(BytesTransferred());
-  auto size = static_cast<float>(TransferSize());
-  return transferred / size;
+  const int64_t size = TransferSize();
+  if (size <= 0) {
+    return 0.0f;
+  }
+  const int64_t transferred = BytesTransferred();
+  if (transferred <= 0) {
+    return 0.0f;
+  }
+  return static_cast<float>(transferred) / static_cast<float>(size);
 }
 
-int64_t ControllerCurl::TransferSize() { return transfer_size_; }
+int64_t ControllerCurl::TransferSize() {
+  return control_ ? control_->transfer_size.load(std::memory_order_relaxed) : 0;
+}
 
-int64_t ControllerCurl::BytesTransferred() { return bytes_transferred_; }
+int64_t ControllerCurl::BytesTransferred() {
+  return control_ ? control_->bytes_transferred.load(std::memory_order_relaxed)
+                  : 0;
+}
 
-void ControllerCurl::set_bytes_transferred(int64_t bytes_transferred) {
-  // Only set the bytes transferred if it is larger than the current value.
-  // Curl reports -1 for the bytes transferred if the transfer is just starting
-  // or is complete.
-  if (bytes_transferred > bytes_transferred_) {
-    bytes_transferred_ = bytes_transferred;
+void ControllerCurl::set_transferring(bool transferring) {
+  if (!control_) return;
+  MutexLock lock(control_->mutex);
+  control_->transferring.store(transferring, std::memory_order_release);
+  if (!transferring) {
+    control_->is_paused.store(false, std::memory_order_release);
   }
 }
 
+void ControllerCurl::set_bytes_transferred(int64_t bytes_transferred) {
+  UpdateBytesTransferred(control_.get(), bytes_transferred);
+}
+
 void ControllerCurl::set_transfer_size(int64_t transfer_size) {
+  UpdateTransferSize(control_.get(), transfer_size);
+}
+
+void ControllerCurl::UpdateBytesTransferred(TransferControl* control,
+                                            int64_t bytes_transferred) {
+  // Only set the bytes transferred if it is larger than the current value.
+  // Curl reports -1 for the bytes transferred if the transfer is just starting
+  // or is complete.
+  if (control && bytes_transferred > 0) {
+    UpdateMaxAtomic(&control->bytes_transferred, bytes_transferred);
+  }
+}
+
+void ControllerCurl::UpdateTransferSize(TransferControl* control,
+                                        int64_t transfer_size) {
   // Only set the transfer size if it is larger than the current value.
   // Curl reports -1 for the transfer size if the transfer is just starting or
   // is complete.
-  if (transfer_size > transfer_size_) {
-    transfer_size_ = transfer_size;
+  if (control && transfer_size > 0) {
+    UpdateMaxAtomic(&control->transfer_size, transfer_size);
   }
 }
 

@@ -14,7 +14,6 @@
 
 #include "database/src/android/database_reference_android.h"
 
-#include <assert.h>
 #include <jni.h>
 
 #include "app/src/reference_counted_future_impl.h"
@@ -80,35 +79,82 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* db,
 DatabaseReferenceInternal::DatabaseReferenceInternal(
     const DatabaseReferenceInternal& src)
     : QueryInternal(src), cached_disconnection_handler_(nullptr) {
+  {
+    MutexLock src_lock(src.member_mutex_);
+    cached_key_ = src.cached_key_;
+  }
   db_->future_manager().AllocFutureApi(&future_api_id_,
                                        kDatabaseReferenceFnCount);
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     const DatabaseReferenceInternal& src) {
+  if (&src == this) return *this;
+  Variant src_key;
+  {
+    MutexLock src_lock(src.member_mutex_);
+    src_key = src.cached_key_;
+  }
+  {
+    MutexLock lock(member_mutex_);
+    if (cached_disconnection_handler_ != nullptr) {
+      delete cached_disconnection_handler_;
+      cached_disconnection_handler_ = nullptr;
+    }
+    cached_key_ = std::move(src_key);
+  }
+  db_->future_manager().ReleaseFutureApi(&future_api_id_);
   QueryInternal::operator=(src);
+  db_->future_manager().AllocFutureApi(&future_api_id_,
+                                       kDatabaseReferenceFnCount);
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(
-    DatabaseReferenceInternal&& src)
+    DatabaseReferenceInternal&& src) noexcept
     : QueryInternal(std::move(src)), cached_disconnection_handler_(nullptr) {
+  {
+    MutexLock src_lock(src.member_mutex_);
+    cached_disconnection_handler_ = src.cached_disconnection_handler_;
+    src.cached_disconnection_handler_ = nullptr;
+    cached_key_ = std::move(src.cached_key_);
+  }
   db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
-    DatabaseReferenceInternal&& src) {
+    DatabaseReferenceInternal&& src) noexcept {
+  if (&src == this) return *this;
+  DisconnectionHandler* src_handler = nullptr;
+  Variant src_key;
+  {
+    MutexLock src_lock(src.member_mutex_);
+    src_handler = src.cached_disconnection_handler_;
+    src.cached_disconnection_handler_ = nullptr;
+    src_key = std::move(src.cached_key_);
+  }
+  {
+    MutexLock lock(member_mutex_);
+    if (cached_disconnection_handler_ != nullptr) {
+      delete cached_disconnection_handler_;
+      cached_disconnection_handler_ = nullptr;
+    }
+    cached_disconnection_handler_ = src_handler;
+    cached_key_ = std::move(src_key);
+  }
+  db_->future_manager().ReleaseFutureApi(&future_api_id_);
   QueryInternal::operator=(std::move(src));
   db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DatabaseReferenceInternal::~DatabaseReferenceInternal() {
-  if (cached_disconnection_handler_ != nullptr) {
-    delete cached_disconnection_handler_;
-    cached_disconnection_handler_ = nullptr;
+  {
+    MutexLock lock(member_mutex_);
+    if (cached_disconnection_handler_ != nullptr) {
+      delete cached_disconnection_handler_;
+      cached_disconnection_handler_ = nullptr;
+    }
   }
   db_->future_manager().ReleaseFutureApi(&future_api_id_);
 }
@@ -126,27 +172,49 @@ void DatabaseReferenceInternal::Terminate(App* app) {
 }
 
 Database* DatabaseReferenceInternal::GetDatabase() const {
-  return Database::GetInstance(db_->GetApp());
+  return db_->constructor_url().empty()
+             ? Database::GetInstance(db_->GetApp())
+             : Database::GetInstance(db_->GetApp(),
+                                     db_->constructor_url().c_str());
 }
 
 const char* DatabaseReferenceInternal::GetKey() {
+  MutexLock lock(member_mutex_);
   // Check for a cached key.
   if (cached_key_.is_null()) {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, database_reference::GetMethodId(database_reference::kGetKey)));
-    util::CheckAndClearJniExceptions(env);
-    FIREBASE_ASSERT_RETURN(nullptr, key_string != nullptr);
-    const char* key = env->GetStringUTFChars(key_string, nullptr);
-    cached_key_ = Variant::MutableStringFromStaticString(key);
-    env->ReleaseStringUTFChars(key_string, key);
-    env->DeleteLocalRef(key_string);
+    if (util::CheckAndClearJniExceptions(env)) {
+      if (key_string != nullptr) env->DeleteLocalRef(key_string);
+      return nullptr;
+    }
+    if (key_string == nullptr) {
+      cached_key_ = Variant::EmptyMutableString();
+    } else {
+      const char* key = env->GetStringUTFChars(key_string, nullptr);
+      if (util::CheckAndClearJniExceptions(env) || key == nullptr) {
+        if (key != nullptr) {
+          env->ReleaseStringUTFChars(key_string, key);
+        }
+        env->DeleteLocalRef(key_string);
+        return nullptr;
+      }
+      cached_key_ = Variant::MutableStringFromStaticString(key);
+      env->ReleaseStringUTFChars(key_string, key);
+      env->DeleteLocalRef(key_string);
+    }
   }
   return cached_key_.string_value();
 }
 
 const std::string& DatabaseReferenceInternal::GetKeyString() {
+  MutexLock lock(member_mutex_);
   (void)GetKey();  // populates cached_key_.
+  if (!cached_key_.is_string()) {
+    static const std::string* kEmptyString = new std::string();
+    return *kEmptyString;
+  }
   return cached_key_.mutable_string();
 }
 
@@ -154,9 +222,12 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::GetParent() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject parent_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kGetParent));
+  if (util::CheckAndClearJniExceptions(env)) {
+    if (parent_obj != nullptr) env->DeleteLocalRef(parent_obj);
+    return nullptr;
+  }
   if (parent_obj == nullptr) {
     // This is already the root node, so return a copy of us.
-    env->ExceptionClear();
     return new DatabaseReferenceInternal(*this);
   }
   DatabaseReferenceInternal* internal =
@@ -169,8 +240,11 @@ bool DatabaseReferenceInternal::IsRoot() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject parent_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kGetParent));
+  if (util::CheckAndClearJniExceptions(env)) {
+    if (parent_obj != nullptr) env->DeleteLocalRef(parent_obj);
+    return false;
+  }
   if (parent_obj == nullptr) {
-    env->ExceptionClear();
     // getParent() returns null if this is the root node.
     return true;
   } else {
@@ -184,7 +258,10 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::GetRoot() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject root_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kGetRoot));
-  assert(root_obj != nullptr);
+  if (util::CheckAndClearJniExceptions(env) || root_obj == nullptr) {
+    if (root_obj != nullptr) env->DeleteLocalRef(root_obj);
+    return nullptr;
+  }
   DatabaseReferenceInternal* internal =
       new DatabaseReferenceInternal(db_, root_obj);
   env->DeleteLocalRef(root_obj);
@@ -193,8 +270,13 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::GetRoot() const {
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::Child(
     const char* path) const {
+  if (path == nullptr) return nullptr;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring path_string = env->NewStringUTF(path);
+  if (util::CheckAndClearJniExceptions(env) || path_string == nullptr) {
+    if (path_string != nullptr) env->DeleteLocalRef(path_string);
+    return nullptr;
+  }
   jobject child_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kChild),
       path_string);
@@ -202,7 +284,9 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::Child(
   if (util::LogException(env, kLogLevelWarning,
                          "DatabaseReference::Child: (URL = %s) Couldn't create "
                          "child reference %s",
-                         query_spec_.path.c_str(), path)) {
+                         query_spec_.path.c_str(), path) ||
+      child_obj == nullptr) {
+    if (child_obj != nullptr) env->DeleteLocalRef(child_obj);
     return nullptr;
   }
   DatabaseReferenceInternal* internal =
@@ -220,7 +304,9 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() const {
           env, kLogLevelWarning,
           "DatabaseReference::PushChild: (URL = %s) Couldn't push "
           "new child reference",
-          query_spec_.path.c_str())) {
+          query_spec_.path.c_str()) ||
+      child_obj == nullptr) {
+    if (child_obj != nullptr) env->DeleteLocalRef(child_obj);
     return nullptr;
   }
   DatabaseReferenceInternal* internal =
@@ -233,17 +319,24 @@ std::string DatabaseReferenceInternal::GetUrl() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring url_string = static_cast<jstring>(env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kToString)));
+  if (util::CheckAndClearJniExceptions(env) || url_string == nullptr) {
+    if (url_string != nullptr) env->DeleteLocalRef(url_string);
+    return std::string();
+  }
   return util::JniStringToString(env, url_string);
 }
 
 DisconnectionHandler* DatabaseReferenceInternal::OnDisconnect() {
+  MutexLock lock(member_mutex_);
   if (cached_disconnection_handler_ == nullptr) {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jobject on_disconnect = env->CallObjectMethod(
         obj_,
         database_reference::GetMethodId(database_reference::kOnDisconnect));
-    util::CheckAndClearJniExceptions(env);
-    if (on_disconnect == nullptr) return nullptr;
+    if (util::CheckAndClearJniExceptions(env) || on_disconnect == nullptr) {
+      if (on_disconnect != nullptr) env->DeleteLocalRef(on_disconnect);
+      return nullptr;
+    }
 
     cached_disconnection_handler_ = new DisconnectionHandler(
         new DisconnectionHandlerInternal(db_, on_disconnect));
@@ -257,6 +350,7 @@ void DatabaseReferenceInternal::GoOffline() const {
   env->CallStaticVoidMethod(
       database_reference::GetClass(),
       database_reference::GetMethodId(database_reference::kGoOffline));
+  util::CheckAndClearJniExceptions(env);
 }
 
 void DatabaseReferenceInternal::GoOnline() const {
@@ -264,6 +358,7 @@ void DatabaseReferenceInternal::GoOnline() const {
   env->CallStaticVoidMethod(
       database_reference::GetClass(),
       database_reference::GetMethodId(database_reference::kGoOnline));
+  util::CheckAndClearJniExceptions(env);
 }
 
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
@@ -281,10 +376,21 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
   data->context = context;
   data->delete_context = delete_context;
   jobject transaction_handler = db_->CreateJavaTransactionHandler(data);
+  if (transaction_handler == nullptr) {
+    delete data;
+    ref_future()->Complete(handle, kErrorUnknownError,
+                           "RunTransaction failed");
+    return MakeFuture(ref_future(), handle);
+  }
   env->CallVoidMethod(
       obj_,
       database_reference::GetMethodId(database_reference::kRunTransaction),
       transaction_handler, trigger_local_events);
+  if (util::CheckAndClearJniExceptions(env)) {
+    db_->DeleteJavaTransactionHandler(transaction_handler);
+    ref_future()->Complete(handle, kErrorUnknownError,
+                           "RunTransaction failed");
+  }
   return MakeFuture(ref_future(), handle);
 }
 
@@ -297,24 +403,52 @@ namespace {
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<void> handle_,
                      ReferenceCountedFutureImpl* impl_, DatabaseInternal* db_)
-      : handle(handle_), impl(impl_), db(db_) {}
+      : handle(handle_),
+        impl(impl_),
+        db_ref(db_->this_ref()),
+        backing_future(MakeFuture(impl_, handle_)) {}
   SafeFutureHandle<void> handle;
   ReferenceCountedFutureImpl* impl;
-  DatabaseInternal* db;
+  DatabaseInternal::ThisRef db_ref;
+  Future<void> backing_future;
 };
 
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                     const char* status_message, void* callback_data) {
-  int status = 0;  // TODO(140207379): populate with proper status code
+  (void)env;
   FutureCallbackData* data =
       reinterpret_cast<FutureCallbackData*>(callback_data);
   if (data != nullptr) {
-    data->impl->Complete(
-        data->handle,
-        data->db->ErrorFromResultAndErrorCode(result_code, status),
-        status_message);
+    DatabaseInternal::ThisRefLock lock(&data->db_ref);
+    DatabaseInternal* db = lock.GetReference();
+    if (db != nullptr) {
+      Error error_code = kErrorNone;
+      std::string message = status_message != nullptr ? status_message : "";
+      if (result_code == util::kFutureResultCancelled) {
+        error_code = kErrorWriteCanceled;
+      } else if (result_code == util::kFutureResultFailure) {
+        error_code = db->ErrorFromJavaThrowable(result, &message);
+      }
+      data->impl->Complete(data->handle, error_code, message.c_str());
+    }
     delete data;
   }
+}
+
+void RegisterTaskCallback(JNIEnv* env, jobject task,
+                          SafeFutureHandle<void> handle,
+                          ReferenceCountedFutureImpl* future_impl,
+                          DatabaseInternal* db, const char* error_msg) {
+  FutureCallbackData* callback_data =
+      new FutureCallbackData(handle, future_impl, db);
+  util::RegisterCallbackOnTask(env, task, FutureCallback,
+                               reinterpret_cast<void*>(callback_data),
+                               db->jni_task_id());
+  if (util::CheckAndClearJniExceptions(env)) {
+    delete callback_data;
+    future_impl->Complete(handle, kErrorUnknownError, error_msg);
+  }
+  env->DeleteLocalRef(task);
 }
 }  // namespace
 
@@ -324,14 +458,13 @@ Future<void> DatabaseReferenceInternal::RemoveValue() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kRemoveValue));
-  util::RegisterCallbackOnTask(
-      env, task, FutureCallback,
-      // FutureCallback will delete the newed FutureCallbackData.
-      reinterpret_cast<void*>(
-          new FutureCallbackData(handle, ref_future(), db_)),
-      db_->jni_task_id());
-  util::CheckAndClearJniExceptions(env);
-  env->DeleteLocalRef(task);
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) env->DeleteLocalRef(task);
+    ref_future()->Complete(handle, kErrorUnknownError, "RemoveValue failed");
+    return MakeFuture(ref_future(), handle);
+  }
+  RegisterTaskCallback(env, task, handle, ref_future(), db_,
+                       "RemoveValue failed");
   return MakeFuture(ref_future(), handle);
 }
 
@@ -340,7 +473,7 @@ Future<void> DatabaseReferenceInternal::RemoveValueLastResult() {
       ref_future()->LastResult(kDatabaseReferenceFnRemoveValue));
 }
 
-Future<void> DatabaseReferenceInternal::SetValue(Variant value) {
+Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValue);
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
@@ -349,18 +482,22 @@ Future<void> DatabaseReferenceInternal::SetValue(Variant value) {
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jobject value_obj = internal::VariantToJavaObject(env, value);
+    if (!value.is_null() && value_obj == nullptr) {
+      ref_future()->Complete(handle, kErrorInvalidVariantType,
+                             "SetValue failed: invalid Variant");
+      return MakeFuture(ref_future(), handle);
+    }
     jobject task = env->CallObjectMethod(
         obj_, database_reference::GetMethodId(database_reference::kSetValue),
         value_obj);
-    util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnTask(
-        env, task, FutureCallback,
-        // FutureCallback will delete the newed FutureCallbackData.
-        reinterpret_cast<void*>(
-            new FutureCallbackData(handle, ref_future(), db_)),
-        db_->jni_task_id());
-    env->DeleteLocalRef(task);
     if (value_obj) env->DeleteLocalRef(value_obj);
+    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+      if (task != nullptr) env->DeleteLocalRef(task);
+      ref_future()->Complete(handle, kErrorUnknownError, "SetValue failed");
+    } else {
+      RegisterTaskCallback(env, task, handle, ref_future(), db_,
+                           "SetValue failed");
+    }
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -370,7 +507,7 @@ Future<void> DatabaseReferenceInternal::SetValueLastResult() {
       ref_future()->LastResult(kDatabaseReferenceFnSetValue));
 }
 
-Future<void> DatabaseReferenceInternal::SetPriority(Variant priority) {
+Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetPriority);
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
@@ -382,19 +519,22 @@ Future<void> DatabaseReferenceInternal::SetPriority(Variant priority) {
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jobject priority_obj = internal::VariantToJavaObject(env, priority);
+    if (!priority.is_null() && priority_obj == nullptr) {
+      ref_future()->Complete(handle, kErrorInvalidVariantType,
+                             kErrorMsgInvalidVariantForPriority);
+      return MakeFuture(ref_future(), handle);
+    }
     jobject task = env->CallObjectMethod(
         obj_, database_reference::GetMethodId(database_reference::kSetPriority),
         priority_obj);
-    util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnTask(
-        env, task, FutureCallback,
-        // FutureCallback will delete the newed FutureCallbackData.
-        reinterpret_cast<void*>(
-            new FutureCallbackData(handle, ref_future(), db_)),
-        db_->jni_task_id());
-    util::CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(task);
     if (priority_obj) env->DeleteLocalRef(priority_obj);
+    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+      if (task != nullptr) env->DeleteLocalRef(task);
+      ref_future()->Complete(handle, kErrorUnknownError, "SetPriority failed");
+    } else {
+      RegisterTaskCallback(env, task, handle, ref_future(), db_,
+                           "SetPriority failed");
+    }
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -404,8 +544,8 @@ Future<void> DatabaseReferenceInternal::SetPriorityLastResult() {
       ref_future()->LastResult(kDatabaseReferenceFnSetPriority));
 }
 
-Future<void> DatabaseReferenceInternal::SetValueAndPriority(Variant value,
-                                                            Variant priority) {
+Future<void> DatabaseReferenceInternal::SetValueAndPriority(
+    const Variant& value, const Variant& priority) {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValueAndPriority);
   if (SetValueLastResult().status() == kFutureStatusPending) {
@@ -420,22 +560,33 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(Variant value,
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jobject value_obj = internal::VariantToJavaObject(env, value);
+    if (!value.is_null() && value_obj == nullptr) {
+      ref_future()->Complete(handle, kErrorInvalidVariantType,
+                             "SetValueAndPriority failed: invalid Variant");
+      return MakeFuture(ref_future(), handle);
+    }
     jobject priority_obj = internal::VariantToJavaObject(env, priority);
+    if (!priority.is_null() && priority_obj == nullptr) {
+      if (value_obj) env->DeleteLocalRef(value_obj);
+      ref_future()->Complete(handle, kErrorInvalidVariantType,
+                             kErrorMsgInvalidVariantForPriority);
+      return MakeFuture(ref_future(), handle);
+    }
     jobject task =
         env->CallObjectMethod(obj_,
                               database_reference::GetMethodId(
                                   database_reference::kSetValueAndPriority),
                               value_obj, priority_obj);
-    util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnTask(
-        env, task, FutureCallback,
-        // FutureCallback will delete the newed FutureCallbackData.
-        reinterpret_cast<void*>(
-            new FutureCallbackData(handle, ref_future(), db_)),
-        db_->jni_task_id());
-    env->DeleteLocalRef(task);
     if (value_obj) env->DeleteLocalRef(value_obj);
     if (priority_obj) env->DeleteLocalRef(priority_obj);
+    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+      if (task != nullptr) env->DeleteLocalRef(task);
+      ref_future()->Complete(handle, kErrorUnknownError,
+                             "SetValueAndPriority failed");
+    } else {
+      RegisterTaskCallback(env, task, handle, ref_future(), db_,
+                           "SetValueAndPriority failed");
+    }
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -445,7 +596,7 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriorityLastResult() {
       ref_future()->LastResult(kDatabaseReferenceFnSetValueAndPriority));
 }
 
-Future<void> DatabaseReferenceInternal::UpdateChildren(Variant values) {
+Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kDatabaseReferenceFnUpdateChildren);
   if (!values.is_map()) {
@@ -454,19 +605,24 @@ Future<void> DatabaseReferenceInternal::UpdateChildren(Variant values) {
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jobject values_obj = internal::VariantToJavaObject(env, values);
+    if (values_obj == nullptr) {
+      ref_future()->Complete(handle, kErrorInvalidVariantType,
+                             kErrorMsgInvalidVariantForUpdateChildren);
+      return MakeFuture(ref_future(), handle);
+    }
     jobject task = env->CallObjectMethod(
         obj_,
         database_reference::GetMethodId(database_reference::kUpdateChildren),
         values_obj);
-    util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnTask(
-        env, task, FutureCallback,
-        // FutureCallback will delete the newed FutureCallbackData.
-        reinterpret_cast<void*>(
-            new FutureCallbackData(handle, ref_future(), db_)),
-        db_->jni_task_id());
-    env->DeleteLocalRef(task);
-    if (values_obj) env->DeleteLocalRef(values_obj);
+    env->DeleteLocalRef(values_obj);
+    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+      if (task != nullptr) env->DeleteLocalRef(task);
+      ref_future()->Complete(handle, kErrorUnknownError,
+                             "UpdateChildren failed");
+    } else {
+      RegisterTaskCallback(env, task, handle, ref_future(), db_,
+                           "UpdateChildren failed");
+    }
   }
   return MakeFuture(ref_future(), handle);
 }

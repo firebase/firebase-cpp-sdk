@@ -19,35 +19,17 @@
 
 #include <jni.h>
 
+#include <atomic>
+#include <vector>
+
 #include "app/src/util_android.h"
 #include "firebase/internal/mutex.h"
 #include "ump/src/common/consent_info_internal.h"
 
 namespace firebase {
 namespace ump {
-
-// clang-format off
-#define UMP_INITIALIZATION_HELPER_METHODS(X)                                 \
-  X(InitializeUmp, "initializeUmp", "(Landroid/content/Context;)V",          \
-    util::kMethodTypeStatic)
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(ump_initialization_helper,
-                          UMP_INITIALIZATION_HELPER_METHODS);
-
-// Needed when UMP is initialized without Firebase.
-JNIEnv* GetJNI();
-
-// Retrieves the activity used to initialize UMP.
-jobject GetActivity();
-
-// Register the native callbacks needed by the Futures.
-bool RegisterNatives();
-
-// Release classes registered by this module.
-void ReleaseClasses(JNIEnv* env);
-
 namespace internal {
+
 extern ::firebase::Mutex g_cached_ump_embedded_files_mutex;
 extern std::vector<::firebase::internal::EmbeddedFile>*
     g_cached_ump_embedded_files;
@@ -56,6 +38,8 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
  public:
   ConsentInfoInternalAndroid(JNIEnv* env, jobject activity);
   ~ConsentInfoInternalAndroid() override;
+
+  void SetActivity(JNIEnv* jni_env, jobject activity) override;
 
   ConsentStatus GetConsentStatus() override;
   ConsentFormStatus GetConsentFormStatus() override;
@@ -74,38 +58,39 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
 
   void Reset() override;
 
-  bool valid() { return (helper_ != nullptr); }
+  bool valid() const { return (helper_ != nullptr); }
 
   JNIEnv* GetJNIEnv();
-  jobject activity();
 
  private:
   struct EnumCache {
-    jint consentstatus_unknown;
-    jint consentstatus_required;
-    jint consentstatus_not_required;
-    jint consentstatus_obtained;
+    jint consentstatus_unknown = 0;
+    jint consentstatus_required = 0;
+    jint consentstatus_not_required = 0;
+    jint consentstatus_obtained = 0;
 
-    jint formerror_success;
-    jint formerror_internal;
-    jint formerror_network;
-    jint formerror_invalid_operation;
-    jint formerror_timeout;
+    jint formerror_success = 0;
+    jint formerror_internal = 0;
+    jint formerror_network = 0;
+    jint formerror_invalid_operation = 0;
+    jint formerror_timeout = 0;
 
-    jint debug_geography_disabled;
-    jint debug_geography_eea;
-    jint debug_geography_not_eea;
+    jint debug_geography_disabled = 0;
+    jint debug_geography_eea = 0;
+    jint debug_geography_not_eea = 0;
+    jint debug_geography_regulated_us_state = 3;
+    jint debug_geography_other = 4;
 
-    jint privacy_options_requirement_unknown;
-    jint privacy_options_requirement_required;
-    jint privacy_options_requirement_not_required;
+    jint privacy_options_requirement_unknown = 0;
+    jint privacy_options_requirement_required = 0;
+    jint privacy_options_requirement_not_required = 0;
 
-    jint function_request_consent_info_update;
-    jint function_load_consent_form;
-    jint function_show_consent_form;
-    jint function_load_and_show_consent_form_if_required;
-    jint function_show_privacy_options_form;
-    jint function_count;
+    jint function_request_consent_info_update = 0;
+    jint function_load_consent_form = 1;
+    jint function_show_consent_form = 2;
+    jint function_load_and_show_consent_form_if_required = 3;
+    jint function_show_privacy_options_form = 4;
+    jint function_count = 5;
   };
 
   // JNI native method callback for ConsentInfoHelper.completeFuture.
@@ -120,20 +105,22 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
                                      FutureHandleId handle_id, int error_code,
                                      const char* error_message);
 
-  // Cache Java enum field values in the struct below.
-  void CacheEnumValues(JNIEnv* env);
+  // Cache Java enum field values in the struct below. Returns false if a JNI
+  // exception occurred.
+  bool CacheEnumValues(JNIEnv* env);
 
   // Enum conversion methods.
-  ConsentStatus CppConsentStatusFromAndroid(jint status);
+  ConsentStatus CppConsentStatusFromAndroid(jint status) const;
   PrivacyOptionsRequirementStatus CppPrivacyOptionsRequirementStatusFromAndroid(
-      jint status);
-  jint AndroidDebugGeographyFromCppDebugGeography(ConsentDebugGeography geo);
+      jint status) const;
+  jint AndroidDebugGeographyFromCppDebugGeography(
+      ConsentDebugGeography geo) const;
   ConsentRequestError CppConsentRequestErrorFromAndroidFormError(
-      jint error, const char* message = nullptr);
+      jint error, const char* message = nullptr) const;
   ConsentFormError CppConsentFormErrorFromAndroidFormError(
-      jint error, const char* message = nullptr);
+      jint error, const char* message = nullptr) const;
 
-  const EnumCache& enums() { return enums_; }
+  const EnumCache& enums() const { return enums_; }
 
   static ConsentInfoInternalAndroid* s_instance;
   static firebase::Mutex s_instance_mutex;
@@ -141,11 +128,11 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   EnumCache enums_;
 
   JavaVM* java_vm_;
-  jobject activity_;
   jobject helper_;
+  jmethodID set_activity_method_id_;
 
-  // Needed for GetConsentFormStatus to return Unknown.
-  bool has_requested_consent_info_update_;
+  // Needed for GetConsentFormStatus to return Unknown until an update succeeds.
+  std::atomic<bool> has_requested_consent_info_update_;
 };
 
 }  // namespace internal

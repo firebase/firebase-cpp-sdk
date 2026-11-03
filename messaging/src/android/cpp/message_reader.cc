@@ -15,7 +15,9 @@
 #include "messaging/src/android/cpp/message_reader.h"
 
 #include <cstdint>
+#include <cstring>
 #include <string>
+#include <vector>
 
 #include "app/src/log.h"
 #include "messaging/messaging_generated.h"
@@ -52,7 +54,7 @@ static const char kMessageReadError[] =
 
 void MessageReader::ReadFromBuffer(const std::string& buffer) const {
   // Process each serialized message from the buffer.
-  const char* ptr = buffer.c_str();
+  const char* ptr = buffer.data();
   size_t remaining = buffer.size();
   while (remaining) {
     if (remaining <= sizeof(int32_t)) {
@@ -62,16 +64,22 @@ void MessageReader::ReadFromBuffer(const std::string& buffer) const {
     }
     // Get the size of the flatbuffer so we know how far to increment the
     // pointer on the next iteration.
-    size_t buffer_len = *reinterpret_cast<const int32_t*>(ptr);
+    int32_t raw_len = 0;
+    std::memcpy(&raw_len, ptr, sizeof(int32_t));
     ptr += sizeof(int32_t);
     remaining -= sizeof(int32_t);
-    if (buffer_len > remaining) {
+    if (raw_len <= 0 || static_cast<size_t>(raw_len) > remaining) {
       LogError(kMessageReadError, "Detected malformed FCM event header.");
       break;
     }
+    const size_t buffer_len = static_cast<size_t>(raw_len);
+    std::vector<uint8_t> aligned_buffer(
+        reinterpret_cast<const uint8_t*>(ptr),
+        reinterpret_cast<const uint8_t*>(ptr) + buffer_len);
+    ptr += buffer_len;
+    remaining -= buffer_len;
 
-    ::flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(ptr),
-                                     buffer_len);
+    ::flatbuffers::Verifier verifier(aligned_buffer.data(), buffer_len);
     if (!VerifySerializedEventBuffer(verifier)) {
       // If we make a breaking change to the flatbuffers schemas any app that
       // has serialized events that have not been consumed will not be able to
@@ -85,9 +93,12 @@ void MessageReader::ReadFromBuffer(const std::string& buffer) const {
 
     // Decode the union of serialized event types and parse the message or
     // token.
-    const SerializedEvent* serialized_event = GetSerializedEvent(ptr);
-    ptr += buffer_len;
-    remaining -= buffer_len;
+    const SerializedEvent* serialized_event =
+        GetSerializedEvent(aligned_buffer.data());
+    if (!serialized_event) {
+      LogError(kMessageReadError, "FCM event was null.");
+      break;
+    }
     switch (serialized_event->event_type()) {
       case SerializedEventUnion_SerializedMessage: {
         const SerializedMessage* serialized_message =
@@ -128,6 +139,7 @@ void MessageReader::ReadFromBuffer(const std::string& buffer) const {
 
 void MessageReader::ConsumeMessage(
     const SerializedMessage* serialized_message) const {
+  if (!serialized_message) return;
   Message message;
   Notification notification;
   AndroidNotificationParams android;
@@ -137,6 +149,7 @@ void MessageReader::ConsumeMessage(
     flatbuffers::uoffset_t size = serialized_message->data()->size();
     for (flatbuffers::uoffset_t i = 0; i < size; ++i) {
       const DataPair* pair = serialized_message->data()->Get(i);
+      if (!pair) continue;
       const char* key = SafeFlatbufferString(pair->key());
       const char* value = SafeFlatbufferString(pair->value());
       if (key && value) {
@@ -209,7 +222,9 @@ void MessageReader::ConsumeMessage(
   }
 
   // Finally, process the message.
-  message_callback_(message, message_callback_data_);
+  if (message_callback_) {
+    message_callback_(message, message_callback_data_);
+  }
   // Ensure that the stack allocated pointer is null before it goes out of
   // scope so it doesn't get deleted.
   if (message.notification) {
@@ -222,8 +237,11 @@ void MessageReader::ConsumeMessage(
 // callback.
 void MessageReader::ConsumeTokenReceived(
     const SerializedTokenReceived* serialized_token_received) const {
+  if (!serialized_token_received) return;
   const char* token = SafeFlatbufferString(serialized_token_received->token());
-  token_callback_(token, token_callback_data_);
+  if (token_callback_) {
+    token_callback_(token, token_callback_data_);
+  }
 }
 
 // Convert the SerializedRegistrationReceived to an installation ID and calls

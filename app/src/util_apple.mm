@@ -26,9 +26,13 @@ std::string GetSandboxModeSemaphorePrefix() {
   if (mainBundle != nil) {
     NSDictionary<NSString*, id>* dictionary = [mainBundle infoDictionary];
     if (dictionary != nil) {
-      NSString* customPrefix = [dictionary valueForKey:@"FBAppGroupEntitlementName"];
-      if (customPrefix != nil) {
-        return std::string(customPrefix.UTF8String).append("/");
+      id customPrefixObj = [dictionary objectForKey:@"FBAppGroupEntitlementName"];
+      if ([customPrefixObj isKindOfClass:[NSString class]]) {
+        NSString* customPrefix = (NSString*)customPrefixObj;
+        const char* utf8 = customPrefix.UTF8String;
+        if (customPrefix.length > 0 && utf8 != nullptr) {
+          return std::string(utf8).append("/");
+        }
       }
     }
   }

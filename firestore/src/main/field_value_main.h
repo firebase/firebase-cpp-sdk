@@ -18,6 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -45,7 +46,7 @@ class FieldValueInternal {
   FieldValueInternal();
 
   explicit FieldValueInternal(bool value);
-  explicit FieldValueInternal(int64_t value);
+  explicit FieldValueInternal(std::int64_t value);
   explicit FieldValueInternal(double value);
   explicit FieldValueInternal(Timestamp value);
   explicit FieldValueInternal(std::string value);
@@ -58,7 +59,7 @@ class FieldValueInternal {
   FieldValue::Type type() const { return type_; }
 
   bool boolean_value() const;
-  int64_t integer_value() const;
+  std::int64_t integer_value() const;
   double double_value() const;
   Timestamp timestamp_value() const;
   std::string string_value() const;

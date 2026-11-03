@@ -632,7 +632,8 @@ TEST_F(SyncTreeTest, RemoveAllEventRegistrations) {
   std::vector<Event> results;
   // This will not cause any calls to StopListening because the listener
   // is listening on aaa and redirecting changes to this location internally.
-  EXPECT_CALL(*persistence_manager_, SetQueryInactive(query_spec1)).Times(2);
+  EXPECT_CALL(*persistence_manager_, SetQueryInactive(query_spec1));
+  EXPECT_CALL(*persistence_manager_, SetQueryInactive(query_spec2));
   results = sync_tree_->RemoveAllEventRegistrations(query_spec1, kErrorNone);
   EXPECT_EQ(results, std::vector<Event>{});
 
@@ -696,7 +697,8 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
   std::vector<Event> results;
   // This will not cause any calls to StopListening because the listener
   // is listening on aaa and redirecting changes to this location internally.
-  EXPECT_CALL(*persistence_manager_, SetQueryInactive(query_spec1)).Times(2);
+  EXPECT_CALL(*persistence_manager_, SetQueryInactive(query_spec1));
+  EXPECT_CALL(*persistence_manager_, SetQueryInactive(query_spec2));
   results =
       sync_tree_->RemoveEventRegistration(query_spec1, &listener1, kErrorNone);
   EXPECT_EQ(results, std::vector<Event>{});
@@ -807,6 +809,18 @@ TEST(SyncTree, CalcCompleteEventCache) {
                   write_ids_to_exclude, kIncludeHiddenWrites));
   sync_tree.CalcCompleteEventCache(Path("aaa/bbb/ccc/fruit"),
                                    write_ids_to_exclude);
+
+  // When no server cache exists for a path, nullptr is passed instead of
+  // dereferencing an empty Optional<Variant>.
+  EXPECT_CALL(*pending_write_tree,
+              CalcCompleteEventCache(Path("untracked/path"), nullptr,
+                                     write_ids_to_exclude,
+                                     kIncludeHiddenWrites))
+      .WillOnce(Return(Optional<Variant>(Variant("local_write_value"))));
+  Optional<Variant> untracked_result = sync_tree.CalcCompleteEventCache(
+      Path("untracked/path"), write_ids_to_exclude);
+  ASSERT_TRUE(untracked_result.has_value());
+  EXPECT_EQ(*untracked_result, Variant("local_write_value"));
 }
 
 TEST_F(SyncTreeTest, SetKeepSynchronized) {

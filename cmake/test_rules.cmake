@@ -23,7 +23,7 @@ include(CMakeParseArguments)
 # )
 #
 # Defines a new test executable target with the given target name, sources, and
-# dependencies.  Implicitly adds DEPENDS on gtest and gtest_main.
+# dependencies. Implicitly adds DEPENDS on gtest and gtest_main.
 function(firebase_cpp_cc_test name)
   if (ANDROID OR IOS)
     return()
@@ -44,10 +44,10 @@ function(firebase_cpp_cc_test name)
   endif()
 
   add_executable(${name} ${cc_test_SOURCES})
-  add_test(${name} ${name})
+  add_test(NAME ${name} COMMAND ${name})
   target_include_directories(${name}
     PRIVATE
-      ${FIREBASE_SOURCE_DIR}
+      "${FIREBASE_SOURCE_DIR}"
       ${cc_test_INCLUDES}
   )
   target_link_libraries(${name} PRIVATE ${cc_test_DEPENDS})
@@ -65,8 +65,8 @@ endfunction()
 # )
 #
 # Rolls up a list of the required iOS frameworks for building Firebase
-# apps for iOS.  Implicitly adds DEPENDS on FirebaseAnalytics framework
-# requirements, which is the base requirements for all Firebase SDKs.
+# apps for iOS. Implicitly adds base FirebaseCore framework requirements
+# and any enabled product frameworks present under FIREBASE_IOS_SDK_DIR.
 # CUSTOM_FRAMEWORKS will be added to this list.
 # The result of this function sets FRAMEWORK_DIRS and FRAMEWORK_INCLUDES
 # in the parent scope. These variables should be passed to target_link_libraries
@@ -75,32 +75,50 @@ function(ios_test_add_frameworks name)
   set(multi CUSTOM_FRAMEWORKS)
   cmake_parse_arguments(ios_test_add_frameworks "" "" "${multi}" ${ARGN})
 
-  if(NOT DEFINED ${FIREBASE_IOS_SDK_DIR})
+  if(NOT DEFINED FIREBASE_IOS_SDK_DIR)
     set(FIREBASE_IOS_SDK_DIR
         "${CMAKE_BINARY_DIR}/external/firebase_ios_sdk/Firebase")
   endif()
 
-  set(SDK_FRAMEWORK_DIR_NAMES FirebaseABTesting FirebaseAnalytics FirebaseAuth
-                              FirebaseDatabase
-                              FirebaseFunctions FirebaseMessaging
-                              FirebaseRemoteConfig FirebaseStorage
-                              GoogleSignIn )
+  set(SDK_FRAMEWORK_DIR_NAMES
+      FirebaseABTesting
+      FirebaseAnalytics
+      FirebaseAppCheck
+      FirebaseAuth
+      FirebaseCore
+      FirebaseDatabase
+      FirebaseFirestore
+      FirebaseFunctions
+      FirebaseInstallations
+      FirebaseMessaging
+      FirebaseRemoteConfig
+      FirebaseStorage
+      GoogleSignIn)
 
+  set(DIRS "")
   foreach(FRAMEWORK IN LISTS SDK_FRAMEWORK_DIR_NAMES)
-    LIST(APPEND DIRS "-F ${FIREBASE_IOS_SDK_DIR}/${FRAMEWORK}")
+    if(EXISTS "${FIREBASE_IOS_SDK_DIR}/${FRAMEWORK}")
+      list(APPEND DIRS "-F${FIREBASE_IOS_SDK_DIR}/${FRAMEWORK}")
+    endif()
   endforeach()
 
-  # All Firebase SDK modules require the Firebase Analytics Frameworks
-  # so include them by default:
-  set(DEFAULT_FRAMEWORKS FIRAnalyticsConnector FirebaseAnalytics FirebaseCore
-                         FirebaseCoreDiagnostics FirebaseInstanceID
-                         GTMSessionFetcher GoogleAppMeasurement
-                         GoogleDataTransport GoogleDataTransportCCTSupport
-                         GoogleUtilities nanopb )
+  set(DEFAULT_FRAMEWORKS
+      FirebaseCore
+      FirebaseCoreInternal
+      FirebaseInstallations
+      GoogleUtilities
+      PromisesObjC
+      nanopb)
+  if(FIREBASE_INCLUDE_ANALYTICS)
+    list(APPEND DEFAULT_FRAMEWORKS
+         FirebaseAnalytics
+         GoogleAppMeasurement)
+  endif()
 
+  set(INCLUDES "")
   foreach(FRAMEWORK IN LISTS DEFAULT_FRAMEWORKS
           ios_test_add_frameworks_CUSTOM_FRAMEWORKS)
-    LIST(APPEND INCLUDES "-framework ${FRAMEWORK}")
+    list(APPEND INCLUDES "-framework ${FRAMEWORK}")
   endforeach()
 
   set(FRAMEWORK_DIRS ${DIRS} PARENT_SCOPE)
@@ -112,17 +130,16 @@ endfunction()
 #   HOST host
 #   SOURCES sources...
 #   DEPENDS libraries...
+#   INCLUDES include directories...
 #   CUSTOM_FRAMEWORKS frameworks...
 #   DEFINES defines...
 # )
 #
 # Defines a new test executable target with the given target name, sources, and
-# dependencies.  Implicitly adds DEPENDS on gtest, gtest_main, Foundation and
-# CoreFoundation frameworks and attaches them to the predefined HOST executable.
-# CUSTOM_FRAMEWORKS will include any custom Cocoapods frameworks beyond the
-
-# baseline FirebaseAnalytics.  DEFINES will be added to the
-# target_compile_definitions call.
+# dependencies. Implicitly adds DEPENDS on gmock, gtest, gtest_main, Foundation,
+# and CoreFoundation frameworks and attaches them to the predefined HOST executable.
+# CUSTOM_FRAMEWORKS will include any custom frameworks beyond the base set.
+# DEFINES will be added to the target_compile_definitions call.
 function(firebase_cpp_cc_test_on_ios name)
   if (NOT IOS)
     return()
@@ -131,8 +148,13 @@ function(firebase_cpp_cc_test_on_ios name)
   enable_testing()
   find_package(XCTest REQUIRED)
 
-  set(multi HOST DEPENDS SOURCES INCLUDES DEFINES CUSTOM_FRAMEWORKS)
-  cmake_parse_arguments(cc_test "" "" "${multi}" ${ARGN})
+  set(single HOST)
+  set(multi DEPENDS SOURCES INCLUDES DEFINES CUSTOM_FRAMEWORKS)
+  cmake_parse_arguments(cc_test "" "${single}" "${multi}" ${ARGN})
+
+  if(NOT cc_test_HOST)
+    message(FATAL_ERROR "firebase_cpp_cc_test_on_ios(${name}) requires a HOST target argument.")
+  endif()
 
   ios_test_add_frameworks(${name}
     CUSTOM_FRAMEWORKS
@@ -141,11 +163,13 @@ function(firebase_cpp_cc_test_on_ios name)
 
   list(APPEND cc_test_DEPENDS
        gmock gtest gtest_main
+       "-framework Foundation"
+       "-framework CoreFoundation"
   )
 
   xctest_add_bundle(
       ${name}
-      ${cc_test_HOST}
+      "${cc_test_HOST}"
       ${cc_test_SOURCES}
   )
 
@@ -165,14 +189,15 @@ function(firebase_cpp_cc_test_on_ios name)
   # Include Paths
   target_include_directories(${name}
     PRIVATE
-      ${FIREBASE_SOURCE_DIR}
-      ${FIREBASE_SOURCE_DIR}/app/src/include
+      "${FIREBASE_SOURCE_DIR}"
+      "${FIREBASE_SOURCE_DIR}/app/src/include"
+      ${cc_test_INCLUDES}
   )
 
   # Preprocessor Definitions
   target_compile_definitions(${name} PRIVATE
        -DINTERNAL_EXPERIMENTAL=1
-       -DDEATHTEST_SIGABRT="SIGABRT"
+       -DDEATHTEST_SIGABRT=""
        ${cc_test_DEFINES}
   )
 

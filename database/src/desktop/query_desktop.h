@@ -15,20 +15,17 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_QUERY_DESKTOP_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_QUERY_DESKTOP_H_
 
-#include <limits>
+#include <cstddef>
 #include <memory>
+#include <utility>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/path.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/semaphore.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/include/firebase/database.h"
 #include "database/src/include/firebase/database/listener.h"
-#include "flatbuffers/flatbuffers.h"
-#include "flatbuffers/stl_emulation.h"
 
 namespace firebase {
 namespace database {
@@ -38,7 +35,7 @@ class DatabaseInternal;
 
 class QueryInternal {
  public:
-  QueryInternal() : database_(nullptr) {}
+  QueryInternal() = default;
 
   QueryInternal(DatabaseInternal* database, const QuerySpec& query_spec);
 
@@ -46,11 +43,9 @@ class QueryInternal {
 
   QueryInternal& operator=(const QueryInternal& query);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  QueryInternal(QueryInternal&& query);
+  QueryInternal(QueryInternal&& query) noexcept;
 
-  QueryInternal& operator=(QueryInternal&& query);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  QueryInternal& operator=(QueryInternal&& query) noexcept;
 
   virtual ~QueryInternal();
 
@@ -95,8 +90,8 @@ class QueryInternal {
   DatabaseInternal* database_internal() const { return database_; }
 
  protected:
-  DatabaseInternal* database_;
-  internal::QuerySpec query_spec_;
+  DatabaseInternal* database_ = nullptr;
+  QuerySpec query_spec_;
 
  private:
   // Get the Future for the QueryInternal.
@@ -111,26 +106,24 @@ class QueryInternal {
   void RemoveEventRegistration(ChildListener* listener,
                                const QuerySpec& query_spec);
 
-  ValueListener* value_listener_;
-
   // The memory location of this member variable is used to look up our
   // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and
   // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
   // instances, but have the same "this" pointer as one is a subclass of the
   // other.
-  int future_api_id_;
+  int future_api_id_ = 0;
 };
 
 struct ValueListenerCleanupData {
-  explicit ValueListenerCleanupData(const QuerySpec& query_spec)
-      : query_spec(query_spec) {}
+  explicit ValueListenerCleanupData(QuerySpec query_spec_in)
+      : query_spec(std::move(query_spec_in)) {}
 
   QuerySpec query_spec;
 };
 
 struct ChildListenerCleanupData {
-  explicit ChildListenerCleanupData(const QuerySpec& query_spec)
-      : query_spec(query_spec) {}
+  explicit ChildListenerCleanupData(QuerySpec query_spec_in)
+      : query_spec(std::move(query_spec_in)) {}
 
   QuerySpec query_spec;
 };

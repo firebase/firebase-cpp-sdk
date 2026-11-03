@@ -14,12 +14,14 @@
 
 #include "messaging/src/include/firebase/messaging.h"
 
+#include "messaging/src/common.h"
+
 namespace firebase {
 namespace messaging {
 
 // Non-inline implementation of Listener's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-Listener::~Listener() {}
+Listener::~Listener() { UnregisterListener(this); }
 
 void Listener::OnTokenReceived(const char* /*token*/) {}
 

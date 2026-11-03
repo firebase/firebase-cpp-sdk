@@ -29,18 +29,26 @@ class ResponseBinary : public Response {
  public:
   ResponseBinary();
 
+  bool ProcessBody(const char* buffer, size_t length) override;
+
   void GetBody(const char** data, size_t* size) const override;
 
   // Call `set_use_gunzip(true)` to use gzip to uncompress HTTP body.
   //
   // By default we don't use decompression.
-  virtual void set_use_gunzip(bool use_gunzip) { use_gunzip_ = use_gunzip; }
+  virtual void set_use_gunzip(bool use_gunzip) {
+    if (use_gunzip_ != use_gunzip) {
+      use_gunzip_ = use_gunzip;
+      body_gunzip_cache_.clear();
+      gunzip_cached_ = false;
+    }
+  }
 
  private:
   std::string Gunzip(const char* input_data, size_t input_size) const;
 
-  mutable ZLib zlib_;
   bool use_gunzip_;
+  mutable bool gunzip_cached_;
   mutable std::string body_gunzip_cache_;
 };
 

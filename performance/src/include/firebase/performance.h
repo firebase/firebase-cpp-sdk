@@ -4,8 +4,11 @@
 #define FIREBASE_PERFORMANCE_SRC_INCLUDE_FIREBASE_PERFORMANCE_H_
 
 #include "firebase/app.h"
+#include "firebase/internal/common.h"
 #include "firebase/performance/http_metric.h"
 #include "firebase/performance/trace.h"
+
+FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(performance)
 
 /// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {

@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
 
+#include <type_traits>
 #include <utility>
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
@@ -114,13 +115,13 @@ class JniRunnableBase {
  *
  * The template parameter `CallbackT` is typically a lambda or function pointer;
  * it can be anything that can be "invoked" with either zero arguments or one
- * argument whose type is `JniRunnableBase&`.
+ * argument whose type is `JniRunnable<CallbackT>&` (or `JniRunnableBase&`).
  *
  * Example:
  *
  * jni::Env env;
  * int invoke_count = 0;
- * auto runnable = MakeJniRunnable(env, [&invoke_count] { invoke_count++; });
+ * JniRunnable runnable(env, [&invoke_count] { invoke_count++; });
  * jni::Local<jni::Object> java_runnable = runnable.GetJavaRunnable();
  * for (int i=0; i<5; ++i) {
  *   env.Call(java_runnable, kRunnableRun);
@@ -134,38 +135,25 @@ class JniRunnable : public JniRunnableBase {
   JniRunnable(jni::Env& env, CallbackT callback)
       : JniRunnableBase(env), callback_(std::move(callback)) {}
 
-  void Run() override { Run(*this, callback_); }
+  ~JniRunnable() override {
+    jni::Env env;
+    Detach(env);
+    if (!env.ok()) {
+      env.ExceptionClear();
+    }
+  }
+
+  void Run() override {
+    if constexpr (std::is_invocable_v<CallbackT>) {
+      callback_();
+    } else {
+      callback_(*this);
+    }
+  }
 
  private:
-  // These two static overloads of `Run()` use SFINAE to invoke the callback
-  // with zero arguments or with one argument, depending on the signature of the
-  // callback. If the callback takes one argument then a reference to the
-  // `JniRunnable` object is specified for that argument.
-  template <typename JniRunnableType, typename ZeroArgCallback>
-  static auto Run(JniRunnableType&, ZeroArgCallback callback)
-      -> decltype(callback()) {
-    return callback();
-  }
-
-  template <typename JniRunnableType, typename OneArgCallback>
-  static auto Run(JniRunnableType& runnable, OneArgCallback callback)
-      -> decltype(callback(runnable)) {
-    return callback(runnable);
-  }
-
   CallbackT callback_;
 };
-
-/**
- * Creates and returns a new instance of `JniRunnable`.
- *
- * TODO: Remove this function in favor of just using the constructor once C++17
- * becomes the lowest-supported C++ version.
- */
-template <typename CallbackT>
-JniRunnable<CallbackT> MakeJniRunnable(jni::Env& env, CallbackT callback) {
-  return JniRunnable<CallbackT>(env, std::move(callback));
-}
 
 }  // namespace firestore
 }  // namespace firebase

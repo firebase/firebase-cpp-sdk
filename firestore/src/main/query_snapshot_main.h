@@ -18,17 +18,14 @@
 #define FIREBASE_FIRESTORE_SRC_MAIN_QUERY_SNAPSHOT_MAIN_H_
 
 #include <cstddef>
+#include <mutex>
+#include <optional>
 #include <vector>
 
 #include "Firestore/core/src/api/query_snapshot.h"
-#include "absl/types/optional.h"
 #include "firestore/src/include/firebase/firestore/document_change.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/metadata_changes.h"
-#include "firestore/src/include/firebase/firestore/query.h"
-#include "firestore/src/include/firebase/firestore/query_snapshot.h"
-#include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
-#include "firestore/src/main/firestore_main.h"
 
 #if defined(__ANDROID__)
 #error "This header should not be used on Android."
@@ -37,11 +34,20 @@
 namespace firebase {
 namespace firestore {
 
+class Query;
+class SnapshotMetadata;
+class FirestoreInternal;
+
 class QuerySnapshotInternal {
  public:
   explicit QuerySnapshotInternal(api::QuerySnapshot&& snapshot);
+  QuerySnapshotInternal(const QuerySnapshotInternal& other);
+  QuerySnapshotInternal(QuerySnapshotInternal&& other);
+  QuerySnapshotInternal& operator=(const QuerySnapshotInternal& other);
+  QuerySnapshotInternal& operator=(QuerySnapshotInternal&& other);
 
   FirestoreInternal* firestore_internal();
+  const FirestoreInternal* firestore_internal() const;
 
   Query query() const;
   SnapshotMetadata metadata() const;
@@ -60,10 +66,13 @@ class QuerySnapshotInternal {
  private:
   api::QuerySnapshot snapshot_;
 
-  // Cache the results
-  mutable absl::optional<std::vector<DocumentChange>> document_changes_;
-  mutable absl::optional<std::vector<DocumentSnapshot>> documents_;
-  mutable bool changes_include_metadata_ = false;
+  // Cache the results under mutex_ so const accessors are thread-safe.
+  mutable std::mutex mutex_;
+  mutable std::optional<std::vector<DocumentChange>>
+      document_changes_exclude_metadata_;
+  mutable std::optional<std::vector<DocumentChange>>
+      document_changes_include_metadata_;
+  mutable std::optional<std::vector<DocumentSnapshot>> documents_;
 };
 
 inline bool operator!=(const QuerySnapshotInternal& lhs,

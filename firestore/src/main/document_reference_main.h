@@ -48,15 +48,15 @@ class DocumentReferenceInternal {
  public:
   explicit DocumentReferenceInternal(api::DocumentReference&& reference);
 
-  Firestore* firestore();
-  FirestoreInternal* firestore_internal();
+  Firestore* firestore() const;
+  FirestoreInternal* firestore_internal() const;
 
   const std::string& id() const { return reference_.document_id(); }
   std::string path() const { return reference_.Path(); }
   const model::DocumentKey& key() const { return reference_.key(); }
 
-  CollectionReference Parent();
-  CollectionReference Collection(const std::string& collection_path);
+  CollectionReference Parent() const;
+  CollectionReference Collection(const std::string& collection_path) const;
 
   Future<DocumentSnapshot> Get(Source source);
 

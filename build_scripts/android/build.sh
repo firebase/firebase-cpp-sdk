@@ -26,27 +26,31 @@ fi
 absbuildpath=$( pwd -P )
 cd "${origpath}"
 
-# If NDK_ROOT is not set or is the wrong version, use to the version in /tmp.
-if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 23\." "${NDK_ROOT}/source.properties") ]]; then
+# If NDK_ROOT is not set or is the wrong version, use the version in /tmp if available.
+if [[ -z "${NDK_ROOT}" || ! -f "${NDK_ROOT}/source.properties" || -z $(grep "Pkg\.Revision = 23\." "${NDK_ROOT}/source.properties" 2>/dev/null) ]]; then
     if [[ ! -d /tmp/android-ndk-r23b ]]; then
         echo "Recommended NDK version r23b not present in /tmp."
         echo "Please run install_prereqs.sh if you wish to use the recommended NDK version."
         echo "Continuing with default NDK..."
         sleep 2
+    else
+        export NDK_ROOT=/tmp/android-ndk-r23b
+        export ANDROID_NDK_HOME=/tmp/android-ndk-r23b
     fi
-    export NDK_ROOT=/tmp/android-ndk-r23b
-    export ANDROID_NDK_HOME=/tmp/android-ndk-r23b
 fi
 cd "${sourcepath}"
 set +e
 # Retry the build up to 10 times, because the build fetches files from
 # maven and elsewhere, and occasionally the GitHub runners have
 # network connectivity issues that cause the download to fail.
-gradleparams="-Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false\
- -Dmaven.wagon.httpconnectionManager.ttlSeconds=120"
+gradleparams=(
+    -Dhttp.keepAlive=false
+    -Dmaven.wagon.http.pool=false
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+)
 for retry in {1..10} error; do
     if [[ $retry == "error" ]]; then exit 5; fi
-    ./gradlew assembleRelease "${gradleparams}" && break
+    ./gradlew assembleRelease "${gradleparams[@]}" && break
     sleep 300
 done
 set -e
@@ -65,9 +69,11 @@ for lib in *; do
     if [[ -d "${lib}/.cxx" ]]; then
         paths+=("${lib}/.cxx")
     fi
-    if [[ -d "${lib}/${lib}_resources/build" ]]; then
-        paths+=("${lib}/${lib}_resources/build")
-    fi
+    for res_build in "${lib}"/*_resources/build; do
+        if [[ -d "${res_build}" ]]; then
+            paths+=("${res_build}")
+        fi
+    done
     if [[ -d "${lib}/${lib}_java/build" ]]; then
         paths+=("${lib}/${lib}_java/build")
     fi

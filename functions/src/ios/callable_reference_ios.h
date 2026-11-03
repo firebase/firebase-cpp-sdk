@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,85 +16,90 @@
 #define FIREBASE_FUNCTIONS_SRC_IOS_CALLABLE_REFERENCE_IOS_H_
 
 #include <memory>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util_ios.h"
+#include "functions/src/include/firebase/functions.h"
+#include "functions/src/include/firebase/functions/callable_result.h"
 #include "functions/src/ios/functions_ios.h"
 
 #ifdef __OBJC__
-@class FIRHTTPSCallableResult;
-@class FIRHTTPSCallable;
+#import "FirebaseFunctions-Swift.h"
 #endif  // __OBJC__
+
+namespace firebase {
+namespace functions {
+namespace internal {
 
 // This defines the class FIRHTTPSCallablePointer, which is a C++-compatible
 // wrapper around the FIRHTTPSCallable Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRHTTPSCallable);
 
-namespace firebase {
-class Variant;
-
-namespace functions {
-namespace internal {
-
-#pragma clang assume_nonnull begin
-
 class HttpsCallableReferenceInternal {
  public:
-  explicit HttpsCallableReferenceInternal(FunctionsInternal* functions,
-                                          std::unique_ptr<FIRHTTPSCallablePointer> impl);
-
+  HttpsCallableReferenceInternal(FunctionsInternal* functions,
+                                 std::unique_ptr<FIRHTTPSCallablePointer> impl);
   ~HttpsCallableReferenceInternal();
 
   // Copy constructor. It's totally okay (and efficient) to copy
   // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location.
-  HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& reference);
+  // location in the Cloud Functions service.
+  HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& other);
 
   // Copy assignment operator. It's totally okay (and efficient) to copy
   // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location.
-  HttpsCallableReferenceInternal& operator=(const HttpsCallableReferenceInternal& reference);
+  // location in the Cloud Functions service.
+  HttpsCallableReferenceInternal& operator=(
+      const HttpsCallableReferenceInternal& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+#if defined(FIREBASE_USE_MOVE_OPERATORS)
   // Move constructor. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
-  HttpsCallableReferenceInternal(HttpsCallableReferenceInternal&& other);
+  HttpsCallableReferenceInternal(
+      HttpsCallableReferenceInternal&& other) noexcept;
 
   // Move assignment operator. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
-  HttpsCallableReferenceInternal& operator=(HttpsCallableReferenceInternal&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  HttpsCallableReferenceInternal& operator=(
+      HttpsCallableReferenceInternal&& other) noexcept;
+#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
-  // Gets the functions to which we refer.
-  Functions* functions();
+  // Gets the Functions instance to which we refer.
+  Functions* functions() const;
 
-  // Returns the result of the call.
+  FunctionsInternal* functions_internal() const { return functions_; }
+
+  // Asynchronously calls the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
-  Future<HttpsCallableResult> CallLastResult();
+
+  // Asynchronously calls the trigger endpoint with the given parameter.
   Future<HttpsCallableResult> Call(const Variant& data);
 
-  // FunctionsInternal instance we are associated with.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  // Get the result of the most recent Call() call.
+  Future<HttpsCallableResult> CallLastResult();
+
+  // Returns true if this HttpsCallableReference is valid, false if it is not
+  // valid.
+  bool is_valid() const;
+
+  bool operator==(const HttpsCallableReferenceInternal& other) const;
 
  private:
 #ifdef __OBJC__
-  static void CompleteFuture(ReferenceCountedFutureImpl* future_impl,
-                             SafeFutureHandle<HttpsCallableResult> handle,
-                             FIRHTTPSCallableResult* _Nullable result, NSError* error);
+  FIRHTTPSCallable* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
 
   // Get the Future for the HttpsCallableReferenceInternal.
   ReferenceCountedFutureImpl* future();
 
-  // Keep track of the Functions object for managing Futures.
+  // The FunctionsInternal object we are part of.
   FunctionsInternal* functions_;
 
   std::unique_ptr<FIRHTTPSCallablePointer> impl_;
-
-  Mutex controller_init_mutex_;
 };
-
-#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace functions

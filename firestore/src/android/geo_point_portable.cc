@@ -22,9 +22,8 @@
 
 // TODO(b/138615769): remove this file.
 
-#include <cassert>
 #include <cmath>
-#include <iostream>
+#include <ostream>
 #include <sstream>
 
 #include "app/src/assert.h"
@@ -40,7 +39,7 @@ GeoPoint::GeoPoint(double latitude, double longitude)
       "Latitude must be in the range of [-90, 90]");
   FIREBASE_ASSERT_MESSAGE(
       !std::isnan(longitude) && -180 <= longitude && longitude <= 180,
-      "Latitude must be in the range of [-180, 180]");
+      "Longitude must be in the range of [-180, 180]");
 }
 
 std::string GeoPoint::ToString() const {

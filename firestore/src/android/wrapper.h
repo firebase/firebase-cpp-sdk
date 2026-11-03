@@ -25,7 +25,6 @@
 namespace firebase {
 namespace firestore {
 
-class FieldValue;
 class FirestoreInternal;
 
 // This is the generalized wrapper base class which contains a FirestoreInternal
@@ -34,13 +33,14 @@ class Wrapper {
  public:
   Wrapper(FirestoreInternal* firestore, const jni::Object& obj);
 
+  Wrapper();
+  Wrapper(Wrapper* rhs);
   Wrapper(const Wrapper& wrapper) = default;
   Wrapper(Wrapper&& wrapper) noexcept = default;
 
   virtual ~Wrapper();
 
-  // So far, there is no use of assignment. So we do not bother to define our
-  // own and delete the default one, which does not copy jobject properly.
+  // Assignment operators are not needed and are deleted.
   Wrapper& operator=(const Wrapper& wrapper) = delete;
   Wrapper& operator=(Wrapper&& wrapper) = delete;
 
@@ -48,20 +48,10 @@ class Wrapper {
   jni::Local<jni::Object> ToJava() const;
 
  protected:
-  // Default constructor. Subclass is expected to set the obj_ a meaningful
-  // value.
-  Wrapper();
-
-  // Similar to a copy constructor, but can handle the case where `rhs` is null.
-  explicit Wrapper(Wrapper* rhs);
-
   jni::Env GetEnv() const;
 
   FirestoreInternal* firestore_ = nullptr;  // not owning
   jni::ArenaRef obj_;
-
- private:
-  friend class FirestoreInternal;
 };
 
 }  // namespace firestore

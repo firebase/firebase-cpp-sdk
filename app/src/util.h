@@ -24,7 +24,6 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -35,46 +34,40 @@ namespace firebase {
 // services is unavailable.
 
 #if FIREBASE_PLATFORM_ANDROID
-// Return kInitResultFailedMissingDependency if Google Play is unavailable.
+inline bool CheckGooglePlayServicesAvailable(const ::firebase::App& app) {
+  return ::google_play_services::CheckAvailability(
+             app.GetJNIEnv(), app.activity()) ==
+         ::google_play_services::kAvailabilityAvailable;
+}
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app)       \
   do {                                                                     \
-    const ::firebase::App& firebase_util_app_ = (app);                     \
-    if (::google_play_services::CheckAvailability(                         \
-            firebase_util_app_.GetJNIEnv(),                                \
-            firebase_util_app_.activity()) !=                              \
-        ::google_play_services::kAvailabilityAvailable) {                  \
+    if (!::firebase::CheckGooglePlayServicesAvailable(app)) {              \
       return ::firebase::kInitResultFailedMissingDependency;               \
     }                                                                      \
-  } while (false)
+  } while (0)
 
-// Return null if Google Play is unavailable. Also, if output is non-null, set
-// *output to kInitResultFailedMissingDependency.
 #define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(app, output)  \
   do {                                                                     \
-    const ::firebase::App& firebase_util_app_ = (app);                     \
-    ::firebase::InitResult* firebase_util_output_ = (output);              \
-    if (::google_play_services::CheckAvailability(                         \
-            firebase_util_app_.GetJNIEnv(),                                \
-            firebase_util_app_.activity()) !=                              \
-        ::google_play_services::kAvailabilityAvailable) {                  \
+    if (!::firebase::CheckGooglePlayServicesAvailable(app)) {              \
+      ::firebase::InitResult* firebase_util_output_ = (output);            \
       if (firebase_util_output_ != nullptr) {                              \
         *firebase_util_output_ =                                           \
             ::firebase::kInitResultFailedMissingDependency;                \
       }                                                                    \
       return nullptr;                                                      \
     }                                                                      \
-  } while (false)
+  } while (0)
 #else  // !FIREBASE_PLATFORM_ANDROID
 // No-ops on other platforms. Consume the variables to prevent warnings.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(x) \
   do {                                                             \
     (void)(x);                                                     \
-  } while (false)
+  } while (0)
 #define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(x, y) \
   do {                                                             \
     (void)(x);                                                     \
     (void)(y);                                                     \
-  } while (false)
+  } while (0)
 #endif  // FIREBASE_PLATFORM_ANDROID
 
 // Macro that silences switch case fallthrough warnings when using certain
@@ -89,6 +82,8 @@ namespace firebase {
 // }
 #if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
 #define FIREBASE_CASE_FALLTHROUGH [[fallthrough]]
+#elif defined(__GNUC__) && __GNUC__ >= 7
+#define FIREBASE_CASE_FALLTHROUGH __attribute__((fallthrough))
 #elif defined(__clang__)
 #define FIREBASE_CASE_FALLTHROUGH [[clang::fallthrough]]
 #else
@@ -227,6 +222,8 @@ class StaticFutureData {
  public:
   explicit StaticFutureData(int num_functions) : api_(num_functions) {}
   ~StaticFutureData() = default;
+  StaticFutureData(const StaticFutureData&) = delete;
+  StaticFutureData& operator=(const StaticFutureData&) = delete;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 

@@ -20,11 +20,11 @@ namespace messaging {
 
 // LINT.IfChange
 static const char kLockfile[] = "FIREBASE_CLOUD_MESSAGING_LOCKFILE";
-// LINT.ThenChange(//depot_firebase_cpp/messaging/client/cpp/src/android/java/com/google/firebase/messaging/cpp/ListenerService.java)
+// LINT.ThenChange(//depot_firebase_cpp/messaging/client/cpp/src/android/java/com/google/firebase/messaging/cpp/MessageWriter.java)
 
 // LINT.IfChange
 static const char kStorageFile[] = "FIREBASE_CLOUD_MESSAGING_LOCAL_STORAGE";
-// LINT.ThenChange(//depot_firebase_cpp/messaging/client/cpp/src/android/java/com/google/firebase/messaging/cpp/ListenerService.java)
+// LINT.ThenChange(//depot_firebase_cpp/messaging/client/cpp/src/android/java/com/google/firebase/messaging/cpp/MessageWriter.java)
 
 // Acquires a lock on a lock file and releases when this object goes out
 // of scope.
@@ -33,7 +33,10 @@ class FileLocker {
   // Lock a lock file.
   explicit FileLocker(const char* lock_filename);
 
-  // Release the lock, if it was successfully required.
+  FileLocker(const FileLocker&) = delete;
+  FileLocker& operator=(const FileLocker&) = delete;
+
+  // Release the lock, if it was successfully acquired.
   ~FileLocker();
 
   // Acquires a lock on the lockfile which acts as a mutex between separate

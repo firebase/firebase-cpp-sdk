@@ -51,6 +51,13 @@ class Controller {
 
   // Returns the number of bytes that have been transferred so far.
   virtual int64_t BytesTransferred() = 0;
+
+ protected:
+  Controller() = default;
+  Controller(const Controller&) = default;
+  Controller& operator=(const Controller&) = default;
+  Controller(Controller&&) = default;
+  Controller& operator=(Controller&&) = default;
 };
 
 }  // namespace rest

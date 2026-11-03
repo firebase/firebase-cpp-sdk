@@ -46,8 +46,8 @@ using Type = FieldValue::Type;
 
 FieldValueInternal::FieldValueInternal() {
   auto& value = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
-  value->which_value_type = google_firestore_v1_Value_map_value_tag;
-  value->map_value = {};
+  value->which_value_type = google_firestore_v1_Value_null_value_tag;
+  value->null_value = {};
 }
 
 FieldValueInternal::FieldValueInternal(bool value) : type_{Type::kBoolean} {
@@ -85,6 +85,10 @@ FieldValueInternal::FieldValueInternal(std::string value)
 
 FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
     : type_{Type::kBlob} {
+  if (size > 0) {
+    SIMPLE_HARD_ASSERT(value != nullptr,
+                       "Blob value pointer cannot be null when size > 0.");
+  }
   auto& proto = GetProtoValue();
   proto->which_value_type = google_firestore_v1_Value_bytes_value_tag;
   proto->bytes_value = MakeBytesArray(value, size);
@@ -147,7 +151,7 @@ size_t FieldValueInternal::blob_size() const {
   return value ? value->size : 0;
 }
 
-DocumentReference FieldValueInternal::reference_value() const {
+const DocumentReference& FieldValueInternal::reference_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kReference);
   return absl::get<DocumentReference>(value_);
 }
@@ -158,22 +162,23 @@ GeoPoint FieldValueInternal::geo_point_value() const {
   return GeoPoint{value.latitude, value.longitude};
 }
 
-std::vector<FieldValue> FieldValueInternal::array_value() const {
+const std::vector<FieldValue>& FieldValueInternal::array_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kArray);
   return absl::get<ArrayT>(value_);
 }
 
-MapFieldValue FieldValueInternal::map_value() const {
+const MapFieldValue& FieldValueInternal::map_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kMap);
   return absl::get<MapT>(value_);
 }
 
-std::vector<FieldValue> FieldValueInternal::array_transform_value() const {
+const std::vector<FieldValue>& FieldValueInternal::array_transform_value()
+    const {
   SIMPLE_HARD_ASSERT(type_ == Type::kArrayUnion || type_ == Type::kArrayRemove);
   return absl::get<ArrayT>(value_);
 }
 
-std::int64_t FieldValueInternal::integer_increment_value() const {
+int64_t FieldValueInternal::integer_increment_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kIncrementInteger);
   return GetProtoValue()->integer_value;
 }
@@ -209,7 +214,7 @@ FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
       FieldValueInternal{Type::kArrayRemove, std::move(elements)});
 }
 
-FieldValue FieldValueInternal::IntegerIncrement(std::int64_t by_value) {
+FieldValue FieldValueInternal::IntegerIncrement(int64_t by_value) {
   Message<google_firestore_v1_Value> value;
   value->which_value_type = google_firestore_v1_Value_integer_value_tag;
   value->integer_value = by_value;
@@ -265,6 +270,9 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
 
     case Type::kMap:
       return absl::get<MapT>(lhs.value_) == absl::get<MapT>(rhs.value_);
+
+    case Type::kInvalid:
+      return true;
   }
 
   FIRESTORE_UNREACHABLE();
@@ -272,6 +280,8 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
 
 std::string Describe(Type type) {
   switch (type) {
+    case Type::kInvalid:
+      return "FieldValue()";
     // Scalars
     case Type::kNull:
       return "FieldValue::Null()";
@@ -309,11 +319,9 @@ std::string Describe(Type type) {
     case Type::kIncrementDouble:
       return "FieldValue::Increment()";
     default: {
-      // TODO(b/147444199): use string formatting.
-      // HARD_FAIL("Unexpected type '%s'", type);
       auto message = std::string("Unexpected type '") +
                      std::to_string(static_cast<int>(type)) + "'";
-      SIMPLE_HARD_FAIL(message.c_str());
+      SIMPLE_HARD_FAIL(message);
     }
   }
 }

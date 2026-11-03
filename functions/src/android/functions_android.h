@@ -18,16 +18,13 @@
 #include <jni.h>
 
 #include <map>
-#include <set>
 #include <string>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
-#include "functions/src/android/functions_android.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
 #include "functions/src/include/firebase/functions/common.h"
 
@@ -37,76 +34,57 @@ namespace internal {
 
 class FunctionsInternal {
  public:
-  // Build a Functions.
   FunctionsInternal(App* app, const char* region);
   ~FunctionsInternal();
 
-  // Return the App we were created with.
-  App* app() const;
+  FunctionsInternal(const FunctionsInternal&) = delete;
+  FunctionsInternal& operator=(const FunctionsInternal&) = delete;
 
-  // Return the region we were created with.
-  const char* region() const;
+  // Return the App we were created with.
+  App* app() const { return app_; }
+
+  // Return the region or custom domain we were created with.
+  const char* region() const { return region_.c_str(); }
+
+  // Return the Java object we are wrapping.
+  jobject obj() const { return obj_; }
+
+  // Manage Future implementations.
+  FutureManager& future_manager() { return future_manager_; }
+
+  CleanupNotifier& cleanup() { return cleanup_; }
+
+  // Whether this object was successfully initialized by the constructor.
+  bool is_valid() const { return app_ != nullptr && obj_ != nullptr; }
 
   HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
-
-  HttpsCallableReferenceInternal* GetHttpsCallable(
+  HttpsCallableReferenceInternal* GetHttpsCallableWithOptions(
       const char* name, const HttpsCallableOptions& options) const;
-
-  // Get a FunctionsReference for the specified URL.
   HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
       const char* url) const;
-
-  HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
+  HttpsCallableReferenceInternal* GetHttpsCallableFromURLWithOptions(
       const char* url, const HttpsCallableOptions& options) const;
 
   void UseFunctionsEmulator(const char* origin);
 
-  // Convert an error code obtained from a Java FunctionsException into a C++
-  // Error enum.
-  Error ErrorFromJavaErrorCode(jint java_error_code) const;
-
-  // Convert a Java FunctionsExcetion instance into a C++ Error enum.
-  // If error_message is not null, it will be set to the error message string
-  // from the exception.
-  Error ErrorFromJavaFunctionsException(jobject java_error,
-                                        std::string* error_message) const;
-
-  FutureManager& future_manager() { return future_manager_; }
-
-  // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
-
-  // When this is deleted, it will clean up all FunctionsReferences and other
-  // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
-
-  // Used for registering global callbacks. See
-  // firebase::util::RegisterCallbackOnTask for context.
-  const char* jni_task_id() { return jni_task_id_.c_str(); }
+  Error ErrorFromJavaFunctionsException(JNIEnv* env, jobject java_exception,
+                                        std::string* error_message,
+                                        Variant* details_out = nullptr);
 
  private:
-  // Initialize JNI for all classes.
+  // Initialize JNI classes and method IDs.
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
-  // Initialize classes loaded from embedded files.
-  static bool InitializeEmbeddedClasses(App* app);
-
   static Mutex init_mutex_;
   static int initialize_count_;
-  static std::map<jint, Error> java_error_to_cpp_;
-
-  App* app_;
-  std::string region_;
-  // Java FirebaseFunctions global ref.
-  jobject obj_;
+  static std::map<jobject, Error>* code_map_;
 
   FutureManager future_manager_;
-
   CleanupNotifier cleanup_;
-
-  // String to be used when registering for JNI task callbacks.
-  std::string jni_task_id_;
+  App* app_ = nullptr;
+  std::string region_;
+  jobject obj_ = nullptr;
 };
 
 }  // namespace internal

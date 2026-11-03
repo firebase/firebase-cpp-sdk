@@ -36,8 +36,6 @@ template <typename T>
 class Local;
 template <typename T>
 class Global;
-template <typename T>
-class NonOwning;
 
 class Class;
 class Object;

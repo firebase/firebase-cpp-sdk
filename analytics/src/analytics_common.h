@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
-#define FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
+#ifndef FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H_
+#define FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H_
 
+#include <memory>
+#include <mutex>
+
+#include "app/src/include/firebase/app.h"
 #include "app/src/reference_counted_future_impl.h"
 
 namespace firebase {
@@ -34,27 +38,45 @@ enum AnalyticsFn {
 class FutureData {
  public:
   FutureData() : api_(kAnalyticsFnCount) {}
-  ~FutureData() {}
+  ~FutureData() = default;
+
+  FutureData(const FutureData&) = delete;
+  FutureData& operator=(const FutureData&) = delete;
+  FutureData(FutureData&&) = delete;
+  FutureData& operator=(FutureData&&) = delete;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 
-  // Create FutureData singleton.
+  // Mutex protecting FutureData singleton creation, lookup, and destruction.
+  static std::recursive_mutex& mutex();
+
+  // Create FutureData singleton. Callers using the returned raw pointer must
+  // hold FutureData::mutex() across its use, or call GetShared().
   static FutureData* Create();
   // Destroy the FutureData singleton.
   static void Destroy();
-  // Get the Future data singleton.
+  // Get the Future data singleton. Callers using the returned raw pointer must
+  // hold FutureData::mutex() across its use, or call GetShared().
   static FutureData* Get();
+  // Get a shared_ptr to the active FutureData instance for async callbacks.
+  static std::shared_ptr<FutureData> GetShared();
 
  private:
-  ReferenceCountedFutureImpl api_;
+  static std::shared_ptr<FutureData>& FutureDataPtr();
 
-  static FutureData* s_future_data_;
+  ReferenceCountedFutureImpl api_;
 };
 
-extern const char* kAnalyticsModuleName;
+extern const char* const kAnalyticsModuleName;
+
+// Registers a cleanup task for this module on the specified App instance.
+void RegisterTerminateOnAppDestroy(const App* app);
 
 // Registers a cleanup task for this module if auto-initialization is disabled.
 void RegisterTerminateOnDefaultAppDestroy();
+
+// Unregisters the cleanup task for this module.
+void UnregisterTerminateOnAppDestroy();
 
 // Unregisters the cleanup task for this module if auto-initialization is
 // disabled.
@@ -68,4 +90,4 @@ bool IsInitialized();
 }  // namespace analytics
 }  // namespace firebase
 
-#endif  // FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
+#endif  // FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H_

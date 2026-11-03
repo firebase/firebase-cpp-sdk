@@ -19,9 +19,9 @@
 #include <stdio.h>
 
 #include <cstddef>
+#include <filesystem>  // NOLINT(build/c++17)
 #include <string>
 
-#include "absl/flags/flag.h"
 #include "app/rest/tests/request_test.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -33,7 +33,9 @@ namespace test {
 class RequestFileTest : public ::testing::Test {
  public:
   RequestFileTest()
-      : filename_(absl::GetFlag(FLAGS_test_tmpdir) + "/a_file.txt"),
+      : filename_(
+            (std::filesystem::temp_directory_path() / "firebase_request_file_test.txt")
+                .string()),
         file_(nullptr),
         file_size_(0) {}
 
@@ -60,12 +62,15 @@ const char RequestFileTest::kFileContents[] =
 void RequestFileTest::SetUp() {
   file_size_ = sizeof(kFileContents) - 1;
   file_ = fopen(filename_.c_str(), "wb");
-  CHECK(file_ != nullptr);
-  CHECK_EQ(file_size_, fwrite(kFileContents, 1, file_size_, file_));
-  CHECK_EQ(0, fclose(file_));
+  ASSERT_NE(nullptr, file_);
+  ASSERT_EQ(file_size_, fwrite(kFileContents, 1, file_size_, file_));
+  ASSERT_EQ(0, fclose(file_));
 }
 
-void RequestFileTest::TearDown() { CHECK_EQ(0, unlink(filename_.c_str())); }
+void RequestFileTest::TearDown() {
+  std::error_code ec;
+  std::filesystem::remove(filename_, ec);
+}
 
 TEST_F(RequestFileTest, NonExistentFile) {
   RequestFile request("a_file_that_doesnt_exist.txt", 0);
@@ -80,6 +85,7 @@ TEST_F(RequestFileTest, OpenFile) {
 TEST_F(RequestFileTest, GetFileSize) {
   RequestFile request(filename_.c_str(), 0);
   EXPECT_EQ(file_size_, request.file_size());
+  EXPECT_EQ(file_size_, request.GetPostFieldsSize());
 }
 
 TEST_F(RequestFileTest, ReadFile) {
@@ -90,6 +96,8 @@ TEST_F(RequestFileTest, ReadFile) {
 TEST_F(RequestFileTest, ReadFileFromOffset) {
   size_t read_offset = 29;
   RequestFile request(filename_.c_str(), read_offset);
+  EXPECT_EQ(file_size_, request.file_size());
+  EXPECT_EQ(file_size_ - read_offset, request.GetPostFieldsSize());
   EXPECT_EQ(&kFileContents[read_offset], ReadRequestBody(&request));
 }
 

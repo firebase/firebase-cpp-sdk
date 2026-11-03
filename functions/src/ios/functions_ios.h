@@ -15,80 +15,84 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_IOS_FUNCTIONS_IOS_H_
 #define FIREBASE_FUNCTIONS_SRC_IOS_FUNCTIONS_IOS_H_
 
-#include <map>
-#include <set>
+#include <memory>
 #include <string>
 
-#include <memory>
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/util_ios.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
+#include "functions/src/include/firebase/functions/common.h"
 
 #ifdef __OBJC__
-@class FIRFunctions;
+#import "FirebaseFunctions-Swift.h"
 #endif  // __OBJC__
-
-// This defines the class FIRFunctionsPointer, which is a C++-compatible wrapper
-// around the FIRFunctions Obj-C class.
-OBJ_C_PTR_WRAPPER(FIRFunctions);
-
-#pragma clang assume_nonnull begin
 
 namespace firebase {
 namespace functions {
 namespace internal {
 
+// This defines the class FIRFunctionsPointer, which is a C++-compatible wrapper
+// around the FIRFunctions Obj-C class.
+OBJ_C_PTR_WRAPPER(FIRFunctions);
+
+struct FunctionsLifetimeState {
+  Mutex mutex;
+  bool alive = true;
+};
+
 class FunctionsInternal {
  public:
   FunctionsInternal(App* app, const char* region);
-
   ~FunctionsInternal();
 
-  // Get the firebase::App that this Functions was created with.
-  App* app() const;
+  FunctionsInternal(const FunctionsInternal&) = delete;
+  FunctionsInternal& operator=(const FunctionsInternal&) = delete;
 
-  // Return the region we were created with.
-  const char* region() const;
+  // Return the App we were created with.
+  App* app() const { return app_; }
 
-  // Get a FunctionsReference for the specified path.
+  // Return the region or custom domain we were created with.
+  const char* region() const { return region_.c_str(); }
+
+  // Manage Future implementations.
+  FutureManager& future_manager() { return future_manager_; }
+
+  CleanupNotifier& cleanup() { return cleanup_; }
+
+  const std::shared_ptr<FunctionsLifetimeState>& lifetime_state() const {
+    return lifetime_state_;
+  }
+
+  // Whether this object was successfully initialized by the constructor.
+  bool is_valid() const;
+
   HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
-  HttpsCallableReferenceInternal* GetHttpsCallable(
+  HttpsCallableReferenceInternal* GetHttpsCallableWithOptions(
       const char* name, const HttpsCallableOptions& options) const;
-
-  // Get a FunctionsReference for the specified URL.
-  HttpsCallableReferenceInternal* GetHttpsCallableFromURL(const char* url) const;
   HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
+      const char* url) const;
+  HttpsCallableReferenceInternal* GetHttpsCallableFromURLWithOptions(
       const char* url, const HttpsCallableOptions& options) const;
 
   void UseFunctionsEmulator(const char* origin);
 
-  FutureManager& future_manager() { return future_manager_; }
+#ifdef __OBJC__
+  static Error ErrorFromNSError(NSError* error);
 
-  // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return true; }
-
-  // When this is deleted, it will clean up all FunctionsReferences and other
-  // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  FIRFunctions* impl() const { return impl_->get(); }
+#endif  // __OBJC__
 
  private:
-  // The firebase::App that this Functions was created with.
-  App* app_;
-
-  // The region that this Functions was created with.
-  std::string region_;
-
-  std::unique_ptr<FIRFunctionsPointer> impl_;
-
   FutureManager future_manager_;
-
   CleanupNotifier cleanup_;
+  App* app_;
+  std::string region_;
+  std::unique_ptr<FIRFunctionsPointer> impl_;
+  std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
 };
-
-#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace functions

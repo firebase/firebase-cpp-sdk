@@ -53,8 +53,10 @@ Local<TimestampInternal> TimestampInternal::Create(Env& env,
 }
 
 Timestamp TimestampInternal::ToPublic(Env& env) const {
+  if (!*this) return Timestamp();
   int64_t seconds = env.Call(*this, kGetSeconds);
   int32_t nanoseconds = env.Call(*this, kGetNanoseconds);
+  if (!env.ok()) return Timestamp();
   return Timestamp(seconds, nanoseconds);
 }
 

@@ -13,6 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 
 #include <cassert>
@@ -29,9 +35,14 @@ Mutex::Mutex(Mode mode) : mode_(mode) {
   } else {
     synchronization_object_ = CreateSemaphore(nullptr, 1, 1, nullptr);
   }
+  FIREBASE_ASSERT(synchronization_object_ != nullptr);
 }
 
-Mutex::~Mutex() { CloseHandle(synchronization_object_); }
+Mutex::~Mutex() {
+  if (synchronization_object_ != nullptr) {
+    CloseHandle(synchronization_object_);
+  }
+}
 
 void Mutex::Acquire() {
   DWORD ret = WaitForSingleObject(synchronization_object_, INFINITE);
@@ -40,11 +51,14 @@ void Mutex::Acquire() {
 }
 
 void Mutex::Release() {
+  BOOL ret;
   if (mode_ & kModeRecursive) {
-    ReleaseMutex(synchronization_object_);
+    ret = ReleaseMutex(synchronization_object_);
   } else {
-    ReleaseSemaphore(synchronization_object_, 1, 0);
+    ret = ReleaseSemaphore(synchronization_object_, 1, 0);
   }
+  FIREBASE_ASSERT(ret != 0);
+  (void)ret;
 }
 
 }  // namespace firebase

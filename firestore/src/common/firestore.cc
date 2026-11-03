@@ -51,9 +51,11 @@ namespace {
 const char* GetPlatform() {
 #if defined(__ANDROID__)
   return "gl-android/";
-#elif TARGET_OS_IOS
+#elif defined(__APPLE__) && TARGET_OS_IOS
   return "gl-ios/";
-#elif TARGET_OS_OSX
+#elif defined(__APPLE__) && TARGET_OS_TV
+  return "gl-tvos/";
+#elif defined(__APPLE__) && TARGET_OS_OSX
   return "gl-macos/";
 #elif defined(_WIN32)
   return "gl-windows/";
@@ -93,7 +95,7 @@ Firestore* FindFirestoreInCache(App* app,
   auto* cache = FirestoreCache();
 
   FirestoreMap::key_type key = MakeKey(app, database_id);
-  FirestoreMap::iterator found = g_firestores->find(key);
+  FirestoreMap::iterator found = cache->find(key);
 
   if (found != cache->end()) {
     if (init_result_out) *init_result_out = kInitResultSuccess;
@@ -209,29 +211,29 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
 Firestore::Firestore(::firebase::App* app, const std::string& database_id)
     : Firestore{new FirestoreInternal{app, database_id}} {}
 
-Firestore::Firestore(FirestoreInternal* internal)
-    // TODO(wuandy): use make_unique once it is supported for our build here.
-    : internal_(internal) {
+Firestore::Firestore(FirestoreInternal* internal) : internal_(internal) {
   internal_->set_firestore_public(this);
 
-  // Note: because Firestore libraries are currently distributed in
-  // a precompiled form, `GetFullCompilerInfo` will reflect the compiler used to
-  // produce the binaries. Unfortunately, there is no clear way to avoid that
-  // without breaking ODR.
-  SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
-
   if (internal_->initialized()) {
+    // Note: because Firestore libraries are currently distributed in
+    // a precompiled form, `GetFullCompilerInfo` will reflect the compiler used
+    // to produce the binaries. Unfortunately, there is no clear way to avoid
+    // that without breaking ODR.
+    SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
+
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
     assert(app_notifier);
-    app_notifier->RegisterObject(this, [](void* object) {
-      Firestore* firestore = reinterpret_cast<Firestore*>(object);
-      LogWarning(
-          "Firestore object 0x%08x should be deleted before the App 0x%08x it "
-          "depends upon.",
-          static_cast<int>(reinterpret_cast<intptr_t>(firestore)),
-          static_cast<int>(reinterpret_cast<intptr_t>(firestore->app())));
-      firestore->DeleteInternal();
-    });
+    if (app_notifier) {
+      app_notifier->RegisterObject(this, [](void* object) {
+        Firestore* firestore = reinterpret_cast<Firestore*>(object);
+        LogWarning(
+            "Firestore object %p should be deleted before the App %p it "
+            "depends upon.",
+            static_cast<void*>(firestore),
+            static_cast<void*>(firestore->app()));
+        firestore->DeleteInternal();
+      });
+    }
   }
 }
 
@@ -250,7 +252,9 @@ void Firestore::DeleteInternal() {
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
     assert(app_notifier);
-    app_notifier->UnregisterObject(this);
+    if (app_notifier) {
+      app_notifier->UnregisterObject(this);
+    }
   }
 
   // Make sure to clear the listeners _before_ triggering cleanup. This avoids
@@ -267,13 +271,20 @@ void Firestore::DeleteInternal() {
   internal_->cleanup().CleanupAll();
   delete internal_;
   internal_ = nullptr;
-  // If a Firestore is explicitly deleted, remove it from our cache.
 
-  FirestoreMap::key_type key = MakeKey(my_app, database_id);
-  FirestoreCache()->erase(key);
-  if (g_firestores->empty()) {
-    delete g_firestores;
-    g_firestores = nullptr;
+  // If a Firestore is explicitly deleted, remove it from our cache only if
+  // the cached entry is still this instance (and not a replacement created
+  // after Terminate()).
+  if (g_firestores) {
+    FirestoreMap::key_type key = MakeKey(my_app, database_id);
+    auto iter = g_firestores->find(key);
+    if (iter != g_firestores->end() && iter->second == this) {
+      g_firestores->erase(iter);
+    }
+    if (g_firestores->empty()) {
+      delete g_firestores;
+      g_firestores = nullptr;
+    }
   }
 }
 
@@ -291,48 +302,47 @@ CollectionReference Firestore::Collection(const char* collection_path) const {
   if (!collection_path) {
     SimpleThrowInvalidArgument("Collection path cannot be null.");
   }
-  if (collection_path[0] == '\0') {
-    SimpleThrowInvalidArgument("Collection path cannot be empty.");
-  }
-
-  if (!internal_) return {};
-  return internal_->Collection(collection_path);
+  return Collection(std::string(collection_path));
 }
 
 CollectionReference Firestore::Collection(
     const std::string& collection_path) const {
-  return Collection(collection_path.c_str());
+  if (collection_path.empty()) {
+    SimpleThrowInvalidArgument("Collection path cannot be empty.");
+  }
+
+  if (!internal_) return {};
+  return internal_->Collection(collection_path.c_str());
 }
 
 DocumentReference Firestore::Document(const char* document_path) const {
   if (!document_path) {
     SimpleThrowInvalidArgument("Document path cannot be null.");
   }
-  if (document_path[0] == '\0') {
+  return Document(std::string(document_path));
+}
+
+DocumentReference Firestore::Document(const std::string& document_path) const {
+  if (document_path.empty()) {
     SimpleThrowInvalidArgument("Document path cannot be empty.");
   }
 
   if (!internal_) return {};
-  return internal_->Document(document_path);
-}
-
-DocumentReference Firestore::Document(const std::string& document_path) const {
-  return Document(document_path.c_str());
+  return internal_->Document(document_path.c_str());
 }
 
 Query Firestore::CollectionGroup(const char* collection_id) const {
   if (!collection_id) {
     SimpleThrowInvalidArgument("Collection ID cannot be null.");
   }
-  if (collection_id[0] == '\0') {
-    SimpleThrowInvalidArgument("Collection ID cannot be empty.");
-  }
-
-  if (!internal_) return {};
-  return internal_->CollectionGroup(collection_id);
+  return CollectionGroup(std::string(collection_id));
 }
 
 Query Firestore::CollectionGroup(const std::string& collection_id) const {
+  if (collection_id.empty()) {
+    SimpleThrowInvalidArgument("Collection ID cannot be empty.");
+  }
+
   if (!internal_) return {};
   return internal_->CollectionGroup(collection_id.c_str());
 }
@@ -381,9 +391,20 @@ Future<void> Firestore::EnableNetwork() {
 
 Future<void> Firestore::Terminate() {
   if (!internal_) return FailedFuture<void>();
-  FirestoreMap::key_type key = MakeKey(app(), internal_->database_name());
-
-  FirestoreCache()->erase(key);
+  {
+    MutexLock lock(*g_firestores_lock);
+    if (g_firestores) {
+      FirestoreMap::key_type key = MakeKey(app(), internal_->database_name());
+      auto iter = g_firestores->find(key);
+      if (iter != g_firestores->end() && iter->second == this) {
+        g_firestores->erase(iter);
+      }
+      if (g_firestores->empty()) {
+        delete g_firestores;
+        g_firestores = nullptr;
+      }
+    }
+  }
   return internal_->Terminate();
 }
 

@@ -17,6 +17,8 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_THROWABLE_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_THROWABLE_H_
 
+#include <string>
+
 #include "firestore/src/jni/object.h"
 
 namespace firebase {

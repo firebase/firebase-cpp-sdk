@@ -36,13 +36,24 @@ namespace {
 // ever wakes when there is something to do.
 constexpr int kPollTimeoutMs = 1000;
 
-// Singleton state. The mutex is intentionally leaked so it stays valid during
-// static destruction, matching the other process-wide mutexes in app/rest.
+// Singleton state. The mutexes are intentionally leaked so they stay valid
+// during static destruction, matching the other process-wide mutexes in
+// app/rest.
+// g_loop_mutex serializes Acquire() and Release() lifecycle transitions.
 Mutex* g_loop_mutex = new Mutex();
+// g_post_mutex is a leaf lock (never held across thread_.Join() or user
+// callbacks) guarding cross-thread PostIfRunning() access to the active loop.
+Mutex* g_post_mutex = new Mutex();
+CurlIoLoop* g_postable_loop = nullptr;
 int g_loop_ref_count = 0;
 // Read lock-free by Get() so the I/O thread itself can call Get() while
 // Release() is joining it under g_loop_mutex.
 std::atomic<CurlIoLoop*> g_loop{nullptr};
+
+// Set on the I/O thread for the duration of Run() so PostIfRunning() and
+// IsOnIoThreadCurrent() can execute without locking g_loop_mutex (which
+// Release() holds while joining the I/O thread).
+thread_local CurlIoLoop* g_tls_loop = nullptr;
 
 }  // namespace
 
@@ -53,41 +64,57 @@ Transfer::~Transfer() {}
 // ---------------------------------------------------------------------------
 
 void CurlIoLoop::Acquire() {
+  FIREBASE_ASSERT_MESSAGE(
+      g_tls_loop == nullptr,
+      "CurlIoLoop::Acquire() must not be called from the I/O thread");
   MutexLock lock(*g_loop_mutex);
   if (g_loop_ref_count == 0) {
     FIREBASE_ASSERT(g_loop.load() == nullptr);
     CurlGlobal::Acquire();
-    g_loop.store(new CurlIoLoop());
+    CurlIoLoop* loop = new CurlIoLoop();
+    g_loop.store(loop, std::memory_order_release);
+    {
+      MutexLock post_lock(*g_post_mutex);
+      g_postable_loop = loop;
+    }
   }
   ++g_loop_ref_count;
 }
 
 void CurlIoLoop::Release() {
+  FIREBASE_ASSERT_MESSAGE(
+      g_tls_loop == nullptr,
+      "CurlIoLoop::Release() must not be called from the I/O thread");
   MutexLock lock(*g_loop_mutex);
-  FIREBASE_ASSERT_MESSAGE(g_loop_ref_count > 0,
-                          "CurlIoLoop::Release() without matching Acquire()");
+  if (g_loop_ref_count <= 0) {
+    LogError("CurlIoLoop::Release() called without matching Acquire()");
+    FIREBASE_DEV_ASSERT_MESSAGE(
+        false, "CurlIoLoop::Release() without matching Acquire()");
+    return;
+  }
   if (--g_loop_ref_count == 0) {
-    CurlIoLoop* loop = g_loop.load();
+    CurlIoLoop* loop = g_loop.load(std::memory_order_acquire);
     FIREBASE_ASSERT_MESSAGE(!loop->IsOnIoThread(),
                             "CurlIoLoop::Release() of the last reference must "
                             "not be called from the I/O thread");
-    // Destroy before clearing the pointer so that Get() keeps working for
-    // code running on the I/O thread during shutdown (OnDone handlers).
+    // ~CurlIoLoop() joins the I/O thread and clears g_postable_loop and g_loop
+    // before any member variables are destroyed or memory is freed.
     delete loop;
-    g_loop.store(nullptr);
     CurlGlobal::Release();
   }
 }
 
 CurlIoLoop& CurlIoLoop::Get() {
-  CurlIoLoop* loop = g_loop.load();
+  CurlIoLoop* loop = g_loop.load(std::memory_order_acquire);
   FIREBASE_ASSERT_MESSAGE(loop != nullptr,
                           "CurlIoLoop::Get() called without a prior "
                           "CurlIoLoop::Acquire() / InitTransportCurl()");
   return *loop;
 }
 
-bool CurlIoLoop::IsRunning() { return g_loop.load() != nullptr; }
+bool CurlIoLoop::IsRunning() {
+  return g_loop.load(std::memory_order_acquire) != nullptr;
+}
 
 // ---------------------------------------------------------------------------
 // Construction / destruction.
@@ -103,8 +130,11 @@ CurlIoLoop::CurlIoLoop()
       stopped_(false),
       quit_(false),
       transfers_(),
+      connect_only_transfers_(),
       extra_fds_(),
-      wait_fds_() {
+      next_extra_fd_generation_(0),
+      wait_fds_(),
+      wait_fd_generations_() {
   multi_.reset(curl_multi_init());
   FIREBASE_ASSERT_MESSAGE(multi_ != nullptr, "curl_multi_init() failed");
   // Enable HTTP/2 connection multiplexing on the shared multi handle (a no-op
@@ -119,11 +149,21 @@ CurlIoLoop::CurlIoLoop()
 CurlIoLoop::~CurlIoLoop() {
   Post([this]() { quit_ = true; });
   thread_.Join();
+  // Clear g_postable_loop and g_loop immediately after the I/O thread exits
+  // and before any member is destroyed or memory is deallocated.
+  {
+    MutexLock post_lock(*g_post_mutex);
+    if (g_postable_loop == this) {
+      g_postable_loop = nullptr;
+    }
+  }
+  g_loop.store(nullptr, std::memory_order_release);
   // Synchronize with any Post() that observed stopped_ == false (it holds
   // mutex_ while it wakes us) before multi_ is destroyed below.
   MutexLock lock(mutex_);
   FIREBASE_ASSERT(stopped_);
   FIREBASE_ASSERT(transfers_.empty());
+  FIREBASE_ASSERT(connect_only_transfers_.empty());
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +188,30 @@ bool CurlIoLoop::Post(std::function<void()> fn) {
   return true;
 }
 
+bool CurlIoLoop::PostIfRunning(std::function<void()> fn) {
+  FIREBASE_ASSERT(fn);
+  if (g_tls_loop != nullptr) {
+    return g_tls_loop->Post(std::move(fn));
+  }
+  MutexLock post_lock(*g_post_mutex);
+  CurlIoLoop* loop = g_postable_loop;
+  if (loop == nullptr) {
+    return false;
+  }
+  MutexLock lock(loop->mutex_);
+  if (loop->stopped_) {
+    return false;
+  }
+  loop->posted_.push_back(std::move(fn));
+  CURLMcode code = curl_multi_wakeup(loop->multi_.get());
+  if (code != CURLM_OK) {
+    LogError("curl_multi_wakeup() failed: %s", curl_multi_strerror(code));
+  }
+  return true;
+}
+
+bool CurlIoLoop::IsOnIoThreadCurrent() { return g_tls_loop != nullptr; }
+
 bool CurlIoLoop::IsOnIoThread() const {
   return Thread::IsCurrentThread(thread_id_);
 }
@@ -168,7 +232,8 @@ CURLMcode CurlIoLoop::Add(Transfer& transfer) {
   CURL* easy = transfer.easy();
   FIREBASE_ASSERT_MESSAGE(easy != nullptr,
                           "Transfer::easy() returned nullptr in Add()");
-  if (transfers_.find(easy) != transfers_.end()) {
+  if (transfers_.find(easy) != transfers_.end() ||
+      connect_only_transfers_.find(easy) != connect_only_transfers_.end()) {
     LogError("CurlIoLoop::Add(): easy handle %p is already registered", easy);
     return CURLM_ADDED_ALREADY;
   }
@@ -185,28 +250,43 @@ bool CurlIoLoop::Remove(Transfer& transfer) {
   AssertOnIoThread("Remove");
   CURL* easy = transfer.easy();
   auto it = transfers_.find(easy);
-  if (it == transfers_.end() || it->second != &transfer) return false;
-  transfers_.erase(it);
-  CURLMcode code = curl_multi_remove_handle(multi_.get(), easy);
-  if (code != CURLM_OK) {
-    LogError("curl_multi_remove_handle() failed: %s",
-             curl_multi_strerror(code));
+  if (it != transfers_.end() && it->second == &transfer) {
+    transfers_.erase(it);
+    CURLMcode code = curl_multi_remove_handle(multi_.get(), easy);
+    if (code != CURLM_OK) {
+      LogError("curl_multi_remove_handle() failed: %s",
+               curl_multi_strerror(code));
+    }
+    return true;
   }
-  return true;
+  auto conn_it = connect_only_transfers_.find(easy);
+  if (conn_it != connect_only_transfers_.end() &&
+      conn_it->second == &transfer) {
+    connect_only_transfers_.erase(conn_it);
+    CURLMcode code = curl_multi_remove_handle(multi_.get(), easy);
+    if (code != CURLM_OK) {
+      LogError("curl_multi_remove_handle() failed: %s",
+               curl_multi_strerror(code));
+    }
+    return true;
+  }
+  return false;
 }
 
 void CurlIoLoop::AddExtraFd(curl_socket_t fd, short events,
                             std::function<void(short)> on_ready) {
   AssertOnIoThread("AddExtraFd");
   FIREBASE_ASSERT(on_ready);
+  const uint64_t generation = ++next_extra_fd_generation_;
   for (ExtraFd& extra : extra_fds_) {
     if (extra.fd == fd) {
       extra.events = events;
       extra.on_ready = std::move(on_ready);
+      extra.generation = generation;
       return;
     }
   }
-  extra_fds_.push_back(ExtraFd{fd, events, std::move(on_ready)});
+  extra_fds_.push_back(ExtraFd{fd, events, std::move(on_ready), generation});
 }
 
 void CurlIoLoop::RemoveExtraFd(curl_socket_t fd) {
@@ -290,9 +370,12 @@ void CurlIoLoop::DispatchDone() {
     transfers_.erase(it);
     // Connect-only transfers keep their handle attached: removing it would
     // close the connection they are about to use (see Transfer::
-    // RemoveFromMultiOnDone()). A completed handle left in the multi is inert.
+    // RemoveFromMultiOnDone()). A completed handle left in the multi is inert,
+    // and we track it in connect_only_transfers_ until Remove() or shutdown.
     if (transfer->RemoveFromMultiOnDone()) {
       curl_multi_remove_handle(multi_.get(), easy);
+    } else {
+      connect_only_transfers_.emplace(easy, transfer);
     }
     transfer->OnDone(result);
   }
@@ -307,9 +390,16 @@ void CurlIoLoop::AbortAllTransfers() {
     curl_multi_remove_handle(multi_.get(), easy);
     transfer->OnDone(CURLE_ABORTED_BY_CALLBACK);
   }
+  while (!connect_only_transfers_.empty()) {
+    auto it = connect_only_transfers_.begin();
+    CURL* easy = it->first;
+    connect_only_transfers_.erase(it);
+    curl_multi_remove_handle(multi_.get(), easy);
+  }
 }
 
 void CurlIoLoop::Run() {
+  g_tls_loop = this;
   thread_id_ = Thread::CurrentId();
   thread_started_.Post();
 
@@ -327,12 +417,14 @@ void CurlIoLoop::Run() {
     // Sleep until a libcurl socket or timer fires, an extra fd is ready, or
     // Post() wakes us. libcurl clamps the timeout to its own next timer.
     wait_fds_.clear();
+    wait_fd_generations_.clear();
     for (const ExtraFd& extra : extra_fds_) {
       curl_waitfd wait_fd;
       wait_fd.fd = extra.fd;
       wait_fd.events = extra.events;
       wait_fd.revents = 0;
       wait_fds_.push_back(wait_fd);
+      wait_fd_generations_.push_back(extra.generation);
     }
     int num_fds = 0;
     code = curl_multi_poll(
@@ -342,43 +434,53 @@ void CurlIoLoop::Run() {
       LogError("curl_multi_poll() failed: %s", curl_multi_strerror(code));
     }
 
-    // Dispatch extra-fd readiness. Look the callback up by fd on each
-    // iteration (and copy it) because a callback may remove or replace any
-    // registration, including its own.
-    for (const curl_waitfd& wait_fd : wait_fds_) {
+    // Dispatch extra-fd readiness. Look the callback up by fd and generation
+    // on each iteration (and copy it) because a callback may remove, replace,
+    // or modify events on any registration, including its own or another fd.
+    for (size_t i = 0; i < wait_fds_.size(); ++i) {
+      const curl_waitfd& wait_fd = wait_fds_[i];
       if (wait_fd.revents == 0) continue;
+      const uint64_t expected_generation = wait_fd_generations_[i];
       std::function<void(short)> on_ready;
+      short active_revents = 0;
       for (const ExtraFd& extra : extra_fds_) {
-        if (extra.fd == wait_fd.fd) {
-          on_ready = extra.on_ready;
+        if (extra.fd == wait_fd.fd &&
+            extra.generation == expected_generation) {
+          active_revents = static_cast<short>(wait_fd.revents & extra.events);
+          if (active_revents != 0) {
+            on_ready = extra.on_ready;
+          }
           break;
         }
       }
-      if (on_ready) on_ready(wait_fd.revents);
+      if (on_ready) on_ready(active_revents);
     }
   }
 
-  // Shutdown: run anything posted after the quit request, then abort every
-  // transfer still in flight so owners waiting on them are released, then run
-  // anything those OnDone() handlers posted. Further Post() calls are rejected
-  // once stopped_ is set.
-  RunPosted();
-  AbortAllTransfers();
-  std::deque<std::function<void()>> remaining;
-  {
+  // Shutdown: drain all posted functions and abort all transfers in flight so
+  // owners waiting on them are released, then run anything those OnDone()
+  // handlers posted before marking stopped_ = true.
+  bool aborted_once = false;
+  for (;;) {
+    RunPosted();
+    if (!transfers_.empty() || !connect_only_transfers_.empty()) {
+      if (aborted_once && !transfers_.empty()) {
+        LogError(
+            "CurlIoLoop stopped with %d transfer(s) added during shutdown; "
+            "aborting them",
+            static_cast<int>(transfers_.size()));
+      }
+      aborted_once = true;
+      AbortAllTransfers();
+      continue;
+    }
     MutexLock lock(mutex_);
-    stopped_ = true;
-    remaining.swap(posted_);
+    if (posted_.empty()) {
+      stopped_ = true;
+      break;
+    }
   }
-  for (std::function<void()>& fn : remaining) fn();
-  // A transfer added by one of the functions above can never complete.
-  if (!transfers_.empty()) {
-    LogError(
-        "CurlIoLoop stopped with %d transfer(s) added during shutdown; "
-        "aborting them",
-        static_cast<int>(transfers_.size()));
-    AbortAllTransfers();
-  }
+  g_tls_loop = nullptr;
 }
 
 }  // namespace curl

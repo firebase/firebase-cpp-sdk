@@ -15,10 +15,11 @@
  */
 
 #include "firestore/src/android/jni_runnable_android.h"
-#include <cassert>
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_android.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
@@ -38,7 +39,7 @@ using jni::Method;
 using jni::Object;
 using jni::Task;
 
-constexpr char kJniRunnableClassName[] =
+constexpr char kJniRunnableClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/JniRunnable";
 Method<void> kDetach("detach", "()V");
 Method<Task> kRunOnMainThread("runOnMainThread",
@@ -49,7 +50,17 @@ Constructor<Object> kConstructor("(J)V");
 
 void NativeRun(JNIEnv* env, jobject java_object, jlong data) {
   FIREBASE_ASSERT_MESSAGE(data != 0, "NativeRun() invoked with data==0");
-  reinterpret_cast<JniRunnableBase*>(data)->Run();
+  if (data == 0) {
+    return;
+  }
+#if FIRESTORE_HAVE_EXCEPTIONS
+  try {
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
+    reinterpret_cast<JniRunnableBase*>(data)->Run();
+#if FIRESTORE_HAVE_EXCEPTIONS
+  } catch (...) {
+  }
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 }  // namespace
@@ -69,11 +80,16 @@ JniRunnableBase::JniRunnableBase(Env& env)
 JniRunnableBase::~JniRunnableBase() {
   Env env;
   Detach(env);
+  if (!env.ok()) {
+    env.ExceptionClear();
+  }
 }
 
 void JniRunnableBase::Detach(Env& env) {
-  ExceptionClearGuard exception_clear_guard(env);
-  env.Call(java_runnable_, kDetach);
+  if (java_runnable_) {
+    ExceptionClearGuard exception_clear_guard(env);
+    env.Call(java_runnable_, kDetach);
+  }
 }
 
 Local<Object> JniRunnableBase::GetJavaRunnable() const {

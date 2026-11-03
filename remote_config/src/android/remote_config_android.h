@@ -17,8 +17,10 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -86,7 +88,7 @@ class RemoteConfigInternal {
 
   std::map<std::string, Variant> GetAll();
 
-  const ConfigInfo GetInfo() const;
+  ConfigInfo GetInfo() const;
 
   ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
@@ -100,16 +102,14 @@ class RemoteConfigInternal {
   CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
   void set_throttled_end_time(int64_t end_time) {
-    throttled_end_time_ = end_time;
+    throttled_end_time_.store(end_time);
   }
+
+  int64_t throttled_end_time() const { return throttled_end_time_.load(); }
 
   void SaveTmpKeysToDefault(std::vector<std::string> tmp_default_keys) {
     MutexLock lock(default_key_mutex_);
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
     default_keys_ = std::move(tmp_default_keys);
-#else
-    default_keys_ = tmp_default_keys;
-#endif  // FIREBASE_USE_MOVE_OPERATORS
   }
 
  private:
@@ -122,15 +122,15 @@ class RemoteConfigInternal {
 
   CleanupNotifier cleanup_;
 
-  jobject internal_obj_;
+  jobject internal_obj_ = nullptr;
+  bool initialized_ref_ = false;
 
   Mutex default_key_mutex_;
-  std::vector<std::string> tmp_default_keys_;
   std::vector<std::string> default_keys_;
 
   // If a fetch was throttled, this is set to the time when throttling is
   // finished, in milliseconds since epoch.
-  int64_t throttled_end_time_ = 0;
+  std::atomic<int64_t> throttled_end_time_{0};
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;

@@ -75,10 +75,9 @@ DocumentReference& DocumentReference::operator=(
 
   CleanupFnDocumentReference::Unregister(this, internal_);
   delete internal_;
+  internal_ = nullptr;
   if (reference.internal_) {
     internal_ = new DocumentReferenceInternal(*reference.internal_);
-  } else {
-    internal_ = nullptr;
   }
   CleanupFnDocumentReference::Register(this, internal_);
   return *this;
@@ -100,10 +99,7 @@ DocumentReference& DocumentReference::operator=(DocumentReference&& reference) {
 
 const Firestore* DocumentReference::firestore() const {
   if (!internal_) return {};
-
-  const Firestore* firestore = internal_->firestore();
-  SIMPLE_HARD_ASSERT(firestore);
-  return firestore;
+  return internal_->firestore();
 }
 
 Firestore* DocumentReference::firestore() {
@@ -167,6 +163,12 @@ Future<void> DocumentReference::Update(const MapFieldValue& data) {
 
 Future<void> DocumentReference::Update(const MapFieldPathValue& data) {
   if (!internal_) return FailedFuture<void>();
+  for (const auto& kv : data) {
+    if (!kv.first.is_valid()) {
+      SimpleThrowInvalidArgument("Field path cannot be invalid.");
+      return FailedFuture<void>();
+    }
+  }
   return internal_->Update(data);
 }
 
@@ -185,9 +187,11 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
-  SIMPLE_HARD_ASSERT(
-      callback,
-      "Snapshot listener callback parameter cannot be an empty function.");
+  if (!callback) {
+    SimpleThrowInvalidArgument(
+        "Snapshot listener callback parameter cannot be an empty function.");
+    return {};
+  }
 
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes, std::move(callback));
@@ -205,6 +209,9 @@ std::ostream& operator<<(std::ostream& out,
 }
 
 bool operator==(const DocumentReference& lhs, const DocumentReference& rhs) {
+  if (!lhs.internal_ || !rhs.internal_) {
+    return lhs.internal_ == rhs.internal_;
+  }
   return lhs.internal_ == rhs.internal_ ||
          (lhs.firestore() == rhs.firestore() && lhs.path() == rhs.path());
 }

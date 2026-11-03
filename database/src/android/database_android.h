@@ -28,6 +28,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/log.h"
 #include "app/src/logger.h"
+#include "app/src/safe_reference.h"
 #include "app/src/util_android.h"
 #include "database/src/android/database_reference_android.h"
 #include "database/src/common/listener.h"
@@ -90,8 +91,14 @@ class DatabaseInternal {
   Error ErrorFromJavaDatabaseError(jobject java_error,
                                    std::string* error_message) const;
 
-  // Returns the Java ValueEventListener object that you will need to add to the
-  // Java Query object.
+  // Convert a Java Throwable (such as DatabaseException from a failed Task)
+  // into a C++ Error enum via DatabaseError.fromException().
+  Error ErrorFromJavaThrowable(jobject throwable,
+                               std::string* error_message) const;
+
+  // Returns a new local reference to the Java ValueEventListener object that
+  // you will need to add to the Java Query object. Remember to call
+  // DeleteLocalRef on the returned reference when you are finished.
   jobject RegisterValueEventListener(const internal::QuerySpec& spec,
                                      ValueListener* listener);
 
@@ -115,8 +122,9 @@ class DatabaseInternal {
   // native callbacks.
   void ClearJavaEventListener(jobject listener);
 
-  // Returns the Java ChildEventListener object that you will need to add to the
-  // Java Query object.
+  // Returns a new local reference to the Java ChildEventListener object that
+  // you will need to add to the Java Query object. Remember to call
+  // DeleteLocalRef on the returned reference when you are finished.
   jobject RegisterChildEventListener(const internal::QuerySpec& spec,
                                      ChildListener* listener);
 
@@ -139,6 +147,7 @@ class DatabaseInternal {
   // Track a transient listener. If the database is deleted before the listener
   // finishes, it should discard its pointers.
   void AddSingleValueListener(jobject listener) {
+    if (listener == nullptr) return;
     MutexLock lock(listener_mutex_);
     auto found = java_single_value_listeners_.find(listener);
     if (found == java_single_value_listeners_.end()) {
@@ -148,12 +157,41 @@ class DatabaseInternal {
   // Finish tracking a transient listener. If the database is deleted before the
   // listener finishes, it should discard its pointers.
   void RemoveSingleValueListener(jobject listener) {
+    if (listener == nullptr) return;
     MutexLock lock(listener_mutex_);
     auto found = java_single_value_listeners_.find(listener);
     if (found != java_single_value_listeners_.end()) {
       java_single_value_listeners_.erase(found);
     }
   }
+
+  void RegisterSingleValueListener(ValueListener* listener) {
+    if (listener == nullptr) return;
+    MutexLock lock(listener_mutex_);
+    single_value_listeners_.insert(listener);
+  }
+
+  void UnregisterSingleValueListener(ValueListener* listener) {
+    if (listener == nullptr) return;
+    MutexLock lock(listener_mutex_);
+    single_value_listeners_.erase(listener);
+  }
+
+  bool IsValueListenerRegistered(ValueListener* listener) {
+    MutexLock lock(listener_mutex_);
+    return java_value_listener_lookup_.find(listener) !=
+               java_value_listener_lookup_.end() ||
+           single_value_listeners_.find(listener) !=
+               single_value_listeners_.end();
+  }
+
+  bool IsChildListenerRegistered(ChildListener* listener) {
+    MutexLock lock(listener_mutex_);
+    return java_child_listener_lookup_.find(listener) !=
+           java_child_listener_lookup_.end();
+  }
+
+  Mutex& listener_mutex() { return listener_mutex_; }
 
   // Creates a transaction handler. Returns a global reference to the Java
   // Transaction.Handler object you can pass to
@@ -184,7 +222,17 @@ class DatabaseInternal {
   // firebase::util::RegisterCallbackOnTask for context.
   const char* jni_task_id() { return jni_task_id_.c_str(); }
 
+  typedef firebase::internal::SafeReference<DatabaseInternal> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<DatabaseInternal> ThisRefLock;
+
+  ThisRef& this_ref() { return safe_this_; }
+
  private:
+  jobject UnregisterValueEventListenerLocked(const internal::QuerySpec& spec,
+                                             ValueListener* listener);
+  jobject UnregisterChildEventListenerLocked(const internal::QuerySpec& spec,
+                                             ChildListener* listener);
+
   static bool Initialize(App* app);
   static void ReleaseClasses(App* app);
   static void Terminate(App* app);
@@ -209,6 +257,7 @@ class DatabaseInternal {
   std::map<ValueListener*, jobject> java_value_listener_lookup_;
   std::map<ChildListener*, jobject> java_child_listener_lookup_;
   std::set<jobject> java_single_value_listeners_;
+  std::set<ValueListener*> single_value_listeners_;
 
   // For registering transaction handlers.
   Mutex transaction_mutex_;
@@ -226,6 +275,8 @@ class DatabaseInternal {
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;
+
+  ThisRef safe_this_;
 };
 
 }  // namespace internal

@@ -187,5 +187,9 @@ elseif(IOS)
   endif()
 endif()
 
+if(FIREBASE_CPP_BUILD_TESTS)
+  add_subdirectory(tests)
+endif()
+
 cpp_pack_library(firebase_app_check "")
 cpp_pack_public_headers()

@@ -20,6 +20,12 @@
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #else
 #include <pthread.h>
@@ -50,6 +56,10 @@ class Mutex {
   // Releases the lock for this mutex acquired by a previous `Acquire()` call.
   void Release();
 
+  // Standard BasicLockable interface for compatibility with std::lock_guard.
+  void lock() { Acquire(); }
+  void unlock() { Release(); }
+
 // Returns the implementation-defined native mutex handle.
 // Used by firebase::Thread implementation.
 #if FIREBASE_PLATFORM_WINDOWS
@@ -70,13 +80,13 @@ class Mutex {
 #endif  // FIREBASE_PLATFORM_WINDOWS
 };
 
-/// @brief Acquire and hold a /ref Mutex, while in scope.
+/// @brief Acquire and hold a \ref Mutex, while in scope.
 ///
 /// Example usage:
 ///   \code{.cpp}
-///   Mutex syncronization_mutex;
+///   Mutex synchronization_mutex;
 ///   void MyFunctionThatRequiresSynchronization() {
-///     MutexLock lock(syncronization_mutex);
+///     MutexLock lock(synchronization_mutex);
 ///     // ... logic ...
 ///   }
 ///   \endcode
@@ -85,11 +95,10 @@ class MutexLock {
   explicit MutexLock(Mutex& mutex) : mutex_(&mutex) { mutex_->Acquire(); }
   ~MutexLock() { mutex_->Release(); }
 
- private:
-  // Copy is disallowed.
-  MutexLock(const MutexLock& rhs);  // NOLINT
-  MutexLock& operator=(const MutexLock& rhs);
+  MutexLock(const MutexLock& rhs) = delete;
+  MutexLock& operator=(const MutexLock& rhs) = delete;
 
+ private:
   Mutex* mutex_;
 };
 

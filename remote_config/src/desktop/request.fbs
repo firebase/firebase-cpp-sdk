@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The FlatBuffers schema for making Firebase Auth rpc request. The order does
-// not matter since we do not store nor send serialized object. Table Request
-// mainly provides each field name with type for generating request JSON string.
-// For a particular request type, not all fields are relevant.
+// The FlatBuffers schema for making Firebase Remote Config RPC requests. The
+// order does not matter since we do not store nor send serialized objects.
+// Table Request mainly provides each field name with type for generating
+// request JSON strings. For a particular request type, not all fields are
+// relevant.
 
 namespace firebase.remote_config.fbs;
 

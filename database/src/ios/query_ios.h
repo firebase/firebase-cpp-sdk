@@ -15,10 +15,13 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_QUERY_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_QUERY_IOS_H_
 
+#include <cstddef>
 #include <memory>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/safe_reference.h"
 #include "app/src/util_ios.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/include/firebase/database.h"
@@ -77,8 +80,6 @@ OBJ_C_PTR_WRAPPER(FIRDatabaseQuery);
 // class.
 OBJ_C_PTR_WRAPPER(FIRCPPDatabaseQueryCallbackState);
 
-#pragma clang assume_nonnull begin
-
 /// The iOS implementation of the Query class, used for reading data.
 class QueryInternal {
  public:
@@ -93,11 +94,9 @@ class QueryInternal {
 
   QueryInternal& operator=(const QueryInternal& query);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  QueryInternal(QueryInternal&& query);
+  QueryInternal(QueryInternal&& query) noexcept;
 
-  QueryInternal& operator=(QueryInternal&& query);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  QueryInternal& operator=(QueryInternal&& query) noexcept;
 
   virtual ~QueryInternal();
 
@@ -141,7 +140,7 @@ class QueryInternal {
   // returned Query.
   //
   // The returned pointer should be passed to a Query for lifetime management.
-  QueryInternal* OrderByChild(const char* _Nonnull path);
+  QueryInternal* OrderByChild(const char* path);
   // Gets a query in which child nodes are ordered by the values of the
   // specified path. Any previous OrderBy directive will be replaced in the
   // returned Query.
@@ -203,7 +202,7 @@ class QueryInternal {
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseQuery* impl() const { return impl_->get(); }
+  FIRDatabaseQuery* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
 
   internal::QuerySpec query_spec_;
@@ -222,27 +221,29 @@ class QueryInternal {
   // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
   // instances, but have the same "this" pointer as one is a subclass of the
   // other.
-  int future_api_id_;
+  int future_api_id_ = 0;
 };
-
-#pragma clang assume_nonnull end
 
 // Used by Query::GetValue().
 class SingleValueListener : public ValueListener {
  public:
   SingleValueListener(
-      ReferenceCountedFutureImpl* _Nonnull future,
+      DatabaseInternal* database,
+      ReferenceCountedFutureImpl* future,
       const SafeFutureHandle<DataSnapshot>& handle,
+      const Future<DataSnapshot>& backing_future,
       const FIRCPPDatabaseQueryCallbackStatePointer& callback_state);
   // Unregister ourselves from the database.
-  virtual ~SingleValueListener();
-  virtual void OnValueChanged(const DataSnapshot& snapshot);
-  virtual void OnCancelled(const Error& error_code,
-                           const char* _Nullable error_message);
+  ~SingleValueListener() override;
+  void OnValueChanged(const DataSnapshot& snapshot) override;
+  void OnCancelled(const Error& error_code,
+                   const char* error_message) override;
 
  private:
-  ReferenceCountedFutureImpl* _Nonnull future_;
+  firebase::internal::SafeReference<DatabaseInternal> db_ref_;
+  ReferenceCountedFutureImpl* future_;
   SafeFutureHandle<DataSnapshot> handle_;
+  Future<DataSnapshot> backing_future_;
   std::unique_ptr<FIRCPPDatabaseQueryCallbackStatePointer> callback_state_;
 };
 

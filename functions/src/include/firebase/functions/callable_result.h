@@ -15,6 +15,8 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 #define FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 
+#include <utility>
+
 #include "firebase/functions/common.h"
 #include "firebase/variant.h"
 
@@ -24,70 +26,78 @@ namespace functions {
 /// @cond FIREBASE_APP_INTERNAL
 namespace internal {
 class HttpsCallableReferenceInternal;
-}
+}  // namespace internal
 /// @endcond
 
-/// An HttpsCallableResult contains the result of calling an HttpsCallable.
+/// @brief An HttpsCallableResult contains the result of calling a
+/// HttpsCallable.
 class HttpsCallableResult {
  public:
-  /// @brief Creates an HttpsCallableResult with null data.
-  HttpsCallableResult() {}
+  /// @brief Creates an empty HttpsCallableResult with `Variant::Null()` data.
+  HttpsCallableResult() = default;
 
-  ~HttpsCallableResult() {}
+  /// @brief Creates an HttpsCallableResult containing the given data.
+  explicit HttpsCallableResult(const Variant& data) : data_(data) {}
 
-  /// @brief Copy constructor. Copying is as efficient as copying a Variant.
-  ///
-  /// @param[in] other HttpsCallableResult to copy data from.
-  HttpsCallableResult(const HttpsCallableResult& other) : data_(other.data_) {}
+  /// @brief Creates an HttpsCallableResult by moving the given data.
+  explicit HttpsCallableResult(Variant&& data) noexcept
+      : data_(std::move(data)) {}
 
-  /// @brief Assignment operator. Copying is as efficient as copying a Variant.
-  ///
-  /// @param[in] other HttpsCallableResult to copy data from.
-  ///
-  /// @returns Reference to the destination HttpsCallableResult.
-  HttpsCallableResult& operator=(const HttpsCallableResult& other) {
-    data_ = other.data_;
-    return *this;
-  }
+  ~HttpsCallableResult() = default;
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  /// @brief Move constructor. Moving is an efficient operation for
-  /// HttpsCallableResult instances.
+  /// @brief Copy constructor. Capable of copying an empty HttpsCallableResult.
   ///
-  /// @param[in] other HttpsCallableResult to move data from.
-  HttpsCallableResult(HttpsCallableResult&& other) {
-    data_ = std::move(other.data_);
-  }
+  /// @param[in] other HttpsCallableResult to copy from.
+  HttpsCallableResult(const HttpsCallableResult& other) = default;
 
-  /// @brief Move assignment operator. Moving is an efficient operation for
-  /// HttpsCallableResult instances.
+  /// @brief Assignment operator. Capable of copying an empty
+  /// HttpsCallableResult.
   ///
-  /// @param[in] other HttpsCallableResult to move data from.
-  ///
-  /// @returns Reference to the destination HttpsCallableResult.
-  HttpsCallableResult& operator=(HttpsCallableResult&& other) {
-    data_ = std::move(other.data_);
-    return *this;
-  }
+  /// @param[in] other HttpsCallableResult to copy from.
+  /// @return Reference to this HttpsCallableResult.
+  HttpsCallableResult& operator=(const HttpsCallableResult& other) = default;
 
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-
-  /// @brief Returns the data that is the result of a Call.
+  /// @brief Move constructor. Capable of moving an empty HttpsCallableResult.
   ///
-  /// @returns The variant containing the data.
+  /// @param[in] other HttpsCallableResult to move into this one.
+  HttpsCallableResult(HttpsCallableResult&& other) noexcept = default;
+
+  /// @brief Move assignment operator. Capable of moving an empty
+  /// HttpsCallableResult.
+  ///
+  /// @param[in] other HttpsCallableResult to move into this one.
+  /// @return Reference to this HttpsCallableResult.
+  HttpsCallableResult& operator=(HttpsCallableResult&& other) noexcept =
+      default;
+
+  /// @brief Returns the data that was returned from the call to the
+  /// HttpsCallable.
+  ///
+  /// @returns The data from the call, as a Variant.
   const Variant& data() const { return data_; }
+
+  /// @brief Returns a mutable reference to the data returned from the call.
+  Variant& data() { return data_; }
+
+  /// @brief Returns true if the result contains non-null data.
+  bool is_valid() const { return !data_.is_null(); }
+
+  /// @brief Equality operator.
+  bool operator==(const HttpsCallableResult& other) const {
+    return data_ == other.data_;
+  }
+
+  /// @brief Inequality operator.
+  bool operator!=(const HttpsCallableResult& other) const {
+    return !(*this == other);
+  }
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
-  // Only functions are allowed to construct results.
-  friend class ::firebase::functions::internal::HttpsCallableReferenceInternal;
-  HttpsCallableResult(const Variant& data) : data_(data) {}
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
-  HttpsCallableResult(Variant&& data) : data_(std::move(data)) {}
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
+  friend class internal::HttpsCallableReferenceInternal;
+  /// @endcond
 
   Variant data_;
-  /// @endcond
 };
 
 }  // namespace functions

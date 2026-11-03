@@ -17,12 +17,14 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_SNAPSHOT_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_SNAPSHOT_ANDROID_H_
 
+#include <mutex>
 #include <string>
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
+#include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
 
@@ -34,9 +36,16 @@ class DocumentSnapshotInternal : public Wrapper {
  public:
   using Wrapper::Wrapper;
 
+  DocumentSnapshotInternal(const DocumentSnapshotInternal& other);
+  DocumentSnapshotInternal(DocumentSnapshotInternal&& other) noexcept;
+  DocumentSnapshotInternal& operator=(
+      const DocumentSnapshotInternal& other) = delete;
+  DocumentSnapshotInternal& operator=(
+      DocumentSnapshotInternal&& other) noexcept = delete;
+
   static void Initialize(jni::Loader& loader);
 
-  ~DocumentSnapshotInternal() override {}
+  ~DocumentSnapshotInternal() override = default;
 
   /** Gets the Firestore instance associated with this document snapshot. */
   Firestore* firestore() const;
@@ -63,6 +72,7 @@ class DocumentSnapshotInternal : public Wrapper {
   std::size_t Hash() const;
 
  private:
+  mutable std::mutex mutex_;
   mutable std::string cached_id_;
 };
 

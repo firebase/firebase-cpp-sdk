@@ -16,15 +16,11 @@
 
 #include "firestore/src/android/field_path_android.h"
 
+#include "firestore/src/android/field_path_portable.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
-
-#if defined(__ANDROID__)
-#include "firestore/src/android/field_path_portable.h"
-#else  // defined(__ANDROID__)
-#include "Firestore/core/src/model/field_path.h"
-#endif  // defined(__ANDROID__)
 
 namespace firebase {
 namespace firestore {
@@ -51,6 +47,13 @@ void FieldPathConverter::Initialize(jni::Loader& loader) {
 }
 
 Local<Object> FieldPathConverter::Create(Env& env, const FieldPath& path) {
+  if (path.internal_ == nullptr || path.internal_->size() == 0) {
+    SimpleThrowInvalidArgument(
+        "Invalid field path. Provided path must not be empty.");
+    Local<Array<String>> empty_args =
+        env.NewArray<String>(0, String::GetClass());
+    return env.Call(kOf, empty_args);
+  }
   FieldPath::FieldPathInternal& internal = *path.internal_;
 
   // If the path is key (i.e. __name__).

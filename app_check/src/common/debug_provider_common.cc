@@ -45,7 +45,7 @@ DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {
 }
 
 AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
-  if (internal_) {
+  if (internal_ && app) {
     return internal_->CreateProvider(app);
   }
   return nullptr;

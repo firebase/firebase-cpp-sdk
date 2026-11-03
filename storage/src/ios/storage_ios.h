@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_STORAGE_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_STORAGE_IOS_H_
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -59,6 +60,29 @@ class StorageInternal {
     bool futures_alive = true;
     explicit LifetimeToken(StorageInternal* _Nullable s)
         : storage(s), futures_alive(s != nullptr) {}
+
+    // Runs `fn(*storage)` with `mutex` held if the StorageInternal is still
+    // alive, and returns whether it ran.
+    //
+    // ~StorageInternal() clears `storage` under `mutex` before it runs any
+    // cleanup callback (and cleanup callbacks run nowhere else), so inside
+    // `fn` no cleanup callback is in flight and the StorageInternal cannot be
+    // freed: storage.cleanup().UnregisterObject() never blocks and never
+    // touches a dead CleanupNotifier. Owners must therefore unregister through
+    // this method (or UnregisterCleanupObject()) rather than through a cached
+    // raw StorageInternal pointer.
+    //
+    // Lock order: `mutex` is acquired before owner locks (e.g.
+    // ControllerInternal::LifetimeHandle::mutex, ListenerInternal::mutex_), so
+    // `fn` may acquire such a lock, but this must never be called while one is
+    // held. Two different tokens' mutexes are only ever nested on the main
+    // queue (a main-queue block holding the new StorageInternal's token rebinds
+    // an owner away from an old one), so that nesting cannot deadlock.
+    bool RunWhileAlive(const std::function<void(StorageInternal&)>& fn);
+
+    // Unregisters `object` from storage->cleanup() if the StorageInternal is
+    // still alive; otherwise does nothing. See RunWhileAlive().
+    void UnregisterCleanupObject(void* _Nonnull object);
   };
 
   // `app` may be null, in which case initialized() returns false.

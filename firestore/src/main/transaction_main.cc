@@ -16,7 +16,10 @@
 
 #include "firestore/src/main/transaction_main.h"
 
-#include <future>  // NOLINT(build/c++11)
+#include <chrono>
+#include <condition_variable>  // NOLINT(build/c++11)
+#include <memory>
+#include <mutex>  // NOLINT(build/c++11)
 #include <utility>
 #include <vector>
 
@@ -92,17 +95,15 @@ DocumentSnapshot ConvertToSingleSnapshot(
 
 TransactionInternal::TransactionInternal(
     std::shared_ptr<core::Transaction> transaction,
-    FirestoreInternal* firestore_internal)
+    std::shared_ptr<api::Firestore> firestore_core,
+    Firestore* firestore_public)
     : transaction_{std::move(NOT_NULL(transaction))},
-      firestore_internal_{NOT_NULL(firestore_internal)},
-      user_data_converter_{&firestore_internal->database_id()} {}
+      firestore_core_{std::move(NOT_NULL(firestore_core))},
+      firestore_public_{firestore_public},
+      user_data_converter_{&firestore_core_->database_id()} {}
 
 Firestore* TransactionInternal::firestore() {
-  return firestore_internal_->firestore_public();
-}
-
-FirestoreInternal* TransactionInternal::firestore_internal() {
-  return firestore_internal_;
+  return firestore_public_;
 }
 
 void TransactionInternal::Set(const DocumentReference& document,
@@ -136,24 +137,69 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
                                           Error* error_code,
                                           std::string* error_message) {
   ValidateReference(document);
-  std::promise<StatusOr<DocumentSnapshot>> promise;
+
+  struct LookupState {
+    std::mutex mutex;
+    std::condition_variable cv;
+    bool done = false;
+    StatusOr<DocumentSnapshot> result =
+        Status(Error::kErrorAborted, "Transaction lookup was cancelled.");
+  };
+  auto state = std::make_shared<LookupState>();
   model::DocumentKey key = GetKey(document);
+  std::shared_ptr<api::Firestore> firestore_core = firestore_core_;
+
+  struct CancelGuard {
+    std::shared_ptr<LookupState> state;
+    CancelGuard() = default;
+    CancelGuard(CancelGuard&&) = default;
+    ~CancelGuard() {
+      if (state) {
+        std::scoped_lock lock(state->mutex);
+        if (!state->done) {
+          state->done = true;
+          state->cv.notify_all();
+        }
+      }
+    }
+  };
+  auto guard = std::make_shared<CancelGuard>();
+  guard->state = state;
 
   transaction_->Lookup(
-      {key}, [&](const util::StatusOr<std::vector<Document>>& maybe_docs) {
-        if (maybe_docs.ok()) {
-          DocumentSnapshot snapshot =
-              ConvertToSingleSnapshot(firestore_internal_->firestore_core(),
-                                      std::move(key), maybe_docs.ValueOrDie());
-          promise.set_value(std::move(snapshot));
-        } else {
-          promise.set_value(maybe_docs.status());
+      {key},
+      [state, guard, firestore_core = std::move(firestore_core),
+       key = std::move(key)](
+          const util::StatusOr<std::vector<Document>>& maybe_docs) mutable {
+        StatusOr<DocumentSnapshot> outcome =
+            maybe_docs.ok()
+                ? StatusOr<DocumentSnapshot>(ConvertToSingleSnapshot(
+                      firestore_core, std::move(key), maybe_docs.ValueOrDie()))
+                : StatusOr<DocumentSnapshot>(maybe_docs.status());
+        {
+          std::scoped_lock lock(state->mutex);
+          if (!state->done) {
+            state->result = std::move(outcome);
+            state->done = true;
+            state->cv.notify_all();
+          }
         }
+        guard->state.reset();
       });
+  guard.reset();
 
-  auto future = promise.get_future();
-  future.wait();
-  StatusOr<DocumentSnapshot> result = future.get();
+  StatusOr<DocumentSnapshot> result;
+  {
+    std::unique_lock<std::mutex> lock(state->mutex);
+    if (!state->cv.wait_for(lock, std::chrono::seconds(60),
+                            [&state] { return state->done; })) {
+      state->done = true;
+      result = Status(Error::kErrorDeadlineExceeded,
+                      "Transaction lookup timed out.");
+    } else {
+      result = std::move(state->result);
+    }
+  }
 
   if (result.ok()) {
     if (error_code != nullptr) {

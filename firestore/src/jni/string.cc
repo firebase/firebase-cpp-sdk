@@ -39,19 +39,28 @@ jstring utf8_string = nullptr;
 }  // namespace
 
 void String::Initialize(Env& env, Loader& loader) {
+  if (!loader.ok() || !env.ok() || !env.get()) return;
+
   string_class = util::string::GetClass();
   loader.LoadFromExistingClass("java/lang/String", string_class, kNewFromBytes,
                                kGetBytes);
+  if (!loader.ok() || !env.ok()) return;
 
-  FIREBASE_DEV_ASSERT(utf8_string == nullptr);
-  Local<String> utf8(env.get(), env.get()->NewStringUTF("UTF-8"));
-  if (!env.ok()) return;
+  if (utf8_string != nullptr) {
+    env.get()->DeleteGlobalRef(utf8_string);
+    utf8_string = nullptr;
+  }
 
+  jstring raw_utf8 = env.get()->NewStringUTF("UTF-8");
+  if (!env.ok() || raw_utf8 == nullptr) {
+    return;
+  }
+  Local<String> utf8(env.get(), raw_utf8);
   utf8_string = Global<String>(utf8).release();
 }
 
 void String::Terminate(Env& env) {
-  if (utf8_string) {
+  if (utf8_string && env.get()) {
     env.get()->DeleteGlobalRef(utf8_string);
     utf8_string = nullptr;
   }

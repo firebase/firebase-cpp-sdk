@@ -20,6 +20,9 @@
 // This file contains a Copy of the classes defined in
 // Firestore/core/firestore_exceptions.h, without the absl dependency.
 
+#include <stdexcept>
+#include <string>
+
 #include "Firestore/core/include/firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/macros.h"  // for FIRESTORE_HAVE_EXCEPTIONS
 

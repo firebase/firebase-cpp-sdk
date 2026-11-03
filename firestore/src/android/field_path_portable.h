@@ -17,11 +17,10 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_PATH_PORTABLE_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_PATH_PORTABLE_H_
 
-#include <cassert>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include <utility>
 #include "app/src/assert.h"
 
 namespace firebase {
@@ -29,8 +28,8 @@ namespace firestore {
 
 /**
  * A dot-separated path for navigating sub-objects within a document. This
- * implementation is for the option STLPort, which has limited support of the
- * standard library and thus cannot depends on Firestore core C++ library.
+ * portable implementation is used on Android, which wraps the Android Java SDK
+ * instead of linking the Firestore C++ core library.
  */
 class FieldPathPortable {
  public:
@@ -44,7 +43,7 @@ class FieldPathPortable {
 
   /** Returns i-th segment of the path. */
   const std::string& operator[](const size_t i) const {
-    FIREBASE_ASSERT_MESSAGE(i < segments_.size(), "index %s out of range", i);
+    FIREBASE_ASSERT_MESSAGE(i < segments_.size(), "index %zu out of range", i);
     return segments_[i];
   }
 

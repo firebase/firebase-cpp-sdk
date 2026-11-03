@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <deque>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <utility>
@@ -28,9 +29,16 @@
 
 namespace firebase::storage::internal {
 
+// Android implementation of ListenerInternal: it only tracks "detach"
+// callbacks that unbind in-flight operations from the Listener. Detach() /
+// ~ListenerInternal() run those internal callbacks; they never invoke the
+// user's Listener::OnProgress()/OnPaused().
 class ListenerInternal {
  public:
-  explicit ListenerInternal(Listener* listener) { (void)listener; }
+  explicit ListenerInternal(Listener* listener)
+      : state_(std::make_shared<State>()) {
+    (void)listener;
+  }
 
   ListenerInternal(const ListenerInternal&) = delete;
   ListenerInternal& operator=(const ListenerInternal&) = delete;
@@ -42,9 +50,9 @@ class ListenerInternal {
   // Registers a callback under an auto-generated numeric token (never 0).
   uint64_t RegisterDetachCallback(std::function<void()> callback) {
     if (!callback) return 0;
-    std::lock_guard<std::mutex> lock(mutex_);
-    const uint64_t token = next_token_++;
-    detach_callbacks_.emplace_back(Key{KeyKind::kNumeric, token},
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    const uint64_t token = state_->next_token++;
+    state_->callbacks.emplace_back(Key{KeyKind::kNumeric, token},
                                    std::move(callback));
     return token;
   }
@@ -55,55 +63,58 @@ class ListenerInternal {
   void RegisterDetachCallback(void* token, std::function<void()> callback) {
     if (token == nullptr || !callback) return;
     const Key key = PointerKey(token);
-    std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& entry : detach_callbacks_) {
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    for (auto& entry : state_->callbacks) {
       if (entry.first == key) {
         entry.second = std::move(callback);
         return;
       }
     }
-    detach_callbacks_.emplace_back(key, std::move(callback));
+    state_->callbacks.emplace_back(key, std::move(callback));
   }
 
   void UnregisterDetachCallback(uint64_t token) {
     if (token == 0) return;
-    Unregister(Key{KeyKind::kNumeric, token});
+    Unregister(state_, Key{KeyKind::kNumeric, token});
   }
 
   void UnregisterDetachCallback(void* token) {
     if (token == nullptr) return;
-    Unregister(PointerKey(token));
+    Unregister(state_, PointerKey(token));
   }
 
-  // Runs and removes every registered callback. Callbacks run without the
-  // lock held; callbacks registered while DetachAll() is running are also
-  // run. Returns only once no callback is executing on another thread.
+  // Runs and removes every registered callback, including callbacks
+  // registered while DetachAll() is running. Callbacks run without the lock
+  // held. Returns once the queue is empty and no callback is executing on
+  // another thread. Safe if a callback destroys this ListenerInternal: all
+  // bookkeeping lives in the shared State, kept alive by local copies.
   void DetachAll() {
+    std::shared_ptr<State> state = state_;
     const std::thread::id self_id = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lock(mutex_);
-    while (!detach_callbacks_.empty()) {
-      auto entry = std::move(detach_callbacks_.front());
-      detach_callbacks_.pop_front();
-      active_tokens_.emplace_back(entry.first, self_id);
-      lock.unlock();
-      {
-        // RAII: remove the active marker and wake waiters even if the
-        // callback throws.
-        ActiveScope scope{this, entry.first, self_id};
-        if (entry.second) {
-          entry.second();
+    std::unique_lock<std::mutex> lock(state->mutex);
+    while (true) {
+      while (!state->callbacks.empty()) {
+        auto entry = std::move(state->callbacks.front());
+        state->callbacks.pop_front();
+        state->active.emplace_back(entry.first, self_id);
+        lock.unlock();
+        {
+          // RAII: remove the active marker and wake waiters on every path.
+          ActiveScope scope{state, entry.first, self_id};
+          RunCallback(entry.second);
         }
+        lock.lock();
       }
-      lock.lock();
+      state->cv.wait(lock, [&state, self_id]() {
+        if (!state->callbacks.empty()) return true;
+        for (const auto& active : state->active) {
+          if (active.second != self_id) return false;
+        }
+        return true;
+      });
+      // Re-check: a callback may have been registered while we waited.
+      if (state->callbacks.empty()) break;
     }
-    cv_.wait(lock, [this, self_id]() {
-      for (const auto& active : active_tokens_) {
-        if (active.second != self_id) {
-          return false;
-        }
-      }
-      return true;
-    });
   }
 
   void Detach() { DetachAll(); }
@@ -116,42 +127,65 @@ class ListenerInternal {
   enum class KeyKind { kNumeric, kPointer };
   using Key = std::pair<KeyKind, uint64_t>;
 
+  struct State {
+    std::mutex mutex;
+    std::condition_variable cv;
+    uint64_t next_token = 1;
+    std::deque<std::pair<Key, std::function<void()>>> callbacks;
+    std::vector<std::pair<Key, std::thread::id>> active;
+  };
+
   static Key PointerKey(void* token) {
     return Key{KeyKind::kPointer,
                static_cast<uint64_t>(reinterpret_cast<uintptr_t>(token))};
   }
 
+  // Runs an internal detach callback. These must not throw; if one does
+  // anyway (exceptions enabled), contain it so the remaining callbacks still
+  // run and no exception escapes ~ListenerInternal().
+  static void RunCallback(const std::function<void()>& callback) {
+    if (!callback) return;
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+    try {
+      callback();
+    } catch (...) {
+    }
+#else
+    callback();
+#endif
+  }
+
   struct ActiveScope {
-    ListenerInternal* self;
+    std::shared_ptr<State> state;
     Key key;
     std::thread::id thread_id;
     ~ActiveScope() {
-      std::lock_guard<std::mutex> lock(self->mutex_);
-      auto& active = self->active_tokens_;
+      std::lock_guard<std::mutex> lock(state->mutex);
+      auto& active = state->active;
       for (auto it = active.begin(); it != active.end(); ++it) {
         if (it->first == key && it->second == thread_id) {
           active.erase(it);
           break;
         }
       }
-      self->cv_.notify_all();
+      state->cv.notify_all();
     }
   };
 
-  void Unregister(const Key& key) {
+  static void Unregister(const std::shared_ptr<State>& state, const Key& key) {
     const std::thread::id self_id = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lock(mutex_);
-    for (auto it = detach_callbacks_.begin(); it != detach_callbacks_.end();
+    std::unique_lock<std::mutex> lock(state->mutex);
+    for (auto it = state->callbacks.begin(); it != state->callbacks.end();
          ++it) {
       if (it->first == key) {
-        detach_callbacks_.erase(it);
+        state->callbacks.erase(it);
         break;
       }
     }
     // Don't return while this key's callback is still running on another
     // thread (the caller may be about to destroy what it captured).
-    cv_.wait(lock, [this, &key, self_id]() {
-      for (const auto& active : active_tokens_) {
+    state->cv.wait(lock, [&state, &key, self_id]() {
+      for (const auto& active : state->active) {
         if (active.first == key && active.second != self_id) {
           return false;
         }
@@ -160,11 +194,7 @@ class ListenerInternal {
     });
   }
 
-  std::mutex mutex_;
-  std::condition_variable cv_;
-  uint64_t next_token_ = 1;
-  std::deque<std::pair<Key, std::function<void()>>> detach_callbacks_;
-  std::vector<std::pair<Key, std::thread::id>> active_tokens_;
+  std::shared_ptr<State> state_;
 };
 
 }  // namespace firebase::storage::internal

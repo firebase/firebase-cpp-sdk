@@ -19,7 +19,7 @@
 namespace firebase {
 namespace internal {
 
-double Timer::tick_period_ = 0;
+// double Timer::tick_period_ = 0;
 
 }  // namespace internal
 // NOLINTNEXTLINE - allow namespace overridden

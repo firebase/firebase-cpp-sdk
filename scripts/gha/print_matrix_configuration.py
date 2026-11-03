@@ -157,7 +157,7 @@ BUILD_CONFIGS = {
   "windows": ["ssl_lib", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"],
   "ubuntu": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
   "macos": ["ssl_lib", "architecture_macos", "xcode_version"],
-  "android": ["os", "ndk_version", "build_tools", "platform_version", "android_device"],
+  "android": ["os", "ndk_version", "build_tools_version", "platform_version", "android_device"],
   "ios": ["os", "xcode_version", "ios_device"],
   "tvos": ["os", "xcode_version", "tvos_device"]
 }
@@ -213,7 +213,9 @@ TEST_DEVICES = {
   "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"26.4.1"} ],
 }
 
-# Easy accesssor for getting a TEST_DEVICES entry. Note that once a device model
+_CHOSEN_TEST_DEVICES = {}
+
+# Easy accessor for getting a TEST_DEVICES entry. Note that once a device model
 # is chosen on a specific machine, it will be maintained on that same machine.
 def get_test_device(device_type):
   """Get a TEST_DEVICES entry for the given device type.
@@ -230,11 +232,15 @@ def get_test_device(device_type):
       found.
 
   """
+  if device_type in _CHOSEN_TEST_DEVICES:
+    return _CHOSEN_TEST_DEVICES[device_type]
   device_entry = TEST_DEVICES.get(device_type)
   if not isinstance(device_entry, list):
     # If None or just a dictionary (not in an array)
     return device_entry
-  return random.choice(device_entry)
+  chosen = random.choice(device_entry)
+  _CHOSEN_TEST_DEVICES[device_type] = chosen
+  return chosen
 
 
 def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
@@ -254,30 +260,35 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
       (str|list): Matched value for the given key.
   """
   # Search for a given key happens in the following sequential order
-  # Minimal/Expanded block (if test_matrix) -> Standard block
+  # Minimal/Expanded block (if test_matrix) -> Standard block -> DEFAULT_WORKFLOW
 
   parm_type_key = "config" if config_parms_only else "matrix"
-  workflow_block = PARAMETERS.get(workflow)
-  if workflow_block:
-    if test_matrix and test_matrix in workflow_block["matrix"]:
+  for candidate_workflow in (workflow, DEFAULT_WORKFLOW):
+    workflow_block = PARAMETERS.get(candidate_workflow)
+    if not workflow_block:
+      continue
+    if test_matrix and test_matrix in workflow_block.get("matrix", {}):
       if parm_key in workflow_block["matrix"][test_matrix]:
         return workflow_block["matrix"][test_matrix][parm_key]
+    if parm_type_key in workflow_block and parm_key in workflow_block[parm_type_key]:
+      return workflow_block[parm_type_key][parm_key]
 
-    return workflow_block[parm_type_key][parm_key]
-
-  else:
-    raise KeyError("Parameter key: '{0}' of type '{1}' not found "\
-                   "for workflow '{2}' (test_matrix = {3}) .".format(parm_key,
-                                                                parm_type_key,
-                                                                workflow,
-                                                                test_matrix))
+  raise KeyError("Parameter key: '{0}' of type '{1}' not found "
+                 "for workflow '{2}' (test_matrix = {3}) .".format(
+                     parm_key, parm_type_key, workflow, test_matrix))
 
 
 def filter_devices(devices, device_type):
   """ Filter device by device_type
   """
-  device_type = device_type.replace("real","ftl")
-  filtered_value = filter(lambda device: get_test_device(device).get("type") in device_type, devices)
+  if isinstance(device_type, (list, tuple, set)):
+    normalized_types = ["ftl" if t == "real" else str(t).replace("real", "ftl")
+                        for t in device_type]
+  else:
+    normalized_types = str(device_type).replace("real", "ftl")
+  filtered_value = filter(
+      lambda device: get_test_device(device).get("type") in normalized_types,
+      devices)
   return list(filtered_value)
 
 
@@ -297,7 +308,7 @@ def print_value(value):
 
 def scan_changes_in_file(parm_key, auto_diff, path, requested_api_list):
   """Scan for changes in the given file and return APIs that were modified."""
-  change_lines = subprocess.check_output(['git', 'diff', '-U0', auto_diff, path]).decode('utf-8').rstrip('\n').split('\n')
+  change_lines = subprocess.check_output(['git', 'diff', '-U0', auto_diff, '--', path]).decode('utf-8').rstrip('\n').split('\n')
   change_lines = [l for l in change_lines if l.startswith('-') or l.startswith('+')]
   change_lines = [l for l in change_lines if not l.startswith('---') and not l.startswith('+++')]
   change_lines = [l for l in change_lines if len(l) > 20]
@@ -319,7 +330,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
 
   Remove entries from the list based on what we observe in the
   source tree, relative to the given base branch."""
-  file_list = set(subprocess.check_output(['git', 'diff', '--name-only', auto_diff]).decode('utf-8').rstrip('\n').split('\n'))
+  file_list = set(subprocess.check_output(['git', 'diff', '--name-only', auto_diff, '--']).decode('utf-8').rstrip('\n').split('\n'))
   if parm_key == 'apis':
     file_redirects = {
       # Custom handling for specific files, to be treated as a different path,
@@ -470,12 +481,18 @@ def main():
   print_value(value)
 
 
+def _str_to_bool(value):
+  if isinstance(value, bool):
+    return value
+  return str(value).strip().lower() not in ('0', 'false', 'no', 'off', '')
+
+
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Query matrix and config parameters used in Github workflows.')
   parser.add_argument('-c', '--config', action='store_true', help='Query parameter used for Github workflow/dispatch configurations.')
   parser.add_argument('-w', '--workflow', default=DEFAULT_WORKFLOW, help='Config key for Github workflow.')
-  parser.add_argument('-m', '--minimal', type=bool, default=False, help='Use minimal matrix')
-  parser.add_argument('-e', '--expanded', type=bool, default=False, help='Use expanded matrix')
+  parser.add_argument('-m', '--minimal', nargs='?', const=True, type=_str_to_bool, default=False, help='Use minimal matrix')
+  parser.add_argument('-e', '--expanded', nargs='?', const=True, type=_str_to_bool, default=False, help='Use expanded matrix')
   parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
   parser.add_argument('-a', '--auto_diff', metavar='BRANCH', help='Compare with specified base branch to automatically set matrix options')
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
@@ -483,7 +500,7 @@ def parse_cmdline_args():
   parser.add_argument('-get_ftl_device', action='store_true', help='Get the ftl test device, used with -k $device')
   parser.add_argument('-get_ftl_device_list', action='store_true',
                       help='Get the FTL device list (semicolon-delimited) for the given -k $device')
-  parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
+  parser.add_argument('-t', '--device_type', default='real,virtual', help='Test on which type of mobile devices')
   parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"],
                       help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
   args = parser.parse_args()

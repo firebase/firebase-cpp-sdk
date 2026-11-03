@@ -345,4 +345,34 @@ void StorageInternal::UseEmulator(const char* host, int port) {
   host_ = is_unbracketed_ipv6 ? ("[" + host_str + "]") : host_str;
 }
 
+StorageLifetimeScope::StorageLifetimeScope(
+    std::shared_ptr<StorageInternal::LifetimeToken> token, Mode mode) {
+  if (!token) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(token->mutex);
+  StorageInternal* storage = token->storage;
+  if (storage == nullptr ||
+      (mode == Mode::kRejectShutdown && token->shutting_down)) {
+    return;
+  }
+  id_ = std::this_thread::get_id();
+  token->active_users.push_back(id_);
+  storage_ = storage;
+  token_ = std::move(token);
+}
+
+StorageLifetimeScope::~StorageLifetimeScope() {
+  if (!token_) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(token_->mutex);
+  auto it =
+      std::find(token_->active_users.begin(), token_->active_users.end(), id_);
+  if (it != token_->active_users.end()) {
+    token_->active_users.erase(it);
+  }
+  token_->cv.notify_all();
+}
+
 }  // namespace firebase::storage::internal

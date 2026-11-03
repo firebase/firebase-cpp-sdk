@@ -2,6 +2,8 @@
 
 #import "performance/src_ios/fake/FIRHTTPMetric.h"
 
+#include <string>
+
 #include "testing/reporter_impl.h"
 
 @interface FIRHTTPMetric ()
@@ -27,7 +29,11 @@
 @implementation FIRHTTPMetric
 
 - (nullable instancetype)initWithURL:(nonnull NSURL *)URL HTTPMethod:(FIRHTTPMethod)httpMethod {
-  NSMutableURLRequest *URLRequest = [[NSMutableURLRequest alloc] initWithURL:URL];
+  if (URL == nil || URL.absoluteString.length == 0) {
+    NSLog(@"Invalid URL");
+    return nil;
+  }
+
   NSString *HTTPMethodString = nil;
   switch (httpMethod) {
     case FIRHTTPMethodGET:
@@ -66,16 +72,25 @@
       HTTPMethodString = @"CONNECT";
       break;
   }
-  [URLRequest setHTTPMethod:HTTPMethodString];
 
-  if (HTTPMethodString) {
-    FakeReporter->AddReport("-[FIRHTTPMetric initWithUrl:HTTPMethod:]",
-                            {[URL.absoluteString UTF8String], [HTTPMethodString UTF8String]});
+  if (HTTPMethodString == nil) {
+    NSLog(@"Invalid HTTPMethod");
+    return nil;
   }
 
-  if (URLRequest && HTTPMethodString != nil) {
+  NSMutableURLRequest *URLRequest = [[NSMutableURLRequest alloc] initWithURL:URL];
+  [URLRequest setHTTPMethod:HTTPMethodString];
+
+  FakeReporter->AddReport(
+      "-[FIRHTTPMetric initWithUrl:HTTPMethod:]",
+      {[URL.absoluteString UTF8String] ?: "", [HTTPMethodString UTF8String] ?: ""});
+
+  if (URLRequest) {
     self = [super init];
-    _URLRequest = [URLRequest copy];
+    if (self) {
+      _URLRequest = [URLRequest copy];
+      _customAttributes = [[NSMutableDictionary<NSString *, NSString *> alloc] init];
+    }
     return self;
   }
 
@@ -88,8 +103,8 @@
     self.startTime = [NSDate date];
     self.started = YES;
     NSLog(@"Started http metric: %@", [self description]);
-    FakeReporter->AddReport("-[FIRHTTPMetric start]", {});
   }
+  FakeReporter->AddReport("-[FIRHTTPMetric start]", {});
 }
 
 - (void)stop {
@@ -97,8 +112,8 @@
     self.stopTime = [NSDate date];
     self.started = NO;
     NSLog(@"Stopped http metric: %@.", [self description]);
-    FakeReporter->AddReport("-[FIRHTTPMetric stop]", {});
   }
+  FakeReporter->AddReport("-[FIRHTTPMetric stop]", {});
 }
 
 #pragma mark - Custom attributes related methods
@@ -107,19 +122,34 @@
   return [self.customAttributes copy];
 }
 
-- (void)setValue:(NSString *)value forAttribute:(nonnull NSString *)attribute {
+- (void)setValue:(nullable NSString *)value forAttribute:(nonnull NSString *)attribute {
   FakeReporter->AddReport("-[FIRHTTPMetric setValue:forAttribute:]",
-                          {[value UTF8String], [attribute UTF8String]});
-  self.customAttributes[attribute] = value;
+                          {[value UTF8String] ?: "", [attribute UTF8String] ?: ""});
+  if (attribute == nil) {
+    return;
+  }
+  if (value != nil) {
+    self.customAttributes[attribute] = [value copy];
+  } else {
+    [self.customAttributes removeObjectForKey:attribute];
+  }
 }
 
-- (NSString *)valueForAttribute:(NSString *)attribute {
-  FakeReporter->AddReport("-[FIRHTTPMetric valueForAttribute:]", {[attribute UTF8String]});
+- (nullable NSString *)valueForAttribute:(nonnull NSString *)attribute {
+  FakeReporter->AddReport("-[FIRHTTPMetric valueForAttribute:]",
+                          {[attribute UTF8String] ?: ""});
+  if (attribute == nil) {
+    return nil;
+  }
   return self.customAttributes[attribute];
 }
 
-- (void)removeAttribute:(NSString *)attribute {
-  FakeReporter->AddReport("-[FIRHTTPMetric removeAttribute:]", {[attribute UTF8String]});
+- (void)removeAttribute:(nonnull NSString *)attribute {
+  FakeReporter->AddReport("-[FIRHTTPMetric removeAttribute:]",
+                          {[attribute UTF8String] ?: ""});
+  if (attribute == nil) {
+    return;
+  }
   [self.customAttributes removeObjectForKey:attribute];
 }
 
@@ -127,26 +157,26 @@
 
 - (void)setResponseCode:(NSInteger)responseCode {
   FakeReporter->AddReport("-[FIRHTTPMetric setResponseCode:]",
-                          {[[NSString stringWithFormat:@"%ld", responseCode] UTF8String]});
+                          {std::to_string(static_cast<long>(responseCode))});
   _responseCode = responseCode;
 }
 
 - (void)setRequestPayloadSize:(long)requestPayloadSize {
   FakeReporter->AddReport("-[FIRHTTPMetric setRequestPayloadSize:]",
-                          {[[NSString stringWithFormat:@"%ld", requestPayloadSize] UTF8String]});
+                          {std::to_string(requestPayloadSize)});
   _requestPayloadSize = requestPayloadSize;
 }
 
 - (void)setResponsePayloadSize:(long)responsePayloadSize {
   FakeReporter->AddReport("-[FIRHTTPMetric setResponsePayloadSize:]",
-                          {[[NSString stringWithFormat:@"%ld", responsePayloadSize] UTF8String]});
+                          {std::to_string(responsePayloadSize)});
   _responsePayloadSize = responsePayloadSize;
 }
 
-- (void)setResponseContentType:(NSString *)responseContentType {
+- (void)setResponseContentType:(nullable NSString *)responseContentType {
   FakeReporter->AddReport("-[FIRHTTPMetric setResponseContentType:]",
-                          {[responseContentType UTF8String]});
-  _responseContentType = responseContentType;
+                          {[responseContentType UTF8String] ?: ""});
+  _responseContentType = [responseContentType copy];
 }
 
 - (NSString *)description {

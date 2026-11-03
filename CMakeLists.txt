@@ -53,6 +53,9 @@ option(FIREBASE_INCLUDE_INSTALLATIONS
 option(FIREBASE_INCLUDE_MESSAGING
        "Include the Firebase Cloud Messaging library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_PERFORMANCE
+       "Include the Firebase Performance Monitoring library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_REMOTE_CONFIG
        "Include the Firebase Remote Config library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -97,14 +100,6 @@ set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 project (firebase NONE)
 
-set(CMAKE_Swift_LANGUAGE_VERSION 6.2)
-
-enable_language(C)
-enable_language(CXX)
-if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
-  enable_language(Swift)
-endif()
-
 if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
   find_program(CCACHE_PROGRAM ccache)
   if (CCACHE_PROGRAM)
@@ -113,16 +108,23 @@ if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
   endif()
 endif()
 
+set(CMAKE_Swift_LANGUAGE_VERSION 5)
+
+enable_language(C)
+enable_language(CXX)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+  enable_language(Swift)
+endif()
+
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
-include(cpp_pack)
 
 if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   enable_testing()
   include(test_rules)
   # Copy the custom CTest file into the binary directory, so that it is used.
   configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/CTestCustom.cmake
-               ${CMAKE_BINARY_DIR})
+               ${CMAKE_BINARY_DIR} COPYONLY)
 endif()
 
 if(PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS OR CMAKE_SYSTEM_NAME STREQUAL "tvOS")
@@ -151,10 +153,12 @@ else()
   set(DESKTOP OFF)
 endif()
 
+include(cpp_pack)
+
 # For OSX, if the architectures we are building for do not match the current
 # host, treat it as cross-compiling.
 if(DESKTOP AND APPLE)
-  if(NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  if(CMAKE_OSX_ARCHITECTURES AND NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     message("Cross-compiling ENABLED")
     set(CMAKE_CROSSCOMPILING ON CACHE BOOL "" FORCE)
   endif()
@@ -177,9 +181,11 @@ endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
   # Linux-specific option.
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
-  if (FIREBASE_LINUX_USE_CXX11_ABI)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+  endif()
+  if (FIREBASE_USE_LINUX_CXX11_ABI OR FIREBASE_LINUX_USE_CXX11_ABI)
     add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
@@ -262,7 +268,7 @@ if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
       if(EXISTS "${possible_prev_build_dir}/${header_to_scan_for}")
         # Check if it's newer than any other files.
         file(TIMESTAMP "${possible_prev_build_dir}/${header_to_scan_for}" timestamp "%s")
-        if(${timestamp} GREATER ${newest_timestamp})
+        if("${timestamp}" GREATER "${newest_timestamp}")
           set(APP_BINARY_DIR ${possible_prev_build_dir})
           set(newest_timestamp ${timestamp})
         endif()
@@ -309,7 +315,7 @@ if(DESKTOP)
       if (CMAKE_BUILD_TYPE)
         set(BORINGSSL_LIB_SUBDIR "${CMAKE_BUILD_TYPE}")
       else()
-        set(BORINGSSL_LIB_SUBDIR "Debug")
+        set(BORINGSSL_LIB_SUBDIR "Release")
       endif()
       set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/${BORINGSSL_LIB_SUBDIR}/ssl.lib CACHE FILEPATH "" FORCE)
       set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/${BORINGSSL_LIB_SUBDIR}/crypto.lib CACHE FILEPATH "" FORCE)
@@ -333,7 +339,7 @@ if(DESKTOP)
     set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
     set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
     set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARIES})
-    set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
+    set(OPENSSL_VERSION "1.1.1" CACHE STRING "" FORCE)
   
     add_library(OpenSSL::SSL STATIC IMPORTED)
     add_library(OpenSSL::Crypto STATIC IMPORTED)
@@ -359,9 +365,13 @@ if(DESKTOP)
     # Don't use BoringSSL, use OpenSSL. If you are linking against the libraries directly
     # from source, you probably want this instead.
     #
-    # If the find_package fails to find OpenSSL, set OPENSSL_ROOT_DIR to OpenSSL'S install
-    # location on your system.
-    find_package(OpenSSL REQUIRED)
+    # On Windows, libcurl uses native Schannel, so OpenSSL is only required when
+    # Database or Firestore is enabled.
+    if(NOT WIN32 OR FIREBASE_INCLUDE_DATABASE OR FIREBASE_INCLUDE_FIRESTORE)
+      find_package(OpenSSL REQUIRED)
+    else()
+      find_package(OpenSSL)
+    endif()
   endif()
 endif()
 
@@ -413,7 +423,7 @@ else()
   add_external_library(flatbuffers)
 endif()
 
-if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTSAND)
+if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   if (NOT FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     # Firestore's external build pulls in GoogleTest
     add_external_library(googletest)
@@ -562,6 +572,7 @@ else()
   # instead of the building platform, and thus couldn't use flatc on the
   # building platform.
   set(firebase_command_line_path "$ENV{PATH}")
+  set(firebase_command_line_home "$ENV{HOME}")
 
   if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
     # OS - Specific Command Joiner
@@ -571,7 +582,7 @@ else()
     set(ENV_COMMAND "")
   else()
     set(COMMAND_CONCAT &&)
-    set(ENV_COMMAND env -i PATH=${firebase_command_line_path})
+    set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home})
   endif()
 
   # The cmake executable to use when compiling flatc. Normally, the default
@@ -626,6 +637,8 @@ if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
 else()
   # Add firebase_app as a target on the previously built app.
   add_library(firebase_app STATIC IMPORTED GLOBAL)
+  add_custom_target(FIREBASE_APP_GENERATED_HEADERS)
+  add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_APP_GENERATED_HEADERS)
 
   file(MAKE_DIRECTORY "${APP_BINARY_DIR}/generated")
   file(MAKE_DIRECTORY "${FIREBASE_BINARY_DIR}/generated")
@@ -637,6 +650,7 @@ else()
   set_target_properties(firebase_app PROPERTIES
     IMPORTED_LOCATION "${APP_BINARY_DIR}/libfirebase_app.a"
     INTERFACE_INCLUDE_DIRECTORIES "${app_include_dirs}"
+    INTERFACE_LINK_LIBRARIES "android;log"
   )
 endif()
 
@@ -668,6 +682,9 @@ if (FIREBASE_INCLUDE_INSTALLATIONS)
 endif()
 if (FIREBASE_INCLUDE_MESSAGING)
   add_subdirectory(messaging)
+endif()
+if (FIREBASE_INCLUDE_PERFORMANCE)
+  add_subdirectory(performance)
 endif()
 if (FIREBASE_INCLUDE_REMOTE_CONFIG)
   add_subdirectory(remote_config)

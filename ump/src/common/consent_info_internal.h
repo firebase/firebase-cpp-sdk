@@ -17,9 +17,10 @@
 #ifndef FIREBASE_UMP_SRC_COMMON_CONSENT_INFO_INTERNAL_H_
 #define FIREBASE_UMP_SRC_COMMON_CONSENT_INFO_INTERNAL_H_
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/assert.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/future.h"
+#include "firebase/internal/mutex.h"
 #include "firebase/internal/platform.h"
 #include "firebase/ump.h"
 #include "firebase/ump/types.h"
@@ -34,7 +35,7 @@ namespace internal {
 
 // Constants representing each ConsentInfo function that returns a Future.
 enum ConsentInfoFn {
-  kConsentInfoFnRequestConsentInfoUpdate,
+  kConsentInfoFnRequestConsentInfoUpdate = 0,
   kConsentInfoFnLoadConsentForm,
   kConsentInfoFnShowConsentForm,
   kConsentInfoFnLoadAndShowConsentFormIfRequired,
@@ -46,10 +47,14 @@ class ConsentInfoInternal {
  public:
   virtual ~ConsentInfoInternal();
 
+  ConsentInfoInternal(const ConsentInfoInternal&) = delete;
+  ConsentInfoInternal& operator=(const ConsentInfoInternal&) = delete;
+
   // Implemented in platform-specific code to instantiate a
   // platform-specific subclass.
 #if FIREBASE_PLATFORM_ANDROID
   static ConsentInfoInternal* CreateInstance(JNIEnv* jni_env, jobject activity);
+  virtual void SetActivity(JNIEnv* jni_env, jobject activity) = 0;
 #else
   static ConsentInfoInternal* CreateInstance();
 #endif
@@ -60,28 +65,32 @@ class ConsentInfoInternal {
   virtual Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) = 0;
   Future<void> RequestConsentInfoUpdateLastResult() {
+    MutexLock lock(futures_mutex_);
     return static_cast<const Future<void>&>(
-        futures()->LastResult(kConsentInfoFnRequestConsentInfoUpdate));
+        futures_.LastResult(kConsentInfoFnRequestConsentInfoUpdate));
   }
   virtual Future<void> LoadConsentForm() = 0;
 
   Future<void> LoadConsentFormLastResult() {
+    MutexLock lock(futures_mutex_);
     return static_cast<const Future<void>&>(
-        futures()->LastResult(kConsentInfoFnLoadConsentForm));
+        futures_.LastResult(kConsentInfoFnLoadConsentForm));
   }
 
   virtual Future<void> ShowConsentForm(FormParent parent) = 0;
 
   Future<void> ShowConsentFormLastResult() {
+    MutexLock lock(futures_mutex_);
     return static_cast<const Future<void>&>(
-        futures()->LastResult(kConsentInfoFnShowConsentForm));
+        futures_.LastResult(kConsentInfoFnShowConsentForm));
   }
 
   virtual Future<void> LoadAndShowConsentFormIfRequired(FormParent parent) = 0;
 
   Future<void> LoadAndShowConsentFormIfRequiredLastResult() {
+    MutexLock lock(futures_mutex_);
     return static_cast<const Future<void>&>(
-        futures()->LastResult(kConsentInfoFnLoadAndShowConsentFormIfRequired));
+        futures_.LastResult(kConsentInfoFnLoadAndShowConsentFormIfRequired));
   }
 
   virtual PrivacyOptionsRequirementStatus
@@ -90,8 +99,9 @@ class ConsentInfoInternal {
   virtual Future<void> ShowPrivacyOptionsForm(FormParent parent) = 0;
 
   Future<void> ShowPrivacyOptionsFormLastResult() {
+    MutexLock lock(futures_mutex_);
     return static_cast<const Future<void>&>(
-        futures()->LastResult(kConsentInfoFnShowPrivacyOptionsForm));
+        futures_.LastResult(kConsentInfoFnShowPrivacyOptionsForm));
   }
 
   virtual bool CanRequestAds() = 0;
@@ -106,31 +116,70 @@ class ConsentInfoInternal {
 
   static const char* GetConsentFormErrorMessage(ConsentFormError error_code);
 
-  SafeFutureHandle<void> CreateFuture() { return futures()->SafeAlloc<void>(); }
+  SafeFutureHandle<void> CreateFuture() {
+    MutexLock lock(futures_mutex_);
+    return futures_.SafeAlloc<void>();
+  }
   SafeFutureHandle<void> CreateFuture(ConsentInfoFn fn_idx) {
-    return futures()->SafeAlloc<void>(fn_idx);
+    MutexLock lock(futures_mutex_);
+    return futures_.SafeAlloc<void>(fn_idx);
+  }
+
+  // Atomically checks whether `fn_idx` already has a pending Future, returning
+  // false and populating `in_progress_future_out` if so, or allocating a new
+  // `SafeFutureHandle<void>` in `handle_out` and returning true.
+  template <typename ErrorEnum>
+  bool BeginSingleFlightOperation(ConsentInfoFn fn_idx,
+                                  ErrorEnum in_progress_error,
+                                  SafeFutureHandle<void>* handle_out,
+                                  Future<void>* in_progress_future_out) {
+    FIREBASE_ASSERT(handle_out != nullptr && in_progress_future_out != nullptr);
+    if (!handle_out || !in_progress_future_out) {
+      return false;
+    }
+    SafeFutureHandle<void> error_handle;
+    {
+      MutexLock lock(futures_mutex_);
+      const FutureBase& last = futures_.LastResult(fn_idx);
+      if (last.status() == kFutureStatusPending) {
+        error_handle = futures_.SafeAlloc<void>();
+      } else {
+        *handle_out = futures_.SafeAlloc<void>(fn_idx);
+        return true;
+      }
+    }
+    // Complete outside futures_mutex_ so user OnCompletion callbacks never
+    // execute while holding futures_mutex_.
+    CompleteFuture(error_handle, in_progress_error, nullptr);
+    *in_progress_future_out = MakeFuture<void>(&futures_, error_handle);
+    return false;
   }
 
   // Complete a Future<void> with the given error code.
+  // ReferenceCountedFutureImpl::Complete() is internally synchronized by its
+  // own mutex and releases it before running user OnCompletion callbacks, so
+  // we must NOT hold futures_mutex_ across Complete().
   void CompleteFuture(SafeFutureHandle<void> handle, ConsentRequestError error,
                       const char* message = nullptr) {
-    return futures()->Complete(
+    futures_.Complete(
         handle, error,
         message ? message : GetConsentRequestErrorMessage(error));
   }
   // Complete the future with the given error code.
   void CompleteFuture(SafeFutureHandle<void> handle, ConsentFormError error,
                       const char* message = nullptr) {
-    return futures()->Complete(
-        handle, error, message ? message : GetConsentFormErrorMessage(error));
+    futures_.Complete(handle, error,
+                      message ? message : GetConsentFormErrorMessage(error));
   }
 
+  // Returns the underlying ReferenceCountedFutureImpl. Callers using
+  // fn_idx-indexed LastResult/SafeAlloc must synchronize via futures_mutex().
   ReferenceCountedFutureImpl* futures() { return &futures_; }
-  CleanupNotifier* cleanup() { return &cleanup_; }
+  Mutex& futures_mutex() { return futures_mutex_; }
 
  private:
+  Mutex futures_mutex_;
   ReferenceCountedFutureImpl futures_;
-  CleanupNotifier cleanup_;
 };
 
 }  // namespace internal

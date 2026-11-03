@@ -41,10 +41,12 @@ Java_com_google_firebase_app_internal_cpp_Log_nativeLog(
       kLogLevelError,    // 6 = android.util.Log.ERROR
       kLogLevelAssert,   // 7 = android.util.Log.ASSERT
   };
-  assert(priority < FIREBASE_ARRAYSIZE(kLogPriorityToLogLevel));
-  assert(priority >= 0);
-  LogMessage(kLogPriorityToLogLevel[priority], "(%s) %s", ctag.c_str(),
-             cmsg.c_str());
+  const int kNumPriorities =
+      static_cast<int>(FIREBASE_ARRAYSIZE(kLogPriorityToLogLevel));
+  LogLevel level = (priority >= 0 && priority < kNumPriorities)
+                       ? kLogPriorityToLogLevel[priority]
+                       : kLogLevelDebug;
+  LogMessage(level, "(%s) %s", ctag.c_str(), cmsg.c_str());
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

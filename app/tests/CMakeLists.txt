@@ -367,6 +367,20 @@ firebase_cpp_cc_test(firebase_app_user_secure_internal_test
     ${SECURE_STORAGE_DEFINES}
 )
 
+firebase_cpp_cc_test(firebase_app_future_test
+  SOURCES
+    future_test.cc
+  DEPENDS
+    firebase_app
+)
+
+firebase_cpp_cc_test(firebase_app_future_manager_test
+  SOURCES
+    future_manager_test.cc
+  DEPENDS
+    firebase_app
+)
+
 #[[ google3 Dependencies
 
 # google3 - FLAGS_test_srcdir
@@ -399,23 +413,6 @@ firebase_cpp_cc_test(firebase_app_base64_test
     firebase_app
     ${OPENSSL_CRYPTO_LIBRARY}
 )
-
-# google3 - thread/fiber/fiber.h (thread::Fiber)
-firebase_cpp_cc_test(firebase_app_future_test
-  SOURCES
-    future_test.cc
-  DEPENDS
-    firebase_app
-)
-
-# google3 - thread/fiber/fiber.h (thread::Fiber)
-firebase_cpp_cc_test(firebase_app_future_manager_test
-  SOURCES
-    future_manager_test.cc
-  DEPENDS
-    firebase_app
-)
-
 
 # google3 Dependencies ]]
 

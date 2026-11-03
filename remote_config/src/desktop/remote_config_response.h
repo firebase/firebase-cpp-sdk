@@ -26,14 +26,6 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-// Copied from App's variant_util, because of problems with Blastdoor.
-// Convert from a Flexbuffer reference to a Variant.
-Variant FlexbufferToVariant(const flexbuffers::Reference& ref);
-// Convert from a Flexbuffer map to a Variant.
-Variant FlexbufferMapToVariant(const flexbuffers::Map& map);
-// Convert from a Flexbuffer vector to a Variant.
-Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector);
-
 class RemoteConfigResponse
     : public firebase::rest::ResponseJson<fbs::Response, fbs::ResponseT> {
  public:
@@ -45,10 +37,10 @@ class RemoteConfigResponse
 
   void MarkCompleted() override;
 
-  Variant GetEntries();
+  const Variant& GetEntries() const { return entries_; }
 
-  bool StatusMatch(std::string status_name) {
-    return application_data_->state == status_name;
+  bool StatusMatch(const std::string& status_name) const {
+    return application_data_ && application_data_->state == status_name;
   }
 
  private:

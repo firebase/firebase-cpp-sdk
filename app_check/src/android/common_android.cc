@@ -66,36 +66,35 @@ void ReleaseCommonAndroidClasses(JNIEnv* env) {
 AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj) {
   AppCheckToken cpp_token;
 
-  if (token_obj != nullptr) {
+  if (env != nullptr && token_obj != nullptr) {
     jobject token_str = env->CallObjectMethod(
         token_obj, app_check_token::GetMethodId(app_check_token::kGetToken));
-    util::CheckAndClearJniExceptions(env);
-    cpp_token.token = util::JStringToString(env, token_str);
+    if (!util::CheckAndClearJniExceptions(env) && token_str != nullptr) {
+      cpp_token.token = util::JniStringToString(env, token_str);
+    } else if (token_str != nullptr) {
+      env->DeleteLocalRef(token_str);
+    }
 
     jlong millis = env->CallLongMethod(
         token_obj,
         app_check_token::GetMethodId(app_check_token::kGetExpireTimeMillis));
-    util::CheckAndClearJniExceptions(env);
-    cpp_token.expire_time_millis = static_cast<int64_t>(millis);
+    if (!util::CheckAndClearJniExceptions(env)) {
+      cpp_token.expire_time_millis = static_cast<int64_t>(millis);
+    }
   }
 
   return cpp_token;
 }
 
-JNIEnv* GetJniEnv() {
-  // The JNI environment is the same regardless of App.
-  App* app = app_common::GetAnyApp();
-  FIREBASE_ASSERT(app != nullptr);
-  return app->GetJNIEnv();
-}
+JNIEnv* GetJniEnv() { return util::GetJNIEnvFromApp(); }
 
 namespace {
 
 // An object wrapping a token-completion callback method
 struct TokenResultCallbackData {
-  TokenResultCallbackData(
+  explicit TokenResultCallbackData(
       std::function<void(AppCheckToken, int, const std::string&)> callback_)
-      : callback(callback_) {}
+      : callback(std::move(callback_)) {}
   std::function<void(AppCheckToken, int, const std::string&)> callback;
 };
 
@@ -105,7 +104,6 @@ void TokenResultCallback(JNIEnv* env, jobject result,
   int result_error_code = kAppCheckErrorNone;
   AppCheckToken result_token;
   bool success = (result_code == util::kFutureResultSuccess);
-  std::string result_value = "";
   if (success && result) {
     result_token = CppTokenFromAndroidToken(env, result);
   } else {
@@ -113,12 +111,17 @@ void TokenResultCallback(JNIEnv* env, jobject result,
     // an error code enum
     result_error_code = kAppCheckErrorUnknown;
   }
-  // Evalute the provided callback method.
+  // Evaluate the provided callback method.
   auto* completion_callback_data =
       reinterpret_cast<TokenResultCallbackData*>(callback_data);
-  completion_callback_data->callback(result_token, result_error_code,
-                                     status_message);
-  delete completion_callback_data;
+  if (completion_callback_data != nullptr) {
+    if (completion_callback_data->callback) {
+      completion_callback_data->callback(
+          result_token, result_error_code,
+          status_message ? status_message : "");
+    }
+    delete completion_callback_data;
+  }
 }
 }  // anonymous namespace
 
@@ -127,14 +130,19 @@ AndroidAppCheckProvider::AndroidAppCheckProvider(jobject local_provider)
   static const char* kApiIdentifier = "AppCheckProvider";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
   JNIEnv* env = GetJniEnv();
-  android_provider_ = env->NewGlobalRef(local_provider);
+  if (env != nullptr && local_provider != nullptr) {
+    android_provider_ = env->NewGlobalRef(local_provider);
+  }
 }
 
 AndroidAppCheckProvider::~AndroidAppCheckProvider() {
   JNIEnv* env = GetJniEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
-  if (env != nullptr && android_provider_ != nullptr) {
-    env->DeleteGlobalRef(android_provider_);
+  if (env != nullptr) {
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+    if (android_provider_ != nullptr) {
+      env->DeleteGlobalRef(android_provider_);
+      android_provider_ = nullptr;
+    }
   }
 }
 
@@ -142,48 +150,70 @@ void AndroidAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
   JNIEnv* env = GetJniEnv();
+  if (env == nullptr || android_provider_ == nullptr) {
+    if (completion_callback) {
+      completion_callback(AppCheckToken{}, kAppCheckErrorInvalidConfiguration,
+                          "AndroidAppCheckProvider is not initialized.");
+    }
+    return;
+  }
 
   jobject j_task = env->CallObjectMethod(
       android_provider_,
       app_check_provider::GetMethodId(app_check_provider::kGetToken));
   std::string error = util::GetAndClearExceptionMessage(env);
-  if (error.empty()) {
+  if (error.empty() && j_task != nullptr) {
     // Create an object to wrap the callback function
     TokenResultCallbackData* completion_callback_data =
-        new TokenResultCallbackData(completion_callback);
+        new TokenResultCallbackData(std::move(completion_callback));
     util::RegisterCallbackOnTask(
         env, j_task, TokenResultCallback,
         reinterpret_cast<void*>(completion_callback_data),
         jni_task_id_.c_str());
   } else {
     AppCheckToken empty_token;
-    completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
+    if (completion_callback) {
+      completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
+    }
   }
-  env->DeleteLocalRef(j_task);
+  if (j_task != nullptr) {
+    env->DeleteLocalRef(j_task);
+  }
 }
 
 void AndroidAppCheckProvider::GetLimitedUseToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
   JNIEnv* env = GetJniEnv();
+  if (env == nullptr || android_provider_ == nullptr) {
+    if (completion_callback) {
+      completion_callback(AppCheckToken{}, kAppCheckErrorInvalidConfiguration,
+                          "AndroidAppCheckProvider is not initialized.");
+    }
+    return;
+  }
 
   jobject j_task = env->CallObjectMethod(
       android_provider_,
       app_check_provider::GetMethodId(app_check_provider::kGetLimitedUseToken));
   std::string error = util::GetAndClearExceptionMessage(env);
-  if (error.empty()) {
+  if (error.empty() && j_task != nullptr) {
     // Create an object to wrap the callback function
     TokenResultCallbackData* completion_callback_data =
-        new TokenResultCallbackData(completion_callback);
+        new TokenResultCallbackData(std::move(completion_callback));
     util::RegisterCallbackOnTask(
         env, j_task, TokenResultCallback,
         reinterpret_cast<void*>(completion_callback_data),
         jni_task_id_.c_str());
   } else {
     AppCheckToken empty_token;
-    completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
+    if (completion_callback) {
+      completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
+    }
   }
-  env->DeleteLocalRef(j_task);
+  if (j_task != nullptr) {
+    env->DeleteLocalRef(j_task);
+  }
 }
 
 }  // namespace internal

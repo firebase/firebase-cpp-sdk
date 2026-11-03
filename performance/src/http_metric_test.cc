@@ -294,7 +294,7 @@ TEST_F(HttpMetricTest, TestGetAttribute) {
   AddExpectationAndroid("HttpMetric.getAttribute", {"my_attribute"});
   AddExpectationAndroid("HttpMetric.stop", {});
 
-  metric.GetAttribute("my_attribute");
+  EXPECT_EQ(metric.GetAttribute("my_attribute"), "my_value");
 }
 
 TEST_F(HttpMetricTest, TestGetAttributeNull) {

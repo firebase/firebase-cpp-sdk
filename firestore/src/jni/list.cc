@@ -16,6 +16,9 @@
 
 #include "firestore/src/jni/list.h"
 
+#include <limits>
+
+#include "app/src/assert.h"
 #include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
@@ -27,23 +30,23 @@ namespace {
 
 Method<Object> kGet("get", "(I)Ljava/lang/Object;");
 Method<Object> kSet("set", "(ILjava/lang/Object;)Ljava/lang/Object;");
-jclass g_clazz = nullptr;
 
 }  // namespace
 
 void List::Initialize(Loader& loader) {
-  g_clazz = util::list::GetClass();
-  loader.LoadFromExistingClass("java/util/List", g_clazz, kGet, kSet);
+  loader.LoadClass("java/util/List", kGet, kSet);
 }
 
-Class List::GetClass() { return Class(g_clazz); }
+Class List::GetClass() { return Class(kGet.clazz()); }
 
 Local<Object> List::Get(Env& env, size_t i) const {
-  return env.Call(*this, kGet, i);
+  FIREBASE_ASSERT(i <= static_cast<size_t>(std::numeric_limits<jint>::max()));
+  return env.Call(*this, kGet, static_cast<jint>(i));
 }
 
 Local<Object> List::Set(Env& env, size_t i, const Object& object) {
-  return env.Call(*this, kSet, i, object);
+  FIREBASE_ASSERT(i <= static_cast<size_t>(std::numeric_limits<jint>::max()));
+  return env.Call(*this, kSet, static_cast<jint>(i), object);
 }
 
 }  // namespace jni

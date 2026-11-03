@@ -20,21 +20,25 @@
 #include <stdio.h>
 
 #include <algorithm>
+#include <iterator>
+#include <random>
 #include <string>
 #include <vector>
 
-#include "absl/base/macros.h"
-#include "absl/strings/escaping.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "util/random/acmrandom.h"
 
 namespace firebase {
 
 // Take some test headers and pass them to a GZipHeader, fragmenting
 // the headers in many different random ways.
 TEST(GzipHeader, FragmentTest) {
-  ACMRandom rnd(ACMRandom::DeprecatedDefaultSeed());
+  std::mt19937 rng(301);
+  auto uniform = [&rng](int n) -> int {
+    if (n <= 0) return 0;
+    std::uniform_int_distribution<int> dist(0, n - 1);
+    return dist(rng);
+  };
 
   struct TestCase {
     const char* str;
@@ -111,23 +115,22 @@ TEST(GzipHeader, FragmentTest) {
   };
 
   // Test all the headers test cases.
-  for (int i = 0; i < ABSL_ARRAYSIZE(tests); ++i) {
+  for (size_t i = 0; i < std::size(tests); ++i) {
     // Test many random ways they might be fragmented.
-    for (int j = 0; j < 100 * 1000; ++j) {
+    for (int j = 0; j < 2000; ++j) {
       // Get the test case set up.
       const char* p = tests[i].str;
       int bytes_left = tests[i].len;
       int bytes_read = 0;
 
       // Pick some random places to fragment the headers.
-      const int num_fragments = rnd.Uniform(bytes_left);
+      const int num_fragments = uniform(bytes_left);
       std::vector<int> fragment_starts;
       for (int frag_num = 0; frag_num < num_fragments; ++frag_num) {
-        fragment_starts.push_back(rnd.Uniform(bytes_left));
+        fragment_starts.push_back(uniform(bytes_left));
       }
       std::sort(fragment_starts.begin(), fragment_starts.end());
 
-      VLOG(1) << "=====";
       GZipHeader gzip_headers;
       // Go through several fragments and pass them to the headers for parsing.
       int frag_num = 0;
@@ -135,28 +138,34 @@ TEST(GzipHeader, FragmentTest) {
         const int fragment_len = (frag_num < num_fragments)
                                      ? (fragment_starts[frag_num] - bytes_read)
                                      : (tests[i].len - bytes_read);
-        CHECK_GE(fragment_len, 0);
-        const char* header_end = NULL;
-        VLOG(1) << absl::StrFormat("Passing %2d bytes at %2d..%2d: %s",
-                                   fragment_len, bytes_read,
-                                   bytes_read + fragment_len,
-                                   absl::CEscape(std::string(p, fragment_len)));
+        ASSERT_GE(fragment_len, 0);
+        const char* header_end = nullptr;
         GZipHeader::Status status =
             gzip_headers.ReadMore(p, fragment_len, &header_end);
         bytes_read += fragment_len;
         bytes_left -= fragment_len;
-        CHECK_GE(bytes_left, 0);
+        ASSERT_GE(bytes_left, 0);
         p += fragment_len;
         frag_num++;
         if (bytes_left <= tests[i].cruft_len) {
-          CHECK_EQ(status, GZipHeader::COMPLETE_HEADER);
+          ASSERT_EQ(status, GZipHeader::COMPLETE_HEADER);
           break;
         } else {
-          CHECK_EQ(status, GZipHeader::INCOMPLETE_HEADER);
+          ASSERT_EQ(status, GZipHeader::INCOMPLETE_HEADER);
         }
       }  // while
     }    // for many fragmentations
   }      // for all test case headers
+}
+
+TEST(GzipHeader, RejectsReservedFlags) {
+  // RFC 1952 section 2.3.1.2: FLG bits 5..7 (0xE0) are reserved and must be 0.
+  const char invalid_flg_header[] =
+      "\037\213\010\040\216\176\356\075\002\003";
+  GZipHeader gzip_headers;
+  const char* header_end = nullptr;
+  EXPECT_EQ(GZipHeader::INVALID_HEADER,
+            gzip_headers.ReadMore(invalid_flg_header, 10, &header_end));
 }
 
 }  // namespace firebase

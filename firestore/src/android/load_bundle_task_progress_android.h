@@ -26,8 +26,6 @@
 namespace firebase {
 namespace firestore {
 
-class Firestore;
-
 /** A C++ proxy for a Java `LoadBundleTaskProgress`. */
 class LoadBundleTaskProgressInternal : public Wrapper {
  public:
@@ -35,11 +33,8 @@ class LoadBundleTaskProgressInternal : public Wrapper {
 
   static void Initialize(jni::Loader& loader);
 
-  static jni::Class GetClass();
-
-  LoadBundleTaskProgressInternal(FirestoreInternal* firestore,
-                                 const jni::Object& object)
-      : Wrapper(firestore, object) {}
+  static LoadBundleTaskProgress ToPublic(jni::Env& env,
+                                         const jni::Object& progress);
 
   int32_t documents_loaded() const;
 

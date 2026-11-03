@@ -18,6 +18,10 @@
 #define FIREBASE_FIRESTORE_SRC_ANDROID_QUERY_ANDROID_H_
 
 #include <cstdint>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/src/android/promise_factory_android.h"
@@ -52,8 +56,10 @@ class QueryInternal : public Wrapper {
   QueryInternal(FirestoreInternal* firestore, const jni::Object& object)
       : Wrapper(firestore, object), promises_(firestore) {}
 
+  ~QueryInternal() override = default;
+
   /** Gets the Firestore instance associated with this query. */
-  Firestore* firestore();
+  Firestore* firestore() const;
 
   /**
    * @brief Returns a query that counts the documents in the result set of this
@@ -69,7 +75,7 @@ class QueryInternal : public Wrapper {
    *
    * @return A query that counts the documents in the result set of this query.
    */
-  virtual AggregateQuery Count() const;
+  AggregateQuery Count() const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter.
@@ -195,7 +201,7 @@ class QueryInternal : public Wrapper {
    * A Query can have only one `WhereIn()` filter and it cannot be
    * combined with `WhereArrayContainsAny()`.
    *
-   * @param[in] field The path of the field containing an array to search.
+   * @param[in] field The path of the field to compare.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -217,7 +223,7 @@ class QueryInternal : public Wrapper {
    * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
    * `WhereIn()`, or `WhereNotEqualTo()`.
    *
-   * @param[in] field The name of the field containing an array to search.
+   * @param[in] field The path of the field to compare.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -240,23 +246,23 @@ class QueryInternal : public Wrapper {
    * @brief Creates and returns a new Query that only returns the first matching
    * documents up to the specified number.
    *
-   * @param[in] limit A non-negative integer to specify the maximum number of
+   * @param[in] limit A positive integer to specify the maximum number of
    * items to return.
    *
    * @return The created Query.
    */
-  virtual Query Limit(int32_t limit) const;
+  Query Limit(int32_t limit) const;
 
   /**
    * @brief Creates and returns a new Query that only returns the last matching
    * documents up to the specified number.
    *
-   * @param[in] limit A non-negative integer to specify the maximum number of
+   * @param[in] limit A positive integer to specify the maximum number of
    * items to return.
    *
    * @return The created Query.
    */
-  virtual Query LimitToLast(int32_t limit) const;
+  Query LimitToLast(int32_t limit) const;
 
   /**
    * @brief Creates and returns a new Query that starts at the provided document
@@ -284,7 +290,7 @@ class QueryInternal : public Wrapper {
 
   /**
    * @brief Creates and returns a new Query that starts after the provided
-   * document (inclusive). The starting position is relative to the order of the
+   * document (exclusive). The starting position is relative to the order of the
    * query. The document must contain all of the fields provided in the OrderBy
    * of this query.
    *
@@ -308,7 +314,7 @@ class QueryInternal : public Wrapper {
 
   /**
    * @brief Creates and returns a new Query that ends before the provided
-   * document (inclusive). The end position is relative to the order of the
+   * document (exclusive). The end position is relative to the order of the
    * query. The document must contain all of the fields provided in the OrderBy
    * of this query.
    *
@@ -366,7 +372,7 @@ class QueryInternal : public Wrapper {
    *
    * @return A Future that will be resolved with the results of the Query.
    */
-  virtual Future<QuerySnapshot> Get(Source source);
+  Future<QuerySnapshot> Get(Source source);
 
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
@@ -374,8 +380,9 @@ class QueryInternal : public Wrapper {
    *
    * @param[in] metadata_changes Indicates whether metadata-only changes (i.e.
    * only QuerySnapshot.getMetadata() changed) should trigger snapshot events.
-   * @param[in] When this function is called, snapshot value is valid if and
-   * only if error is Error::kOk.
+   * @param[in] callback The callback to be called with the QuerySnapshot. When
+   * this function is called, snapshot value is valid if and only if error is
+   * Error::kErrorOk.
    *
    * @return A registration object that can be used to remove the listener.
    */
@@ -391,17 +398,19 @@ class QueryInternal : public Wrapper {
    * @param[in] metadata_changes Indicates whether metadata-only changes (i.e.
    * only QuerySnapshot.getMetadata() changed) should trigger snapshot events.
    * @param[in] listener The event listener that will be called with the
-   * snapshots, which must remain in memory until you remove the listener from
-   * this Query. (Ownership is not transferred; you are responsible for making
-   * sure that listener is valid as long as this Query is valid and the listener
-   * is registered.)
+   * snapshots.
+   * @param[in] passing_listener_ownership Whether ownership of `listener` is
+   * transferred to the returned ListenerRegistrationInternal.
    *
    * @return A registration object that can be used to remove the listener.
    */
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      EventListener<QuerySnapshot>* listener,
-      bool passing_listener_ownership = false);
+      EventListener<QuerySnapshot>* listener);
+
+  ListenerRegistration AddSnapshotListener(
+      MetadataChanges metadata_changes,
+      std::unique_ptr<EventListener<QuerySnapshot>> listener);
 
   size_t Hash() const;
 
@@ -424,10 +433,6 @@ class QueryInternal : public Wrapper {
                   const DocumentSnapshot& snapshot) const;
   Query WithBound(const jni::Method<jni::Object>& method,
                   const std::vector<FieldValue>& values) const;
-
-  // A helper function to convert std::vector<FieldValue> to Java FieldValue[].
-  jni::Local<jni::Array<jni::Object>> ConvertFieldValues(
-      jni::Env& env, const std::vector<FieldValue>& field_values) const;
 };
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs);

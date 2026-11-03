@@ -53,14 +53,14 @@ class Loader {
   Loader(const Loader&) = delete;
   Loader& operator=(const Loader&) = delete;
 
-  Loader(Loader&&) = default;
-  Loader& operator=(Loader&&) = default;
+  Loader(Loader&& other) noexcept = default;
+  Loader& operator=(Loader&& other) noexcept = default;
 
   /**
    * Returns true if the loader has succeeded. If not, any errors have already
    * been logged.
    */
-  bool ok() const { return ok_ && !env_->ExceptionCheck(); }
+  bool ok() const { return ok_ && env_ != nullptr && !env_->ExceptionCheck(); }
 
   /**
    * Adds metadata about embedded class files in the binary distribution.

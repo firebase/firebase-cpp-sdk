@@ -15,13 +15,13 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_CONTROLLER_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_CONTROLLER_IOS_H_
 
-#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
+#include "storage/src/ios/storage_ios.h"
 #include "storage/src/ios/storage_reference_ios.h"
 
 #ifdef __OBJC__
@@ -35,17 +35,31 @@ namespace internal {
 class ControllerInternal {
  public:
   struct LifetimeHandle {
-    // std::recursive_mutex (not firebase::Mutex) so the StorageInternal cleanup
-    // callback can try_lock() it; see AssignTask().
+    // Guards every field below.
+    //
+    // Lock order: a StorageInternal::LifetimeToken mutex may be held while
+    // acquiring this mutex (the main-queue blocks in storage_reference_ios.mm
+    // do so when they call AssignTask()), never the other way around. The
+    // StorageInternal cleanup callback acquires this mutex (blocking); that is
+    // deadlock-free because CleanupNotifier::UnregisterObject() is only called
+    // under a live LifetimeToken (StorageInternal::LifetimeToken::
+    // RunWhileAlive()), when no cleanup callback can be in flight.
     std::recursive_mutex mutex;
-    // > 0 while AssignTask() is blocked in CleanupNotifier::UnregisterObject()
-    // with `mutex` held.
-    std::atomic<int> unregistering{0};
     StorageInternal* _Nullable storage = nullptr;
+    // Lifetime token of `storage`, non-null exactly while this handle is
+    // registered with storage->cleanup(). The handle unregisters through it
+    // (StorageInternal::LifetimeToken::UnregisterCleanupObject()) so it never
+    // dereferences a StorageInternal that is being or has been destroyed.
+    std::shared_ptr<StorageInternal::LifetimeToken> storage_token;
+    // Incremented on every cleanup registration so a callback belonging to a
+    // superseded registration can tell it no longer owns the binding.
+    uint64_t cleanup_generation = 0;
     std::unique_ptr<FIRStorageObservableTaskPointer> task_impl;
+    uint64_t action_generation = 0;
     bool pending_valid = false;
     bool pending_cancel = false;
     bool pending_pause = false;
+    bool pending_resume = false;
 
     LifetimeHandle();
     ~LifetimeHandle();

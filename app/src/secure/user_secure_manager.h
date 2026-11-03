@@ -16,19 +16,25 @@
 #define FIREBASE_APP_SRC_SECURE_USER_SECURE_MANAGER_H_
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
 
+#include "app/src/callback.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
+#include "app/src/scheduler.h"
 #include "app/src/secure/user_secure_data_handle.h"
 #include "app/src/secure/user_secure_internal.h"
 
 namespace firebase {
 namespace app {
 namespace secure {
+
+constexpr int kErrorCancelled = 2;
 
 enum SecureOperationType {
   kLoadUserData,
@@ -69,6 +75,13 @@ class UserSecureManager {
   void CancelScheduledTasks();
 
   void CancelOperation(SecureOperationType operation_type);
+  void CompleteOperationRegistration(SecureOperationType operation_type,
+                                     FutureHandleId future_id);
+
+  template <typename T>
+  void ScheduleOperation(SecureOperationType operation_type,
+                         SafeFutureHandle<T> handle,
+                         callback::Callback* callback);
 
   std::unique_ptr<UserSecureInternal> user_secure_;
   ReferenceCountedFutureImpl future_api_;
@@ -81,9 +94,14 @@ class UserSecureManager {
   static scheduler::Scheduler* s_scheduler_;
   static int32_t s_scheduler_ref_count_;
 
+  // Guards operation_handles_, operation_cancel_callbacks_, and
+  // operation_future_ids_.
+  Mutex operation_mutex_;
   // map from operation type to scheduled request handle. Make sure only one
   // request exist in scheduler for each type.
   std::map<SecureOperationType, scheduler::RequestHandle> operation_handles_;
+  std::map<FutureHandleId, std::function<void()>> operation_cancel_callbacks_;
+  std::map<SecureOperationType, FutureHandleId> operation_future_ids_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the std::shared_ptr never

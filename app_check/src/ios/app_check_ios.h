@@ -16,6 +16,7 @@
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 
 #include <memory>
+#include <mutex>
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -31,6 +32,8 @@
 @interface AppCheckNotificationCenterWrapper : NSObject
 
 - (id)init;
+
+- (instancetype)initWithApp:(firebase::App* _Nullable)app;
 
 - (void)stopListening;
 
@@ -58,6 +61,11 @@ OBJ_C_PTR_WRAPPER(FIRAppCheck);
 
 class AppCheckInternal {
  public:
+  struct LifetimeState {
+    std::mutex mutex;
+    AppCheckInternal* owner{nullptr};
+  };
+
   explicit AppCheckInternal(::firebase::App* app);
 
   ~AppCheckInternal();
@@ -97,7 +105,9 @@ class AppCheckInternal {
 
   std::unique_ptr<AppCheckNotificationCenterWrapperPointer> notification_center_wrapper_;
 
-  ::firebase::App* app_;
+  std::shared_ptr<LifetimeState> lifetime_state_;
+
+  ::firebase::App* app_{nullptr};
 
   FutureManager future_manager_;
 };

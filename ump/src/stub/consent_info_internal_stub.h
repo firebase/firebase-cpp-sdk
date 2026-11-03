@@ -17,43 +17,34 @@
 #ifndef FIREBASE_UMP_SRC_STUB_CONSENT_INFO_INTERNAL_STUB_H_
 #define FIREBASE_UMP_SRC_STUB_CONSENT_INFO_INTERNAL_STUB_H_
 
+#include "firebase/internal/mutex.h"
 #include "ump/src/common/consent_info_internal.h"
 
 namespace firebase {
 namespace ump {
 namespace internal {
 
-// The stub interface implements a few specific workflows, for testing:
+// The stub interface implements deterministic UMP workflows for testing:
 //
-// Before requesting: consent and privacy options requirement will be Unknown.
+// Before requesting: consent, form, and privacy options statuses are Unknown.
 //
-// After requesting:
-//
-// If debug_geography == EEA, consent will be Required, privacy options
-// NotRequired. After calling ShowConsentForm() or
-// LoadAndShowConsentFormIfRequired(), it will change to change to Obtained and
-// privacy options will become Required, and when the privacy options form is
-// shown, consent will go back to Required.
-//
-// If debug_geography == NonEEA, consent will be NotRequired. No privacy options
-// form is required.
-//
-// If debug_geography == Disabled, consent will be Obtained and privacy options
-// will be NotRequired.
-//
-// If tag_for_under_age_of_consent = true, LoadConsentForm and
-// LoadAndShowConsentFormIfRequired will fail with kConsentFormErrorUnavailable.
-//
-// CanRequestAds returns true if consent is NotRequired or Obtained.
+// After RequestConsentInfoUpdate():
+// - If debug_geography == EEA or RegulatedUSState: consent is Required, form is
+//   Available (unless tag_for_under_age_of_consent is true), and privacy
+//   options are NotRequired. After ShowConsentForm() or
+//   LoadAndShowConsentFormIfRequired(), consent changes to Obtained and privacy
+//   options become Required.
+// - If debug_geography == NonEEA or Other: consent is NotRequired, form is
+//   Unavailable, and privacy options are NotRequired.
+// - If debug_geography == Disabled: consent is Obtained, form is Unavailable,
+//   and privacy options are NotRequired.
 class ConsentInfoInternalStub : public ConsentInfoInternal {
  public:
   ConsentInfoInternalStub();
   ~ConsentInfoInternalStub() override;
 
-  ConsentStatus GetConsentStatus() override { return consent_status_; }
-  ConsentFormStatus GetConsentFormStatus() override {
-    return consent_form_status_;
-  }
+  ConsentStatus GetConsentStatus() override;
+  ConsentFormStatus GetConsentFormStatus() override;
 
   Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) override;
@@ -70,15 +61,18 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   void Reset() override;
 
  private:
+  Mutex state_mutex_;
   ConsentStatus consent_status_;
   ConsentFormStatus consent_form_status_;
   PrivacyOptionsRequirementStatus privacy_options_requirement_status_;
   ConsentDebugGeography debug_geo_;
   bool under_age_of_consent_;
+  bool has_requested_consent_info_update_;
+  bool is_form_loaded_;
 };
 
 }  // namespace internal
 }  // namespace ump
 }  // namespace firebase
 
-#endif  // FIREBASE_SRC_STUB_CONSENT_INFO_INTERNAL_STUB_H_
+#endif  // FIREBASE_UMP_SRC_STUB_CONSENT_INFO_INTERNAL_STUB_H_

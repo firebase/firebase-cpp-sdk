@@ -17,11 +17,10 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_LAMBDA_TRANSACTION_FUNCTION_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_LAMBDA_TRANSACTION_FUNCTION_H_
 
-#include <assert.h>
 #include <functional>
 #include <string>
-
 #include <utility>
+
 #include "app/src/assert.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/promise_android.h"

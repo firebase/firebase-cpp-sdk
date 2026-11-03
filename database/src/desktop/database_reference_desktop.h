@@ -33,18 +33,17 @@ class DatabaseReferenceInternal : public QueryInternal {
  public:
   DatabaseReferenceInternal(DatabaseInternal* database, const Path& path);
 
-  ~DatabaseReferenceInternal() override {}
+  ~DatabaseReferenceInternal() override;
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
 
   DatabaseReferenceInternal& operator=(
       const DatabaseReferenceInternal& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  DatabaseReferenceInternal(DatabaseReferenceInternal&& reference);
+  DatabaseReferenceInternal(DatabaseReferenceInternal&& reference) noexcept;
 
-  DatabaseReferenceInternal& operator=(DatabaseReferenceInternal&& reference);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  DatabaseReferenceInternal& operator=(
+      DatabaseReferenceInternal&& reference) noexcept;
 
   Database* GetDatabase() const;
 
@@ -106,7 +105,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
   // instances, but have the same "this" pointer as one is a subclass of the
   // other.
-  int future_api_id_;
+  int future_api_id_ = 0;
 };
 
 }  // namespace internal

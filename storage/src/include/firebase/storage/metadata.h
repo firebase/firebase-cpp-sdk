@@ -55,20 +55,19 @@ class Metadata {
   /// @returns Reference to the destination Metadata.
   Metadata& operator=(const Metadata& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor. Moving is an efficient operation for Metadata.
+  /// The moved-from Metadata becomes invalid.
   ///
   /// @param[in] other Metadata to move from.
-  Metadata(Metadata&& other);
+  Metadata(Metadata&& other) noexcept;
 
   /// @brief Move assignment operator. Moving is an efficient operation for
-  /// Metadata.
+  /// Metadata. The moved-from Metadata becomes invalid.
   ///
   /// @param[in] other Metadata to move from.
   ///
   /// @returns Reference to the destination Metadata.
-  Metadata& operator=(Metadata&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  Metadata& operator=(Metadata&& other) noexcept;
 
   ~Metadata();
 

@@ -23,6 +23,9 @@
 #include <cassert>
 #include <cstddef>
 #include <functional>
+#include <iterator>
+#include <type_traits>
+#include <utility>
 
 #if defined(_MSC_FULL_VER)
 #pragma warning(push)
@@ -30,64 +33,7 @@
 #pragma warning(disable : 4355)  // 'this' used in base member initializer list.
 #endif
 
-// Only use noexcept if the compiler supports it.
-#if !defined FIREBASE_NOEXCEPT
-#if defined(__clang__)
-#if __has_feature(cxx_noexcept)
-#define FIREBASE_NOEXCEPT noexcept
-#endif
-#elif defined(__GXX_EXPERIMENTAL_CXX0X__)
-#if __GNUC__ * 10 + __GNUC_MINOR__ >= 46
-#define FIREBASE_NOEXCEPT noexcept
-#endif
-#elif defined(_MSC_FULL_VER)
-#if _MSC_VER >= 1900  // MSVC++ 14.0 (Visual Studio 2015)
-#define FIREBASE_NOEXCEPT noexcept
-#endif
-#endif
-#ifndef FIREBASE_NOEXCEPT
-#define FIREBASE_NOEXCEPT
-#endif
-#endif
-
 namespace firebase {
-
-namespace emulate_std {
-
-// conditional<B, T1, T2>::type is T1 if B is true, or T2 if B is false.
-// This is the same as std::conditional<B, T1, T2>, but works with
-// older compilers that don't support std::conditional.
-
-template <bool B, typename T1, typename T2>
-struct conditional;
-
-template <typename T1, typename T2>
-struct conditional<true, T1, T2> {
-  typedef T1 type;
-};
-
-template <typename T1, typename T2>
-struct conditional<false, T1, T2> {
-  typedef T2 type;
-};
-
-// Same as std::prev,
-// but works with older compilers that don't support std::prev.
-template <class BidirectionalIt>
-BidirectionalIt prev(BidirectionalIt it) {
-  std::advance(it, -1);
-  return it;
-}
-
-// Same as std::next,
-// but works with older compilers that don't support std::prev.
-template <class ForwardIt>
-ForwardIt next(ForwardIt it) {
-  std::advance(it, 1);
-  return it;
-}
-
-}  // namespace emulate_std.
 
 class intrusive_list_node;
 
@@ -122,31 +68,23 @@ class intrusive_list_node {
   intrusive_list_node() : next_(this), previous_(this) {}
   ~intrusive_list_node() { remove(); }
 
-  // Move contructor.
-  intrusive_list_node(intrusive_list_node&& other) FIREBASE_NOEXCEPT {
-    move(other);
-  }
+  // Move constructor.
+  intrusive_list_node(intrusive_list_node&& other) noexcept { move(other); }
 
   // Move assignment operator.
-  intrusive_list_node& operator=(intrusive_list_node&& other)
-      FIREBASE_NOEXCEPT {
+  intrusive_list_node& operator=(intrusive_list_node&& other) noexcept {
+    if (this == &other) {
+      return *this;
+    }
     next_->previous_ = previous_;
     previous_->next_ = next_;
     move(other);
     return *this;
   }
 
-#if defined(_MSC_VER)
-  // Copy contructor.
-  intrusive_list_node(intrusive_list_node& other) { move(other); }
-  // Copy assignment operator.
-  intrusive_list_node& operator=(intrusive_list_node& other) {
-    next_->previous_ = previous_;
-    previous_->next_ = next_;
-    move(other);
-    return *this;
-  }
-#endif  // defined(_MSC_VER)
+  // Disallow copying.
+  intrusive_list_node(const intrusive_list_node&) = delete;
+  intrusive_list_node& operator=(const intrusive_list_node&) = delete;
 
   // Retuns true if this node is in a list.
   bool in_list() const { return next_ != this; }
@@ -163,7 +101,7 @@ class intrusive_list_node {
   intrusive_list_node(intrusive_list_node* next, intrusive_list_node* previous)
       : next_(next), previous_(previous) {}
 
-  inline void move(intrusive_list_node& other) FIREBASE_NOEXCEPT {  // NOLINT
+  inline void move(intrusive_list_node& other) noexcept {  // NOLINT
     if (other.in_list()) {
       next_ = other.next_;
       previous_ = other.previous_;
@@ -202,12 +140,6 @@ class intrusive_list_node {
 
   template <typename T>
   friend class intrusive_list;
-
-#if !defined(_MSC_VER)
-  // Disallow copying.
-  intrusive_list_node(const intrusive_list_node&);
-  intrusive_list_node& operator=(const intrusive_list_node&);
-#endif  // !defined(_MSC_VER)
 };
 
 // intrusive_list is a container that supports constant time insertion and
@@ -246,41 +178,36 @@ class intrusive_list {
   explicit intrusive_list(intrusive_list_node T::*node_member)
       : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {}
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
-  intrusive_list(this_type&& other) noexcept { *this = std::move(other); }
+  ~intrusive_list() { clear(); }
+
+  intrusive_list(this_type&& other) noexcept
+      : data_(&data_, &data_), node_offset_(other.node_offset_) {
+    data_ = std::move(other.data_);
+  }
 
   intrusive_list& operator=(this_type&& other) noexcept {
-    data_ = std::move(other.data_);
-    node_offset_ = std::move(other.node_offset_);
+    if (this != &other) {
+      clear();
+      data_ = std::move(other.data_);
+      node_offset_ = other.node_offset_;
+    }
     return *this;
   }
-#endif
 
-#if defined(_MSC_VER)
-  // Normally we need to disallow copying. Ideally we'd put this in the
-  // `private` section so that copying will generate a compiler error. We can't
-  // do that (explained below), so we leave off the impelmentation to generate a
-  // linker error instead.
-  //
-  // Visual Studio aggressively generates copy constructors. For example, if an
-  // intrusive_list is used in an std::pair<> (as it would be when part of an
-  // std::map<>), then the copy constructor is generated, even though it really
-  // should be using the move constructor for operations in the map.
-  //
-  // TODO: Find a better way around this limitation.
-  intrusive_list(intrusive_list<value_type>& other) { *this = other; }
-  intrusive_list& operator=(this_type& other) {
-    data_ = other.data_;
-    node_offset_ = other.node_offset_;
-    return *this;
+  intrusive_list(const intrusive_list<value_type>&) = delete;
+  intrusive_list& operator=(const this_type&) = delete;
+
+  template <class InputIt,
+            typename = std::enable_if_t<!std::is_integral_v<InputIt>>>
+  intrusive_list(InputIt first, InputIt last, size_t node_offset = 0)
+      : data_(&data_, &data_), node_offset_(node_offset) {
+    insert(begin(), first, last);
   }
-#else
-  intrusive_list(const intrusive_list<value_type>&) { assert(false); }
-  intrusive_list& operator=(const this_type&) { assert(false); }
-#endif  // defined(_MSC_VER)
 
   template <class InputIt>
-  intrusive_list(InputIt first, InputIt last) : data_(&data_, &data_) {
+  intrusive_list(InputIt first, InputIt last,
+                 intrusive_list_node T::*node_member)
+      : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {
     insert(begin(), first, last);
   }
 
@@ -312,7 +239,9 @@ class intrusive_list {
 
   reverse_iterator rend() { return reverse_iterator(begin()); }
 
-  const reverse_iterator rend() const { return reverse_iterator(begin()); }
+  const_reverse_iterator rend() const {
+    return const_reverse_iterator(begin());
+  }
 
   const_reverse_iterator crend() const {
     return const_reverse_iterator(cbegin());
@@ -337,28 +266,35 @@ class intrusive_list {
   void clear() {
     for (iterator iter = begin(); iter != end();) {
       iterator current = iter++;
-      node_from_object(*current, node_offset_)->clear();
+      current.value_->clear();
     }
     data_.clear();
   }
 
   iterator insert(iterator pos, reference value) {
-    insert_before(*pos, value, node_offset_);
-    return iterator(node_from_object(value, node_offset_), node_offset_);
+    node_type* value_node = node_from_object(value, node_offset_);
+    assert(!value_node->in_list());
+    pos.value_->insert_before(value_node);
+    return iterator(value_node, node_offset_);
   }
 
   iterator insert_after(iterator pos, reference value) {
-    insert_after(*pos, value);
-    return iterator(node_from_object(value, node_offset_));
+    node_type* value_node = node_from_object(value, node_offset_);
+    assert(!value_node->in_list());
+    pos.value_->insert_after(value_node);
+    return iterator(value_node, node_offset_);
   }
 
   template <class InputIt>
   iterator insert(iterator pos, InputIt first, InputIt last) {
-    iterator return_value = pos;
-    for (InputIt iter = first; iter != last; ++iter) {
+    if (first == last) {
+      return pos;
+    }
+    iterator first_inserted = insert(pos, *first);
+    for (InputIt iter = std::next(first); iter != last; ++iter) {
       insert(pos, *iter);
     }
-    return return_value;
+    return first_inserted;
   }
 
   template <intrusive_list_node T::*node_member>
@@ -430,10 +366,26 @@ class intrusive_list {
   }
 
   void swap(this_type& other) {
+    if (this == &other) {
+      return;
+    }
+    const bool this_was_empty = empty();
+    const bool other_was_empty = other.empty();
     std::swap(data_.next_, other.data_.next_);
     std::swap(data_.previous_, other.data_.previous_);
-    std::swap(data_.next_->previous_, other.data_.next_->previous_);
-    std::swap(data_.previous_->next_, other.data_.previous_->next_);
+    if (other_was_empty) {
+      data_.clear();
+    } else {
+      data_.next_->previous_ = &data_;
+      data_.previous_->next_ = &data_;
+    }
+    if (this_was_empty) {
+      other.data_.clear();
+    } else {
+      other.data_.next_->previous_ = &other.data_;
+      other.data_.previous_->next_ = &other.data_;
+    }
+    std::swap(node_offset_, other.node_offset_);
   }
 
   template <intrusive_list_node T::*node_member>
@@ -451,18 +403,20 @@ class intrusive_list {
     return value;
   }
 
-  void splice(iterator pos, reference other) { insert(pos, remove(other)); }
+  void splice(iterator pos, reference other) {
+    insert(pos, remove(other, node_offset_));
+  }
 
   void splice(iterator pos, this_type& other) {
     splice(pos, other.begin(), other.end());
   }
 
   void splice(iterator pos, iterator iter) {
-    splice(pos, iter, emulate_std::next(iter));
+    splice(pos, iter, std::next(iter));
   }
 
   void splice(iterator pos, iterator first, iterator last) {
-    if (first == last) {
+    if (first == last || pos == first || pos == last) {
       return;
     }
     node_type* before_pos_node = pos.value_->previous_;
@@ -508,8 +462,8 @@ class intrusive_list {
       return;
     }
     iterator iter = begin();
-    while (iter != emulate_std::prev(end())) {
-      iterator next_iter = emulate_std::next(iter);
+    while (iter != std::prev(end())) {
+      iterator next_iter = std::next(iter);
       if (pred(*iter, *next_iter)) {
         remove(*next_iter, node_offset_);
       } else {
@@ -529,9 +483,9 @@ class intrusive_list {
     iterator next;
     for (iterator i = begin(); i != end(); i = next) {
       // Cache the `next` node because `i` might move.
-      next = emulate_std::next(i);
+      next = std::next(i);
       iterator j = i;
-      while (j != begin() && compare(*i, *emulate_std::prev(j))) {
+      while (j != begin() && compare(*i, *std::prev(j))) {
         --j;
       }
       if (i != j) {
@@ -575,23 +529,28 @@ class intrusive_list {
     typedef intrusive_list_iterator<is_const> this_type;
     typedef T value_type;
     typedef std::ptrdiff_t difference_type;
-    typedef typename emulate_std::conditional<is_const, const T&, T&>::type
-        reference;
-    typedef
-        typename emulate_std::conditional<is_const, const T*, T*>::type pointer;
+    typedef std::conditional_t<is_const, const T&, T&> reference;
+    typedef std::conditional_t<is_const, const T*, T*> pointer;
     typedef std::bidirectional_iterator_tag iterator_category;
-    typedef
-        typename emulate_std::conditional<is_const, const intrusive_list_node,
-                                          intrusive_list_node>::type node_type;
+    typedef std::conditional_t<is_const, const intrusive_list_node,
+                               intrusive_list_node>
+        node_type;
 
-    intrusive_list_iterator() : value_(nullptr) {}
+    intrusive_list_iterator() : value_(nullptr), node_offset_(0) {}
 
-    bool operator==(const this_type& other) const {
+    template <bool other_const,
+              typename = std::enable_if_t<is_const && !other_const>>
+    intrusive_list_iterator(const intrusive_list_iterator<other_const>& other)
+        : value_(other.value_), node_offset_(other.node_offset_) {}
+
+    template <bool other_const>
+    bool operator==(const intrusive_list_iterator<other_const>& other) const {
       return value_ == other.value_;
     }
 
-    bool operator!=(const this_type& other) const {
-      return !this->operator==(other);
+    template <bool other_const>
+    bool operator!=(const intrusive_list_iterator<other_const>& other) const {
+      return value_ != other.value_;
     }
 
     reference operator*() { return *object_from_node(value_, node_offset_); }
@@ -623,15 +582,18 @@ class intrusive_list {
     this_type operator--(int) {
       node_type* old_value = value_;
       value_ = value_->previous_;
-      return this_type(old_value);
+      return this_type(old_value, node_offset_);
     }
 
    private:
     intrusive_list_iterator(node_type* value, size_t node_offset)
         : value_(value), node_offset_(node_offset) {}
     intrusive_list_iterator(reference value, size_t node_offset)
-        : value_(*node_from_object(value)), node_offset_(node_offset) {}
+        : value_(node_from_object(value, node_offset)),
+          node_offset_(node_offset) {}
     friend class intrusive_list<value_type>;
+    template <bool>
+    friend class intrusive_list_iterator;
     node_type* value_;
     // Node offset is the position of the intrusive_list_node in the structure.
     // It is necessary for the pointer arithmetic to convert between objects and
@@ -648,23 +610,24 @@ class intrusive_list {
 
   // Return the offset of the node in the class or structure.
   static std::size_t offset_of_node(intrusive_list_node T::*node_member) {
-    return reinterpret_cast<char*>(
-               &(static_cast<pointer>(nullptr)->*node_member)) -
-           static_cast<char*>(nullptr);
+    alignas(T) static const char dummy[sizeof(T)] = {};
+    const T* obj = reinterpret_cast<const T*>(dummy);
+    return static_cast<std::size_t>(
+        reinterpret_cast<const char*>(&(obj->*node_member)) -
+        reinterpret_cast<const char*>(obj));
   }
 
   // Return a pointer to object of type value_type that owns the given member
   // variable node in the class or structure.
   static pointer object_from_node(node_type* node, size_t offset) {
-    return reinterpret_cast<pointer>(reinterpret_cast<char*>(node) -
-                                     reinterpret_cast<char*>(offset));
+    return reinterpret_cast<pointer>(reinterpret_cast<char*>(node) - offset);
   }
 
   // Return a pointer to object of type value_type that owns the given member
   // variable node in the class or structure.
   static const_pointer object_from_node(const node_type* node, size_t offset) {
-    return reinterpret_cast<pointer>(reinterpret_cast<const char*>(node) -
-                                     reinterpret_cast<const char*>(offset));
+    return reinterpret_cast<const_pointer>(reinterpret_cast<const char*>(node) -
+                                           offset);
   }
 };
 

@@ -19,6 +19,7 @@
 
 #include <jni.h>
 
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,8 +38,7 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
-// TODO: Consider using `std::invoke` when we move to C++17.
-#define INVOKE(env, method, ...) ((env)->*(method))(__VA_ARGS__);
+#define INVOKE(env, method, ...) ((env)->*(method))(__VA_ARGS__)
 
 /**
  * A wrapper around a JNIEnv pointer that makes dealing with JNI simpler in C++,
@@ -65,7 +65,7 @@ class Env {
    * Instead it is invoked if `Env` starts destruction with a Java exception
    * pending.
    *
-   * When calling the `UncaughtExceptionHandler`, `Env` does not automatically
+   * When calling the `UnhandledExceptionHandler`, `Env` does not automatically
    * clear any pending exceptions. The handler should call `Env::ExceptionClear`
    * if it wishes to clear the pending exception or use `ExceptionClearGuard` to
    * temporarily clear the pending exception.
@@ -87,11 +87,29 @@ class Env {
   Env(const Env&) = delete;
   Env& operator=(const Env&) = delete;
 
-  Env(Env&&) noexcept = default;
-  Env& operator=(Env&&) noexcept = default;
+  Env(Env&& other) noexcept
+      : env_(other.env_),
+        exception_handler_(other.exception_handler_),
+        context_(other.context_),
+        initial_pending_exceptions_(other.initial_pending_exceptions_) {
+    other.exception_handler_ = nullptr;
+    other.context_ = nullptr;
+  }
 
-  /** Returns true if the Env has not encountered an exception. */
-  bool ok() const { return !env_->ExceptionCheck(); }
+  Env& operator=(Env&& other) noexcept {
+    if (this != &other) {
+      env_ = other.env_;
+      exception_handler_ = other.exception_handler_;
+      context_ = other.context_;
+      initial_pending_exceptions_ = other.initial_pending_exceptions_;
+      other.exception_handler_ = nullptr;
+      other.context_ = nullptr;
+    }
+    return *this;
+  }
+
+  /** Returns true if the Env is valid and has not encountered an exception. */
+  bool ok() const { return env_ != nullptr && !env_->ExceptionCheck(); }
 
   /** Returns the underlying JNIEnv pointer. */
   JNIEnv* get() const { return env_; }
@@ -114,8 +132,9 @@ class Env {
   }
 
   /**
-   * Returns the last Java exception to occur or an invalid reference. The
-   * exception is cleared with a call to `ExceptionClear`.
+   * Returns the last Java exception to occur or an invalid reference. Does not
+   * clear the pending exception; call `ExceptionClear` or
+   * `ClearExceptionOccurred` to clear it.
    */
   Local<Throwable> ExceptionOccurred();
 
@@ -153,7 +172,7 @@ class Env {
    */
   template <typename T = Object, typename... Args>
   Local<T> New(const Class& clazz, jmethodID method, Args&&... args) {
-    if (!ok()) return {};
+    if (!ok() || !clazz || !method) return {};
 
     jobject result = env_->NewObject(clazz.get(), method,
                                      ToJni(std::forward<Args>(args))...);
@@ -163,7 +182,7 @@ class Env {
 
   template <typename T, typename... Args>
   Local<T> New(const Constructor<T>& ctor, Args&&... args) {
-    if (!ok()) return {};
+    if (!ok() || !ctor.clazz() || !ctor.id()) return {};
 
     auto result = env_->NewObject(ctor.clazz(), ctor.id(),
                                   ToJni(std::forward<Args>(args))...);
@@ -176,12 +195,6 @@ class Env {
   bool IsInstanceOf(const Object& object, const Class& clazz);
   bool IsInstanceOf(const Object& object, jclass clazz) {
     return IsInstanceOf(object, Class(clazz));
-  }
-  bool IsInstanceOf(jobject object, const Class& clazz) {
-    return IsInstanceOf(Object(object), clazz);
-  }
-  bool IsInstanceOf(jobject object, jclass clazz) {
-    return IsInstanceOf(Object(object), Class(clazz));
   }
 
   bool IsSameObject(const Object& object1, const Object& object2);
@@ -213,15 +226,6 @@ class Env {
                          ToJni(std::forward<Args>(args))...);
   }
 
-  // Temporarily allow passing the object parameter with type jobject.
-  // TODO(mcg): Remove once migration is complete
-  template <typename T, typename... Args>
-  ResultType<T> Call(jobject object, jmethodID method, Args&&... args) {
-    auto env_method = CallTraits<JniType<T>>::kCall;
-    return CallHelper<T>(env_method, object, method,
-                         ToJni(std::forward<Args>(args))...);
-  }
-
   template <typename T, typename... Args>
   ResultType<T> Call(const Object& object,
                      const Method<T>& method,
@@ -231,19 +235,11 @@ class Env {
                          ToJni(std::forward<Args>(args))...);
   }
 
-  // Temporarily allow passing the object parameter with type jobject.
-  // TODO(mcg): Remove once migration is complete
-  template <typename T, typename... Args>
-  ResultType<T> Call(jobject object, const Method<T>& method, Args&&... args) {
-    auto env_method = CallTraits<JniType<T>>::kCall;
-    return CallHelper<T>(env_method, object, method.id(),
-                         ToJni(std::forward<Args>(args))...);
-  }
-
   template <typename T, typename... Args>
   ResultType<T> Call(const ArenaRef& object,
                      const Method<T>& method,
                      Args&&... args) {
+    if (!ok()) return ResultType<T>();
     return Call(object.get(*this), method, std::forward<Args>(args)...);
   }
 
@@ -264,22 +260,14 @@ class Env {
    */
   template <typename T = Object>
   ResultType<T> GetStaticField(const Class& clazz, jfieldID field) {
-    if (!ok()) return {};
-
     auto env_method = CallTraits<JniType<T>>::kGetStaticField;
-    auto result = INVOKE(env_, env_method, clazz.get(), field);
-    RecordException();
-    return MakeResult<T>(result);
+    return CallHelper<T>(env_method, clazz.get(), field);
   }
 
   template <typename T>
   ResultType<T> Get(const StaticField<T>& field) {
-    if (!ok()) return {};
-
     auto env_method = CallTraits<JniType<T>>::kGetStaticField;
-    auto result = INVOKE(env_, env_method, field.clazz(), field.id());
-    RecordException();
-    return MakeResult<T>(result);
+    return CallHelper<T>(env_method, field.clazz(), field.id());
   }
 
   // MARK: Calling Static Methods
@@ -354,11 +342,11 @@ class Env {
    */
   template <typename T>
   size_t GetArrayLength(const Array<T>& array) {
-    if (!ok()) return 0;
+    if (!ok() || !array) return 0;
 
     jsize result = env_->GetArrayLength(array.get());
     RecordException();
-    return static_cast<size_t>(result);
+    return result > 0 ? static_cast<size_t>(result) : 0u;
   }
 
   /**
@@ -374,17 +362,20 @@ class Env {
   template <typename T = Object>
   EnableForReference<T, Local<Array<T>>> NewArray(size_t size,
                                                   jclass element_class) {
-    if (!ok()) return {};
+    if (!ok() || !element_class ||
+        size > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return {};
+    }
 
-    jobjectArray result =
-        env_->NewObjectArray(ToJni(size), element_class, nullptr);
+    jobjectArray result = env_->NewObjectArray(static_cast<jsize>(size),
+                                               element_class, nullptr);
     RecordException();
     return MakeResult<Array<T>>(result);
   }
 
   template <typename T = Object>
-  EnableForReference<Local<Array<T>>> NewArray(size_t size,
-                                               const Class& element_class) {
+  EnableForReference<T, Local<Array<T>>> NewArray(size_t size,
+                                                  const Class& element_class) {
     return NewArray<T>(size, element_class.get());
   }
 
@@ -398,10 +389,13 @@ class Env {
    */
   template <typename T>
   EnableForPrimitive<T, Local<Array<T>>> NewArray(size_t size) {
-    if (!ok()) return {};
+    if (!ok() ||
+        size > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return {};
+    }
 
     auto env_method = CallTraits<JniType<T>>::kNewArray;
-    auto result = INVOKE(env_, env_method, ToJni(size));
+    auto result = INVOKE(env_, env_method, static_cast<jsize>(size));
     RecordException();
     return MakeResult<Array<T>>(result);
   }
@@ -413,9 +407,13 @@ class Env {
   template <typename T = Object>
   EnableForReference<T, Local<T>> GetArrayElement(const Array<T>& array,
                                                   size_t index) {
-    if (!ok()) return {};
+    if (!ok() || !array ||
+        index > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return {};
+    }
 
-    jobject result = env_->GetObjectArrayElement(ToJni(array), ToJni(index));
+    jobject result =
+        env_->GetObjectArrayElement(ToJni(array), static_cast<jsize>(index));
     RecordException();
     return MakeResult<T>(result);
   }
@@ -427,9 +425,13 @@ class Env {
   EnableForReference<T, void> SetArrayElement(Array<T>& array,
                                               size_t index,
                                               const Object& value) {
-    if (!ok()) return;
+    if (!ok() || !array ||
+        index > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return;
+    }
 
-    env_->SetObjectArrayElement(ToJni(array), ToJni(index), ToJni(value));
+    env_->SetObjectArrayElement(ToJni(array), static_cast<jsize>(index),
+                                ToJni(value));
     RecordException();
   }
 
@@ -439,27 +441,73 @@ class Env {
    * elements.
    */
   template <typename T>
-  EnableForPrimitive<T, void> GetArrayRegion(const Array<T>& array,
-                                             size_t start,
-                                             size_t len,
-                                             T* buffer) {
-    if (!ok()) return;
+  typename enable_if<IsPrimitive<JniType<T>>::value && !is_same<T, bool>::value,
+                     void>::type
+  GetArrayRegion(const Array<T>& array, size_t start, size_t len, T* buffer) {
+    if (!ok() || !array || len == 0) return;
+    if (!buffer ||
+        start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return;
+    }
 
     auto env_method = CallTraits<JniType<T>>::kGetArrayRegion;
-    INVOKE(env_, env_method, ToJni(array), ToJni(start), ToJni(len),
-           ToJni(buffer));
+    INVOKE(env_, env_method, ToJni(array), static_cast<jsize>(start),
+           static_cast<jsize>(len), ToJni(buffer));
     RecordException();
+  }
+
+  template <typename T>
+  typename enable_if<is_same<T, bool>::value, void>::type
+  GetArrayRegion(const Array<T>& array, size_t start, size_t len, T* buffer) {
+    if (!ok() || !array || len == 0) return;
+    if (!buffer ||
+        start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return;
+    }
+
+    std::vector<jboolean> temp(len);
+    env_->GetBooleanArrayRegion(ToJni(array), static_cast<jsize>(start),
+                                static_cast<jsize>(len), temp.data());
+    RecordException();
+    if (!ok()) return;
+    for (size_t i = 0; i < len; ++i) {
+      buffer[i] = temp[i] != JNI_FALSE;
+    }
   }
 
   /**
    * Copies elements in the given range from the Java array to a new C++ vector.
    */
   template <typename T>
-  EnableForPrimitive<T, std::vector<T>> GetArrayRegion(const Array<T>& array,
-                                                       size_t start,
-                                                       size_t len) {
+  typename enable_if<IsPrimitive<JniType<T>>::value && !is_same<T, bool>::value,
+                     std::vector<T>>::type
+  GetArrayRegion(const Array<T>& array, size_t start, size_t len) {
+    if (!ok() || !array || len == 0) return {};
     std::vector<T> result(len);
-    GetArrayRegion(array, start, len, &result[0]);
+    GetArrayRegion(array, start, len, result.data());
+    if (!ok()) return {};
+    return result;
+  }
+
+  template <typename T>
+  typename enable_if<is_same<T, bool>::value, std::vector<T>>::type
+  GetArrayRegion(const Array<T>& array, size_t start, size_t len) {
+    if (!ok() || !array || len == 0) return {};
+    if (start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return {};
+    }
+    std::vector<jboolean> temp(len);
+    env_->GetBooleanArrayRegion(ToJni(array), static_cast<jsize>(start),
+                                static_cast<jsize>(len), temp.data());
+    RecordException();
+    if (!ok()) return {};
+    std::vector<T> result(len);
+    for (size_t i = 0; i < len; ++i) {
+      result[i] = temp[i] != JNI_FALSE;
+    }
     return result;
   }
 
@@ -469,15 +517,38 @@ class Env {
    * elements.
    */
   template <typename T>
-  EnableForPrimitive<T, void> SetArrayRegion(Array<T>& array,
-                                             size_t start,
-                                             size_t len,
-                                             const T* buffer) {
-    if (!ok()) return;
+  typename enable_if<IsPrimitive<JniType<T>>::value && !is_same<T, bool>::value,
+                     void>::type
+  SetArrayRegion(Array<T>& array, size_t start, size_t len, const T* buffer) {
+    if (!ok() || !array || len == 0) return;
+    if (!buffer ||
+        start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return;
+    }
 
     auto env_method = CallTraits<JniType<T>>::kSetArrayRegion;
-    INVOKE(env_, env_method, ToJni(array), ToJni(start), ToJni(len),
-           ToJni(buffer));
+    INVOKE(env_, env_method, ToJni(array), static_cast<jsize>(start),
+           static_cast<jsize>(len), ToJni(buffer));
+    RecordException();
+  }
+
+  template <typename T>
+  typename enable_if<is_same<T, bool>::value, void>::type
+  SetArrayRegion(Array<T>& array, size_t start, size_t len, const T* buffer) {
+    if (!ok() || !array || len == 0) return;
+    if (!buffer ||
+        start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+      return;
+    }
+
+    std::vector<jboolean> temp(len);
+    for (size_t i = 0; i < len; ++i) {
+      temp[i] = buffer[i] ? JNI_TRUE : JNI_FALSE;
+    }
+    env_->SetBooleanArrayRegion(ToJni(array), static_cast<jsize>(start),
+                                static_cast<jsize>(len), temp.data());
     RecordException();
   }
 
@@ -491,17 +562,19 @@ class Env {
    *     return type T, and the kind of method being invoked (instance or
    *     static). Use `CallTraits<JniType<T>>::kCall` or `kCallStatic` to find
    *     the right method.
-   * @param args The method and JNI arguments of the JNI method, including the
-   *     class or object, jmethodID, and any arguments to pass.
+   * @param target The target class or object handle.
+   * @param id The method or field ID.
+   * @param args Any arguments to pass to the JNI method.
    * @return The primitive result if T is a primitive or a local reference to
    *     the returned object.
    */
-  template <typename T, typename M, typename... Args>
+  template <typename T, typename M, typename Target, typename Id, typename... Args>
   typename enable_if<!is_same<T, void>::value, ResultType<T>>::type CallHelper(
-      M&& env_method, Args&&... args) {
-    if (!ok()) return {};
+      M&& env_method, Target target, Id id, Args&&... args) {
+    if (!ok() || !target || !id) return {};
 
-    auto result = INVOKE(env_, env_method, std::forward<Args>(args)...);
+    auto result =
+        INVOKE(env_, env_method, target, id, std::forward<Args>(args)...);
     RecordException();
     return MakeResult<T>(result);
   }
@@ -511,12 +584,12 @@ class Env {
    *
    * If `T` is anything but `void`, the overload is disabled.
    */
-  template <typename T, typename M, typename... Args>
+  template <typename T, typename M, typename Target, typename Id, typename... Args>
   typename enable_if<is_same<T, void>::value, void>::type CallHelper(
-      M&& env_method, Args&&... args) {
-    if (!ok()) return;
+      M&& env_method, Target target, Id id, Args&&... args) {
+    if (!ok() || !target || !id) return;
 
-    INVOKE(env_, env_method, std::forward<Args>(args)...);
+    INVOKE(env_, env_method, target, id, std::forward<Args>(args)...);
     RecordException();
   }
 
@@ -566,8 +639,16 @@ class ExceptionClearGuard {
   explicit ExceptionClearGuard(Env& env)
       : env_(env), exception_(env.ClearExceptionOccurred()) {}
 
+  ExceptionClearGuard(const ExceptionClearGuard&) = delete;
+  ExceptionClearGuard& operator=(const ExceptionClearGuard&) = delete;
+  ExceptionClearGuard(ExceptionClearGuard&&) = delete;
+  ExceptionClearGuard& operator=(ExceptionClearGuard&&) = delete;
+
   ~ExceptionClearGuard() {
     if (exception_) {
+      if (!env_.ok()) {
+        env_.ExceptionClear();
+      }
       env_.Throw(exception_);
     }
   }

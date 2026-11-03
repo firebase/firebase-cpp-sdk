@@ -181,7 +181,7 @@ std::unique_ptr<QueryInternal> ParseQuery(
         bound->index()
             ? util::FlexbufferToVariant(bound->index_flexbuffer_root())
             : Variant::Null();
-    query.reset(query->StartAt(index, name));
+    if (name) query.reset(query->StartAt(index, name)); else query.reset(query->StartAt(index));
   }
   if (query_params->endAt()) {
     const test_data::Bound* bound = query_params->endAt();
@@ -190,7 +190,7 @@ std::unique_ptr<QueryInternal> ParseQuery(
         bound->index()
             ? util::FlexbufferToVariant(bound->index_flexbuffer_root())
             : Variant::Null();
-    query.reset(query->EndAt(index, name));
+    if (name) query.reset(query->EndAt(index, name)); else query.reset(query->EndAt(index));
   }
   if (query_params->equalTo()) {
     const test_data::Bound* bound = query_params->equalTo();
@@ -199,7 +199,7 @@ std::unique_ptr<QueryInternal> ParseQuery(
         bound->index()
             ? util::FlexbufferToVariant(bound->index_flexbuffer_root())
             : Variant::Null();
-    query.reset(query->EqualTo(index, name));
+    if (name) query.reset(query->EqualTo(index, name)); else query.reset(query->EqualTo(index));
   }
   if (query_params->limitToFirst()) {
     query.reset(query->LimitToFirst(query_params->limitToFirst()));

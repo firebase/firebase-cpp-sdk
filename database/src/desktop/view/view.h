@@ -43,13 +43,14 @@ class View {
  public:
   View(const QuerySpec& query_spec, const ViewCache& initial_view_cache);
 
-  // Copy that actually performs a move.  This is useful for STL implementations
-  // that do not support emplace (e.g stlport).
-  View(const View&);
-  View& operator=(const View&);
+  // Copy constructor and assignment operator. Copies the query spec and view
+  // cache with a fresh ViewProcessor and no event registrations, leaving the
+  // source View intact.
+  View(const View& other);
+  View& operator=(const View& other);
 
-  View(View&& other);
-  View& operator=(View&& other);
+  View(View&& other) noexcept;
+  View& operator=(View&& other) noexcept;
 
   ~View();
 
@@ -59,7 +60,7 @@ class View {
   const Variant* GetCompleteServerCache(const Path& path) const;
 
   // Returns true if there are no event registrations at this location.
-  bool IsEmpty() { return event_registrations_.empty(); }
+  bool IsEmpty() const { return event_registrations_.empty(); }
 
   // Adds the given registration to the list of registrations this view manages.
   // Adding a registration gives ownership of the registration to the view.

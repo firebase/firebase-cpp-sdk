@@ -70,8 +70,8 @@ class FirestoreInternal {
   // Manages all Future objects returned from Firestore API.
   FutureManager& future_manager() { return future_manager_; }
 
-  // When this is deleted, it will clean up all DatabaseReferences,
-  // DataSnapshots, and other such objects.
+  // When this is deleted, it will clean up all DocumentReferences,
+  // DocumentSnapshots, and other such objects.
   CleanupNotifier& cleanup() { return cleanup_; }
 
   CollectionReference Collection(const char* collection_path) const;
@@ -165,29 +165,24 @@ class FirestoreInternal {
       std::shared_ptr<credentials::AppCheckCredentialsProvider>
           app_check_credentials);
 
-  // Gets the reference-counted Future implementation of this instance, which
-  // can be used to create a Future.
-  ReferenceCountedFutureImpl* ref_future() {
-    return future_manager_.GetFutureApi(this);
-  }
-
   void ApplyDefaultSettings();
 
   App* app_ = nullptr;
   Firestore* firestore_public_ = nullptr;
   std::shared_ptr<api::Firestore> firestore_core_;
 
-  CleanupNotifier cleanup_;
-
-  FutureManager future_manager_;
-  PromiseFactory<AsyncApi> promise_factory_{&cleanup_, &future_manager_};
-
   // TODO(b/136119216): revamp this mechanism on both iOS and Android.
   std::mutex listeners_mutex_;
   std::unordered_set<ListenerRegistrationInternal*> listeners_;
 
+  CleanupNotifier cleanup_;
+  FutureManager future_manager_;
+  PromiseFactory<AsyncApi> promise_factory_{&cleanup_, &future_manager_};
+
+  Settings settings_;
   std::shared_ptr<util::Executor> transaction_executor_;
   std::string database_name_;
+  std::shared_ptr<bool> is_alive_ = std::make_shared<bool>(true);
 };
 
 }  // namespace firestore

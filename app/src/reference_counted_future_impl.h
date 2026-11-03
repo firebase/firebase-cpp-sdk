@@ -321,26 +321,26 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   ///
   FIREBASE_DEPRECATED void Complete(const FutureHandle& handle, int error,
                                     const char* error_msg) {
-    CompleteInternal<void>(handle, error, error_msg);
+    CompleteInternal(handle, error, error_msg);
   }
 
   /// Safe overload of Complete.
   template <typename T>
   void Complete(SafeFutureHandle<T> handle, int error, const char* error_msg) {
-    CompleteInternal<T>(handle.get(), error, error_msg);
+    CompleteInternal(handle.get(), error, error_msg);
   }
 
   /// Same as above, but with no error message.
   ///
   /// @deprecated use safe overload instead.
   FIREBASE_DEPRECATED void Complete(const FutureHandle& handle, int error) {
-    CompleteInternal<void>(handle, error, nullptr);
+    CompleteInternal(handle, error, nullptr);
   }
 
   /// Safe overload of Complete.
   template <typename T>
   void Complete(SafeFutureHandle<T> handle, int error) {
-    CompleteInternal<T>(handle.get(), error, nullptr);
+    CompleteInternal(handle.get(), error, nullptr);
   }
 
   /// Return true if at least one extant Future still holds a reference to
@@ -349,6 +349,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   ///
   /// @deprecated Use safe overload instead.
   FIREBASE_DEPRECATED bool ValidFuture(const FutureHandle& handle) const {
+    MutexLock lock(mutex_);
     return BackingFromHandle(handle.id()) != nullptr;
   }
 
@@ -357,6 +358,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// reference by any Futures.
   template <typename T>
   bool ValidFuture(SafeFutureHandle<T> handle) const {
+    MutexLock lock(mutex_);
     return BackingFromHandle(handle.get().id()) != nullptr;
   }
 
@@ -364,32 +366,44 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// this handle ID. Return false if this handle is no longer (or was never)
   /// reference by any Futures or FutureHandles.
   bool ValidFuture(FutureHandleId id) const {
+    MutexLock lock(mutex_);
     return BackingFromHandle(id) != nullptr;
   }
 
-#if defined(INTERNAL_EXPERIMENTAL)
   /// Returns a proxy to the last result for `fn_idx`.
   FutureBase LastResultProxy(int fn_idx);
-#endif  // defined(INTERNAL_EXPERIMENTAL)
 
   /// Return internally-held future to the last result for `fn_idx`.
+  /// Note: `last_results_` has a fixed size for the lifetime of this instance,
+  /// and each element's internal `FutureBase::mutex_` synchronizes concurrent
+  /// copy construction against assignment in `AllocInternal` /
+  /// `InvalidateLastResult`.
   const FutureBase& LastResult(int fn_idx) const {
     MutexLock lock(mutex_);
+    if (fn_idx < 0 || static_cast<size_t>(fn_idx) >= last_results_.size()) {
+      static const FutureBase* kInvalidFuture = new FutureBase();
+      return *kInvalidFuture;
+    }
     return last_results_[fn_idx];
   }
 
   /// The Future for `LastResult(fn_idx)` will return kFutureStatusInvalid.
   void InvalidateLastResult(int fn_idx) {
     MutexLock lock(mutex_);
-    last_results_[fn_idx] = FutureBase();
+    if (0 <= fn_idx && static_cast<size_t>(fn_idx) < last_results_.size()) {
+      last_results_[fn_idx] = FutureBase();
+    }
   }
 
   /// The synchronization mutex, for data that's accessed in both in and out
   /// of callbacks.
-  Mutex& mutex() { return mutex_; }
+  Mutex& mutex() const { return mutex_; }
 
   /// Get the number of LastResult functions.
-  size_t GetLastResultCount() { return last_results_.size(); }
+  size_t GetLastResultCount() const {
+    MutexLock lock(mutex_);
+    return last_results_.size();
+  }
 
   /// Check if it's safe to delete this API. It's only safe to delete this if
   /// no futures are Pending.
@@ -476,12 +490,9 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   void SetBackingError(FutureBackingData* backing, int error,
                        const char* error_msg);
 
-  /// Complete the proxies of the Future for `backing`.
-  void CompleteProxy(FutureBackingData* backing);
-
   /// Mark the status as complete.
-  /// This assumes that mutex_ has been locked via Acquire(), and calls
-  /// Release() prior to calling the callback.
+  /// This assumes that mutex_ has been locked via Acquire(); the caller then
+  /// invokes ReleaseMutexAndRunCallbacks() to release mutex_ and run callbacks.
   void CompleteHandle(const FutureHandle& handle);
 
   // See Complete() methods.
@@ -490,7 +501,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
                         const char* error_msg, const F& populate_data_fn) {
     // We don't want to call to the user defined callback with the lock held,
     // so acquire the lock directly, and have it released prior to calling the
-    // callback in CompleteHandle.
+    // callback in ReleaseMutexAndRunCallbacks.
     mutex_.Acquire();
 
     // Ensure backing data is still around. It may have been removed after all
@@ -514,19 +525,10 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
     // Mark the status as complete.
     CompleteHandle(handle);
 
-    // Complete proxied futures.
-    CompleteProxy(backing);
-
-    // Call callbacks, if any were registered, releasing the mutex that
-    // was previously acquired in any case.
+    // Call callbacks (and complete any proxied futures), releasing the mutex
+    // that was previously acquired and deleting `this` if orphaned after the
+    // outermost callback finishes.
     ReleaseMutexAndRunCallbacks(handle);
-
-    bool orphaned = is_orphaned();
-    // If the owner was destroyed as a result of running callbacks, this API
-    // is orphaned and should delete itself.
-    if (orphaned) {
-      delete this;
-    }
   }
 
   // See CompleteWithResult.
@@ -534,11 +536,10 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   void CompleteWithResultInternal(const FutureHandle& handle, int error,
                                   const char* error_msg, const T& result) {
     CompleteInternal<T>(handle, error, error_msg,
-                        [result](T* data) { *data = result; });
+                        [&result](T* data) { *data = result; });
   }
 
   // See Complete.
-  template <typename T>
   void CompleteInternal(const FutureHandle& handle, int error,
                         const char* error_msg) {
     // Call templated Complete() with an empty lambda. The syntax is alarming,
@@ -553,7 +554,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   void RunCallback(FutureBase* future_base,
                    FutureBase::CompletionCallback callback, void* user_data);
 
-  bool is_orphaned() const;
+  void CleanupBackingIfUnreferenced(FutureHandleId id);
 
   /// Mutex protecting all asynchronous data operations.
   /// Marked as `mutable` so that const functions can still be protected.
@@ -579,13 +580,13 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// Clean up any stale FutureHandle instances.
   TypedCleanupNotifier<FutureHandle> cleanup_handles_;
 
-  /// True while running the user-supplied callback upon a future's completion.
-  /// This flag prevents this instance from being considered safe to delete
-  /// before the callback is finished, which would be unsafe because it would
-  /// clean up the future that is passed to the callback.
-  bool is_running_callback_ = false;
+  /// Count of currently running user-supplied completion callbacks.
+  /// Prevents this instance from being considered safe to delete while any
+  /// callback (including nested/concurrent callbacks) is still executing.
+  int running_callback_count_ = 0;
 
   bool is_orphaned_ = false;
+  bool is_deleting_ = false;
 };
 
 /// Specialize the case where the data is void since we don't need to

@@ -18,10 +18,12 @@
 #include <jni.h>
 
 #include <cstdint>
+#include <memory>
+#include <mutex>
 
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
+#include "storage/src/android/storage_android.h"
 #include "storage/src/android/storage_reference_android.h"
 
 namespace firebase {
@@ -110,10 +112,10 @@ class ControllerInternal {
   bool is_paused() const;
 
   // Returns the number of bytes transferred so far.
-  int64_t bytes_transferred() const;
+  std::int64_t bytes_transferred() const;
 
   // Returns the total bytes to be transferred.
-  int64_t total_byte_count() const;
+  std::int64_t total_byte_count() const;
 
   // Returns the StorageReference associated with this Controller.
   StorageReferenceInternal* GetReference() const;
@@ -139,49 +141,40 @@ class ControllerInternal {
                                          jobject snapshot,
                                          jboolean is_on_paused);
 
-  bool is_valid() const {
-    ControllerLock lock(mutex_);
-    return storage_ != nullptr && task_obj_ != nullptr;
-  }
+  // True if bound to a task whose StorageInternal is still alive.
+  bool is_valid() const;
 
  private:
   using ControllerLock = std::lock_guard<std::recursive_mutex>;
 
-  // State shared with the cleanup callback registered on
-  // StorageInternal::cleanup().
+  // If bound to a StorageInternal that is still alive, locks its lifetime
+  // token into `*token_lock` and returns it; otherwise returns nullptr. While
+  // `*token_lock` is held, ~StorageInternal() cannot run, so the returned
+  // pointer is safe to use. Must be called with mutex_ held (lock order is
+  // always mutex_ -> token mutex; ~StorageInternal() only takes the token
+  // mutex).
   //
-  // * `self` is cleared by the destructor under `mutex`; this blocks until any
-  //   in-flight callback has finished, and the callback is a no-op once
-  //   `self` is null.
-  // * CleanupNotifier::UnregisterObject() blocks while this object's callback
-  //   is running on another thread. Every Register/Unregister here happens
-  //   while holding `ControllerInternal::mutex_`, so the callback must never
-  //   block on `mutex_`: it only try-locks it, and if an unregistration is in
-  //   progress (`unregistering > 0`) it records the dying StorageInternal in
-  //   `dying_storage` and returns. UnregisterCleanupLocked() then releases the
-  //   binding itself without touching the dying StorageInternal.
-  struct CleanupGuard {
-    explicit CleanupGuard(ControllerInternal* owner) : self(owner) {}
-    std::mutex mutex;
-    ControllerInternal* self;
-    std::atomic<int> unregistering{0};
-    std::atomic<StorageInternal*> dying_storage{nullptr};
-  };
+  // This replaces registering with StorageInternal::cleanup(): there is no
+  // cleanup callback, so there is nothing to race with or deadlock against
+  // when unbinding.
+  StorageInternal* LockLiveStorageLocked(
+      std::unique_lock<std::mutex>* token_lock) const;
 
-  void UnregisterCleanupLocked();
-  void RegisterCleanupLocked();
+  // Returns a JNIEnv for the cached JavaVM (valid even after the
+  // StorageInternal is gone), or nullptr.
+  JNIEnv* GetEnvLocked() const;
+
   // Deletes task_obj_ (if any) using the cached JavaVM, without dereferencing
   // storage_. Must be called with mutex_ held.
   void ReleaseTaskObjLocked();
 
   mutable std::recursive_mutex mutex_;
   StorageInternal* storage_ = nullptr;
+  std::shared_ptr<StorageInternal::LifetimeToken> storage_token_;
   jobject task_obj_ = nullptr;
-  // Cached from storage_->app() so global refs can be released even while the
-  // StorageInternal is being destroyed.
+  // Cached from storage_->app() so global refs can be created/released even
+  // after the StorageInternal has been destroyed.
   JavaVM* java_vm_ = nullptr;
-  std::shared_ptr<CleanupGuard> cleanup_guard_ =
-      std::make_shared<CleanupGuard>(this);
 };
 
 }  // namespace internal

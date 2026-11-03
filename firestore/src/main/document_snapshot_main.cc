@@ -97,7 +97,7 @@ FieldValue DocumentSnapshotInternal::GetValue(
   absl::optional<google_firestore_v1_Value> maybe_value =
       snapshot_.GetValue(path);
   if (maybe_value) {
-    return ConvertAnyValue(std::move(maybe_value).value(), stb);
+    return ConvertAnyValue(*maybe_value, stb);
   } else {
     return FieldValue();
   }
@@ -124,6 +124,7 @@ FieldValue DocumentSnapshotInternal::ConvertObject(
     const google_firestore_v1_MapValue& object,
     ServerTimestampBehavior stb) const {
   MapFieldValue result;
+  result.reserve(object.fields_count);
   for (pb_size_t i = 0; i < object.fields_count; ++i) {
     std::string key = MakeString(object.fields[i].key);
     const google_firestore_v1_Value& value = object.fields[i].value;
@@ -137,6 +138,7 @@ FieldValue DocumentSnapshotInternal::ConvertArray(
     const google_firestore_v1_ArrayValue& array,
     ServerTimestampBehavior stb) const {
   std::vector<FieldValue> result;
+  result.reserve(array.values_count);
   for (pb_size_t i = 0; i < array.values_count; ++i) {
     result.push_back(ConvertAnyValue(array.values[i], stb));
   }
@@ -171,9 +173,8 @@ FieldValue DocumentSnapshotInternal::ConvertScalar(
     case google_firestore_v1_Value_reference_value_tag:
       return ConvertReference(scalar);
     default: {
-      // TODO(b/147444199): use string formatting.
-      // HARD_FAIL("Unexpected kind of FieldValue: '%s'", scalar.type());
-      auto message = std::string("Unexpected kind of FieldValue");
+      auto message = std::string("Unexpected kind of FieldValue: '") +
+                     std::to_string(scalar.which_value_type) + "'";
       SIMPLE_HARD_FAIL(message);
     }
   }
@@ -207,7 +208,7 @@ FieldValue DocumentSnapshotInternal::ConvertServerTimestamp(
       absl::optional<google_firestore_v1_Value> previous_value =
           GetPreviousValue(server_timestamp);
       if (previous_value) {
-        return ConvertScalar(*previous_value, stb);
+        return ConvertAnyValue(*previous_value, stb);
       }
       return FieldValue::Null();
     }

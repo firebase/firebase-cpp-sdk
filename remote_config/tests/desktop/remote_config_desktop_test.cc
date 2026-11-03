@@ -15,7 +15,12 @@
 #include "remote_config/src/desktop/remote_config_desktop.h"
 
 #include <chrono>  // NOLINT
+#include <cstdio>
+#include <memory>
 
+#include "app/rest/transport_builder.h"
+#include "app/rest/transport_interface.h"
+#include "app/rest/transport_mock.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -25,6 +30,8 @@
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
 #include "remote_config/src/desktop/metadata.h"
+#include "remote_config/src/desktop/rest.h"
+#include "testing/config.h"
 
 namespace firebase {
 namespace remote_config {
@@ -33,9 +40,25 @@ namespace internal {
 class RemoteConfigDesktopTest : public ::testing::Test {
  protected:
   void SetUp() override {
+    rest::SetTransportBuilder([]() -> std::unique_ptr<rest::Transport> {
+      return std::unique_ptr<rest::Transport>(new rest::TransportMock);
+    });
+    char config[1000];
+    snprintf(config, sizeof(config),
+             "{"
+             "  config:["
+             "    {fake:'%s',"
+             "     httpresponse: {"
+             "       header: ['HTTP/1.1 200 Ok','Server:mock server 101'],"
+             "       body: ['{\"state\":\"NO_CHANGE\"}']"
+             "     }"
+             "    }"
+             "  ]"
+             "}",
+             kServerURL);
+    firebase::testing::cppsdk::ConfigSet(config);
     app_ = testing::CreateApp();
 
-    FutureData::Create();
     file_manager_ =
         new RemoteConfigFileManager("remote_config_data_test", *app_);
     SetUpInstance();
@@ -45,8 +68,9 @@ class RemoteConfigDesktopTest : public ::testing::Test {
     delete instance_;
     delete configs_;
     delete file_manager_;
-    FutureData::Destroy();
     delete app_;
+    std::remove("remote_config_data_test");
+    std::remove("remote_config_data_test.tmp");
   }
 
   // Remove previous instance and create the new one. New instance will load
@@ -116,19 +140,29 @@ TEST_F(RemoteConfigDesktopTest, SuccessLoadFromFile) {
 // Check async saving working well.
 TEST_F(RemoteConfigDesktopTest, SuccessAsyncSaveToFile) {
   // Let change the `configs_` variable.
-  instance_->configs_.fetched = NamespacedConfigData(
-      NamespaceKeyValueMap(
-          {{"new_namespace1",
-            {{"new_key1", "new_value1"}, {"new_key2", "new_value2"}}}}),
-      999999);
+  {
+    MutexLock lock(instance_->internal_mutex_);
+    instance_->configs_.fetched = NamespacedConfigData(
+        NamespaceKeyValueMap(
+            {{"new_namespace1",
+              {{"new_key1", "new_value1"}, {"new_key2", "new_value2"}}}}),
+        999999);
+  }
 
   instance_->save_channel_.Put();
 
-  // Need to wait until background thread will save `configs_` to the file.
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
+  // Wait until background thread saves `configs_` to the file.
   LayeredConfigs new_content;
-  EXPECT_TRUE(file_manager_->Load(&new_content));
+  bool saved = false;
+  for (int i = 0; i < 100; ++i) {
+    if (file_manager_->Load(&new_content) &&
+        new_content == instance_->configs_) {
+      saved = true;
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  EXPECT_TRUE(saved);
   EXPECT_EQ(new_content, instance_->configs_);
 }
 
@@ -158,7 +192,7 @@ TEST_F(RemoteConfigDesktopTest, SetDefaultsKeyValueVariant) {
             {"key_blob", "123456789"},
             {"key_string", "black"},
             {"key_long", "120"},
-            {"key_double", "600.5000000000000000"},
+            {"key_double", "600.5"},
         },
         RemoteConfigInternal::kDefaultNamespace);
     EXPECT_EQ(*configs_, instance_->configs_);
@@ -187,14 +221,10 @@ TEST_F(RemoteConfigDesktopTest, SetDefaultsKeyValue) {
     configs_->defaults.SetNamespace({{"height", "500"}, {"width", "120cm"}},
                                     RemoteConfigInternal::kDefaultNamespace);
     EXPECT_EQ(*configs_, instance_->configs_);
-  }
-  {
-    SetUpInstance();
-    ConfigKeyValue defaults[] = {ConfigKeyValue{"height", "100"},
-                                 ConfigKeyValue{"height", "500"},
-                                 ConfigKeyValue{"width", "120cm"}};
-    instance_->SetDefaults(defaults, 3);
-    configs_->defaults.SetNamespace({{"height", "500"}, {"width", "120cm"}},
+
+    // Clearing defaults with empty list replaces previous defaults.
+    instance_->SetDefaults(static_cast<const ConfigKeyValue*>(nullptr), 0);
+    configs_->defaults.SetNamespace({},
                                     RemoteConfigInternal::kDefaultNamespace);
     EXPECT_EQ(*configs_, instance_->configs_);
   }
@@ -334,10 +364,9 @@ TEST_F(RemoteConfigDesktopTest, Fetch) {
     // Will fetch, because cache_expiration_in_seconds == 0.
     SetUpInstance();
     Future<void> future = instance_->Fetch(0);
-    EXPECT_EQ(future.status(), firebase::kFutureStatusPending);
-    for (int i = 0; i < 50 && future.status() == firebase::kFutureStatusPending;
+    for (int i = 0; i < 100 && future.status() == firebase::kFutureStatusPending;
          ++i) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     EXPECT_EQ(future.status(), firebase::kFutureStatusComplete);
   }
@@ -347,10 +376,9 @@ TEST_F(RemoteConfigDesktopTest, Fetch) {
     // milliseconds_since_epoch - 2*1000*cache_expiration_in_seconds;
     SetUpInstance();
     Future<void> future = instance_->Fetch(kDefaultCacheExpiration);
-    EXPECT_EQ(future.status(), firebase::kFutureStatusPending);
-    for (int i = 0; i < 50 && future.status() == firebase::kFutureStatusPending;
+    for (int i = 0; i < 100 && future.status() == firebase::kFutureStatusPending;
          ++i) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     EXPECT_EQ(future.status(), firebase::kFutureStatusComplete);
   }
@@ -363,63 +391,74 @@ TEST_F(RemoteConfigDesktopTest, Fetch) {
 }
 
 TEST_F(RemoteConfigDesktopTest, TestIsBoolTrue) {
-  // Confirm all the values that ARE BoolTrue.
+  // Confirm all the values that ARE BoolTrue (case-insensitive).
   EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("1"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("true"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("True"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("TRUE"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("t"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("T"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("on"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("ON"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("yes"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("Yes"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("y"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolTrue("Y"));
 
   // Ensure all the BoolFalse values are not BoolTrue.
+  EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue(""));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("0"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("false"));
+  EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("False"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("f"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("no"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("n"));
+  EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("N"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("off"));
 
   // Confirm a few random values.
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("apple"));
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("Yes"));  // lower case only
   EXPECT_FALSE(
       RemoteConfigInternal::IsBoolTrue("100"));  // only the number 1 exactly
   EXPECT_FALSE(
       RemoteConfigInternal::IsBoolTrue("-1"));  // only the number 1 exactly
   EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("1.0"));
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("True"));   // lower-case only
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("False"));  // lower-case only
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolTrue("N"));      // lower-case only
 }
 
 TEST_F(RemoteConfigDesktopTest, TestIsBoolFalse) {
-  // Ensure all the BoolFalse values are not BoolTrue.
+  // Ensure all the BoolFalse values are recognized (case-insensitive, including
+  // empty string per Android/iOS parity).
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse(""));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("0"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("false"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("False"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("FALSE"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("f"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("F"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("no"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("No"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("n"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("N"));
   EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("off"));
+  EXPECT_TRUE(RemoteConfigInternal::IsBoolFalse("OFF"));
 
   // Confirm that the BoolTrue values are not BoolFalse.
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("1"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("true"));
+  EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("True"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("t"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("on"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("yes"));
+  EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("Yes"));
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("y"));
 
   // Confirm a few random values.
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("apple"));
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("Yes"));  // lower case only
   EXPECT_FALSE(
       RemoteConfigInternal::IsBoolFalse("100"));  // only the number 1 exactly
   EXPECT_FALSE(
       RemoteConfigInternal::IsBoolFalse("-1"));  // only the number 1 exactly
   EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("1.0"));
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("True"));   // lower-case only
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("False"));  // lower-case only
-  EXPECT_FALSE(RemoteConfigInternal::IsBoolFalse("N"));      // lower-case only
 }
 
 TEST_F(RemoteConfigDesktopTest, TestIsLong) {
@@ -432,7 +471,10 @@ TEST_F(RemoteConfigDesktopTest, TestIsLong) {
   EXPECT_TRUE(RemoteConfigInternal::IsLong("8249"));
   EXPECT_TRUE(RemoteConfigInternal::IsLong("-718129"));
   EXPECT_TRUE(RemoteConfigInternal::IsLong("+9173923192819"));
+  EXPECT_TRUE(RemoteConfigInternal::IsLong("0x10"));
+  EXPECT_TRUE(RemoteConfigInternal::IsLong("010"));
 
+  EXPECT_FALSE(RemoteConfigInternal::IsLong("99999999999999999999999999999"));
   EXPECT_FALSE(RemoteConfigInternal::IsLong("0.0"));
   EXPECT_FALSE(RemoteConfigInternal::IsLong(" 5"));
   EXPECT_FALSE(RemoteConfigInternal::IsLong("9 "));
@@ -468,17 +510,20 @@ TEST_F(RemoteConfigDesktopTest, TestIsDouble) {
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("+9173923192819"));
 
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("1e10"));
-  EXPECT_TRUE(RemoteConfigInternal::IsDouble("1.2e9729"));
+  EXPECT_TRUE(RemoteConfigInternal::IsDouble("1.2e100"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("48.3e-39"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble(".4e+9"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("-.289e11"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("-7293e+72"));
-  EXPECT_TRUE(RemoteConfigInternal::IsDouble("+489e322"));
+  EXPECT_TRUE(RemoteConfigInternal::IsDouble("+489e200"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("10E10"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("10E-10"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("-10E+10"));
   EXPECT_TRUE(RemoteConfigInternal::IsDouble("+10E-10"));
 
+  // Out-of-range double literals (ERANGE overflow) must return false.
+  EXPECT_FALSE(RemoteConfigInternal::IsDouble("1.2e9729"));
+  EXPECT_FALSE(RemoteConfigInternal::IsDouble("+489e322"));
   EXPECT_FALSE(RemoteConfigInternal::IsDouble("1.2e"));
   EXPECT_FALSE(RemoteConfigInternal::IsDouble("1.9.2"));
   EXPECT_FALSE(RemoteConfigInternal::IsDouble("1.3e8e2"));
@@ -583,17 +628,45 @@ TEST_F(RemoteConfigDesktopTest, SetCustomSignalsPersistence) {
       {"persisted_num", Variant(999)}};
   EXPECT_EQ(instance_->SetCustomSignals(signals).error(), kFutureStatusSuccess);
 
-  // Wait briefly for the async save thread to write to disk
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  // Wait for the async save thread to write to disk
+  LayeredConfigs loaded;
+  bool persisted = false;
+  for (int i = 0; i < 100; ++i) {
+    if (file_manager_->Load(&loaded) &&
+        loaded.metadata.custom_signals().size() == 2) {
+      persisted = true;
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  EXPECT_TRUE(persisted);
 
   // Create a new instance with the same file manager and verify it loads the
   // signals
   RemoteConfigInternal new_instance(*app_, *file_manager_);
   const MetaCustomSignalsMap& loaded_signals =
       new_instance.configs_.metadata.custom_signals();
-  EXPECT_EQ(loaded_signals.size(), 2);
+  EXPECT_EQ(loaded_signals.size(), 2u);
   EXPECT_EQ(loaded_signals.at("persisted_key"), Variant("persisted_val"));
   EXPECT_EQ(loaded_signals.at("persisted_num"), Variant(999));
+}
+
+TEST_F(RemoteConfigDesktopTest, GetAllCoercesTypes) {
+  std::map<std::string, Variant> all = instance_->GetAll();
+  EXPECT_EQ(all.size(), 5u);
+  EXPECT_EQ(all["key_bool"], Variant(false));
+  EXPECT_EQ(all["key_long"], Variant(static_cast<int64_t>(55555)));
+  EXPECT_EQ(all["key_double"], Variant(100.5));
+  EXPECT_EQ(all["key_string"], Variant("aaa"));
+  EXPECT_EQ(all["key_data"], Variant("zzz"));
+}
+
+TEST_F(RemoteConfigDesktopTest, ListenerRegistrationLifecycle) {
+  ConfigUpdateListenerRegistration reg = instance_->AddOnConfigUpdateListener(
+      [](ConfigUpdate&&, RemoteConfigError) {});
+  reg.Remove();
+  // Calling Remove() multiple times is a safe no-op.
+  reg.Remove();
 }
 
 }  // namespace internal

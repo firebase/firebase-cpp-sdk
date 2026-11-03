@@ -36,13 +36,14 @@
 #ifndef FIREBASE_APP_REST_TESTS_TEST_HTTP_SERVER_H_
 #define FIREBASE_APP_REST_TESTS_TEST_HTTP_SERVER_H_
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>  // NOLINT
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <map>
-#include <memory>
 #include <mutex>  // NOLINT
 #include <string>
 #include <thread>  // NOLINT
@@ -68,7 +69,7 @@ namespace rest {
 namespace test {
 
 #if FIREBASE_PLATFORM_WINDOWS
-typedef SOCKET SocketHandle;
+using SocketHandle = SOCKET;
 const SocketHandle kInvalidSocket = INVALID_SOCKET;
 inline void CloseSocket(SocketHandle s) { closesocket(s); }
 inline bool LastSocketErrorWasTimeout() {
@@ -76,7 +77,7 @@ inline bool LastSocketErrorWasTimeout() {
   return err == WSAETIMEDOUT || err == WSAEWOULDBLOCK;
 }
 #else
-typedef int SocketHandle;
+using SocketHandle = int;
 const SocketHandle kInvalidSocket = -1;
 inline void CloseSocket(SocketHandle s) { close(s); }
 inline bool LastSocketErrorWasTimeout() {
@@ -101,6 +102,8 @@ class SocketEnvironment {
     WSACleanup();
 #endif
   }
+  SocketEnvironment(const SocketEnvironment&) = delete;
+  SocketEnvironment& operator=(const SocketEnvironment&) = delete;
 };
 
 inline void SetSocketRecvTimeout(SocketHandle sock, int timeout_ms) {
@@ -123,8 +126,16 @@ inline bool SendAll(SocketHandle sock, const void* data, size_t len) {
   flags |= MSG_NOSIGNAL;
 #endif
   while (len > 0) {
-    auto sent = send(sock, ptr, static_cast<int>(len), flags);
-    if (sent <= 0) return false;
+    const int chunk = static_cast<int>(
+        std::min(len, static_cast<size_t>(std::numeric_limits<int>::max())));
+    auto sent = send(sock, ptr, chunk, flags);
+    if (sent < 0) {
+#if !FIREBASE_PLATFORM_WINDOWS
+      if (errno == EINTR) continue;
+#endif
+      return false;
+    }
+    if (sent == 0) return false;
     ptr += sent;
     len -= static_cast<size_t>(sent);
   }
@@ -135,7 +146,7 @@ inline bool SendAll(SocketHandle sock, const void* data, size_t len) {
 // descriptor to wait on.
 class TcpSocketPair {
  public:
-  TcpSocketPair() : a_(kInvalidSocket), b_(kInvalidSocket) {
+  TcpSocketPair() : socket_environment_(), a_(kInvalidSocket), b_(kInvalidSocket) {
     SocketHandle listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (listener == kInvalidSocket) return;
     sockaddr_in addr;
@@ -165,11 +176,15 @@ class TcpSocketPair {
     if (a_ != kInvalidSocket) CloseSocket(a_);
     if (b_ != kInvalidSocket) CloseSocket(b_);
   }
+  TcpSocketPair(const TcpSocketPair&) = delete;
+  TcpSocketPair& operator=(const TcpSocketPair&) = delete;
+
   bool valid() const { return a_ != kInvalidSocket && b_ != kInvalidSocket; }
   SocketHandle a() const { return a_; }
   SocketHandle b() const { return b_; }
 
  private:
+  SocketEnvironment socket_environment_;
   SocketHandle a_;
   SocketHandle b_;
 };
@@ -189,10 +204,13 @@ class TestHttpServer {
       : port_(0),
         run_(false),
         listen_sock_(kInvalidSocket),
-        accept_thread_(nullptr),
+        accept_thread_(),
         request_count_(0) {}
 
   ~TestHttpServer() { Stop(); }
+
+  TestHttpServer(const TestHttpServer&) = delete;
+  TestHttpServer& operator=(const TestHttpServer&) = delete;
 
   // Binds, listens and starts accepting. Returns false on failure.
   bool Start() {
@@ -225,29 +243,28 @@ class TestHttpServer {
     }
     port_.store(ntohs(bound_addr.sin_port));
     run_.store(true);
-    accept_thread_ = new std::thread([this]() { RunAcceptLoop(); });
+    accept_thread_ = std::thread([this]() { RunAcceptLoop(); });
     return true;
   }
 
   void Stop() {
     run_.store(false);
+    if (accept_thread_.joinable()) {
+      accept_thread_.join();
+    }
     if (listen_sock_ != kInvalidSocket) {
       CloseSocket(listen_sock_);
       listen_sock_ = kInvalidSocket;
     }
-    if (accept_thread_ != nullptr) {
-      accept_thread_->join();
-      delete accept_thread_;
-      accept_thread_ = nullptr;
-    }
-    std::vector<std::thread*> workers;
+    std::vector<std::thread> workers;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       workers.swap(workers_);
     }
-    for (std::thread* worker : workers) {
-      worker->join();
-      delete worker;
+    for (std::thread& worker : workers) {
+      if (worker.joinable()) {
+        worker.join();
+      }
     }
   }
 
@@ -385,6 +402,9 @@ class TestHttpServer {
           }
           break;
         }
+        if (chunk_size > std::numeric_limits<size_t>::max() - 2) {
+          return false;
+        }
         while (body.size() < chunk_size + 2) {
           if (!RecvSome(sock, &body, run_)) return false;
         }
@@ -492,6 +512,9 @@ class TestHttpServer {
     while (run_.load()) {
       SocketHandle lsock = listen_sock_;
       if (lsock == kInvalidSocket) break;
+#if !FIREBASE_PLATFORM_WINDOWS
+      if (lsock < 0 || lsock >= FD_SETSIZE) break;
+#endif
       fd_set read_fds;
       FD_ZERO(&read_fds);
       FD_SET(lsock, &read_fds);
@@ -509,12 +532,11 @@ class TestHttpServer {
       if (client_sock == kInvalidSocket) continue;
 
       // One thread per connection so a /slow request never blocks others.
-      std::thread* worker = new std::thread([this, client_sock]() {
+      std::lock_guard<std::mutex> lock(mutex_);
+      workers_.emplace_back([this, client_sock]() {
         HandleClient(client_sock);
         CloseSocket(client_sock);
       });
-      std::lock_guard<std::mutex> lock(mutex_);
-      workers_.push_back(worker);
     }
   }
 
@@ -522,9 +544,9 @@ class TestHttpServer {
   std::atomic<int> port_;
   std::atomic<bool> run_;
   SocketHandle listen_sock_;
-  std::thread* accept_thread_;
+  std::thread accept_thread_;
   mutable std::mutex mutex_;
-  std::vector<std::thread*> workers_;
+  std::vector<std::thread> workers_;
   RecordedRequest last_request_;
   std::atomic<int> request_count_;
 };

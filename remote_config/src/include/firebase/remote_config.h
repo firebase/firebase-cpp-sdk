@@ -15,34 +15,31 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
 
+#include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
-#include "firebase/internal/platform.h"
-#include "remote_config/config_update_listener_registration.h"
-#ifndef SWIG
+#include "firebase/remote_config/config_update_listener_registration.h"
 #include "firebase/variant.h"
-#endif  // SWIG
 
-#if !defined(DOXYGEN) && !defined(SWIG)
-FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(remote_config)
-#endif  // !defined(DOXYGEN) && !defined(SWIG)
-
-/// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {
 
-#ifndef SWIG
 /// @brief Firebase Remote Config API.
 ///
 /// Firebase Remote Config is a cloud service that lets you change the
 /// appearance and behavior of your app without requiring users to download an
 /// app update.
-#endif  // SWIG
 namespace remote_config {
+
+namespace internal {
+class RemoteConfigInternal;
+}  // namespace internal
 
 /// @brief Describes the most recent fetch request status.
 enum LastFetchStatus {
@@ -51,7 +48,8 @@ enum LastFetchStatus {
   kLastFetchStatusSuccess,
   /// The most recent fetch request failed.
   kLastFetchStatusFailure,
-  /// The most recent fetch is still in progress.
+  /// The RemoteConfig instance has not yet fetched data from the server, or
+  /// the most recent fetch is still in progress.
   kLastFetchStatusPending,
 };
 
@@ -59,520 +57,577 @@ enum LastFetchStatus {
 enum FetchFailureReason {
   /// The fetch has not yet failed.
   kFetchFailureReasonInvalid,
-  /// The most recent fetch failed because it was throttled by the server.
-  /// (You are sending too many fetch requests in too short a time.)
+  /// The most recent fetch failed because it exceeded the throttle limit.
   kFetchFailureReasonThrottled,
   /// The most recent fetch failed for an unknown reason.
   kFetchFailureReasonError,
 };
 
-/// @brief Describes the error codes returned by Remote Config.
-enum RemoteConfigError {
-  // Unimplemented error found.
-  kRemoteConfigErrorUnimplemented = -1,
-  // No error.
-  kRemoteConfigErrorNone = 0,
-  // Unable to make a connection to the Remote Config backend.
-  kRemoteConfigErrorConfigUpdateStreamError,
-  // The ConfigUpdate message was unparsable.
-  kRemoteConfigErrorConfigUpdateMessageInvalid,
-  // Unable to fetch the latest version of the config.
-  kRemoteConfigErrorConfigUpdateNotFetched,
-  // The Remote Config real-time config update service is unavailable.
-  kRemoteConfigErrorConfigUpdateUnavailable,
-};
-
-/// @brief Information about the updated config.
-struct ConfigUpdate {
-  /// @brief Parameter keys whose values have been updated from the currently
-  /// activated values. Includes keys that are added, deleted, and whose value,
-  /// value source, or metadata has changed.
-  std::vector<std::string> updated_keys;
-};
-
-/// @brief Describes the state of the most recent Fetch() call.
-/// Normally returned as a result of the GetInfo() function.
+/// @brief Describes the state of the most recent `Fetch()` call.
+/// Returned by `RemoteConfig::GetInfo()`.
 struct ConfigInfo {
-  /// @brief The time (in milliseconds since the epoch) that the last fetch
-  /// operation completed. 0 if no fetch attempt has been made yet.
-  uint64_t fetch_time;
+  /// The time (in milliseconds since the epoch) that the last fetch
+  /// operation completed.
+  uint64_t fetch_time = 0;
 
-  /// @brief The status of the last fetch request.
-  LastFetchStatus last_fetch_status;
+  /// The status of the last fetch request.
+  LastFetchStatus last_fetch_status = kLastFetchStatusPending;
 
-  /// @brief The reason the most recent fetch failed.
-  FetchFailureReason last_fetch_failure_reason;
+  /// The reason the most recent fetch failed.
+  FetchFailureReason last_fetch_failure_reason = kFetchFailureReasonInvalid;
 
-  /// @brief The time (in milliseconds since the epoch) when the refreshing of
-  /// Remote Config data is throttled.
-  uint64_t throttled_end_time;
+  /// The time (in milliseconds since the epoch) when throttling of Remote
+  /// Config fetches ends and refreshing can resume.
+  uint64_t throttled_end_time = 0;
+
+  bool operator==(const ConfigInfo& other) const {
+    return fetch_time == other.fetch_time &&
+           last_fetch_status == other.last_fetch_status &&
+           last_fetch_failure_reason == other.last_fetch_failure_reason &&
+           throttled_end_time == other.throttled_end_time;
+  }
+
+  bool operator!=(const ConfigInfo& other) const { return !(*this == other); }
 };
 
-/// @brief Describes the source a config value was retrieved from.
+/// @brief Defines the source of a value.
 enum ValueSource {
   /// The value was not specified and no default was specified, so a static
-  /// value (0 for numeric values, an empty string for strings) was returned.
+  /// value (`0` for numeric values, `false` for booleans, `""` for strings,
+  /// or an empty vector for binary data) was returned.
   kValueSourceStaticValue,
-  /// The value was found in the remote data store, and returned.
+  /// The value was found in the activated remote data store and returned.
   kValueSourceRemoteValue,
-  /// The value was not specified, so the specified default value was
-  /// returned instead.
+  /// The key was not found in the remote data store, so the specified default
+  /// value was returned instead.
   kValueSourceDefaultValue,
 };
 
-/// @brief Describes a retrieved value.
+/// @brief Contains information about the source of a value of a requested key.
+/// Returned alongside the value by the `Get<Type>(key, info)` functions.
 struct ValueInfo {
-  /// Where the config value was retrieved from (Default Config or Active
-  /// Config).
-  ValueSource source;
-  /// If <code>true</code> this indicates conversion to the requested type
-  /// succeeded, otherwise conversion failed so the static value for the
-  /// requested type was retrieved instead.
-  bool conversion_successful;
+  /// Where the returned value was retrieved from (`kValueSourceRemoteValue`,
+  /// `kValueSourceDefaultValue`, or `kValueSourceStaticValue`).
+  ValueSource source = kValueSourceStaticValue;
+
+  /// If `true`, this indicates that the returned value was able to be converted
+  /// to the requested type. If `false`, conversion failed, so a static empty
+  /// value was returned instead.
+  bool conversion_successful = false;
+
+  bool operator==(const ValueInfo& other) const {
+    return source == other.source &&
+           conversion_successful == other.conversion_successful;
+  }
+
+  bool operator!=(const ValueInfo& other) const { return !(*this == other); }
 };
 
-/// @brief Keys of API settings.
-///
-/// @see SetConfigSetting
-/// @see GetConfigSetting
+/// @brief Legacy configuration setting keys retained for internal metadata
+/// serialization compatibility.
 enum ConfigSetting {
   /// Set the value associated with this key to "1" to enable developer mode
-  /// (i.e disable throttling) and "0" to disable.
+  /// (i.e. disable throttling) and "0" to disable.
   kConfigSettingDeveloperMode,
 };
 
-/// @brief The default cache expiration used by Fetch(), equal to 12 hours,
-/// in milliseconds.
-static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12 * 1000;
+/// @brief Default cache expiration time in seconds (12 hours).
+constexpr uint64_t kDefaultCacheExpiration = 60 * 60 * 12;  // 12 hours
 
-/// @brief The default timeout used by Fetch(), equal to 30 seconds,
-/// in milliseconds.
-static const uint64_t kDefaultTimeoutInMilliseconds = 30 * 1000;
+/// @brief Default fetch timeout in milliseconds (30 seconds).
+constexpr uint64_t kDefaultTimeoutInMilliseconds = 30 * 1000;  // 30 seconds
+
+/// @brief Settings for Remote Config operations.
+struct ConfigSettings {
+  /// The timeout in milliseconds specifying how long the client should wait for
+  /// a connection to the Firebase Remote Config server. Default is 30 seconds
+  /// (`kDefaultTimeoutInMilliseconds`).
+  uint64_t fetch_timeout_in_milliseconds = kDefaultTimeoutInMilliseconds;
+
+  /// The minimum interval in milliseconds between successive fetch calls.
+  /// Fetches less than `minimum_fetch_interval_in_milliseconds` after the last
+  /// fetch from the Firebase Remote Config server use values returned during
+  /// the last fetch. Default is 12 hours (`kDefaultCacheExpiration * 1000`).
+  uint64_t minimum_fetch_interval_in_milliseconds =
+      kDefaultCacheExpiration * 1000;
+
+  bool operator==(const ConfigSettings& other) const {
+    return fetch_timeout_in_milliseconds ==
+               other.fetch_timeout_in_milliseconds &&
+           minimum_fetch_interval_in_milliseconds ==
+               other.minimum_fetch_interval_in_milliseconds;
+  }
+
+  bool operator!=(const ConfigSettings& other) const {
+    return !(*this == other);
+  }
+};
 
 /// @brief Describes a mapping of a key to a string value. Used to set default
 /// values.
 struct ConfigKeyValue {
   /// The lookup key string.
-#ifndef SWIG
   ///
-  /// @note Ensure this string stays valid for the duration of the
-  /// call to SetDefaults.
-#endif  // SWIG
-  const char* key;
+  /// @note Ensure this string stays valid for the duration of the call to
+  /// `SetDefaults()`.
+  const char* key = nullptr;
   /// The value string to be stored.
-#ifndef SWIG
   ///
-  /// @note Ensure this string stays valid for the duration of the
-  /// call to SetDefaults.
-#endif  // SWIG
-  const char* value;
+  /// @note Ensure this string stays valid for the duration of the call to
+  /// `SetDefaults()`.
+  const char* value = nullptr;
 };
 
-#ifndef SWIG
 /// @brief Describes a mapping of a key to a value of any type. Used to set
 /// default values.
 struct ConfigKeyValueVariant {
   /// The lookup key string.
   ///
-  /// @note Ensure this string stays valid for the duration of the
-  /// call to SetDefaults.
-  const char* key;
-  /// The value to be stored. The type of the Variant determines the type of
-  /// default data for the given key.
-  ///
-  /// @note If you use a Variant of type StaticString, ensure it stays
-  /// valid for the duration of the call to SetDefaults.
+  /// @note Ensure this string stays valid for the duration of the call to
+  /// `SetDefaults()`.
+  const char* key = nullptr;
+  /// The value `Variant` to be stored.
   Variant value;
 };
-#endif  // SWIG
 
-/// @brief Configurations for Remote Config behavior.
-struct ConfigSettings {
-  /// The timeout specifies how long the client should wait for a connection to
-  /// the Firebase Remote Config servers.
-  ///
-  /// @note A fetch call will fail if it takes longer than the specified timeout
-  /// to connect to the Remote Config servers. Default is 60 seconds.
-  uint64_t fetch_timeout_in_milliseconds = kDefaultTimeoutInMilliseconds;
+/// @brief Information about the updated config, passed to the
+/// `AddOnConfigUpdateListener()` callback.
+struct ConfigUpdate {
+  /// Parameter keys whose values have been updated from the currently activated
+  /// values. Includes keys that are added, deleted, or whose value, value
+  /// source, or metadata has changed.
+  std::vector<std::string> updated_keys;
 
-  /// The minimum interval between successive fetch calls.
-  ///
-  /// @note Fetches less than duration seconds after the last fetch from the
-  /// Firebase Remote Config server would use values returned during the last
-  /// fetch. Default is 12 hours.
-  uint64_t minimum_fetch_interval_in_milliseconds = kDefaultCacheExpiration;
+  bool operator==(const ConfigUpdate& other) const {
+    return updated_keys == other.updated_keys;
+  }
+
+  bool operator!=(const ConfigUpdate& other) const { return !(*this == other); }
 };
 
-namespace internal {
-class RemoteConfigInternal;
-}  // namespace internal
+/// @brief Error codes passed to the `AddOnConfigUpdateListener()` real-time
+/// config update callback.
+enum RemoteConfigError {
+  /// Unimplemented error. Real-time config updates are not supported on
+  /// Desktop.
+  kRemoteConfigErrorUnimplemented = -1,
+  /// No error.
+  kRemoteConfigErrorNone = 0,
+  /// Unable to make a connection to the Remote Config backend for config
+  /// updates.
+  kRemoteConfigErrorConfigUpdateStreamError,
+  /// The ConfigUpdate message was unparsable.
+  kRemoteConfigErrorConfigUpdateMessageInvalid,
+  /// Unable to fetch the latest version of the config.
+  kRemoteConfigErrorConfigUpdateNotFetched,
+  /// The Remote Config real-time config update service is unavailable.
+  kRemoteConfigErrorConfigUpdateUnavailable,
+};
 
-#ifndef SWIG
 /// @brief Entry point for the Firebase C++ SDK for Remote Config.
 ///
-/// To use the SDK, call firebase::remote_config::RemoteConfig::GetInstance() to
-/// obtain an instance of RemoteConfig, then call operations on that instance.
-/// The instance contains the complete set of FRC parameter values available to
-/// your app. The instance also stores values fetched from the FRC Server until
-/// they are made available for use with a call to @ref Activate().
-#endif  // SWIG
+/// To use the SDK, call `firebase::remote_config::RemoteConfig::GetInstance()`
+/// to obtain an instance of `RemoteConfig`, then call `Fetch()` / `Activate()`
+/// and `GetBoolean()` / `GetLong()` / `GetDouble()` / `GetString()` /
+/// `GetData()`.
 class RemoteConfig {
  public:
   ~RemoteConfig();
 
-  /// @brief Returns a Future that contains ConfigInfo representing the
-  /// initialization status of this Firebase Remote Config instance.
-  /// Use this method to ensure Set/Get call not being blocked.
+  RemoteConfig(const RemoteConfig&) = delete;
+  RemoteConfig& operator=(const RemoteConfig&) = delete;
+
+  /// @brief Get the `RemoteConfig` instance for the default `firebase::App`.
+  ///
+  /// @returns An instance of `RemoteConfig` corresponding to the default `App`,
+  /// or `nullptr` if the default `App` does not exist.
+  static RemoteConfig* GetInstance() {
+    App* default_app = App::GetInstance();
+    return default_app ? GetInstance(default_app) : nullptr;
+  }
+
+  /// @brief Get an instance of `RemoteConfig` corresponding to the given `App`.
+  ///
+  /// If you call `GetInstance()` multiple times with the same `App`, you will
+  /// get the same instance of `RemoteConfig`. On Desktop, cached configuration
+  /// state is loaded synchronously from persistent storage during
+  /// `GetInstance()`.
+  ///
+  /// @param[in] app Your instance of `firebase::App`.
+  ///
+  /// @returns An instance of `RemoteConfig` corresponding to the given `App`,
+  /// or `nullptr` if `app` is null or initialization fails.
+  static RemoteConfig* GetInstance(App* app);
+
+  /// @brief Get the `firebase::App` that this `RemoteConfig` was created with.
+  ///
+  /// @returns The `firebase::App` this `RemoteConfig` was created with.
+  App* app() const { return app_; }
+
+  /// @brief Async initialization of the `RemoteConfig` instance.
+  ///
+  /// Creates a `Future` that resolves once the fetched, activated, and default
+  /// configs have been loaded from persistent storage.
+  ///
+  /// @returns A `Future<ConfigInfo>` containing the `ConfigInfo` of the
+  /// initialized instance upon completion.
   Future<ConfigInfo> EnsureInitialized();
 
   /// @brief Get the (possibly still pending) results of the most recent
-  /// EnsureInitialized() call.
+  /// `EnsureInitialized()` call.
   ///
-  /// @return The future result from the last call to EnsureInitialized().
-  Future<ConfigInfo> EnsureInitializedLastResult();
+  /// @return The future result from the last call to `EnsureInitialized()`.
+  Future<ConfigInfo> EnsureInitializedLastResult() const;
 
-  /// Asynchronously activates the most recently fetched configs, so that the
-  /// fetched key value pairs take effect.
+  /// @brief Asynchronously activates the most recently fetched configs, so that
+  /// the fetched key-value pairs take effect.
   ///
-  /// @return A Future that contains true if fetched configs were
-  /// activated. The future will contain false if the configs were already
-  /// activated.
+  /// @return A `Future<bool>` that resolves to `true` if newly fetched configs
+  /// were activated, or `false` if the fetched configs were already active.
   Future<bool> Activate();
 
   /// @brief Get the (possibly still pending) results of the most recent
-  /// Activate() call.
+  /// `Activate()` call.
   ///
-  /// @return The future result from the last call to Activate().
-  Future<bool> ActivateLastResult();
+  /// @return The future result from the last call to `Activate()`.
+  Future<bool> ActivateLastResult() const;
 
-  /// Asynchronously fetches and then activates the fetched configs.
+  /// @brief Asynchronously fetches and then activates the fetched configs.
   ///
   /// If the time elapsed since the last fetch from the Firebase Remote Config
-  /// backend is more than the default minimum fetch interval, configs are
-  /// fetched from the backend.
+  /// backend is more than the configured
+  /// `ConfigSettings::minimum_fetch_interval_in_milliseconds`, configs are
+  /// fetched from the backend. After the fetch completes, the configs are
+  /// activated so that the fetched key-value pairs take effect.
   ///
-  /// After the fetch is complete, the configs are activated so that the fetched
-  /// key value pairs take effect.
-  ///
-  /// @return A Future that contains true if the current call
-  /// activated the fetched configs; if no configs were fetched from the backend
-  /// and the local fetched configs have already been activated, the future will
-  /// contain false.
+  /// @return A `Future<bool>` that resolves to `true` if the call activated new
+  /// fetched configs, or `false` if no new configs were activated.
   Future<bool> FetchAndActivate();
 
   /// @brief Get the (possibly still pending) results of the most recent
-  /// FetchAndActivate() call.
+  /// `FetchAndActivate()` call.
   ///
-  /// @return The future result from the last call to FetchAndActivate().
-  Future<bool> FetchAndActivateLastResult();
+  /// @return The future result from the last call to `FetchAndActivate()`.
+  Future<bool> FetchAndActivateLastResult() const;
 
-  /// @brief Fetches config data from the server.
+  /// @brief Fetches config data from the server using the configured
+  /// `GetConfigSettings().minimum_fetch_interval_in_milliseconds` (converted to
+  /// whole seconds).
   ///
-  /// @note This does not actually apply the data or make it accessible,
-  /// it merely retrieves it and caches it.  To accept and access the newly
-  /// retrieved values, you must call @ref Activate().
+  /// @note This does not apply the data or make it accessible; to access newly
+  /// retrieved values, call `Activate()`.
   ///
-  /// Note that this function is asynchronous, and will normally take an
-  /// unspecified amount of time before completion.
-  ///
-  /// @return A Future which can be used to determine when the fetch is
+  /// @return A `Future<void>` which can be used to determine when the fetch is
   /// complete.
   Future<void> Fetch();
 
   /// @brief Fetches config data from the server.
   ///
-  /// @note This does not actually apply the data or make it accessible,
-  /// it merely retrieves it and caches it.  To accept and access the newly
-  /// retrieved values, you must call @ref Activate().
-  /// Note that this function is asynchronous, and will normally take an
-  /// unspecified amount of time before completion.
+  /// @note This does not apply the data or make it accessible; to access newly
+  /// retrieved values, call `Activate()`.
   ///
   /// @param[in] cache_expiration_in_seconds The number of seconds to keep
-  /// previously fetch data available.  If cached data is available that is
-  /// newer than cache_expiration_in_seconds, then the function returns
-  /// immediately and does not fetch any data. A cache_expiration_in_seconds of
-  /// zero will always cause a fetch.
+  /// previously fetched data available. If cached data is available that is
+  /// newer than `cache_expiration_in_seconds`, then the function returns
+  /// immediately and does not fetch any data. A `cache_expiration_in_seconds`
+  /// of zero will always cause a fetch.
   ///
-  /// @return A Future which can be used to determine when the fetch is
+  /// @return A `Future<void>` which can be used to determine when the fetch is
   /// complete.
   Future<void> Fetch(uint64_t cache_expiration_in_seconds);
 
-  /// @brief Get the (possibly still pending) results of the most recent Fetch()
-  /// call.
+  /// @brief Get the (possibly still pending) results of the most recent
+  /// `Fetch()` call.
   ///
-  /// @return The future result from the last call to Fetch().
-  Future<void> FetchLastResult();
+  /// @return The future result from the last call to `Fetch()`.
+  Future<void> FetchLastResult() const;
 
-#if defined(__ANDROID__)
-  /// @brief Sets the default values, using an XML resource.
+#if defined(__ANDROID__) || defined(DOXYGEN)
+  /// @brief Sets the default values based on an Android resource ID.
   ///
-  /// @note This method is specific to the Android implementation.
+  /// This completely overrides all previous default values.
   ///
-  /// This completely overwrites all previous default values.
+  /// @param[in] defaults_resource_id ID for the XML resource in `res/xml`.
   ///
-  /// @param[in] defaults_resource_id Id for the XML resource, which should be
-  /// in your applications res/xml folder.
-  ///
-  /// @return a Future which can be used to determine when the operation is
-  /// complete.
+  /// @return A `Future<void>` which can be used to determine when the operation
+  /// is complete.
   Future<void> SetDefaults(int defaults_resource_id);
-#endif  // __ANDROID__
+#endif  // defined(__ANDROID__) || defined(DOXYGEN)
 
-#ifndef SWIG
-  /// @brief Sets the default values based on a mapping of string to Variant.
-  /// This allows you to specify defaults of type other than string.
+  /// @brief Sets the default values based on an array of
+  /// `ConfigKeyValueVariant`.
   ///
-  /// The type of each Variant in the map determines the type of data for which
-  /// you are providing a default. For example, boolean values can be retrieved
-  /// with GetBool(), integer values can be retrieved with GetLong(), double
-  /// values can be retrieved with GetDouble(), string values can be retrieved
-  /// with GetString(), and binary data can be retrieved with GetData().
-  /// Aggregate Variant types are not allowed.
+  /// The type of each `Variant` in the array is used to interpret the default
+  /// value to store, which can then be retrieved via `GetBoolean()`,
+  /// `GetLong()`, `GetDouble()`, `GetString()`, or `GetData()`.
   ///
-  /// @see firebase::Variant for more information on how to create a Variant of
-  /// each type.
+  /// This completely overrides all previous default values.
   ///
-  /// @note This completely overrides all previous values.
-  ///
-  /// @param defaults Array of ConfigKeyValueVariant, representing the new set
-  /// of defaults to apply. If the same key is specified multiple times, the
+  /// @param[in] defaults Array of `ConfigKeyValueVariant` representing the new
+  /// set of defaults to apply. If the same key is specified multiple times, the
   /// value associated with the last duplicate key is applied.
-  /// @param number_of_defaults Number of elements in the defaults array.
+  /// @param[in] number_of_defaults Number of elements in the `defaults` array.
   ///
-  /// @return a Future which can be used to determine when the operation is
-  /// complete.
+  /// @return A `Future<void>` which can be used to determine when the operation
+  /// is complete.
   Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,
                            size_t number_of_defaults);
-#endif  // SWIG
 
-  /// @brief Sets the default values based on a string map.
+  /// @brief Sets the default values based on an array of string key-value
+  /// pairs.
   ///
-  /// @note This completely overrides all previous values.
+  /// This completely overrides all previous default values.
   ///
-  /// @param defaults Array of ConfigKeyValue, representing the new set of
-  /// defaults to apply. If the same key is specified multiple times, the
-  /// value associated with the last duplicate key is applied.
-  /// @param number_of_defaults Number of elements in the defaults array.
+  /// @param[in] defaults Array of `ConfigKeyValue` representing the new set of
+  /// defaults to apply. If the same key is specified multiple times, the value
+  /// associated with the last duplicate key is applied.
+  /// @param[in] number_of_defaults Number of elements in the `defaults` array.
   ///
-  /// @return a Future which can be used to determine when the operation is
-  /// complete.
+  /// @return A `Future<void>` which can be used to determine when the operation
+  /// is complete.
   Future<void> SetDefaults(const ConfigKeyValue* defaults,
                            size_t number_of_defaults);
 
   /// @brief Get the (possibly still pending) results of the most recent
-  /// SetDefaults() call.
+  /// `SetDefaults()` call.
   ///
-  /// @return The future result from the last call to SetDefaults().
-  Future<void> SetDefaultsLastResult();
+  /// @return The future result from the last call to `SetDefaults()`.
+  Future<void> SetDefaultsLastResult() const;
 
-  /// @brief Asynchronously changes the settings for this Remote Config
+  /// @brief Asynchronously changes the settings for this `RemoteConfig`
   /// instance.
   ///
-  /// @param settings The new settings to be applied.
+  /// @note On Android and iOS, millisecond fields in `ConfigSettings` are
+  /// converted to whole seconds when passed to the underlying platform SDK.
   ///
-  /// @return a Future which can be used to determine when the operation is
-  /// complete.
+  /// @param[in] settings The new settings to be applied.
+  ///
+  /// @return A `Future<void>` which can be used to determine when the operation
+  /// is complete.
   Future<void> SetConfigSettings(ConfigSettings settings);
 
-  /// @brief Gets the current settings of the RemoteConfig object.
+  /// @brief Gets the current settings of the `RemoteConfig` object.
   ///
-  /// @return A ConfigSettings struct.
-  ConfigSettings GetConfigSettings();
+  /// @return A `ConfigSettings` struct containing the current settings.
+  ConfigSettings GetConfigSettings() const;
 
   /// @brief Get the (possibly still pending) results of the most recent
-  /// SetConfigSettings() call.
+  /// `SetConfigSettings()` call.
   ///
-  /// @return The future result from the last call to SetConfigSettings().
-  Future<void> SetConfigSettingsLastResult();
+  /// @return The future result from the last call to `SetConfigSettings()`.
+  Future<void> SetConfigSettingsLastResult() const;
 
-  /// @brief Sets custom signals to be sent with fetch requests.
+  /// @brief Returns the value associated with a key, converted to a `bool`.
   ///
-  /// Custom signals are custom key-value pairs used for targeting in Remote
-  /// Config. Values can be strings, integers, or doubles represented as
-  /// firebase::Variant, or a null Variant to remove a signal.
-  /// Setting custom signals merges with previously set signals.
+  /// Values of `"1"`, `"true"`, `"t"`, `"yes"`, `"y"`, and `"on"` are
+  /// interpreted as `true`, and `"0"`, `"false"`, `"f"`, `"no"`, `"n"`,
+  /// `"off"`, and empty strings are interpreted as `false`.
   ///
-  /// @param[in] custom_signals Map of custom signal keys to Variant values.
+  /// @param[in] key The key of the value to be retrieved.
   ///
-  /// @return A Future which can be used to determine when the operation is
-  /// complete.
+  /// @return The boolean value associated with the specified key, or `false` if
+  /// the key is missing or cannot be converted to a `bool`.
+  bool GetBoolean(const char* key) const;
+  bool GetBoolean(const std::string& key) const {
+    return GetBoolean(key.c_str());
+  }
+
+  /// @brief Returns the value associated with a key, converted to a `bool`.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  /// @param[out] info Optional pointer receiving the source and conversion
+  /// status of the returned value (may be `nullptr`).
+  ///
+  /// @return The boolean value associated with the specified key, or `false` if
+  /// the key is missing or conversion fails.
+  bool GetBoolean(const char* key, ValueInfo* info) const;
+  bool GetBoolean(const std::string& key, ValueInfo* info) const {
+    return GetBoolean(key.c_str(), info);
+  }
+
+  /// @brief Returns the value associated with a key, converted to a 64-bit
+  /// integer.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  ///
+  /// @return The 64-bit integer value associated with the specified key, or `0`
+  /// if the key is missing or cannot be converted to a 64-bit integer.
+  int64_t GetLong(const char* key) const;
+  int64_t GetLong(const std::string& key) const { return GetLong(key.c_str()); }
+
+  /// @brief Returns the value associated with a key, converted to a 64-bit
+  /// integer.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  /// @param[out] info Optional pointer receiving the source and conversion
+  /// status of the returned value (may be `nullptr`).
+  ///
+  /// @return The 64-bit integer value associated with the specified key, or `0`
+  /// if the key is missing or conversion fails.
+  int64_t GetLong(const char* key, ValueInfo* info) const;
+  int64_t GetLong(const std::string& key, ValueInfo* info) const {
+    return GetLong(key.c_str(), info);
+  }
+
+  /// @brief Returns the value associated with a key, converted to a `double`.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  ///
+  /// @return The `double` value associated with the specified key, or `0.0` if
+  /// the key is missing or cannot be converted to a `double`.
+  double GetDouble(const char* key) const;
+  double GetDouble(const std::string& key) const {
+    return GetDouble(key.c_str());
+  }
+
+  /// @brief Returns the value associated with a key, converted to a `double`.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  /// @param[out] info Optional pointer receiving the source and conversion
+  /// status of the returned value (may be `nullptr`).
+  ///
+  /// @return The `double` value associated with the specified key, or `0.0` if
+  /// the key is missing or conversion fails.
+  double GetDouble(const char* key, ValueInfo* info) const;
+  double GetDouble(const std::string& key, ValueInfo* info) const {
+    return GetDouble(key.c_str(), info);
+  }
+
+  /// @brief Returns the value associated with a key, converted to a string.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  ///
+  /// @return Value as a string, or `""` if the key was not found.
+  std::string GetString(const char* key) const;
+  std::string GetString(const std::string& key) const {
+    return GetString(key.c_str());
+  }
+
+  /// @brief Returns the value associated with a key, converted to a string.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  /// @param[out] info Optional pointer receiving the source and conversion
+  /// status of the returned value (may be `nullptr`).
+  ///
+  /// @return Value as a string, or `""` if the key was not found.
+  std::string GetString(const char* key, ValueInfo* info) const;
+  std::string GetString(const std::string& key, ValueInfo* info) const {
+    return GetString(key.c_str(), info);
+  }
+
+  /// @brief Returns the value associated with a key as a vector of raw bytes.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  ///
+  /// @return Vector of bytes, or an empty vector if the key was not found.
+  std::vector<unsigned char> GetData(const char* key) const;
+  std::vector<unsigned char> GetData(const std::string& key) const {
+    return GetData(key.c_str());
+  }
+
+  /// @brief Returns the value associated with a key as a vector of raw bytes.
+  ///
+  /// @param[in] key The key of the value to be retrieved.
+  /// @param[out] info Optional pointer receiving the source and conversion
+  /// status of the returned value (may be `nullptr`).
+  ///
+  /// @return Vector of bytes, or an empty vector if the key was not found.
+  std::vector<unsigned char> GetData(const char* key, ValueInfo* info) const;
+  std::vector<unsigned char> GetData(const std::string& key,
+                                     ValueInfo* info) const {
+    return GetData(key.c_str(), info);
+  }
+
+  /// @brief Gets the list of keys that start with the given prefix.
+  ///
+  /// @param[in] prefix The key prefix to look for. If empty or `nullptr`, this
+  /// method returns all keys.
+  ///
+  /// @return Vector of keys that start with the specified prefix.
+  std::vector<std::string> GetKeysByPrefix(const char* prefix) const;
+  std::vector<std::string> GetKeysByPrefix(const std::string& prefix) const {
+    return GetKeysByPrefix(prefix.c_str());
+  }
+
+  /// @brief Gets the list of all keys.
+  ///
+  /// @return Vector of all keys.
+  std::vector<std::string> GetKeys() const;
+
+  /// @brief Returns a map of Firebase Remote Config key-value pairs.
+  ///
+  /// Evaluates the values of the parameters in the following order:
+  /// 1. The activated value, if the last successful `Activate()` contained the
+  ///    key.
+  /// 2. The default value, if the key was set with `SetDefaults()`.
+  ///
+  /// Each value string is coerced into a `Variant` (`Int64`, `Double`, `Bool`,
+  /// or `MutableString` based on its lexical representation).
+  ///
+  /// @return A map of key/`Variant` pairs.
+  std::map<std::string, Variant> GetAll() const;
+
+  /// @brief Returns information about the last fetch request, in the form
+  /// of a `ConfigInfo` struct.
+  ///
+  /// @return A `ConfigInfo` struct.
+  ConfigInfo GetInfo() const;
+
+  /// @brief Sets the custom signals for this Remote Config instance.
+  ///
+  /// Keys may not exceed 256 characters, string values may not exceed 500
+  /// characters, and at most 100 custom signals may be stored. Passing
+  /// `Variant::Null()` for a key removes that custom signal.
+  ///
+  /// @param[in] custom_signals A map of signal keys to `Variant` values
+  /// (`String`, `Int64`, `Double`, or `Null` to remove an existing key).
+  ///
+  /// @return A `Future<void>` which can be used to determine when the operation
+  /// is complete.
   Future<void> SetCustomSignals(
       const std::map<std::string, Variant>& custom_signals);
 
   /// @brief Get the (possibly still pending) results of the most recent
-  /// SetCustomSignals() call.
+  /// `SetCustomSignals()` call.
   ///
-  /// @return The future result from the last call to SetCustomSignals().
-  Future<void> SetCustomSignalsLastResult();
-
-  /// @brief Returns the value associated with a key, converted to a bool.
-  ///
-  /// Values of "1", "true", "t", "yes", "y" and "on" are interpreted (case
-  /// insensitive) as <code>true</code> and "0", "false", "f", "no", "n", "off",
-  /// and empty strings are interpreted (case insensitive) as
-  /// <code>false</code>.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  ///
-  /// @return Value associated with the specified key converted to a boolean
-  /// value.
-  bool GetBoolean(const char* key);
-
-  /// @brief Returns the value associated with a key, converted to a bool.
-  ///
-  /// Values of "1", "true", "t", "yes", "y" and "on" are interpreted (case
-  /// insensitive) as <code>true</code> and "0", "false", "f", "no", "n", "off",
-  /// and empty strings are interpreted (case insensitive) as
-  /// <code>false</code>.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  /// @param[out] info A return value, specifying the source of the returned
-  /// value.
-  ///
-  /// @return Value associated with the specified key converted to a boolean
-  /// value.
-  bool GetBoolean(const char* key, ValueInfo* info);
-
-  /// @brief Returns the value associated with a key, converted to a 64-bit
-  /// integer.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  ///
-  /// @return Value associated with the specified key converted to a 64-bit
-  /// integer.
-  int64_t GetLong(const char* key);
-
-  /// @brief Returns the value associated with a key, converted to a 64-bit
-  /// integer.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  /// @param[out] info A return value, specifying the source of the returned
-  /// value.
-  ///
-  /// @return Value associated with the specified key converted to a 64-bit
-  /// integer.
-  int64_t GetLong(const char* key, ValueInfo* info);
-
-  /// @brief Returns the value associated with a key, converted to a double.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  ///
-  /// @return Value associated with the specified key converted to a double.
-  double GetDouble(const char* key);
-
-  /// @brief Returns the value associated with a key, converted to a double.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  /// @param[out] info A return value, specifying the source of the returned
-  /// value.
-  ///
-  /// @return Value associated with the specified key converted to a double.
-  double GetDouble(const char* key, ValueInfo* info);
-
-  /// @brief Returns the value associated with a key, converted to a string.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  ///
-  /// @return Value as a string associated with the specified key.
-  std::string GetString(const char* key);
-
-  /// @brief Returns the value associated with a key, converted to a string.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  /// @param[out] info A return value, specifying the source of the returned
-  /// value.
-  ///
-  /// @return Value as a string associated with the specified key.
-  std::string GetString(const char* key, ValueInfo* info);
-
-  /// @brief Returns the value associated with a key, as a vector of raw
-  /// byte-data.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  ///
-  /// @return Vector of bytes.
-  std::vector<unsigned char> GetData(const char* key);
-
-  /// @brief Returns the value associated with a key, as a vector of raw
-  /// byte-data.
-  ///
-  /// @param[in] key Key of the value to be retrieved.
-  /// @param[out] info A return value, specifying the source of the returned
-  /// value.
-  ///
-  /// @return Vector of bytes.
-  std::vector<unsigned char> GetData(const char* key, ValueInfo* info);
-
-  /// @brief Gets the set of keys that start with the given prefix.
-  ///
-  /// @param[in] prefix The key prefix to look for. If empty or null, this
-  /// method will return all keys.
-  ///
-  /// @return Set of Remote Config parameter keys that start with the specified
-  /// prefix. Will return an empty set if there are no keys with the given
-  /// prefix.
-  std::vector<std::string> GetKeysByPrefix(const char* prefix);
-
-  /// @brief Gets the set of all keys.
-  ///
-  /// @return Set of all Remote Config parameter keys.
-  std::vector<std::string> GetKeys();
-
-  /// @brief Returns a Map of Firebase Remote Config key value pairs.
-  ///
-  /// Evaluates the values of the parameters in the following order:
-  /// The activated value, if the last successful @ref Activate() contained the
-  /// key. The default value, if the key was set with @ref SetDefaults().
-  std::map<std::string, Variant> GetAll();
-
-  /// @brief Returns information about the last fetch request, in the form
-  /// of a ConfigInfo struct.
-  ///
-  /// @return A ConfigInfo struct, containing fields reflecting the state
-  /// of the most recent fetch request.
-  const ConfigInfo GetInfo();
-
-  /// Gets the App this remote config object is connected to.
-  App* app() { return app_; }
-
-  /// Returns the RemoteConfig object for an App. Creates the RemoteConfig if
-  /// required.
-  ///
-  /// To get the RemoteConfig object for the default app, use,
-  /// GetInstance(GetDefaultFirebaseApp());
-  ///
-  /// If the library RemoteConfig fails to initialize, init_result_out will be
-  /// written with the result status (if a pointer is given).
-  ///
-  /// @param[in] app The App to use for the RemoteConfig object.
-  static RemoteConfig* GetInstance(App* app);
+  /// @return The future result from the last call to `SetCustomSignals()`.
+  Future<void> SetCustomSignalsLastResult() const;
 
   /// @brief Starts listening for real-time config updates from the Remote
-  /// Config backend and automatically fetches updates from the RC backend when
-  /// they are available.
-  /// @param config_update_listener An event handler callback that can be used
-  /// to respond to config updates when they're fetched
-  /// @return A registration object that allows the listener to remove the
-  /// associated listener.
+  /// Config backend and automatically fetches updates when available.
+  ///
+  /// When the listener is invoked with a `ConfigUpdate`, call `Activate()` to
+  /// make the newly fetched values take effect.
+  ///
+  /// @note Real-time config updates are not supported on Desktop; on Desktop
+  /// the listener is invoked with `kRemoteConfigErrorUnimplemented`.
+  ///
+  /// @return A `ConfigUpdateListenerRegistration` that can be used to remove
+  /// the listener.
   ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 
  private:
+  /// @cond FIREBASE_APP_INTERNAL
   explicit RemoteConfig(App* app);
 
-  // Find RemoteConfig instance using App.  Return null if the instance does not
-  // exist.
-  static RemoteConfig* FindRemoteConfig(App* app);
-
-  // Clean up RemoteConfig instance.
-  void DeleteInternal();
-
-  /// The Firebase App this remote config is connected to.
-  App* app_;
-
+  // Initialize internal RemoteConfig object. Return false if initialization
+  // failed.
   bool InitInternal();
 
+  // Clean up RemoteConfig instance.
+  void Cleanup();
+
+  // Find RemoteConfig instance using App. Return null if the instance does not
+  // exist.
+  static RemoteConfig* FindRemoteConfig(App* app);
+  /// @endcond
+
+  // The firebase::App that this RemoteConfig was created with.
+  App* app_;
+
+  // Internal object for the implementation.
   internal::RemoteConfigInternal* internal_;
 };
 

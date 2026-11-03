@@ -33,23 +33,39 @@ jclass object_class = nullptr;
 }  // namespace
 
 void Object::Initialize(Loader& loader) {
-  object_class = util::object::GetClass();
-  loader.LoadFromExistingClass("java/lang/Object", object_class, kEquals,
-                               kToString);
+  jclass clazz = util::object::GetClass();
+  if (clazz != nullptr) {
+    object_class = clazz;
+    loader.LoadFromExistingClass("java/lang/Object", object_class, kEquals,
+                                 kToString);
+  } else {
+    object_class = loader.LoadClass("java/lang/Object", kEquals, kToString);
+  }
 }
 
 Class Object::GetClass() { return Class(object_class); }
 
 std::string Object::ToString(Env& env) const {
+  if (!*this || !env.ok()) {
+    return "";
+  }
   Local<String> java_string = env.Call(*this, kToString);
+  if (!env.ok() || !java_string) {
+    return "";
+  }
   return java_string.ToString(env);
 }
 
 bool Object::Equals(Env& env, const Object& other) const {
+  if (!env.ok()) return false;
+  if (!*this && !other) return true;
+  if (!*this || !other) return false;
   return env.Call(*this, kEquals, other);
 }
 
 bool Object::Equals(Env& env, const Object& lhs, const Object& rhs) {
+  if (!env.ok()) return false;
+
   // Most likely only happens when comparing one with itself or both are null.
   if (lhs.get() == rhs.get()) return true;
 

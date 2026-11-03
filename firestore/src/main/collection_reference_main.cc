@@ -16,10 +16,10 @@
 
 #include "firestore/src/main/collection_reference_main.h"
 
-#include <future>  // NOLINT(build/c++11)
 #include <utility>
 
 #include "Firestore/core/src/core/user_data.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/document_reference_main.h"
 #include "firestore/src/main/field_value_main.h"
@@ -32,21 +32,8 @@ using core::ParsedSetData;
 
 CollectionReferenceInternal::CollectionReferenceInternal(
     api::CollectionReference&& collection)
-    : QueryInternal{std::move(collection)} {}
-
-const api::CollectionReference&
-CollectionReferenceInternal::collection_core_api() const {
-  // TODO(varconst): this is undefined behavior (mirroring
-  // `FIRCollectionReference`). While `api::CollectionReference` and
-  // `api::Query` are derived and base classes, respectively, in this case the
-  // object being cast is actually a base class object. This only "works"
-  // because the derived object happens to have no member variables.
-  static_assert(sizeof(api::Query) == sizeof(api::CollectionReference),
-                "The query-to-collection casting hack relies on "
-                "CollectionReference having no member variables of its own, "
-                "see comment for more details");
-  return static_cast<const api::CollectionReference&>(query_core_api());
-}
+    : QueryInternal{api::Query{collection}},
+      collection_{std::move(collection)} {}
 
 const std::string& CollectionReferenceInternal::id() const {
   return collection_core_api().collection_id();
@@ -72,37 +59,29 @@ DocumentReference CollectionReferenceInternal::Document() const {
 
 DocumentReference CollectionReferenceInternal::Document(
     const std::string& document_path) const {
+  if (document_path.find("//") != std::string::npos) {
+    SimpleThrowInvalidArgument(std::string("Invalid path (") + document_path +
+                               "). Paths must not contain // in them.");
+  }
   return MakePublic(collection_core_api().Document(document_path));
 }
 
 Future<DocumentReference> CollectionReferenceInternal::Add(
     const MapFieldValue& data) {
+  ParsedSetData parsed = converter().ParseSetData(data);
   auto promise = promise_factory().CreatePromise<DocumentReference>(
       AsyncApis::kCollectionReferenceAdd);
-  ParsedSetData parsed = converter().ParseSetData(data);
 
-  // There is a chicken-and-egg problem here: the callback needs the new
-  // document returned by `AddDocument`, but `AddDocument` needs to be given the
-  // callback in order to run. To work around it, use a (standard) promise --
-  // callback gets the promise of a document, not the document itself.
-  std::promise<api::DocumentReference> new_doc_promise;
-  std::shared_future<api::DocumentReference> future_doc{
-      new_doc_promise.get_future()};
-  // TODO(c++14): move the future into lambda, avoiding the need for
-  // `shared_future`.
-  auto callback = [promise, future_doc](const util::Status& status) mutable {
+  api::DocumentReference new_doc = collection_core_api().Document();
+  auto callback = [promise, new_doc](const util::Status& status) mutable {
     if (status.ok()) {
-      api::DocumentReference api_doc = future_doc.get();
-      promise.SetValue(MakePublic(std::move(api_doc)));
+      promise.SetValue(MakePublic(std::move(new_doc)));
     } else {
       promise.SetError(status);
     }
   };
 
-  api::DocumentReference new_doc =
-      collection_core_api().AddDocument(std::move(parsed), std::move(callback));
-  new_doc_promise.set_value(std::move(new_doc));
-
+  new_doc.SetData(std::move(parsed), std::move(callback));
   return promise.future();
 }
 

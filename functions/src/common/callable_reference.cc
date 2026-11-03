@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,13 +14,16 @@
 
 #include "functions/src/include/firebase/functions/callable_reference.h"
 
-#include <cassert>
+#include <utility>
 
-#include "app/src/assert.h"
+#include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/include/firebase/variant.h"
+#include "functions/src/include/firebase/functions.h"
 
-// CallableReference is defined in these 3 files, one implementation for each
-// OS.
+// Include the header that matches the platform being used.
 #if FIREBASE_PLATFORM_ANDROID
 #include "functions/src/android/callable_reference_android.h"
 #include "functions/src/android/functions_android.h"
@@ -34,87 +37,96 @@
         // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
-class Variant;
-
 namespace functions {
 
-using internal::HttpsCallableReferenceInternal;
-
-static void CleanupCallableReference(void* functions_reference_void) {
-  auto functions_reference =
-      reinterpret_cast<HttpsCallableReference*>(functions_reference_void);
-  // Overwrite the existing reference with an invalid reference.
-  *functions_reference = HttpsCallableReference();
+namespace {
+void CleanupHttpsCallableReference(void* ref_void) {
+  HttpsCallableReference* ref =
+      reinterpret_cast<HttpsCallableReference*>(ref_void);
+  // Overwrite the existing reference with an invalid reference (which
+  // unregisters and deletes internal_).
+  *ref = HttpsCallableReference();
 }
 
-static void RegisterForCleanup(
-    HttpsCallableReference* obj,
-    internal::HttpsCallableReferenceInternal* internal) {
+void RegisterForCleanup(HttpsCallableReference* obj,
+                        internal::HttpsCallableReferenceInternal* internal) {
   if (internal && internal->functions_internal()) {
     internal->functions_internal()->cleanup().RegisterObject(
-        obj, CleanupCallableReference);
+        obj, CleanupHttpsCallableReference);
   }
 }
 
-static void UnregisterForCleanup(
-    HttpsCallableReference* obj,
-    internal::HttpsCallableReferenceInternal* internal) {
+void UnregisterForCleanup(HttpsCallableReference* obj,
+                          internal::HttpsCallableReferenceInternal* internal) {
   if (internal && internal->functions_internal()) {
     internal->functions_internal()->cleanup().UnregisterObject(obj);
   }
 }
+}  // namespace
 
 HttpsCallableReference::HttpsCallableReference(
-    HttpsCallableReferenceInternal* internal)
+    internal::HttpsCallableReferenceInternal* internal)
     : internal_(internal) {
   RegisterForCleanup(this, internal_);
 }
 
 HttpsCallableReference::HttpsCallableReference(
     const HttpsCallableReference& other)
-    : internal_(other.internal_
-                    ? new HttpsCallableReferenceInternal(*other.internal_)
-                    : nullptr) {
+    : internal_(other.internal_ ? new internal::HttpsCallableReferenceInternal(
+                                      *other.internal_)
+                                : nullptr) {
   RegisterForCleanup(this, internal_);
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
     const HttpsCallableReference& other) {
+  if (this == &other) {
+    return *this;
+  }
+  internal::HttpsCallableReferenceInternal* new_internal =
+      other.internal_
+          ? new internal::HttpsCallableReferenceInternal(*other.internal_)
+          : nullptr;
   UnregisterForCleanup(this, internal_);
   delete internal_;
-  internal_ = other.internal_
-                  ? new HttpsCallableReferenceInternal(*other.internal_)
-                  : nullptr;
+  internal_ = new_internal;
   RegisterForCleanup(this, internal_);
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-HttpsCallableReference::HttpsCallableReference(HttpsCallableReference&& other) {
-  UnregisterForCleanup(&other, other.internal_);
-  internal_ = other.internal_;
-  other.internal_ = nullptr;
+HttpsCallableReference::HttpsCallableReference(
+    HttpsCallableReference&& other) noexcept
+    : internal_(std::exchange(other.internal_, nullptr)) {
+  UnregisterForCleanup(&other, internal_);
   RegisterForCleanup(this, internal_);
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
-    HttpsCallableReference&& other) {
+    HttpsCallableReference&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
   UnregisterForCleanup(this, internal_);
   delete internal_;
-  UnregisterForCleanup(&other, other.internal_);
-  internal_ = other.internal_;
-  other.internal_ = nullptr;
+  internal_ = std::exchange(other.internal_, nullptr);
+  UnregisterForCleanup(&other, internal_);
   RegisterForCleanup(this, internal_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 HttpsCallableReference::~HttpsCallableReference() {
-  UnregisterForCleanup(this, internal_);
-  delete internal_;
+  if (internal_) {
+    UnregisterForCleanup(this, internal_);
+    delete internal_;
+    internal_ = nullptr;
+  }
 }
 
 Functions* HttpsCallableReference::functions() {
+  return internal_ ? internal_->functions() : nullptr;
+}
+
+Functions* HttpsCallableReference::functions() const {
   return internal_ ? internal_->functions() : nullptr;
 }
 
@@ -122,11 +134,34 @@ Future<HttpsCallableResult> HttpsCallableReference::Call() {
   return internal_ ? internal_->Call() : Future<HttpsCallableResult>();
 }
 
+Future<HttpsCallableResult> HttpsCallableReference::Call() const {
+  return internal_ ? internal_->Call() : Future<HttpsCallableResult>();
+}
+
 Future<HttpsCallableResult> HttpsCallableReference::Call(const Variant& data) {
   return internal_ ? internal_->Call(data) : Future<HttpsCallableResult>();
 }
 
-bool HttpsCallableReference::is_valid() const { return internal_ != nullptr; }
+Future<HttpsCallableResult> HttpsCallableReference::Call(
+    const Variant& data) const {
+  return internal_ ? internal_->Call(data) : Future<HttpsCallableResult>();
+}
+
+Future<HttpsCallableResult> HttpsCallableReference::CallLastResult() const {
+  return internal_ ? internal_->CallLastResult()
+                   : Future<HttpsCallableResult>();
+}
+
+bool HttpsCallableReference::is_valid() const {
+  return internal_ != nullptr && internal_->is_valid();
+}
+
+bool HttpsCallableReference::operator==(
+    const HttpsCallableReference& other) const {
+  if (internal_ == other.internal_) return true;
+  if (!internal_ || !other.internal_) return false;
+  return *internal_ == *other.internal_;
+}
 
 }  // namespace functions
 }  // namespace firebase

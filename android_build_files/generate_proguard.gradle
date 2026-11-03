@@ -20,11 +20,11 @@ def generateCppProguard(File library, String outCppPro) {
   def stringsOutStream = new ByteArrayOutputStream()
   exec {
     executable 'strings'
-    args "$library"
+    args '--', "$library"
     standardOutput = stringsOutStream
   }
 
-  List<String> proguardLines = new ArrayList<String>()
+  Set<String> proguardLines = new LinkedHashSet<String>()
   for (String line : stringsOutStream.toString().split("[\\r\\n]+")) {
     // The classes to keep are prefixed with %PG%, so find those.
     if (line.startsWith("%PG%")) {
@@ -36,28 +36,45 @@ def generateCppProguard(File library, String outCppPro) {
     }
   }
 
-  new File("$outCppPro").text = String.join('\n', proguardLines.toSorted())
+  File outFile = new File("$outCppPro")
+  if (outFile.parentFile != null) {
+    outFile.parentFile.mkdirs()
+  }
+  outFile.text = String.join('\n', proguardLines.toSorted())
 }
 
-// Combines the given set of proguard files into a single one.
+// Combines the given set of proguard files into a single one, preserving line
+// ordering within each file so multi-line ProGuard blocks remain intact.
 // Args:
 //   proguardSet: The set of proguard files to use.
 //   outputProguard: The path to the output proguard file.
 def generateFinalProguard(Set<File> proguardSet, String outputProguard) {
+  List<File> sortedFiles = new ArrayList<File>(proguardSet)
+  sortedFiles.sort { a, b -> a.absolutePath <=> b.absolutePath }
 
-  Set<String> proguardLineSet = new HashSet<String>()
-  for (File pro : proguardSet) {
+  List<String> proguardLines = new ArrayList<String>()
+  Set<String> seenSingleLineKeepRules = new HashSet<String>()
+  for (File pro : sortedFiles) {
     for (String line : pro.text.split("[\\r\\n]+")) {
-      // Ignore commented out lines.
-      if (!line.startsWith("#")) {
-        proguardLineSet.add(line)
+      String trimmed = line.trim()
+      // Ignore empty lines and commented out lines.
+      if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+        continue
       }
+      if (trimmed.startsWith("-keep") && trimmed.endsWith("}")) {
+        if (!seenSingleLineKeepRules.add(trimmed)) {
+          continue
+        }
+      }
+      proguardLines.add(line)
     }
   }
 
-  // Sort the lines, and then write it out to the file.
-  String proguardLines = String.join('\n', proguardLineSet.toSorted())
-  new File("$outputProguard").text = proguardLines
+  File outFile = new File("$outputProguard")
+  if (outFile.parentFile != null) {
+    outFile.parentFile.mkdirs()
+  }
+  outFile.text = String.join('\n', proguardLines)
 }
 
 // Adds the logic to generate a proguard file from the static library,
@@ -75,17 +92,28 @@ def defineGenerateProguardFile(String subproject, String buildType,
         nativeBuildDir = file('.cxx').absolutePath
       }
 
-      // Find the static library that was built. Note that there are multiple
-      // versions, based on the architecture, but we just need any one of them.
+      // Find the static library that was built for this subproject.
+      // Anchor the filename to libfirebase_${subproject}.a so 'app' does not
+      // match 'libfirebase_app_check.a', and prefer the matching buildType dir.
+      String expectedLibName = "libfirebase_${subproject}.a"
       Set<File> librarySet = fileTree("$nativeBuildDir")
-          .matching({ include "**/*firebase_${subproject}*" }).getFiles()
-      String cppProguard = "$buildDir/cpp_${subproject}.pro"
-      while (!librarySet.isEmpty()) {
-        File lib = librarySet.iterator().next()
-        librarySet.remove(lib)
-        if (lib.name.endsWith(".a")) {
-          generateCppProguard(lib, cppProguard)
+          .matching({ include "**/${expectedLibName}" }).getFiles()
+      String cppProguard = "$buildDir/$buildType/cpp_${subproject}.pro"
+      File selectedLib = null
+      String buildTypeLower = buildType.toLowerCase()
+      for (File lib : librarySet) {
+        if (lib.name == expectedLibName) {
+          if (selectedLib == null ||
+              lib.absolutePath.toLowerCase().contains(buildTypeLower)) {
+            selectedLib = lib
+            if (lib.absolutePath.toLowerCase().contains(buildTypeLower)) {
+              break
+            }
+          }
         }
+      }
+      if (selectedLib != null) {
+        generateCppProguard(selectedLib, cppProguard)
       }
 
       // Combine the proguard files into a single file.
@@ -93,7 +121,7 @@ def defineGenerateProguardFile(String subproject, String buildType,
       if (proguardFile.exists()) {
         proguardFile.delete()
       }
-      // If the Firebase C++ SDK directory is defined, so that, otherwise use
+      // If the Firebase C++ SDK directory is defined, use that, otherwise use
       // the project directory.
       String proguardSearchDir
       if (project.hasProperty('firebase_cpp_sdk_dir')) {
@@ -101,11 +129,19 @@ def defineGenerateProguardFile(String subproject, String buildType,
       } else {
         proguardSearchDir = "$projectDir"
       }
+      String buildDirName = buildDir.name
       FileTree proguardFileTree = fileTree("$proguardSearchDir")
           .matching({ include "**/*.pro" })
-      // We don't want to include proguard files from any external libraries.
+      // We don't want to include proguard files from any external libraries
+      // or stale subproject output proguard files.
       proguardFileTree =
-          proguardFileTree.matching({ exclude "**/external/src/**" })
+          proguardFileTree.matching({
+            exclude "**/external/src/**"
+            exclude "**/${buildDirName}/**"
+            exclude "**/build/Debug/**"
+            exclude "**/build/Release/**"
+            exclude "**/build/cpp_*.pro"
+          })
       Set<File> proguardSet = proguardFileTree.getFiles()
 
       // The proguard file generated from the C++ library might not be in the

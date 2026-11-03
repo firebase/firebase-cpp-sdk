@@ -40,15 +40,21 @@ public class VoidEventListener extends CppEventListener implements Runnable {
 
   @Override
   public void run() {
-    nativeOnEvent(cppListenerObject);
+    long listenerPtr;
+    synchronized (this) {
+      listenerPtr = cppListenerObject;
+    }
+    if (listenerPtr != 0) {
+      nativeOnEvent(listenerPtr);
+    }
   }
 
   /**
    * Interprets the {@code listenerObject} as a {@code
    * firebase::firestore::EventListener<void>} and invokes the listener's {@code
-   * OnEvent} method with {@code Error::kOk}. The EventListener will never be
-   * passed anything other than Ok because VoidEventListener can only be used in
-   * circumstances where the callback can't fail.
+   * OnEvent} method with {@code Error::kErrorOk}. The EventListener will never
+   * be passed anything other than Ok because VoidEventListener can only be used
+   * in circumstances where the callback can't fail.
    *
    * <p>This native method is implemented in the Firestore C++ library {@code
    * event_listener_android.cc}.

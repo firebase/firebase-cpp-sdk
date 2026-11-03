@@ -34,8 +34,8 @@ class QuerySnapshotInternal;
 /**
  * @brief A QuerySnapshot contains zero or more DocumentSnapshot objects.
  *
- * QuerySnapshot can be iterated using a range-based for loop, and its size can
- * be inspected with empty() and size().
+ * The documents in a QuerySnapshot can be accessed via documents(), and its
+ * size can be inspected with empty() and size().
  *
  * @note Firestore classes are not meant to be subclassed except for use in test
  * mocks. Subclassing is not supported in production code and new SDK releases
@@ -56,9 +56,6 @@ class QuerySnapshot {
   /**
    * @brief Copy constructor.
    *
-   * `QuerySnapshot` is immutable and can be efficiently copied (no deep copy is
-   * performed).
-   *
    * @param[in] other `QuerySnapshot` to copy from.
    */
   QuerySnapshot(const QuerySnapshot& other);
@@ -72,15 +69,12 @@ class QuerySnapshot {
    *
    * @param[in] other `QuerySnapshot` to move data from.
    */
-  QuerySnapshot(QuerySnapshot&& other);
+  QuerySnapshot(QuerySnapshot&& other) noexcept;
 
   virtual ~QuerySnapshot();
 
   /**
    * @brief Copy assignment operator.
-   *
-   * `QuerySnapshot` is immutable and can be efficiently copied (no deep copy is
-   * performed).
    *
    * @param[in] other `QuerySnapshot` to copy from.
    *
@@ -99,7 +93,7 @@ class QuerySnapshot {
    *
    * @return Reference to the destination `QuerySnapshot`.
    */
-  QuerySnapshot& operator=(QuerySnapshot&& other);
+  QuerySnapshot& operator=(QuerySnapshot&& other) noexcept;
 
   /**
    * @brief The query from which you got this QuerySnapshot.
@@ -179,7 +173,7 @@ class QuerySnapshot {
 
   explicit QuerySnapshot(QuerySnapshotInternal* internal);
 
-  mutable QuerySnapshotInternal* internal_ = nullptr;
+  QuerySnapshotInternal* internal_ = nullptr;
 };
 
 /** Checks `lhs` and `rhs` for equality. */

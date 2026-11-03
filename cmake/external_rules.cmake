@@ -12,22 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include(ProcessorCount)
+
+# Helper to build a clean environment command that preserves PATH, HOME, and
+# proxy/TLS/temp variables needed for network downloads and compiler toolchains.
+function(_firebase_get_clean_env_command out_var)
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    set(${out_var} "" PARENT_SCOPE)
+  else()
+    set(env_args env -i
+        "PATH=$ENV{PATH}"
+        "HOME=$ENV{HOME}")
+    foreach(var_name
+            HTTP_PROXY HTTPS_PROXY NO_PROXY
+            http_proxy https_proxy no_proxy
+            SSL_CERT_FILE SSL_CERT_DIR
+            TMPDIR TMP TEMP)
+      if(DEFINED ENV{${var_name}})
+        list(APPEND env_args "${var_name}=$ENV{${var_name}}")
+      endif()
+    endforeach()
+    set(${out_var} ${env_args} PARENT_SCOPE)
+  endif()
+endfunction()
+
+# Helper to compute bounded parallel build arguments for CMake --build.
+function(_firebase_get_parallel_build_args out_var)
+  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+    ProcessorCount(num_cpus)
+    if(NOT num_cpus OR num_cpus EQUAL 0)
+      set(num_cpus 4)
+    endif()
+    set(${out_var} -- "-j${num_cpus}" PARENT_SCOPE)
+  else()
+    set(${out_var} "" PARENT_SCOPE)
+  endif()
+endfunction()
+
 # Executes a CMake build of the external dependencies, which will pull them
 # as ExternalProjects, under an "external" subdirectory.
 function(download_external_sources)
-  file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/external)
+  file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/external")
 
-  # Setup cmake environment.
-  # These commands are executed from within the currect context, which has set
-  # variables for the target platform. We use "env -i" to clear these
-  # variables, and manually keep the PATH to regular bash path.
-  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-    # Windows doesn't have an 'env' command
-    set(ENV_COMMAND "")
-  else()
-    set(firebase_command_line_path "$ENV{PATH}")
-    set(ENV_COMMAND env -i PATH=${firebase_command_line_path})
-  endif()
+  _firebase_get_clean_env_command(ENV_COMMAND)
 
   if(IOS)
     set(external_platform "IOS")
@@ -40,7 +67,8 @@ function(download_external_sources)
   # Set variables to indicate if local versions of third party libraries should
   # be used instead of downloading them.
   function(check_use_local_directory NAME)
-    if (EXISTS ${${NAME}_SOURCE_DIR})
+    if(DEFINED ${NAME}_SOURCE_DIR AND NOT "${${NAME}_SOURCE_DIR}" STREQUAL "" AND
+       EXISTS "${${NAME}_SOURCE_DIR}")
       set(DOWNLOAD_${NAME} OFF PARENT_SCOPE)
     else()
       set(DOWNLOAD_${NAME} ON PARENT_SCOPE)
@@ -69,57 +97,73 @@ function(download_external_sources)
 
   execute_process(
     COMMAND
-      ${ENV_COMMAND} ${CMAKE_COMMAND}
-      -G ${CMAKE_GENERATOR}
-      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-      -DPLATFORM=${PLATFORM}
-      -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
-      -DCMAKE_INSTALL_PREFIX=${FIREBASE_INSTALL_DIR}
-      -DFIREBASE_DOWNLOAD_DIR=${FIREBASE_DOWNLOAD_DIR}
-      -DFIREBASE_EXTERNAL_PLATFORM=${external_platform}
-      -DDOWNLOAD_BORINGSSL=${DOWNLOAD_BORINGSSL}
-      -DDOWNLOAD_CURL=${DOWNLOAD_CURL}
-      -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
-      -DDOWNLOAD_GOOGLETEST=${FIREBASE_DOWNLOAD_GTEST}
-      -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
-      -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}
-      -DEXTERNAL_PROJECT_HTTP_HEADER=${EXTERNAL_PROJECT_HTTP_HEADER}
-      -DFIREBASE_CPP_BUILD_TESTS=${FIREBASE_CPP_BUILD_TESTS}
-      -DFIREBASE_CPP_BUILD_STUB_TESTS=${FIREBASE_CPP_BUILD_STUB_TESTS}
-      -DFIRESTORE_DEP_SOURCE=${FIRESTORE_DEP_SOURCE}
-      ${PROJECT_SOURCE_DIR}/cmake/external
-    OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_config.txt
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
+      ${ENV_COMMAND} "${CMAKE_COMMAND}"
+      -G "${CMAKE_GENERATOR}"
+      "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+      "-DPLATFORM=${PLATFORM}"
+      "-DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+      "-DCMAKE_INSTALL_PREFIX=${FIREBASE_INSTALL_DIR}"
+      "-DFIREBASE_DOWNLOAD_DIR=${FIREBASE_DOWNLOAD_DIR}"
+      "-DFIREBASE_EXTERNAL_PLATFORM=${external_platform}"
+      "-DFIREBASE_INCLUDE_FIRESTORE=${FIREBASE_INCLUDE_FIRESTORE}"
+      "-DFIREBASE_INCLUDE_DATABASE=${FIREBASE_INCLUDE_DATABASE}"
+      "-DFIREBASE_USE_BORINGSSL=${FIREBASE_USE_BORINGSSL}"
+      "-DDOWNLOAD_BORINGSSL=${DOWNLOAD_BORINGSSL}"
+      "-DDOWNLOAD_CURL=${DOWNLOAD_CURL}"
+      "-DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}"
+      "-DDOWNLOAD_GOOGLETEST=${FIREBASE_DOWNLOAD_GTEST}"
+      "-DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}"
+      "-DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}"
+      "-DEXTERNAL_PROJECT_HTTP_HEADER=${EXTERNAL_PROJECT_HTTP_HEADER}"
+      "-DFIREBASE_CPP_BUILD_TESTS=${FIREBASE_CPP_BUILD_TESTS}"
+      "-DFIREBASE_CPP_BUILD_STUB_TESTS=${FIREBASE_CPP_BUILD_STUB_TESTS}"
+      "-DFIRESTORE_DEP_SOURCE=${FIRESTORE_DEP_SOURCE}"
+      "${PROJECT_SOURCE_DIR}/cmake/external"
+    OUTPUT_FILE "${PROJECT_BINARY_DIR}/external/output_cmake_config.txt"
+    ERROR_FILE "${PROJECT_BINARY_DIR}/external/output_cmake_config.txt"
+    WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/external"
+    RESULT_VARIABLE external_configure_status
   )
-
-  # Run downloads in parallel if we know how
-  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-    set(cmake_build_args -j)
+  if(external_configure_status AND NOT external_configure_status EQUAL 0)
+    message(FATAL_ERROR "External dependencies configure failed (${external_configure_status}). See ${PROJECT_BINARY_DIR}/external/output_cmake_config.txt")
   endif()
 
-  execute_process(
-    COMMAND ${ENV_COMMAND} ${CMAKE_COMMAND} --build . -- ${cmake_build_args}
-    OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_build.txt
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
-  )
+  _firebase_get_parallel_build_args(cmake_build_args)
 
-  # On desktop, make a few tweaks to the downloaded files.
-  if(NOT ANDROID AND NOT IOS)
-    if (FIREBASE_USE_BORINGSSL)
+  execute_process(
+    COMMAND ${ENV_COMMAND} "${CMAKE_COMMAND}" --build . ${cmake_build_args}
+    OUTPUT_FILE "${PROJECT_BINARY_DIR}/external/output_cmake_build.txt"
+    ERROR_FILE "${PROJECT_BINARY_DIR}/external/output_cmake_build.txt"
+    WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/external"
+    RESULT_VARIABLE external_build_status
+  )
+  if(external_build_status AND NOT external_build_status EQUAL 0)
+    message(FATAL_ERROR "External dependencies download failed (${external_build_status}). See ${PROJECT_BINARY_DIR}/external/output_cmake_build.txt")
+  endif()
+
+  # On desktop, make a few tweaks to the downloaded BoringSSL files if present.
+  if(NOT ANDROID AND NOT IOS AND FIREBASE_USE_BORINGSSL)
+    if(DEFINED BORINGSSL_SOURCE_DIR AND EXISTS "${BORINGSSL_SOURCE_DIR}/include/openssl/opensslv.h")
+      set(boringssl_src_dir "${BORINGSSL_SOURCE_DIR}")
+    else()
+      set(boringssl_src_dir "${PROJECT_BINARY_DIR}/external/src/boringssl")
+    endif()
+    if(EXISTS "${boringssl_src_dir}/include/openssl/opensslv.h")
       # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
       # unless the header file contains OPENSSL_VERSION_NUMBER.
-      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
-      if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
-        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h
-        "\n#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
+      file(READ "${boringssl_src_dir}/include/openssl/opensslv.h" TMP_HEADER_CONTENTS)
+      if(NOT TMP_HEADER_CONTENTS MATCHES "OPENSSL_VERSION_NUMBER")
+        file(APPEND "${boringssl_src_dir}/include/openssl/opensslv.h"
+          "\n#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
       endif()
+    endif()
+    if(EXISTS "${boringssl_src_dir}/include/openssl/rand.h")
       # Also add an #include <stdlib.h> since openssl has it and boringssl
-      # doesn't, and some of our code depends on the transitive dependency (this
-      # is a bug).
-      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/rand.h TMP_HEADER2_CONTENTS)
-      if (NOT TMP_HEADER2_CONTENTS MATCHES "<stdlib.h>")
-        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/rand.h
-        "\n#include <stdlib.h>\n")
+      # doesn't, and some of our code depends on the transitive dependency.
+      file(READ "${boringssl_src_dir}/include/openssl/rand.h" TMP_HEADER2_CONTENTS)
+      if(NOT TMP_HEADER2_CONTENTS MATCHES "<stdlib.h>")
+        file(APPEND "${boringssl_src_dir}/include/openssl/rand.h"
+          "\n#include <stdlib.h>\n")
       endif()
     endif()
   endif()
@@ -127,18 +171,7 @@ endfunction()
 
 # Builds a subset of external dependencies that need to be built before everything else.
 function(build_external_dependencies)
-  # Setup cmake environment.
-  # These commands are executed from within the currect context, which has set
-  # variables for the target platform. We use "env -i" to clear these
-  # variables, and manually keep the PATH to regular bash path.
-  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-    # Windows doesn't have an 'env' command
-    set(ENV_COMMAND "")
-  else()
-    set(firebase_command_line_path "$ENV{PATH}")
-    set(firebase_command_line_home "$ENV{HOME}")
-    set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
-  endif()
+  _firebase_get_clean_env_command(ENV_COMMAND)
 
   message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
   message(STATUS "CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
@@ -147,71 +180,70 @@ function(build_external_dependencies)
   set(CMAKE_SUB_CONFIGURE_OPTIONS -G "${CMAKE_GENERATOR}")
   set(CMAKE_SUB_BUILD_OPTIONS)
 
-  if (CMAKE_BUILD_TYPE)
+  if(CMAKE_BUILD_TYPE)
     # If Release or Debug were specified, pass it along.
-    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+    list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
   endif()
-  
-  if (CMAKE_VERBOSE_MAKEFILE)
+
+  if(CMAKE_VERBOSE_MAKEFILE)
     # If verbose mode was enabled, pass it on
-    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-        "-DCMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE}")
+    list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS "-DCMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE}")
+  endif()
+
+  if(CMAKE_TOOLCHAIN_FILE)
+    list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
   endif()
 
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
-      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-          -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES})
+      list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
     endif()
     if(CMAKE_OSX_DEPLOYMENT_TARGET)
-      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
+      list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
     endif()
   elseif(MSVC)
     # Propagate MSVC build flags.
-    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-        -A "${CMAKE_GENERATOR_PLATFORM}")
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
-          --config Debug)
+    if(CMAKE_GENERATOR_PLATFORM)
+      list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS -A "${CMAKE_GENERATOR_PLATFORM}")
+    endif()
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      list(APPEND CMAKE_SUB_BUILD_OPTIONS --config Debug)
     else()
-      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
-          --config Release)
+      list(APPEND CMAKE_SUB_BUILD_OPTIONS --config Release)
     endif()
     if(MSVC_RUNTIME_LIBRARY_STATIC)
-      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-          -DCMAKE_C_FLAGS_RELEASE="/MT"
-          -DCMAKE_CXX_FLAGS_RELEASE="/MT"
-          -DCMAKE_C_FLAGS_DEBUG="/MTd"
-          -DCMAKE_CXX_FLAGS_DEBUG="/MTd")
-      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-            -DCMAKE_C_FLAGS="/MTd"
-            -DCMAKE_CXX_FLAGS="/MTd"
+      list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+          -DCMAKE_C_FLAGS_RELEASE=/MT
+          -DCMAKE_CXX_FLAGS_RELEASE=/MT
+          -DCMAKE_C_FLAGS_DEBUG=/MTd
+          -DCMAKE_CXX_FLAGS_DEBUG=/MTd)
+      if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+            -DCMAKE_C_FLAGS=/MTd
+            -DCMAKE_CXX_FLAGS=/MTd
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug)
       else()
-        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-            -DCMAKE_C_FLAGS="/MT"
-            -DCMAKE_CXX_FLAGS="/MT"
+        list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+            -DCMAKE_C_FLAGS=/MT
+            -DCMAKE_CXX_FLAGS=/MT
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
       endif()
     else()  # dynamic (DLL) runtime
-      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-          -DCMAKE_C_FLAGS_RELEASE="/MD"
-          -DCMAKE_CXX_FLAGS_RELEASE="/MD"
-          -DCMAKE_C_FLAGS_DEBUG="/MDd"
-          -DCMAKE_CXX_FLAGS_DEBUG="/MDd")
-      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-            -DCMAKE_C_FLAGS="/MDd"
-            -DCMAKE_CXX_FLAGS="/MDd"
+      list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+          -DCMAKE_C_FLAGS_RELEASE=/MD
+          -DCMAKE_CXX_FLAGS_RELEASE=/MD
+          -DCMAKE_C_FLAGS_DEBUG=/MDd
+          -DCMAKE_CXX_FLAGS_DEBUG=/MDd)
+      if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+            -DCMAKE_C_FLAGS=/MDd
+            -DCMAKE_CXX_FLAGS=/MDd
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
       else()
-        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-            -DCMAKE_C_FLAGS="/MD"
-            -DCMAKE_CXX_FLAGS="/MD"
+        list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+            -DCMAKE_C_FLAGS=/MD
+            -DCMAKE_CXX_FLAGS=/MD
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
       endif()
     endif()
@@ -224,45 +256,45 @@ function(build_external_dependencies)
     else()
       set(SUBBUILD_USE_CXX11_ABI 1)
     endif()
-    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-          -DCMAKE_C_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
-          -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
-    if(CMAKE_TOOLCHAIN_FILE)
-      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-          -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
-    endif()
+    list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+        "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
+        "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
   endif()
   # Propagate the PIC setting, as the dependencies need to match it
-  set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
-      -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE})
+  list(APPEND CMAKE_SUB_CONFIGURE_OPTIONS
+      "-DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE}")
   message(STATUS "Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
   message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
-  if(NOT ANDROID AND NOT IOS)
-    if (FIREBASE_USE_BORINGSSL)
+  if(NOT ANDROID AND NOT IOS AND FIREBASE_USE_BORINGSSL)
+    if(DEFINED BORINGSSL_SOURCE_DIR AND EXISTS "${BORINGSSL_SOURCE_DIR}/CMakeLists.txt")
+      set(boringssl_src_dir "${BORINGSSL_SOURCE_DIR}")
+    else()
+      set(boringssl_src_dir "${PROJECT_BINARY_DIR}/external/src/boringssl")
+    endif()
+    if(EXISTS "${boringssl_src_dir}/CMakeLists.txt")
+      set(boringssl_build_dir "${PROJECT_BINARY_DIR}/external/src/boringssl-build")
+      file(MAKE_DIRECTORY "${boringssl_build_dir}")
       execute_process(
-        COMMAND ${ENV_COMMAND} ${CMAKE_COMMAND} -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        COMMAND ${ENV_COMMAND} "${CMAKE_COMMAND}" -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} "${boringssl_src_dir}"
+        WORKING_DIRECTORY "${boringssl_build_dir}"
         RESULT_VARIABLE boringssl_configure_status
       )
-      if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
+      if(boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
         message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
       endif()
-    
-      # Run builds in parallel if we know how
-      if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-        set(cmake_build_args -j)
-      endif()
-    
+
+      _firebase_get_parallel_build_args(cmake_build_args)
+
       execute_process(
-        COMMAND ${ENV_COMMAND} ${CMAKE_COMMAND} --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        COMMAND ${ENV_COMMAND} "${CMAKE_COMMAND}" --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto ${cmake_build_args}
+        WORKING_DIRECTORY "${boringssl_build_dir}"
         RESULT_VARIABLE boringssl_build_status
       )
-      if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
+      if(boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
         message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
       endif()
-  
+
       # Also copy the built files into OPENSSL_ROOT_DIR to handle misconfigured
       # subprojects.
       file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
@@ -279,30 +311,31 @@ function(add_external_library NAME)
   cmake_parse_arguments(optional "" "BINARY_DIR" "" ${ARGN})
 
   if(optional_BINARY_DIR)
-      set(BINARY_DIR "${optional_BINARY_DIR}")
+    set(BINARY_DIR "${optional_BINARY_DIR}")
   else()
-      set(BINARY_DIR "${FIREBASE_BINARY_DIR}")
+    set(BINARY_DIR "${FIREBASE_BINARY_DIR}")
   endif()
 
-  string(TOUPPER ${NAME} UPPER_NAME)
-  if (NOT EXISTS ${${UPPER_NAME}_SOURCE_DIR})
+  string(TOUPPER "${NAME}" UPPER_NAME)
+  if(NOT DEFINED ${UPPER_NAME}_SOURCE_DIR OR "${${UPPER_NAME}_SOURCE_DIR}" STREQUAL "" OR
+     NOT EXISTS "${${UPPER_NAME}_SOURCE_DIR}")
     set(${UPPER_NAME}_SOURCE_DIR "${BINARY_DIR}/external/src/${NAME}")
     set(${UPPER_NAME}_SOURCE_DIR "${${UPPER_NAME}_SOURCE_DIR}" PARENT_SCOPE)
   endif()
 
-  if (NOT EXISTS ${${UPPER_NAME}_BINARY_DIR})
-    set(${UPPER_NAME}_BINARY_DIR "${${UPPER_NAME}_SOURCE_DIR}-build")
+  if(NOT DEFINED ${UPPER_NAME}_BINARY_DIR OR "${${UPPER_NAME}_BINARY_DIR}" STREQUAL "")
+    set(${UPPER_NAME}_BINARY_DIR "${BINARY_DIR}/external/src/${NAME}-build")
     set(${UPPER_NAME}_BINARY_DIR "${${UPPER_NAME}_BINARY_DIR}" PARENT_SCOPE)
   endif()
 
   message(STATUS "add_ext... ${UPPER_NAME}_SOURCE_DIR: ${${UPPER_NAME}_SOURCE_DIR}")
   message(STATUS "add_ext... ${UPPER_NAME}_BINARY_DIR: ${${UPPER_NAME}_BINARY_DIR}")
 
-  if (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/CMakeLists.txt")
-    add_subdirectory(${${UPPER_NAME}_SOURCE_DIR} ${${UPPER_NAME}_BINARY_DIR}
+  if(EXISTS "${${UPPER_NAME}_SOURCE_DIR}/CMakeLists.txt")
+    add_subdirectory("${${UPPER_NAME}_SOURCE_DIR}" "${${UPPER_NAME}_BINARY_DIR}"
             EXCLUDE_FROM_ALL)
-  elseif (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/src/CMakeLists.txt")
-    add_subdirectory(${${UPPER_NAME}_SOURCE_DIR}/src ${${UPPER_NAME}_BINARY_DIR}
+  elseif(EXISTS "${${UPPER_NAME}_SOURCE_DIR}/src/CMakeLists.txt")
+    add_subdirectory("${${UPPER_NAME}_SOURCE_DIR}/src" "${${UPPER_NAME}_BINARY_DIR}"
             EXCLUDE_FROM_ALL)
   endif()
 endfunction()
@@ -311,7 +344,7 @@ endfunction()
 macro(copy_subdirectory_definition DIRECTORY VARIABLE)
   get_directory_property(
     ${VARIABLE}
-    DIRECTORY ${DIRECTORY}
+    DIRECTORY "${DIRECTORY}"
     DEFINITION ${VARIABLE}
   )
 endmacro()

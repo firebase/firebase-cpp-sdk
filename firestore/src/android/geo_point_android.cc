@@ -52,8 +52,10 @@ Local<GeoPointInternal> GeoPointInternal::Create(Env& env,
 }
 
 GeoPoint GeoPointInternal::ToPublic(Env& env) const {
+  if (!*this) return GeoPoint();
   double latitude = env.Call(*this, kGetLatitude);
   double longitude = env.Call(*this, kGetLongitude);
+  if (!env.ok()) return GeoPoint();
   return GeoPoint(latitude, longitude);
 }
 

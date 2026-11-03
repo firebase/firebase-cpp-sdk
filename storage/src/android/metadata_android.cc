@@ -32,26 +32,18 @@ namespace internal {
 
 namespace {
 
-// Reserve enough capacity to bypass Small String Optimization (SSO) so that
-// moving cached std::strings (e.g. in move constructors or into
-// retired_strings_) transfers the heap buffer pointer without invalidating
-// previously returned c_str() pointers.
-constexpr size_t kMinCachedStringCapacity = 64;
-
-std::string MakeHeapBackedString(std::string value) {
-  if (value.capacity() < kMinCachedStringCapacity) {
-    value.reserve(kMinCachedStringCapacity);
-  }
-  return value;
-}
-
+// Deep-copies the string cache. Each cached string is heap-allocated and
+// owned by a std::unique_ptr, so moving the cache (or retiring an entry) moves
+// only the pointer and never relocates the characters: previously returned
+// c_str() pointers stay valid by construction, with no reliance on
+// std::string move/SSO behavior.
 template <size_t N>
-std::array<std::optional<std::string>, N> CopyStringCache(
-    const std::array<std::optional<std::string>, N>& src) {
-  std::array<std::optional<std::string>, N> dest{};
+std::array<std::unique_ptr<std::string>, N> CopyStringCache(
+    const std::array<std::unique_ptr<std::string>, N>& src) {
+  std::array<std::unique_ptr<std::string>, N> dest{};
   for (size_t i = 0; i < src.size(); ++i) {
-    if (src[i].has_value()) {
-      dest[i].emplace(MakeHeapBackedString(*src[i]));
+    if (src[i]) {
+      dest[i] = std::make_unique<std::string>(*src[i]);
     }
   }
   return dest;
@@ -71,7 +63,10 @@ METHOD_LOOKUP_DEFINITION(storage_metadata_builder,
                          STORAGE_METADATA_BUILDER_METHODS)
 
 MetadataInternal::MetadataInternal(StorageInternal* storage, jobject obj)
-    : storage_(storage), obj_(nullptr) {
+    : storage_(storage),
+      java_vm_((storage && storage->app()) ? storage->app()->java_vm()
+                                           : nullptr),
+      obj_(nullptr) {
   JNIEnv* env = GetJNIEnv();
   if (!env) return;
   if (obj == nullptr) {
@@ -119,9 +114,16 @@ MetadataInternal::~MetadataInternal() {
   retired_strings_.clear();
 }
 
+// Lifetime note: every MetadataInternal owned by a public Metadata is
+// registered with its StorageInternal's CleanupNotifier (common/metadata.cc)
+// and deleted when that StorageInternal is destroyed, so storage_ never
+// dangles while this object exists.
 JNIEnv* MetadataInternal::GetJNIEnv() const {
-  return (storage_ && storage_->app()) ? storage_->app()->GetJNIEnv()
-                                       : util::GetJNIEnvFromApp();
+  // Use the cached JavaVM: GetThreadsafeJNIEnv() attaches the calling thread
+  // if needed (so global refs are not leaked when destroyed on a native
+  // thread) and does not dereference storage_.
+  if (java_vm_ != nullptr) return util::GetThreadsafeJNIEnv(java_vm_);
+  return util::GetJNIEnvFromApp();
 }
 
 jobject MetadataInternal::NewLocalObj(JNIEnv* env) const {
@@ -134,6 +136,7 @@ MetadataInternal::MetadataInternal(const MetadataInternal& src)
     : storage_(nullptr), obj_(nullptr) {
   MutexLock src_lock(src.mutex_);
   storage_ = src.storage_;
+  java_vm_ = src.java_vm_;
   JNIEnv* env = GetJNIEnv();
   if (env && src.obj_) {
     CopyJavaMetadataObject(env, src.obj_);
@@ -153,7 +156,7 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& src) {
   StorageInternal* src_storage = nullptr;
   jobject src_obj_local = nullptr;
   std::unique_ptr<CustomMetadata> src_custom_metadata;
-  std::array<std::optional<std::string>, kCacheStringCount> src_cache{};
+  std::array<std::unique_ptr<std::string>, kCacheStringCount> src_cache{};
   Constants src_constants;
   JNIEnv* src_env = nullptr;
   {
@@ -179,6 +182,8 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& src) {
     obj_ = nullptr;
   }
   storage_ = src_storage;
+  java_vm_ = (storage_ && storage_->app()) ? storage_->app()->java_vm()
+                                          : nullptr;
   env = GetJNIEnv();
   if (env && src_obj_local) {
     CopyJavaMetadataObject(env, src_obj_local);
@@ -189,10 +194,8 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& src) {
 
   custom_metadata_ = std::move(src_custom_metadata);
   for (auto& entry : cache_) {
-    if (entry.has_value()) {
-      retired_strings_.push_back(
-          std::make_unique<std::string>(std::move(*entry)));
-      entry.reset();
+    if (entry) {
+      retired_strings_.push_back(std::move(entry));
     }
   }
   cache_ = std::move(src_cache);
@@ -204,6 +207,7 @@ MetadataInternal::MetadataInternal(MetadataInternal&& src) noexcept
     : storage_(nullptr), obj_(nullptr) {
   MutexLock src_lock(src.mutex_);
   storage_ = src.storage_;
+  java_vm_ = src.java_vm_;
   obj_ = src.obj_;
   custom_metadata_ = std::move(src.custom_metadata_);
   src.obj_ = nullptr;
@@ -223,7 +227,7 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& src) {
   StorageInternal* src_storage = nullptr;
   jobject src_obj = nullptr;
   std::unique_ptr<CustomMetadata> src_custom_metadata;
-  std::array<std::optional<std::string>, kCacheStringCount> src_cache{};
+  std::array<std::unique_ptr<std::string>, kCacheStringCount> src_cache{};
   std::vector<std::unique_ptr<std::string>> src_retired_strings;
   Constants src_constants;
   {
@@ -249,13 +253,13 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& src) {
     obj_ = nullptr;
   }
   storage_ = src_storage;
+  java_vm_ = (storage_ && storage_->app()) ? storage_->app()->java_vm()
+                                          : nullptr;
   obj_ = src_obj;
   custom_metadata_ = std::move(src_custom_metadata);
   for (auto& entry : cache_) {
-    if (entry.has_value()) {
-      retired_strings_.push_back(
-          std::make_unique<std::string>(std::move(*entry)));
-      entry.reset();
+    if (entry) {
+      retired_strings_.push_back(std::move(entry));
     }
   }
   for (auto& retired : src_retired_strings) {
@@ -504,7 +508,7 @@ void MetadataInternal::ReadCustomMetadata(
 
 int64_t MetadataInternal::generation() const {
   MutexLock lock(mutex_);
-  if (!obj_ && !cache_[kCacheStringGeneration].has_value()) return -1;
+  if (!obj_ && !cache_[kCacheStringGeneration]) return -1;
   const char* str = GetStringProperty(storage_metadata::kGetGeneration,
                                       kCacheStringGeneration);
   if (!str || str[0] == '\0') return 0;
@@ -516,7 +520,7 @@ int64_t MetadataInternal::generation() const {
 
 int64_t MetadataInternal::metadata_generation() const {
   MutexLock lock(mutex_);
-  if (!obj_ && !cache_[kCacheStringMetadataGeneration].has_value()) return -1;
+  if (!obj_ && !cache_[kCacheStringMetadataGeneration]) return -1;
   const char* str = GetStringProperty(storage_metadata::kGetMetadataGeneration,
                                       kCacheStringMetadataGeneration);
   if (!str || str[0] == '\0') return 0;
@@ -570,26 +574,25 @@ const char* MetadataInternal::md5_hash() const {
 const char* MetadataInternal::GetStringProperty(
     storage_metadata::Method string_method, CacheString cache_string) const {
   MutexLock lock(mutex_);
-  std::optional<std::string>& cached_string = cache_[cache_string];
-  if (!cached_string.has_value()) {
+  std::unique_ptr<std::string>& cached_string = cache_[cache_string];
+  if (!cached_string) {
     if (!obj_) {
-      cached_string.emplace(MakeHeapBackedString(""));
+      cached_string = std::make_unique<std::string>("");
       return cached_string->c_str();
     }
     JNIEnv* env = GetJNIEnv();
     if (!env) {
-      cached_string.emplace(MakeHeapBackedString(""));
+      cached_string = std::make_unique<std::string>("");
       return cached_string->c_str();
     }
     jobject str = env->CallObjectMethod(
         obj_, storage_metadata::GetMethodId(string_method));
     if (util::CheckAndClearJniExceptions(env) || !str) {
       if (str) env->DeleteLocalRef(str);
-      cached_string.emplace(MakeHeapBackedString(""));
+      cached_string = std::make_unique<std::string>("");
       return cached_string->c_str();
     }
-    cached_string.emplace(
-        MakeHeapBackedString(util::JniStringToString(env, str)));
+    cached_string = std::make_unique<std::string>(util::JniStringToString(env, str));
   }
   return cached_string->c_str();
 }
@@ -600,11 +603,10 @@ void MetadataInternal::SetStringProperty(
   MutexLock lock(mutex_);
   if (!obj_) return;
   std::string value_copy = string_value ? string_value : "";
-  std::optional<std::string>& cached_string = cache_[cache_string];
-  if (cached_string.has_value()) {
-    retired_strings_.push_back(
-        std::make_unique<std::string>(std::move(*cached_string)));
-    cached_string.reset();
+  std::unique_ptr<std::string>& cached_string = cache_[cache_string];
+  if (cached_string) {
+    // Keep the old buffer alive: callers may still hold its c_str().
+    retired_strings_.push_back(std::move(cached_string));
   }
   JNIEnv* env = GetJNIEnv();
   if (!env) return;

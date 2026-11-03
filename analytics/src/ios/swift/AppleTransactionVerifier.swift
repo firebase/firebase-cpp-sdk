@@ -17,8 +17,11 @@ import StoreKit
 import FirebaseAnalytics
 
 @objc public class AppleTransactionVerifier: NSObject {
-    
-    @objc public static func verify(transactionId: String, completion: @escaping @Sendable (Bool) -> Void) {
+
+    @objc public static func verify(
+        transactionId: String,
+        completion: @escaping @Sendable (Bool, String?) -> Void
+    ) {
         if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
             Task {
                 // Using a manual while loop instead of `for await` avoids a Swift 6 / Xcode 16
@@ -28,18 +31,27 @@ import FirebaseAnalytics
                 // which causes an immediate `dyld: Symbol not found` crash upon launch.
                 var iterator = Transaction.all.makeAsyncIterator()
                 while let verificationResult = await iterator.next() {
-                    if case .verified(let transaction) = verificationResult {
+                    switch verificationResult {
+                    case .verified(let transaction):
                         if String(transaction.id) == transactionId {
                             Analytics.logTransaction(transaction)
-                            completion(true)
+                            completion(true, nil)
+                            return
+                        }
+                    case .unverified(let transaction, let verificationError):
+                        if String(transaction.id) == transactionId {
+                            completion(
+                                false,
+                                "StoreKit 2 transaction verification failed: \(verificationError.localizedDescription)"
+                            )
                             return
                         }
                     }
                 }
-                completion(false)
+                completion(false, "StoreKit 2 transaction not found.")
             }
         } else {
-            completion(false)
+            completion(false, "StoreKit 2 requires iOS 15.0 / tvOS 15.0 / macOS 12.0 or newer.")
         }
     }
 }

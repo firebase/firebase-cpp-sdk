@@ -40,9 +40,13 @@ enum ConsentDebugGeography {
   /// Disable geography debugging.
   kConsentDebugGeographyDisabled = 0,
   /// Geography appears as in EEA (European Economic Area) for debug devices.
-  kConsentDebugGeographyEEA,
+  kConsentDebugGeographyEEA = 1,
   /// Geography appears as not in EEA for debug devices.
-  kConsentDebugGeographyNonEEA
+  kConsentDebugGeographyNonEEA = 2,
+  /// Geography appears as in a regulated US state for debug devices.
+  kConsentDebugGeographyRegulatedUSState = 3,
+  /// Geography appears as in a region with no regulation in force.
+  kConsentDebugGeographyOther = 4
 };
 
 /// Debug settings for `ConsentInfo::RequestConsentInfoUpdate()`. These let you
@@ -57,6 +61,16 @@ struct ConsentDebugSettings {
   /// A list of all device IDs that are allowed to use debug settings. You can
   /// obtain this from the device log after running with debug settings enabled.
   std::vector<std::string> debug_device_ids;
+
+#if !defined(SWIG)
+  bool operator==(const ConsentDebugSettings& other) const noexcept {
+    return debug_geography == other.debug_geography &&
+           debug_device_ids == other.debug_device_ids;
+  }
+  bool operator!=(const ConsentDebugSettings& other) const noexcept {
+    return !(*this == other);
+  }
+#endif  // !defined(SWIG)
 };
 
 /// Parameters for the `ConsentInfo::RequestConsentInfoUpdate()` operation.
@@ -68,6 +82,16 @@ struct ConsentRequestParameters {
 
   /// Whether the user is under the age of consent.
   bool tag_for_under_age_of_consent;
+
+#if !defined(SWIG)
+  bool operator==(const ConsentRequestParameters& other) const noexcept {
+    return debug_settings == other.debug_settings &&
+           tag_for_under_age_of_consent == other.tag_for_under_age_of_consent;
+  }
+  bool operator!=(const ConsentRequestParameters& other) const noexcept {
+    return !(*this == other);
+  }
+#endif  // !defined(SWIG)
 };
 
 /// This is a platform specific datatype that is required to show a consent form
@@ -121,7 +145,9 @@ enum ConsentRequestError {
   /// The operation is already in progress. Use
   /// `ConsentInfo::RequestConsentInfoUpdateLastResult()`
   /// to get the status.
-  kConsentRequestErrorOperationInProgress
+  kConsentRequestErrorOperationInProgress,
+  /// The request timed out. Try again.
+  kConsentRequestErrorTimeout
 };
 
 /// Status of the consent form, whether it is available to show or not.
@@ -156,7 +182,9 @@ enum ConsentFormError {
   /// The operation is already in progress. Call
   /// `ConsentInfo::LoadConsentFormLastResult()` or
   /// `ConsentInfo::ShowConsentFormLastResult()` to get the status.
-  kConsentFormErrorOperationInProgress
+  kConsentFormErrorOperationInProgress,
+  /// A network error occurred while loading or showing the form.
+  kConsentFormErrorNetwork
 };
 
 /// Whether the privacy options need to be displayed.

@@ -86,7 +86,7 @@ std::ostream& operator<<(std::ostream& os, CompilerVersion) {
 #else
   os << "." << _MSC_FULL_VER % 10000;
 #endif  // _MSC_VER >= 1400
-#endif  // defined(_MSC_VER)
+#endif  // defined(_MSC_FULL_VER)
 
 #else
   os << "Unknown";
@@ -144,17 +144,14 @@ std::ostream& operator<<(std::ostream& os, LanguageVersion) {
     case 202002L:
       os << "2020";
       break;
+    case 202302L:
+      os << "2023";
+      break;
     default:
-#ifdef _MSC_VER
-      // According to
-      // https://docs.microsoft.com/en-us/cpp/preprocessor/predefined-macros,
-      // _MSVC_LANG is "set to a higher, unspecified value when the
-      // `/std:c++latest` option is specified".
       if (FIRESTORE__CPLUSPLUS > 202002L) {
         os << "latest";
         break;
       }
-#endif  // _MSC_VER
       os << "unknown";
       break;
   }
@@ -169,7 +166,7 @@ std::ostream& operator<<(std::ostream& os, StandardLibraryVendor) {
   os << "stlport";
 #elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
   os << "gnustl";
-#elif defined(_LIBCPP_STD_VER)
+#elif defined(_LIBCPP_VERSION) || defined(_LIBCPP_STD_VER)
   os << "libcpp";
 #elif defined(_MSC_VER)
   os << "msvc";
@@ -185,7 +182,7 @@ std::string GetFullCompilerInfo() {
   std::ostringstream os;
   os << CompilerId() << "-" << CompilerVersion() << "-" << CompilerFeatures()
      << "-" << LanguageVersion() << "-" << StandardLibraryVendor();
-  return std::move(os).str();
+  return os.str();
 }
 
 }  // namespace firestore

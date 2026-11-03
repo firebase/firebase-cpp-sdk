@@ -17,14 +17,28 @@
 #ifndef FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DESKTOP_DYNAMIC_H_
 #define FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DESKTOP_DYNAMIC_H_
 
-#define ANALYTICS_API  // filter out from header copy
-
-#include <stdbool.h>  // needed for bool type in pure C
-
-// --- Copied from original header ---
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif  // defined(_WIN32)
+
+#ifndef ANALYTICS_API
+#define ANALYTICS_API
+#define FIREBASE_ANALYTICS_UNDEF_ANALYTICS_API_
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct GoogleAnalytics_Reserved_Opaque GoogleAnalytics_Reserved;
 
@@ -103,10 +117,10 @@ typedef enum GoogleAnalytics_AppLifecycleState {
  * @brief The log level of a log message.
  */
 typedef enum GoogleAnalytics_LogLevel {
-  kDebug,
-  kInfo,
-  kWarning,
-  kError,
+  GoogleAnalytics_LogLevel_kDebug = 0,
+  GoogleAnalytics_LogLevel_kInfo = 1,
+  GoogleAnalytics_LogLevel_kWarning = 2,
+  GoogleAnalytics_LogLevel_kError = 3,
 } GoogleAnalytics_LogLevel;
 
 /**
@@ -116,29 +130,6 @@ typedef enum GoogleAnalytics_LogLevel {
  */
 typedef void (*GoogleAnalytics_LogCallback)(int32_t log_level,
                                             const char* message);
-
-/**
- * @brief Creates an instance of GoogleAnalytics_Options with default values.
- *
- * The caller is responsible for destroying the options using the
- * GoogleAnalytics_Options_Destroy() function, unless it has been passed to the
- * GoogleAnalytics_Initialize() function, in which case it will be destroyed
- * automatically.
- *
- * @return A pointer to a newly allocated GoogleAnalytics_Options instance.
- */
-ANALYTICS_API GoogleAnalytics_Options* GoogleAnalytics_Options_Create();
-
-/**
- * @brief Destroys the GoogleAnalytics_Options instance. Must not be called if
- * the options were created with GoogleAnalytics_Options_Create() and passed to
- * the GoogleAnalytics_Initialize() function, which would destroy them
- * automatically.
- *
- * @param[in] options The GoogleAnalytics_Options instance to destroy.
- */
-ANALYTICS_API void GoogleAnalytics_Options_Destroy(
-    GoogleAnalytics_Options* options);
 
 /**
  * @brief Opaque type for an item.
@@ -183,23 +174,19 @@ typedef struct GoogleAnalytics_EventParameters_Opaque
 
 // --- End of copied section ---
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // --- Function Pointer Declarations ---
 // clang-format off
-extern GoogleAnalytics_Options* (*ptr_GoogleAnalytics_Options_Create)();
+extern GoogleAnalytics_Options* (*ptr_GoogleAnalytics_Options_Create)(void);
 extern void (*ptr_GoogleAnalytics_Options_Destroy)(GoogleAnalytics_Options* options);
-extern GoogleAnalytics_Item* (*ptr_GoogleAnalytics_Item_Create)();
+extern GoogleAnalytics_Item* (*ptr_GoogleAnalytics_Item_Create)(void);
 extern bool (*ptr_GoogleAnalytics_Item_InsertInt)(GoogleAnalytics_Item* item, const char* key, int64_t value);
 extern bool (*ptr_GoogleAnalytics_Item_InsertDouble)(GoogleAnalytics_Item* item, const char* key, double value);
 extern bool (*ptr_GoogleAnalytics_Item_InsertString)(GoogleAnalytics_Item* item, const char* key, const char* value);
 extern void (*ptr_GoogleAnalytics_Item_Destroy)(GoogleAnalytics_Item* item);
-extern GoogleAnalytics_ItemVector* (*ptr_GoogleAnalytics_ItemVector_Create)();
+extern GoogleAnalytics_ItemVector* (*ptr_GoogleAnalytics_ItemVector_Create)(void);
 extern bool (*ptr_GoogleAnalytics_ItemVector_InsertItem)(GoogleAnalytics_ItemVector* item_vector, GoogleAnalytics_Item* item);
 extern void (*ptr_GoogleAnalytics_ItemVector_Destroy)(GoogleAnalytics_ItemVector* item_vector);
-extern GoogleAnalytics_EventParameters* (*ptr_GoogleAnalytics_EventParameters_Create)();
+extern GoogleAnalytics_EventParameters* (*ptr_GoogleAnalytics_EventParameters_Create)(void);
 extern bool (*ptr_GoogleAnalytics_EventParameters_InsertInt)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, int64_t value);
 extern bool (*ptr_GoogleAnalytics_EventParameters_InsertDouble)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, double value);
 extern bool (*ptr_GoogleAnalytics_EventParameters_InsertString)(GoogleAnalytics_EventParameters* event_parameter_map, const char* key, const char* value);
@@ -210,11 +197,12 @@ extern void (*ptr_GoogleAnalytics_LogEvent)(const char* name, GoogleAnalytics_Ev
 extern void (*ptr_GoogleAnalytics_SetDefaultEventParameters)(GoogleAnalytics_EventParameters* parameters, size_t number_of_parameters);
 extern void (*ptr_GoogleAnalytics_SetUserProperty)(const char* name, const char* value);
 extern void (*ptr_GoogleAnalytics_SetUserId)(const char* user_id);
-extern void (*ptr_GoogleAnalytics_ResetAnalyticsData)();
+extern void (*ptr_GoogleAnalytics_ResetAnalyticsData)(void);
 extern void (*ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled)(bool enabled);
 extern void (*ptr_GoogleAnalytics_SetLogCallback)(GoogleAnalytics_LogCallback callback);
+extern void (*ptr_GoogleAnalytics_SetSessionTimeoutInterval)(int64_t session_timeout_duration_seconds);
 extern void (*ptr_GoogleAnalytics_NotifyAppLifecycleChange)(GoogleAnalytics_AppLifecycleState state);
-extern bool (*ptr_GoogleAnalytics_IsInitialized)();
+extern bool (*ptr_GoogleAnalytics_IsInitialized)(void);
 extern void (*ptr_GoogleAnalytics_SetDebugMode)(bool enabled);
 
 #define GoogleAnalytics_Options_Create ptr_GoogleAnalytics_Options_Create
@@ -235,23 +223,24 @@ extern void (*ptr_GoogleAnalytics_SetDebugMode)(bool enabled);
 #define GoogleAnalytics_EventParameters_Destroy ptr_GoogleAnalytics_EventParameters_Destroy
 #define GoogleAnalytics_Initialize ptr_GoogleAnalytics_Initialize
 #define GoogleAnalytics_LogEvent ptr_GoogleAnalytics_LogEvent
+#define GoogleAnalytics_SetDefaultEventParameters ptr_GoogleAnalytics_SetDefaultEventParameters
 #define GoogleAnalytics_SetUserProperty ptr_GoogleAnalytics_SetUserProperty
 #define GoogleAnalytics_SetUserId ptr_GoogleAnalytics_SetUserId
 #define GoogleAnalytics_ResetAnalyticsData ptr_GoogleAnalytics_ResetAnalyticsData
 #define GoogleAnalytics_SetAnalyticsCollectionEnabled ptr_GoogleAnalytics_SetAnalyticsCollectionEnabled
 #define GoogleAnalytics_SetLogCallback ptr_GoogleAnalytics_SetLogCallback
+#define GoogleAnalytics_SetSessionTimeoutInterval ptr_GoogleAnalytics_SetSessionTimeoutInterval
 #define GoogleAnalytics_NotifyAppLifecycleChange ptr_GoogleAnalytics_NotifyAppLifecycleChange
 #define GoogleAnalytics_IsInitialized ptr_GoogleAnalytics_IsInitialized
 #define GoogleAnalytics_SetDebugMode ptr_GoogleAnalytics_SetDebugMode
 // clang-format on
 
-// Number of Google Analytics functions expected to be loaded from the DLL.
+// Number of required Google Analytics functions expected to be loaded from the
+// DLL.
 extern const int FirebaseAnalytics_DynamicFunctionCount;
 
 // --- Dynamic Loader Declaration for Windows ---
 #if defined(_WIN32)
-
-#include <windows.h>
 
 // Array of known Google Analytics Windows DLL SHA256 hashes (hex strings).
 extern const char* FirebaseAnalytics_KnownWindowsDllHashes[];
@@ -259,7 +248,7 @@ extern const char* FirebaseAnalytics_KnownWindowsDllHashes[];
 extern const int FirebaseAnalytics_KnownWindowsDllHashCount;
 
 // Load Analytics functions from the given DLL handle into function pointers.
-// Returns the number of functions successfully loaded.
+// Returns the number of required functions successfully loaded.
 int FirebaseAnalytics_LoadDynamicFunctions(HMODULE dll_handle);
 
 // Reset all function pointers back to stubs.
@@ -269,6 +258,11 @@ void FirebaseAnalytics_UnloadDynamicFunctions(void);
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef FIREBASE_ANALYTICS_UNDEF_ANALYTICS_API_
+#undef ANALYTICS_API
+#undef FIREBASE_ANALYTICS_UNDEF_ANALYTICS_API_
 #endif
 
 #endif  // FIREBASE_ANALYTICS_SRC_WINDOWS_ANALYTICS_DESKTOP_DYNAMIC_H_

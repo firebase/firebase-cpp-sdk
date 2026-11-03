@@ -16,14 +16,17 @@
 #define FIREBASE_DATABASE_SRC_IOS_DATABASE_IOS_H_
 
 #include <map>
-#include <set>
-
 #include <memory>
+#include <set>
+#include <string>
+#include <utility>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
+#include "app/src/safe_reference.h"
 #include "app/src/util_ios.h"
 #include "database/src/common/listener.h"
 #include "database/src/include/firebase/database/database_reference.h"
@@ -38,7 +41,9 @@ class ReferenceCountedFutureImpl;
 namespace database {
 namespace internal {
 
-// For constructing, copying or moving DatabaseReferences atomically.
+// Defined in database_ios.mm and referenced by
+// database/src/common/database_reference.cc to synchronize DatabaseReference
+// construction, copy/move, and destruction across threads.
 extern Mutex g_database_reference_constructor_mutex;
 
 // This defines the class FIRDatabasePointer, which is a C++-compatible wrapper
@@ -49,14 +54,20 @@ OBJ_C_PTR_WRAPPER(FIRDatabase);
 // used by observer callbacks of FIRDatabaseQuery.
 OBJ_C_PTR_WRAPPER(NSRecursiveLock);
 
-#pragma clang assume_nonnull begin
-
 // This is the iOS implementation of Database.
 class DatabaseInternal {
  public:
+  using ThisRef = firebase::internal::SafeReference<DatabaseInternal>;
+  using ThisRefLock = firebase::internal::SafeReferenceLock<DatabaseInternal>;
+
   explicit DatabaseInternal(App* app);
 
   DatabaseInternal(App* app, const char* url);
+
+  DatabaseInternal(const DatabaseInternal&) = delete;
+  DatabaseInternal& operator=(const DatabaseInternal&) = delete;
+  DatabaseInternal(DatabaseInternal&&) = delete;
+  DatabaseInternal& operator=(DatabaseInternal&&) = delete;
 
   ~DatabaseInternal();
 
@@ -127,12 +138,15 @@ class DatabaseInternal {
     single_value_listeners_.insert(listener);
   }
 
-  // Finish tracking a transient listener.
-  void RemoveSingleValueListener(ValueListener* listener) {
+  // Finish tracking a transient listener. Returns true if the listener was
+  // found and erased (meaning the caller owns deleting it), or false if it was
+  // already removed (e.g. during ~DatabaseInternal() teardown).
+  bool RemoveSingleValueListener(ValueListener* listener) {
     MutexLock lock(listener_mutex_);
     auto it = single_value_listeners_.find(listener);
-    if (it == single_value_listeners_.end()) return;
+    if (it == single_value_listeners_.end()) return false;
     single_value_listeners_.erase(it);
+    return true;
   }
 
   FutureManager& future_manager() { return future_manager_; }
@@ -150,18 +164,29 @@ class DatabaseInternal {
 #ifdef __OBJC__
   // Guard access to C++ objects referenced by
   // FIRCPPDatabaseQueryCallbackStatePointer.
-  NSRecursiveLock* query_lock() const { return query_lock_->get(); }
+  NSRecursiveLock* query_lock() const {
+    return query_lock_ ? query_lock_->get() : nil;
+  }
 #endif  // __OBJC__
 
   Logger* logger() { return &logger_; }
 
+  ThisRef& this_ref() { return this_ref_; }
+
  private:
 #ifdef __OBJC__
-  FIRDatabase* impl() const { return impl_->get(); }
+  FIRDatabase* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
+
+  // Declared first so logger_ outlives cleanup_, future_manager_, and listener
+  // lookup containers during destruction.
+  Logger logger_;
 
   // The firebase::App that this Database was created with.
   App* app_;
+
+  // Safe reference to this instance for asynchronous callbacks.
+  ThisRef this_ref_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRDatabasePointer> impl_;
@@ -177,9 +202,11 @@ class DatabaseInternal {
   ListenerCollection<ValueListener> value_listeners_by_query_;
   ListenerCollection<ChildListener> child_listeners_by_query_;
 
-  std::map<ValueListener*, FIRCPPDatabaseQueryCallbackStatePointer>
+  std::map<std::pair<internal::QuerySpec, ValueListener*>,
+           FIRCPPDatabaseQueryCallbackStatePointer>
       cleanup_value_listener_lookup_;
-  std::map<ChildListener*, FIRCPPDatabaseQueryCallbackStatePointer>
+  std::map<std::pair<internal::QuerySpec, ChildListener*>,
+           FIRCPPDatabaseQueryCallbackStatePointer>
       cleanup_child_listener_lookup_;
   std::set<ValueListener*> single_value_listeners_;
 
@@ -190,11 +217,7 @@ class DatabaseInternal {
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
-
-  Logger logger_;
 };
-
-#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace database

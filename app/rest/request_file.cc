@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-#include "app/rest/request_file.h"
-
-#include "app/src/include/firebase/internal/platform.h"
-
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
 #endif  // _FILE_OFFSET_BITS
+
+#include "app/rest/request_file.h"
+
 #include <stdio.h>
 
 #include <cassert>
 #include <cstddef>
+
+#include "app/src/include/firebase/internal/platform.h"
 
 // Map to POSIX compliant fseek on Windows.
 #if FIREBASE_PLATFORM_WINDOWS
@@ -43,23 +44,35 @@ namespace firebase {
 namespace rest {
 
 // Create a request that will read from the specified file.
-// This file isn't opened until the first call to ReadBody().
 // Note that on Windows, the filename will be UTF-8 encoded
 // and needs to be converted to utf16.
-RequestFile::RequestFile(const char* filename, size_t offset) : file_size_(0) {
+RequestFile::RequestFile(const char* filename, size_t offset)
+    : file_(nullptr), file_size_(0), post_fields_size_(0) {
+  if (filename) {
 #if FIREBASE_PLATFORM_WINDOWS
-  std::string filename_utf8(filename);
-  std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_utf16;
-  std::wstring filename_utf16 = utf8_to_utf16.from_bytes(filename_utf8);
-  file_ = _wfopen(filename_utf16.c_str(), L"rb");
+    std::string filename_utf8(filename);
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_utf16;
+    std::wstring filename_utf16 = utf8_to_utf16.from_bytes(filename_utf8);
+    file_ = _wfopen(filename_utf16.c_str(), L"rb");
 #else
-  file_ = fopen(filename, "rb");
+    file_ = fopen(filename, "rb");
 #endif
+  }
   options_.stream_post_fields = true;
   // If the file exists, seek to the end of the file and get the size.
-  if (file_ && fseeko(file_, 0, SEEK_END) == 0) {
-    file_size_ = static_cast<size_t>(ftello(file_));
-    if (fseeko(file_, offset, SEEK_SET) != 0) CloseFile();
+  if (file_) {
+    if (fseeko(file_, 0, SEEK_END) == 0) {
+      auto end_pos = ftello(file_);
+      if (end_pos >= 0 && offset <= static_cast<size_t>(end_pos) &&
+          fseeko(file_, offset, SEEK_SET) == 0) {
+        file_size_ = static_cast<size_t>(end_pos);
+        post_fields_size_ = file_size_ - offset;
+      } else {
+        CloseFile();
+      }
+    } else {
+      CloseFile();
+    }
   }
 }
 
@@ -67,6 +80,7 @@ void RequestFile::CloseFile() {
   if (file_) fclose(file_);
   file_ = nullptr;
   file_size_ = 0;
+  post_fields_size_ = 0;
 }
 
 // This object will assert if post fields are set.

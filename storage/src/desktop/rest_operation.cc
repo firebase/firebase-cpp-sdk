@@ -149,34 +149,34 @@ RestOperation::RestOperation(
   if (listener) {
     set_listener(listener);
   } else if (listener_state) {
-    ListenerInternal* impl_key = nullptr;
-    {
-      std::lock_guard<std::mutex> lock(listener_state->mutex);
-      if (listener_state->listener != nullptr) {
-        impl_key = listener_state->listener_internal;
-      }
-    }
-    if (impl_key != nullptr) {
-      AttachListenerState(impl_key, listener_state);
-      {
-        std::lock_guard<std::mutex> lock(listener_state->mutex);
-        if (listener_state->listener != nullptr) {
-          listener_state->rest_operation = this;
-          listener_state->op_handle = op_handle_;
-          listener_state->bytes_transferred = -1;
-          listener_state->total_byte_count = -1;
-        }
-      }
-      cleanup_.RegisterObjectFunction(
-          impl_key, [listener_state, this](void*) {
-            std::lock_guard<std::mutex> lock(listener_state->mutex);
-            if (listener_state->rest_operation == this) {
-              listener_state->rest_operation = nullptr;
-              listener_state->op_handle.reset();
-            }
-          });
+    MutexLock lock(mutex_);
+    std::lock_guard<std::mutex> state_lock(listener_state->mutex);
+    if (listener_state->listener != nullptr &&
+        listener_state->listener_internal != nullptr) {
+      listener_internal_ = listener_state->listener_internal;
+      listener_state_ = listener_state;
+      listener_state->rest_operation = this;
+      listener_state->op_handle = op_handle_;
+      listener_state->bytes_transferred = -1;
+      listener_state->total_byte_count = -1;
     }
   }
+  cleanup_.RegisterObject(this, [](void* op_void) {
+    auto* op = static_cast<RestOperation*>(op_void);
+    std::shared_ptr<ListenerSharedState> state;
+    {
+      MutexLock lock(op->mutex_);
+      op->listener_internal_ = nullptr;
+      state = std::move(op->listener_state_);
+    }
+    if (state) {
+      std::lock_guard<std::mutex> state_lock(state->mutex);
+      if (state->rest_operation == op) {
+        state->rest_operation = nullptr;
+        state->op_handle.reset();
+      }
+    }
+  });
 
   // Start() guarantees a non-null storage_internal_, which owns this object.
   // The cleanup callback identifies this operation by its unique id rather
@@ -184,12 +184,13 @@ RestOperation::RestOperation(
   // later allocated at the same address.
   {
     StorageInternal* owner = storage_internal_;
-    const uint64_t operation_id = owner->AddOperation(this);
-    owner->cleanup().RegisterObjectFunction(
-        this, [owner, operation_id](void* operation) {
-          owner->DeleteOperation(static_cast<RestOperation*>(operation),
-                                 operation_id);
-        });
+    operation_id_ = owner->AddOperation(this);
+    owner->cleanup().RegisterObject(this, [](void* operation) {
+      auto* op = static_cast<RestOperation*>(operation);
+      if (op->storage_internal_) {
+        op->storage_internal_->DeleteOperation(op, op->operation_id_);
+      }
+    });
   }
 
   if (response_) {
@@ -222,17 +223,34 @@ RestOperation::RestOperation(
         this);
   }
 
-  // Start the async transfer outside mutex_ to prevent lock-order inversions if
-  // Perform() ever invokes a callback synchronously.
-  std::unique_ptr<rest::Controller> local_controller;
-  transport_.Perform(request_.get(), response_.get(), &local_controller);
-  {
-    MutexLock lock(mutex_);
-    rest_controller_ = std::move(local_controller);
-  }
-
   if (controller_out) {
     *controller_out = controller_;
+  }
+
+  // Publish rest_controller_ atomically with starting the transfer, so that
+  // Pause()/Resume()/Cancel()/bytes_transferred() work from the very first
+  // progress callback. TransportCurl::PerformInternal() populates
+  // *controller_out *before* it posts the transfer to the curl I/O thread, and
+  // mutex_ is held until Perform() returns, so:
+  //  * every progress callback on the I/O thread (which starts with
+  //    NotifyListenerOfProgress() taking mutex_) and every Pause()/Resume()/
+  //    Cancel()/byte-count query from another thread observes the controller;
+  //  * nobody can read rest_controller_ while Perform() is writing it.
+  // In the normal (async) path Perform() only allocates and posts the
+  // transfer; it takes no lock but leaf locks inside the transport, so holding
+  // mutex_ across it cannot invert any lock order. Perform() only runs
+  // callbacks synchronously if the curl I/O loop has already stopped
+  // (AbortWithoutLoop()), which cannot happen while storage_internal_ (which
+  // holds a reference on the loop from its constructor until the very end of
+  // its destructor, after every operation is gone) is alive. Even then, mutex_
+  // is recursive, and NotifyListenerOfProgress() suppresses listener dispatch
+  // on this thread while perform_thread_ is set, so no user callback ever runs
+  // with mutex_ held.
+  {
+    MutexLock lock(mutex_);
+    perform_thread_ = std::this_thread::get_id();
+    transport_.Perform(request_.get(), response_.get(), &rest_controller_);
+    perform_thread_ = std::thread::id();
   }
   is_started_.store(true);
 }
@@ -332,6 +350,13 @@ void RestOperation::NotifyListenerOfProgress() {
   std::shared_ptr<ListenerSharedState> state;
   {
     MutexLock lock(mutex_);
+    if (perform_thread_ == std::this_thread::get_id()) {
+      // Synchronous callback from inside transport_.Perform() in the
+      // constructor, which holds mutex_ (see there). Dispatching would run the
+      // user listener with mutex_ held, so skip this progress update; the
+      // final result is still reported through the response's future.
+      return;
+    }
     state = listener_state_;
   }
   if (!state) {
@@ -364,7 +389,6 @@ void RestOperation::set_listener(Listener* listener) {
     listener_state_ = new_state;
   }
   if (old_state && old_impl) {
-    cleanup_.UnregisterObject(old_impl);
     std::lock_guard<std::mutex> state_lock(old_state->mutex);
     if (old_state->rest_operation == this) {
       old_state->rest_operation = nullptr;

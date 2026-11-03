@@ -34,9 +34,6 @@ typedef std::map<std::string, std::map<std::string, std::string>>
 
 // Use to keep and work with key/value records. Each namespace contains some
 // amount of key/value records.
-//
-// `LayeredConfigs` has `proto::ConfigHolder` analogue to keep data in file.
-// Has convertors in both sides.
 class NamespacedConfigData {
  public:
   NamespacedConfigData();
@@ -47,7 +44,7 @@ class NamespacedConfigData {
   // Serialization method.
   std::string Serialize() const;
   // Deserializes a string buffer previously Serialized.
-  void Deserialize(const std::string& buffer);
+  bool Deserialize(const std::string& buffer);
 
   // Set key/value records from `map` by `namespace`.
   void SetNamespace(const std::map<std::string, std::string>& map,
@@ -100,7 +97,7 @@ struct LayeredConfigs {
                  const RemoteConfigMetadata& fetch_metadata);
 
   std::string Serialize() const;
-  void Deserialize(const std::string& buffer);
+  bool Deserialize(const std::string& buffer);
 
   // For testing.
   bool operator==(const LayeredConfigs& right) const;

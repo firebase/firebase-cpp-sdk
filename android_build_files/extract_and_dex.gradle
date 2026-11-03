@@ -18,7 +18,8 @@ def defineExtractionTasks(String resourceName, String buildType) {
   project.ext {
     sdk_dir = project.android.sdkDirectory
     if (sdk_dir == null || !sdk_dir.exists()) {
-      sdk_dir = System.getenv('ANDROID_HOME')
+      def envHome = System.getenv('ANDROID_HOME')
+      sdk_dir = envHome != null ? new File(envHome) : null
       if (sdk_dir == null || !sdk_dir.exists()) {
         throw new StopActionException(
           'Android SDK directory should be specified using the ' +
@@ -30,6 +31,8 @@ def defineExtractionTasks(String resourceName, String buildType) {
   // Create the tasks after evaluation, as the Android tasks are not available
   // until that phase.
   afterEvaluate {
+    String extractDir = "$buildDir/$buildType"
+    String extractedClassesJar = "$extractDir/classes.jar"
     Task extractJar = tasks.create(
         name: "extractJar$buildType",
         dependsOn: "bundle${buildType}Aar",
@@ -37,7 +40,7 @@ def defineExtractionTasks(String resourceName, String buildType) {
       String aarPath =
           project.tasks.getByName("bundle${buildType}Aar").archivePath
       from zipTree(aarPath)
-      into buildDir
+      into extractDir
       // Aar files are defined as having a single jar file named classes.jar,
       // which is the specific file we need to extract.
       include "classes.jar"
@@ -60,18 +63,15 @@ def defineExtractionTasks(String resourceName, String buildType) {
       // Convert the jar format using the dx tool.
       String dex_path = "${sdk_dir}/build-tools/${buildToolsVersion}/lib/d8.jar"
       commandLine "java", "-cp", "${dex_path}", "com.android.tools.r8.D8",
-          "$buildDir/classes.jar",
+          "$extractedClassesJar",
           "--output",
           "$dexedJar"
     }
 
     // Once the dexed jar has been made, generate a proguard file for it.
     dexJar.doLast {
-      // The path to all the class files, to pass along to jdeps.
-      String classPath = "$buildDir";
-
       def jdepsOutStream = new ByteArrayOutputStream()
-      def jdepsArgs = ['-verbose:class', '-cp', "$dexedJar"] + classPath
+      def jdepsArgs = ['-verbose:class', "$extractedClassesJar"]
       exec {
         executable 'jdeps'
         args jdepsArgs

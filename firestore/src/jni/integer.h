@@ -17,7 +17,8 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_INTEGER_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_INTEGER_H_
 
-#include <stdint.h>
+#include <cstdint>
+
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 
@@ -32,11 +33,7 @@ class Integer : public Object {
 
   static void Initialize(Loader& loader);
 
-  static Class GetClass();
-
   static Local<Integer> Create(Env& env, int32_t value);
-
-  int32_t IntValue(Env& env) const;
 };
 
 }  // namespace jni

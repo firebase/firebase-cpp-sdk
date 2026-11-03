@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,65 +17,99 @@
 
 #include <jni.h>
 
-#include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "functions/src/android/functions_android.h"
-#include "functions/src/include/firebase/functions/callable_reference.h"
+#include "functions/src/include/firebase/functions.h"
+#include "functions/src/include/firebase/functions/callable_result.h"
 
 namespace firebase {
-class HttpsCallableResult;
-
 namespace functions {
 namespace internal {
 
+// clang-format off
+#define CALLABLE_REFERENCE_METHODS(X)                                          \
+  X(Call, "call", "()Lcom/google/android/gms/tasks/Task;"),                    \
+  X(CallWithParam, "call",                                                     \
+    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;"),                \
+  X(SetTimeout, "setTimeout", "(JLjava/util/concurrent/TimeUnit;)V",           \
+    util::kMethodTypeInstance, util::kMethodOptional)
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(callable_reference, CALLABLE_REFERENCE_METHODS)
+
+// clang-format off
+#define CALLABLE_RESULT_METHODS(X)                                             \
+  X(GetData, "getData", "()Ljava/lang/Object;")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(callable_result, CALLABLE_RESULT_METHODS)
+
 class HttpsCallableReferenceInternal {
  public:
-  // CallableReferenceInternal will create its own global reference to ref_obj,
-  // so you should delete the object you passed in after creating the
-  // CallableReferenceInternal instance.
-  HttpsCallableReferenceInternal(FunctionsInternal* functions, jobject ref_obj);
-
-  HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& ref);
-
-  HttpsCallableReferenceInternal& operator=(
-      const HttpsCallableReferenceInternal& ref);
-
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  HttpsCallableReferenceInternal(HttpsCallableReferenceInternal&& ref);
-
-  HttpsCallableReferenceInternal& operator=(
-      HttpsCallableReferenceInternal&& ref);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-
+  HttpsCallableReferenceInternal(FunctionsInternal* functions,
+                                 jobject wrapper_obj);
   ~HttpsCallableReferenceInternal();
 
-  // Gets the functions to which we refer.
-  Functions* functions();
+  // Copy constructor. It's totally okay (and efficient) to copy
+  // HttpsCallableReferenceInternal instances, as they simply point to the same
+  // location in the Cloud Functions service.
+  HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& other);
 
-  // Asynchronously calls this CallableReferenceInternal.
+  // Copy assignment operator. It's totally okay (and efficient) to copy
+  // HttpsCallableReferenceInternal instances, as they simply point to the same
+  // location in the Cloud Functions service.
+  HttpsCallableReferenceInternal& operator=(
+      const HttpsCallableReferenceInternal& other);
+
+#if defined(FIREBASE_USE_MOVE_OPERATORS)
+  // Move constructor. Moving is an efficient operation for
+  // HttpsCallableReferenceInternal instances.
+  HttpsCallableReferenceInternal(
+      HttpsCallableReferenceInternal&& other) noexcept;
+
+  // Move assignment operator. Moving is an efficient operation for
+  // HttpsCallableReferenceInternal instances.
+  HttpsCallableReferenceInternal& operator=(
+      HttpsCallableReferenceInternal&& other) noexcept;
+#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
+
+  // Gets the Functions instance to which we refer.
+  Functions* functions() const;
+
+  FunctionsInternal* functions_internal() const { return functions_; }
+
+  // Blocking call to the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
-  Future<HttpsCallableResult> CallLastResult();
+
+  // Asynchronously calls the trigger endpoint with the given parameter.
   Future<HttpsCallableResult> Call(const Variant& data);
 
-  // Initialize JNI bindings for this class.
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  // Get the result of the most recent Call() call.
+  Future<HttpsCallableResult> CallLastResult();
 
-  // FunctionsInternal instance we are associated with.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  // Returns true if this HttpsCallableReference is valid, false if it is not
+  // valid.
+  bool is_valid() const;
+
+  bool operator==(const HttpsCallableReferenceInternal& other) const;
 
  private:
   static void FutureCallback(JNIEnv* env, jobject result,
                              util::FutureResult result_code,
                              const char* status_message, void* callback_data);
 
+  // Get the Future for the HttpsCallableReferenceInternal.
   ReferenceCountedFutureImpl* future();
 
-  FunctionsInternal* functions_;
-  jobject obj_;
+  // The FunctionsInternal object we are part of.
+  FunctionsInternal* functions_ = nullptr;
+
+  // The Java HttpsCallableReference instance.
+  jobject obj_ = nullptr;
 };
 
 }  // namespace internal

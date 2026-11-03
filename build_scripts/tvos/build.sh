@@ -2,32 +2,60 @@
 
 # Copyright 2021 Google LLC
 #
-# Script to build iOS XCFrameworks
+# Script to build tvOS XCFrameworks
 # If built for all architectures (arm64 x86_64),
 # it will build universal framework as well
 #
-
-usage(){
-    echo "Usage: $0 [options]
- options:
-   -b, build path              default: tvos_build
-   -s, source path             default: .
-   -p, framework platform      default: ${SUPPORTED_PLATFORMS[@]}
-   -a, framework architecture  default: ${SUPPORTED_ARCHITECTURES[@]}
-   -t, CMake target            default: ${SUPPORTED_TARGETS[@]}
-   -g, generate Makefiles      default: true
-   -c, CMake build             default: true
- example: 
-   build_scripts/tvos/build.sh -b tvos_build -s . -a arm64,x86_64 -t firebase_database,firebase_auth -c false"
-}
 
 set -e
 
 readonly SUPPORTED_PLATFORMS=(device simulator)
 readonly SUPPORTED_ARCHITECTURES=(arm64 x86_64)
 readonly DEVICE_ARCHITECTURES=(arm64)
-readonly SIMULATOR_ARCHITECTURES=(x86_64)
-readonly SUPPORTED_TARGETS=(firebase_analytics firebase_auth firebase_database firebase_firestore firebase_functions firebase_installations firebase_messaging firebase_remote_config firebase_storage)
+readonly SIMULATOR_ARCHITECTURES=(arm64 x86_64)
+readonly SUPPORTED_TARGETS=(
+    firebase_ai
+    firebase_analytics
+    firebase_app
+    firebase_app_check
+    firebase_auth
+    firebase_database
+    firebase_firestore
+    firebase_functions
+    firebase_gma
+    firebase_installations
+    firebase_messaging
+    firebase_performance
+    firebase_remote_config
+    firebase_storage
+    firebase_ump
+)
+
+usage() {
+    echo "Usage: $0 [options]
+ options:
+   -b, build path              default: tvos_build
+   -s, source path             default: .
+   -p, framework platform      default: ${SUPPORTED_PLATFORMS[*]}
+   -a, framework architecture  default: ${SUPPORTED_ARCHITECTURES[*]}
+   -t, CMake target            default: ${SUPPORTED_TARGETS[*]}
+   -g, generate Makefiles      default: true
+   -c, CMake build             default: true
+ example:
+   build_scripts/tvos/build.sh -b tvos_build -s . -a arm64,x86_64 -t firebase_database,firebase_auth -c false"
+}
+
+contains_element() {
+    local needle="$1"
+    shift
+    local item
+    for item in "$@"; do
+        if [[ "${item}" == "${needle}" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 # build default value
 buildpath="tvos_build"
@@ -39,62 +67,61 @@ generateMakefiles=true
 cmakeBuild=true
 
 # check options
-IFS=',' # split options on ',' characters
-while getopts ":b:s:p:a:t:g:ch" opt; do
-    case $opt in
+while getopts ":b:s:p:a:t:g:c:h" opt; do
+    case "${opt}" in
         h)
             usage
             exit 0
             ;;
         b)
-            buildpath=$OPTARG
+            buildpath="${OPTARG}"
             ;;
         s)
-            sourcepath=$OPTARG
+            sourcepath="${OPTARG}"
             if [[ ! -d "${sourcepath}" ]]; then
                 echo "Source path ${sourcepath} not found."
                 exit 2
             fi
             ;;
         p)
-            platforms=($OPTARG)
-            for platform in ${platforms[@]}; do
-                if [[ ! " ${SUPPORTED_PLATFORMS[@]} " =~ " ${platform} " ]]; then
+            IFS=',' read -r -a platforms <<< "${OPTARG}"
+            for platform in "${platforms[@]}"; do
+                if ! contains_element "${platform}" "${SUPPORTED_PLATFORMS[@]}"; then
                     echo "invalid platform: ${platform}"
-                    echo "Supported platforms are: ${SUPPORTED_PLATFORMS[@]}"
+                    echo "Supported platforms are: ${SUPPORTED_PLATFORMS[*]}"
                     exit 2
                 fi
             done
             ;;
         a)
-            architectures=($OPTARG)
-            for arch in ${architectures[@]}; do
-                if [[ ! " ${SUPPORTED_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
+            IFS=',' read -r -a architectures <<< "${OPTARG}"
+            for arch in "${architectures[@]}"; do
+                if ! contains_element "${arch}" "${SUPPORTED_ARCHITECTURES[@]}"; then
                     echo "invalid architecture: ${arch}"
-                    echo "Supported architectures are: ${SUPPORTED_ARCHITECTURES[@]}"
+                    echo "Supported architectures are: ${SUPPORTED_ARCHITECTURES[*]}"
                     exit 2
                 fi
             done
             ;;
         t)
-            targets=($OPTARG)
-            for t in ${targets[@]}; do
-                if [[ ! " ${SUPPORTED_TARGETS[@]} " =~ " ${t} " ]]; then
+            IFS=',' read -r -a targets <<< "${OPTARG}"
+            for t in "${targets[@]}"; do
+                if ! contains_element "${t}" "${SUPPORTED_TARGETS[@]}"; then
                     echo "invalid target: ${t}"
-                    echo "Supported targets are: ${SUPPORTED_TARGETS[@]}"
+                    echo "Supported targets are: ${SUPPORTED_TARGETS[*]}"
                     exit 2
                 fi
             done
             ;;
         g)
-            if [[ $OPTARG == true ]]; then
+            if [[ "${OPTARG}" == "true" ]]; then
                 generateMakefiles=true
             else
                 generateMakefiles=false
             fi
             ;;
         c)
-            if [[ $OPTARG == true ]]; then
+            if [[ "${OPTARG}" == "true" ]]; then
                 cmakeBuild=true
             else
                 cmakeBuild=false
@@ -106,156 +133,183 @@ while getopts ":b:s:p:a:t:g:ch" opt; do
             ;;
     esac
 done
+
 echo "build path: ${buildpath}"
 echo "source path: ${sourcepath}"
-echo "build platforms: ${platforms[@]}"
-echo "build architectures: ${architectures[@]}"
-echo "build targets: ${targets[@]}"
+echo "build platforms: ${platforms[*]}"
+echo "build architectures: ${architectures[*]}"
+echo "build targets: ${targets[*]}"
 echo "generate Makefiles: ${generateMakefiles}"
 echo "CMake Build: ${cmakeBuild}"
-sourcepath=$(cd ${sourcepath} && pwd)   #full path
-buildpath=$(mkdir -p ${buildpath} && cd ${buildpath} && pwd)    #full path
+sourcepath="$(cd "${sourcepath}" && pwd)"
+buildpath="$(mkdir -p "${buildpath}" && cd "${buildpath}" && pwd)"
 
 # generate Makefiles for each architecture and target
 frameworkspath="frameworks/tvos"
-tvos_toolchain_platform="TVOS"
-if ${generateMakefiles}; then
-    for platform in ${platforms[@]}; do 
-        for arch in ${architectures[@]}; do 
-            if [[ "${platform}" == "device" && " ${DEVICE_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                # Device build
-                :
-            elif [[ "${platform}" == "simulator" && " ${SIMULATOR_ARCHITECTURES[@]} " =~ " ${arch} " ]]; then
-                tvos_toolchain_platform="SIMULATOR_TVOS"
-                sysroot_arg="-DCMAKE_OSX_SYSROOT=appletvsimulator"
+if [[ "${generateMakefiles}" == "true" ]]; then
+    for platform in "${platforms[@]}"; do
+        for arch in "${architectures[@]}"; do
+            sysroot_arg=()
+            if [[ "${platform}" == "device" ]] && contains_element "${arch}" "${DEVICE_ARCHITECTURES[@]}"; then
+                sysroot_arg=()
+            elif [[ "${platform}" == "simulator" ]] && contains_element "${arch}" "${SIMULATOR_ARCHITECTURES[@]}"; then
+                sysroot_arg=("-DCMAKE_OSX_SYSROOT=appletvsimulator")
             else
                 continue
             fi
 
             echo "generate Makefiles start"
-            mkdir -p ${buildpath}/tvos_build_file/${platform}-${arch} && cd ${buildpath}/tvos_build_file/${platform}-${arch}
+            mkdir -p "${buildpath}/tvos_build_file/${platform}-${arch}"
+            cd "${buildpath}/tvos_build_file/${platform}-${arch}"
             cmake -DCMAKE_SYSTEM_NAME=tvOS \
-                  -DCMAKE_OSX_ARCHITECTURES=${arch} \
-                  ${sysroot_arg} \
-                  -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
-                ${sourcepath}
+                  "-DCMAKE_OSX_ARCHITECTURES=${arch}" \
+                  "${sysroot_arg[@]}" \
+                  "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch}" \
+                "${sourcepath}"
             echo "generate Makefiles end"
         done
     done
 fi
 
 # build framework for each architecture and target
-IFS=$'\n' # split $(ls) on \n characters
-if ${cmakeBuild}; then
-    for platform in ${platforms[@]}; do 
-        for arch in ${architectures[@]}; do 
-            if [ -d "${buildpath}/tvos_build_file/${platform}-${arch}" ]; then
-            {
-                cd ${buildpath}/tvos_build_file/${platform}-${arch}
-                echo "build ${platform} ${arch} ${targets[@]} framework start"
-                cmake --build . --target ${targets[@]}
-                echo "build ${platform} ${arch} ${targets[@]} framework end"
-            
-            } &
+if [[ "${cmakeBuild}" == "true" ]]; then
+    pids=()
+    for platform in "${platforms[@]}"; do
+        for arch in "${architectures[@]}"; do
+            if [[ -d "${buildpath}/tvos_build_file/${platform}-${arch}" ]]; then
+                (
+                    cd "${buildpath}/tvos_build_file/${platform}-${arch}"
+                    echo "build ${platform} ${arch} ${targets[*]} framework start"
+                    cmake --build . --config Release --target "${targets[@]}"
+                    echo "build ${platform} ${arch} ${targets[*]} framework end"
+                ) &
+                pids+=("$!")
             fi
         done
     done
     subprocess_fail=0
-    for job in $(jobs -p); do
-        wait $job || let "subprocess_fail+=1"
+    for pid in "${pids[@]}"; do
+        if ! wait "${pid}"; then
+            subprocess_fail=$((subprocess_fail + 1))
+        fi
     done
-    if [ "${subprocess_fail}" == "0" ]; then
+    if [[ "${subprocess_fail}" -eq 0 ]]; then
         echo "frameworks build end"
     else
         echo "frameworks build error, ${subprocess_fail} architecture(s) build failed"
         exit 2
     fi
 
-    # arrange the framework 
-    cd ${buildpath}/${frameworkspath}
-    for platform in ${platforms[@]}; do 
-        for arch in ${architectures[@]}; do
-            if [[ ! -d "${platform}-${arch}" ]]; then
+    # Normalize target list for packaging (firebase_app is packaged as firebase).
+    pkg_targets=()
+    for target in "${targets[@]}"; do
+        if [[ "${target}" != "firebase_app" ]]; then
+            pkg_targets+=("${target}")
+        fi
+    done
+    pkg_targets+=("firebase")
+
+    # arrange the framework
+    cd "${buildpath}/${frameworkspath}"
+    header_source_dir=""
+    for platform in "${platforms[@]}"; do
+        for arch in "${architectures[@]}"; do
+            slice_dir="${platform}-${arch}"
+            if [[ ! -d "${slice_dir}" ]]; then
                 continue
             fi
 
             # rename firebase_app to firebase
-            if [[ ! -d "${platform}-${arch}/firebase.framework" ]]; then
-                mv ${platform}-${arch}/firebase_app.framework ${platform}-${arch}/firebase.framework
-                mv ${platform}-${arch}/firebase.framework/firebase_app ${platform}-${arch}/firebase.framework/firebase
-                rm ${platform}-${arch}/firebase.framework/Info.plist
+            if [[ -d "${slice_dir}/firebase_app.framework" ]]; then
+                rm -rf "${slice_dir}/firebase.framework"
+                mv "${slice_dir}/firebase_app.framework" "${slice_dir}/firebase.framework"
+                mv "${slice_dir}/firebase.framework/firebase_app" "${slice_dir}/firebase.framework/firebase"
+                rm -f "${slice_dir}/firebase.framework/Info.plist"
+            fi
+
+            if [[ -z "${header_source_dir}" && -d "${slice_dir}/firebase.framework/Headers" ]]; then
+                header_source_dir="${buildpath}/${frameworkspath}/${slice_dir}/firebase.framework/Headers"
             fi
 
             # delete useless Info.plist
-            for target in ${targets[@]}; do
-                if [[ -f "${platform}-${arch}/${target}.framework/Info.plist" ]]; then
-                    rm ${platform}-${arch}/${target}.framework/Info.plist
+            for target in "${pkg_targets[@]}"; do
+                if [[ -f "${slice_dir}/${target}.framework/Info.plist" ]]; then
+                    rm -f "${slice_dir}/${target}.framework/Info.plist"
                 fi
             done
 
             # delete non-framework dir
-            for dir in $(ls ${platform}-${arch}); do
-                if [[ ! ${dir} =~ ".framework" ]]; then
-                    rm -rf ${platform}-${arch}/${dir}
+            for entry in "${slice_dir}"/*; do
+                [[ -e "${entry}" ]] || continue
+                if [[ "${entry}" != *.framework ]]; then
+                    rm -rf "${entry}"
                 fi
             done
         done
     done
 
-    # if we built for all architectures (arm64 armv7 x86_64)
-    # build universal framework as well
-    if [[ ${#architectures[@]} < ${#SUPPORTED_ARCHITECTURES[@]} ]]; then
-        exit 0
+    # Build legacy universal framework only when both device-arm64 and simulator-x86_64 slices were built.
+    if [[ -d "device-arm64" && -d "simulator-x86_64" ]]; then
+        for target in "${pkg_targets[@]}"; do
+            mkdir -p "universal/${target}.framework"
+            libsubpath="${target}.framework/${target}"
+            lipo -create "device-arm64/${libsubpath}" \
+                         "simulator-x86_64/${libsubpath}" \
+                -output "universal/${libsubpath}"
+        done
+        if [[ -n "${header_source_dir}" ]]; then
+            rm -rf "universal/firebase.framework/Headers"
+            cp -R "${header_source_dir}" "universal/firebase.framework/Headers"
+        fi
+        echo "universal frameworks build end & ready to use"
     fi
 
-    targets+=('firebase')
-    for target in ${targets[@]}; do
-        mkdir -p universal/${target}.framework
-        libsubpath="${target}.framework/${target}"
-        lipo -create "device-arm64/${libsubpath}" \
-                     "simulator-x86_64/${libsubpath}" \
-            -output "universal/${libsubpath}"
-    done
-    if [[ ! -d "universal/firebase.framework/Headers" ]]; then
-        cp -R device-arm64/firebase.framework/Headers universal/firebase.framework
-    fi
-    echo "universal frameworks build end & ready to use"
-
-    # covert framework into xcframework
-    cd ${buildpath}
+    # Convert built framework slices into xcframeworks.
+    cd "${buildpath}"
     xcframeworkspath="xcframeworks"
-    mkdir -p ${xcframeworkspath}
-    # create library for xcframework
-    for platform in ${platforms[@]}; do 
-        for target in ${targets[@]}; do
-            libsubpath="${target}.framework/${target}" 
-            if [[ "${platform}" == "device" ]]; then
+    mkdir -p "${xcframeworkspath}"
+    for platform in "${platforms[@]}"; do
+        for target in "${pkg_targets[@]}"; do
+            libsubpath="${target}.framework/${target}"
+            if [[ "${platform}" == "device" && -f "${frameworkspath}/device-arm64/${libsubpath}" ]]; then
                 outputdir="${xcframeworkspath}/${target}.xcframework/tvos-arm64/${target}.framework"
-                mkdir -p ${outputdir}
+                mkdir -p "${outputdir}"
                 lipo -create "${frameworkspath}/device-arm64/${libsubpath}" \
                     -output "${outputdir}/${target}"
-
             elif [[ "${platform}" == "simulator" ]]; then
-                outputdir="${xcframeworkspath}/${target}.xcframework/tvos-x86_64-simulator/${target}.framework"
-                mkdir -p ${outputdir}
-                lipo -create "${frameworkspath}/simulator-x86_64/${libsubpath}" \
-                    -output "${outputdir}/${target}"
+                sim_inputs=()
+                for sim_arch in "${SIMULATOR_ARCHITECTURES[@]}"; do
+                    if [[ -f "${frameworkspath}/simulator-${sim_arch}/${libsubpath}" ]]; then
+                        sim_inputs+=("${frameworkspath}/simulator-${sim_arch}/${libsubpath}")
+                    fi
+                done
+                if [[ "${#sim_inputs[@]}" -gt 0 ]]; then
+                    outputdir="${xcframeworkspath}/${target}.xcframework/tvos-x86_64-simulator/${target}.framework"
+                    mkdir -p "${outputdir}"
+                    lipo -create "${sim_inputs[@]}" \
+                        -output "${outputdir}/${target}"
+                fi
             fi
         done
     done
 
     # create Info.plist for xcframework
-    for target in ${targets[@]}; do                   
-        cp ${sourcepath}/build_scripts/tvos/Info.plist ${xcframeworkspath}/${target}.xcframework
-        sed -i "" "s/LIBRARY_PATH/${target}.framework/" ${xcframeworkspath}/${target}.xcframework/Info.plist
+    for target in "${pkg_targets[@]}"; do
+        if [[ -d "${xcframeworkspath}/${target}.xcframework" ]]; then
+            cp "${sourcepath}/build_scripts/tvos/Info.plist" "${xcframeworkspath}/${target}.xcframework/Info.plist"
+            sed -i "" "s/LIBRARY_PATH/${target}.framework/" "${xcframeworkspath}/${target}.xcframework/Info.plist"
+        fi
     done
 
-    # create Headers for xcframework
-    if [[ ! -d "${xcframeworkspath}/firebase.xcframework/tvos-arm64/firebase.framework/Headers" ]]; then
-        cp -R ${frameworkspath}/device-arm64/firebase.framework/Headers  \
-            ${xcframeworkspath}/firebase.xcframework/tvos-arm64/firebase.framework/Headers
-        cp -R ${frameworkspath}/device-arm64/firebase.framework/Headers  \
-            ${xcframeworkspath}/firebase.xcframework/tvos-x86_64-simulator/firebase.framework/Headers
+    # Copy Headers into all built firebase.xcframework slices.
+    if [[ -n "${header_source_dir}" ]]; then
+        for xc_slice in "tvos-arm64" "tvos-x86_64-simulator"; do
+            target_fw_dir="${xcframeworkspath}/firebase.xcframework/${xc_slice}/firebase.framework"
+            if [[ -d "${target_fw_dir}" ]]; then
+                rm -rf "${target_fw_dir}/Headers"
+                cp -R "${header_source_dir}" "${target_fw_dir}/Headers"
+            fi
+        done
     fi
     echo "xcframeworks build end & ready to use"
 fi

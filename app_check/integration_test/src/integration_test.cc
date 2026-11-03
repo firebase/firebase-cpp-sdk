@@ -147,14 +147,27 @@ class FirebaseAppCheckTest : public FirebaseTest {
 class TestAppCheckListener : public firebase::app_check::AppCheckListener {
  public:
   TestAppCheckListener() : num_token_changes_(0) {}
-  ~TestAppCheckListener() override {}
+  ~TestAppCheckListener() override = default;
 
   void OnAppCheckTokenChanged(
       const firebase::app_check::AppCheckToken& token) override {
+    std::lock_guard<std::mutex> lock(mutex_);
     last_token_ = token;
     num_token_changes_ += 1;
   }
 
+  int num_token_changes() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return num_token_changes_;
+  }
+
+  firebase::app_check::AppCheckToken last_token() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return last_token_;
+  }
+
+ private:
+  mutable std::mutex mutex_;
   int num_token_changes_;
   firebase::app_check::AppCheckToken last_token_;
 };
@@ -219,13 +232,13 @@ void FirebaseAppCheckTest::TerminateApp() {
 }
 
 FirebaseAppCheckTest::FirebaseAppCheckTest()
-    : initialized_(false),
-      app_(nullptr),
+    : app_(nullptr),
       auth_(nullptr),
+      initialized_(false),
       database_(nullptr),
+      database_cleanup_(),
       storage_(nullptr),
-      functions_(nullptr),
-      database_cleanup_() {
+      functions_(nullptr) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
@@ -511,6 +524,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   firebase::Future<::firebase::app_check::AppCheckToken> future =
       app_check->GetAppCheckToken(true);
   EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
+  ASSERT_NE(future.result(), nullptr);
   ::firebase::app_check::AppCheckToken token = *future.result();
   EXPECT_NE(token.token, "");
   EXPECT_NE(token.expire_time_millis, 0);
@@ -522,6 +536,8 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   firebase::Future<::firebase::app_check::AppCheckToken> future2 =
       app_check->GetAppCheckToken(false);
   EXPECT_TRUE(WaitForCompletion(future2, "GetToken #2"));
+  ASSERT_NE(future.result(), nullptr);
+  ASSERT_NE(future2.result(), nullptr);
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 
@@ -531,6 +547,8 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   firebase::Future<::firebase::app_check::AppCheckToken> future3 =
       app_check->GetAppCheckToken(true);
   EXPECT_TRUE(WaitForCompletion(future3, "GetToken #3"));
+  ASSERT_NE(future.result(), nullptr);
+  ASSERT_NE(future3.result(), nullptr);
   EXPECT_NE(future.result()->expire_time_millis,
             future3.result()->expire_time_millis);
 }
@@ -544,13 +562,15 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   firebase::Future<::firebase::app_check::AppCheckToken> future =
       app_check->GetAppCheckToken(true);
   EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
+  ASSERT_NE(future.result(), nullptr);
 
   firebase::Future<::firebase::app_check::AppCheckToken> future2 =
       app_check->GetAppCheckTokenLastResult();
   EXPECT_TRUE(WaitForCompletion(future2, "GetTokenLastResult"));
+  ASSERT_NE(future2.result(), nullptr);
   ::firebase::app_check::AppCheckToken token = *future2.result();
   EXPECT_EQ(future.result()->expire_time_millis,
-            future2.result()->expire_time_millis);
+            token.expire_time_millis);
 }
 
 TEST_F(FirebaseAppCheckTest, TestGetLimitedUseAppCheckToken) {
@@ -563,6 +583,7 @@ TEST_F(FirebaseAppCheckTest, TestGetLimitedUseAppCheckToken) {
   firebase::Future<::firebase::app_check::AppCheckToken> future =
       app_check->GetLimitedUseAppCheckToken();
   EXPECT_TRUE(WaitForCompletion(future, "GetLimitedUseAppCheckToken"));
+  ASSERT_NE(future.result(), nullptr);
   ::firebase::app_check::AppCheckToken token = *future.result();
   EXPECT_NE(token.token, "");
   EXPECT_NE(token.expire_time_millis, 0);
@@ -571,6 +592,8 @@ TEST_F(FirebaseAppCheckTest, TestGetLimitedUseAppCheckToken) {
       app_check->GetLimitedUseAppCheckTokenLastResult();
   EXPECT_TRUE(
       WaitForCompletion(future2, "GetLimitedUseAppCheckTokenLastResult"));
+  ASSERT_NE(future.result(), nullptr);
+  ASSERT_NE(future2.result(), nullptr);
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 }
@@ -582,17 +605,30 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
       ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);
 
-  // Create and add a token changed listener.
+  // Create and add a token changed listener, ensuring it is removed before
+  // leaving the test scope even if an assertion fails early.
   TestAppCheckListener token_changed_listener;
   app_check->AddAppCheckListener(&token_changed_listener);
+  struct ScopedListenerRemoval {
+    ::firebase::app_check::AppCheck* app_check;
+    ::firebase::app_check::AppCheckListener* listener;
+    ~ScopedListenerRemoval() {
+      if (app_check != nullptr && listener != nullptr) {
+        app_check->RemoveAppCheckListener(listener);
+      }
+    }
+  } scoped_removal{app_check, &token_changed_listener};
 
   firebase::Future<::firebase::app_check::AppCheckToken> future =
       app_check->GetAppCheckToken(true);
   EXPECT_TRUE(WaitForCompletion(future, "GetToken"));
+  ASSERT_NE(future.result(), nullptr);
   ::firebase::app_check::AppCheckToken token = *future.result();
 
-  ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
-  EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
+  ASSERT_EQ(token_changed_listener.num_token_changes(), 1);
+  EXPECT_EQ(token_changed_listener.last_token().token, token.token);
+  app_check->RemoveAppCheckListener(&token_changed_listener);
+  scoped_removal.listener = nullptr;
 }
 
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
@@ -611,7 +647,7 @@ TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
       app_check->GetAppCheckToken(true);
   EXPECT_TRUE(WaitForCompletion(future, "GetToken"));
 
-  ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
+  ASSERT_EQ(token_changed_listener.num_token_changes(), 0);
 }
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
@@ -752,6 +788,7 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseSetAndGet) {
     firebase::Future<firebase::database::DataSnapshot> f1 =
         ref.Child(test_name).Child("String").GetValue();
     WaitForCompletion(f1, "GetSimpleString");
+    ASSERT_NE(f1.result(), nullptr);
 
     EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
   }
@@ -794,9 +831,11 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseRunTransaction) {
   // If the transaction succeeded, let's read back the values that were
   // written to confirm they match.
   if (transaction_future.error() == firebase::database::kErrorNone) {
+    ASSERT_NE(transaction_future.result(), nullptr);
     firebase::Future<firebase::database::DataSnapshot> read_future =
         ref.Child(test_name).GetValue();
     WaitForCompletion(read_future, "ReadTransactionResults");
+    ASSERT_NE(read_future.result(), nullptr);
 
     const firebase::database::DataSnapshot& read_result = *read_future.result();
     EXPECT_EQ(read_result.children_count(), 3);
@@ -834,6 +873,7 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseUpdateToken) {
   firebase::Future<::firebase::app_check::AppCheckToken> future =
       app_check->GetAppCheckToken(true);
   EXPECT_TRUE(WaitForCompletion(future, "GetAppCheckToken"));
+  ASSERT_NE(future.result(), nullptr);
 
   // Get the values that we just set, and confirm that they match what we
   // set them to.
@@ -842,6 +882,7 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseUpdateToken) {
     firebase::Future<firebase::database::DataSnapshot> f1 =
         ref.Child(test_name).Child("String").GetValue();
     WaitForCompletion(f1, "GetSimpleString");
+    ASSERT_NE(f1.result(), nullptr);
 
     EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
   }
@@ -873,6 +914,7 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   future = ref.Call(data);
   WaitForCompletion(future, "CallFunction addnumbers",
                     firebase::functions::kErrorNone);
+  ASSERT_NE(future.result(), nullptr);
   firebase::Variant result = future.result()->data();
   EXPECT_TRUE(result.is_map());
   if (result.is_map()) {
@@ -887,16 +929,24 @@ TEST_F(FirebaseAppCheckTest, TestConcurrentMultiAppTokenExchange) {
   InitializeApp();
 
   const int kNumApps = 6;
-  std::vector<firebase::App*> apps(kNumApps, nullptr);
-  std::vector<firebase::app_check::AppCheck*> checks(kNumApps, nullptr);
+  // Declare `apps` before `checks` so `checks` are destroyed before `apps` on
+  // scope exit (including early return from any ASSERT_* failure).
+  std::vector<std::unique_ptr<firebase::App>> apps(kNumApps);
+  std::vector<std::unique_ptr<firebase::app_check::AppCheck>> checks(kNumApps);
   std::vector<firebase::Future<firebase::app_check::AppCheckToken>> futures(
       kNumApps);
 
   for (int i = 0; i < kNumApps; ++i) {
     std::string name = "concurrent_app_check_" + std::to_string(i);
-    apps[i] = firebase::App::Create(app_->options(), name.c_str());
+#if defined(__ANDROID__)
+    apps[i].reset(firebase::App::Create(
+        app_->options(), name.c_str(), app_framework::GetJniEnv(),
+        app_framework::GetActivity()));
+#else
+    apps[i].reset(firebase::App::Create(app_->options(), name.c_str()));
+#endif  // defined(__ANDROID__)
     ASSERT_NE(apps[i], nullptr);
-    checks[i] = firebase::app_check::AppCheck::GetInstance(apps[i]);
+    checks[i].reset(firebase::app_check::AppCheck::GetInstance(apps[i].get()));
     ASSERT_NE(checks[i], nullptr);
     futures[i] = checks[i]->GetAppCheckToken(/*force_refresh=*/true);
   }
@@ -908,10 +958,8 @@ TEST_F(FirebaseAppCheckTest, TestConcurrentMultiAppTokenExchange) {
     EXPECT_GT(futures[i].result()->expire_time_millis, 0);
   }
 
-  for (int i = 0; i < kNumApps; ++i) {
-    delete checks[i];
-    delete apps[i];
-  }
+  checks.clear();
+  apps.clear();
 }
 
 }  // namespace firebase_testapp_automated

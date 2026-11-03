@@ -1,4 +1,4 @@
-// Copyright 2016 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,22 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_COMMON_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_COMMON_H_
 
-#include "app/src/reference_counted_future_impl.h"
-#include "app/src/semaphore.h"
+#include <cstddef>
 
 namespace firebase {
 namespace remote_config {
+
+// Internal error codes used when completing Remote Config Futures.
+enum FutureStatus {
+  kFutureStatusSuccess = 0,
+  kFutureStatusFailure = 1,
+};
+
+namespace internal {
+
+using ::firebase::remote_config::FutureStatus;
+using ::firebase::remote_config::kFutureStatusFailure;
+using ::firebase::remote_config::kFutureStatusSuccess;
 
 enum RemoteConfigFn {
   kRemoteConfigFnFetch,
@@ -29,76 +40,17 @@ enum RemoteConfigFn {
   kRemoteConfigFnSetDefaults,
   kRemoteConfigFnSetConfigSettings,
   kRemoteConfigFnSetCustomSignals,
-  kRemoteConfigFnCount
+  kRemoteConfigFnCount,
 };
 
-/// @brief Describes the error codes returned by futures.
-enum FutureStatus {
-  // The future returned successfully.
-  // This should always evaluate to zero, to ensure that the future returns
-  // a zero result on success.
-  kFutureStatusSuccess = 0,
-  // The future returned unsuccessfully.  Check GetInfo() for further details.
-  kFutureStatusFailure,
-};
-
-// Data structure which holds the Future API implementation with the only
-// future required by this API (fetch_future_).
-class FutureData {
- public:
-  FutureData() : api_(kRemoteConfigFnCount) {}
-  ~FutureData() {}
-
-  ReferenceCountedFutureImpl* api() { return &api_; }
-
-  // Create FutureData singleton.
-  static FutureData* Create();
-  // Destroy the FutureData singleton.
-  static void Destroy();
-  // Get the Future data singleton.
-  static FutureData* Get();
-
- private:
-  ReferenceCountedFutureImpl api_;
-
-  static FutureData* s_future_data_;
-};
-
-namespace internal {
-
-// Determines whether remote config is initialized.
-// Implemented in each platform module.
-bool IsInitialized();
-
-// Waits until the given future is complete and asserts that it completed with
-// the given error (no error by default). Returns the future's result.
-template <typename T>
-void WaitForFuture(const firebase::Future<T>& future, Semaphore* future_sem,
-                   const char* action_name) {
-  // Block and wait until Future is complete.
-  future.OnCompletion(
-      [](const firebase::Future<T>& result, void* data) {
-        Semaphore* sem = static_cast<Semaphore*>(data);
-        sem->Post();
-      },
-      future_sem);
-  future_sem->Wait();
-
-  if (future.status() == firebase::kFutureStatusComplete &&
-      future.error() == kFutureStatusSuccess) {
-    LogDebug("RemoteConfig Future: %s Success", action_name);
-  } else if (future.status() != firebase::kFutureStatusComplete) {
-    // It is fine if timeout
-    LogWarning("RemoteConfig Future: %s timeout", action_name);
-  } else {
-    // It is fine if failed
-    LogWarning("RemoteConfig Future: Failed to %s. Error %d: %s", action_name,
-               future.error(), future.error_message());
-  }
-}
+// Maximum number of custom signals allowed.
+constexpr size_t kMaxCustomSignalsCount = 100;
+// Maximum length of a custom signal key.
+constexpr size_t kMaxCustomSignalKeyLength = 256;
+// Maximum length of a custom signal string value.
+constexpr size_t kMaxCustomSignalValueLength = 500;
 
 }  // namespace internal
-
 }  // namespace remote_config
 }  // namespace firebase
 

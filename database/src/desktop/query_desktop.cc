@@ -14,20 +14,13 @@
 
 #include "database/src/desktop/query_desktop.h"
 
+#include <cstddef>
 #include <memory>
-#include <sstream>
+#include <string>
 #include <utility>
 
-#include "app/rest/transport_builder.h"
-#include "app/rest/transport_curl.h"
-#include "app/rest/util.h"
 #include "app/src/callback.h"
-#include "app/src/function_registry.h"
-#include "app/src/semaphore.h"
-#include "app/src/thread.h"
-#include "app/src/variant_util.h"
 #include "database/src/common/query.h"
-#include "database/src/desktop/connection/host_info.h"
 #include "database/src/desktop/core/child_event_registration.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/value_event_registration.h"
@@ -106,23 +99,38 @@ QueryInternal::QueryInternal(const QueryInternal& internal)
 }
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& internal) {
-  database_ = internal.database_;
+  if (&internal == this) return *this;
+  if (database_ != internal.database_) {
+    if (database_) {
+      database_->future_manager().ReleaseFutureApi(&future_api_id_);
+    }
+    database_ = internal.database_;
+    if (database_) {
+      database_->future_manager().AllocFutureApi(&future_api_id_,
+                                                 kQueryFnCount);
+    }
+  }
   query_spec_ = internal.query_spec_;
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-QueryInternal::QueryInternal(QueryInternal&& internal)
+QueryInternal::QueryInternal(QueryInternal&& internal) noexcept
     : database_(internal.database_),
       query_spec_(std::move(internal.query_spec_)) {
+  internal.database_ = nullptr;
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
                                               &future_api_id_);
   }
 }
 
-QueryInternal& QueryInternal::operator=(QueryInternal&& internal) {
+QueryInternal& QueryInternal::operator=(QueryInternal&& internal) noexcept {
+  if (&internal == this) return *this;
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
   database_ = internal.database_;
+  internal.database_ = nullptr;
   query_spec_ = std::move(internal.query_spec_);
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
@@ -130,9 +138,12 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& internal) {
   }
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-QueryInternal::~QueryInternal() {}
+QueryInternal::~QueryInternal() {
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+}
 
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:
@@ -141,7 +152,8 @@ class SingleValueEventRegistration : public ValueEventRegistration {
                                const QuerySpec& query_spec)
       : ValueEventRegistration(database, listener.get(), query_spec),
         active_(true),
-        database_(database),
+        database_ref_(database ? database->this_ref()
+                               : DatabaseInternal::ThisRef(nullptr)),
         listener_(std::move(listener)) {}
 
   void FireEvent(const Event& event) override {
@@ -167,34 +179,50 @@ class SingleValueEventRegistration : public ValueEventRegistration {
     // registration to be removed and deleted from the sync tree. Because the
     // registration owns the Listener, the listener will be cleaned up safely as
     // well.
-    QueryInternal query(database_, query_spec());
-    query.RemoveValueListener(listener_.get());
+    DatabaseInternal::ThisRefLock lock(&database_ref_);
+    DatabaseInternal* db = lock.GetReference();
+    if (db != nullptr) {
+      void* listener_ptr = static_cast<void*>(listener_.get());
+      db->RemoveActiveEventRegistrations(query_spec(), listener_ptr);
+      Repo::scheduler().Schedule(NewCallback(
+          [](Repo::ThisRef ref, void* listener_ptr, QuerySpec spec) {
+            Repo::ThisRefLock repo_lock(&ref);
+            if (repo_lock.GetReference() != nullptr) {
+              repo_lock.GetReference()->RemoveEventCallback(listener_ptr, spec);
+            }
+          },
+          db->EnsureRepoRef(), listener_ptr, query_spec()));
+    }
   }
 
   bool active_;
-  DatabaseInternal* database_;
+  DatabaseInternal::ThisRef database_ref_;
   std::unique_ptr<SingleValueListener> listener_;
 };
 
 Future<DataSnapshot> QueryInternal::GetValue() {
+  ReferenceCountedFutureImpl* api = query_future();
+  if (!database_ || !api) return Future<DataSnapshot>();
   SafeFutureHandle<DataSnapshot> handle =
-      query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue,
-                                              DataSnapshot(nullptr));
-  auto listener = std::make_unique<SingleValueListener>(database_, query_spec_,
-                                                        query_future(), handle);
+      api->SafeAlloc<DataSnapshot>(kQueryFnGetValue, DataSnapshot(nullptr));
+  auto listener =
+      std::make_unique<SingleValueListener>(database_, query_spec_, api, handle);
   void* listener_ptr = listener.get();
   AddEventRegistration(std::make_unique<SingleValueEventRegistration>(
                            database_, std::move(listener), query_spec_),
                        listener_ptr);
-  return MakeFuture(query_future(), handle);
+  return MakeFuture(api, handle);
 }
 
 Future<DataSnapshot> QueryInternal::GetValueLastResult() {
-  return static_cast<const Future<DataSnapshot>&>(
-      query_future()->LastResult(kQueryFnGetValue));
+  ReferenceCountedFutureImpl* api = query_future();
+  return api ? static_cast<const Future<DataSnapshot>&>(
+                   api->LastResult(kQueryFnGetValue))
+             : Future<DataSnapshot>();
 }
 
 void QueryInternal::AddValueListener(ValueListener* listener) {
+  if (!database_ || !listener) return;
   ValueListenerCleanupData cleanup_data(query_spec_);
   AddEventRegistration(std::make_unique<ValueEventRegistration>(
                            database_, listener, query_spec_),
@@ -204,17 +232,20 @@ void QueryInternal::AddValueListener(ValueListener* listener) {
 }
 
 void QueryInternal::RemoveValueListener(ValueListener* listener) {
+  if (!database_) return;
   RemoveEventRegistration(listener, query_spec_);
   database_->UnregisterValueListener(query_spec_, listener);
 }
 
 void QueryInternal::RemoveAllValueListeners() {
+  if (!database_) return;
   RemoveEventRegistration(static_cast<void*>(nullptr), query_spec_);
   database_->UnregisterAllValueListeners(query_spec_);
 }
 
 void QueryInternal::AddEventRegistration(
     std::unique_ptr<EventRegistration> registration, void* listener_ptr) {
+  if (!database_) return;
   database_->AddEventRegistration(query_spec_, listener_ptr,
                                   registration.get());
   // NewCallback() does not allow you to pass in a move-only object
@@ -233,31 +264,36 @@ void QueryInternal::AddEventRegistration(
       std::make_shared<std::unique_ptr<EventRegistration>>(
           std::move(registration));
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref,
-         std::shared_ptr<std::unique_ptr<EventRegistration>> reg_ptr_shared) {
+      [](Repo::ThisRef ref, DatabaseInternal::ThisRef db_ref,
+          QuerySpec query_spec, void* listener_ptr,
+          std::shared_ptr<std::unique_ptr<EventRegistration>> reg_ptr_shared) {
         Repo::ThisRefLock lock(&ref);
         // Transfer ownership of the internal pointer to a new unique_ptr.
         EventRegistration* reg_ptr = reg_ptr_shared->release();
         std::unique_ptr<EventRegistration> reg(reg_ptr);
         if (lock.GetReference() != nullptr) {
           lock.GetReference()->AddEventCallback(std::move(reg));
+        } else if (reg_ptr != nullptr) {
+          DatabaseInternal::ThisRefLock db_lock(&db_ref);
+          if (db_lock.GetReference() != nullptr) {
+            db_lock.GetReference()->RemoveEventRegistration(
+                query_spec, listener_ptr, reg_ptr);
+          }
         }
       },
-      database_->repo()->this_ref(), reg_wrapped));
+      database_->EnsureRepoRef(), database_->this_ref(), query_spec_,
+      listener_ptr, reg_wrapped));
 }
 
 void QueryInternal::RemoveEventRegistration(void* listener_ptr,
                                             const QuerySpec& query_spec) {
+  if (!database_) return;
   // When a listener is removed, immediately invalidate its event registration
   // before scheduling it for removal from the database. From the point of view
   // of the main thread, it has now been removed and no more callbacks should be
   // called on it. This prevents race conditions that would make it impossible
   // to know when it is safe to delete a listener pointer.
-  auto* registration =
-      database_->ActiveEventRegistration(query_spec, listener_ptr);
-  if (registration) {
-    registration->set_status(EventRegistration::kRemoved);
-  }
+  database_->RemoveActiveEventRegistrations(query_spec, listener_ptr);
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, void* listener_ptr, QuerySpec query_spec) {
@@ -266,7 +302,7 @@ void QueryInternal::RemoveEventRegistration(void* listener_ptr,
           lock.GetReference()->RemoveEventCallback(listener_ptr, query_spec);
         }
       },
-      database_->repo()->this_ref(), listener_ptr, query_spec));
+      database_->EnsureRepoRef(), listener_ptr, query_spec));
 }
 
 void QueryInternal::RemoveEventRegistration(ValueListener* listener,
@@ -280,6 +316,7 @@ void QueryInternal::RemoveEventRegistration(ChildListener* listener,
 }
 
 void QueryInternal::AddChildListener(ChildListener* listener) {
+  if (!database_ || !listener) return;
   ChildListenerCleanupData cleanup_data(query_spec_);
   AddEventRegistration(std::make_unique<ChildEventRegistration>(
                            database_, listener, query_spec_),
@@ -289,20 +326,24 @@ void QueryInternal::AddChildListener(ChildListener* listener) {
 }
 
 void QueryInternal::RemoveChildListener(ChildListener* listener) {
+  if (!database_) return;
   RemoveEventRegistration(listener, query_spec_);
   database_->UnregisterChildListener(query_spec_, listener);
 }
 
 void QueryInternal::RemoveAllChildListeners() {
+  if (!database_) return;
   RemoveEventRegistration(static_cast<void*>(nullptr), query_spec_);
   database_->UnregisterAllChildListeners(query_spec_);
 }
 
 DatabaseReferenceInternal* QueryInternal::GetReference() {
+  if (!database_) return nullptr;
   return new DatabaseReferenceInternal(database_, query_spec_.path);
 }
 
 void QueryInternal::SetKeepSynchronized(bool keep_synchronized) {
+  if (!database_) return;
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, QuerySpec query_spec, bool keep_synchronized) {
         Repo::ThisRefLock lock(&ref);
@@ -311,31 +352,53 @@ void QueryInternal::SetKeepSynchronized(bool keep_synchronized) {
                                                    keep_synchronized);
         }
       },
-      database_->repo()->this_ref(), query_spec_, keep_synchronized));
+      database_->EnsureRepoRef(), query_spec_, keep_synchronized));
 }
 
 QueryInternal* QueryInternal::OrderByChild(const char* path) {
+  Logger* logger = database_ ? database_->logger() : nullptr;
+  if (path == nullptr) {
+    if (logger) {
+      logger->LogWarning("Query::OrderByChild(): Path cannot be null.");
+    }
+    return nullptr;
+  }
   QuerySpec spec = query_spec_;
   spec.params.order_by = QueryParams::kOrderByChild;
   spec.params.order_by_child = path;
+  if (!ValidateQueryEndpoints(spec.params, logger)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
 QueryInternal* QueryInternal::OrderByKey() {
+  Logger* logger = database_ ? database_->logger() : nullptr;
   QuerySpec spec = query_spec_;
   spec.params.order_by = QueryParams::kOrderByKey;
+  if (!ValidateQueryEndpoints(spec.params, logger)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
 QueryInternal* QueryInternal::OrderByPriority() {
+  Logger* logger = database_ ? database_->logger() : nullptr;
   QuerySpec spec = query_spec_;
   spec.params.order_by = QueryParams::kOrderByPriority;
+  if (!ValidateQueryEndpoints(spec.params, logger)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
 QueryInternal* QueryInternal::OrderByValue() {
+  Logger* logger = database_ ? database_->logger() : nullptr;
   QuerySpec spec = query_spec_;
   spec.params.order_by = QueryParams::kOrderByValue;
+  if (!ValidateQueryEndpoints(spec.params, logger)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
@@ -368,6 +431,12 @@ QueryInternal* QueryInternal::StartAt(const Variant& value) {
 QueryInternal* QueryInternal::StartAt(const Variant& value,
                                       const char* child_key) {
   Logger* logger = database_ ? database_->logger() : nullptr;
+  if (child_key == nullptr) {
+    if (logger) {
+      logger->LogWarning("Query::StartAt(): Child key cannot be null.");
+    }
+    return nullptr;
+  }
   if (!value.is_null() && !value.is_numeric() && !value.is_string() &&
       !value.is_bool()) {
     if (logger) {
@@ -378,10 +447,15 @@ QueryInternal* QueryInternal::StartAt(const Variant& value,
     }
     return nullptr;
   }
+  if (HasStart(query_spec_.params)) {
+    if (logger) {
+      logger->LogWarning("Can't Call StartAt() or EqualTo() multiple times");
+    }
+    return nullptr;
+  }
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
-  spec.params.start_at_child_key =
-      child_key ? Optional<std::string>(child_key) : Optional<std::string>();
+  spec.params.start_at_child_key = Optional<std::string>(child_key);
   if (!ValidateQueryEndpoints(spec.params, logger)) {
     return nullptr;
   }
@@ -417,6 +491,12 @@ QueryInternal* QueryInternal::EndAt(const Variant& value) {
 QueryInternal* QueryInternal::EndAt(const Variant& value,
                                     const char* child_key) {
   Logger* logger = database_ ? database_->logger() : nullptr;
+  if (child_key == nullptr) {
+    if (logger) {
+      logger->LogWarning("Query::EndAt(): Child key cannot be null.");
+    }
+    return nullptr;
+  }
   if (!value.is_null() && !value.is_numeric() && !value.is_string() &&
       !value.is_bool()) {
     if (logger) {
@@ -427,10 +507,15 @@ QueryInternal* QueryInternal::EndAt(const Variant& value,
     }
     return nullptr;
   }
+  if (HasEnd(query_spec_.params)) {
+    if (logger) {
+      logger->LogWarning("Can't Call EndAt() or EqualTo() multiple times");
+    }
+    return nullptr;
+  }
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
-  spec.params.end_at_child_key =
-      child_key ? Optional<std::string>(child_key) : Optional<std::string>();
+  spec.params.end_at_child_key = Optional<std::string>(child_key);
   if (!ValidateQueryEndpoints(spec.params, logger)) {
     return nullptr;
   }
@@ -449,6 +534,13 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value) {
     }
     return nullptr;
   }
+  if (HasStart(query_spec_.params) || HasEnd(query_spec_.params)) {
+    if (logger) {
+      logger->LogWarning(
+          "Can't Call EqualTo() and StartAt() or EndAt() multiple times");
+    }
+    return nullptr;
+  }
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
   if (!ValidateQueryEndpoints(spec.params, logger)) {
@@ -459,7 +551,13 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value) {
 
 QueryInternal* QueryInternal::EqualTo(const Variant& value,
                                       const char* child_key) {
-  Logger* logger = database_->logger();
+  Logger* logger = database_ ? database_->logger() : nullptr;
+  if (child_key == nullptr) {
+    if (logger) {
+      logger->LogWarning("Query::EqualTo(): Child key cannot be null.");
+    }
+    return nullptr;
+  }
   if (!value.is_null() && !value.is_numeric() && !value.is_string() &&
       !value.is_bool()) {
     if (logger) {
@@ -467,13 +565,19 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value,
           "Query::EqualTo: Only strings, numbers, and boolean values are "
           "allowed. (URL = %s)",
           query_spec_.path.c_str());
-      return nullptr;
     }
+    return nullptr;
+  }
+  if (HasStart(query_spec_.params) || HasEnd(query_spec_.params)) {
+    if (logger) {
+      logger->LogWarning(
+          "Can't Call EqualTo() and StartAt() or EndAt() multiple times");
+    }
+    return nullptr;
   }
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
-  spec.params.equal_to_child_key =
-      child_key ? Optional<std::string>(child_key) : Optional<std::string>();
+  spec.params.equal_to_child_key = Optional<std::string>(child_key);
   if (!ValidateQueryEndpoints(spec.params, logger)) {
     return nullptr;
   }
@@ -493,7 +597,8 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
 }
 
 ReferenceCountedFutureImpl* QueryInternal::query_future() {
-  return database_->future_manager().GetFutureApi(&future_api_id_);
+  return database_ ? database_->future_manager().GetFutureApi(&future_api_id_)
+                   : nullptr;
 }
 
 }  // namespace internal

@@ -150,8 +150,7 @@ TEST(View, CopyConstructor) {
   // The new cache should be exactly what the old one was.
   EXPECT_EQ(new_view.query_spec(), query_spec);
   EXPECT_EQ(new_view.view_cache(), initial_view_cache);
-  EXPECT_THAT(new_view.event_registrations(),
-              Pointwise(SmartPtrRawPtrEq(), {registration}));
+  EXPECT_TRUE(new_view.event_registrations().empty());
 }
 
 // For Views, copies are actually moves, so this test is identical to the
@@ -190,8 +189,7 @@ TEST(View, CopyAssignment) {
   // The new cache should be exactly what the old one was.
   EXPECT_EQ(new_view.query_spec(), query_spec);
   EXPECT_EQ(new_view.view_cache(), initial_view_cache);
-  EXPECT_THAT(new_view.event_registrations(),
-              Pointwise(SmartPtrRawPtrEq(), {registration}));
+  EXPECT_TRUE(new_view.event_registrations().empty());
 }
 
 TEST(View, GetCompleteServerCache_Empty) {

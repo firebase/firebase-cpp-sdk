@@ -15,9 +15,10 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_TREE_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_TREE_H_
 
-#include <stdint.h>
-
+#include <cstdint>
+#include <map>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "app/src/include/firebase/variant.h"
@@ -36,9 +37,7 @@
 #include "database/src/desktop/view/event.h"
 #include "firebase/database/common.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
 enum Persist {
   kDoNotPersist,
@@ -216,8 +215,6 @@ class SyncTree {
   std::unique_ptr<ListenProvider> listen_provider_;
 };
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal
 
 #endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_TREE_H_

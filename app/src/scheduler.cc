@@ -17,6 +17,7 @@
 #include "app/src/scheduler.h"
 
 #include <cassert>
+#include <climits>
 #include <cstdint>
 #include <utility>
 
@@ -26,8 +27,6 @@ namespace firebase {
 namespace scheduler {
 
 bool RequestHandle::Cancel() {
-  assert(status_);
-
   if (!IsValid()) {
     return false;
   }
@@ -42,13 +41,17 @@ bool RequestHandle::Cancel() {
 }
 
 bool RequestHandle::IsCancelled() const {
-  assert(status_);
+  if (!IsValid()) {
+    return false;
+  }
   MutexLock lock(status_->mutex);
   return status_->cancelled;
 }
 
 bool RequestHandle::IsTriggered() const {
-  assert(status_);
+  if (!IsValid()) {
+    return false;
+  }
   MutexLock lock(status_->mutex);
   return status_->triggered;
 }
@@ -72,31 +75,48 @@ Scheduler::Scheduler()
 Scheduler::~Scheduler() { CancelAllAndShutdownWorkerThread(); }
 
 void Scheduler::CancelAllAndShutdownWorkerThread() {
+  Thread* thread_to_join = nullptr;
   {
     // Notify the worker thread to stop processing anymore requests.
     MutexLock lock(request_mutex_);
     if (terminating_) return;
     terminating_ = true;
+    while (!request_queue_.empty()) {
+      RequestDataPtr request =
+          std::move(const_cast<RequestDataPtr&>(request_queue_.top()));
+      request_queue_.pop();
+      if (request && request->status) {
+        MutexLock status_lock(request->status->mutex);
+        request->status->cancelled = true;
+      }
+    }
+    thread_to_join = thread_;
+    thread_ = nullptr;
   }
 
   // Signal the thread to wake if it is sleeping due to no callbacks in queue
   sleep_sem_.Post();
 
-  if (thread_) {
-    thread_->Join();
-    delete thread_;
-    thread_ = nullptr;
+  if (thread_to_join) {
+    thread_to_join->Join();
+    delete thread_to_join;
   }
 }
 
 RequestHandle Scheduler::Schedule(callback::Callback* callback,
                                   ScheduleTimeMs delay /* = 0 */,
                                   ScheduleTimeMs repeat /* = 0 */) {
-  assert(callback);
+  if (!callback) {
+    return RequestHandle();
+  }
 
   MutexLock lock(request_mutex_);
+  if (terminating_) {
+    delete callback;
+    return RequestHandle();
+  }
 
-  if (!thread_ && !terminating_) {
+  if (!thread_) {
     thread_ = new Thread(WorkerThreadRoutine, this);
   }
 
@@ -117,6 +137,9 @@ RequestHandle Scheduler::Schedule(callback::Callback* callback,
 RequestHandle Scheduler::Schedule(const std::function<void(void)>& callback,
                                   ScheduleTimeMs delay /* = 0 */,
                                   ScheduleTimeMs repeat /* = 0 */) {
+  if (!callback) {
+    return RequestHandle();
+  }
   return Schedule(new callback::CallbackStdFunction(callback), delay, repeat);
 }
 #endif
@@ -134,6 +157,9 @@ void Scheduler::WorkerThreadRoutine(void* data) {
     // Check if the top request in the queue is due.
     {
       MutexLock lock(scheduler->request_mutex_);
+      if (scheduler->terminating_) {
+        return;
+      }
       if (!scheduler->request_queue_.empty()) {
         auto due = scheduler->request_queue_.top()->due_timestamp;
         if (due <= current) {
@@ -158,7 +184,10 @@ void Scheduler::WorkerThreadRoutine(void* data) {
     // 2. The top request in the queue is not due yet.
     if (!request) {
       if (sleep_time > 0) {
-        scheduler->sleep_sem_.TimedWait(sleep_time);
+        int wait_ms = sleep_time > static_cast<uint64_t>(INT_MAX)
+                          ? INT_MAX
+                          : static_cast<int>(sleep_time);
+        scheduler->sleep_sem_.TimedWait(wait_ms);
       } else {
         scheduler->sleep_sem_.Wait();
       }
@@ -178,34 +207,45 @@ void Scheduler::WorkerThreadRoutine(void* data) {
     // is non-zero, move it back to queue.
     if (request && scheduler->TriggerCallback(request)) {
       MutexLock lock(scheduler->request_mutex_);
-      ScheduleTimeMs repeat = request->repeat_ms;
-      scheduler->AddToQueue(std::move(request), current, repeat);
+      if (!scheduler->terminating_) {
+        ScheduleTimeMs repeat = request->repeat_ms;
+        request->id = ++scheduler->next_request_id_;
+        scheduler->AddToQueue(std::move(request), internal::GetTimestamp(),
+                              repeat);
+        scheduler->sleep_sem_.Post();
+      }
     }
   }
 }
 
 void Scheduler::AddToQueue(RequestDataPtr request, uint64_t current,
                            ScheduleTimeMs after) {
-  // Calculate the future timestamp
-  request->due_timestamp = current + after;
+  // Calculate the future timestamp, clamping on unsigned overflow.
+  request->due_timestamp =
+      (UINT64_MAX - current < after) ? UINT64_MAX : (current + after);
 
   // Push the request to the priority queue
   request_queue_.push(std::move(request));
 }
 
 bool Scheduler::TriggerCallback(const RequestDataPtr& request) {
-  MutexLock lock(request->status->mutex);
-  if (request->cb && !request->status->cancelled) {
-    request->cb->Run();
-    request->status->triggered = true;
-
-    // return true if this callback repeats and should be push back to the queue
-    if (request->repeat_ms > 0) {
-      return true;
+  if (!request->cb) {
+    return false;
+  }
+  {
+    MutexLock lock(request->status->mutex);
+    if (request->status->cancelled) {
+      return false;
     }
+    request->status->triggered = true;
   }
 
-  return false;
+  request->cb->Run();
+
+  {
+    MutexLock lock(request->status->mutex);
+    return request->repeat_ms > 0 && !request->status->cancelled;
+  }
 }
 
 }  // namespace scheduler

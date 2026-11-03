@@ -97,20 +97,25 @@ Response::Response()
       fetch_time_(0) {}
 
 bool Response::ProcessHeader(const char* buffer, size_t length) {
-  // Since buffer may NOT neccessarily end with \0, pass in length in the init.
+  if (buffer == nullptr) {
+    return length == 0;
+  }
+  // Since buffer may NOT necessarily end with \0, pass in length in the init.
   std::string header(buffer, length);
+  if (header == util::kCrLf) {
+    // A single CRLF line marks the end of header.
+    header_completed_ = true;
+    return true;
+  }
+  if (ParseHttpStatusLine(header, &status_)) {
+    // A new status line (e.g. final 200 after 100 Continue or 302 redirect)
+    // starts a fresh header block.
+    header_completed_ = false;
+    header_.clear();
+    return true;
+  }
   size_t colon_index = header.find(util::kHttpHeaderSeparator);
-  if (colon_index == std::string::npos) {
-    // Must be either the status line or CRLF line.
-    if (header.compare(util::kCrLf) == 0) {
-      // A single CRLF line marks the end of header.
-      header_completed_ = true;
-    } else if (ParseHttpStatusLine(header, &status_)) {
-      // A new status line (e.g. final 200 after 100 Continue or 302 redirect)
-      // starts a fresh header block.
-      header_completed_ = false;
-    }
-  } else {
+  if (colon_index != std::string::npos) {
     // HTTP header field names are case-insensitive (RFC 9110 section 5.1) and
     // always lowercase in HTTP/2 (RFC 9113 section 8.2). Normalize keys to
     // lowercase and let later headers overwrite interim/redirect ones.
@@ -130,13 +135,18 @@ bool Response::ProcessHeader(const char* buffer, size_t length) {
 }
 
 bool Response::ProcessBody(const char* buffer, size_t length) {
-  // Since buffer may NOT neccessarily end with \0, pass in length in the init.
-  std::string body(buffer, length);
-  body_.push_back(body);
+  if (buffer == nullptr) {
+    return length == 0;
+  }
+  if (length > 0) {
+    // Since buffer may NOT necessarily end with \0, pass in length in the init.
+    body_.emplace_back(buffer, length);
+    body_cache_.clear();
+  }
   return true;
 }
 
-const char* Response::GetHeader(const char* name) {
+const char* Response::GetHeader(const char* name) const {
   if (name == nullptr) {
     return nullptr;
   }
@@ -168,8 +178,8 @@ const char* Response::GetBody() const {
 
 void Response::GetBody(const char** data, size_t* size) const {
   GetBody();
-  *data = body_cache_.data();
-  *size = body_cache_.length();
+  if (data) *data = body_cache_.data();
+  if (size) *size = body_cache_.length();
 }
 
 }  // namespace rest

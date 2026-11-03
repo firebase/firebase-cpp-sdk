@@ -14,90 +14,205 @@
 
 #include "functions/src/ios/functions_ios.h"
 
+#import "FirebaseFunctions-Swift.h"
+
+#include <charconv>
 #include <memory>
+#include <string>
+
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/future.h"
-#include "app/src/reference_counted_future_impl.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/log.h"
+#include "functions/src/include/firebase/functions/callable_reference.h"
+#include "functions/src/include/firebase/functions/common.h"
 #include "functions/src/ios/callable_reference_ios.h"
-
-#import "FirebaseFunctions-Swift.h"
 
 namespace firebase {
 namespace functions {
 namespace internal {
 
+namespace {
+bool HasHttpScheme(const std::string& s) {
+  return s.compare(0, 7, "http://") == 0 || s.compare(0, 8, "https://") == 0;
+}
+
+void ApplyCallableTimeout(FIRHTTPSCallable* callable,
+                          const HttpsCallableOptions& options) {
+  if (callable && options.timeout_ms > 0 &&
+      options.timeout_ms != kDefaultTimeoutMilliseconds) {
+    callable.timeoutInterval =
+        static_cast<NSTimeInterval>(options.timeout_ms) / 1000.0;
+  }
+}
+}  // namespace
+
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
-    : app_(app), region_(region) {
-  impl_.reset(new FIRFunctionsPointer([FIRFunctions
-      functionsForApp:app->GetPlatformApp()
-               region:@(region)]));
+    : app_(app),
+      region_(region ? region : "us-central1"),
+      lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
+  FIRFunctions* fir_functions = nil;
+  if (app_ && app_->data_) {
+    if (HasHttpScheme(region_)) {
+      fir_functions =
+          [FIRFunctions functionsForApp:app_->data_->GetPlatformApp()
+                           customDomain:@(region_.c_str())];
+    } else {
+      fir_functions =
+          [FIRFunctions functionsForApp:app_->data_->GetPlatformApp()
+                                 region:@(region_.c_str())];
+    }
+  }
+  impl_.reset(new FIRFunctionsPointer(fir_functions));
 }
 
 FunctionsInternal::~FunctionsInternal() {
-  // Destructor is necessary for ARC garbage collection.
+  MutexLock lock(lifetime_state_->mutex);
+  lifetime_state_->alive = false;
 }
 
-::firebase::App* FunctionsInternal::app() const { return app_; }
-const char* FunctionsInternal::region() const { return region_.c_str(); }
-
-HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* name) const {
-  return GetHttpsCallable(name, HttpsCallableOptions());
+bool FunctionsInternal::is_valid() const {
+  return app_ != nullptr && impl_ && impl() != nil;
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
-    const char* name, const HttpsCallableOptions& options) const {
-  FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
-      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
-
-  // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
+    const char* name) const {
+  if (!is_valid() || !name || name[0] == '\0') return nullptr;
+  FIRHTTPSCallable* callable = [impl() HTTPSCallableWithName:@(name)];
+  if (!callable) return nullptr;
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
-          HTTPSCallableWithName:@(name)
-                        options:firOptions]));
+      std::unique_ptr<FIRHTTPSCallablePointer>(
+          new FIRHTTPSCallablePointer(callable)));
 }
 
-HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const char* url) const {
-  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableWithOptions(
+    const char* name, const HttpsCallableOptions& options) const {
+  if (!is_valid() || !name || name[0] == '\0') return nullptr;
+  FIRHTTPSCallableOptions* objc_options = [[FIRHTTPSCallableOptions alloc]
+      initWithRequireLimitedUseAppCheckTokens:options
+                                                  .limited_use_app_check_tokens];
+  FIRHTTPSCallable* callable = [impl() HTTPSCallableWithName:@(name)
+                                                     options:objc_options];
+  if (!callable) return nullptr;
+  ApplyCallableTimeout(callable, options);
+  return new HttpsCallableReferenceInternal(
+      const_cast<FunctionsInternal*>(this),
+      std::unique_ptr<FIRHTTPSCallablePointer>(
+          new FIRHTTPSCallablePointer(callable)));
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
-    const char* url, const HttpsCallableOptions& options) const {
-  FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
-      initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
-
-  // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
-  NSURL *nsurl = [NSURL URLWithString:@(url)];
+    const char* url) const {
+  if (!is_valid() || !url || url[0] == '\0') return nullptr;
+  NSURL* nsurl = [NSURL URLWithString:@(url)];
+  if (!nsurl || !nsurl.scheme) return nullptr;
+  FIRHTTPSCallable* callable = [impl() HTTPSCallableWithURL:nsurl];
+  if (!callable) return nullptr;
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
-          HTTPSCallableWithURL:nsurl
-                       options:firOptions]));
+      std::unique_ptr<FIRHTTPSCallablePointer>(
+          new FIRHTTPSCallablePointer(callable)));
+}
+
+HttpsCallableReferenceInternal*
+FunctionsInternal::GetHttpsCallableFromURLWithOptions(
+    const char* url, const HttpsCallableOptions& options) const {
+  if (!is_valid() || !url || url[0] == '\0') return nullptr;
+  NSURL* nsurl = [NSURL URLWithString:@(url)];
+  if (!nsurl || !nsurl.scheme) return nullptr;
+  FIRHTTPSCallableOptions* objc_options = [[FIRHTTPSCallableOptions alloc]
+      initWithRequireLimitedUseAppCheckTokens:options
+                                                  .limited_use_app_check_tokens];
+  FIRHTTPSCallable* callable = [impl() HTTPSCallableWithURL:nsurl
+                                                    options:objc_options];
+  if (!callable) return nullptr;
+  ApplyCallableTimeout(callable, options);
+  return new HttpsCallableReferenceInternal(
+      const_cast<FunctionsInternal*>(this),
+      std::unique_ptr<FIRHTTPSCallablePointer>(
+          new FIRHTTPSCallablePointer(callable)));
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
-  std::string origin_str(origin);
-  // origin is in the format localhost:5005 or http://localhost:5005
-  size_t pos = origin_str.rfind(":");
-  if (pos == std::string::npos) {
-    LogError("Functions::UseFunctionsEmulator: You must specify host:port");
+  if (!is_valid() || !origin || origin[0] == '\0') return;
+  std::string str(origin);
+  if (str.compare(0, 7, "http://") == 0) {
+    str.erase(0, 7);
+  } else if (str.compare(0, 8, "https://") == 0) {
+    str.erase(0, 8);
+  }
+  while (!str.empty() && str.back() == '/') {
+    str.pop_back();
+  }
+  size_t pos = str.rfind(':');
+  if (pos == std::string::npos || pos == 0 || pos + 1 >= str.size()) {
+    LogError("Invalid emulator origin: %s", origin);
     return;
   }
+  int port = 0;
+  const char* p_begin = str.data() + pos + 1;
+  const char* p_end = str.data() + str.size();
+  auto [ptr, ec] = std::from_chars(p_begin, p_end, port);
+  if (ec != std::errc() || ptr != p_end || port <= 0 || port > 65535) {
+    LogError("Invalid emulator port in origin: %s", origin);
+    return;
+  }
+  std::string host = str.substr(0, pos);
+  [impl() useEmulatorWithHost:@(host.c_str()) port:port];
+}
 
-  std::string host = origin_str.substr(0, pos);
-  if (host.find("http://") == 0) {
-    host = host.substr(7);
-  } else if (host.find("https://") == 0) {
-    host = host.substr(8);
+Error FunctionsInternal::ErrorFromNSError(NSError* error) {
+  if (error == nil) {
+    return kErrorNone;
   }
-  std::string port_str = origin_str.substr(pos+1, std::string::npos);
-  int port = atoi(port_str.c_str());
-  if (port <= 0 || port > 65535) {
-    LogError("Functions::UseFunctionsEmulator: Invalid port specified: %d", port);
-    return;
+  if ([error.domain isEqualToString:NSURLErrorDomain]) {
+    if (error.code == NSURLErrorTimedOut) {
+      return kErrorDeadlineExceeded;
+    }
+    if (error.code == NSURLErrorCancelled) {
+      return kErrorCancelled;
+    }
+    return kErrorUnavailable;
   }
-  [impl_.get()->get() useEmulatorWithHost:@(host.c_str()) port:port];
+  switch ((FIRFunctionsErrorCode)error.code) {
+    case FIRFunctionsErrorCodeOK:
+      return kErrorInternal;
+    case FIRFunctionsErrorCodeCancelled:
+      return kErrorCancelled;
+    case FIRFunctionsErrorCodeUnknown:
+      return kErrorUnknown;
+    case FIRFunctionsErrorCodeInvalidArgument:
+      return kErrorInvalidArgument;
+    case FIRFunctionsErrorCodeDeadlineExceeded:
+      return kErrorDeadlineExceeded;
+    case FIRFunctionsErrorCodeNotFound:
+      return kErrorNotFound;
+    case FIRFunctionsErrorCodeAlreadyExists:
+      return kErrorAlreadyExists;
+    case FIRFunctionsErrorCodePermissionDenied:
+      return kErrorPermissionDenied;
+    case FIRFunctionsErrorCodeUnauthenticated:
+      return kErrorUnauthenticated;
+    case FIRFunctionsErrorCodeResourceExhausted:
+      return kErrorResourceExhausted;
+    case FIRFunctionsErrorCodeFailedPrecondition:
+      return kErrorFailedPrecondition;
+    case FIRFunctionsErrorCodeAborted:
+      return kErrorAborted;
+    case FIRFunctionsErrorCodeOutOfRange:
+      return kErrorOutOfRange;
+    case FIRFunctionsErrorCodeUnimplemented:
+      return kErrorUnimplemented;
+    case FIRFunctionsErrorCodeInternal:
+      return kErrorInternal;
+    case FIRFunctionsErrorCodeUnavailable:
+      return kErrorUnavailable;
+    case FIRFunctionsErrorCodeDataLoss:
+      return kErrorDataLoss;
+    default:
+      return kErrorInternal;
+  }
 }
 
 }  // namespace internal

@@ -39,22 +39,23 @@ Method<int64_t> kGetCount("getCount", "()J");
 Method<Object> kGetQuery("getQuery",
                          "()Lcom/google/firebase/firestore/AggregateQuery;");
 Method<int32_t> kHashCode("hashCode", "()I");
-StaticMethod<Object> kCreateWithCount(
-    "createWithCount",
-    "(Lcom/google/firebase/firestore/AggregateQuery;J)"
-    "Lcom/google/firebase/firestore/AggregateQuerySnapshot;");
+
 
 }  // namespace
 
 void AggregateQuerySnapshotInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClassName, kGetCount, kGetQuery, kHashCode,
-                   kCreateWithCount);
+  loader.LoadClass(kClassName, kGetCount, kGetQuery, kHashCode);
 }
 
 AggregateQuerySnapshot AggregateQuerySnapshotInternal::Create(
     Env& env, AggregateQueryInternal& aggregate_query_internal, int64_t count) {
+  jni::Local<jni::Class> clazz = env.FindClass(kClassName);
+  jmethodID method = env.GetStaticMethodId(
+      clazz, "createWithCount",
+      "(Lcom/google/firebase/firestore/AggregateQuery;J)"
+      "Lcom/google/firebase/firestore/AggregateQuerySnapshot;");
   Local<Object> instance =
-      env.Call(kCreateWithCount, aggregate_query_internal.ToJava(), count);
+      env.CallStatic<Object>(clazz, method, aggregate_query_internal.ToJava(), count);
   return aggregate_query_internal.firestore_internal()
       ->NewAggregateQuerySnapshot(env, instance);
 }
@@ -72,7 +73,8 @@ int64_t AggregateQuerySnapshotInternal::count() const {
 
 std::size_t AggregateQuerySnapshotInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return static_cast<std::size_t>(
+      static_cast<uint32_t>(env.Call(obj_, kHashCode)));
 }
 
 bool operator==(const AggregateQuerySnapshotInternal& lhs,

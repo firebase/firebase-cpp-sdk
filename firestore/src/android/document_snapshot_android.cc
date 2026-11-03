@@ -35,7 +35,6 @@ namespace {
 
 using jni::Env;
 using jni::Local;
-using jni::Map;
 using jni::Method;
 using jni::Object;
 using jni::String;
@@ -64,17 +63,34 @@ Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
 
+DocumentSnapshotInternal::DocumentSnapshotInternal(
+    const DocumentSnapshotInternal& other)
+    : Wrapper(other) {
+  std::lock_guard<std::mutex> lock(other.mutex_);
+  cached_id_ = other.cached_id_;
+}
+
+DocumentSnapshotInternal::DocumentSnapshotInternal(
+    DocumentSnapshotInternal&& other) noexcept
+    : Wrapper(std::move(other)) {
+  std::lock_guard<std::mutex> lock(other.mutex_);
+  cached_id_ = std::move(other.cached_id_);
+}
+
 void DocumentSnapshotInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClass, kGetId, kGetReference, kGetMetadata, kExists,
                    kGetData, kContains, kGet, kHashCode);
 }
 
 Firestore* DocumentSnapshotInternal::firestore() const {
-  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
+  if (firestore_ == nullptr) {
+    return nullptr;
+  }
   return firestore_->firestore_public();
 }
 
 const std::string& DocumentSnapshotInternal::id() const {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (cached_id_.empty()) {
     Env env = GetEnv();
     cached_id_ = env.Call(obj_, kGetId).ToString(env);
@@ -91,6 +107,9 @@ DocumentReference DocumentSnapshotInternal::reference() const {
 SnapshotMetadata DocumentSnapshotInternal::metadata() const {
   Env env = GetEnv();
   auto java_metadata = env.Call(obj_, kGetMetadata);
+  if (!env.ok() || !java_metadata) {
+    return SnapshotMetadata{false, false};
+  }
   return java_metadata.ToPublic(env);
 }
 
@@ -105,9 +124,10 @@ MapFieldValue DocumentSnapshotInternal::GetData(
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
   Local<Object> java_data = env.Call(obj_, kGetData, java_stb);
 
-  if (!java_data) {
-    // If the document doesn't exist, Android returns a null Map. In C++, the
-    // map is returned by value, so translate this case to an empty map.
+  if (!env.ok() || !java_data) {
+    // If the document doesn't exist, Android's getData() returns a null Map.
+    // In C++, the map is returned by value, so translate this case to an empty
+    // MapFieldValue.
     return MapFieldValue();
   }
 
@@ -118,22 +138,28 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
                                          ServerTimestampBehavior stb) const {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-
-  // Android returns null for both null fields and nonexistent fields, so first
-  // use contains() to check if the field exists.
-  bool contains_field = env.Call(obj_, kContains, java_field);
-  if (!contains_field) {
+  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
+  Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
+  if (!env.ok()) {
     return FieldValue();
   }
 
-  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
-  Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
+  if (!field_value) {
+    // Android returns null for both null fields and nonexistent fields, so use
+    // contains() to check if the field actually exists on the document.
+    bool contains_field = env.Call(obj_, kContains, java_field);
+    if (!env.ok() || !contains_field) {
+      return FieldValue();
+    }
+    return FieldValue::Null();
+  }
+
   return FieldValueInternal::Create(env, field_value);
 }
 
 std::size_t DocumentSnapshotInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return static_cast<uint32_t>(env.Call(obj_, kHashCode));
 }
 
 bool operator==(const DocumentSnapshotInternal& lhs,

@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_DATA_SNAPSHOT_DESKTOP_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_DATA_SNAPSHOT_DESKTOP_H_
 
-#include <stddef.h>
-
+#include <cstddef>
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
@@ -26,9 +26,6 @@
 
 namespace firebase {
 namespace database {
-
-class Database;
-
 namespace internal {
 
 class DatabaseInternal;
@@ -45,13 +42,11 @@ class DataSnapshotInternal {
 
   DataSnapshotInternal& operator=(const DataSnapshotInternal& snapshot);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  DataSnapshotInternal(DataSnapshotInternal&& snapshot);
+  DataSnapshotInternal(DataSnapshotInternal&& snapshot) noexcept;
 
-  DataSnapshotInternal& operator=(DataSnapshotInternal&& snapshot);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  DataSnapshotInternal& operator=(DataSnapshotInternal&& snapshot) noexcept;
 
-  ~DataSnapshotInternal();
+  ~DataSnapshotInternal() = default;
 
   // Returns true if the data is non-empty.
   bool Exists() const;
@@ -63,13 +58,13 @@ class DataSnapshotInternal {
   DataSnapshotInternal* Child(const char* path) const;
 
   // Get all the immediate children of this location.
-  std::vector<DataSnapshot> GetChildren();
+  std::vector<DataSnapshot> GetChildren() const;
 
   // Get the number of children of this location.
-  size_t GetChildrenCount();
+  size_t GetChildrenCount() const;
 
   // Does this DataSnapshot have any children at all?
-  bool HasChildren();
+  bool HasChildren() const;
 
   // Get the key name of the source location of this snapshot.
   const char* GetKey() const;
@@ -92,9 +87,6 @@ class DataSnapshotInternal {
   // Does this DataSnapshot have data at a particular location?
   bool HasChild(const char* path) const;
 
-  /// Get the absolute URL of this data snapshot.
-  std::string GetUrl() const;
-
   DatabaseInternal* database_internal() const { return database_; }
 
   const Path& path() const { return query_spec_.path; }
@@ -107,7 +99,10 @@ class DataSnapshotInternal {
   bool operator!=(const DataSnapshotInternal& other) const;
 
  private:
-  DatabaseInternal* database_;
+  DataSnapshotInternal(DatabaseInternal* database, const Variant& data,
+                       const QuerySpec& query_spec, bool already_converted);
+
+  DatabaseInternal* database_ = nullptr;
 
   Variant data_;
 

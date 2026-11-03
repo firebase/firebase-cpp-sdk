@@ -35,6 +35,10 @@ public class MessageWriter {
   static final String STORAGE_FILE = "FIREBASE_CLOUD_MESSAGING_LOCAL_STORAGE";
   // LINT.ThenChange(//depot_firebase_cpp/messaging/client/cpp/src/android/cpp/messaging_internal.h)
 
+  // Shared in-process lock to prevent OverlappingFileLockException when multiple threads in the
+  // same JVM attempt to lock LOCK_FILE concurrently via FileChannel.lock().
+  static final Object STORAGE_LOCK = new Object();
+
   private static final String TAG = "FIREBASE_MESSAGE_WRITER";
 
   private static final MessageWriter DEFAULT_INSTANCE = new MessageWriter();
@@ -76,15 +80,15 @@ public class MessageWriter {
   /** Writes an event associated with a message to internal storage. */
   void writeMessageEventToInternalStorage(
       Context context, String messageId, String messageType, String error) {
-    writeMessageToInternalStorage(context, null, null, messageId, messageType, null, null, null,
+    writeMessageToInternalStorage(context, null, null, messageId, messageType, error, null, null,
         null, false, null, null, 0, 0, 0, 0);
   }
 
   /**
    * Writes a message to internal storage so that the app can respond to it.
    *
-   * <p>Because the native code in the activity will not not always be running, we write out the
-   * messages recieved to internal storage for the activity to consume later. The current way we do
+   * <p>Because the native code in the activity will not always be running, we write out the
+   * messages received to internal storage for the activity to consume later. The current way we do
    * this is just by writing flatbuffers out to a file which can then be consumed by the app
    * whenever it gets around to it.
    */
@@ -100,27 +104,17 @@ public class MessageWriter {
     // Write out the buffer length into the first four bytes.
     sizeBuffer.order(ByteOrder.LITTLE_ENDIAN);
     sizeBuffer.putInt(buffer.length);
-    FileLock lock = null;
-    try {
-      // Acquire lock. This prevents the C++ code from consuming and clearing the file while we
-      // append to it.
-      FileOutputStream lockFileStream = context.openFileOutput(LOCK_FILE, 0);
-      lock = lockFileStream.getChannel().lock();
-
-      FileOutputStream outputStream = context.openFileOutput(STORAGE_FILE, Context.MODE_APPEND);
-      // We send both the buffer length and the buffer itself so that we can potentially process
-      // more than one message in the case where they get queued up.
-      outputStream.write(sizeBuffer.array());
-      outputStream.write(buffer);
-      outputStream.close();
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      // Release the lock.
-      try {
-        if (lock != null) {
-          lock.release();
-        }
+    synchronized (STORAGE_LOCK) {
+      try (FileOutputStream lockFileStream = context.openFileOutput(LOCK_FILE, 0);
+           // Acquire lock. This prevents the C++ code from consuming and clearing the file while
+           // we append to it.
+           FileLock lock = lockFileStream.getChannel().lock();
+           FileOutputStream outputStream =
+               context.openFileOutput(STORAGE_FILE, Context.MODE_APPEND)) {
+        // We send both the buffer length and the buffer itself so that we can potentially process
+        // more than one message in the case where they get queued up.
+        outputStream.write(sizeBuffer.array());
+        outputStream.write(buffer);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -161,8 +155,8 @@ public class MessageWriter {
       int[] dataPairOffsets = new int[data.size()];
       int index = 0;
       for (Map.Entry<String, String> entry : data.entrySet()) {
-        int key = builder.createString(entry.getKey());
-        int value = builder.createString(entry.getValue());
+        int key = builder.createString(emptyIfNull(entry.getKey()));
+        int value = builder.createString(emptyIfNull(entry.getValue()));
         dataPairOffsets[index++] = DataPair.createDataPair(builder, key, value);
       }
       dataOffset = SerializedMessage.createDataVector(builder, dataPairOffsets);
@@ -190,7 +184,7 @@ public class MessageWriter {
         int index = 0;
         int[] bodyArgOffsets = new int[bodyLocalizationArgs.length];
         for (String arg : bodyLocalizationArgs) {
-          bodyArgOffsets[index++] = builder.createString(arg);
+          bodyArgOffsets[index++] = builder.createString(emptyIfNull(arg));
         }
         bodyLocalizationArgsOffset =
             SerializedNotification.createBodyLocArgsVector(builder, bodyArgOffsets);
@@ -203,7 +197,7 @@ public class MessageWriter {
         int index = 0;
         int[] titleArgOffsets = new int[titleLocalizationArgs.length];
         for (String arg : titleLocalizationArgs) {
-          titleArgOffsets[index++] = builder.createString(arg);
+          titleArgOffsets[index++] = builder.createString(emptyIfNull(arg));
         }
         titleLocalizationArgsOffset =
             SerializedNotification.createTitleLocArgsVector(builder, titleArgOffsets);

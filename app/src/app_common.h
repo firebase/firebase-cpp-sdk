@@ -17,8 +17,6 @@
 #ifndef FIREBASE_APP_SRC_APP_COMMON_H_
 #define FIREBASE_APP_SRC_APP_COMMON_H_
 
-#include <stddef.h>
-
 #include <map>
 #include <string>
 #include <vector>
@@ -26,27 +24,28 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/logger.h"
 
-namespace firebase {
-
-// Default app name.
-extern const char* const kDefaultAppName;
-
-namespace app_common {
-
 // Prefix applied to components of Firebase user agent strings.
 #define FIREBASE_USER_AGENT_PREFIX "fire-"
 // Prefix applied to Firebase C++ SDK components of user agent strings.
 #define FIREBASE_CPP_USER_AGENT_PREFIX FIREBASE_USER_AGENT_PREFIX "cpp"
 
+namespace firebase {
+
+namespace internal {
+class FunctionRegistry;
+}  // namespace internal
+
+namespace app_common {
+
 // Platform information.
-extern const char* kOperatingSystem;
-extern const char* kCppRuntimeOrStl;
-extern const char* kCpuArchitecture;
-extern const char* kBuildSource;
+extern const char* const kOperatingSystem;
+extern const char* const kCppRuntimeOrStl;
+extern const char* const kCpuArchitecture;
+extern const char* const kBuildSource;
 
 // Request headers used by platform monitoring.
-extern const char* kApiClientHeader;
-extern const char* kXFirebaseGmpIdHeader;
+extern const char* const kApiClientHeader;
+extern const char* const kXFirebaseGmpIdHeader;
 
 // Add an app to the set of apps.
 App* AddApp(App* app, std::map<std::string, InitResult>* results);
@@ -75,8 +74,8 @@ void DestroyAllApps();
 bool IsDefaultAppName(const char* name);
 
 // Register a library which uses this SDK.
-// Library registrations are not thread safe as we build the user agent string
-// once and return it from the UserAgent() method.
+// This method is thread-safe with respect to concurrent calls to
+// RegisterLibrary() and GetUserAgent().
 // NOTE: This is an internal method, use App::RegisterLibrary() instead.
 void RegisterLibrary(const char* library, const char* version);
 
@@ -89,8 +88,11 @@ void RegisterLibrariesFromUserAgent(const char* user_agent);
 void RegisterSdkUsage(void* platform_resource);
 
 // Get the user agent string for all registered libraries.
-// This is not thread safe w.r.t RegisterLibrary().
-// NOTE: This is an internal method, use App::UserAgent() instead.
+// The returned pointer points to an interned string owned by the library
+// registry that remains valid for the lifetime of the process, even if
+// subsequent calls to RegisterLibrary(), RegisterLibrariesFromUserAgent(),
+// or DestroyAllApps() update or reset the active user agent.
+// NOTE: This is an internal method, use App::GetUserAgent() instead.
 const char* GetUserAgent();
 
 // Get the version of a registered library.
@@ -104,6 +106,9 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version);
 
 // Find a logger associated with an app by app name.
 Logger* FindAppLoggerByName(const char* name);
+
+// Get or create the FunctionRegistry associated with an app.
+internal::FunctionRegistry* GetAppFunctionRegistry(App* app);
 
 }  // namespace app_common
 // NOLINTNEXTLINE - allow namespace overridden

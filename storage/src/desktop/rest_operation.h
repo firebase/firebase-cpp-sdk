@@ -163,10 +163,16 @@ class RestOperation {
   std::shared_ptr<NotifyState> notify_state_ = std::make_shared<NotifyState>();
   ListenerInternal* listener_internal_ = nullptr;
   std::shared_ptr<ListenerSharedState> listener_state_;
+  uint64_t operation_id_ = 0;
   FutureHandle handle_;
   CleanupNotifier cleanup_;
   rest::TransportCurl transport_;
+  // Written by transport_.Perform() in the constructor while mutex_ is held,
+  // before the transfer is posted to the I/O thread; guarded by mutex_.
   std::unique_ptr<rest::Controller> rest_controller_;
+  // Thread currently inside transport_.Perform() in the constructor (holding
+  // mutex_), or a default id. Guarded by mutex_.
+  std::thread::id perform_thread_;
   // Storage controller that delegates to this object.
   storage::Controller controller_;
   std::atomic<bool> is_complete_{false};

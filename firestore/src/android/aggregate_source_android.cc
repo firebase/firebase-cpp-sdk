@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/aggregate_source_android.h"
 
+#include "app/src/assert.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -45,6 +46,9 @@ Local<Object> AggregateSourceInternal::Create(
     case AggregateSource::kServer:
       return env.Get(kServer);
   }
+  FIREBASE_ASSERT_MESSAGE(false, "Unknown AggregateSource value: %d",
+                          static_cast<int>(aggregate_source));
+  return {};
 }
 
 }  // namespace firestore

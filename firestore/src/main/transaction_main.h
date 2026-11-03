@@ -39,10 +39,10 @@ class FirestoreInternal;
 class TransactionInternal {
  public:
   TransactionInternal(std::shared_ptr<core::Transaction> transaction,
-                      FirestoreInternal* firestore_internal);
+                      std::shared_ptr<api::Firestore> firestore_core,
+                      Firestore* firestore_public);
 
-  Firestore* firestore();
-  FirestoreInternal* firestore_internal();
+  [[nodiscard]] Firestore* firestore();
 
   void Set(const DocumentReference& document,
            const MapFieldValue& data,
@@ -63,7 +63,8 @@ class TransactionInternal {
   void ValidateReference(const DocumentReference& document);
 
   std::shared_ptr<core::Transaction> transaction_;
-  FirestoreInternal* firestore_internal_ = nullptr;
+  std::shared_ptr<api::Firestore> firestore_core_;
+  Firestore* firestore_public_ = nullptr;
   UserDataConverter user_data_converter_;
 };
 

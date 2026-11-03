@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <list>
 #include <memory>
 #include <queue>
@@ -58,8 +59,24 @@ struct TransactionData {
     kStatusNeedsAbort
   };
 
+  static uint64_t NextTransactionOrder() {
+    static std::atomic<uint64_t> g_order{0};
+    return ++g_order;
+  }
+
   // This constructor is primarily used for testing
-  TransactionData() : delete_context(nullptr), outstanding_listener(nullptr) {}
+  TransactionData()
+      : ref_future(nullptr),
+        transaction_function(nullptr),
+        context(nullptr),
+        delete_context(nullptr),
+        trigger_local_events(true),
+        outstanding_listener(nullptr),
+        transaction_order(NextTransactionOrder()),
+        status(kStatusInitializing),
+        retry_count(0),
+        current_write_id(0),
+        abort_reason(kErrorNone) {}
 
   // Constructor to capture all data for a RunTransaction request
   TransactionData(const SafeFutureHandle<DataSnapshot>& handle,
@@ -75,17 +92,18 @@ struct TransactionData {
         delete_context(delete_context),
         trigger_local_events(trigger_local_events),
         outstanding_listener(std::move(outstanding_listener)),
+        transaction_order(NextTransactionOrder()),
         status(kStatusInitializing),
-        retry_count(0) {}
+        retry_count(0),
+        current_write_id(0),
+        abort_reason(kErrorNone) {}
 
   ~TransactionData();
 
-  // Comparor for std::priority_queue to ensure transaction is run in order.
-  // std::priority_queue has some quirk that when this function returns true,
-  // this element has higher priority.  However, higher priority elements come
-  // out last.  That is, lower number with lower priority comes out first.
+  // Comparator for std::sort in BuildTransactionQueue to ensure transactions
+  // are rerun in ascending order of creation.
   bool operator<(const TransactionData& other) const {
-    return transaction_order > other.transaction_order;
+    return transaction_order < other.transaction_order;
   }
 
   // References for Future to fulfill

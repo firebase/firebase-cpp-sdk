@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include <memory>
+#include "firestore/src/main/create_app_check_credentials_provider.h"
 
-#include "firestore/src/main/create_credentials_provider.h"
+#include <memory>
 
 #import "FIRAppInternal.h"
 #import "FIRComponent.h"
 #import "FIRComponentContainer.h"
 #import "FIRComponentType.h"
-#import "FirebaseAuthInterop/FIRAuthInterop.h"
+#import <FirebaseAppCheckInterop/FirebaseAppCheckInterop.h>
 #import "FirebaseCore.h"
 
 #include "Firestore/core/src/credentials/firebase_app_check_credentials_provider_apple.h"

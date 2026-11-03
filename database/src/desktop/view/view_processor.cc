@@ -116,6 +116,8 @@ void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
                                    const Variant* opt_complete_cache,
                                    ViewCache* out_view_cache,
                                    std::vector<Change>* out_changes) {
+  FIREBASE_DEV_ASSERT(out_view_cache != nullptr);
+  FIREBASE_DEV_ASSERT(out_changes != nullptr);
   ChildChangeAccumulator accumulator;
   switch (operation.type) {
     case Operation::kTypeOverwrite: {
@@ -140,14 +142,14 @@ void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
       if (operation.source.source == OperationSource::kSourceUser) {
         *out_view_cache =
             ApplyUserMerge(old_view_cache, operation.path, operation.children,
-                           writes_cache, *opt_complete_cache, &accumulator);
+                           writes_cache, opt_complete_cache, &accumulator);
       } else {
         // We filter the node if the node has been previously filtered.
         bool filter_server_node =
             operation.source.tagged || old_view_cache.server_snap().filtered();
         *out_view_cache = ApplyServerMerge(
             old_view_cache, operation.path, operation.children, writes_cache,
-            *opt_complete_cache, filter_server_node, &accumulator);
+            opt_complete_cache, filter_server_node, &accumulator);
       }
       break;
     }
@@ -190,11 +192,10 @@ ViewCache ViewProcessor::RevertUserWrite(
                                       opt_complete_server_cache);
   const IndexedVariant& old_event_cache =
       view_cache.local_snap().indexed_variant();
-  std::string child_key = path.FrontDirectory().str();
 
   // Set up the new local data.
   IndexedVariant new_local_cache;
-  if (path.empty() || IsPriorityKey(child_key)) {
+  if (path.empty() || IsPriorityKey(path.FrontDirectory().str())) {
     Optional<Variant> new_node;
     // If the server snapshot if complete, then generate a complete cache.
     // Otherwise, get as much of it as we can from the children that are
@@ -210,12 +211,15 @@ ViewCache ViewProcessor::RevertUserWrite(
     new_local_cache =
         filter_->UpdateFullVariant(old_event_cache, indexed_node, accumulator);
   } else {
+    std::string child_key = path.FrontDirectory().str();
     Optional<Variant> new_child =
         writes_cache.CalcCompleteChild(child_key, view_cache.server_snap());
     if (!new_child.has_value() &&
         view_cache.server_snap().IsCompleteForChild(child_key)) {
-      new_child = OptionalFromPointer(
-          GetInternalVariant(&old_event_cache.variant(), child_key));
+      const Variant* server_child =
+          GetInternalVariant(&view_cache.server_snap().variant(), child_key);
+      new_child = server_child ? Optional<Variant>(*server_child)
+                               : Optional<Variant>(Variant::Null());
     }
 
     // Get the new local cache set up.
@@ -223,8 +227,7 @@ ViewCache ViewProcessor::RevertUserWrite(
       new_local_cache =
           filter_->UpdateChild(old_event_cache, child_key, *new_child,
                                path.PopFrontDirectory(), &source, accumulator);
-    } else if (!new_child.has_value() &&
-               GetInternalVariant(&view_cache.local_snap().variant(),
+    } else if (GetInternalVariant(&view_cache.local_snap().variant(),
                                   child_key) != nullptr) {
       // No complete child available, delete the existing one, if any.
       new_local_cache =
@@ -268,7 +271,7 @@ void ViewProcessor::MaybeAddValueEvent(const ViewCache& old_view_cache,
          local_snap.variant() != old_view_cache.local_snap().variant()) ||
         !VariantsAreEquivalent(
             GetVariantPriority(local_snap.variant()),
-            GetVariantPriority(*old_view_cache.GetCompleteLocalSnap()))) {
+            GetVariantPriority(old_view_cache.local_snap().variant()))) {
       accumulator->push_back(ValueChange(local_snap.indexed_variant()));
     }
   }
@@ -470,7 +473,7 @@ ViewCache ViewProcessor::ApplyUserOverwrite(
           old_view_cache.local_snap().indexed_variant(), changed_snap);
       new_view_cache = old_view_cache.UpdateLocalSnap(
           new_local_cache, old_local_snap.fully_initialized(),
-          old_local_snap.filtered());
+          filter_->FiltersVariants());
     } else {
       // Get the cached child variant that needs updating.
       Path child_change_path = change_path.PopFrontDirectory();
@@ -523,7 +526,7 @@ ViewCache ViewProcessor::ApplyUserMerge(const ViewCache& view_cache,
                                         const Path& path,
                                         const CompoundWrite& changed_children,
                                         const WriteTreeRef& writes_cache,
-                                        const Variant& server_cache,
+                                        const Variant* opt_complete_cache,
                                         ChildChangeAccumulator* accumulator) {
   // NOTE: This behavior is replicated from the Java/Objective C implementation,
   // where is it described as a workaround. Leave as-is so as to not break
@@ -538,29 +541,30 @@ ViewCache ViewProcessor::ApplyUserMerge(const ViewCache& view_cache,
   ViewCache current_view_cache;
 
   current_view_cache = changed_children.write_tree().Fold(
-      view_cache, [this, &path, &view_cache, &writes_cache, &server_cache,
-                   &accumulator](const Path& child_path, const Variant& value,
-                                 ViewCache current_view_cache) {
+      view_cache,
+      [this, &path, &view_cache, &writes_cache, opt_complete_cache,
+       &accumulator](const Path& child_path, const Variant& value,
+                     ViewCache current_view_cache) {
         Path write_path = path.GetChild(child_path);
 
         if (CacheHasChild(view_cache, write_path.FrontDirectory().str())) {
-          current_view_cache =
-              ApplyUserOverwrite(current_view_cache, write_path, value,
-                                 writes_cache, &server_cache, accumulator);
+          current_view_cache = ApplyUserOverwrite(
+              current_view_cache, write_path, value, writes_cache,
+              opt_complete_cache, accumulator);
         }
         return current_view_cache;
       });
 
   current_view_cache = changed_children.write_tree().Fold(
       current_view_cache,
-      [this, &path, &view_cache, &writes_cache, &server_cache, &accumulator](
-          const Path& child_path, const Variant& value,
-          ViewCache current_view_cache) {
+      [this, &path, &view_cache, &writes_cache, opt_complete_cache,
+       &accumulator](const Path& child_path, const Variant& value,
+                     ViewCache current_view_cache) {
         Path write_path = path.GetChild(child_path);
         if (!CacheHasChild(view_cache, write_path.FrontDirectory().str())) {
-          current_view_cache =
-              ApplyUserOverwrite(current_view_cache, write_path, value,
-                                 writes_cache, &server_cache, accumulator);
+          current_view_cache = ApplyUserOverwrite(
+              current_view_cache, write_path, value, writes_cache,
+              opt_complete_cache, accumulator);
         }
         return current_view_cache;
       });
@@ -572,7 +576,7 @@ ViewCache ViewProcessor::ApplyServerMerge(const ViewCache& view_cache,
                                           const Path& path,
                                           const CompoundWrite& changed_children,
                                           const WriteTreeRef& writes_cache,
-                                          const Variant& server_cache,
+                                          const Variant* opt_complete_cache,
                                           bool filter_server_node,
                                           ChildChangeAccumulator* accumulator) {
   // If we don't have a cache yet, this merge was intended for a previously
@@ -613,7 +617,7 @@ ViewCache ViewProcessor::ApplyServerMerge(const ViewCache& view_cache,
       Variant new_child = child_write.Apply(*server_child);
       current_view_cache = ApplyServerOverwrite(
           current_view_cache, Path(child_key), new_child, writes_cache,
-          &server_cache, filter_server_node, accumulator);
+          opt_complete_cache, filter_server_node, accumulator);
     }
   }
 
@@ -628,7 +632,7 @@ ViewCache ViewProcessor::ApplyServerMerge(const ViewCache& view_cache,
       Variant new_child = child_write.Apply(Variant::Null());
       current_view_cache = ApplyServerOverwrite(
           current_view_cache, Path(child_key), new_child, writes_cache,
-          &server_cache, filter_server_node, accumulator);
+          opt_complete_cache, filter_server_node, accumulator);
     }
   }
 
@@ -669,13 +673,14 @@ ViewCache ViewProcessor::AckUserWrite(const ViewCache& view_cache,
       CompoundWrite changed_children = CompoundWrite::EmptyWrite();
       if (server_cache.variant().is_map()) {
         for (const auto& key_value : server_cache.variant().map()) {
+          Variant key_str = key_value.first.AsString();
           CompoundWrite temp = changed_children.AddWrite(
-              key_value.first.AsString().mutable_string(), key_value.second);
+              key_str.string_value(), key_value.second);
           changed_children = temp;
         }
       }
       return ApplyServerMerge(view_cache, ack_path, changed_children,
-                              writes_cache, *opt_complete_cache,
+                              writes_cache, opt_complete_cache,
                               filter_server_node, accumulator);
     } else {
       return view_cache;
@@ -684,18 +689,20 @@ ViewCache ViewProcessor::AckUserWrite(const ViewCache& view_cache,
     // This is a merge.
     CompoundWrite changed_children = affected_tree.Fold(
         CompoundWrite::EmptyWrite(),
-        [&](Path merge_path, bool unused, const CompoundWrite& accum) {
+        [&](Path merge_path, bool /*unused*/, const CompoundWrite& accum) {
           Path server_cache_path = ack_path.GetChild(merge_path);
           if (server_cache.IsCompleteForPath(server_cache_path)) {
-            return accum.AddWrite(
-                merge_path, OptionalFromPointer(GetInternalVariant(
-                                &server_cache.variant(), server_cache_path)));
+            const Variant* variant =
+                GetInternalVariant(&server_cache.variant(), server_cache_path);
+            return accum.AddWrite(merge_path,
+                                  variant ? Optional<Variant>(*variant)
+                                          : Optional<Variant>(Variant::Null()));
           }
           return accum;
         });
 
     return ApplyServerMerge(view_cache, ack_path, changed_children,
-                            writes_cache, *opt_complete_cache,
+                            writes_cache, opt_complete_cache,
                             filter_server_node, accumulator);
   }
 }

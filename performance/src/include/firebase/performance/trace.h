@@ -40,16 +40,19 @@ class Trace {
   /// @brief Destroys any resources allocated for a Trace object.
   ~Trace();
 
+  Trace(const Trace& src) = delete;
+  Trace& operator=(const Trace& src) = delete;
+
   /// @brief Move constructor.
-  Trace(Trace&& other);
+  Trace(Trace&& other) noexcept;
 
   /// @brief Move assignment operator.
-  Trace& operator=(Trace&& other);
+  Trace& operator=(Trace&& other) noexcept;
 
   /// @brief Gets whether the Trace associated with this object is started.
   /// @return true if the Trace is started, false if it's stopped or
   /// canceled.
-  bool is_started();
+  bool is_started() const;
 
   /// @brief Cancels the trace, so that it isn't logged to the backend.
   void Cancel();
@@ -67,8 +70,8 @@ class Trace {
   /// carried over to a new Trace if one is created.
   void Start(const char* name);
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
-  // We need to decouple creating and starting an HttpMetric for the Unity
+  /// @cond FIREBASE_APP_INTERNAL
+  // We need to decouple creating and starting a Trace for the Unity
   // implementation and so we expose these methods.
 
   /// @brief Creates a trace with the given name. If this method is called when
@@ -79,7 +82,7 @@ class Trace {
   /// @brief Starts the Trace that was created. Does nothing if there isn't
   /// one created.
   void StartCreatedTrace();
-#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+  /// @endcond
 
   /// @brief Gets the value of the metric identified by the metric_name or 0
   /// if it hasn't yet been set.
@@ -123,10 +126,7 @@ class Trace {
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
-  internal::TraceInternal* internal_;
-
-  Trace(const Trace& src);
-  Trace& operator=(const Trace& src);
+  internal::TraceInternal* internal_ = nullptr;
   /// @endcond
 };
 

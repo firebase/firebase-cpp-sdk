@@ -60,7 +60,7 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
   DebugAppCheckProviderFactory();
   ~DebugAppCheckProviderFactory() override;
 
-  internal::DebugAppCheckProviderFactoryInternal* internal_;
+  internal::DebugAppCheckProviderFactoryInternal* internal_{nullptr};
 };
 
 }  // namespace app_check

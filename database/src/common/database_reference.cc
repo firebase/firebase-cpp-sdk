@@ -14,9 +14,8 @@
 
 #include "database/src/include/firebase/database/database_reference.h"
 
-#include <cassert>
+#include <utility>
 
-#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/common/database_reference.h"
 
@@ -60,8 +59,8 @@ static DatabaseReference GetInvalidDatabaseReference() {
   return DatabaseReference();
 }
 
-typedef CleanupFn<DatabaseReference, DatabaseReferenceInternal>
-    CleanupFnDatabaseReference;
+using CleanupFnDatabaseReference =
+    CleanupFn<DatabaseReference, DatabaseReferenceInternal>;
 
 template <>
 CleanupFnDatabaseReference::CreateInvalidObjectFn
@@ -79,9 +78,11 @@ void DatabaseReference::SwitchCleanupRegistrationBackToQuery() {
 }
 
 DatabaseReference::DatabaseReference(DatabaseReferenceInternal* internal)
-    : Query(internal), internal_(internal) {
+    : Query(), internal_(nullptr) {
   MutexLock lock(internal::g_database_reference_constructor_mutex);
 
+  internal_ = internal;
+  Query::SetInternal(internal_);
   SwitchCleanupRegistrationToDatabaseReference();
 }
 
@@ -99,7 +100,9 @@ DatabaseReference::DatabaseReference(const DatabaseReference& reference)
 DatabaseReference& DatabaseReference::operator=(
     const DatabaseReference& reference) {
   MutexLock lock(internal::g_database_reference_constructor_mutex);
+  if (&reference == this) return *this;
 
+  SwitchCleanupRegistrationBackToQuery();
   internal_ = reference.internal_
                   ? new DatabaseReferenceInternal(*reference.internal_)
                   : nullptr;
@@ -109,11 +112,12 @@ DatabaseReference& DatabaseReference::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReference::DatabaseReference(DatabaseReference&& reference)
-    : Query(), internal_(reference.internal_) {
+    : Query(), internal_(nullptr) {
   MutexLock lock(internal::g_database_reference_constructor_mutex);
 
+  reference.SwitchCleanupRegistrationBackToQuery();
+  internal_ = reference.internal_;
   reference.internal_ = nullptr;
   Query::operator=(std::move(reference));
   SwitchCleanupRegistrationToDatabaseReference();
@@ -121,7 +125,10 @@ DatabaseReference::DatabaseReference(DatabaseReference&& reference)
 
 DatabaseReference& DatabaseReference::operator=(DatabaseReference&& reference) {
   MutexLock lock(internal::g_database_reference_constructor_mutex);
+  if (&reference == this) return *this;
 
+  SwitchCleanupRegistrationBackToQuery();
+  reference.SwitchCleanupRegistrationBackToQuery();
   internal_ = reference.internal_;
   reference.internal_ = nullptr;
   Query::operator=(std::move(reference));
@@ -129,15 +136,18 @@ DatabaseReference& DatabaseReference::operator=(DatabaseReference&& reference) {
 
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DatabaseReference::~DatabaseReference() {
+  MutexLock lock(internal::g_database_reference_constructor_mutex);
   SwitchCleanupRegistrationBackToQuery();
   internal_ = nullptr;
+  Query::SetInternal(nullptr);
 }
 
 bool operator==(const DatabaseReference& lhs, const DatabaseReference& rhs) {
-  return lhs.url() == rhs.url();
+  if (!lhs.is_valid() && !rhs.is_valid()) return true;
+  if (!lhs.is_valid() || !rhs.is_valid()) return false;
+  return lhs.database() == rhs.database() && lhs.url() == rhs.url();
 }
 
 Database* DatabaseReference::database() const {
@@ -198,49 +208,34 @@ Future<DataSnapshot> DatabaseReference::RunTransaction(
                    : Future<DataSnapshot>();
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
 static TransactionResult CallStdFunction(MutableData* data,
                                          void* function_void) {
   if (function_void) {
     DoTransactionFunction* function =
-        reinterpret_cast<DoTransactionFunction*>(function_void);
-    return (*function)(data);
-  } else {
-    return kTransactionResultAbort;
+        static_cast<DoTransactionFunction*>(function_void);
+    if (*function) {
+      return (*function)(data);
+    }
   }
+  return kTransactionResultAbort;
 }
 
 static void DeleteStdFunction(void* function_void) {
   if (function_void) {
     DoTransactionFunction* function =
-        reinterpret_cast<DoTransactionFunction*>(function_void);
+        static_cast<DoTransactionFunction*>(function_void);
     delete function;
   }
 }
 
 Future<DataSnapshot> DatabaseReference::RunTransaction(
     DoTransactionFunction transaction_function, bool trigger_local_events) {
-  if (!internal_) return Future<DataSnapshot>();
-  void* function_void = reinterpret_cast<void*>(
-      new DoTransactionFunction(transaction_function));  // NOLINT
+  if (!internal_ || !transaction_function) return Future<DataSnapshot>();
+  void* function_void =
+      static_cast<void*>(new DoTransactionFunction(std::move(transaction_function)));
   return internal_->RunTransaction(CallStdFunction, function_void,
                                    DeleteStdFunction, trigger_local_events);
 }
-#else
-TransactionResult CallFunctionPtrWithNoArgs(MutableData* data, void* fn_void) {
-  DoTransaction fn = reinterpret_cast<DoTransaction>(fn_void);
-  return fn(data);
-}
-
-Future<DataSnapshot> DatabaseReference::RunTransaction(
-    DoTransaction transaction_function, bool trigger_local_events) {
-  return internal_ ? internal_->RunTransaction(
-                         CallFunctionPtrWithNoArgs,
-                         reinterpret_cast<void*>(transaction_function), nullptr,
-                         trigger_local_events)
-                   : Future<DataSnapshot>();
-}
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 Future<DataSnapshot> DatabaseReference::RunTransactionLastResult() {
   return internal_ ? internal_->RunTransactionLastResult()
@@ -248,7 +243,8 @@ Future<DataSnapshot> DatabaseReference::RunTransactionLastResult() {
 }
 
 Future<void> DatabaseReference::SetPriority(Variant priority) {
-  return internal_ ? internal_->SetPriority(priority) : Future<void>();
+  return internal_ ? internal_->SetPriority(std::move(priority))
+                   : Future<void>();
 }
 
 Future<void> DatabaseReference::SetPriorityLastResult() {
@@ -256,7 +252,7 @@ Future<void> DatabaseReference::SetPriorityLastResult() {
 }
 
 Future<void> DatabaseReference::SetValue(Variant value) {
-  return internal_ ? internal_->SetValue(value) : Future<void>();
+  return internal_ ? internal_->SetValue(std::move(value)) : Future<void>();
 }
 
 Future<void> DatabaseReference::SetValueLastResult() {
@@ -265,7 +261,8 @@ Future<void> DatabaseReference::SetValueLastResult() {
 
 Future<void> DatabaseReference::SetValueAndPriority(Variant value,
                                                     Variant priority) {
-  return internal_ ? internal_->SetValueAndPriority(value, priority)
+  return internal_ ? internal_->SetValueAndPriority(std::move(value),
+                                                    std::move(priority))
                    : Future<void>();
 }
 
@@ -275,7 +272,8 @@ Future<void> DatabaseReference::SetValueAndPriorityLastResult() {
 }
 
 Future<void> DatabaseReference::UpdateChildren(Variant values) {
-  return internal_ ? internal_->UpdateChildren(values) : Future<void>();
+  return internal_ ? internal_->UpdateChildren(std::move(values))
+                   : Future<void>();
 }
 
 Future<void> DatabaseReference::UpdateChildrenLastResult() {

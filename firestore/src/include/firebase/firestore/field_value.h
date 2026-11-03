@@ -59,7 +59,9 @@ class FieldValue final {
   // a declaration breaks SWIG (presumably, SWIG cannot handle `typename` within
   // an alias template).
   template <typename T>
-  using EnableIfIntegral = enable_if<::firebase::is_integer<T>::value, int>;
+  using EnableIfIntegral =
+      enable_if<::firebase::is_integer<T>::value && !is_same<T, bool>::value,
+                int>;
   template <typename T>
   using EnableIfFloatingPoint = enable_if<is_floating_point<T>::value, int>;
 
@@ -87,6 +89,7 @@ class FieldValue final {
     kArrayRemove,
     kIncrementInteger,
     kIncrementDouble,
+    kInvalid,
   };
 
   /**
@@ -348,8 +351,8 @@ class FieldValue final {
     // Note: Doxygen will run into trouble if this function's definition is
     // moved outside the class body.
     static_assert(
-        (std::numeric_limits<T>::max)() <=
-            (std::numeric_limits<int64_t>::max)(),
+        sizeof(T) < sizeof(int64_t) ||
+            (sizeof(T) == sizeof(int64_t) && std::numeric_limits<T>::is_signed),
         "The integer type you provided is larger than can fit in an int64_t. "
         "If you are sure the value will not be truncated, please explicitly "
         "cast to int64_t before passing it to FieldValue::Increment().");

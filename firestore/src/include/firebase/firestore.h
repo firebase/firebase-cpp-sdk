@@ -65,15 +65,8 @@ namespace firestore {
 
 class FirestoreInternal;
 
-namespace csharp {
-
-class ApiHeaders;
-class TransactionManager;
-
-}  // namespace csharp
-
 /** The default name for "unset" database ID in resource names. */
-static const char* kDefaultDatabase = "(default)";
+static const char* const kDefaultDatabase = "(default)";
 
 /**
  * @brief Entry point for the Firebase Firestore C++ SDK.
@@ -225,7 +218,7 @@ class Firestore {
    *
    * @return The CollectionReference instance.
    */
-  virtual CollectionReference Collection(const char* collection_path) const;
+  CollectionReference Collection(const char* collection_path) const;
 
   /**
    * @brief Returns a CollectionReference instance that refers to the
@@ -245,7 +238,7 @@ class Firestore {
    * @param[in] document_path A slash-separated path to a document.
    * @return The DocumentReference instance.
    */
-  virtual DocumentReference Document(const char* document_path) const;
+  DocumentReference Document(const char* document_path) const;
 
   /**
    * @brief Returns a DocumentReference instance that refers to the document at
@@ -268,7 +261,7 @@ class Firestore {
    *
    * @return The Query instance.
    */
-  virtual Query CollectionGroup(const char* collection_id) const;
+  Query CollectionGroup(const char* collection_id) const;
 
   /**
    * @brief Returns a Query instance that includes all documents in the
@@ -492,9 +485,6 @@ class Firestore {
   template <typename T, typename U, typename F>
   friend struct CleanupFn;
 
-  friend class csharp::ApiHeaders;
-  friend class csharp::TransactionManager;
-
   explicit Firestore(::firebase::App* app,
                      const std::string& database_id = kDefaultDatabase);
   explicit Firestore(FirestoreInternal* internal);
@@ -510,7 +500,7 @@ class Firestore {
   // Delete the internal_ data.
   void DeleteInternal();
 
-  mutable FirestoreInternal* internal_ = nullptr;
+  FirestoreInternal* internal_ = nullptr;
 };
 
 }  // namespace firestore

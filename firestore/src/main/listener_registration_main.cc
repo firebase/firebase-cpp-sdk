@@ -15,7 +15,6 @@
  */
 
 #include "firestore/src/main/listener_registration_main.h"
-#include <cassert>
 
 #include <utility>
 
@@ -28,6 +27,8 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
     std::unique_ptr<api::ListenerRegistration> registration,
     FirestoreInternal* firestore)
     : registration_{std::move(registration)}, firestore_{firestore} {
+  FIREBASE_ASSERT(registration_ != nullptr);
+  FIREBASE_ASSERT(firestore != nullptr);
   firestore->RegisterListenerRegistration(this);
 }
 

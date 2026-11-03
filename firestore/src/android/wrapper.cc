@@ -15,22 +15,15 @@
  */
 
 #include "firestore/src/android/wrapper.h"
-#include <cassert>
-
-#include <iterator>
 
 #include "app/src/assert.h"
-#include "firestore/src/android/field_path_android.h"
-#include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/firestore_android.h"
-#include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
 
 namespace firebase {
 namespace firestore {
 namespace {
 
-using jni::ArenaRef;
 using jni::Env;
 using jni::Local;
 using jni::Object;
@@ -39,24 +32,10 @@ using jni::Object;
 
 Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
     : firestore_(firestore) {
+  FIREBASE_ASSERT(firestore_ != nullptr);
   FIREBASE_ASSERT(obj);
   Env env = GetEnv();
   obj_.reset(env, obj);
-}
-
-Wrapper::Wrapper() {
-  Firestore* firestore = Firestore::GetInstance();
-  FIREBASE_ASSERT(firestore != nullptr);
-  firestore_ = firestore->internal_;
-  FIREBASE_ASSERT(firestore_ != nullptr);
-}
-
-Wrapper::Wrapper(Wrapper* rhs) : Wrapper() {
-  if (rhs) {
-    firestore_ = rhs->firestore_;
-    FIREBASE_ASSERT(firestore_ != nullptr);
-    obj_ = rhs->obj_;
-  }
 }
 
 Wrapper::~Wrapper() = default;

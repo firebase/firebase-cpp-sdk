@@ -69,11 +69,12 @@ class ActiveCallbackScope {
 }  // namespace
 
 @implementation FIRCPPStorageListenerHandle {
-  NSRecursiveLock* _lock;
+  std::recursive_mutex _lock;
   firebase::storage::Listener* _Nullable _listener;
   firebase::storage::internal::StorageInternal* _Nullable _storage;
   FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable _task;
   int64_t _previousProgressCount;
+  int64_t _previousTotalByteCount;
   BOOL _detached;
 
   std::mutex _callbackMutex;
@@ -89,23 +90,22 @@ class ActiveCallbackScope {
                           _Nonnull)task {
   self = [super init];
   if (self) {
-    _lock = [[NSRecursiveLock alloc] init];
     _listener = listener;
     _storage = storage;
     _task = task;
     _previousProgressCount = -1;
+    _previousTotalByteCount = -1;
     _detached = NO;
   }
   return self;
 }
 
 - (void)markDetached {
-  [_lock lock];
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   _detached = YES;
   _listener = nullptr;
   _storage = nullptr;
   _task = nil;
-  [_lock unlock];
 }
 
 - (void)waitForCallbacks {
@@ -132,15 +132,16 @@ class ActiveCallbackScope {
   firebase::storage::Listener* cur_listener = nullptr;
   firebase::storage::Controller controller;
 
-  [_lock lock];
-  if (!_detached && _listener != nullptr && _storage != nullptr &&
-      _task != nil) {
-    cur_listener = _listener;
-    controller.internal_->AssignTask(_storage, _task);
-    std::lock_guard<std::mutex> cb_lock(_callbackMutex);
-    _activeCallbackThreads.push_back(std::this_thread::get_id());
+  {
+    std::lock_guard<std::recursive_mutex> lock(_lock);
+    if (!_detached && _listener != nullptr && _storage != nullptr &&
+        _task != nil) {
+      cur_listener = _listener;
+      controller.internal_->AssignTask(_storage, _task);
+      std::lock_guard<std::mutex> cb_lock(_callbackMutex);
+      _activeCallbackThreads.push_back(std::this_thread::get_id());
+    }
   }
-  [_lock unlock];
 
   if (!cur_listener) {
     return;
@@ -160,26 +161,29 @@ class ActiveCallbackScope {
   firebase::storage::Listener* cur_listener = nullptr;
   firebase::storage::Controller controller;
 
-  [_lock lock];
-  if (!_detached && _listener != nullptr && _storage != nullptr &&
-      _task != nil) {
-    // FIRStorageTaskSnapshot.progress can be nil when the task is starting so
-    // ignore progress callbacks until progress can be reported. Any non-nil
-    // progress is reported, including 0-byte transfers (totalUnitCount == 0)
-    // and indeterminate transfers (totalUnitCount == -1, i.e.
-    // NSURLSessionTransferSizeUnknown); duplicate completedUnitCount values
-    // are suppressed.
-    NSProgress* progress = snapshot ? snapshot.progress : nil;
-    if (progress != nil &&
-        _previousProgressCount != progress.completedUnitCount) {
-      _previousProgressCount = progress.completedUnitCount;
-      cur_listener = _listener;
-      controller.internal_->AssignTask(_storage, _task);
-      std::lock_guard<std::mutex> cb_lock(_callbackMutex);
-      _activeCallbackThreads.push_back(std::this_thread::get_id());
+  {
+    std::lock_guard<std::recursive_mutex> lock(_lock);
+    if (!_detached && _listener != nullptr && _storage != nullptr &&
+        _task != nil) {
+      // FIRStorageTaskSnapshot.progress can be nil when the task is starting so
+      // ignore progress callbacks until progress can be reported. Any non-nil
+      // progress is reported, including 0-byte transfers (totalUnitCount == 0)
+      // and indeterminate transfers (totalUnitCount == -1, i.e.
+      // NSURLSessionTransferSizeUnknown); duplicate (completedUnitCount,
+      // totalUnitCount) pairs are suppressed.
+      NSProgress* progress = snapshot ? snapshot.progress : nil;
+      if (progress != nil &&
+          (_previousProgressCount != progress.completedUnitCount ||
+           _previousTotalByteCount != progress.totalUnitCount)) {
+        _previousProgressCount = progress.completedUnitCount;
+        _previousTotalByteCount = progress.totalUnitCount;
+        cur_listener = _listener;
+        controller.internal_->AssignTask(_storage, _task);
+        std::lock_guard<std::mutex> cb_lock(_callbackMutex);
+        _activeCallbackThreads.push_back(std::this_thread::get_id());
+      }
     }
   }
-  [_lock unlock];
 
   if (!cur_listener) {
     return;
@@ -204,7 +208,6 @@ struct ListenerInternal::SafeReferenceHolder {
 
 ListenerInternal::ListenerInternal(Listener* _Nonnull listener)
     : listener_(listener),
-      storage_(nullptr),
       destroying_(false),
       safe_reference_holder_(std::make_unique<SafeReferenceHolder>(this)) {}
 
@@ -214,105 +217,106 @@ ListenerInternal::safe_reference() const {
 }
 
 ListenerInternal::~ListenerInternal() {
+  // Waits for any running SafeReference::Run() scope (including the cleanup
+  // callback's detach step) and turns later ones into no-ops.
   safe_reference_holder_->ref.Invalidate();
-  FIRCPPStorageListenerHandle* old_handle = nil;
+  DetachedTask detached;
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     destroying_ = true;
-    old_handle = DetachTaskLocked();
+    detached = DetachTaskLocked();
   }
-  if (old_handle) {
-    [old_handle waitForCallbacks];
-  }
+  FinishDetach(detached);
 }
 
 void ListenerInternal::Detach() { DetachTask(); }
 
 void ListenerInternal::AttachTask(
-    StorageInternal* _Nonnull storage,
+    const std::shared_ptr<StorageInternal::LifetimeToken>& storage_token,
     FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task) {
   DetachTask();
-  if (!storage || !task) {
+  if (!storage_token || !task) {
     return;
   }
 
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
-  if (destroying_) {
-    return;
-  }
-  // Ensure any task attached concurrently while unlocked is cleaned up under
-  // the lock.
-  //
-  // The returned handle is intentionally NOT passed to -waitForCallbacks here:
-  // waiting requires releasing mutex_ first (as DetachTask() does), because an
-  // in-flight callback on another thread may call back into this listener
-  // (e.g. Controller operations or attaching to a new task), which needs
-  // mutex_ and would deadlock against a wait performed under the lock. The
-  // handle is already marked detached, so it will not start any new Listener
-  // callbacks; an already-running callback finishes on its own.
-  FIRCPPStorageListenerHandle* raced_handle = DetachTaskLocked();
-  (void)raced_handle;
+  DetachedTask raced;
+  // The token mutex (held by RunWhileAlive) keeps the StorageInternal alive
+  // while registering with its cleanup(); acquired before mutex_ per the lock
+  // order documented in listener_ios.h.
+  storage_token->RunWhileAlive([&](StorageInternal& storage) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (destroying_) {
+      return;
+    }
+    // A task attached concurrently while mutex_ was released above is
+    // detached here; it is finished (unregistered and waited for) below,
+    // after releasing mutex_, so that no orphaned handle can still be running
+    // a callback into listener_ when AttachTask() returns.
+    raced = DetachTaskLocked();
 
-  storage_ = storage;
-  task_ = std::make_unique<FIRStorageObservableTaskPointer>(task);
+    task_ = std::make_unique<FIRStorageObservableTaskPointer>(task);
 
-  FIRCPPStorageListenerHandle* handle =
-      [[FIRCPPStorageListenerHandle alloc] initWithListener:listener_
-                                                    storage:storage
-                                                       task:task];
-  listener_handle_ =
-      std::make_unique<FIRCPPStorageListenerHandlePointer>(handle);
+    FIRCPPStorageListenerHandle* handle =
+        [[FIRCPPStorageListenerHandle alloc] initWithListener:listener_
+                                                      storage:&storage
+                                                         task:task];
+    listener_handle_ =
+        std::make_unique<FIRCPPStorageListenerHandlePointer>(handle);
 
-  FIRStorageVoidSnapshot pause_handler =
-      ^(FIRStorageTaskSnapshot* /*snapshot*/) {
-        [handle notifyPaused];
-      };
+    FIRStorageVoidSnapshot pause_handler =
+        ^(FIRStorageTaskSnapshot* /*snapshot*/) {
+          [handle notifyPaused];
+        };
 
-  FIRStorageVoidSnapshot progress_handler =
-      ^(FIRStorageTaskSnapshot* snapshot) {
-        [handle notifyProgress:snapshot];
-      };
+    FIRStorageVoidSnapshot progress_handler =
+        ^(FIRStorageTaskSnapshot* snapshot) {
+          [handle notifyProgress:snapshot];
+        };
 
-  pause_observer_handle_ = std::make_unique<FIRStorageHandlePointer>(
-      [task observeStatus:FIRStorageTaskStatusPause handler:pause_handler]);
-  progress_observer_handle_ = std::make_unique<FIRStorageHandlePointer>(
-      [task observeStatus:FIRStorageTaskStatusProgress
-                  handler:progress_handler]);
+    pause_observer_handle_ = std::make_unique<FIRStorageHandlePointer>(
+        [task observeStatus:FIRStorageTaskStatusPause handler:pause_handler]);
+    progress_observer_handle_ = std::make_unique<FIRStorageHandlePointer>(
+        [task observeStatus:FIRStorageTaskStatusProgress
+                    handler:progress_handler]);
 
-  firebase::util::SafeReference<ListenerInternal> weak_self =
-      safe_reference_holder_->ref;
-  storage->cleanup().RegisterObject(this, [weak_self](void* /*obj*/) {
-    weak_self.Run([](ListenerInternal* self) {
-      FIRCPPStorageListenerHandle* old_handle = nil;
-      {
-        // DetachTaskLocked() calls UnregisterObject() with mutex_ held, and
-        // UnregisterObject() waits for this callback; so never block on
-        // mutex_ here. If the owner is unregistering, it is detaching the
-        // task itself, so there is nothing left for us to do.
-        std::unique_lock<std::recursive_mutex> self_lock(self->mutex_,
-                                                         std::defer_lock);
-        while (!self_lock.try_lock()) {
-          if (self->unregistering_.load() > 0) {
-            return;
+    storage_token_ = storage_token;
+    const uint64_t generation = ++cleanup_generation_;
+    firebase::util::SafeReference<ListenerInternal> weak_self =
+        safe_reference_holder_->ref;
+    // Cleanup callbacks only run from ~StorageInternal(), after its lifetime
+    // token was marked dead; UnregisterObject() is only called under a live
+    // token, so it never waits for this callback. Hence the callback may
+    // simply block on the SafeReference lock and mutex_.
+    storage.cleanup().RegisterObject(
+        this, [weak_self, generation](void* /*obj*/) {
+          std::unique_ptr<FIRCPPStorageListenerHandlePointer> old_handle;
+          weak_self.Run([&old_handle, generation](ListenerInternal* self) {
+            std::lock_guard<std::recursive_mutex> self_lock(self->mutex_);
+            if (self->cleanup_generation_ != generation ||
+                !self->storage_token_) {
+              return;  // Superseded by a later attach, or already detached.
+            }
+            // The notifier has already dropped this registration, so there
+            // is nothing to unregister.
+            self->storage_token_.reset();
+            old_handle = std::move(self->DetachTaskLocked().handle);
+          });
+          // Wait outside the SafeReference scope so a Listener destroyed from
+          // inside its own in-flight callback cannot deadlock against us.
+          if (old_handle && old_handle->get()) {
+            [old_handle->get() waitForCallbacks];
           }
-          std::this_thread::yield();
-        }
-        self->storage_ = nullptr;
-        old_handle = self->DetachTaskLocked();
-      }
-      if (old_handle) {
-        [old_handle waitForCallbacks];
-      }
-    });
+        });
   });
+  FinishDetach(raced);
 }
 
-FIRCPPStorageListenerHandle* _Nullable ListenerInternal::DetachTaskLocked() {
-  FIRCPPStorageListenerHandle* old_handle = listener_handle();
-  if (old_handle) {
-    [old_handle markDetached];
+ListenerInternal::DetachedTask ListenerInternal::DetachTaskLocked() {
+  DetachedTask detached;
+  if (listener_handle_ && listener_handle_->get()) {
+    [listener_handle_->get() markDetached];
   }
-  listener_handle_.reset();
+  detached.handle = std::move(listener_handle_);
 
   FIRStorageObservableTask<FIRStorageTaskManagement>* cur_task = task();
   FIRStorageHandle pause_handle = pause_observer_handle();
@@ -329,27 +333,42 @@ FIRCPPStorageListenerHandle* _Nullable ListenerInternal::DetachTaskLocked() {
 
   task_.reset();
 
-  if (storage_ != nullptr) {
-    // May block until an in-flight cleanup callback for `this` returns; the
-    // callback bails out instead of waiting on mutex_ while unregistering_ > 0.
-    unregistering_.fetch_add(1);
-    storage_->cleanup().UnregisterObject(this);
-    unregistering_.fetch_sub(1);
-    storage_ = nullptr;
-  }
+  detached.storage_token = std::move(storage_token_);
+  return detached;
+}
 
-  return old_handle;
+void ListenerInternal::FinishDetach(DetachedTask& detached) {
+  if (detached.storage_token) {
+    const std::shared_ptr<StorageInternal::LifetimeToken>& token =
+        detached.storage_token;
+    token->RunWhileAlive([this, &token](StorageInternal& alive_storage) {
+      // Lock order: token mutex (held by RunWhileAlive), then mutex_. mutex_
+      // serializes this with registration in AttachTask(); UnregisterObject()
+      // does not block here (see RunWhileAlive()).
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      // If this listener was re-attached to the same StorageInternal in the
+      // meantime, the registration keyed by `this` belongs to that new
+      // attachment: keep it. A callback of the dropped registration cannot
+      // run while the token is alive.
+      if (storage_token_ != token) {
+        alive_storage.cleanup().UnregisterObject(this);
+      }
+    });
+    detached.storage_token.reset();
+  }
+  if (detached.handle && detached.handle->get()) {
+    [detached.handle->get() waitForCallbacks];
+  }
+  detached.handle.reset();
 }
 
 void ListenerInternal::DetachTask() {
-  FIRCPPStorageListenerHandle* old_handle = nil;
+  DetachedTask detached;
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    old_handle = DetachTaskLocked();
+    detached = DetachTaskLocked();
   }
-  if (old_handle) {
-    [old_handle waitForCallbacks];
-  }
+  FinishDetach(detached);
 }
 
 }  // namespace internal

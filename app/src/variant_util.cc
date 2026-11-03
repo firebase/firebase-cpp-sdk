@@ -16,12 +16,12 @@
 
 #include "app/src/variant_util.h"
 
-#include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
 #include <sstream>
 
-#include "app/src/assert.h"
 #include "app/src/log.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"
@@ -33,21 +33,31 @@
 namespace firebase {
 namespace util {
 
+namespace {
+constexpr size_t kMaxVariantDepth = 128;
+}  // namespace
+
 // Forward declarations for stringstream variations of the *ToJson functions
 // since these aren't made available in the header. These return true on success
 // and false on failure. Failure is a result of using binary blobs in the
 // variant, or using types that cannot be coerced to a string as a key in a map.
 static bool VariantToJson(const Variant& variant, bool prettyPrint,
-                          const std::string& indent, std::stringstream* ss);
+                          const std::string& indent, std::stringstream* ss,
+                          size_t depth = 0);
 static bool StdMapToJson(const std::map<Variant, Variant>& map,
                          bool prettyPrint, const std::string& indent,
-                         std::stringstream* ss);
+                         std::stringstream* ss, size_t depth = 0);
 static bool StdVectorToJson(const std::vector<Variant>& vector,
                             bool prettyPrint, const std::string& indent,
-                            std::stringstream* ss);
+                            std::stringstream* ss, size_t depth = 0);
 
 static bool VariantToJson(const Variant& variant, bool prettyPrint,
-                          const std::string& indent, std::stringstream* ss) {
+                          const std::string& indent, std::stringstream* ss,
+                          size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
   switch (variant.type()) {
     case Variant::kTypeNull: {
       *ss << "null";
@@ -61,7 +71,16 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
       // IEEE 754 double-precision binary floating-point format: binary64 — The
       // 53-bit significand precision gives from 15 to 17 significant decimal
       // digits Default 32-bit only keeps 7 digit precision
-      *ss << std::setprecision(17) << variant.double_value();
+      double d = variant.double_value();
+      if (!std::isfinite(d)) {
+        *ss << "null";
+      } else {
+        // Normalize IEEE 754 negative zero (-0.0) to positive zero (+0.0).
+        if (d == 0.0) {
+          d = 0.0;
+        }
+        *ss << std::setprecision(17) << d;
+      }
       break;
     }
     case Variant::kTypeBool: {
@@ -79,13 +98,13 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
       break;
     }
     case Variant::kTypeVector: {
-      if (!StdVectorToJson(variant.vector(), prettyPrint, indent, ss)) {
+      if (!StdVectorToJson(variant.vector(), prettyPrint, indent, ss, depth)) {
         return false;
       }
       break;
     }
     case Variant::kTypeMap: {
-      if (!StdMapToJson(variant.map(), prettyPrint, indent, ss)) {
+      if (!StdMapToJson(variant.map(), prettyPrint, indent, ss, depth)) {
         return false;
       }
       break;
@@ -101,7 +120,11 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
 
 static bool StdMapToJson(const std::map<Variant, Variant>& map,
                          bool prettyPrint, const std::string& indent,
-                         std::stringstream* ss) {
+                         std::stringstream* ss, size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
   *ss << '{';
   std::string nextIndent = indent + "  ";
   for (auto iter = map.begin(); iter != map.end();) {
@@ -115,14 +138,15 @@ static bool StdMapToJson(const std::map<Variant, Variant>& map,
           "Variants of non-fundamental types may not be used as map keys.");
       return false;
     }
-    if (!VariantToJson(iter->first.AsString(), prettyPrint, nextIndent, ss)) {
+    if (!VariantToJson(iter->first.AsString(), prettyPrint, nextIndent, ss,
+                       depth + 1)) {
       return false;
     }
     *ss << ':';
     if (prettyPrint) {
       *ss << ' ';
     }
-    if (!VariantToJson(iter->second, prettyPrint, nextIndent, ss)) {
+    if (!VariantToJson(iter->second, prettyPrint, nextIndent, ss, depth + 1)) {
       return false;
     }
     if (++iter != map.end()) {
@@ -138,14 +162,18 @@ static bool StdMapToJson(const std::map<Variant, Variant>& map,
 
 static bool StdVectorToJson(const std::vector<Variant>& vector,
                             bool prettyPrint, const std::string& indent,
-                            std::stringstream* ss) {
+                            std::stringstream* ss, size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
   *ss << '[';
   std::string nextIndent = indent + "  ";
   for (auto iter = vector.begin(); iter != vector.end();) {
     if (prettyPrint) {
       *ss << '\n' << nextIndent;
     }
-    if (!VariantToJson(*iter, prettyPrint, nextIndent, ss)) {
+    if (!VariantToJson(*iter, prettyPrint, nextIndent, ss, depth + 1)) {
       return false;
     }
     if (++iter != vector.end()) {
@@ -165,7 +193,7 @@ std::string VariantToJson(const Variant& variant) {
 
 std::string VariantToJson(const Variant& variant, bool prettyPrint) {
   std::stringstream ss;
-  if (!VariantToJson(variant, prettyPrint, "", &ss)) {
+  if (!VariantToJson(variant, prettyPrint, "", &ss, 0)) {
     return "";
   }
   return ss.str();
@@ -174,7 +202,7 @@ std::string VariantToJson(const Variant& variant, bool prettyPrint) {
 // Converts an std::map<Variant, Variant> to Json
 std::string StdMapToJson(const std::map<Variant, Variant>& map) {
   std::stringstream ss;
-  if (!StdMapToJson(map, false, "", &ss)) {
+  if (!StdMapToJson(map, false, "", &ss, 0)) {
     return "";
   }
   return ss.str();
@@ -183,33 +211,56 @@ std::string StdMapToJson(const std::map<Variant, Variant>& map) {
 // Converts an std::vector<Variant> to Json
 std::string StdVectorToJson(const std::vector<Variant>& vector) {
   std::stringstream ss;
-  if (!StdVectorToJson(vector, false, "", &ss)) {
+  if (!StdVectorToJson(vector, false, "", &ss, 0)) {
     return "";
   }
   return ss.str();
 }
 
-Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector) {
+static Variant FlexbufferToVariantInternal(const flexbuffers::Reference& ref,
+                                           size_t depth);
+
+static Variant FlexbufferVectorToVariantInternal(
+    const flexbuffers::Vector& vector, size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Flexbuffer nesting depth exceeds maximum (%zu).",
+             kMaxVariantDepth);
+    return Variant::Null();
+  }
   Variant result = Variant::EmptyVector();
   result.vector().reserve(vector.size());
   for (size_t i = 0; i < vector.size(); i++) {
-    result.vector().push_back(FlexbufferToVariant(vector[i]));
+    result.vector().push_back(
+        FlexbufferToVariantInternal(vector[i], depth + 1));
   }
   return result;
 }
 
-Variant FlexbufferMapToVariant(const flexbuffers::Map& map) {
+static Variant FlexbufferMapToVariantInternal(const flexbuffers::Map& map,
+                                              size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Flexbuffer nesting depth exceeds maximum (%zu).",
+             kMaxVariantDepth);
+    return Variant::Null();
+  }
   Variant result = Variant::EmptyMap();
   flexbuffers::TypedVector keys = map.Keys();
   for (size_t i = 0; i < keys.size(); i++) {
     flexbuffers::Reference key = keys[i];
     flexbuffers::Reference value = map[key.AsKey()];
-    result.map()[FlexbufferToVariant(key)] = FlexbufferToVariant(value);
+    result.map()[FlexbufferToVariantInternal(key, depth + 1)] =
+        FlexbufferToVariantInternal(value, depth + 1);
   }
   return result;
 }
 
-Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
+static Variant FlexbufferToVariantInternal(const flexbuffers::Reference& ref,
+                                           size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Flexbuffer nesting depth exceeds maximum (%zu).",
+             kMaxVariantDepth);
+    return Variant::Null();
+  }
   switch (ref.GetType()) {
     case flexbuffers::FBT_NULL:
       return Variant::Null();
@@ -217,18 +268,26 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
       return Variant(ref.AsBool());
     case flexbuffers::FBT_INT:
     case flexbuffers::FBT_INDIRECT_INT:
-    case flexbuffers::FBT_UINT:
-    case flexbuffers::FBT_INDIRECT_UINT:
       return Variant(ref.AsInt64());
+    case flexbuffers::FBT_UINT:
+    case flexbuffers::FBT_INDIRECT_UINT: {
+      uint64_t u = ref.AsUInt64();
+      if (u <= static_cast<uint64_t>(INT64_MAX)) {
+        return Variant(static_cast<int64_t>(u));
+      }
+      return Variant(static_cast<double>(u));
+    }
     case flexbuffers::FBT_FLOAT:
     case flexbuffers::FBT_INDIRECT_FLOAT:
       return Variant(ref.AsDouble());
-    case flexbuffers::FBT_STRING:
-      return Variant::MutableStringFromStaticString(ref.AsString().c_str());
+    case flexbuffers::FBT_STRING: {
+      flexbuffers::String str = ref.AsString();
+      return Variant(std::string(str.c_str(), str.length()));
+    }
     case flexbuffers::FBT_KEY:
       return Variant::MutableStringFromStaticString(ref.AsKey());
     case flexbuffers::FBT_MAP:
-      return FlexbufferMapToVariant(ref.AsMap());
+      return FlexbufferMapToVariantInternal(ref.AsMap(), depth);
     case flexbuffers::FBT_VECTOR_BOOL:
     case flexbuffers::FBT_VECTOR_FLOAT2:
     case flexbuffers::FBT_VECTOR_FLOAT3:
@@ -245,7 +304,7 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
     case flexbuffers::FBT_VECTOR_UINT4:
     case flexbuffers::FBT_VECTOR_UINT:
     case flexbuffers::FBT_VECTOR:
-      return FlexbufferVectorToVariant(ref.AsVector());
+      return FlexbufferVectorToVariantInternal(ref.AsVector(), depth);
 
     case flexbuffers::FBT_BLOB:
       LogError("Flexbuffers containing blobs are not supported.");
@@ -259,18 +318,119 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
   return Variant::Null();
 }
 
+Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector) {
+  return FlexbufferVectorToVariantInternal(vector, 0);
+}
+
+Variant FlexbufferMapToVariant(const flexbuffers::Map& map) {
+  return FlexbufferMapToVariantInternal(map, 0);
+}
+
+Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
+  return FlexbufferToVariantInternal(ref, 0);
+}
+
 Variant JsonToVariant(const char* json) {
+  if (json == nullptr) {
+    LogError("JsonToVariant called with null JSON string.");
+    return Variant::Null();
+  }
   flatbuffers::Parser parser;
   flexbuffers::Builder builder;
-  if (!json || !parser.ParseFlexBuffer(json, nullptr, &builder)) {
+  if (!parser.ParseFlexBuffer(json, nullptr, &builder)) {
+    if (!parser.error_.empty()) {
+      LogError("Failed to parse JSON: %s", parser.error_.c_str());
+    }
     return Variant::Null();
   }
   const std::vector<uint8_t>& buffer = builder.GetBuffer();
+  if (buffer.empty()) {
+    return Variant::Null();
+  }
   flexbuffers::Reference root = flexbuffers::GetRoot(buffer);
   return FlexbufferToVariant(root);
 }
 
-bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb) {
+static bool VariantToFlexbufferInternal(const Variant& variant,
+                                        flexbuffers::Builder* fbb,
+                                        size_t depth);
+static bool VariantMapToFlexbufferInternal(
+    const std::map<Variant, Variant>& map, flexbuffers::Builder* fbb,
+    size_t depth);
+static bool VariantVectorToFlexbufferInternal(
+    const std::vector<Variant>& vector, flexbuffers::Builder* fbb,
+    size_t depth);
+static bool IsValidForFlexbuffer(const Variant& variant, size_t depth);
+
+static bool IsValidVectorForFlexbuffer(const std::vector<Variant>& vector,
+                                       size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
+  for (const auto& item : vector) {
+    if (!IsValidForFlexbuffer(item, depth + 1)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool IsValidMapForFlexbuffer(const std::map<Variant, Variant>& map,
+                                    size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
+  for (const auto& kv : map) {
+    if (kv.first.is_null() || !kv.first.is_fundamental_type()) {
+      LogError(
+          "Variants of non-fundamental types may not be used as map "
+          "keys.");
+      return false;
+    }
+    if (!IsValidForFlexbuffer(kv.second, depth + 1)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool IsValidForFlexbuffer(const Variant& variant, size_t depth) {
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
+  switch (variant.type()) {
+    case Variant::kTypeNull:
+    case Variant::kTypeInt64:
+    case Variant::kTypeDouble:
+    case Variant::kTypeBool:
+    case Variant::kTypeStaticString:
+    case Variant::kTypeMutableString:
+      return true;
+    case Variant::kTypeVector:
+      return IsValidVectorForFlexbuffer(variant.vector(), depth);
+    case Variant::kTypeMap:
+      return IsValidMapForFlexbuffer(variant.map(), depth);
+    case Variant::kTypeStaticBlob:
+    case Variant::kTypeMutableBlob:
+      LogError("Variants containing blobs are not supported.");
+      return false;
+  }
+  return false;
+}
+
+static bool VariantToFlexbufferInternal(const Variant& variant,
+                                        flexbuffers::Builder* fbb,
+                                        size_t depth) {
+  if (fbb == nullptr) {
+    return false;
+  }
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
   switch (variant.type()) {
     case Variant::kTypeNull: {
       fbb->Null();
@@ -297,13 +457,13 @@ bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb) {
       break;
     }
     case Variant::kTypeVector: {
-      if (!VariantVectorToFlexbuffer(variant.vector(), fbb)) {
+      if (!VariantVectorToFlexbufferInternal(variant.vector(), fbb, depth)) {
         return false;
       }
       break;
     }
     case Variant::kTypeMap: {
-      if (!VariantMapToFlexbuffer(variant.map(), fbb)) {
+      if (!VariantMapToFlexbufferInternal(variant.map(), fbb, depth)) {
         return false;
       }
       break;
@@ -317,8 +477,16 @@ bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb) {
   return true;
 }
 
-bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
-                            flexbuffers::Builder* fbb) {
+static bool VariantMapToFlexbufferInternal(
+    const std::map<Variant, Variant>& map, flexbuffers::Builder* fbb,
+    size_t depth) {
+  if (fbb == nullptr) {
+    return false;
+  }
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
   auto start = fbb->StartMap();
   for (auto iter = map.begin(); iter != map.end(); ++iter) {
     // Flexbuffers only supports string keys, return false if the key is not a
@@ -330,9 +498,10 @@ bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
       return false;
     }
     // Add key.
-    fbb->Key(iter->first.AsString().string_value());
+    Variant key_str = iter->first.AsString();
+    fbb->Key(key_str.string_value());
     // Add value.
-    if (!VariantToFlexbuffer(iter->second, fbb)) {
+    if (!VariantToFlexbufferInternal(iter->second, fbb, depth + 1)) {
       fbb->EndMap(start);
       return false;
     }
@@ -341,17 +510,48 @@ bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
   return true;
 }
 
-bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
-                               flexbuffers::Builder* fbb) {
+static bool VariantVectorToFlexbufferInternal(
+    const std::vector<Variant>& vector, flexbuffers::Builder* fbb,
+    size_t depth) {
+  if (fbb == nullptr) {
+    return false;
+  }
+  if (depth > kMaxVariantDepth) {
+    LogError("Variant nesting depth exceeds maximum (%zu).", kMaxVariantDepth);
+    return false;
+  }
   auto start = fbb->StartVector();
   for (auto iter = vector.begin(); iter != vector.end(); ++iter) {
-    if (!VariantToFlexbuffer(*iter, fbb)) {
+    if (!VariantToFlexbufferInternal(*iter, fbb, depth + 1)) {
       fbb->EndVector(start, false, false);
       return false;
     }
   }
   fbb->EndVector(start, false, false);
   return true;
+}
+
+bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb) {
+  if (fbb == nullptr || !IsValidForFlexbuffer(variant, 0)) {
+    return false;
+  }
+  return VariantToFlexbufferInternal(variant, fbb, 0);
+}
+
+bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
+                            flexbuffers::Builder* fbb) {
+  if (fbb == nullptr || !IsValidMapForFlexbuffer(map, 0)) {
+    return false;
+  }
+  return VariantMapToFlexbufferInternal(map, fbb, 0);
+}
+
+bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
+                               flexbuffers::Builder* fbb) {
+  if (fbb == nullptr || !IsValidVectorForFlexbuffer(vector, 0)) {
+    return false;
+  }
+  return VariantVectorToFlexbufferInternal(vector, fbb, 0);
 }
 
 // Convert from a Variant to a Flexbuffer buffer.

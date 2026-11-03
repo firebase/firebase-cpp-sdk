@@ -15,13 +15,16 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <map>
 #include <memory>
+#include <mutex>  // NOLINT
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "app_framework.h"  // NOLINT
@@ -485,6 +488,38 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
   }
 }
 
+// RAII helper that unregisters a ValueListener on scope exit even if an
+// assertion fails and returns early.
+class ScopedValueListenerRegistration {
+ public:
+  ScopedValueListenerRegistration(
+      firebase::database::Query query,
+      firebase::database::ValueListener* listener)
+      : query_(std::move(query)), listener_(listener) {
+    if (query_.is_valid() && listener_ != nullptr) {
+      query_.AddValueListener(listener_);
+    }
+  }
+  ~ScopedValueListenerRegistration() { Reset(); }
+
+  ScopedValueListenerRegistration(const ScopedValueListenerRegistration&) =
+      delete;
+  ScopedValueListenerRegistration& operator=(
+      const ScopedValueListenerRegistration&) = delete;
+
+  void Reset() {
+    if (listener_ != nullptr && query_.is_valid()) {
+      query_.RemoveValueListener(listener_);
+    }
+    listener_ = nullptr;
+    query_ = firebase::database::Query();
+  }
+
+ private:
+  firebase::database::Query query_;
+  firebase::database::ValueListener* listener_;
+};
+
 // A ValueListener that expects a specific value to be set.
 class ExpectValueListener : public firebase::database::ValueListener {
  public:
@@ -494,18 +529,19 @@ class ExpectValueListener : public firebase::database::ValueListener {
         got_expected_value_(false) {}
   void OnValueChanged(
       const firebase::database::DataSnapshot& snapshot) override {
-    value_changed_ = true;
     if (snapshot.value().AsString() == value_to_expect_.AsString()) {
-      got_expected_value_ = true;
+      got_expected_value_.store(true);
+      value_changed_.store(true);
     } else {
-      LogError("ExpectValueListener did not receive the expected result.");
+      LogDebug("ExpectValueListener ignoring non-matching snapshot while "
+               "waiting for expected value.");
     }
   }
   void OnCancelled(const firebase::database::Error& error_code,
                    const char* error_message) override {
     LogError("ExpectValueListener canceled: %d: %s", error_code, error_message);
-    value_changed_ = true;
-    got_expected_value_ = false;
+    got_expected_value_.store(false);
+    value_changed_.store(true);
   }
 
   bool WaitForExpectedValue() {
@@ -513,18 +549,18 @@ class ExpectValueListener : public firebase::database::ValueListener {
 
     for (int i = 0; i < kWaitForValueSeconds; i++) {
       ProcessEvents(1000);
-      if (value_changed_) {
-        return got_expected_value_;
+      if (value_changed_.load()) {
+        return got_expected_value_.load();
       }
     }
     LogError("ExpectValueListener timed out.");
-    return got_expected_value_;
+    return got_expected_value_.load();
   }
 
  private:
   firebase::Variant value_to_expect_;
-  bool value_changed_;
-  bool got_expected_value_;
+  std::atomic<bool> value_changed_;
+  std::atomic<bool> got_expected_value_;
 };
 
 TEST_F(FirebaseDatabaseTest, TestLargeWrite) {
@@ -541,7 +577,8 @@ TEST_F(FirebaseDatabaseTest, TestLargeWrite) {
 
   // Setup a listener to ensure the value changes properly.
   ExpectValueListener listener(large_string);
-  ref.Child(test_name).Child("LargeString").AddValueListener(&listener);
+  ScopedValueListenerRegistration listener_reg(
+      ref.Child(test_name).Child("LargeString"), &listener);
 
   // Set the value.
   firebase::Future<void> f1 = ref.Child(test_name)
@@ -551,7 +588,7 @@ TEST_F(FirebaseDatabaseTest, TestLargeWrite) {
 
   LogDebug("Listening for value to change as expected");
   ASSERT_TRUE(listener.WaitForExpectedValue());
-  ref.Child(test_name).Child("LargeString").RemoveValueListener(&listener);
+  listener_reg.Reset();
 }
 
 TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
@@ -581,9 +618,9 @@ TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
   {
     // Check that we can get the offline value via ValueListener.
     ExpectValueListener listener(kPersistenceString);
-    ref.Child(test_name).AddValueListener(&listener);
+    ScopedValueListenerRegistration listener_reg(ref.Child(test_name),
+                                                 &listener);
     ASSERT_TRUE(listener.WaitForExpectedValue());
-    ref.Child(test_name).RemoveValueListener(&listener);
   }
 
   // Check that we can get the offline value via GetValue().
@@ -831,27 +868,36 @@ class LoggingValueListener : public firebase::database::ValueListener {
       const firebase::database::DataSnapshot& snapshot) override {
     LogDebug("  ValueListener.OnValueChanged(%s)",
              FirebaseTest::VariantToString(snapshot.value()).c_str());
+    std::lock_guard<std::mutex> lock(mutex_);
     last_seen_value_ = snapshot.value();
     seen_values_.push_back(snapshot.value());
   }
   void OnCancelled(const firebase::database::Error& error_code,
                    const char* error_message) override {
     LogError("ValueListener got error: %d: %s", error_code, error_message);
-    got_error_ = true;
+    got_error_.store(true);
   }
-  const firebase::Variant& last_seen_value() { return last_seen_value_; }
+  firebase::Variant last_seen_value() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return last_seen_value_;
+  }
   bool has_seen_value(const firebase::Variant& value) {
+    std::lock_guard<std::mutex> lock(mutex_);
     return std::find(seen_values_.begin(), seen_values_.end(), value) !=
            seen_values_.end();
   }
-  size_t num_seen_values() { return seen_values_.size(); }
+  size_t num_seen_values() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return seen_values_.size();
+  }
 
-  bool got_error() { return got_error_; }
+  bool got_error() { return got_error_.load(); }
 
  private:
+  mutable std::mutex mutex_;
   firebase::Variant last_seen_value_;
   std::vector<firebase::Variant> seen_values_;
-  bool got_error_;
+  std::atomic<bool> got_error_;
 };
 
 TEST_F(FirebaseDatabaseTest, TestAddAndRemoveListenerRace) {
@@ -974,50 +1020,62 @@ class LoggingChildListener : public firebase::database::ChildListener {
   void OnChildAdded(const firebase::database::DataSnapshot& snapshot,
                     const char* previous_sibling) override {
     LogDebug("  ChildListener.OnChildAdded(%s)", snapshot.key());
+    std::lock_guard<std::mutex> lock(mutex_);
     events_.push_back(std::string("added ") + snapshot.key());
   }
   void OnChildChanged(const firebase::database::DataSnapshot& snapshot,
                       const char* previous_sibling) override {
     LogDebug("  ChildListener.OnChildChanged(%s)", snapshot.key());
+    std::lock_guard<std::mutex> lock(mutex_);
     events_.push_back(std::string("changed ") + snapshot.key());
   }
   void OnChildMoved(const firebase::database::DataSnapshot& snapshot,
                     const char* previous_sibling) override {
     LogDebug("  ChildListener.OnChildMoved(%s)", snapshot.key());
+    std::lock_guard<std::mutex> lock(mutex_);
     events_.push_back(std::string("moved ") + snapshot.key());
   }
   void OnChildRemoved(
       const firebase::database::DataSnapshot& snapshot) override {
     LogDebug("  ChildListener.OnChildRemoved(%s)", snapshot.key());
+    std::lock_guard<std::mutex> lock(mutex_);
     events_.push_back(std::string("removed ") + snapshot.key());
   }
   void OnCancelled(const firebase::database::Error& error_code,
                    const char* error_message) override {
     LogError("ChildListener got error: %d: %s", error_code, error_message);
-    got_error_ = true;
+    got_error_.store(true);
   }
 
-  const std::vector<std::string>& events() { return events_; }
+  std::vector<std::string> events() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return events_;
+  }
 
   // Get the total number of Child events this listener saw.
-  size_t total_events() { return events_.size(); }
+  size_t total_events() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return events_.size();
+  }
 
   // Get the number of times this event was seen.
   int num_events(const std::string& event) {
+    std::lock_guard<std::mutex> lock(mutex_);
     int count = 0;
-    for (int i = 0; i < events_.size(); i++) {
+    for (size_t i = 0; i < events_.size(); i++) {
       if (events_[i] == event) {
         count++;
       }
     }
     return count;
   }
-  bool got_error() { return got_error_; }
+  bool got_error() { return got_error_.load(); }
 
- public:
+ private:
+  mutable std::mutex mutex_;
   // Vector of strings defining the events we saw, in order.
   std::vector<std::string> events_;
-  bool got_error_;
+  std::atomic<bool> got_error_;
 };
 
 TEST_F(FirebaseDatabaseTest, TestChildListener) {
@@ -1174,19 +1232,20 @@ TEST_F(FirebaseDatabaseTest, TestOnDisconnect) {
                     "OnDisconnect (UpdateChildren)");
 
   // Set up a listener to wait for the ondisconnect action to occur.
-  ExpectValueListener* listener = new ExpectValueListener(1);
-  ref.Child(test_name).Child("SetValueTo1").AddValueListener(listener);
-  LogDebug("Disconnecting...");
-  database_->GoOffline();
+  auto listener = std::make_unique<ExpectValueListener>(1);
+  {
+    ScopedValueListenerRegistration listener_reg(
+        ref.Child(test_name).Child("SetValueTo1"), listener.get());
+    LogDebug("Disconnecting...");
+    database_->GoOffline();
 
-  listener->WaitForExpectedValue();
-  ref.Child(test_name).Child("SetValueTo1").RemoveValueListener(listener);
+    EXPECT_TRUE(listener->WaitForExpectedValue());
+  }
 
   // Let go of the reference we already had.
   ref = firebase::database::DatabaseReference();
 
-  delete listener;
-  listener = nullptr;
+  listener.reset();
 
   LogDebug("Reconnecting...");
   database_->GoOnline();
@@ -1457,7 +1516,7 @@ static int CountProcessThreads() {
   closedir(dir);
   return count;
 }
-#endif  // defined(__linux__) && defined(FIREBASE_PLATFORM_DESKTOP)
+#endif  // defined(__linux__) && FIREBASE_PLATFORM_DESKTOP
 
 namespace {
 class BoolFlagValueListener : public firebase::database::ValueListener {
@@ -1465,15 +1524,15 @@ class BoolFlagValueListener : public firebase::database::ValueListener {
   void OnValueChanged(
       const firebase::database::DataSnapshot& snapshot) override {
     if (snapshot.value().is_bool() && snapshot.value().bool_value()) {
-      connected_ = true;
+      connected_.store(true);
     }
   }
   void OnCancelled(const firebase::database::Error& /*error*/,
                    const char* /*error_message*/) override {}
-  bool connected() const { return connected_; }
+  bool connected() const { return connected_.load(); }
 
  private:
-  bool connected_ = false;
+  std::atomic<bool> connected_{false};
 };
 }  // namespace
 
@@ -1489,17 +1548,45 @@ TEST_F(FirebaseDatabaseTest, TestMultipleAppsShareSingleWebSocketIoLoop) {
   firebase::database::DatabaseReference primary_info =
       database_->GetReference(".info/connected");
   BoolFlagValueListener primary_listener;
-  primary_info.AddValueListener(&primary_listener);
-  for (int i = 0; i < 100 && !primary_listener.connected(); ++i) {
-    ProcessEvents(100);
-  }
-  EXPECT_TRUE(primary_listener.connected());
-
   const int kExtraApps = 8;
   std::vector<firebase::App*> apps(kExtraApps, nullptr);
   std::vector<firebase::database::Database*> dbs(kExtraApps, nullptr);
   std::vector<firebase::database::DatabaseReference> refs(kExtraApps);
   std::vector<BoolFlagValueListener> listeners(kExtraApps);
+
+  struct MultiAppCleanupGuard {
+    firebase::database::DatabaseReference* primary_info;
+    BoolFlagValueListener* primary_listener;
+    std::vector<firebase::App*>* apps;
+    std::vector<firebase::database::Database*>* dbs;
+    std::vector<firebase::database::DatabaseReference>* refs;
+    std::vector<BoolFlagValueListener>* listeners;
+
+    ~MultiAppCleanupGuard() {
+      if (primary_info && primary_listener && primary_info->is_valid()) {
+        primary_info->RemoveValueListener(primary_listener);
+      }
+      if (refs && listeners && dbs && apps) {
+        for (size_t i = 0; i < apps->size(); ++i) {
+          if ((*refs)[i].is_valid()) {
+            (*refs)[i].RemoveValueListener(&(*listeners)[i]);
+            (*refs)[i] = firebase::database::DatabaseReference();
+          }
+          delete (*dbs)[i];
+          (*dbs)[i] = nullptr;
+          delete (*apps)[i];
+          (*apps)[i] = nullptr;
+        }
+      }
+    }
+  } cleanup_guard{&primary_info, &primary_listener, &apps,
+                  &dbs,          &refs,             &listeners};
+
+  primary_info.AddValueListener(&primary_listener);
+  for (int i = 0; i < 100 && !primary_listener.connected(); ++i) {
+    ProcessEvents(100);
+  }
+  EXPECT_TRUE(primary_listener.connected());
 
   // Create the extra App instances first (each App owns its own desktop
   // HeartbeatController scheduler thread) before measuring WebSocket/Database
@@ -1548,14 +1635,6 @@ TEST_F(FirebaseDatabaseTest, TestMultipleAppsShareSingleWebSocketIoLoop) {
       << "threads_after_apps=" << threads_after_apps
       << " threads_with_websockets=" << threads_with_websockets;
 #endif
-
-  primary_info.RemoveValueListener(&primary_listener);
-  for (int i = 0; i < kExtraApps; ++i) {
-    refs[i].RemoveValueListener(&listeners[i]);
-    refs[i] = firebase::database::DatabaseReference();
-    delete dbs[i];
-    delete apps[i];
-  }
 }
 
 // Verifies concurrent multi-frame WebSocket writes and reads across many paths
@@ -1572,7 +1651,7 @@ TEST_F(FirebaseDatabaseTest, TestConcurrentMultiFrameWritesAndReads) {
     payloads[i].assign(kPayloadBytes, static_cast<char>('A' + (i % 26)));
     std::string child_name = "chunk_" + std::to_string(i);
     write_futures[i] =
-        working_path.Child(child_name.c_str()).SetValue(payloads[i].c_str());
+        working_path.Child(child_name.c_str()).SetValue(payloads[i]);
   }
   for (int i = 0; i < kNumChildren; ++i) {
     WaitForCompletion(write_futures[i], "Concurrent SetValue");

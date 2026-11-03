@@ -19,9 +19,7 @@
 
 #include "app/src/secure/user_secure_internal.h"
 
-namespace firebase {
-namespace app {
-namespace secure {
+namespace firebase::app::secure {
 
 // Darwin-specific implementation for the secure manager of user data.
 //
@@ -39,6 +37,11 @@ class UserSecureDarwinInternal : public UserSecureInternal {
 
   ~UserSecureDarwinInternal() override;
 
+  UserSecureDarwinInternal(const UserSecureDarwinInternal&) = delete;
+  UserSecureDarwinInternal& operator=(const UserSecureDarwinInternal&) = delete;
+  UserSecureDarwinInternal(UserSecureDarwinInternal&&) = delete;
+  UserSecureDarwinInternal& operator=(UserSecureDarwinInternal&&) = delete;
+
   std::string LoadUserData(const std::string& app_name) override;
 
   void SaveUserData(const std::string& app_name,
@@ -49,19 +52,22 @@ class UserSecureDarwinInternal : public UserSecureInternal {
   void DeleteAllData() override;
 
  private:
+  // Check or update NSUserDefaults flag indicating whether secure data has been
+  // written for this service/domain.
+  bool UserHasSecureData() const;
+  void SetUserHasSecureData(bool has_data);
+
   // Delete either a single key, or (if app_name is null) all keys.
   // func_name is used for error messages.
   void DeleteData(const char* app_name, const char* func_name);
 
-  std::string GetKeystoreLocation(const std::string& app);
+  std::string GetKeystoreLocation(const std::string& app) const;
 
   const std::string domain_;
-  std::string service_;
-  std::string user_defaults_key_;
+  const std::string service_;
+  const std::string user_defaults_key_;
 };
 
-}  // namespace secure
-}  // namespace app
-}  // namespace firebase
+}  // namespace firebase::app::secure
 
 #endif  // FIREBASE_APP_SRC_SECURE_USER_SECURE_DARWIN_INTERNAL_H_

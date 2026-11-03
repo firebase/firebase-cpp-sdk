@@ -109,14 +109,16 @@ Metadata& Metadata::operator=(const Metadata& src) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-Metadata::Metadata(Metadata&& other) : internal_(other.internal_) {
+// The move operations are noexcept: they only transfer the internal pointer.
+// Re-registering for cleanup can only fail with std::bad_alloc, which is
+// treated as fatal (as everywhere else in the SDK).
+Metadata::Metadata(Metadata&& other) noexcept : internal_(other.internal_) {
   MetadataInternalCommon::UnregisterForCleanup(&other, other.internal_);
   other.internal_ = nullptr;
   MetadataInternalCommon::RegisterForCleanup(this, internal_);
 }
 
-Metadata& Metadata::operator=(Metadata&& other) {
+Metadata& Metadata::operator=(Metadata&& other) noexcept {
   if (this == &other) {
     return *this;
   }
@@ -127,7 +129,6 @@ Metadata& Metadata::operator=(Metadata&& other) {
   MetadataInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Metadata::~Metadata() { MetadataInternalCommon::DeleteInternal(this); }
 

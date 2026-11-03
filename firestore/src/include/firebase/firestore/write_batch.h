@@ -76,7 +76,7 @@ class WriteBatch {
    *
    * @param[in] other `WriteBatch` to move data from.
    */
-  WriteBatch(WriteBatch&& other);
+  WriteBatch(WriteBatch&& other) noexcept;
 
   virtual ~WriteBatch();
 
@@ -101,7 +101,7 @@ class WriteBatch {
    *
    * @return Reference to the destination `WriteBatch`.
    */
-  WriteBatch& operator=(WriteBatch&& other);
+  WriteBatch& operator=(WriteBatch&& other) noexcept;
 
   /**
    * @brief Writes to the document referred to by the provided reference.

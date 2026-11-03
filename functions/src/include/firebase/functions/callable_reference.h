@@ -15,40 +15,62 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_REFERENCE_H_
 #define FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_REFERENCE_H_
 
-#include <string>
-#include <vector>
+#include <cstdint>
 
+#include "firebase/functions/callable_result.h"
+#include "firebase/functions/common.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
 namespace firebase {
-class Variant;
-
 namespace functions {
+
 class Functions;
-class HttpsCallableResult;
 
 /// @cond FIREBASE_APP_INTERNAL
 namespace internal {
+class FunctionsInternal;
 class HttpsCallableReferenceInternal;
 }  // namespace internal
 /// @endcond
 
-/// @brief Options for configuring the callable function.
-/// These properties are immutable once a callable function reference is
-/// instantiated.
-struct HttpsCallableOptions {
-  /// @brief Whether to request a limited-use App Check token for this request.
-  /// This is useful for replay protection.
-  bool limited_use_app_check_token;
+/// Default timeout for callable invocations in milliseconds (70 seconds).
+inline constexpr int64_t kDefaultTimeoutMilliseconds = 70000;
 
-  HttpsCallableOptions() : limited_use_app_check_token(false) {}
+/// Represents the options for configuring the HttpsCallableReference.
+struct HttpsCallableOptions {
+  /// Default Constructor.
+  HttpsCallableOptions() = default;
+
+  /// Constructor with limited_use_app_check_tokens.
+  explicit HttpsCallableOptions(bool limited_use_app_check_tokens)
+      : limited_use_app_check_tokens(limited_use_app_check_tokens) {}
+
+  /// Constructor with limited_use_app_check_tokens and timeout in milliseconds.
+  HttpsCallableOptions(bool limited_use_app_check_tokens, int64_t timeout_ms)
+      : limited_use_app_check_tokens(limited_use_app_check_tokens),
+        timeout_ms(timeout_ms) {}
+
+  /// Decides whether or not to use limited-use App Check tokens when invoking
+  /// the associated function. Notice that the jeopardy of using single-use
+  /// tokens is that it lacks replay protection. By default, this is false.
+  bool limited_use_app_check_tokens = false;
+
+  /// Timeout in milliseconds for invoking the function. Defaults to 70000ms.
+  int64_t timeout_ms = kDefaultTimeoutMilliseconds;
+
+  bool operator==(const HttpsCallableOptions& other) const {
+    return limited_use_app_check_tokens == other.limited_use_app_check_tokens &&
+           timeout_ms == other.timeout_ms;
+  }
+
+  bool operator!=(const HttpsCallableOptions& other) const {
+    return !(*this == other);
+  }
 };
 
-#ifndef SWIG
 /// Represents a reference to a Cloud Functions object.
-/// Developers can call HTTPS Callable Functions.
-#endif  // SWIG
+/// Developers can call the Cloud Task once they acquire a Reference to it.
 class HttpsCallableReference {
  public:
   /// @brief Default constructor. This creates an invalid
@@ -57,30 +79,27 @@ class HttpsCallableReference {
   /// assigned to it.
   HttpsCallableReference() : internal_(nullptr) {}
 
-  ~HttpsCallableReference();
-
   /// @brief Copy constructor. It's totally okay (and efficient) to copy
   /// HttpsCallableReference instances, as they simply point to the same
-  /// location.
+  /// location in the Cloud Functions service.
   ///
   /// @param[in] reference HttpsCallableReference to copy from.
   HttpsCallableReference(const HttpsCallableReference& reference);
 
   /// @brief Copy assignment operator. It's totally okay (and efficient) to copy
   /// HttpsCallableReference instances, as they simply point to the same
-  /// location.
+  /// location in the Cloud Functions service.
   ///
   /// @param[in] reference HttpsCallableReference to copy from.
   ///
   /// @returns Reference to the destination HttpsCallableReference.
   HttpsCallableReference& operator=(const HttpsCallableReference& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor. Moving is an efficient operation for
   /// HttpsCallableReference instances.
   ///
   /// @param[in] other HttpsCallableReference to move data from.
-  HttpsCallableReference(HttpsCallableReference&& other);
+  HttpsCallableReference(HttpsCallableReference&& other) noexcept;
 
   /// @brief Move assignment operator. Moving is an efficient operation for
   /// HttpsCallableReference instances.
@@ -88,45 +107,72 @@ class HttpsCallableReference {
   /// @param[in] other HttpsCallableReference to move data from.
   ///
   /// @returns Reference to the destination HttpsCallableReference.
-  HttpsCallableReference& operator=(HttpsCallableReference&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  HttpsCallableReference& operator=(HttpsCallableReference&& other) noexcept;
 
-  /// @brief Gets the firebase::functions::Functions instance to which we refer.
+  ~HttpsCallableReference();
+
+  /// @brief Gets the Functions instance to which we refer.
   ///
   /// The pointer will remain valid indefinitely.
   ///
-  /// @returns The firebase::functions::Functions instance that this
-  /// HttpsCallableReference refers to.
+  /// @returns The Functions instance that this HttpsCallableReference refers
+  /// to.
   Functions* functions();
+  Functions* functions() const;
 
-  /// @brief Calls the function.
+  /// @brief Asynchronously calls the trigger endpoint with no parameters.
   ///
-  /// @returns The result of the call;
+  /// @returns The result of the call.
   Future<HttpsCallableResult> Call();
+  Future<HttpsCallableResult> Call() const;
 
-  /// @brief Calls the function.
+  /// @brief Asynchronously calls the trigger endpoint with the given
+  /// parameter.
   ///
-  /// @param[in] data The params to pass to the function.
-  /// @returns The result of the call;
+  /// @returns The result of the call as a Future<HttpsCallableResult>.
   Future<HttpsCallableResult> Call(const Variant& data);
+  Future<HttpsCallableResult> Call(const Variant& data) const;
+
+  /// @brief Get the result of the most recent Call() call.
+  ///
+  /// @returns The result of the most recent Call() call.
+  Future<HttpsCallableResult> CallLastResult() const;
 
   /// @brief Returns true if this HttpsCallableReference is valid, false if it
-  /// is not valid. An invalid HttpsCallableReference indicates that the
-  /// reference is uninitialized (created with the default constructor) or that
-  /// there was an error retrieving the reference.
+  /// is not valid. An invalid HttpsCallableReference could be returned if, for
+  /// example, the Functions instance gets deleted, or if the Reference was
+  /// default-constructed.
   ///
   /// @returns true if this HttpsCallableReference is valid, false if this
   /// HttpsCallableReference is invalid.
   bool is_valid() const;
 
+  /// @brief Equality operator.
+  bool operator==(const HttpsCallableReference& other) const;
+
+  /// @brief Inequality operator.
+  bool operator!=(const HttpsCallableReference& other) const {
+    return !(*this == other);
+  }
+
+  /// @cond FIREBASE_APP_INTERNAL
+  internal::HttpsCallableReferenceInternal* internal() { return internal_; }
+  const internal::HttpsCallableReferenceInternal* internal() const {
+    return internal_;
+  }
+  /// @endcond
+
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class Functions;
+  friend class internal::FunctionsInternal;
+  friend class internal::HttpsCallableReferenceInternal;
 
-  HttpsCallableReference(internal::HttpsCallableReferenceInternal* internal);
+  explicit HttpsCallableReference(
+      internal::HttpsCallableReferenceInternal* internal);
+  /// @endcond
 
   internal::HttpsCallableReferenceInternal* internal_;
-  /// @endcond
 };
 
 }  // namespace functions

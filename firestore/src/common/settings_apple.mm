@@ -39,12 +39,15 @@ Settings::Settings()
           Executor::CreateSerial("com.google.firebase.firestore.callback")) {}
 
 std::unique_ptr<Executor> Settings::CreateExecutor() const {
+  if (!executor_) {
+    return Executor::CreateSerial("com.google.firebase.firestore.callback");
+  }
   return std::make_unique<ExecutorLibdispatch>(dispatch_queue());
 }
 
 dispatch_queue_t Settings::dispatch_queue() const {
   if (!executor_) {
-    return dispatch_get_main_queue();
+    return nullptr;
   }
   auto* executor_libdispatch =
       static_cast<const ExecutorLibdispatch*>(executor_.get());

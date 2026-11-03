@@ -44,10 +44,10 @@
   do {                                                              \
     if (!(condition)) {                                             \
       firebase::LogAssert(                                          \
-          FIREBASE_ASSERT_MESSAGE_PREFIX FIREBASE_EXPAND_STRINGIFY( \
-              expression));                                         \
+          "%s", FIREBASE_ASSERT_MESSAGE_PREFIX                      \
+                    FIREBASE_EXPAND_STRINGIFY(expression));         \
     }                                                               \
-  } while (false)
+  } while (0)
 
 // Assert condition is true, if it's false log an assert with the specified
 // expression as a string. Compiled out of release builds.
@@ -56,7 +56,11 @@
   FIREBASE_ASSERT_WITH_EXPRESSION(condition, expression)
 #else
 #define FIREBASE_DEV_ASSERT_WITH_EXPRESSION(condition, expression) \
-  (void)(condition)
+  do {                                                             \
+    if (0) {                                                       \
+      (void)(condition);                                           \
+    }                                                              \
+  } while (0)
 #endif  // !defined(NDEBUG)
 
 // Custom assert() implementation that is not compiled out in release builds.
@@ -69,12 +73,12 @@
   FIREBASE_DEV_ASSERT_WITH_EXPRESSION(expression, expression)
 
 // Assert that returns a value if the log operation doesn't abort the program.
-#define FIREBASE_ASSERT_RETURN(return_value, expression)    \
-  {                                                         \
-    bool condition = !(!(expression));                      \
-    FIREBASE_ASSERT_WITH_EXPRESSION(condition, expression); \
-    if (!condition) return (return_value);                  \
-  }
+#define FIREBASE_ASSERT_RETURN(return_value, expression)                     \
+  do {                                                                       \
+    bool _firebase_assert_cond = !(!(expression));                           \
+    FIREBASE_ASSERT_WITH_EXPRESSION(_firebase_assert_cond, expression);      \
+    if (!_firebase_assert_cond) return (return_value);                       \
+  } while (0)
 
 // Assert that returns a value if the log operation doesn't abort the program.
 // Compiled out of release builds.
@@ -83,16 +87,21 @@
   FIREBASE_ASSERT_RETURN(return_value, expression)
 #else
 #define FIREBASE_DEV_ASSERT_RETURN(return_value, expression) \
-  { (void)(expression); }
+  do {                                                       \
+    if (0) {                                                 \
+      (void)(expression);                                    \
+      (void)(return_value);                                  \
+    }                                                        \
+  } while (0)
 #endif  // !defined(NDEBUG)
 
 // Assert that returns if the log operation doesn't abort the program.
-#define FIREBASE_ASSERT_RETURN_VOID(expression)             \
-  {                                                         \
-    bool condition = !(!(expression));                      \
-    FIREBASE_ASSERT_WITH_EXPRESSION(condition, expression); \
-    if (!condition) return;                                 \
-  }
+#define FIREBASE_ASSERT_RETURN_VOID(expression)                              \
+  do {                                                                       \
+    bool _firebase_assert_cond = !(!(expression));                           \
+    FIREBASE_ASSERT_WITH_EXPRESSION(_firebase_assert_cond, expression);      \
+    if (!_firebase_assert_cond) return;                                      \
+  } while (0)
 
 // Assert that returns if the log operation doesn't abort the program.
 // Compiled out of release builds.
@@ -101,7 +110,11 @@
   FIREBASE_ASSERT_RETURN_VOID(expression)
 #else
 #define FIREBASE_DEV_ASSERT_RETURN_VOID(expression) \
-  { (void)(expression); }
+  do {                                              \
+    if (0) {                                        \
+      (void)(expression);                           \
+    }                                               \
+  } while (0)
 #endif  // !defined(NDEBUG)
 
 // Assert condition is true otherwise display the specified expression,
@@ -110,11 +123,11 @@
   do {                                                                      \
     if (!(condition)) {                                                     \
       firebase::LogError(                                                   \
-          FIREBASE_ASSERT_MESSAGE_PREFIX FIREBASE_EXPAND_STRINGIFY(         \
-              expression));                                                 \
+          "%s", FIREBASE_ASSERT_MESSAGE_PREFIX                              \
+                    FIREBASE_EXPAND_STRINGIFY(expression));                 \
       firebase::LogAssert(__VA_ARGS__);                                     \
     }                                                                       \
-  } while (false)
+  } while (0)
 
 // Assert condition is true otherwise display the specified expression,
 // message and abort. Compiled out of release builds.
@@ -125,7 +138,12 @@
 #else
 #define FIREBASE_DEV_ASSERT_MESSAGE_WITH_EXPRESSION(condition, expression, \
                                                     ...)                   \
-  { (void)(condition); }
+  do {                                                                     \
+    if (0) {                                                               \
+      (void)(condition);                                                   \
+      firebase::LogAssert(__VA_ARGS__);                                    \
+    }                                                                      \
+  } while (0)
 #endif  // !defined(NDEBUG)
 
 // Assert expression is true otherwise display the specified message and
@@ -142,12 +160,12 @@
 // Assert expression is true otherwise display the specified message and
 // abort or return a value if the log operation doesn't abort.
 #define FIREBASE_ASSERT_MESSAGE_RETURN(return_value, expression, ...) \
-  {                                                                   \
-    bool condition = !(!(expression));                                \
-    FIREBASE_ASSERT_MESSAGE_WITH_EXPRESSION(condition, expression,    \
-                                            __VA_ARGS__);             \
-    if (!condition) return (return_value);                            \
-  }
+  do {                                                                \
+    bool _firebase_assert_cond = !(!(expression));                    \
+    FIREBASE_ASSERT_MESSAGE_WITH_EXPRESSION(                          \
+        _firebase_assert_cond, expression, __VA_ARGS__);              \
+    if (!_firebase_assert_cond) return (return_value);                \
+  } while (0)
 
 // Assert expression is true otherwise display the specified message and
 // abort or return a value if the log operation doesn't abort. Compiled out of
@@ -157,18 +175,24 @@
   FIREBASE_ASSERT_MESSAGE_RETURN(return_value, expression, __VA_ARGS__)
 #else
 #define FIREBASE_DEV_ASSERT_MESSAGE_RETURN(return_value, expression, ...) \
-  { (void)(expression); }
+  do {                                                                    \
+    if (0) {                                                              \
+      (void)(expression);                                                 \
+      (void)(return_value);                                               \
+      firebase::LogAssert(__VA_ARGS__);                                   \
+    }                                                                     \
+  } while (0)
 #endif  // !defined(NDEBUG)
 
 // Assert expression is true otherwise display the specified message and
 // abort or return if the log operation doesn't abort.
-#define FIREBASE_ASSERT_MESSAGE_RETURN_VOID(expression, ...)       \
-  {                                                                \
-    bool condition = !(!(expression));                             \
-    FIREBASE_ASSERT_MESSAGE_WITH_EXPRESSION(condition, expression, \
-                                            __VA_ARGS__);          \
-    if (!condition) return;                                        \
-  }
+#define FIREBASE_ASSERT_MESSAGE_RETURN_VOID(expression, ...)          \
+  do {                                                                \
+    bool _firebase_assert_cond = !(!(expression));                    \
+    FIREBASE_ASSERT_MESSAGE_WITH_EXPRESSION(                          \
+        _firebase_assert_cond, expression, __VA_ARGS__);              \
+    if (!_firebase_assert_cond) return;                               \
+  } while (0)
 
 // Assert expression is true otherwise display the specified message and
 // abort or return if the log operation doesn't abort. Compiled out of release
@@ -178,7 +202,12 @@
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(expression, __VA_ARGS__)
 #else
 #define FIREBASE_DEV_ASSERT_MESSAGE_RETURN_VOID(expression, ...) \
-  { (void)(expression); }
+  do {                                                           \
+    if (0) {                                                     \
+      (void)(expression);                                        \
+      firebase::LogAssert(__VA_ARGS__);                          \
+    }                                                            \
+  } while (0)
 #endif  // !defined(NDEBUG)
 
 #endif  // FIREBASE_APP_SRC_ASSERT_H_

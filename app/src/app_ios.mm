@@ -333,7 +333,6 @@ App* App::Create(const AppOptions& options, const char* name) {
   if (platform_app) {
     PlatformOptionsToAppOptions(platform_app.options, &app->options_);
     app->internal_ = new internal::AppInternal(platform_app);
-  app->options_ = options;
     App* added_app = app_common::AddApp(app, &app->init_results_);
     if (added_app != app) {
       delete app;
@@ -413,13 +412,13 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
 // Guards g_partial_apps.
 static Mutex* g_partial_apps_mutex = new Mutex();
 // Stores partially initialized apps, indexed by app name
-static std::map<std::string, App*>* g_partial_apps;
+static std::map<std::string, App*, std::less<>>* g_partial_apps;
 
 App* FindPartialAppByName(const char* name) {
   if (!name) return nullptr;
   MutexLock lock(*g_partial_apps_mutex);
   if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(name));
+    auto it = g_partial_apps->find(name);
     if (it == g_partial_apps->end()) {
       return nullptr;
     }
@@ -432,16 +431,16 @@ void AddPartialApp(App* app) {
   if (!app || !app->name()) return;
   MutexLock lock(*g_partial_apps_mutex);
   if (!g_partial_apps) {
-    g_partial_apps = new std::map<std::string, App*>();
+    g_partial_apps = new std::map<std::string, App*, std::less<>>();
   }
-  g_partial_apps->emplace(app->name(), app);
+  g_partial_apps->insert_or_assign(app->name(), app);
 }
 
 void RemovePartialApp(App* app) {
   if (!app || !app->name()) return;
   MutexLock lock(*g_partial_apps_mutex);
   if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(app->name()));
+    auto it = g_partial_apps->find(app->name());
     if (it != g_partial_apps->end() && it->second == app) {
       g_partial_apps->erase(it);
       if (g_partial_apps->empty()) {

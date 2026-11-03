@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstring>
 #include "app/src/filesystem.h"
 
 #import <Foundation/Foundation.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include <cerrno>
+#include <cstring>
+#include <string>
 
 #include "app/src/util.h"
 
@@ -31,13 +34,16 @@ namespace {
 
 bool Mkdir(const std::string& path, std::string* out_error) {
   int retval = mkdir(path.c_str(), 0700);
-  if (retval != 0 && errno != EEXIST) {
-    if (out_error) {
-      *out_error = std::string("Could not create directory ") + path +
-                   " (error code: " + std::to_string(errno) + ")";
-    }
+  if (retval != 0) {
+    int err = errno;
+    if (err != EEXIST) {
+      if (out_error) {
+        *out_error = std::string("Could not create directory ") + path +
+                     " (error code: " + std::to_string(err) + ")";
+      }
 
-    return false;
+      return false;
+    }
   }
 
   return true;
@@ -53,21 +59,38 @@ std::string AppDataDir(const char* app_name, bool should_create, std::string* ou
     return "";
   }
 
+  std::string path;
+  @autoreleasepool {
 #if TARGET_OS_IOS || TARGET_OS_OSX
-  NSArray<NSString*>* directories =
-      NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
+    NSArray<NSString*>* directories =
+        NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
 #elif TARGET_OS_TV
-  NSArray<NSString*>* directories =
-      NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    NSArray<NSString*>* directories =
+        NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
 #else
 #error "Don't know where to store documents on this platform."
 #endif
 
-  std::string path = directories[0].UTF8String;
+    const char* base_dir_cstr =
+        directories.count > 0 ? directories[0].UTF8String : nullptr;
+    if (base_dir_cstr == nullptr) {
+      if (out_error) {
+        *out_error = "AppDataDir failed: could not find application data directory";
+      }
+      return "";
+    }
+    path = base_dir_cstr;
+  }
 
   if (should_create) {
+    if (!Mkdir(path, out_error)) {
+      return "";
+    }
     // App name might contain path separators. Split it to get list of subdirs.
     for (const std::string& nested_dir : SplitString(app_name, '/')) {
+      if (nested_dir.empty()) {
+        continue;
+      }
       path += "/";
       path += nested_dir;
       bool created = Mkdir(path, out_error);

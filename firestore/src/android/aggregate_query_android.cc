@@ -64,7 +64,7 @@ Future<AggregateQuerySnapshot> AggregateQueryInternal::Get(
 
 std::size_t AggregateQueryInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return static_cast<uint32_t>(env.Call(obj_, kHashCode));
 }
 
 bool operator==(const AggregateQueryInternal& lhs,

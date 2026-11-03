@@ -17,13 +17,11 @@
 #include <jni.h>
 
 #include <algorithm>
-#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <thread>  // NOLINT
 #include <utility>
 #include <vector>
 
@@ -139,17 +137,19 @@ enum StorageReferenceFn {
   kStorageReferenceFnCount,
 };
 
+// Lifetime/locking design (see also ControllerInternal):
+// * The StorageInternal cleanup callback captures a weak_ptr to the token, so
+//   it is a harmless no-op once the token is gone and the token never needs
+//   to be unregistered from a dying StorageInternal.
+// * Unregistering happens only while holding the StorageInternal's lifetime
+//   token mutex and seeing `alive == true`. ~StorageInternal() clears `alive`
+//   under that mutex *before* it runs cleanup_.CleanupAll(), so while we hold
+//   it no cleanup callback can be in flight: UnregisterObject() never blocks
+//   and the StorageInternal cannot be destroyed underneath us.
 struct JniListenerToken {
-  // std::recursive_mutex (not firebase::Mutex) so the cleanup callback can
-  // try_lock() it; see OnStorageDestroyed().
   std::recursive_mutex mutex;
-  // > 0 while Complete()/DetachFromListener() is blocked in
-  // CleanupNotifier::UnregisterObject(this) with `mutex` held.
-  std::atomic<int> unregistering{0};
-  // Set by OnStorageDestroyed() when it had to bail out because the owner was
-  // unregistering; tells the owner that `storage` is being destroyed.
-  std::atomic<bool> storage_dying{false};
   StorageInternal* storage = nullptr;
+  std::shared_ptr<StorageInternal::LifetimeToken> storage_token;
   Listener* listener = nullptr;
   ListenerInternal* listener_internal = nullptr;
   jobject java_listener = nullptr;
@@ -160,6 +160,7 @@ struct JniListenerToken {
   JniListenerToken(StorageInternal* s, Listener* l, ListenerInternal* li,
                    jobject jl)
       : storage(s),
+        storage_token(s != nullptr ? s->lifetime_token() : nullptr),
         listener(l),
         listener_internal(li),
         java_listener(jl),
@@ -173,8 +174,13 @@ struct JniListenerToken {
   void InitRegistrations(const std::shared_ptr<JniListenerToken>& self) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     if (storage != nullptr) {
-      storage->cleanup().RegisterObject(this, [](void* obj) {
-        static_cast<JniListenerToken*>(obj)->OnStorageDestroyed();
+      cleanup_ctx = new std::weak_ptr<JniListenerToken>(self);
+      storage->cleanup().RegisterObject(cleanup_ctx, [](void* obj) {
+        std::unique_ptr<std::weak_ptr<JniListenerToken>> weak_token(
+            static_cast<std::weak_ptr<JniListenerToken>*>(obj));
+        if (auto locked = weak_token->lock()) {
+          locked->OnStorageDestroyed();
+        }
       });
       cleanup_registered = true;
     }
@@ -190,26 +196,18 @@ struct JniListenerToken {
   }
 
   // Cleanup callback, run by StorageInternal's CleanupNotifier while the
-  // StorageInternal is being destroyed. CleanupNotifier::UnregisterObject()
-  // blocks while this runs, and Complete()/DetachFromListener() call it with
-  // `mutex` held, so this must never block on `mutex`: it try-locks, and if
-  // the owner is unregistering it flags `storage_dying` and returns, leaving
-  // the owner to finish the teardown without touching `storage` afterwards.
+  // StorageInternal is being destroyed (after its lifetime token was marked
+  // dead, so no owner can be blocked in UnregisterObject() while holding
+  // `mutex`).
   void OnStorageDestroyed() {
     ListenerInternal* old_li = nullptr;
     StorageInternal* old_storage = nullptr;
     Listener* old_listener = nullptr;
     bool was_active = false;
     {
-      std::unique_lock<std::recursive_mutex> lock(mutex, std::defer_lock);
-      while (!lock.try_lock()) {
-        if (unregistering.load() > 0) {
-          storage_dying.store(true);
-          return;
-        }
-        std::this_thread::yield();
-      }
+      std::lock_guard<std::recursive_mutex> lock(mutex);
       cleanup_registered = false;
+      cleanup_ctx = nullptr;
       if (java_listener != nullptr && storage != nullptr &&
           storage->app() != nullptr) {
         JNIEnv* env = storage->app()->GetJNIEnv();
@@ -265,17 +263,8 @@ struct JniListenerToken {
         }
         java_listener = nullptr;
       }
-      if (cleanup_registered && storage != nullptr) {
-        // May block until an in-flight OnStorageDestroyed() returns; that
-        // callback bails out instead of waiting on `mutex` while
-        // unregistering > 0, so this cannot deadlock.
-        unregistering.fetch_add(1);
-        storage->cleanup().UnregisterObject(this);
-        unregistering.fetch_sub(1);
-        cleanup_registered = false;
-        // If the callback bailed, `storage` is being destroyed. Nothing below
-        // dereferences it (it is only used as a registry key).
-        storage_dying.store(false);
+      if (cleanup_registered) {
+        UnregisterFromStorageLocked();
       }
       old_storage = storage;
       old_listener = listener;
@@ -286,6 +275,22 @@ struct JniListenerToken {
     }
     if (was_active) {
       ControllerInternal::UnregisterActiveListener(old_storage, old_listener);
+    }
+  }
+
+  // Unregisters from storage->cleanup() if the StorageInternal is still
+  // alive (see the design note above). If it is already dying, the cleanup
+  // callback owns and deletes `cleanup_ctx`. Must be called with `mutex`
+  // held.
+  void UnregisterFromStorageLocked() {
+    cleanup_registered = false;
+    std::weak_ptr<JniListenerToken>* old_ctx = cleanup_ctx;
+    cleanup_ctx = nullptr;
+    if (storage == nullptr || !storage_token || old_ctx == nullptr) return;
+    std::lock_guard<std::mutex> token_lock(storage_token->mutex);
+    if (storage_token->alive) {
+      storage->cleanup().UnregisterObject(old_ctx);
+      delete old_ctx;
     }
   }
 
@@ -312,17 +317,8 @@ struct JniListenerToken {
         }
         java_listener = nullptr;
       }
-      if (cleanup_registered && storage != nullptr) {
-        // May block until an in-flight OnStorageDestroyed() returns; that
-        // callback bails out instead of waiting on `mutex` while
-        // unregistering > 0, so this cannot deadlock.
-        unregistering.fetch_add(1);
-        storage->cleanup().UnregisterObject(this);
-        unregistering.fetch_sub(1);
-        cleanup_registered = false;
-        // If the callback bailed, `storage` is being destroyed. Nothing below
-        // dereferences it (it is only used as a registry key).
-        storage_dying.store(false);
+      if (cleanup_registered) {
+        UnregisterFromStorageLocked();
       }
       if (listener_detach_registered) {
         old_li = listener_internal;

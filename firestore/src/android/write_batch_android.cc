@@ -17,8 +17,6 @@
 #include "firestore/src/android/write_batch_android.h"
 
 #include "firestore/src/android/document_reference_android.h"
-#include "firestore/src/android/field_path_android.h"
-#include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/set_options_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/env.h"

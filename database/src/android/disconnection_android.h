@@ -30,7 +30,7 @@ namespace internal {
 class DatabaseReferenceInternal;
 class DatabaseInternal;
 
-// The iOS implementation of the Disconnection handler, which allows you to
+// The Android implementation of the Disconnection handler, which allows you to
 // register server-side actions to occur when the client disconnects.
 class DisconnectionHandlerInternal {
  public:
@@ -55,7 +55,7 @@ class DisconnectionHandlerInternal {
   // Set the value of the data at the current location when the client
   // disconnects. When the Future returns, if its Error is kErrorNone, the
   // SetValue operation has been successfully queued up on the server.
-  Future<void> SetValue(Variant value);
+  Future<void> SetValue(const Variant& value);
 
   // Get the result of the most recent call to SetValue().
   Future<void> SetValueLastResult();
@@ -63,7 +63,8 @@ class DisconnectionHandlerInternal {
   // Set the value and priority of the data at the current location when the
   // client disconnects. When the Future returns, if its Error is kErrorNone,
   // the SetValue operation has been successfully queued up on the server.
-  Future<void> SetValueAndPriority(Variant value, Variant priority);
+  Future<void> SetValueAndPriority(const Variant& value,
+                                   const Variant& priority);
 
   // Get the result of the most recent call to SetValueAndPriority().
   Future<void> SetValueAndPriorityLastResult();
@@ -71,7 +72,7 @@ class DisconnectionHandlerInternal {
   // Updates the specified child keys to the given values when the client
   // disconnects. When the Future returns, if its Error is kErrorNone, the
   // UpdateChildren operation has been successfully queued up by the server.
-  Future<void> UpdateChildren(Variant values);
+  Future<void> UpdateChildren(const Variant& values);
 
   // Gets the result of the most recent call to either version of
   // UpdateChildren().

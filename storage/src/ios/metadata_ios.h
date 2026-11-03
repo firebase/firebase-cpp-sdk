@@ -27,7 +27,7 @@
 #include "storage/src/ios/storage_reference_ios.h"
 
 #ifdef __OBJC__
-#import "FirebaseStorage-Swift.h"
+@class FIRStorageMetadata;
 #endif  // __OBJC__
 
 namespace firebase {
@@ -56,7 +56,7 @@ class MetadataInternal {
 
   MetadataInternal(MetadataInternal&& other) noexcept;
 
-  MetadataInternal& operator=(MetadataInternal&& other) noexcept;
+  MetadataInternal& operator=(MetadataInternal&& other);
 
   ~MetadataInternal();
 
@@ -97,11 +97,21 @@ class MetadataInternal {
   int64_t creation_time() const;
 
   // Return a map of custom metadata key value pairs.
+  //
+  // The map is owned by this MetadataInternal and the returned pointer stays
+  // valid for its whole lifetime: copy- and move-assignment replace the map's
+  // contents in place rather than destroying it (a move-constructed object
+  // takes over the source's map object). Like the public
+  // Metadata::custom_metadata() it backs, the map itself is not thread-safe:
+  // callers must not access it concurrently with each other or with any other
+  // use of this Metadata that reads or replaces it (CommitCustomMetadata(),
+  // copying, assignment).
   CustomMetadata* _Nullable custom_metadata() const;
 
   // Take the keys/values that are present in custom_metadata_ and write them
   // into the NSDictionary on the FIRStorageMetadata. This should be called
-  // before you upload the metadata.
+  // before you upload the metadata. Holds mutex_ while reading the map; see
+  // custom_metadata() for the caller's side of the contract.
   void CommitCustomMetadata() const;
 
   // Return a version String indicating what version of the StorageReference.
@@ -136,12 +146,26 @@ class MetadataInternal {
 
  private:
 #ifdef __OBJC__
+  // Thread-safe accessor (mutex_ is recursive, so callers that already hold
+  // mutex_ may also call this safely).
   FIRStorageMetadata* _Nullable impl() const {
+    MutexLock lock(mutex_);
     return impl_ ? impl_->get() : nil;
   }
 #endif  // __OBJC__
 
+  // Maximum number of superseded getter strings retained per instance so
+  // memory growth is strictly O(1) bounded even under repeated mutations.
+  static constexpr size_t kMaxRetiredStrings = 18;
+
+  void RetireStringLocked(std::unique_ptr<std::string> str) const;
   void RetireCachedStringsLocked() const;
+
+  // Makes the custom metadata reflect an assignment, after impl_ has been
+  // replaced: moves `source`'s contents in (if non-null) or reloads them from
+  // impl(), reusing the existing map object so pointers returned by
+  // custom_metadata() stay valid. Requires mutex_.
+  void ReplaceCustomMetadataLocked(CustomMetadata* _Nullable source);
 
   friend class StorageReferenceInternal;
 
@@ -163,6 +187,9 @@ class MetadataInternal {
   mutable std::unique_ptr<std::string> name_;
   mutable std::unique_ptr<std::string> path_;
   mutable std::unique_ptr<std::string> md5_hash_;
+  // Bounded cache (at most kMaxRetiredStrings entries) of superseded getter
+  // strings so recently returned const char* pointers remain valid across
+  // property updates or assignment without unbounded memory growth.
   mutable std::vector<std::unique_ptr<std::string>> retired_strings_;
 
   mutable std::unique_ptr<CustomMetadata> custom_metadata_;

@@ -15,113 +15,133 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 #define FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 
+#include <functional>
 #include <string>
 
-#include "app/rest/transport_curl.h"
-#include "app/rest/transport_interface.h"
+#include "app/rest/request.h"
+#include "app/rest/response.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "functions/src/desktop/functions_desktop.h"
 #include "functions/src/include/firebase/functions.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
+#include "functions/src/include/firebase/functions/callable_result.h"
+#include "functions/src/include/firebase/functions/common.h"
 
 namespace firebase {
 namespace functions {
 namespace internal {
 
-class HttpsCallableRequest : public rest::Request {
+class FunctionsCallableRequest : public rest::Request {
  public:
-  // Mark the transfer completed.
-  void MarkCompleted() override;
+  explicit FunctionsCallableRequest(const char* url);
+  void set_url(const char* url);
+};
 
-  // Mark the transfer failed.
+class FunctionsCallableResponse : public rest::Response {
+ public:
+  using Callback = std::function<void()>;
+
+  FunctionsCallableResponse() = default;
+  void SetCallback(Callback callback);
+  bool failed() const { return failed_; }
+
+  void MarkCompleted() override;
   void MarkFailed() override;
 
-  void set_future_impl(ReferenceCountedFutureImpl* impl) {
-    future_impl_ = impl;
-  }
-
-  void set_future_handle(SafeFutureHandle<HttpsCallableResult> handle) {
-    future_handle_ = handle;
-  }
-
-  void set_response(rest::Response* response) { response_ = response; }
-
  private:
-  ReferenceCountedFutureImpl* future_impl_;
-  SafeFutureHandle<HttpsCallableResult> future_handle_;
-  rest::Response* response_;
+  void InvokeCallback();
+
+  bool failed_ = false;
+  Callback callback_;
 };
+
+// Maps an HTTP status code to a Cloud Functions Error code.
+Error ErrorFromHttpStatus(int status);
+
+// Maps a canonical gRPC status string (e.g. "NOT_FOUND") to an Error code.
+Error ErrorFromStatus(const std::string& status);
+
+// Resolves a callable Future from a completed or failed HTTP response.
+void ResolveFuture(ReferenceCountedFutureImpl* future_api,
+                   SafeFutureHandle<HttpsCallableResult> handle,
+                   rest::Response* response);
 
 class HttpsCallableReferenceInternal {
  public:
+  HttpsCallableReferenceInternal(FunctionsInternal* functions, const char* url);
+  HttpsCallableReferenceInternal(FunctionsInternal* functions,
+                                 const char* target, bool is_url);
   HttpsCallableReferenceInternal(FunctionsInternal* functions, const char* url,
+                                 const HttpsCallableOptions& options);
+  HttpsCallableReferenceInternal(FunctionsInternal* functions,
+                                 const char* target, bool is_url,
                                  const HttpsCallableOptions& options);
   ~HttpsCallableReferenceInternal();
 
   // Copy constructor. It's totally okay (and efficient) to copy
   // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location.
+  // location in the Cloud Functions service.
   HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& other);
 
   // Copy assignment operator. It's totally okay (and efficient) to copy
   // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location.
+  // location in the Cloud Functions service.
   HttpsCallableReferenceInternal& operator=(
       const HttpsCallableReferenceInternal& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   // Move constructor. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
-  HttpsCallableReferenceInternal(HttpsCallableReferenceInternal&& other);
+  HttpsCallableReferenceInternal(
+      HttpsCallableReferenceInternal&& other) noexcept;
 
   // Move assignment operator. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal& operator=(
-      HttpsCallableReferenceInternal&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+      HttpsCallableReferenceInternal&& other) noexcept;
 
-  // Gets the functions to which we refer.
-  // TODO(klimt): Do we really need this method?
+  // Gets the Functions instance to which we refer.
   Functions* functions() const;
 
-  // Asynchronously calls this CallableReference.
-  Future<HttpsCallableResult> Call() { return Call(Variant::Null()); }
-  Future<HttpsCallableResult> Call(const Variant& data);
-  Future<HttpsCallableResult> CallLastResult();
-
-  // This is a static method so that the Request can construct an
-  // HttpsCallableResult, since this is a friend class for it.
-  static void ResolveFuture(ReferenceCountedFutureImpl* future_impl,
-                            SafeFutureHandle<HttpsCallableResult> future_handle,
-                            rest::Response* response);
-
-  // Pointer to the FunctionsInternal instance we are a part of.
   FunctionsInternal* functions_internal() const { return functions_; }
 
- private:
-  // Returns the auth token for the current user, if there is a current user,
-  // and they have a token, and auth exists as part of the app.
-  // Otherwise, returns an empty string.
-  std::string GetAuthToken() const;
+  // Asynchronously calls the trigger endpoint with no parameters.
+  Future<HttpsCallableResult> Call();
 
+  // Asynchronously calls the trigger endpoint with the given parameter.
+  Future<HttpsCallableResult> Call(const Variant& data);
+
+  // Get the result of the most recent Call() call.
+  Future<HttpsCallableResult> CallLastResult();
+
+  // Returns true if this HttpsCallableReference is valid, false if it is not
+  // valid.
+  bool is_valid() const;
+
+  // Returns the resolved target URL for this callable reference.
+  std::string url() const;
+
+  const HttpsCallableOptions& options() const { return options_; }
+
+  static void ResolveFuture(ReferenceCountedFutureImpl* future_api,
+                            SafeFutureHandle<HttpsCallableResult> handle,
+                            rest::Response* response);
+
+  bool operator==(const HttpsCallableReferenceInternal& other) const {
+    return functions_ == other.functions_ && url() == other.url() &&
+           options_ == other.options_;
+  }
+
+ private:
   // Get the Future for the HttpsCallableReferenceInternal.
   ReferenceCountedFutureImpl* future();
 
-  // Keep track of the Functions object for managing Futures.
   FunctionsInternal* functions_;
-
-  // The URL of the endpoint this reference points to.
-  std::string url_;
-
-  // Options for the callable reference.
+  std::string target_;
+  bool is_url_;
   HttpsCallableOptions options_;
-
-  rest::TransportCurl transport_;
-  // For now, we only allow one request per reference at a time in C++.
-  // TODO(klimt): Figure out the lifetime issues enough to allow multiple
-  // simultaneous requests.
-  HttpsCallableRequest request_;
-  rest::Response response_;
 };
 
 }  // namespace internal

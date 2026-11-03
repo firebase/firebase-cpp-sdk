@@ -48,6 +48,9 @@ main() {
   done
 
   # Verify a valid version was selected.
+  if [[ -z "${config}" ]]; then
+    echo "Missing required option -c" >&2 && help
+  fi
   local pod_version="${POD_SDK_VERSIONS[${config}]}"
   if [[ -z "${pod_version}" ]]; then
     echo "Unknown config \"${config}\"" >&2 && help

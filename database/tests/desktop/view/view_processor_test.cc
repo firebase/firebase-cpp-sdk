@@ -51,8 +51,8 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithEmptyPath) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_local_cache(Variant("local_values"), true, false);
-  CacheNode initial_server_cache(Variant("server_values"), true, false);
+  CacheNode initial_local_cache(IndexedVariant(Variant("local_values")), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("server_values")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create a user-initiated overwrite with an empty path to change a value.
@@ -71,7 +71,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithEmptyPath) {
                                 &resultant_changes);
 
   // Only the local cache should change.
-  CacheNode expected_local_cache(Variant("apples"), true, false);
+  CacheNode expected_local_cache(IndexedVariant(Variant("apples")), true, false);
   ViewCache expected_view_cache(expected_local_cache, initial_server_cache);
 
   // Expect just a value change event.
@@ -89,8 +89,8 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithPriorityPath) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_local_cache(Variant("local_values"), true, false);
-  CacheNode initial_server_cache(Variant("server_values"), true, false);
+  CacheNode initial_local_cache(IndexedVariant(Variant("local_values")), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("server_values")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create a user-initiated overwrite with an empty path to change a value.
@@ -108,8 +108,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithPriorityPath) {
                                 &resultant_changes);
 
   // Only the local cache should change.
-  CacheNode expected_local_cache(CombineValueAndPriority("local_values", 100),
-                                 true, false);
+  CacheNode expected_local_cache(IndexedVariant(CombineValueAndPriority("local_values", 100)), true, false);
   ViewCache expected_view_cache(expected_local_cache, initial_server_cache);
 
   // Expect just a value change event.
@@ -127,8 +126,8 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithRegularPath) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_local_cache(Variant("local_values"), true, false);
-  CacheNode initial_server_cache(Variant("server_values"), true, false);
+  CacheNode initial_local_cache(IndexedVariant(Variant("local_values")), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("server_values")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create a user-initiated overwrite with a non-empty path to change a value.
@@ -181,8 +180,8 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_WithEmptyPath) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_local_cache(Variant("local_values"), true, false);
-  CacheNode initial_server_cache(Variant("server_values"), true, false);
+  CacheNode initial_local_cache(IndexedVariant(Variant("local_values")), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("server_values")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create a server-initiated overwrite with an empty path to change a value.
@@ -200,7 +199,7 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_WithEmptyPath) {
                                 &resultant_changes);
 
   // Both the local and server caches have been set.
-  CacheNode expected_cache(Variant("apples"), true, false);
+  CacheNode expected_cache(IndexedVariant(Variant("apples")), true, false);
   ViewCache expected_view_cache(expected_cache, expected_cache);
 
   // Expect just a value change event.
@@ -218,8 +217,8 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_RegularPath) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_local_cache(Variant("local_values"), true, false);
-  CacheNode initial_server_cache(Variant("server_values"), true, false);
+  CacheNode initial_local_cache(IndexedVariant(Variant("local_values")), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("server_values")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   Operation operation =
@@ -346,7 +345,7 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
                          }),
       }),
       true, false);
-  CacheNode initial_server_cache(Variant("aaa"), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("aaa")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
   // The merge operation should consist of multiple changes in different
   // locations.
@@ -385,7 +384,7 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
               }),
       }),
       true, false);
-  CacheNode expected_server_cache(Variant("aaa"), true, false);
+  CacheNode expected_server_cache(IndexedVariant(Variant("aaa")), true, false);
   ViewCache expected_view_cache(expected_local_cache, expected_server_cache);
 
   // Expect one ChildChanged event and one Value event.
@@ -439,7 +438,7 @@ TEST(ViewProcessor, ApplyOperationServerMerge) {
                          }),
       }),
       true, false);
-  CacheNode initial_server_cache(Variant("aaa"), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("aaa")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // The merge operation should consist of multiple changes in different
@@ -531,8 +530,8 @@ TEST(ViewProcessor, ApplyOperationAck_HasShadowingWrite) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_local_cache(Variant("local_values"), true, false);
-  CacheNode initial_server_cache(Variant("server_values"), true, false);
+  CacheNode initial_local_cache(IndexedVariant(Variant("local_values")), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("server_values")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create an Ack with a shadowing write.
@@ -689,8 +688,8 @@ TEST(ViewProcessor, ApplyOperationListenComplete) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_local_cache(Variant("local_values"), true, false);
-  CacheNode initial_server_cache(Variant("server_values"), true, false);
+  CacheNode initial_local_cache(IndexedVariant(Variant("local_values")), true, false);
+  CacheNode initial_server_cache(IndexedVariant(Variant("server_values")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create a server-initiated listen complete with an empty path to change a

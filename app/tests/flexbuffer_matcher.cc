@@ -14,6 +14,13 @@
 
 #include "app/tests/flexbuffer_matcher.h"
 
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <vector>
+
+namespace {
+
 // For testing purposes, we only care about the basic types.
 enum FlexbuffersMetaTypes {
   kNull,
@@ -26,12 +33,13 @@ enum FlexbuffersMetaTypes {
   kMap,
   kVector,
   kBlob,
+  kUnknown,
 };
 
 // Type names for error messages.
-const char* meta_type_names[] = {
-    "Null",   "Bool", "Int", "UInt",   "Float",
-    "String", "Key",  "Map", "Vector", "Blob",
+const char* const meta_type_names[] = {
+    "Null",   "Bool", "Int",    "UInt", "Float",   "String",
+    "Key",    "Map",  "Vector", "Blob", "Unknown",
 };
 
 FlexbuffersMetaTypes GetFlexbuffersReferenceType(
@@ -85,6 +93,10 @@ FlexbuffersMetaTypes GetFlexbuffersReferenceType(
     case flexbuffers::FBT_BLOB: {
       return kBlob;
     }
+    case flexbuffers::FBT_MAX_TYPE:
+    default: {
+      return kUnknown;
+    }
   }
 }
 
@@ -98,6 +110,8 @@ void MismatchMessage(const std::string& title, const T& expected, const T& arg,
   }
   *result_listener << ", got " << arg;
 }
+
+}  // namespace
 
 // TODO(73494146): Check in EqualsFlexbuffer gmock matcher into the canonical
 // Flatbuffer repository.
@@ -155,23 +169,24 @@ bool EqualsFlexbufferImpl(const flexbuffers::Reference& expected,
     }
     return true;
   } else if (expected.IsString()) {
-    if (strcmp(expected.AsString().c_str(), arg.AsString().c_str()) != 0) {
-      MismatchMessage("Value mismatch", expected.AsString().c_str(),
-                      arg.AsString().c_str(), location, result_listener);
+    if (expected.AsString().str() != arg.AsString().str()) {
+      MismatchMessage("Value mismatch", expected.AsString().str(),
+                      arg.AsString().str(), location, result_listener);
       return false;
     }
     return true;
   } else if (expected.IsKey()) {
-    if (strcmp(expected.AsKey(), arg.AsKey()) != 0) {
+    if (std::strcmp(expected.AsKey(), arg.AsKey()) != 0) {
       MismatchMessage("Key mismatch", expected.AsKey(), arg.AsKey(), location,
                       result_listener);
       return false;
     }
     return true;
   } else if (expected.IsBlob()) {
-    if (expected.AsBlob().size() != arg.AsBlob().size() |
-        std::memcmp(expected.AsBlob().data(), arg.AsBlob().data(),
-                    expected.AsBlob().size()) != 0) {
+    if (expected.AsBlob().size() != arg.AsBlob().size() ||
+        (expected.AsBlob().size() > 0 &&
+         std::memcmp(expected.AsBlob().data(), arg.AsBlob().data(),
+                     expected.AsBlob().size()) != 0)) {
       *result_listener << "Binary mismatch";
       if (!location.empty()) {
         *result_listener << " at " << location;
@@ -191,6 +206,8 @@ bool EqualsFlexbufferImpl(const flexbuffers::Reference& expected,
     }
     flexbuffers::TypedVector expected_keys = expected_map.Keys();
     flexbuffers::TypedVector arg_keys = arg_map.Keys();
+    flexbuffers::Vector expected_values = expected_map.Values();
+    flexbuffers::Vector arg_values = arg_map.Values();
     for (size_t i = 0; i < expected_keys.size(); ++i) {
       std::string new_location =
           location + "[" + expected_keys[i].AsKey() + "]";
@@ -198,10 +215,12 @@ bool EqualsFlexbufferImpl(const flexbuffers::Reference& expected,
                                 result_listener)) {
         return false;
       }
+      if (!EqualsFlexbufferImpl(expected_values[i], arg_values[i], new_location,
+                                result_listener)) {
+        return false;
+      }
     }
-    // Don't return in case of success, because we still need to check that
-    // the values match. This is done in the IsVector section, since Maps are
-    // also Vectors.
+    return true;
   }
   if (expected.IsVector()) {
     flexbuffers::Vector expected_vector = expected.AsVector();

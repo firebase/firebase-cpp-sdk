@@ -14,6 +14,9 @@
 
 #include "remote_config/src/config_update_listener_registration_internal.h"
 
+#include <functional>
+#include <utility>
+
 namespace firebase {
 namespace remote_config {
 namespace internal {
@@ -23,17 +26,22 @@ ConfigUpdateListenerRegistrationInternal::
         RemoteConfigInternal* remote_config,
         std::function<void()> listener_removal_function)
     : remote_config_(remote_config),
-      listener_removal_function_(listener_removal_function) {}
+      listener_removal_function_(std::move(listener_removal_function)) {}
 
 ConfigUpdateListenerRegistrationInternal::
     ~ConfigUpdateListenerRegistrationInternal() {
-  this->Remove();
+  Remove();
 }
 
 void ConfigUpdateListenerRegistrationInternal::Remove() {
-  if (!this->listener_removed_) {
-    this->listener_removed_ = true;
-    this->listener_removal_function_();
+  std::function<void()> fn;
+  {
+    MutexLock lock(mutex_);
+    fn = std::move(listener_removal_function_);
+    listener_removal_function_ = nullptr;
+  }
+  if (fn) {
+    fn();
   }
 }
 

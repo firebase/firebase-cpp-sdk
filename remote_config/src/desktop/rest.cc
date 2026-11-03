@@ -17,8 +17,9 @@
 #include <chrono>  // NOLINT
 #include <cstdint>
 #include <cstring>
+#include <map>
 #include <memory>
-#include <sstream>
+#include <string>
 #include <utility>
 
 #include "app/rest/transport_builder.h"
@@ -29,6 +30,7 @@
 #include "app/src/base64.h"
 #include "app/src/locale.h"
 #include "app/src/log.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/uuid.h"
 #include "firebase/app.h"
 #include "remote_config/src/common.h"
@@ -44,18 +46,16 @@ const int SDK_MAJOR_VERSION = 1;
 const int SDK_MINOR_VERSION = 3;
 const int SDK_PATCH_VERSION = 0;
 
-const char kTokenScope[] = "*";
-
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
                                    LayeredConfigs& configs,
-                                   const std::string namespaces)
-    : app_package_name_(app_options.package_name()),
-      app_gmp_project_id_(app_options.app_id()),
-      app_project_id_(app_options.project_id()),
-      api_key_(app_options.api_key()),
+                                   std::string namespaces)
+    : app_package_name_(
+          app_options.package_name() ? app_options.package_name() : ""),
+      app_gmp_project_id_(app_options.app_id() ? app_options.app_id() : ""),
+      app_project_id_(app_options.project_id() ? app_options.project_id() : ""),
+      api_key_(app_options.api_key() ? app_options.api_key() : ""),
       namespaces_(std::move(namespaces)),
-      configs_(configs),
-      fetch_future_sem_(0) {
+      configs_(configs) {
   rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -67,6 +67,9 @@ RemoteConfigREST::~RemoteConfigREST() {
 
 void RemoteConfigREST::Fetch(const App& app,
                              uint64_t fetch_timeout_in_milliseconds) {
+  rc_request_ = RemoteConfigRequest();
+  rc_response_ = RemoteConfigResponse();
+
   TryGetInstallationsAndToken(app);
 
   SetupRestRequest(app, fetch_timeout_in_milliseconds);
@@ -98,14 +101,31 @@ static std::string GenerateFakeId() {
 }
 
 void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
-  // Instance ID no longer supported.
-  // TODO: use Installations instead.
+  if (!app_instance_id_.empty() && !app_instance_id_token_.empty()) {
+    return;
+  }
+  static Mutex* s_id_mutex = new Mutex();
+  static auto* s_cached_ids =
+      new std::map<std::string, std::pair<std::string, std::string>>();
+
+  std::string cache_key =
+      std::string(app.name() ? app.name() : "") + ":" + app_gmp_project_id_;
+  MutexLock lock(*s_id_mutex);
+  auto it = s_cached_ids->find(cache_key);
+  if (it != s_cached_ids->end()) {
+    app_instance_id_ = it->second.first;
+    app_instance_id_token_ = it->second.second;
+    return;
+  }
   app_instance_id_ = GenerateFakeId();
   app_instance_id_token_ = GenerateFakeId();
+  (*s_cached_ids)[cache_key] =
+      std::make_pair(app_instance_id_, app_instance_id_token_);
 }
 
 void RemoteConfigREST::SetupRestRequest(
     const App& app, uint64_t fetch_timeout_in_milliseconds) {
+  (void)app;
   std::string server_url(kServerURL);
   server_url.append("/");
   server_url.append(app_project_id_);
@@ -123,16 +143,13 @@ void RemoteConfigREST::SetupRestRequest(
   rc_request_.options().timeout_ms = fetch_timeout_in_milliseconds;
 
   rc_request_.SetAppId(app_gmp_project_id_);
-  rc_request_.SetAppInstanceId(
-      app_instance_id_);  // TODO(cynthiajiang) change to installations
-  rc_request_.SetAppInstanceIdToken(
-      app_instance_id_token_);  // TODO(cynthiajiang) change to installations
+  rc_request_.SetAppInstanceId(app_instance_id_);
+  rc_request_.SetAppInstanceIdToken(app_instance_id_token_);
 
   rc_request_.SetPlatformVersion("2");
   std::string locale = firebase::internal::GetLocale();
-  if (locale.length() != 0) {
+  if (!locale.empty()) {
     rc_request_.SetLanguageCode(locale);
-    // TODO(cynthiajiang) Set Country code.
   }
   rc_request_.SetTimeZone(firebase::internal::GetTimezone());
   rc_request_.SetPackageName(app_package_name_);
@@ -144,58 +161,101 @@ void RemoteConfigREST::SetupRestRequest(
 }
 
 void RemoteConfigREST::ParseRestResponse() {
+  if (rc_response_.status() == kHTTPStatusTooManyRequests) {
+    FetchFailure(kFetchFailureReasonThrottled);
+    LogError("fetching failure: throttled (http code 429)");
+    return;
+  }
+
   if (rc_response_.status() != kHTTPStatusOk) {
     FetchFailure(kFetchFailureReasonError);
     LogError("fetching failure: http code %d", rc_response_.status());
     return;
   }
 
-  if (strlen(rc_response_.GetBody()) == 0) {
+  const char* body = rc_response_.GetBody();
+  if (!body || std::strlen(body) == 0 || rc_response_.sdk_error_code() != 0) {
     FetchFailure(kFetchFailureReasonError);
-    LogError("fetching failure: http code %d", rc_response_.status());
+    LogError("fetching failure: empty or invalid response body (http code %d)",
+             rc_response_.status());
     return;
   }
 
-  Variant entries = rc_response_.GetEntries();
+  const Variant& entries = rc_response_.GetEntries();
 
   NamespaceKeyValueMap config_map(configs_.fetched.config());
   LogDebug("Parsing config response...");
   if (rc_response_.StatusMatch("NO_CHANGE")) {
     LogDebug("No change");
+    if (configs_.fetched.timestamp() == 0) {
+      configs_.fetched =
+          NamespacedConfigData(config_map, MillisecondsSinceEpoch());
+    }
   } else if (rc_response_.StatusMatch("UPDATE")) {
     config_map[namespaces_].clear();
-    for (const auto& keyvalue : entries.map()) {
-      config_map[namespaces_][keyvalue.first.mutable_string()] =
-          keyvalue.second.mutable_string();
-      LogDebug("Update: ns=%s kv=(%s, %s)", namespaces_.c_str(),
-               keyvalue.first.mutable_string().c_str(),
-               keyvalue.second.mutable_string().c_str());
+    if (entries.is_map()) {
+      for (const auto& keyvalue : entries.map()) {
+        if (!keyvalue.first.is_string() || !keyvalue.second.is_string()) {
+          continue;
+        }
+        std::string key =
+            keyvalue.first.is_mutable_string()
+                ? keyvalue.first.mutable_string()
+                : std::string(keyvalue.first.string_value()
+                                  ? keyvalue.first.string_value()
+                                  : "");
+        std::string val =
+            keyvalue.second.is_mutable_string()
+                ? keyvalue.second.mutable_string()
+                : std::string(keyvalue.second.string_value()
+                                  ? keyvalue.second.string_value()
+                                  : "");
+        config_map[namespaces_][key] = val;
+        LogDebug("Update: ns=%s kv=(%s, %s)", namespaces_.c_str(), key.c_str(),
+                 val.c_str());
+      }
     }
+    configs_.fetched =
+        NamespacedConfigData(config_map, MillisecondsSinceEpoch());
   } else if (rc_response_.StatusMatch("NO_TEMPLATE")) {
     LogDebug("NotAuthorized: ns=%s", namespaces_.c_str());
     config_map.erase(namespaces_);
+    configs_.fetched =
+        NamespacedConfigData(config_map, MillisecondsSinceEpoch());
   } else if (rc_response_.StatusMatch("EMPTY_CONFIG")) {
     LogDebug("EmptyConfig: ns=%s", namespaces_.c_str());
     config_map[namespaces_].clear();
+    configs_.fetched =
+        NamespacedConfigData(config_map, MillisecondsSinceEpoch());
+  } else {
+    FetchFailure(kFetchFailureReasonError);
+    LogError("fetching failure: unrecognized response state");
+    return;
   }
 
-  configs_.fetched = NamespacedConfigData(config_map, MillisecondsSinceEpoch());
   FetchSuccess(kLastFetchStatusSuccess);
 }
 
 void RemoteConfigREST::FetchSuccess(LastFetchStatus status) {
   ConfigInfo info(configs_.metadata.info());
   info.last_fetch_status = status;
+  info.last_fetch_failure_reason = kFetchFailureReasonInvalid;
+  info.throttled_end_time = 0;
   info.fetch_time = MillisecondsSinceEpoch();
   configs_.metadata.set_info(info);
 }
 
 void RemoteConfigREST::FetchFailure(FetchFailureReason reason) {
   ConfigInfo info(configs_.metadata.info());
+  uint64_t now = MillisecondsSinceEpoch();
   info.last_fetch_failure_reason = reason;
-  info.throttled_end_time = MillisecondsSinceEpoch();
+  if (reason == kFetchFailureReasonThrottled) {
+    info.throttled_end_time =
+        now + kDefaultCacheExpiration *
+                  ::firebase::internal::kMillisecondsPerSecond;
+  }
   info.last_fetch_status = kLastFetchStatusFailure;
-  info.fetch_time = MillisecondsSinceEpoch();
+  info.fetch_time = now;
   configs_.metadata.set_info(info);
 }
 

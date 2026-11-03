@@ -21,13 +21,19 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 /**
  * Helper methods for working with {@link Task} objects from C++.
  */
 public final class FirestoreTasks {
+  private static final Executor DIRECT_EXECUTOR = new Executor() {
+    @Override
+    public void execute(Runnable command) {
+      command.run();
+    }
+  };
+
   private FirestoreTasks() {}
 
   /**
@@ -48,7 +54,7 @@ public final class FirestoreTasks {
         return result;
       }
     };
-    return task.continueWith(continuation);
+    return task.continueWith(DIRECT_EXECUTOR, continuation);
   }
 
   /**
@@ -65,19 +71,28 @@ public final class FirestoreTasks {
    * or unsuccessfully, this method will return.
    *
    * @param task The task whose completion to await.
-   * @throws InterruptedException if waiting for the task to complete is
-   *     interrupted.
    */
-  public static <T> void awaitCompletion(Task<T> task)
-      throws InterruptedException {
+  public static <T> void awaitCompletion(Task<T> task) {
+    if (task == null) {
+      return;
+    }
     CountDownLatch countDownLatch = new CountDownLatch(1);
-    ExecutorService executor = Executors.newSingleThreadExecutor();
+    task.addOnCompleteListener(
+        DIRECT_EXECUTOR, new CountDownOnCompleteListener<T>(countDownLatch));
+    boolean interrupted = false;
     try {
-      task.addOnCompleteListener(
-          executor, new CountDownOnCompleteListener<T>(countDownLatch));
-      countDownLatch.await();
+      while (true) {
+        try {
+          countDownLatch.await();
+          break;
+        } catch (InterruptedException e) {
+          interrupted = true;
+        }
+      }
     } finally {
-      executor.shutdown();
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
     }
   }
 

@@ -1,93 +1,150 @@
 // Copyright 2021 Google LLC
 
-#include <cstdint>
-#include <iostream>
-
 #include "performance/src/include/firebase/performance/trace.h"
+
+#include <cstdint>
+#include <map>
+#include <string>
+
+#include "app/src/assert.h"
+#include "performance/src/performance_common.h"
 
 namespace firebase {
 namespace performance {
 namespace internal {
 
-// TODO(tdeshpande): Fill this in when this is converted to a fake.
-class TraceInternal {};
+class TraceInternal {
+ public:
+  bool is_created = false;
+  bool is_started = false;
+  std::map<std::string, int64_t> metrics;
+  std::map<std::string, std::string> attributes;
+
+  void Reset() {
+    is_created = false;
+    is_started = false;
+    metrics.clear();
+    attributes.clear();
+  }
+};
 
 }  // namespace internal
-}  // namespace performance
-}  // namespace firebase
 
-firebase::performance::Trace::Trace() {
+Trace::Trace() {
+  FIREBASE_ASSERT(internal::IsInitialized());
   internal_ = new internal::TraceInternal();
-  std::cout << "Created a trace object. " << std::endl;
 }
 
-firebase::performance::Trace::Trace(const char* name) {
-  std::cout << "Created trace with name: " << name << std::endl;
+Trace::Trace(const char* name) {
+  FIREBASE_ASSERT(internal::IsInitialized());
+  internal_ = new internal::TraceInternal();
+  Start(name);
 }
 
-firebase::performance::Trace::~Trace() {
+Trace::~Trace() {
   delete internal_;
   internal_ = nullptr;
-  std::cout << "Destroyed a trace." << std::endl;
 }
 
-firebase::performance::Trace::Trace(Trace&& other) {
+Trace::Trace(Trace&& other) noexcept {
   internal_ = other.internal_;
   other.internal_ = nullptr;
 }
 
-firebase::performance::Trace& firebase::performance::Trace::operator=(
-    Trace&& other) {
+Trace& Trace::operator=(Trace&& other) noexcept {
   if (this != &other) {
     delete internal_;
-
     internal_ = other.internal_;
     other.internal_ = nullptr;
   }
   return *this;
 }
 
-bool firebase::performance::Trace::is_started() { return true; }
-
-void firebase::performance::Trace::Cancel() {
-  std::cout << "Cancel()" << std::endl;
+bool Trace::is_started() const {
+  return internal_ != nullptr && internal_->is_started;
 }
 
-void firebase::performance::Trace::Stop() {
-  std::cout << "Stop()" << std::endl;
+void Trace::Cancel() {
+  if (!internal_) return;
+  internal_->Reset();
 }
 
-void firebase::performance::Trace::Start(const char* name) {
-  std::cout << "Start trace with name: " << name << std::endl;
+void Trace::Stop() {
+  if (!internal_) return;
+  internal_->Reset();
 }
 
-int64_t firebase::performance::Trace::GetLongMetric(
-    const char* metric_name) const {
-  return 200;
+void Trace::Start(const char* name) {
+  if (!internal_) {
+    internal_ = new internal::TraceInternal();
+  }
+  internal_->Reset();
+  if (name == nullptr) {
+    return;
+  }
+  internal_->is_created = true;
+  internal_->is_started = true;
 }
 
-void firebase::performance::Trace::IncrementMetric(const char* metric_name,
-                                                   const int64_t increment_by) {
+int64_t Trace::GetLongMetric(const char* metric_name) const {
+  if (!internal_ || !internal_->is_created || metric_name == nullptr) {
+    return 0;
+  }
+  auto it = internal_->metrics.find(metric_name);
+  return it != internal_->metrics.end() ? it->second : 0;
 }
 
-void firebase::performance::Trace::SetMetric(const char* metric_name,
-                                             const int64_t metric_value) {}
-
-void firebase::performance::Trace::SetAttribute(const char* attribute_name,
-                                                const char* attribute_value) {}
-
-std::string firebase::performance::Trace::GetAttribute(
-    const char* attribute_name) const {
-  return "value";
+void Trace::IncrementMetric(const char* metric_name,
+                            const int64_t increment_by) {
+  if (!internal_ || !internal_->is_created || metric_name == nullptr) {
+    return;
+  }
+  internal_->metrics[metric_name] += increment_by;
 }
 
-// Used only in SWIG.
-
-void firebase::performance::Trace::Create(const char* name) {
-  std::cout << "Created an underlying trace object without starting it. "
-            << std::endl;
+void Trace::SetMetric(const char* metric_name, const int64_t metric_value) {
+  if (!internal_ || !internal_->is_created || metric_name == nullptr) {
+    return;
+  }
+  internal_->metrics[metric_name] = metric_value;
 }
 
-void firebase::performance::Trace::StartCreatedTrace() {
-  std::cout << "Started the previously created trace." << std::endl;
+void Trace::SetAttribute(const char* attribute_name,
+                         const char* attribute_value) {
+  if (!internal_ || !internal_->is_created || attribute_name == nullptr) {
+    return;
+  }
+  if (attribute_value == nullptr) {
+    internal_->attributes.erase(attribute_name);
+  } else {
+    internal_->attributes[attribute_name] = attribute_value;
+  }
 }
+
+std::string Trace::GetAttribute(const char* attribute_name) const {
+  if (!internal_ || !internal_->is_created || attribute_name == nullptr) {
+    return "";
+  }
+  auto it = internal_->attributes.find(attribute_name);
+  return it != internal_->attributes.end() ? it->second : "";
+}
+
+void Trace::Create(const char* name) {
+  if (!internal_) {
+    internal_ = new internal::TraceInternal();
+  }
+  internal_->Reset();
+  if (name == nullptr) {
+    return;
+  }
+  internal_->is_created = true;
+  internal_->is_started = false;
+}
+
+void Trace::StartCreatedTrace() {
+  if (!internal_ || !internal_->is_created) return;
+  internal_->is_started = true;
+}
+
+}  // namespace performance
+}  // namespace firebase

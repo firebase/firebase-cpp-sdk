@@ -95,7 +95,7 @@ class ListenerCollection {
     auto i = listeners_.find(spec);
     if (i != listeners_.end()) {
       for (auto j = i->second.begin(); j != i->second.end(); ++j) {
-        RemoveFromValueVectorAtKey(listeners_rev_, *j, spec);
+        RemoveFromValueVectorAtKey(&listeners_rev_, *j, spec);
       }
       listeners_.erase(i);
     }
@@ -106,7 +106,7 @@ class ListenerCollection {
     auto i = listeners_rev_.find(listener);
     if (i != listeners_rev_.end()) {
       for (auto j = i->second.begin(); j != i->second.end(); ++j) {
-        RemoveFromValueVectorAtKey(listeners_, *j, listener);
+        RemoveFromValueVectorAtKey(&listeners_, *j, listener);
       }
       listeners_rev_.erase(i);
     }
@@ -123,11 +123,13 @@ class ListenerCollection {
     return false;
   }
 
-  bool Exists(internal::QuerySpec spec) {
+  bool Exists(const internal::QuerySpec& spec) {
+    MutexLock lock(mutex_);
     return listeners_.find(spec) != listeners_.end();
   }
 
   bool Exists(T* listener) {
+    MutexLock lock(mutex_);
     return listeners_rev_.find(listener) != listeners_rev_.end();
   }
 

@@ -94,7 +94,9 @@ Error ExceptionInternal::GetErrorCode(Env& env, const Object& exception) {
     return Error::kErrorOk;
   }
 
-  if (IsIllegalStateException(env, exception)) {
+  if (IsIllegalArgumentException(env, exception)) {
+    return Error::kErrorInvalidArgument;
+  } else if (IsIllegalStateException(env, exception)) {
     // Some of the Precondition failure is thrown as IllegalStateException
     // instead of a FirebaseFirestoreException. Convert those into a more
     // meaningful code.
@@ -104,15 +106,21 @@ Error ExceptionInternal::GetErrorCode(Env& env, const Object& exception) {
   }
 
   Local<Object> java_code = env.Call(exception, kGetCode);
+  if (!env.ok() || !java_code) {
+    return Error::kErrorUnknown;
+  }
   int32_t code = env.Call(java_code, kValue);
-
-  if (code > Error::kErrorUnauthenticated || code < Error::kErrorOk) {
+  if (!env.ok() || code > Error::kErrorUnauthenticated ||
+      code < Error::kErrorOk) {
     return Error::kErrorUnknown;
   }
   return static_cast<Error>(code);
 }
 
 std::string ExceptionInternal::ToString(Env& env, const Object& exception) {
+  if (!exception) {
+    return "";
+  }
   return exception.CastTo<Throwable>().GetMessage(env);
 }
 
@@ -142,8 +150,7 @@ Local<Throwable> ExceptionInternal::Wrap(Env& env,
   if (IsFirestoreException(env, exception)) {
     return std::move(exception);
   } else {
-    return Create(env, GetErrorCode(env, exception),
-                  ToString(env, exception).c_str());
+    return Create(env, GetErrorCode(env, exception), ToString(env, exception));
   }
 }
 
@@ -155,6 +162,7 @@ bool ExceptionInternal::IsFirestoreException(Env& env,
 bool ExceptionInternal::IsAnyExceptionThrownByFirestore(
     Env& env, const Object& exception) {
   return IsFirestoreException(env, exception) ||
+         IsIllegalArgumentException(env, exception) ||
          IsIllegalStateException(env, exception);
 }
 
@@ -179,7 +187,7 @@ void GlobalUnhandledExceptionHandler(jni::Env& env,
     // user has passed a null argument to a Java method that didn't allow it. In
     // C++, arguments are taken by value or const reference and can't end up as
     // a null Java reference unless there's an error in the argument conversion.
-    throw FirestoreException(exception.GetMessage(env), Error::kErrorInternal);
+    throw FirestoreException(message, Error::kErrorInternal);
   }
 
 #else

@@ -15,7 +15,6 @@
  */
 
 #include "firestore/src/jni/integer.h"
-#include <cstdint>
 
 #include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
@@ -27,24 +26,18 @@ namespace jni {
 namespace {
 
 constexpr char kClassName[] = "java/lang/Integer";
-Constructor<Integer> kConstructor("(I)V");
-Method<int32_t> kIntValue("intValue", "()I");
-jclass g_clazz = nullptr;
+StaticMethod<Integer> kValueOf("valueOf", "(I)Ljava/lang/Integer;");
 
 }  // namespace
 
 void Integer::Initialize(Loader& loader) {
-  g_clazz = util::integer_class::GetClass();
-  loader.LoadFromExistingClass(kClassName, g_clazz, kConstructor, kIntValue);
+  loader.LoadFromExistingClass(kClassName, util::integer_class::GetClass(),
+                               kValueOf);
 }
-
-Class Integer::GetClass() { return Class(g_clazz); }
 
 Local<Integer> Integer::Create(Env& env, int32_t value) {
-  return env.New(kConstructor, value);
+  return env.Call(kValueOf, value);
 }
-
-int32_t Integer::IntValue(Env& env) const { return env.Call(*this, kIntValue); }
 
 }  // namespace jni
 }  // namespace firestore

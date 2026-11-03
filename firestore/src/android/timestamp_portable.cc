@@ -22,16 +22,12 @@
 
 // TODO(b/138615769): remove this file.
 
-#include <cassert>
+#include <cinttypes>
 #include <cstdint>
 #include <ostream>
 #include <sstream>
 
 #include "firebase/firestore/timestamp.h"
-
-#if defined(__APPLE__)
-#import <CoreFoundation/CoreFoundation.h>
-#endif
 
 #include "app/src/assert.h"
 
@@ -74,21 +70,7 @@ Timestamp::Timestamp(const int64_t seconds, const int32_t nanoseconds)
 }
 
 Timestamp Timestamp::Now() {
-#if defined(__APPLE__)
-  // Originally, FIRTimestamp used NSDate to get current time. This method
-  // preserves the lower accuracy of that method.
-  CFAbsoluteTime now =
-      CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970;
-  double seconds_double;
-  double fraction = modf(now, &seconds_double);
-  auto seconds = static_cast<int64_t>(seconds_double);
-  auto nanos = static_cast<int32_t>(fraction * kNanosPerSecond);
-  return MakeNormalizedTimestamp(seconds, nanos);
-
-#else
-  // Use the standard <chrono> library from C++11 if possible.
   return FromTimePoint(std::chrono::system_clock::now());
-#endif  // defined(__APPLE__)
 }
 
 Timestamp Timestamp::FromTimeT(const time_t seconds_since_unix_epoch) {
@@ -102,9 +84,7 @@ Timestamp Timestamp::FromTimePoint(
   auto seconds = chr::duration_cast<chr::duration<int64_t>>(epoch_time);
   auto nanos = chr::duration_cast<chr::nanoseconds>(epoch_time - seconds);
 
-  Timestamp result = MakeNormalizedTimestamp(seconds.count(), nanos.count());
-  result.ValidateBounds();
-  return result;
+  return MakeNormalizedTimestamp(seconds.count(), nanos.count());
 }
 
 std::string Timestamp::ToString() const {
@@ -127,11 +107,11 @@ void Timestamp::ValidateBounds() const {
                           nanoseconds_);
   // Midnight at the beginning of 1/1/1 is the earliest timestamp Firestore
   // supports.
-  FIREBASE_ASSERT_MESSAGE(seconds_ >= -62135596800L,
-                          "Timestamp seconds out of range: %ld", seconds_);
+  FIREBASE_ASSERT_MESSAGE(seconds_ >= -62135596800LL,
+                          "Timestamp seconds out of range: %" PRId64, seconds_);
   // This will break in the year 10,000.
-  FIREBASE_ASSERT_MESSAGE(seconds_ < 253402300800L,
-                          "Timestamp seconds out of range: %ld", seconds_);
+  FIREBASE_ASSERT_MESSAGE(seconds_ < 253402300800LL,
+                          "Timestamp seconds out of range: %" PRId64, seconds_);
 }
 
 }  // namespace firebase

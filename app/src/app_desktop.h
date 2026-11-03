@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+#ifndef FIREBASE_APP_SRC_APP_DESKTOP_H_
+#define FIREBASE_APP_SRC_APP_DESKTOP_H_
+
+#include <atomic>
 #include <memory>
+#include <string>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
@@ -22,6 +27,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/logger.h"
 
 namespace firebase {
 // DEFINE_FIREBASE_VERSION_STRING(Firebase);
@@ -36,17 +42,27 @@ class AppInternal {
   // or implementation-specific code.  b/70229654
   FunctionRegistry function_registry;
 
+  // Has a method to get the current date. Used by heartbeat_controller.
+  firebase::heartbeat::DateProviderImpl date_provider_;
+
+  // Logger used by heartbeat_controller_ (declared before heartbeat_controller_
+  // so it outlives it during destruction).
+  SystemLogger system_logger_;
+  Logger logger_{&system_logger_, kLogLevelVerbose};
+
   // HeartbeatController provides methods to log heartbeats and fetch payloads.
   std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller_;
 
-  // Has a method to get the current date. Used by heartbeat_controller.
-  firebase::heartbeat::DateProviderImpl date_provider_;
+  // Per-app automatic data collection flag.
+  std::atomic<bool> data_collection_default_enabled_{true};
 };
 
 // When Create() is invoked without arguments, it checks for a file named
 // google-services-desktop.json, to load options from.  This specifies the
 // path to search.
-static std::string g_default_config_path;  // NOLINT
+extern std::string g_default_config_path;  // NOLINT
 
 }  // namespace internal
 }  // namespace firebase
+
+#endif  // FIREBASE_APP_SRC_APP_DESKTOP_H_

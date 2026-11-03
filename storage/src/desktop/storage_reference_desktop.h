@@ -82,7 +82,17 @@ class StorageReferenceInternal {
   // Gets the storage to which we refer.
   Storage* storage() const;
 
-  // Gets a reference to a location relative to this one.
+  // Ownership convention for the factory methods below (Child(), GetParent()):
+  // they return a newly allocated object (or null) and transfer ownership to
+  // the caller. They return a raw pointer rather than std::unique_ptr because
+  // the platform-independent layer (storage/src/common/storage_reference.cc,
+  // shared with the Android and iOS implementations) adopts the result
+  // directly via StorageReference(StorageReferenceInternal*), which then owns
+  // and deletes it. Desktop-internal callers must adopt the result
+  // immediately, e.g. with Adopt() or a std::unique_ptr.
+
+  // Gets a reference to a location relative to this one, or null if `path`
+  // is null. The caller owns the result (see above).
   StorageReferenceInternal* Child(const char* path) const;
 
   // Return the Google Cloud Storage bucket that holds this object.
@@ -94,8 +104,9 @@ class StorageReferenceInternal {
   // Returns the short name of this object.
   std::string name() const;
 
-  // Returns a new instance of StorageReference pointing to the parent location
-  // or null if this instance references the root location.
+  // Returns a new instance pointing to the parent location, or null if this
+  // instance references the root location. The caller owns the result (see
+  // the ownership convention above Child()).
   StorageReferenceInternal* GetParent() const;
 
   // Deletes the object at the current path.
@@ -182,6 +193,11 @@ class StorageReferenceInternal {
   // Wrap this in a StorageReference.
   // Exposed for testing.
   StorageReference AsStorageReference() const;
+
+  // Wraps `internal` in a StorageReference, which takes ownership of it
+  // without copying. A null `internal` yields an invalid StorageReference.
+  static StorageReference Adopt(
+      std::unique_ptr<StorageReferenceInternal> internal);
 
  private:
   struct RequestAttempt {

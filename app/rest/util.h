@@ -96,7 +96,6 @@ class JsonData {
   virtual bool is_valid() { return !root_.is_null(); }
 
  protected:
-  bool parsed_;
   Variant root_;
 };
 

@@ -36,15 +36,28 @@ namespace internal {
 template <typename T>
 class SafeReference {
  public:
-  explicit SafeReference(T* ref) : data_(new ReferenceData(ref)) {}
+  explicit SafeReference(T* ref) : data_(std::make_shared<ReferenceData>(ref)) {}
+
+  SafeReference(const SafeReference&) = default;
+  SafeReference& operator=(const SafeReference&) = default;
+
+  // Copy the shared state on move so a moved-from SafeReference never holds a
+  // null data_ pointer if ClearReference() or GetMutex() is called in a dtor.
+  SafeReference(SafeReference&& other) noexcept : data_(other.data_) {}
+  SafeReference& operator=(SafeReference&& other) noexcept {
+    data_ = other.data_;
+    return *this;
+  }
 
   Mutex& GetMutex() { return data_->mutex; }
 
-  T* GetReferenceUnsafe() { return data_->ref; }
+  T* GetReferenceUnsafe() { return data_ ? data_->ref : nullptr; }
 
   void ClearReference() {
-    MutexLock lock(data_->mutex);
-    data_->ref = nullptr;
+    if (data_) {
+      MutexLock lock(data_->mutex);
+      data_->ref = nullptr;
+    }
   }
 
  private:

@@ -15,11 +15,12 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_DATABASE_DESKTOP_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_DATABASE_DESKTOP_H_
 
-#include <stdint.h>
-
-#include <list>
+#include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
@@ -44,27 +45,34 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+class DatabaseInternal;
+
 // For constructing, copying or moving DatabaseReferences atomically.
 extern Mutex g_database_reference_constructor_mutex;
-
-typedef int64_t WriteId;
 
 class SingleValueListener : public ValueListener {
  public:
   SingleValueListener(DatabaseInternal* database, const QuerySpec& query_spec,
                       ReferenceCountedFutureImpl* future,
                       SafeFutureHandle<DataSnapshot> handle);
+  SingleValueListener(const SingleValueListener&) = delete;
+  SingleValueListener& operator=(const SingleValueListener&) = delete;
+  SingleValueListener(SingleValueListener&&) = delete;
+  SingleValueListener& operator=(SingleValueListener&&) = delete;
+
   // Unregister ourselves from the database.
   ~SingleValueListener() override;
   void OnValueChanged(const DataSnapshot& snapshot) override;
   void OnCancelled(const Error& error_code, const char* error_message) override;
-  const QuerySpec& query_spec() { return query_spec_; }
+  const QuerySpec& query_spec() const { return query_spec_; }
 
  private:
-  DatabaseInternal* database_;
+  firebase::internal::SafeReference<DatabaseInternal> database_ref_;
   QuerySpec query_spec_;
-  ReferenceCountedFutureImpl* future_;
+  ReferenceCountedFutureImpl* future_ = nullptr;
   SafeFutureHandle<DataSnapshot> handle_;
+  Future<DataSnapshot> backing_future_;
+  bool completed_ = false;
 };
 
 // This is the desktop implementation of Database.
@@ -74,9 +82,12 @@ class DatabaseInternal {
 
   DatabaseInternal(App* app, const char* url);
 
+  DatabaseInternal(const DatabaseInternal&) = delete;
+  DatabaseInternal& operator=(const DatabaseInternal&) = delete;
+
   ~DatabaseInternal();
 
-  App* GetApp();
+  App* GetApp() const;
 
   DatabaseReference GetReference();
 
@@ -90,7 +101,7 @@ class DatabaseInternal {
 
   void PurgeOutstandingWrites();
 
-  const char* GetSdkVersion();
+  const char* GetSdkVersion() const;
 
   void SetPersistenceEnabled(bool enabled);
 
@@ -126,13 +137,18 @@ class DatabaseInternal {
   void AddEventRegistration(const QuerySpec& query_spec, void* listener_ptr,
                             EventRegistration* event_registration);
 
-  EventRegistration* ActiveEventRegistration(const QuerySpec& query_spec,
-                                             void* listener_ptr);
+  void RemoveEventRegistration(const QuerySpec& query_spec, void* listener_ptr,
+                               EventRegistration* event_registration);
+
+  void RemoveActiveEventRegistrations(const QuerySpec& query_spec,
+                                      void* listener_ptr);
 
   PushChildNameGenerator& name_generator() { return name_generator_; }
 
   typedef firebase::internal::SafeReference<DatabaseInternal> ThisRef;
   typedef firebase::internal::SafeReferenceLock<DatabaseInternal> ThisRefLock;
+
+  ThisRef& this_ref() { return safe_this_; }
 
   // Call from transaction response to handle the response result.
   void HandleTransactionResponse(const connection::ResponsePtr& ptr);
@@ -140,23 +156,34 @@ class DatabaseInternal {
   // The url that was passed to the constructor.
   const std::string& constructor_url() const { return constructor_url_; }
 
-  Repo* repo() { return repo_.get(); }
+  Repo* repo() { return EnsureRepo(); }
+
+  Repo::ThisRef EnsureRepoRef();
 
   Mutex* listener_mutex() { return &listener_mutex_; }
 
   Logger* logger() { return &logger_; }
 
  private:
-  void EnsureRepo();
+  Repo* EnsureRepo();
 
-  App* app_;
+  bool UnregisterValueListenerLocked(const QuerySpec& spec,
+                                     ValueListener* listener);
+
+  bool UnregisterChildListenerLocked(const QuerySpec& spec,
+                                     ChildListener* listener);
+
+  void RemoveActiveEventRegistrationsLocked(const QuerySpec& query_spec,
+                                            void* listener_ptr);
+
+  App* app_ = nullptr;
 
   ListenerCollection<ValueListener> value_listeners_by_query_;
   ListenerCollection<ChildListener> child_listeners_by_query_;
 
-  std::map<ValueListener*, ValueListenerCleanupData>
+  std::map<std::pair<QuerySpec, ValueListener*>, ValueListenerCleanupData>
       cleanup_value_listener_lookup_;
-  std::map<ChildListener*, ChildListenerCleanupData>
+  std::map<std::pair<QuerySpec, ChildListener*>, ChildListenerCleanupData>
       cleanup_child_listener_lookup_;
 
   std::map<QuerySpec, std::map<void*, std::vector<EventRegistration*>>>
@@ -181,6 +208,8 @@ class DatabaseInternal {
 
   // The logger for this instance of the database.
   Logger logger_;
+
+  ThisRef safe_this_;
 
   Mutex repo_mutex_;
   // The local copy of the repository, for offline support and local caching.

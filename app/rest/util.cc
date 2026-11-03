@@ -19,8 +19,12 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <climits>
 #include <string>
 
+#include "app/rest/curl/curl_global.h"
+#include "app/src/assert.h"
+#include "app/src/log.h"
 #include "app/src/variant_util.h"
 #include "curl/curl.h"
 #include "flatbuffers/flatbuffers.h"
@@ -52,49 +56,76 @@ int g_init_ref_count = 0;
 
 void* CreateCurlPtr() {  // NOLINT
   MutexLock lock(*g_util_curl_mutex);
-  return curl_easy_init();
+  curl::CurlGlobal::Acquire();
+  CURL* easy = curl_easy_init();
+  if (!easy) {
+    curl::CurlGlobal::Release();
+  }
+  return easy;
 }
 
 void DestroyCurlPtr(void* curl_ptr) {
+  if (!curl_ptr) return;
   MutexLock lock(*g_util_curl_mutex);
   curl_easy_cleanup(static_cast<CURL*>(curl_ptr));
+  curl::CurlGlobal::Release();
 }
 
 void Initialize() {
   MutexLock curl_lock(*g_util_curl_mutex);
   assert(g_init_ref_count >= 0);
   if (g_init_ref_count == 0) {
-    g_curl_instance = reinterpret_cast<CURL*>(CreateCurlPtr());
+    curl::CurlGlobal::Acquire();
+    g_curl_instance = curl_easy_init();
   }
   ++g_init_ref_count;
 }
 
 void Terminate() {
   MutexLock curl_lock(*g_util_curl_mutex);
-  --g_init_ref_count;
-  assert(g_init_ref_count >= 0);
-  if (g_init_ref_count == 0) {
-    assert(g_curl_instance != nullptr);
-    DestroyCurlPtr(g_curl_instance);
-    g_curl_instance = nullptr;
+  if (g_init_ref_count <= 0) {
+    LogError("rest::util::Terminate() called without matching Initialize()");
+    FIREBASE_DEV_ASSERT_MESSAGE(
+        false, "rest::util::Terminate() without matching Initialize()");
+    return;
+  }
+  if (--g_init_ref_count == 0) {
+    if (g_curl_instance != nullptr) {
+      curl_easy_cleanup(g_curl_instance);
+      g_curl_instance = nullptr;
+    }
+    curl::CurlGlobal::Release();
   }
 }
 
 std::string EncodeUrl(const std::string& path) {
-  assert(g_curl_instance != nullptr);
-  char* encoded_string =
-      curl_easy_escape(g_curl_instance, path.c_str(), path.length());
+  if (path.empty() || path.length() > static_cast<size_t>(INT_MAX)) {
+    return "";
+  }
+  MutexLock curl_lock(*g_util_curl_mutex);
+  char* encoded_string = curl_easy_escape(
+      g_curl_instance, path.c_str(), static_cast<int>(path.length()));
+  if (!encoded_string) {
+    return "";
+  }
   std::string result(encoded_string);
   curl_free(encoded_string);
   return result;
 }
 
 std::string DecodeUrl(const std::string& path) {
-  assert(g_curl_instance != nullptr);
+  if (path.empty() || path.length() > static_cast<size_t>(INT_MAX)) {
+    return "";
+  }
+  MutexLock curl_lock(*g_util_curl_mutex);
   int length = 0;
   char* decoded_string =
-      curl_easy_unescape(g_curl_instance, path.c_str(), path.length(), &length);
-  std::string result(decoded_string, length);
+      curl_easy_unescape(g_curl_instance, path.c_str(),
+                         static_cast<int>(path.length()), &length);
+  if (!decoded_string) {
+    return "";
+  }
+  std::string result(decoded_string, static_cast<size_t>(length));
   curl_free(decoded_string);
   return result;
 }

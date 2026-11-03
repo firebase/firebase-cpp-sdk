@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -213,7 +214,10 @@ StorageReferenceInternal* MetadataInternal::GetReference() const {
   if (!storage_reference_.internal_) {
     return nullptr;
   }
-  return new StorageReferenceInternal(*storage_reference_.internal_);
+  // Ownership is handed to the caller (see the header).
+  return std::make_unique<StorageReferenceInternal>(
+             *storage_reference_.internal_)
+      .release();
 }
 
 std::string MetadataInternal::LookUpString(const Variant& root, const char* key,
@@ -224,6 +228,19 @@ std::string MetadataInternal::LookUpString(const Variant& root, const char* key,
     return lookup->second.string_value();
   }
   return default_value ? default_value : "";
+}
+
+bool MetadataInternal::LookUpOptionalString(const Variant& root,
+                                            const char* key,
+                                            std::string* value) {
+  const auto& map = root.map();
+  auto lookup = map.find(Variant(key));
+  if (lookup != map.end() && lookup->second.is_string()) {
+    *value = lookup->second.string_value();
+    return true;
+  }
+  value->clear();
+  return false;
 }
 
 int64_t MetadataInternal::LookUpInt64(const Variant& root, const char* key) {
@@ -359,8 +376,14 @@ bool MetadataInternal::ImportFromJson(const char* json) {
   }
   bucket_ = LookUpString(root, kBucketKey, bucket_.c_str());
   name_ = Path(path_).GetBaseName();
-  cache_control_ = LookUpString(root, kCacheControlKey);
-  content_type_ = LookUpString(root, kContentTypeKey);
+  // Every settable field is overwritten from the JSON, so its has_* flag must
+  // track whether the server actually returned it; otherwise a stale flag
+  // from a previous Set*()/import on a reused object would make
+  // ExportAsJson() emit a field the server omitted.
+  has_cache_control_ =
+      LookUpOptionalString(root, kCacheControlKey, &cache_control_);
+  has_content_type_ =
+      LookUpOptionalString(root, kContentTypeKey, &content_type_);
 
   generation_ = LookUpInt64(root, kGenerationKey);
   metadata_generation_ = LookUpInt64(root, kMetaGenerationKey);
@@ -370,9 +393,12 @@ bool MetadataInternal::ImportFromJson(const char* json) {
 
   size_bytes_ = LookUpInt64(root, kSizeKey);
   md5_hash_ = LookUpString(root, kMd5HashKey);
-  content_disposition_ = LookUpString(root, kContentDispositionKey);
-  content_encoding_ = LookUpString(root, kContentEncodingKey);
-  content_language_ = LookUpString(root, kContentLanguageKey);
+  has_content_disposition_ = LookUpOptionalString(
+      root, kContentDispositionKey, &content_disposition_);
+  has_content_encoding_ =
+      LookUpOptionalString(root, kContentEncodingKey, &content_encoding_);
+  has_content_language_ =
+      LookUpOptionalString(root, kContentLanguageKey, &content_language_);
 
   const auto& root_map = root.map();
 

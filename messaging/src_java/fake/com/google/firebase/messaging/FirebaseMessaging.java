@@ -21,14 +21,21 @@ import com.google.firebase.testing.cppsdk.TickerAndroid;
 import java.util.ArrayList;
 
 /**
- * Fake FirebaseMessaging class.
+ * Fake FirebaseMessaging class used by desktop JNI unit tests (FIREBASE_ANDROID_FOR_DESKTOP).
  */
 public class FirebaseMessaging {
   private static final String FN_GET_TOKEN = "FirebaseMessaging.getToken";
   private static final String FN_DELETE_TOKEN = "FirebaseMessaging.deleteToken";
+  private static final String FN_REGISTER = "FirebaseMessaging.register";
+  private static final String FN_UNREGISTER = "FirebaseMessaging.unregister";
+
+  private static FirebaseMessaging sInstance = null;
 
   public static synchronized FirebaseMessaging getInstance() {
-    return new FirebaseMessaging();
+    if (sInstance == null) {
+      sInstance = new FirebaseMessaging();
+    }
+    return sInstance;
   }
 
   public boolean isAutoInitEnabled() {
@@ -88,6 +95,20 @@ public class FirebaseMessaging {
   public Task<Void> deleteToken() {
     FakeReporter.addReport(FN_DELETE_TOKEN);
     Task<Void> result = Task.forResult(FN_DELETE_TOKEN, null);
+    TickerAndroid.register(result);
+    return result;
+  }
+
+  public Task<Void> register() {
+    FakeReporter.addReport(FN_REGISTER);
+    Task<Void> result = Task.forResult(FN_REGISTER, null);
+    TickerAndroid.register(result);
+    return result;
+  }
+
+  public Task<Void> unregister() {
+    FakeReporter.addReport(FN_UNREGISTER);
+    Task<Void> result = Task.forResult(FN_UNREGISTER, null);
     TickerAndroid.register(result);
     return result;
   }

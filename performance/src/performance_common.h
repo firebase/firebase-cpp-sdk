@@ -9,6 +9,8 @@
 #define FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_
 
 namespace firebase {
+class App;
+
 namespace performance {
 namespace internal {
 
@@ -19,11 +21,11 @@ extern const char* kPerformanceModuleName;
 bool IsInitialized();
 
 // Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy();
+void RegisterTerminateOnDefaultAppDestroy(const App* app = nullptr);
 
 // Unregisters the cleanup task for this module if auto-initialization is
 // disabled.
-void UnregisterTerminateOnDefaultAppDestroy();
+void UnregisterTerminateOnDefaultAppDestroy(const App* app = nullptr);
 
 }  // namespace internal
 }  // namespace performance

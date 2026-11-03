@@ -15,10 +15,11 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_DATA_SNAPSHOT_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_DATA_SNAPSHOT_IOS_H_
 
-#include <stddef.h>
-#include <string>
-
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <vector>
+
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_ios.h"
@@ -40,8 +41,6 @@ class DatabaseReferenceInternal;
 // wrapper around the FIRDataSnapshot Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRDataSnapshot);
 
-#pragma clang assume_nonnull begin
-
 // The iOS implementation of the DataSnapshot, which contains data from a
 // Firebase Database location.
 class DataSnapshotInternal {
@@ -53,11 +52,9 @@ class DataSnapshotInternal {
 
   DataSnapshotInternal& operator=(const DataSnapshotInternal& snapshot);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  DataSnapshotInternal(DataSnapshotInternal&& snapshot);
+  DataSnapshotInternal(DataSnapshotInternal&& snapshot) noexcept;
 
-  DataSnapshotInternal& operator=(DataSnapshotInternal&& snapshot);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  DataSnapshotInternal& operator=(DataSnapshotInternal&& snapshot) noexcept;
 
   ~DataSnapshotInternal();
 
@@ -71,13 +68,13 @@ class DataSnapshotInternal {
   DataSnapshotInternal* Child(const char* path) const;
 
   // Get all the immediate children of this location.
-  std::vector<DataSnapshot> GetChildren();
+  std::vector<DataSnapshot> GetChildren() const;
 
   // Get the number of children of this location.
-  size_t GetChildrenCount();
+  size_t GetChildrenCount() const;
 
   // Does this DataSnapshot have any children at all?
-  bool HasChildren();
+  bool HasChildren() const;
 
   // Get the key name of the source location of this snapshot.
   const char* GetKey() const;
@@ -89,7 +86,7 @@ class DataSnapshotInternal {
   Variant GetValue() const;
 
   // Get the priority of the data contained in this snapshot.
-  Variant GetPriority();
+  Variant GetPriority() const;
 
   // Obtain a DatabaseReference to the source location for this snapshot.
   //
@@ -98,10 +95,7 @@ class DataSnapshotInternal {
   DatabaseReferenceInternal* GetReference() const;
 
   // Does this DataSnapshot have data at a particular location?
-  bool HasChild(const char* path);
-
-  /// Get the absolute URL of this data snapshot.
-  std::string GetUrl() const;
+  bool HasChild(const char* path) const;
 
   DatabaseInternal* database_internal() const { return database_; }
 
@@ -111,16 +105,16 @@ class DataSnapshotInternal {
 
  private:
 #ifdef __OBJC__
-  FIRDataSnapshot* impl() const { return impl_->get(); }
+  FIRDataSnapshot* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
 
   DatabaseInternal* database_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRDataSnapshotPointer> impl_;
-};
 
-#pragma clang assume_nonnull end
+  std::string cached_key_;
+};
 
 }  // namespace internal
 }  // namespace database

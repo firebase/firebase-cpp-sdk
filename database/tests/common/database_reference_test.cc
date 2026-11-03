@@ -279,5 +279,48 @@ TEST_F(DatabaseReferenceTest, RaceConditionTest) {
   }
 }
 
+TEST_F(DatabaseReferenceTest, SelfAssignmentAndEquality) {
+  DatabaseReference ref_invalid_1;
+  DatabaseReference ref_invalid_2;
+  EXPECT_TRUE(ref_invalid_1 == ref_invalid_2);
+
+  DatabaseReference ref_root = database_->GetReference();
+  DatabaseReference ref_child = database_->GetReference("child");
+  EXPECT_FALSE(ref_root == ref_invalid_1);
+  EXPECT_FALSE(ref_invalid_1 == ref_root);
+  EXPECT_TRUE(ref_root == database_->GetReference());
+  EXPECT_FALSE(ref_root == ref_child);
+
+  // Self copy-assignment and move-assignment must preserve validity.
+  DatabaseReference& alias_child = ref_child;
+  ref_child = alias_child;
+  EXPECT_TRUE(ref_child.is_valid());
+  EXPECT_EQ(ref_child.key_string(), "child");
+
+  ref_child = std::move(alias_child);
+  EXPECT_TRUE(ref_child.is_valid());
+  EXPECT_EQ(ref_child.key_string(), "child");
+
+  Query query_child = ref_child.OrderByKey().LimitToFirst(10);
+  Query& alias_query = query_child;
+  query_child = alias_query;
+  EXPECT_TRUE(query_child.is_valid());
+  query_child = std::move(alias_query);
+  EXPECT_TRUE(query_child.is_valid());
+  EXPECT_TRUE(query_child == ref_child.OrderByKey().LimitToFirst(10));
+
+  Database* other_db =
+      Database::GetInstance(app_, "https://other-db-456.firebaseio.com");
+  ASSERT_NE(other_db, nullptr);
+  DatabaseReference other_child = other_db->GetReference("child");
+  Query other_query = other_child.OrderByKey().LimitToFirst(10);
+  EXPECT_FALSE(ref_child == other_child);
+  EXPECT_FALSE(query_child == other_query);
+  delete other_db;
+
+  EXPECT_STREQ(GetErrorMessage(static_cast<Error>(-1)), "");
+  EXPECT_STREQ(GetErrorMessage(static_cast<Error>(9999)), "");
+}
+
 }  // namespace database
 }  // namespace firebase

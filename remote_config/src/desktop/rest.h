@@ -16,10 +16,10 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REST_H_
 
 #include <cstdint>
+#include <string>
 
 #include "app/rest/request_json.h"
 #include "app/rest/response_json.h"
-#include "app/src/semaphore.h"
 #include "firebase/app.h"
 #include "remote_config/request_generated.h"
 #include "remote_config/request_resource.h"
@@ -37,36 +37,23 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-// These are used in tests to build a regular protobuf for comparison.
+// SDK version numbers reported in REST fetch requests.
 extern const int SDK_MAJOR_VERSION;
 extern const int SDK_MINOR_VERSION;
 extern const int SDK_PATCH_VERSION;
 
-// These are structures used to build a request.
-struct ConfigFetchRequest;
-struct PackageData;
-
-const char* const kServerURL =
+inline constexpr const char* kServerURL =
     "https://firebaseremoteconfig.googleapis.com/v1/projects";
-const char* const kHTTPMethodPost = "POST";
-const char* const kContentTypeHeaderName = "Content-Type";
-const char* const kAcceptHeaderName = "Accept";
-const char* const kContentTypeValue = "application/x-protobuffer";
-const char* const kJSONContentTypeValue = "application/json";
+inline constexpr const char* kHTTPMethodPost = "POST";
+inline constexpr const char* kContentTypeHeaderName = "Content-Type";
+inline constexpr const char* kAcceptHeaderName = "Accept";
+inline constexpr const char* kJSONContentTypeValue = "application/json";
 
-// Set this key with value `1` if settings[kConfigSettingDeveloperMode] == `1`
-const char* const kDeveloperModeKey = "_rcn_developer";
+inline constexpr int kHTTPStatusOk = 200;
+inline constexpr int kHTTPStatusTooManyRequests = 429;
 
-const int kHTTPStatusOk = 200;
-
-// const char* const kApiKeyHeader = "X-Goog-Api-Key";
-const char* const kEtagHeader = "ETag";
-const char* const kIfNoneMatchHeader = "If-None-Match";
-const char* const kXGoogleGfeCanRetry = "X-Google-GFE-Can-Retry";
-const char* const kInstallationsAuthTokenHeader =
-    "X-Goog-Firebase-Installations-Auth";
-const char* const kHTTPFetchKeyString = ":fetch?key=";
-const char* const kNameSpaceString = "namespaces";
+inline constexpr const char* kHTTPFetchKeyString = ":fetch?key=";
+inline constexpr const char* kNameSpaceString = "namespaces";
 
 class RemoteConfigREST {
  public:
@@ -78,10 +65,12 @@ class RemoteConfigREST {
   FRIEND_TEST(RemoteConfigRESTTest, Fetch);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseProtoFailure);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseSuccess);
+  FRIEND_TEST(RemoteConfigRESTTest, FetchThrottled429SetsThrottledEndTime);
+  FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseNoChangePreservesEntries);
 #endif  // FIREBASE_TESTING
 
   RemoteConfigREST(const firebase::AppOptions& app_options,
-                   LayeredConfigs& configs, const std::string namespaces);
+                   LayeredConfigs& configs, std::string namespaces);
 
   ~RemoteConfigREST();
 
@@ -100,12 +89,10 @@ class RemoteConfigREST {
   const RemoteConfigMetadata& metadata() const { return configs_.metadata; }
 
  private:
-  // Attempt to get Installations and Auth Token from app synchronously.  This
-  // will block the current thread and wait until the futures are complete.
+  // Obtain a stable installation ID and auth token for the app.
   void TryGetInstallationsAndToken(const App& app);
 
-  // Setup all values to make REST request. Call `SetupProtoRequest` to setup
-  // post fields.
+  // Populate REST request headers, URL, and JSON payload.
   void SetupRestRequest(const App& app, uint64_t fetch_timeout_in_milliseconds);
 
   // Parse REST response. Check response status and body.
@@ -132,9 +119,6 @@ class RemoteConfigREST {
   // Instance Id data
   std::string app_instance_id_;
   std::string app_instance_id_token_;
-
-  // The semaphore to block the thread and wait for.
-  Semaphore fetch_future_sem_;
 
   RemoteConfigRequest rc_request_;
   RemoteConfigResponse rc_response_;

@@ -53,11 +53,7 @@ class ConsentInfoInternalIos : public ConsentInfoInternal {
   static firebase::Mutex s_instance_mutex;
   static unsigned int s_instance_tag;
 
-  void SetLoadedForm(UMPConsentForm *form) {
-    loaded_form_ = form;
-  }
-
-  UMPConsentForm *loaded_form_;
+  UMPConsentForm* loaded_form_;
 };
 
 }  // namespace internal

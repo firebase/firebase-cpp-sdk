@@ -60,8 +60,7 @@ class CppAppCheckCredentialsProvider
   void AddAppCheckStateListener();
   void RemoveAppCheckStateListener();
 
-  // Callback for the function registry-based pseudo-AuthStateListener
-  // interface.
+  // Callback for the function registry-based AppCheckStateListener interface.
   static void OnAppCheckStateChanged(const std::string& token, void* context);
 
   App& app_;

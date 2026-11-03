@@ -23,8 +23,7 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-NamespacedConfigData::NamespacedConfigData()
-    : config_(NamespaceKeyValueMap()), timestamp_(0) {}
+NamespacedConfigData::NamespacedConfigData() : timestamp_(0) {}
 
 NamespacedConfigData::NamespacedConfigData(const NamespaceKeyValueMap& config,
                                            uint64_t timestamp)
@@ -38,7 +37,11 @@ std::string NamespacedConfigData::Serialize() const {
     fbb.Map("config_", [&]() {
       for (const auto& key_to_map : config_) {
         // Map of Key to Val
-        fbb.Add(key_to_map.first.c_str(), key_to_map.second);
+        fbb.Map(key_to_map.first.c_str(), [&]() {
+          for (const auto& kv : key_to_map.second) {
+            fbb.String(kv.first.c_str(), kv.second);
+          }
+        });
       }
     });
     fbb.UInt("timestamp_", timestamp_);
@@ -48,21 +51,31 @@ std::string NamespacedConfigData::Serialize() const {
   return std::string(buffer.cbegin(), buffer.cend());
 }
 
-void NamespacedConfigData::Deserialize(const std::string& buffer) {
+bool NamespacedConfigData::Deserialize(const std::string& buffer) {
+  if (buffer.empty()) {
+    return false;
+  }
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buffer.data());
   size_t size = buffer.size();
   if (!flexbuffers::VerifyBuffer(data, size)) {
-    return;
+    return false;
   }
-  auto struct_map = flexbuffers::GetRoot(data, size).AsMap();
+  flexbuffers::Reference root = flexbuffers::GetRoot(data, size);
+  if (!root.IsMap()) {
+    return false;
+  }
+  auto struct_map = root.AsMap();
+  config_.clear();
   flexbuffers::Map ns_config_map = struct_map["config_"].AsMap();
-  for (int i = 0, in = ns_config_map.size(); i < in; ++i) {
+  for (size_t i = 0, in = ns_config_map.size(); i < in; ++i) {
     const char* ns_key = ns_config_map.Keys()[i].AsKey();
+    if (!ns_key) continue;
     std::map<std::string, std::string>& kv_config = config_[ns_key];
     auto kv_map = ns_config_map.Values()[i].AsMap();
     DeserializeMap(&kv_config, kv_map);
   }
   timestamp_ = struct_map["timestamp_"].AsUInt64();
+  return true;
 }
 
 void NamespacedConfigData::SetNamespace(
@@ -100,10 +113,13 @@ std::string NamespacedConfigData::GetValue(
 void NamespacedConfigData::GetKeysByPrefix(const std::string& prefix,
                                            const std::string& name_space,
                                            std::set<std::string>* keys) const {
+  if (!keys) {
+    return;
+  }
   auto name_space_iter = config_.find(name_space);
   if (name_space_iter != config_.end()) {
     for (const auto& key_iter : name_space_iter->second) {
-      if (key_iter.first.substr(0, prefix.length()) == prefix) {
+      if (key_iter.first.compare(0, prefix.length(), prefix) == 0) {
         keys->insert(key_iter.first);
       }
     }
@@ -144,17 +160,33 @@ std::string LayeredConfigs::Serialize() const {
   return std::string(buffer.cbegin(), buffer.cend());
 }
 
-void LayeredConfigs::Deserialize(const std::string& buffer) {
+bool LayeredConfigs::Deserialize(const std::string& buffer) {
+  if (buffer.empty()) {
+    return false;
+  }
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buffer.data());
   size_t size = buffer.size();
   if (!flexbuffers::VerifyBuffer(data, size)) {
-    return;
+    return false;
   }
-  auto struct_map = flexbuffers::GetRoot(data, size).AsMap();
-  fetched.Deserialize(struct_map["fetched"].AsString().str());
-  active.Deserialize(struct_map["active"].AsString().str());
-  defaults.Deserialize(struct_map["defaults"].AsString().str());
-  metadata.Deserialize(struct_map["metadata"].AsString().str());
+  flexbuffers::Reference root = flexbuffers::GetRoot(data, size);
+  if (!root.IsMap()) {
+    return false;
+  }
+  auto struct_map = root.AsMap();
+  flexbuffers::String fetched_str = struct_map["fetched"].AsString();
+  flexbuffers::String active_str = struct_map["active"].AsString();
+  flexbuffers::String defaults_str = struct_map["defaults"].AsString();
+  flexbuffers::String metadata_str = struct_map["metadata"].AsString();
+  bool ok = fetched.Deserialize(
+                std::string(fetched_str.c_str(), fetched_str.length())) &&
+            active.Deserialize(
+                std::string(active_str.c_str(), active_str.length())) &&
+            defaults.Deserialize(
+                std::string(defaults_str.c_str(), defaults_str.length())) &&
+            metadata.Deserialize(
+                std::string(metadata_str.c_str(), metadata_str.length()));
+  return ok;
 }
 
 bool LayeredConfigs::operator==(const LayeredConfigs& right) const {

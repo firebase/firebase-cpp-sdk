@@ -20,9 +20,10 @@
 #include <utility>
 
 #include "firestore/src/android/document_reference_android.h"
-#include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/promise_android.h"
+#include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/env.h"
+#include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"
 
@@ -30,8 +31,8 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using jni::Class;
 using jni::Env;
+using jni::HashMap;
 using jni::Local;
 using jni::Method;
 using jni::Object;
@@ -55,12 +56,32 @@ Method<Task> kAdd("add",
 
 }  // namespace
 
+CollectionReferenceInternal::CollectionReferenceInternal(
+    const CollectionReferenceInternal& other) try
+    : QueryInternal((other.mutex_.lock(), other)) {
+  cached_id_ = other.cached_id_;
+  cached_path_ = other.cached_path_;
+  other.mutex_.unlock();
+} catch (...) {
+  other.mutex_.unlock();
+  throw;
+}
+
+CollectionReferenceInternal::CollectionReferenceInternal(
+    CollectionReferenceInternal&& other) noexcept
+    : QueryInternal((other.mutex_.lock(), std::move(other))) {
+  cached_id_ = other.cached_id_;
+  cached_path_ = other.cached_path_;
+  other.mutex_.unlock();
+}
+
 void CollectionReferenceInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClass, kGetId, kGetPath, kGetParent, kDocumentAutoId,
                    kDocument, kAdd);
 }
 
 const std::string& CollectionReferenceInternal::id() const {
+  std::scoped_lock<std::mutex> lock(mutex_);
   if (cached_id_.empty()) {
     Env env = GetEnv();
     cached_id_ = env.Call(obj_, kGetId).ToString(env);
@@ -69,6 +90,7 @@ const std::string& CollectionReferenceInternal::id() const {
 }
 
 const std::string& CollectionReferenceInternal::path() const {
+  std::scoped_lock<std::mutex> lock(mutex_);
   if (cached_path_.empty()) {
     Env env = GetEnv();
     cached_path_ = env.Call(obj_, kGetPath).ToString(env);
@@ -98,10 +120,9 @@ DocumentReference CollectionReferenceInternal::Document(
 
 Future<DocumentReference> CollectionReferenceInternal::Add(
     const MapFieldValue& data) {
-  FieldValueInternal map_value(data);
-
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kAdd, map_value.ToJava());
+  Local<HashMap> java_data = MakeJavaMap(env, data);
+  Local<Task> task = env.Call(obj_, kAdd, java_data);
   return promises_.NewFuture<DocumentReference>(env, AsyncFn::kAdd, task);
 }
 

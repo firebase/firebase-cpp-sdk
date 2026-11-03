@@ -42,7 +42,8 @@ class Class : public Object {
   jclass get() const override { return static_cast<jclass>(object_); }
 
   /**
-   * Returns the name of the class, as returned by the Java `Class.name` method.
+   * Returns the name of the class, as returned by the Java `Class.getName()`
+   * method.
    */
   std::string GetName(Env& env) const;
 

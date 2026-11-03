@@ -21,7 +21,9 @@
 #import "FIRAnalytics.h"
 
 #include <cassert>
+#include <chrono>
 #include <cstdint>
+#include <memory>
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
 
@@ -51,12 +53,13 @@ class AnalyticsDataResetter {
 
  public:
   // Initialize the class.
-  AnalyticsDataResetter() : reset_state_(kResetStateNone), reset_timestamp_(0) {}
+  AnalyticsDataResetter()
+      : reset_state_(kResetStateNone),
+        reset_timestamp_(std::chrono::steady_clock::now()) {}
 
   // Reset analytics data.
   void Reset() {
-    MutexLock lock(mutex_);
-    reset_timestamp_ = firebase::internal::GetTimestampEpoch();
+    reset_timestamp_ = std::chrono::steady_clock::now();
     reset_state_ = kResetStateRequested;
     instance_id_ = util::StringFromNSString([FIRAnalytics appInstanceID]);
     [FIRAnalytics resetAnalyticsData];
@@ -65,59 +68,67 @@ class AnalyticsDataResetter {
   // Get the instance ID, returning a non-empty string if it's valid or an empty string if it's
   // still being reset.
   std::string GetInstanceId() {
-    MutexLock lock(mutex_);
     std::string current_instance_id = util::StringFromNSString([FIRAnalytics appInstanceID]);
-    uint64_t reset_time_elapsed_milliseconds = GetResetTimeElapsedMilliseconds();
-    switch (reset_state_) {
-      case kResetStateNone:
-        break;
-      case kResetStateRequested:
-        if (reset_time_elapsed_milliseconds >= kResetRetryIntervalMilliseconds) {
-          // Firebase Analytics on iOS can take a while to initialize, in this case we try to reset
-          // again if the instance ID hasn't changed for a while.
-          reset_state_ = kResetStateRetry;
-          reset_timestamp_ = firebase::internal::GetTimestampEpoch();
-          [FIRAnalytics resetAnalyticsData];
-          return std::string();
-        }
-        FIREBASE_CASE_FALLTHROUGH;
-
-      case kResetStateRetry:
-        if ((current_instance_id.empty() || current_instance_id == instance_id_) &&
-            reset_time_elapsed_milliseconds < kResetTimeoutMilliseconds) {
-          return std::string();
-        }
-        break;
+    if (reset_state_ == kResetStateNone) {
+      instance_id_ = current_instance_id;
+      return current_instance_id;
     }
+
+    if (!current_instance_id.empty() && current_instance_id != instance_id_) {
+      // Observed a new instance ID after reset; transition back to idle so
+      // subsequent calls do not trigger another reset.
+      reset_state_ = kResetStateNone;
+      instance_id_ = current_instance_id;
+      return current_instance_id;
+    }
+
+    int64_t reset_time_elapsed_milliseconds = GetResetTimeElapsedMilliseconds();
+    if (reset_state_ == kResetStateRequested &&
+        reset_time_elapsed_milliseconds >= kResetRetryIntervalMilliseconds) {
+      // Firebase Analytics on iOS can take a while to initialize, in this case we try to reset
+      // again if the instance ID hasn't changed for a while. Keep reset_timestamp_ anchored to
+      // the original Reset() call so total elapsed time reaches kResetTimeoutMilliseconds within
+      // GetAnalyticsInstanceId()'s poll window.
+      reset_state_ = kResetStateRetry;
+      [FIRAnalytics resetAnalyticsData];
+      return std::string();
+    }
+
+    if (reset_time_elapsed_milliseconds < kResetTimeoutMilliseconds) {
+      return std::string();
+    }
+
+    reset_state_ = kResetStateNone;
     instance_id_ = current_instance_id;
     return current_instance_id;
   }
 
  private:
-  // Get the time elapsed in milliseconds since reset was requested.
-  uint64_t GetResetTimeElapsedMilliseconds() const {
-    return firebase::internal::GetTimestampEpoch() - reset_timestamp_;
+  // Get the monotonic time elapsed in milliseconds since reset was requested.
+  int64_t GetResetTimeElapsedMilliseconds() const {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::steady_clock::now() - reset_timestamp_)
+        .count();
   }
 
  private:
-  Mutex mutex_;
   // Reset attempt.
   ResetState reset_state_;
-  // When a reset was last requested.
-  uint64_t reset_timestamp_;
+  // When a reset was first requested (monotonic clock).
+  std::chrono::steady_clock::time_point reset_timestamp_;
   // Instance ID before it was reset.
   std::string instance_id_;
 
   // Time to wait before trying to reset again.
-  static const uint64_t kResetRetryIntervalMilliseconds;
+  static const int64_t kResetRetryIntervalMilliseconds;
   // Time to wait before giving up on resetting the ID.
-  static const uint64_t kResetTimeoutMilliseconds;
+  static const int64_t kResetTimeoutMilliseconds;
 };
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAnalytics);
 
-const uint64_t AnalyticsDataResetter::kResetRetryIntervalMilliseconds = 1000;
-const uint64_t AnalyticsDataResetter::kResetTimeoutMilliseconds = 5000;
+const int64_t AnalyticsDataResetter::kResetRetryIntervalMilliseconds = 1000;
+const int64_t AnalyticsDataResetter::kResetTimeoutMilliseconds = 5000;
 
 static const double kMillisecondsPerSecond = 1000.0;
 static Mutex g_mutex;  // NOLINT
@@ -126,28 +137,43 @@ static AnalyticsDataResetter* g_resetter = nullptr;
 
 // Initialize the API.
 void Initialize(const ::firebase::App& app) {
-  MutexLock lock(g_mutex);
-  g_initialized = true;
-  g_resetter = new AnalyticsDataResetter();
-  internal::RegisterTerminateOnDefaultAppDestroy();
-  internal::FutureData::Create();
+  {
+    MutexLock lock(g_mutex);
+    if (g_initialized) {
+      LogWarning("%s API already initialized", internal::kAnalyticsModuleName);
+      return;
+    }
+    g_initialized = true;
+    g_resetter = new AnalyticsDataResetter();
+    internal::FutureData::Create();
+  }
+  internal::RegisterTerminateOnAppDestroy(&app);
 }
 
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() {
+  MutexLock lock(g_mutex);
+  return g_initialized;
+}
 
 }  // namespace internal
 
 // Terminate the API.
 void Terminate() {
-  MutexLock lock(g_mutex);
-  internal::FutureData::Destroy();
-  internal::UnregisterTerminateOnDefaultAppDestroy();
-  delete g_resetter;
-  g_resetter = nullptr;
-  g_initialized = false;
+  {
+    MutexLock lock(g_mutex);
+    if (!g_initialized) {
+      LogWarning("%s API already shut down", internal::kAnalyticsModuleName);
+      return;
+    }
+    internal::FutureData::Destroy();
+    delete g_resetter;
+    g_resetter = nullptr;
+    g_initialized = false;
+  }
+  internal::UnregisterTerminateOnAppDestroy();
 }
 
 // Enable / disable measurement and reporting.
@@ -159,7 +185,7 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary* consent_settings_dict =
-      [[NSMutableDictionary alloc] initWithCapacity:consent_settings.size()];
+      [NSMutableDictionary dictionaryWithCapacity:consent_settings.size()];
   for (auto it = consent_settings.begin(); it != consent_settings.end(); ++it) {
     FIRConsentType consent_type;
     switch (it->first) {
@@ -176,7 +202,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         consent_type = FIRConsentTypeAdPersonalization;
         break;
       default:
-        LogError("Unknown ConsentType value: %d", it->first);
+        LogError("Unknown ConsentType value: %d", static_cast<int>(it->first));
         return;
     };
     FIRConsentStatus consent_status;
@@ -188,7 +214,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         consent_status = FIRConsentStatusDenied;
         break;
       default:
-        LogError("Unknown ConsentStatus value: %d", it->second);
+        LogError("Unknown ConsentStatus value: %d", static_cast<int>(it->second));
         return;
     };
     [consent_settings_dict setObject:consent_status forKey:consent_type];
@@ -204,22 +230,46 @@ NSString* SafeString(const char* event_name) { return @(event_name ? event_name 
 // Log an event with one string parameter.
 void LogEvent(const char* name, const char* parameter_name, const char* parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics logEventWithName:@(name)
+  if (!name || name[0] == '\0') {
+    LogError("LogEvent: Event name cannot be null or empty.");
+    return;
+  }
+  if (!parameter_name) {
+    LogError("LogEvent(%s): Parameter name cannot be null.", name);
+    return;
+  }
+  [FIRAnalytics logEventWithName:SafeString(name)
                       parameters:@{SafeString(parameter_name) : SafeString(parameter_value)}];
 }
 
 // Log an event with one double parameter.
 void LogEvent(const char* name, const char* parameter_name, const double parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  if (!name || name[0] == '\0') {
+    LogError("LogEvent: Event name cannot be null or empty.");
+    return;
+  }
+  if (!parameter_name) {
+    LogError("LogEvent(%s): Parameter name cannot be null.", name);
+    return;
+  }
   [FIRAnalytics
-      logEventWithName:@(name)
+      logEventWithName:SafeString(name)
             parameters:@{SafeString(parameter_name) : [NSNumber numberWithDouble:parameter_value]}];
 }
 
 // Log an event with one 64-bit integer parameter.
 void LogEvent(const char* name, const char* parameter_name, const int64_t parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics logEventWithName:@(name)
+  if (!name || name[0] == '\0') {
+    LogError("LogEvent: Event name cannot be null or empty.");
+    return;
+  }
+  if (!parameter_name) {
+    LogError("LogEvent(%s): Parameter name cannot be null.", name);
+    return;
+  }
+  [FIRAnalytics logEventWithName:SafeString(name)
                       parameters:@{
                         SafeString(parameter_name) : [NSNumber numberWithLongLong:parameter_value]
                       }];
@@ -233,14 +283,22 @@ void LogEvent(const char* name, const char* parameter_name, const int parameter_
 /// Log an event with no parameters.
 void LogEvent(const char* name) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics logEventWithName:@(name) parameters:@{}];
+  if (!name || name[0] == '\0') {
+    LogError("LogEvent: Event name cannot be null or empty.");
+    return;
+  }
+  [FIRAnalytics logEventWithName:SafeString(name) parameters:@{}];
 }
 
 Future<void> LogAppleTransaction(const char* transaction_id) {
   MutexLock lock(g_mutex);
-  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  FIREBASE_ASSERT_RETURN(Future<void>(), g_initialized);
 
-  auto* api = internal::FutureData::Get()->api();
+  std::shared_ptr<internal::FutureData> future_data = internal::FutureData::GetShared();
+  if (!future_data) {
+    return Future<void>();
+  }
+  auto* api = future_data->api();
   const auto future_handle = api->SafeAlloc<void>(internal::kAnalyticsFnLogAppleTransaction);
 
   if (!transaction_id) {
@@ -248,17 +306,27 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
     return Future<void>(api, future_handle.get());
   }
 
+  std::weak_ptr<internal::FutureData> weak_future_data = future_data;
   [AppleTransactionVerifier
       verifyWithTransactionId:SafeString(transaction_id)
-                   completion:^(BOOL isFound) {
+                   completion:^(BOOL isFound, NSString* _Nullable errorMessage) {
                      MutexLock lock(g_mutex);
-                     if (!internal::IsInitialized()) return;
+                     auto locked_future_data = weak_future_data.lock();
+                     if (!g_initialized || !locked_future_data ||
+                         locked_future_data != internal::FutureData::GetShared()) {
+                       return;
+                     }
 
-                     auto* api = internal::FutureData::Get()->api();
+                     auto* current_api = locked_future_data->api();
                      if (isFound) {
-                       api->Complete(future_handle, 0, "");
+                       current_api->Complete(future_handle, 0, "");
+                     } else if (errorMessage != nil) {
+                       current_api->Complete(
+                           future_handle, -1,
+                           util::NSStringToString(errorMessage).c_str());
                      } else {
-                       api->Complete(future_handle, -1, "StoreKit 2 transaction not found.");
+                       current_api->Complete(future_handle, -1,
+                                             "StoreKit 2 transaction not found.");
                      }
                    }];
 
@@ -267,9 +335,13 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
 
 Future<void> LogAppleTransactionLastResult() {
   MutexLock lock(g_mutex);
-  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  FIREBASE_ASSERT_RETURN(Future<void>(), g_initialized);
+  std::shared_ptr<internal::FutureData> future_data = internal::FutureData::GetShared();
+  if (!future_data) {
+    return Future<void>();
+  }
   return static_cast<const Future<void>&>(
-      internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnLogAppleTransaction));
+      future_data->api()->LastResult(internal::kAnalyticsFnLogAppleTransaction));
 }
 
 // Declared here so that it can be used, defined below.
@@ -291,7 +363,8 @@ NSArray* VectorOfMapsToArray(const std::vector<Variant>& vector) {
 }
 
 // Converts and adds the Variant to the given Dictionary.
-bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Variant& value) {
+bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Variant& value,
+                            bool allow_null_clear = false) {
   if (value.is_int64()) {
     [dict setObject:[NSNumber numberWithLongLong:value.int64_value()] forKey:key];
   } else if (value.is_double()) {
@@ -302,8 +375,12 @@ bool AddVariantToDictionary(NSMutableDictionary* dict, NSString* key, const Vari
     // Just use integer 0 or 1.
     [dict setObject:[NSNumber numberWithLongLong:value.bool_value() ? 1 : 0] forKey:key];
   } else if (value.is_null()) {
-    // Just use integer 0 for null.
-    [dict setObject:[NSNumber numberWithLongLong:0] forKey:key];
+    if (allow_null_clear) {
+      [dict setObject:[NSNull null] forKey:key];
+    } else {
+      // Just use integer 0 for null.
+      [dict setObject:[NSNumber numberWithLongLong:0] forKey:key];
+    }
   } else if (value.is_vector()) {
     NSArray* array = VectorOfMapsToArray(value.vector());
     [dict setObject:array forKey:key];
@@ -322,14 +399,14 @@ NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
   NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:map.size()];
   for (const auto& pair : map) {
     // Only add elements that use a string key
-    if (!pair.first.is_string()) {
+    if (!pair.first.is_string() || !pair.first.string_value()) {
       continue;
     }
     NSString* key = SafeString(pair.first.string_value());
     const Variant& value = pair.second;
     if (!AddVariantToDictionary(dict, key, value)) {
       LogError("MapToDictionary: Unsupported type (%s) within map with key %s.",
-               Variant::TypeName(value.type()), key);
+               Variant::TypeName(value.type()), key.UTF8String);
     }
   }
   return dict;
@@ -338,19 +415,32 @@ NSDictionary* MapToDictionary(const std::map<Variant, Variant>& map) {
 // Log an event with associated parameters.
 void LogEvent(const char* name, const Parameter* parameters, size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  if (!name || name[0] == '\0') {
+    LogError("LogEvent: Event name cannot be null or empty.");
+    return;
+  }
+  if (!parameters && number_of_parameters > 0) {
+    LogError("LogEvent(%s): parameters cannot be null when number_of_parameters > 0.", name);
+    return;
+  }
   NSMutableDictionary* parameters_dict =
       [NSMutableDictionary dictionaryWithCapacity:number_of_parameters];
   for (size_t i = 0; i < number_of_parameters; ++i) {
     const Parameter& parameter = parameters[i];
+    if (!parameter.name) {
+      LogError("LogEvent(%s): Parameter name cannot be null.", name);
+      continue;
+    }
     NSString* parameter_name = SafeString(parameter.name);
     if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value)) {
       // A Variant type that couldn't be handled was passed in.
       LogError("LogEvent(%s): %s is not a valid parameter value type. "
-               "No event was logged.",
-               parameter.name, Variant::TypeName(parameter.value.type()));
+               "Parameter was not added.",
+               parameter.name,
+               Variant::TypeName(parameter.value.type()));
     }
   }
-  [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
+  [FIRAnalytics logEventWithName:SafeString(name) parameters:parameters_dict];
 }
 
 // log an event and the associated parameters via a vector.
@@ -361,6 +451,11 @@ void LogEvent(const char* name, const std::vector<Parameter>& parameters) {
 // Sets the default event parameter
 void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  if (!parameters && number_of_parameters > 0) {
+    LogError("SetDefaultEventParameters: parameters cannot be null when "
+             "number_of_parameters > 0.");
+    return;
+  }
 
   if (!parameters || number_of_parameters == 0) {
     [FIRAnalytics setDefaultEventParameters:nil];
@@ -371,12 +466,18 @@ void SetDefaultEventParameters(const Parameter* parameters, size_t number_of_par
       [NSMutableDictionary dictionaryWithCapacity:number_of_parameters];
   for (size_t i = 0; i < number_of_parameters; ++i) {
     const Parameter& parameter = parameters[i];
+    if (!parameter.name) {
+      LogError("SetDefaultEventParameters: Parameter name cannot be null.");
+      continue;
+    }
     NSString* parameter_name = SafeString(parameter.name);
-    if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value)) {
+    if (!AddVariantToDictionary(parameters_dict, parameter_name, parameter.value,
+                                /*allow_null_clear=*/true)) {
       // A Variant type that couldn't be handled was passed in.
       LogError("SetDefaultEventParameters(%s): %s is not a valid parameter value type. "
                "The parameter was not added.",
-               parameter.name, Variant::TypeName(parameter.value.type()));
+               parameter.name,
+               Variant::TypeName(parameter.value.type()));
     }
   }
   [FIRAnalytics setDefaultEventParameters:parameters_dict];
@@ -392,7 +493,13 @@ void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
 /// in, otherwise it is a no-op.
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(const char* email_address) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics initiateOnDeviceConversionMeasurementWithEmailAddress:@(email_address)];
+  if (!email_address) {
+    LogError("InitiateOnDeviceConversionMeasurementWithEmailAddress: "
+             "email_address cannot be null.");
+    return;
+  }
+  [FIRAnalytics
+      initiateOnDeviceConversionMeasurementWithEmailAddress:SafeString(email_address)];
 }
 
 /// Initiates on-device conversion measurement given a phone number on iOS (no-op on
@@ -400,7 +507,13 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(const char* email_add
 /// in, otherwise it is a no-op.
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(const char* phone_number) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics initiateOnDeviceConversionMeasurementWithPhoneNumber:@(phone_number)];
+  if (!phone_number) {
+    LogError("InitiateOnDeviceConversionMeasurementWithPhoneNumber: "
+             "phone_number cannot be null.");
+    return;
+  }
+  [FIRAnalytics
+      initiateOnDeviceConversionMeasurementWithPhoneNumber:SafeString(phone_number)];
 }
 
 /// Initiates on-device conversion measurement given a hashed user email address
@@ -430,7 +543,12 @@ void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
 // Set a user property to the given value.
 void SetUserProperty(const char* name, const char* value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics setUserPropertyString:(value ? @(value) : nil) forName:@(name)];
+  if (!name || name[0] == '\0') {
+    LogError("SetUserProperty: Property name cannot be null or empty.");
+    return;
+  }
+  [FIRAnalytics setUserPropertyString:(value ? SafeString(value) : nil)
+                              forName:SafeString(name)];
 }
 
 // Sets the user ID property. This feature must be used in accordance with
@@ -438,7 +556,7 @@ void SetUserProperty(const char* name, const char* value) {
 // Google's Privacy Policy</a>
 void SetUserId(const char* user_id) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics setUserID:(user_id ? @(user_id) : nil)];
+  [FIRAnalytics setUserID:(user_id ? SafeString(user_id) : nil)];
 }
 
 // Sets the duration of inactivity that terminates the current session.
@@ -450,7 +568,7 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 
 void ResetAnalyticsData() {
   MutexLock lock(g_mutex);
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  FIREBASE_ASSERT_RETURN_VOID(g_initialized);
   g_resetter->Reset();
 }
 
@@ -468,51 +586,89 @@ void SetDesktopDebugMode(bool) {}
 
 Future<std::string> GetAnalyticsInstanceId() {
   MutexLock lock(g_mutex);
-  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
-  auto* api = internal::FutureData::Get()->api();
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), g_initialized);
+  std::shared_ptr<internal::FutureData> future_data = internal::FutureData::GetShared();
+  if (!future_data) {
+    return Future<std::string>();
+  }
+  auto* api = future_data->api();
   const auto future_handle =
       api->SafeAlloc<std::string>(internal::kAnalyticsFnGetAnalyticsInstanceId);
-  static int kPollTimeMs = 100;
-  Thread get_id_thread(
-      [](SafeFutureHandle<std::string>* handle) {
-        for (;;) {
-          {
-            MutexLock lock(g_mutex);
-            if (!internal::IsInitialized()) break;
-            std::string instance_id = g_resetter->GetInstanceId();
-            if (!instance_id.empty()) {
-              internal::FutureData::Get()->api()->CompleteWithResult(*handle, 0, "", instance_id);
-              break;
-            }
-          }
-          firebase::internal::Sleep(kPollTimeMs);
+  static const int kPollTimeMs = 100;
+  static const int64_t kPollTimeoutMs = 6500;
+  std::weak_ptr<internal::FutureData> weak_future_data = future_data;
+  Thread get_id_thread([weak_future_data, future_handle]() {
+    const auto start_time = std::chrono::steady_clock::now();
+    for (;;) {
+      {
+        MutexLock lock(g_mutex);
+        auto locked_future_data = weak_future_data.lock();
+        if (!g_initialized || !locked_future_data ||
+            locked_future_data != internal::FutureData::GetShared()) {
+          break;
         }
-        delete handle;
-      },
-      new SafeFutureHandle<std::string>(future_handle));
+        std::string instance_id = g_resetter->GetInstanceId();
+        if (!instance_id.empty()) {
+          locked_future_data->api()->CompleteWithResult(future_handle, 0, "",
+                                                        instance_id);
+          break;
+        }
+        const auto elapsed_ms =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start_time)
+                .count();
+        if (elapsed_ms >= kPollTimeoutMs) {
+          locked_future_data->api()->CompleteWithResult(
+              future_handle, -1,
+              "Failed to retrieve Analytics Instance ID: timed out "
+              "(Analytics collection may be disabled).",
+              std::string(""));
+          break;
+        }
+      }
+      firebase::internal::Sleep(kPollTimeMs);
+    }
+  });
   get_id_thread.Detach();
   return Future<std::string>(api, future_handle.get());
 }
 
 Future<std::string> GetAnalyticsInstanceIdLastResult() {
   MutexLock lock(g_mutex);
-  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), g_initialized);
+  std::shared_ptr<internal::FutureData> future_data = internal::FutureData::GetShared();
+  if (!future_data) {
+    return Future<std::string>();
+  }
   return static_cast<const Future<std::string>&>(
-      internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetAnalyticsInstanceId));
+      future_data->api()->LastResult(internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
 Future<int64_t> GetSessionId() {
   MutexLock lock(g_mutex);
-  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
-  auto* api = internal::FutureData::Get()->api();
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), g_initialized);
+  std::shared_ptr<internal::FutureData> future_data = internal::FutureData::GetShared();
+  if (!future_data) {
+    return Future<int64_t>();
+  }
+  auto* api = future_data->api();
   const auto future_handle = api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
+  std::weak_ptr<internal::FutureData> weak_future_data = future_data;
   [FIRAnalytics sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
     MutexLock lock(g_mutex);
-    if (!internal::IsInitialized()) return;
+    auto locked_future_data = weak_future_data.lock();
+    if (!g_initialized || !locked_future_data ||
+        locked_future_data != internal::FutureData::GetShared()) {
+      return;
+    }
+    auto* current_api = locked_future_data->api();
     if (error) {
-      api->Complete(future_handle, -1, util::NSStringToString(error.localizedDescription).c_str());
+      current_api->CompleteWithResult(
+          future_handle, -1,
+          util::NSStringToString(error.localizedDescription).c_str(),
+          int64_t(0));
     } else {
-      api->CompleteWithResult(future_handle, 0, "", session_id);
+      current_api->CompleteWithResult(future_handle, 0, "", session_id);
     }
   }];
   return MakeFuture<int64_t>(api, future_handle);
@@ -520,9 +676,13 @@ Future<int64_t> GetSessionId() {
 
 Future<int64_t> GetSessionIdLastResult() {
   MutexLock lock(g_mutex);
-  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), g_initialized);
+  std::shared_ptr<internal::FutureData> future_data = internal::FutureData::GetShared();
+  if (!future_data) {
+    return Future<int64_t>();
+  }
   return static_cast<const Future<int64_t>&>(
-      internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetSessionId));
+      future_data->api()->LastResult(internal::kAnalyticsFnGetSessionId));
 }
 
 }  // namespace analytics

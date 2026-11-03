@@ -104,5 +104,15 @@ TEST_F(WwwFormUrlEncodedTest, ParseFormWithInvalidFields) {
   }
 }
 
+TEST_F(WwwFormUrlEncodedTest, ParseFormWithPlusEncodedSpaces) {
+  auto items =
+      WwwFormUrlEncoded::Parse("first+name=Jane+Doe&plus%2Bsign=a+b%2Bc");
+  ASSERT_EQ(2u, items.size());
+  EXPECT_EQ("first name", items[0].key);
+  EXPECT_EQ("Jane Doe", items[0].value);
+  EXPECT_EQ("plus+sign", items[1].key);
+  EXPECT_EQ("a b+c", items[1].value);
+}
+
 }  // namespace rest
 }  // namespace firebase

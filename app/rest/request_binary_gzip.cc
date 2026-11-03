@@ -16,12 +16,11 @@
 
 #include "app/rest/request_binary_gzip.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <cstdlib>
 #include <cstring>
-#include <memory>
-#include <string>
+#include <limits>
 
 #include "app/rest/zlibwrapper.h"
 #include "app/src/log.h"
@@ -54,29 +53,48 @@ void RequestBinaryGzip::set_post_fields(const char* data) {
 size_t RequestBinaryGzip::ReadAndCompress(char* buffer, size_t length,
                                           bool* abort) {
   *abort = false;
-  uLong remaining = static_cast<uLong>(GetBufferRemaining());
+  constexpr size_t kMaxChunk =
+      static_cast<size_t>(std::numeric_limits<uInt>::max());
+  uLong remaining = static_cast<uLong>(std::min(GetBufferRemaining(), kMaxChunk));
   uLong source_length = remaining;
-  uLong destination_length = static_cast<uLong>(length);
+  uLong destination_length = static_cast<uLong>(std::min(length, kMaxChunk));
   int status = zlib_.CompressAtMost(
       reinterpret_cast<Bytef*>(buffer), &destination_length,
       reinterpret_cast<const Bytef*>(GetBufferAtOffset()), &source_length);
   AdvanceBufferOffset(
       CheckOk(status, static_cast<size_t>(remaining - source_length), abort));
-  return destination_length;
+  return *abort ? 0 : static_cast<size_t>(destination_length);
 }
 
 size_t RequestBinaryGzip::ReadBody(char* buffer, size_t length, bool* abort) {
   *abort = false;
   if (!reading_footer_) {
-    size_t read_size = ReadAndCompress(buffer, length, abort);
-    if (*abort || read_size) return read_size;
+    for (;;) {
+      size_t remaining_before = GetBufferRemaining();
+      size_t read_size = ReadAndCompress(buffer, length, abort);
+      if (*abort || read_size > 0) return read_size;
+      if (GetBufferRemaining() == 0) {
+        break;
+      }
+      if (GetBufferRemaining() == remaining_before) {
+        LogError(
+            "gzip error: ReadAndCompress made no progress with %zu bytes "
+            "remaining",
+            remaining_before);
+        *abort = true;
+        return 0;
+      }
+    }
     reading_footer_ = true;
     uLong footer_size = static_cast<uLong>(sizeof(gzip_footer_));
-    if (CheckOk(zlib_.CompressChunkDone(reinterpret_cast<Bytef*>(gzip_footer_),
-                                        &footer_size),
-                1, abort)) {
-      InitializeBuffer(gzip_footer_, static_cast<size_t>(footer_size));
+    int footer_status = zlib_.CompressChunkDone(
+        reinterpret_cast<Bytef*>(gzip_footer_), &footer_size);
+    if (footer_status != Z_OK) {
+      LogError("gzip error: %d", footer_status);
+      *abort = true;
+      return 0;
     }
+    InitializeBuffer(gzip_footer_, static_cast<size_t>(footer_size));
   }
   return RequestBinary::ReadBody(buffer, length, abort);
 }

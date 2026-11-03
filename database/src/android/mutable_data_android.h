@@ -21,6 +21,7 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/src/include/firebase/database/mutable_data.h"
@@ -33,7 +34,7 @@ class DatabaseInternal;
 namespace internal {
 class Callbacks;
 
-// The iOS implementation of MutableData, which encapsulates the data and
+// The Android implementation of MutableData, which encapsulates the data and
 // priority at a location.
 class MutableDataInternal {
  public:
@@ -65,11 +66,11 @@ class MutableDataInternal {
   bool HasChild(const char* path) const;
 
   // Sets the data at this location to the given value.
-  void SetValue(Variant value);
+  void SetValue(const Variant& value);
 
   // Sets the priority of this field, which controls its sort order relative to
   // its siblings.
-  void SetPriority(Variant priority);
+  void SetPriority(const Variant& priority);
 
   // Returns a pointer to the database this MutableData is from.
   DatabaseInternal* database_internal() const { return db_; }
@@ -84,14 +85,15 @@ class MutableDataInternal {
 
   MutableDataInternal(DatabaseInternal* database, jobject mutable_data_obj);
 
-  MutableDataInternal& operator=(const MutableDataInternal&);
-  MutableDataInternal(MutableDataInternal&);
+  MutableDataInternal(const MutableDataInternal&) = delete;
+  MutableDataInternal& operator=(const MutableDataInternal&) = delete;
 
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
   DatabaseInternal* db_;
   jobject obj_;
+  mutable Mutex key_mutex_;
   Variant cached_key_;
 };
 

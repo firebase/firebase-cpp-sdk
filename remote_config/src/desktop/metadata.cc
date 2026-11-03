@@ -30,7 +30,7 @@ namespace remote_config {
 namespace internal {
 
 RemoteConfigMetadata::RemoteConfigMetadata()
-    : info_({0, kLastFetchStatusSuccess, kFetchFailureReasonInvalid, 0}) {}
+    : info_({0, kLastFetchStatusPending, kFetchFailureReasonInvalid, 0}) {}
 
 std::string RemoteConfigMetadata::Serialize() const {
   flexbuffers::Builder fbb;
@@ -47,7 +47,11 @@ std::string RemoteConfigMetadata::Serialize() const {
       fbb.UInt("throttled_end_time", info_.throttled_end_time);
     });
 
-    fbb.Add("digest_by_namespace", digest_by_namespace_);
+    fbb.Map("digest_by_namespace", [&]() {
+      for (const auto& kv : digest_by_namespace_) {
+        fbb.String(kv.first.c_str(), kv.second);
+      }
+    });
 
     fbb.Map("settings", [&]() {
       for (const auto& setting : settings_) {
@@ -59,8 +63,11 @@ std::string RemoteConfigMetadata::Serialize() const {
       for (const auto& signal : custom_signals_) {
         const std::string& key = signal.first;
         const Variant& val = signal.second;
-        if (val.is_string()) {
-          fbb.String(key.c_str(), val.string_value());
+        if (val.is_mutable_string()) {
+          fbb.String(key.c_str(), val.mutable_string());
+        } else if (val.is_static_string()) {
+          const char* s = val.string_value();
+          fbb.String(key.c_str(), s ? s : "");
         } else if (val.is_int64()) {
           fbb.Int(key.c_str(), val.int64_value());
         } else if (val.is_double()) {
@@ -74,13 +81,20 @@ std::string RemoteConfigMetadata::Serialize() const {
   return std::string(buffer.cbegin(), buffer.cend());
 }
 
-void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
+bool RemoteConfigMetadata::Deserialize(const std::string& buffer) {
+  if (buffer.empty()) {
+    return false;
+  }
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buffer.data());
   size_t size = buffer.size();
   if (!flexbuffers::VerifyBuffer(data, size)) {
-    return;
+    return false;
   }
-  auto struct_map = flexbuffers::GetRoot(data, size).AsMap();
+  flexbuffers::Reference root = flexbuffers::GetRoot(data, size);
+  if (!root.IsMap()) {
+    return false;
+  }
+  auto struct_map = root.AsMap();
 
   flexbuffers::Map info = struct_map["info"].AsMap();
   info_.fetch_time = info["fetch_time"].AsUInt64();
@@ -96,7 +110,7 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
 
   settings_.clear();
   flexbuffers::Map settings = struct_map["settings"].AsMap();
-  for (int i = 0, n = settings.size(); i < n; ++i) {
+  for (size_t i = 0, n = settings.size(); i < n; ++i) {
     const char* key_str = settings.Keys()[i].AsKey();
     if (!key_str) continue;
     char* endptr = nullptr;
@@ -110,8 +124,9 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
       continue;
     }
     int int_key = static_cast<int>(raw_key);
+    flexbuffers::String val = settings.Values()[i].AsString();
     settings_[static_cast<ConfigSetting>(int_key)] =
-        settings.Values()[i].AsString().c_str();
+        std::string(val.c_str(), val.length());
   }
 
   custom_signals_.clear();
@@ -121,14 +136,16 @@ void RemoteConfigMetadata::Deserialize(const std::string& buffer) {
     if (!key_str) continue;
     flexbuffers::Reference val_ref = custom_signals.Values()[i];
     if (val_ref.IsString()) {
+      flexbuffers::String val = val_ref.AsString();
       custom_signals_[key_str] =
-          Variant(std::string(val_ref.AsString().c_str()));
+          Variant::FromMutableString(std::string(val.c_str(), val.length()));
     } else if (val_ref.IsInt()) {
       custom_signals_[key_str] = Variant(val_ref.AsInt64());
     } else if (val_ref.IsFloat()) {
       custom_signals_[key_str] = Variant(val_ref.AsDouble());
     }
   }
+  return true;
 }
 
 void RemoteConfigMetadata::AddSetting(const ConfigSetting& setting,

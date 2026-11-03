@@ -16,6 +16,7 @@
 
 #include "app/rest/response_binary.h"
 
+#include <climits>
 #include <memory>
 #include <string>
 
@@ -27,8 +28,12 @@ namespace rest {
 
 static size_t kMaxGzipLengthAccepted = 100 * 1024 * 1024;  // 100 MB
 
-ResponseBinary::ResponseBinary() : use_gunzip_(false) {
-  zlib_.SetGzipHeaderMode();
+ResponseBinary::ResponseBinary() : use_gunzip_(false), gunzip_cached_(false) {}
+
+bool ResponseBinary::ProcessBody(const char* buffer, size_t length) {
+  body_gunzip_cache_.clear();
+  gunzip_cached_ = false;
+  return Response::ProcessBody(buffer, length);
 }
 
 void ResponseBinary::GetBody(const char** data, size_t* size) const {
@@ -36,34 +41,49 @@ void ResponseBinary::GetBody(const char** data, size_t* size) const {
     Response::GetBody(data, size);
     return;
   }
-  if (body_gunzip_cache_.empty()) {
-    const char* body_data;
-    size_t body_size;
+  if (!gunzip_cached_) {
+    const char* body_data = nullptr;
+    size_t body_size = 0;
     Response::GetBody(&body_data, &body_size);
     body_gunzip_cache_ = Gunzip(body_data, body_size);
+    gunzip_cached_ = true;
   }
-  *data = body_gunzip_cache_.data();
-  *size = body_gunzip_cache_.length();
+  if (data) *data = body_gunzip_cache_.data();
+  if (size) *size = body_gunzip_cache_.length();
 }
 
 std::string ResponseBinary::Gunzip(const char* input_data,
                                    size_t input_size) const {
-  uLongf result_length = zlib_.GzipUncompressedLength(
+  if (!input_data || input_size == 0 ||
+      input_size > static_cast<size_t>(INT_MAX)) {
+    return std::string();
+  }
+  if (!ZLib::HasGzipHeader(input_data, static_cast<int>(input_size))) {
+    LogError("gunzip error: invalid gzip header");
+    return std::string();
+  }
+  ZLib zlib;
+  zlib.SetGzipHeaderMode();
+  uLongf result_length = zlib.GzipUncompressedLength(
       reinterpret_cast<const unsigned char*>(input_data), input_size);
   if (result_length > kMaxGzipLengthAccepted) {
     LogError("gunzip error, %lu bytes is greater than the maximum allowed",
-             result_length);
+             static_cast<unsigned long>(result_length));
     return std::string();
   }
-  std::unique_ptr<char[]> result(new char[result_length]);
-  int err = zlib_.Uncompress(
-      reinterpret_cast<unsigned char*>(result.get()), &result_length,
+  std::string result(result_length, '\0');
+  Bytef dummy = 0;
+  Bytef* dest_ptr =
+      result.empty() ? &dummy : reinterpret_cast<Bytef*>(&result[0]);
+  int err = zlib.Uncompress(
+      dest_ptr, &result_length,
       reinterpret_cast<const unsigned char*>(input_data), input_size);
   if (err != Z_OK) {
     LogError("gunzip error: %d", err);
     return std::string();
   }
-  return std::string(result.get(), result_length);
+  result.resize(result_length);
+  return result;
 }
 
 }  // namespace rest

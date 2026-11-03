@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/direction_android.h"
 
+#include "app/src/assert.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -42,11 +43,15 @@ void DirectionInternal::Initialize(jni::Loader& loader) {
 }
 
 Local<Object> DirectionInternal::Create(Env& env, Query::Direction direction) {
-  if (direction == Query::Direction::kAscending) {
-    return env.Get(kAscending);
-  } else {
-    return env.Get(kDescending);
+  switch (direction) {
+    case Query::Direction::kAscending:
+      return env.Get(kAscending);
+    case Query::Direction::kDescending:
+      return env.Get(kDescending);
   }
+  FIREBASE_ASSERT_MESSAGE(false, "Unknown Direction value: %d",
+                          static_cast<int>(direction));
+  return {};
 }
 
 }  // namespace firestore

@@ -41,7 +41,7 @@ namespace firestore {
 //
 // This is a language-specific implementation of `AuthCredentialsProvider` that
 // works with the public C++ Auth.
-class FirebaseCppCredentialsProvider
+class FirebaseCppCredentialsProvider final
     : public firestore::credentials::AuthCredentialsProvider {
  public:
   explicit FirebaseCppCredentialsProvider(App& app);
@@ -59,6 +59,7 @@ class FirebaseCppCredentialsProvider
   void GetToken(
       firestore::credentials::TokenListener<firestore::credentials::AuthToken>
           listener) override;
+  void InvalidateToken() override;
 
  private:
   void AddAuthStateListener();
@@ -106,8 +107,12 @@ class FirebaseCppCredentialsProvider
     // generations at the point where a token is requested and the point where
     // the token is retrieved allows identifying obsolete requests.
     int token_generation = 0;
+    
+    firestore::credentials::CredentialChangeListener<
+        firestore::credentials::User> auth_listener;
   };
   std::shared_ptr<Contents> contents_;
+  std::weak_ptr<Contents>* auth_listener_context_{nullptr};
 };
 
 }  // namespace firestore

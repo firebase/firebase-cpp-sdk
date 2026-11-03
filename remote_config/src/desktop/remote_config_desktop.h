@@ -130,7 +130,7 @@ class RemoteConfigInternal {
 
   bool ActivateFetched();
 
-  const ConfigInfo GetInfo() const;
+  ConfigInfo GetInfo() const;
 
   ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
@@ -175,12 +175,14 @@ class RemoteConfigInternal {
                                     std::string* value);
 
   // Returns true and assigns the found record to the `value` if the `holder`
-  // contains a record for the key.
+  // contains a record for the key (caller must hold `internal_mutex_`).
   //
   // Assign `info->source` If info is not nullptr.
-  bool CheckValueInConfig(const NamespacedConfigData& config,
-                          ValueSource source, const char* key, ValueInfo* info,
-                          std::string* value);
+  bool CheckValueInConfigLocked(const NamespacedConfigData& config,
+                                ValueSource source, const char* key,
+                                ValueInfo* info, std::string* value);
+
+  bool IsCacheExpiredLocked(uint64_t cache_expiration_in_seconds) const;
 
   void FetchInternal();
 
@@ -190,15 +192,13 @@ class RemoteConfigInternal {
   static const double kDefaultValueForDouble;
   static const bool kDefaultValueForBool;
 
-  const std::vector<unsigned char> kDefaultValueForData;
-
   // app
   const firebase::App& app_;
 
   // Contains all config records and metadata variables.
   LayeredConfigs configs_;
 
-  // Provides saving to the file and load from the tile the `configs_` variable.
+  // Provides saving to the file and load from the file the `configs_` variable.
   RemoteConfigFileManager file_manager_;
 
   // Used for saving the `configs_` variable to file in background. Will be
@@ -213,14 +213,11 @@ class RemoteConfigInternal {
   // `configs_` variable. Call `save_channel_.Close()` to close the channel.
   NotificationChannel save_channel_;
 
-  // Last value of `Fetch` function argument. Update only if we will fetch.
+  // Last value of `Fetch` cache expiration argument in seconds.
   uint64_t cache_expiration_in_seconds_;
 
-  // Avoid using more than one fetching process per time.
-  //
-  // Call `fetch_channel_.Put()` and assign `true` only if value is
-  // `false`. Fetching thread will notify and fetch config. When fetching
-  // will finish it will be assigned to `false`.
+  // Tracks whether a scheduled fetch task is currently queued or running on
+  // `scheduler_`. Guarded by `internal_mutex_`.
   bool is_fetch_process_have_task_;
 
   mutable Mutex internal_mutex_;

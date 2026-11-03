@@ -15,9 +15,9 @@
  */
 
 #include "firestore/src/android/listener_registration_android.h"
-#include <cassert>
 
 #include "app/src/assert.h"
+#include "firestore/src/android/event_listener_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 #include "firestore/src/jni/env.h"
@@ -28,6 +28,7 @@ namespace firestore {
 namespace {
 
 using jni::Env;
+using jni::ExceptionClearGuard;
 using jni::Object;
 
 constexpr char kClassName[] =
@@ -45,9 +46,11 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
     FirestoreInternal* firestore,
     EventListener<DocumentSnapshot>* event_listener,
     bool owning_event_listener,
-    const Object& listener_registration)
+    const Object& listener_registration,
+    const Object& java_listener)
     : firestore_(firestore),
       listener_registration_(listener_registration),
+      java_listener_(java_listener),
       document_event_listener_(event_listener),
       owning_event_listener_(owning_event_listener) {
   FIREBASE_ASSERT(firestore != nullptr);
@@ -61,9 +64,11 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
     FirestoreInternal* firestore,
     EventListener<QuerySnapshot>* event_listener,
     bool owning_event_listener,
-    const Object& listener_registration)
+    const Object& listener_registration,
+    const Object& java_listener)
     : firestore_(firestore),
       listener_registration_(listener_registration),
+      java_listener_(java_listener),
       query_event_listener_(event_listener),
       owning_event_listener_(owning_event_listener) {
   FIREBASE_ASSERT(firestore != nullptr);
@@ -77,9 +82,11 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
     FirestoreInternal* firestore,
     EventListener<void>* event_listener,
     bool owning_event_listener,
-    const Object& listener_registration)
+    const Object& listener_registration,
+    const Object& java_listener)
     : firestore_(firestore),
       listener_registration_(listener_registration),
+      java_listener_(java_listener),
       void_event_listener_(event_listener),
       owning_event_listener_(owning_event_listener) {
   FIREBASE_ASSERT(firestore != nullptr);
@@ -89,20 +96,28 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
   firestore->RegisterListenerRegistration(this);
 }
 
-// Destruction only happens when FirestoreInternal de-allocate them.
-// FirestoreInternal will hold the lock and unregister all of them. So we do not
-// call UnregisterListenerRegistration explicitly here.
+// Destruction happens when FirestoreInternal deallocates registrations (via
+// UnregisterListenerRegistration or ClearListeners). FirestoreInternal removes
+// the registration from its set before deleting `this`.
 ListenerRegistrationInternal::~ListenerRegistrationInternal() {
   if (!listener_registration_) {
     return;
   }
 
-  // Remove listener and release java ListenerRegistration object.
+  // Remove listener, discard native pointers on the Java listener under its
+  // monitor lock, and release Java global references before deleting the C++
+  // listener object.
   Env env = GetEnv();
+  ExceptionClearGuard exception_clear_guard(env);
   env.Call(listener_registration_, kRemove);
   listener_registration_.clear();
 
-  // de-allocate owning EventListener object.
+  if (java_listener_) {
+    EventListenerInternal::DiscardPointers(env, java_listener_);
+    java_listener_.clear();
+  }
+
+  // Deallocate owned EventListener object.
   if (owning_event_listener_) {
     delete document_event_listener_;
     delete query_event_listener_;

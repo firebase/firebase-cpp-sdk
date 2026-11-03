@@ -12,33 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cassert>
-#include <cstdint>
-#include <cstring>
 #include "remote_config/src/ios/remote_config_ios.h"
 
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
-#include "app/src/include/firebase/version.h"
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/time.h"
 #include "remote_config/src/common.h"
-#include "remote_config/src/include/firebase/remote_config.h"
 #include "remote_config/src/config_update_listener_registration_internal.h"
+#include "remote_config/src/include/firebase/remote_config.h"
+#include "remote_config/src/value_parser.h"
 
 namespace firebase {
 namespace remote_config {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
-
-// Global reference to the Firebase App.
-static const ::firebase::App *g_app = nullptr;
-
-// Global reference to the Remote Config instance.
-static FIRRemoteConfig *g_remote_config_instance;
 
 // Maps FIRRemoteConfigSource values to the ValueSource enumeration.
 static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
@@ -50,13 +49,9 @@ static_assert(FIRRemoteConfigSourceRemote == 0, "FIRRemoteConfigSourceRemote is 
 static_assert(FIRRemoteConfigSourceDefault == 1, "FIRRemoteConfigSourceDefault is not 1");
 static_assert(FIRRemoteConfigSourceStatic == 2, "FIRRemoteConfigSourceStatic is not 2");
 
-// Regular expressions used to determine if the config value is a "valid" bool.
-// Written to match what is used internally by the Java implementation.
-static NSString *true_pattern = @"^(1|true|t|yes|y|on)$";
-static NSString *false_pattern = @"^(0|false|f|no|n|off|)$";
-
-// Saved default keys.
-static std::vector<std::string> *g_default_keys = nullptr;
+static constexpr size_t kCustomSignalsMaxCount = 100;
+static constexpr size_t kCustomSignalsMaxKeyLength = 256;
+static constexpr size_t kCustomSignalsMaxStringValueLength = 500;
 
 static id VariantToNSObject(const Variant &variant) {
   if (variant.is_int64()) {
@@ -65,10 +60,21 @@ static id VariantToNSObject(const Variant &variant) {
     return [NSNumber numberWithBool:variant.bool_value() ? YES : NO];
   } else if (variant.is_double()) {
     return [NSNumber numberWithDouble:variant.double_value()];
-  } else if (variant.is_string()) {
-    return @(variant.string_value());
+  } else if (variant.is_mutable_string()) {
+    const std::string &str = variant.mutable_string();
+    return [[NSString alloc] initWithBytes:str.data()
+                                    length:str.size()
+                                  encoding:NSUTF8StringEncoding];
+  } else if (variant.is_static_string()) {
+    const char *str = variant.string_value();
+    return str ? @(str) : @"";
   } else if (variant.is_blob()) {
-    return [NSData dataWithBytes:variant.blob_data() length:variant.blob_size()];
+    const uint8_t *data = variant.blob_data();
+    size_t size = variant.blob_size();
+    if (!data || size == 0) {
+      return [NSData data];
+    }
+    return [NSData dataWithBytes:data length:size];
   } else {
     return nil;
   }
@@ -76,14 +82,42 @@ static id VariantToNSObject(const Variant &variant) {
 
 // Shared helper function for retrieving the FIRRemoteConfigValue.
 static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info, FIRRemoteConfig *rc_ptr) {
-  FIRRemoteConfigValue *value;
-  value = [rc_ptr configValueForKey:@(key)];
+  if (!key || !rc_ptr) {
+    if (info) {
+      info->source = kValueSourceStaticValue;
+      info->conversion_successful = false;
+    }
+    if (!key) {
+      LogError("Remote Config: Key cannot be nullptr.");
+    }
+    return nil;
+  }
+  NSString *ns_key = @(key);
+  if (!ns_key) {
+    if (info) {
+      info->source = kValueSourceStaticValue;
+      info->conversion_successful = false;
+    }
+    LogError("Remote Config: Key is not valid UTF-8.");
+    return nil;
+  }
+  FIRRemoteConfigValue *value = [rc_ptr configValueForKey:ns_key];
+  if (!value) {
+    if (info) {
+      info->source = kValueSourceStaticValue;
+      info->conversion_successful = false;
+    }
+    return nil;
+  }
   if (info) {
     int source_index = static_cast<int>(value.source);
-    if (source_index >= 0 && source_index < sizeof(kFirebaseRemoteConfigSourceToValueSourceMap)) {
-      info->source = kFirebaseRemoteConfigSourceToValueSourceMap[value.source];
+    if (source_index >= 0 &&
+        static_cast<size_t>(source_index) <
+            FIREBASE_ARRAYSIZE(kFirebaseRemoteConfigSourceToValueSourceMap)) {
+      info->source = kFirebaseRemoteConfigSourceToValueSourceMap[source_index];
       info->conversion_successful = true;
     } else {
+      info->source = kValueSourceStaticValue;
       info->conversion_successful = false;
       LogWarning("Remote Config: Failed to find a valid source for the requested key %s", key);
     }
@@ -91,68 +125,38 @@ static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info, FIRRemot
   return value;
 }
 
-static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info) {
-  return GetValue(key, info, g_remote_config_instance);
-}
-
-static void CheckBoolConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
-  if (info && info->conversion_successful) {
-    NSError *error = nullptr;
-    NSString *pattern = value.boolValue ? true_pattern : false_pattern;
-    NSRegularExpression *regex =
-        [NSRegularExpression regularExpressionWithPattern:pattern
-                                                  options:NSRegularExpressionCaseInsensitive
-                                                    error:&error];
-    int matches = [regex numberOfMatchesInString:value.stringValue
-                                         options:0
-                                           range:NSMakeRange(0, [value.stringValue length])];
-    info->conversion_successful = (matches == 1);
-  }
-}
-
-static void CheckLongConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
-  if (info && info->conversion_successful) {
-    NSError *error = nullptr;
-    NSRegularExpression *regex =
-        [NSRegularExpression regularExpressionWithPattern:@"^[0-9]+$"
-                                                  options:NSRegularExpressionCaseInsensitive
-                                                    error:&error];
-    int matches = [regex numberOfMatchesInString:value.stringValue
-                                         options:0
-                                           range:NSMakeRange(0, [value.stringValue length])];
-    info->conversion_successful = (matches == 1);
-  }
-}
-
-static void CheckDoubleConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
-  if (info && info->conversion_successful) {
-    NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
-    [formatter setNumberStyle:NSNumberFormatterDecimalStyle];
-    NSNumber *number = [formatter numberFromString:value.stringValue];
-    if (!number) {
-      info->conversion_successful = false;
-    }
-  }
-}
-
-std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
+static std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
+  if (!value) return {};
   NSData *data = value.dataValue;
-  int size = [data length] / sizeof(unsigned char);
+  if (!data) return {};
+  size_t size = static_cast<size_t>([data length]);
   const unsigned char *bytes = static_cast<const unsigned char *>([data bytes]);
+  if (size == 0 || !bytes) return {};
   return std::vector<unsigned char>(bytes, bytes + size);
 }
 
 static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo *out_info,
                                        int64_t throttled_end_time) {
   FIREBASE_DEV_ASSERT(out_info != nullptr);
-  out_info->fetch_time = round(rc_instance.lastFetchTime.timeIntervalSince1970 *
-                               ::firebase::internal::kMillisecondsPerSecond);
+  if (!out_info) return;
+  *out_info = ConfigInfo{};
+  if (!rc_instance) return;
+
+  double fetch_seconds =
+      rc_instance.lastFetchTime ? rc_instance.lastFetchTime.timeIntervalSince1970 : 0.0;
+  if (fetch_seconds <= 0.0 || std::isnan(fetch_seconds) || std::isinf(fetch_seconds)) {
+    out_info->fetch_time = 0;
+  } else {
+    out_info->fetch_time = static_cast<uint64_t>(
+        std::llround(fetch_seconds * ::firebase::internal::kMillisecondsPerSecond));
+  }
   // The C++ throttled_end_time is a uint64_t, so if we are given a negative number,
   // use 0 instead, to prevent getting a very large number.
   if (throttled_end_time < 0) {
     throttled_end_time = 0;
   }
-  out_info->throttled_end_time = throttled_end_time * ::firebase::internal::kMillisecondsPerSecond;
+  out_info->throttled_end_time =
+      static_cast<uint64_t>(throttled_end_time) * ::firebase::internal::kMillisecondsPerSecond;
   switch (rc_instance.lastFetchStatus) {
     case FIRRemoteConfigFetchStatusNoFetchYet:
       out_info->last_fetch_status = kLastFetchStatusPending;
@@ -172,7 +176,7 @@ static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo 
       break;
     default:
       LogError("Remote Config: Received unknown last fetch status: %d",
-               rc_instance.lastFetchStatus);
+               static_cast<int>(rc_instance.lastFetchStatus));
       out_info->last_fetch_status = kLastFetchStatusFailure;
       out_info->last_fetch_failure_reason = kFetchFailureReasonError;
       break;
@@ -180,7 +184,8 @@ static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo 
 }
 
 static RemoteConfigError ConvertFIRRemoteConfigUpdateError(NSError *error) {
-  switch(error.code) {
+  if (!error) return kRemoteConfigErrorNone;
+  switch (error.code) {
     case FIRRemoteConfigUpdateErrorStreamError:
       return kRemoteConfigErrorConfigUpdateStreamError;
     case FIRRemoteConfigUpdateErrorNotFetched:
@@ -196,23 +201,39 @@ static RemoteConfigError ConvertFIRRemoteConfigUpdateError(NSError *error) {
 
 static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
   ConfigUpdate config_update;
+  if (!keys) return config_update;
 
   for (NSString *key in keys) {
-    config_update.updated_keys.push_back(util::NSStringToString(key).c_str());
+    if (key) {
+      config_update.updated_keys.push_back(util::NSStringToString(key));
+    }
   }
   return config_update;
 }
 
 namespace internal {
+
+static void UpdateThrottledEndTimeFromError(NSError *error, RemoteConfigIosState *state) {
+  if (!error || !error.userInfo || !state) return;
+  id throttled_obj = error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey];
+  if ([throttled_obj isKindOfClass:[NSNumber class]]) {
+    int64_t throttled_end_time = [(NSNumber *)throttled_obj longLongValue];
+    if (throttled_end_time > 0) {
+      state->throttled_end_time_in_sec = throttled_end_time;
+    }
+  }
+}
+
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
-    : app_(app), future_impl_(kRemoteConfigFnCount), throttled_end_time_in_sec_(0) {
+    : app_(app),
+      state_(std::make_shared<RemoteConfigIosState>()) {
   FIRApp *platform_app = app_.GetPlatformApp();
   impl_.reset(new FIRRemoteConfigPointer([FIRRemoteConfig remoteConfigWithApp:platform_app]));
 }
 
 RemoteConfigInternal::~RemoteConfigInternal() {
   // Destructor is necessary for ARC garbage collection.
-  
+  Cleanup();
   // Trigger CleanupNotifier Cleanup. This will delete
   // ConfigUpdateListenerRegistrationInternal instances and it will update
   // ConfigUpdateListenerRegistration instances to no longer point to the
@@ -220,266 +241,481 @@ RemoteConfigInternal::~RemoteConfigInternal() {
   cleanup_notifier().CleanupAll();
 }
 
-bool RemoteConfigInternal::Initialized() const{
-  return true;
+bool RemoteConfigInternal::Initialized() const {
+  return impl() != nil;
 }
 
-void RemoteConfigInternal::Cleanup() {}
-
-template <typename THandle, typename TResult>
-static int64_t FutureCompleteWithError(NSError *error, ReferenceCountedFutureImpl *future_impl,
-                                       THandle handle, TResult result) {
-  int64_t throttled_end_time = 0;
-  if (error.userInfo) {
-    throttled_end_time =
-        ((NSNumber *)error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey]).longLongValue;
+void RemoteConfigInternal::Cleanup() {
+  if (state_) {
+    MutexLock lock(state_->mutex);
+    state_->alive = false;
   }
-  // If we got an error code back, return that, with the associated string.
-  future_impl->CompleteWithResult(handle, kFutureStatusFailure,
-                                  util::NSStringToString(error.localizedDescription).c_str(),
-                                  result);
-  return throttled_end_time;
 }
 
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
-  const auto handle = future_impl_.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
-  [impl() ensureInitializedWithCompletionHandler:^(NSError *error) {
+  const auto handle = state_->future_impl.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.CompleteWithResult(handle, kFutureStatusFailure,
+                                           "Remote Config is not initialized.", ConfigInfo{});
+    return MakeFuture<ConfigInfo>(&state_->future_impl, handle);
+  }
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  [rc ensureInitializedWithCompletionHandler:^(NSError *error) {
+    int64_t throttled_end_time = 0;
+    {
+      MutexLock lock(state->mutex);
+      if (!state->alive) return;
+      if (error) {
+        UpdateThrottledEndTimeFromError(error, state.get());
+      }
+      throttled_end_time = state->throttled_end_time_in_sec;
+    }
     ConfigInfo config_info;
+    GetInfoFromFIRRemoteConfig(rc, &config_info, throttled_end_time);
     if (error) {
-      throttled_end_time_in_sec_ =
-          FutureCompleteWithError<SafeFutureHandle<ConfigInfo>, ConfigInfo>(error, &future_impl_,
-                                                                            handle, config_info);
+      state->future_impl.CompleteWithResult(
+          handle, kFutureStatusFailure,
+          util::NSStringToString(error.localizedDescription).c_str(), config_info);
     } else {
-      GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_in_sec_);
-      future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", config_info);
+      state->future_impl.CompleteWithResult(handle, kFutureStatusSuccess, "", config_info);
     }
   }];
-  return MakeFuture<ConfigInfo>(&future_impl_, handle);
+  return MakeFuture<ConfigInfo>(&state_->future_impl, handle);
 }
 
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitializedLastResult() {
   return static_cast<const Future<ConfigInfo> &>(
-      future_impl_.LastResult(kRemoteConfigFnEnsureInitialized));
+      state_->future_impl.LastResult(kRemoteConfigFnEnsureInitialized));
 }
 
 Future<bool> RemoteConfigInternal::Activate() {
-  const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
-  [impl() activateWithCompletion:^(BOOL changed, NSError *error) {
+  const auto handle = state_->future_impl.SafeAlloc<bool>(kRemoteConfigFnActivate);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.CompleteWithResult(handle, kFutureStatusFailure,
+                                           "Remote Config is not initialized.", false);
+    return MakeFuture<bool>(&state_->future_impl, handle);
+  }
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  [rc activateWithCompletion:^(BOOL changed, NSError *error) {
+    {
+      MutexLock lock(state->mutex);
+      if (!state->alive) return;
+      if (error) {
+        UpdateThrottledEndTimeFromError(error, state.get());
+      }
+    }
     if (error) {
-      throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
-          error, &future_impl_, handle, false);
+      state->future_impl.CompleteWithResult(
+          handle, kFutureStatusFailure,
+          util::NSStringToString(error.localizedDescription).c_str(), false);
     } else {
-      future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", changed ? true : false);
+      state->future_impl.CompleteWithResult(handle, kFutureStatusSuccess, "",
+                                            changed ? true : false);
     }
   }];
-  return MakeFuture<bool>(&future_impl_, handle);
+  return MakeFuture<bool>(&state_->future_impl, handle);
 }
 
 Future<bool> RemoteConfigInternal::ActivateLastResult() {
-  return static_cast<const Future<bool> &>(future_impl_.LastResult(kRemoteConfigFnActivate));
+  return static_cast<const Future<bool> &>(state_->future_impl.LastResult(kRemoteConfigFnActivate));
 }
 
 Future<bool> RemoteConfigInternal::FetchAndActivate() {
-  const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
-  [impl() fetchAndActivateWithCompletionHandler:^(FIRRemoteConfigFetchAndActivateStatus status,
-                                                  NSError *error) {
+  const auto handle = state_->future_impl.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.CompleteWithResult(handle, kFutureStatusFailure,
+                                           "Remote Config is not initialized.", false);
+    return MakeFuture<bool>(&state_->future_impl, handle);
+  }
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  [rc fetchAndActivateWithCompletionHandler:^(FIRRemoteConfigFetchAndActivateStatus status,
+                                              NSError *error) {
+    {
+      MutexLock lock(state->mutex);
+      if (!state->alive) return;
+      if (error) {
+        UpdateThrottledEndTimeFromError(error, state.get());
+      } else if (status != FIRRemoteConfigFetchAndActivateStatusError) {
+        state->throttled_end_time_in_sec = 0;
+      }
+    }
     if (error) {
-      throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
-          error, &future_impl_, handle, false);
-
+      state->future_impl.CompleteWithResult(
+          handle, kFutureStatusFailure,
+          util::NSStringToString(error.localizedDescription).c_str(), false);
+    } else if (status == FIRRemoteConfigFetchAndActivateStatusError) {
+      state->future_impl.CompleteWithResult(
+          handle, kFutureStatusFailure, "FetchAndActivate encountered an error.", false);
     } else if (status == FIRRemoteConfigFetchAndActivateStatusSuccessUsingPreFetchedData) {
-      future_impl_.CompleteWithResult(
-          handle, kFutureStatusSuccess,
-          "Succeeded from already fetched but yet unexpired config data.", false);
+      state->future_impl.CompleteWithResult(handle, kFutureStatusSuccess, "", false);
     } else {
-      // Everything worked!
-      future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", true);
+      state->future_impl.CompleteWithResult(handle, kFutureStatusSuccess, "", true);
     }
   }];
-  return MakeFuture<bool>(&future_impl_, handle);
+  return MakeFuture<bool>(&state_->future_impl, handle);
 }
 
 Future<bool> RemoteConfigInternal::FetchAndActivateLastResult() {
   return static_cast<const Future<bool> &>(
-      future_impl_.LastResult(kRemoteConfigFnFetchAndActivate));
+      state_->future_impl.LastResult(kRemoteConfigFnFetchAndActivate));
 }
 
 Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
-  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnFetch);
-  [impl()
-      fetchWithExpirationDuration:cache_expiration_in_seconds
+  const auto handle = state_->future_impl.SafeAlloc<void>(kRemoteConfigFnFetch);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.Complete(handle, kFutureStatusFailure, "Remote Config is not initialized.");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  [rc fetchWithExpirationDuration:static_cast<NSTimeInterval>(cache_expiration_in_seconds)
                 completionHandler:^(FIRRemoteConfigFetchStatus status, NSError *error) {
-                  if (error) {
-                    if (error.userInfo) {
-                      throttled_end_time_in_sec_ =
-                          ((NSNumber *)error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey])
-                              .longLongValue;
+                  {
+                    MutexLock lock(state->mutex);
+                    if (!state->alive) return;
+                    if (error) {
+                      UpdateThrottledEndTimeFromError(error, state.get());
+                    } else if (status == FIRRemoteConfigFetchStatusSuccess) {
+                      state->throttled_end_time_in_sec = 0;
                     }
-                    // If we got an error code back, return that, with the associated string.
-                    future_impl_.Complete(
+                  }
+                  if (error) {
+                    state->future_impl.Complete(
                         handle, kFutureStatusFailure,
                         util::NSStringToString(error.localizedDescription).c_str());
                   } else if (status != FIRRemoteConfigFetchStatusSuccess) {
-                    future_impl_.Complete(
+                    state->future_impl.Complete(
                         handle, kFutureStatusFailure,
                         "Fetch encountered an error, either failed or throttled.");
                   } else {
-                    // Everything worked!
-                    future_impl_.Complete(handle, kFutureStatusSuccess);
+                    state->future_impl.Complete(handle, kFutureStatusSuccess);
                   }
                 }];
-  return MakeFuture<void>(&future_impl_, handle);
+  return MakeFuture<void>(&state_->future_impl, handle);
 }
 
 Future<void> RemoteConfigInternal::FetchLastResult() {
-  return static_cast<const Future<void> &>(future_impl_.LastResult(kRemoteConfigFnFetch));
+  return static_cast<const Future<void> &>(state_->future_impl.LastResult(kRemoteConfigFnFetch));
 }
 
 Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValueVariant *defaults,
                                                size_t number_of_defaults) {
-  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  const auto handle = state_->future_impl.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.Complete(handle, kFutureStatusFailure, "Remote Config is not initialized.");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
+  if (number_of_defaults > 0 && defaults == nullptr) {
+    LogError("Remote Config: SetDefaults() called with nullptr defaults and count %zu.",
+             number_of_defaults);
+    state_->future_impl.Complete(handle, kFutureStatusFailure,
+                                 "defaults cannot be nullptr when number_of_defaults > 0.");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
 
-  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  default_keys_.clear();
-  default_keys_.reserve(number_of_defaults);
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithCapacity:number_of_defaults];
+  std::vector<std::string> new_default_keys;
+  new_default_keys.reserve(number_of_defaults);
   for (size_t i = 0; i < number_of_defaults; ++i) {
     const char *key = defaults[i].key;
+    if (!key) {
+      LogError("Remote Config: SetDefaults() encountered a null key at index %zu.", i);
+      continue;
+    }
+    NSString *ns_key = @(key);
+    if (!ns_key) {
+      LogError("Remote Config: SetDefaults() encountered an invalid UTF-8 key at index %zu.", i);
+      continue;
+    }
+    if (defaults[i].value.is_null()) {
+      LogError("Remote Config: Null Variant is not supported in SetDefaults() for key %s.", key);
+      continue;
+    }
     id value = VariantToNSObject(defaults[i].value);
     if (value) {
-      dict[@(key)] = value;
-      default_keys_.push_back(key);
-    } else if (!defaults[i].value.is_null()) {
+      dict[ns_key] = value;
+      new_default_keys.push_back(key);
+    } else {
       LogError("Remote Config: Invalid Variant type for SetDefaults() key %s", key);
     }
   }
-  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    [impl() setDefaults:dict];
-    future_impl_.Complete(handle, kFutureStatusSuccess);
+  {
+    MutexLock lock(state_->mutex);
+    state_->default_keys = std::move(new_default_keys);
+  }
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  dispatch_async(state->serial_queue, ^{
+    {
+      MutexLock lock(state->mutex);
+      if (!state->alive) return;
+    }
+    [rc setDefaults:dict];
+    state->future_impl.Complete(handle, kFutureStatusSuccess);
   });
-  return MakeFuture<void>(&future_impl_, handle);
+  return MakeFuture<void>(&state_->future_impl, handle);
 }
 
 Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue *defaults,
                                                size_t number_of_defaults) {
-  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
-  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  default_keys_.clear();
-  default_keys_.reserve(number_of_defaults);
+  const auto handle = state_->future_impl.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.Complete(handle, kFutureStatusFailure, "Remote Config is not initialized.");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
+  if (number_of_defaults > 0 && defaults == nullptr) {
+    LogError("Remote Config: SetDefaults() called with nullptr defaults and count %zu.",
+             number_of_defaults);
+    state_->future_impl.Complete(handle, kFutureStatusFailure,
+                                 "defaults cannot be nullptr when number_of_defaults > 0.");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
+
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithCapacity:number_of_defaults];
+  std::vector<std::string> new_default_keys;
+  new_default_keys.reserve(number_of_defaults);
   for (size_t i = 0; i < number_of_defaults; ++i) {
     const char *key = defaults[i].key;
-    dict[@(key)] = @(defaults[i].value);
-    default_keys_.push_back(key);
+    const char *value = defaults[i].value;
+    if (!key) {
+      LogError("Remote Config: SetDefaults() encountered a null key at index %zu.", i);
+      continue;
+    }
+    if (!value) {
+      LogError("Remote Config: SetDefaults() encountered a null value for key %s.", key);
+      continue;
+    }
+    NSString *ns_key = @(key);
+    NSString *ns_value = @(value);
+    if (!ns_key || !ns_value) {
+      LogError("Remote Config: SetDefaults() encountered invalid UTF-8 for key %s.", key);
+      continue;
+    }
+    dict[ns_key] = ns_value;
+    new_default_keys.push_back(key);
   }
-  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    [impl() setDefaults:dict];
-    future_impl_.Complete(handle, kFutureStatusSuccess);
+  {
+    MutexLock lock(state_->mutex);
+    state_->default_keys = std::move(new_default_keys);
+  }
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  dispatch_async(state->serial_queue, ^{
+    {
+      MutexLock lock(state->mutex);
+      if (!state->alive) return;
+    }
+    [rc setDefaults:dict];
+    state->future_impl.Complete(handle, kFutureStatusSuccess);
   });
-  return MakeFuture<void>(&future_impl_, handle);
+  return MakeFuture<void>(&state_->future_impl, handle);
 }
 
 Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
-  return static_cast<const Future<void> &>(future_impl_.LastResult(kRemoteConfigFnSetDefaults));
+  return static_cast<const Future<void> &>(state_->future_impl.LastResult(kRemoteConfigFnSetDefaults));
 }
 
 Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
-  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
+  const auto handle = state_->future_impl.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.Complete(handle, kFutureStatusFailure, "Remote Config is not initialized.");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
   FIRRemoteConfigSettings *newConfigSettings = [[FIRRemoteConfigSettings alloc] init];
   newConfigSettings.minimumFetchInterval =
-      static_cast<NSTimeInterval>(settings.minimum_fetch_interval_in_milliseconds /
-                                  ::firebase::internal::kMillisecondsPerSecond);
-  newConfigSettings.fetchTimeout = static_cast<NSTimeInterval>(
-      settings.fetch_timeout_in_milliseconds / ::firebase::internal::kMillisecondsPerSecond);
-  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    [impl() setConfigSettings:newConfigSettings];
-    future_impl_.Complete(handle, kFutureStatusSuccess);
+      static_cast<NSTimeInterval>(settings.minimum_fetch_interval_in_milliseconds) /
+      static_cast<NSTimeInterval>(::firebase::internal::kMillisecondsPerSecond);
+  newConfigSettings.fetchTimeout =
+      static_cast<NSTimeInterval>(settings.fetch_timeout_in_milliseconds) /
+      static_cast<NSTimeInterval>(::firebase::internal::kMillisecondsPerSecond);
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  dispatch_async(state->serial_queue, ^{
+    {
+      MutexLock lock(state->mutex);
+      if (!state->alive) return;
+    }
+    [rc setConfigSettings:newConfigSettings];
+    state->future_impl.Complete(handle, kFutureStatusSuccess);
   });
-  return MakeFuture<void>(&future_impl_, handle);
+  return MakeFuture<void>(&state_->future_impl, handle);
 }
 
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void> &>(
-      future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+      state_->future_impl.LastResult(kRemoteConfigFnSetConfigSettings));
 }
 
 Future<void> RemoteConfigInternal::SetCustomSignals(
     const std::map<std::string, Variant>& custom_signals) {
   const auto handle =
-      future_impl_.SafeAlloc<void>(kRemoteConfigFnSetCustomSignals);
+      state_->future_impl.SafeAlloc<void>(kRemoteConfigFnSetCustomSignals);
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    state_->future_impl.Complete(handle, kFutureStatusFailure, "Remote Config is not initialized.");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
+  if (custom_signals.size() > kCustomSignalsMaxCount) {
+    LogError("Remote Config: Custom signals count (%zu) exceeds limit (%zu).",
+             custom_signals.size(), kCustomSignalsMaxCount);
+    state_->future_impl.Complete(handle, kFutureStatusFailure,
+                                 "Too many custom signals (maximum 100).");
+    return MakeFuture<void>(&state_->future_impl, handle);
+  }
   NSMutableDictionary* dict =
       [[NSMutableDictionary alloc] initWithCapacity:custom_signals.size()];
   for (const auto& pair : custom_signals) {
-    const char* key = pair.first.c_str();
+    if (pair.first.empty() || pair.first.size() > kCustomSignalsMaxKeyLength) {
+      LogError("Remote Config: Custom signal key length (%zu) must be in 1..%zu.",
+               pair.first.size(), kCustomSignalsMaxKeyLength);
+      state_->future_impl.Complete(
+          handle, kFutureStatusFailure,
+          "Custom signal key must be non-empty and at most 256 characters.");
+      return MakeFuture<void>(&state_->future_impl, handle);
+    }
+    NSString *ns_key = [[NSString alloc] initWithBytes:pair.first.data()
+                                                length:pair.first.size()
+                                              encoding:NSUTF8StringEncoding];
+    if (!ns_key) {
+      LogError("Remote Config: Custom signal key is not valid UTF-8.");
+      state_->future_impl.Complete(handle, kFutureStatusFailure,
+                                   "Custom signal key is not valid UTF-8.");
+      return MakeFuture<void>(&state_->future_impl, handle);
+    }
     if (pair.second.is_null()) {
-      dict[@(key)] = [NSNull null];
+      dict[ns_key] = [NSNull null];
     } else if (pair.second.is_string() || pair.second.is_int64() ||
                pair.second.is_double()) {
+      if (pair.second.is_string()) {
+        size_t str_len = pair.second.is_mutable_string()
+                             ? pair.second.mutable_string().size()
+                             : (pair.second.string_value() ? strlen(pair.second.string_value()) : 0);
+        if (str_len > kCustomSignalsMaxStringValueLength) {
+          LogError("Remote Config: Custom signal string value length (%zu) exceeds %zu.",
+                   str_len, kCustomSignalsMaxStringValueLength);
+          state_->future_impl.Complete(
+              handle, kFutureStatusFailure,
+              "Custom signal string value exceeds 500 characters.");
+          return MakeFuture<void>(&state_->future_impl, handle);
+        }
+      }
       id value = VariantToNSObject(pair.second);
       if (value) {
-        dict[@(key)] = value;
+        dict[ns_key] = value;
       } else {
-        future_impl_.Complete(
+        state_->future_impl.Complete(
             handle, kFutureStatusFailure,
-            "Invalid value type. Must be String, Int, Double, or Null.");
-        return MakeFuture<void>(&future_impl_, handle);
+            "Custom signal string value is not valid UTF-8.");
+        return MakeFuture<void>(&state_->future_impl, handle);
       }
     } else {
       LogError(
           "Remote Config: Invalid Variant type for SetCustomSignals() key %s.",
-          key);
-      future_impl_.Complete(
+          pair.first.c_str());
+      state_->future_impl.Complete(
           handle, kFutureStatusFailure,
           "Invalid value type. Must be String, Int, Double, or Null.");
-      return MakeFuture<void>(&future_impl_, handle);
+      return MakeFuture<void>(&state_->future_impl, handle);
     }
   }
-  [impl() setCustomSignals:dict
-            withCompletion:^(NSError* _Nullable error) {
-              if (error) {
-                future_impl_.Complete(
-                    handle, kFutureStatusFailure,
-                    util::NSStringToString(error.localizedDescription).c_str());
-              } else {
-                future_impl_.Complete(handle, kFutureStatusSuccess);
-              }
-            }];
-  return MakeFuture<void>(&future_impl_, handle);
+  std::shared_ptr<RemoteConfigIosState> state = state_;
+  [rc setCustomSignals:dict
+        withCompletion:^(NSError* _Nullable error) {
+          {
+            MutexLock lock(state->mutex);
+            if (!state->alive) return;
+          }
+          if (error) {
+            state->future_impl.Complete(
+                handle, kFutureStatusFailure,
+                util::NSStringToString(error.localizedDescription).c_str());
+          } else {
+            state->future_impl.Complete(handle, kFutureStatusSuccess);
+          }
+        }];
+  return MakeFuture<void>(&state_->future_impl, handle);
 }
 
 Future<void> RemoteConfigInternal::SetCustomSignalsLastResult() {
   return static_cast<const Future<void> &>(
-      future_impl_.LastResult(kRemoteConfigFnSetCustomSignals));
+      state_->future_impl.LastResult(kRemoteConfigFnSetCustomSignals));
 }
 
 ConfigSettings RemoteConfigInternal::GetConfigSettings() const {
   ConfigSettings settings;
-  FIRRemoteConfigSettings *config_settings = impl().configSettings;
+  FIRRemoteConfig *rc = impl();
+  if (!rc || !rc.configSettings) return settings;
+  FIRRemoteConfigSettings *config_settings = rc.configSettings;
+  double min_interval = config_settings.minimumFetchInterval;
+  double timeout = config_settings.fetchTimeout;
   settings.minimum_fetch_interval_in_milliseconds =
-      config_settings.minimumFetchInterval * ::firebase::internal::kMillisecondsPerSecond;
+      (min_interval > 0.0 && !std::isnan(min_interval) && !std::isinf(min_interval))
+          ? static_cast<uint64_t>(
+                std::llround(min_interval * ::firebase::internal::kMillisecondsPerSecond))
+          : 0;
   settings.fetch_timeout_in_milliseconds =
-      config_settings.fetchTimeout * ::firebase::internal::kMillisecondsPerSecond;
+      (timeout > 0.0 && !std::isnan(timeout) && !std::isinf(timeout))
+          ? static_cast<uint64_t>(
+                std::llround(timeout * ::firebase::internal::kMillisecondsPerSecond))
+          : 0;
   return settings;
 }
 
 bool RemoteConfigInternal::GetBoolean(const char *key, ValueInfo *info) {
   FIRRemoteConfigValue *value = GetValue(key, info, impl());
-  CheckBoolConversion(value, info);
-  return static_cast<bool>(value.boolValue);
+  if (!value) return false;
+  if (value.source == FIRRemoteConfigSourceStatic) {
+    if (info) info->conversion_successful = true;
+    return false;
+  }
+  std::string str = util::NSStringToString(value.stringValue);
+  bool parsed = false;
+  bool ok = ValueParser::ParseBoolean(str, &parsed);
+  if (info && info->conversion_successful) {
+    info->conversion_successful = ok;
+  }
+  return ok ? parsed : static_cast<bool>(value.boolValue);
 }
 
 int64_t RemoteConfigInternal::GetLong(const char *key, ValueInfo *info) {
   FIRRemoteConfigValue *value = GetValue(key, info, impl());
-  CheckLongConversion(value, info);
-  return value.numberValue.longLongValue;
+  if (!value) return 0;
+  if (value.source == FIRRemoteConfigSourceStatic) {
+    if (info) info->conversion_successful = true;
+    return 0;
+  }
+  std::string str = util::NSStringToString(value.stringValue);
+  int64_t parsed = 0;
+  bool ok = ValueParser::ParseInt64(str, &parsed);
+  if (info && info->conversion_successful) {
+    info->conversion_successful = ok;
+  }
+  return ok ? parsed : value.numberValue.longLongValue;
 }
 
 double RemoteConfigInternal::GetDouble(const char *key, ValueInfo *info) {
   FIRRemoteConfigValue *value = GetValue(key, info, impl());
-  CheckDoubleConversion(value, info);
-  return value.numberValue.doubleValue;
+  if (!value) return 0.0;
+  if (value.source == FIRRemoteConfigSourceStatic) {
+    if (info) info->conversion_successful = true;
+    return 0.0;
+  }
+  std::string str = util::NSStringToString(value.stringValue);
+  double parsed = 0.0;
+  bool ok = ValueParser::ParseDouble(str, &parsed);
+  if (info && info->conversion_successful) {
+    info->conversion_successful = ok;
+  }
+  return ok ? parsed : value.numberValue.doubleValue;
 }
 
 std::string RemoteConfigInternal::GetString(const char *key, ValueInfo *info) {
-  return util::NSStringToString(GetValue(key, info, impl()).stringValue);
+  FIRRemoteConfigValue *value = GetValue(key, info, impl());
+  if (!value) return "";
+  return util::NSStringToString(value.stringValue);
 }
 
 std::vector<unsigned char> RemoteConfigInternal::GetData(const char *key, ValueInfo *info) {
@@ -489,27 +725,36 @@ std::vector<unsigned char> RemoteConfigInternal::GetData(const char *key, ValueI
 std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(const char *prefix) {
   std::vector<std::string> keys;
   std::set<std::string> key_set;
-  NSSet<NSString *> *ios_keys;
-  NSString *prefix_string = prefix ? @(prefix) : nil;
-  ios_keys = [impl() keysWithPrefix:prefix_string];
-  for (NSString *key in ios_keys) {
-    keys.push_back(key.UTF8String);
-    key_set.insert(key.UTF8String);
+  FIRRemoteConfig *rc = impl();
+  if (rc) {
+    NSString *prefix_string = prefix ? @(prefix) : nil;
+    NSSet<NSString *> *ios_keys = [rc keysWithPrefix:prefix_string];
+    for (NSString *key in ios_keys) {
+      if (!key) continue;
+      std::string key_str = util::NSStringToString(key);
+      if (key_set.insert(key_str).second) {
+        keys.push_back(std::move(key_str));
+      }
+    }
+  }
+
+  std::vector<std::string> default_keys_copy;
+  if (state_) {
+    MutexLock lock(state_->mutex);
+    default_keys_copy = state_->default_keys;
   }
 
   // Add any extra keys that were previously included in defaults but not returned by
   // keysWithPrefix.
-  size_t prefix_length = prefix ? strlen(prefix) : 0;
-  for (auto i = default_keys_.begin(); i != default_keys_.end(); ++i) {
-    if (key_set.find(*i) != key_set.end()) {
-      // Already in the list of keys, no need to add it.
+  std::string prefix_str = prefix ? prefix : "";
+  for (const std::string &default_key : default_keys_copy) {
+    if (key_set.find(default_key) != key_set.end()) {
       continue;
     }
-    // If the prefix matches (or we have no prefix to compare), add it to the
-    // defaults list.
-    if (prefix_length == 0 || strncmp(prefix, i->c_str(), prefix_length) == 0) {
-      keys.push_back(*i);
-      key_set.insert(*i);  // In case the defaults vector has duplicate keys.
+    if (prefix_str.empty() ||
+        default_key.compare(0, prefix_str.size(), prefix_str) == 0) {
+      keys.push_back(default_key);
+      key_set.insert(default_key);
     }
   }
 
@@ -518,84 +763,89 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(const char *prefi
 
 std::vector<std::string> RemoteConfigInternal::GetKeys() { return GetKeysByPrefix(nullptr); }
 
-static Variant FIRValueToVariant(FIRRemoteConfigValue *in_value, ValueInfo *value_info) {
-  // int
-  value_info->conversion_successful = true;  // reset to get into check.
-  CheckLongConversion(in_value, value_info);
-  if (value_info->conversion_successful) {
-    return Variant::FromInt64(in_value.numberValue.longLongValue);
+static Variant FIRValueToVariant(FIRRemoteConfigValue *in_value) {
+  if (!in_value) {
+    LogError("Remote Config: Unable to convert a nil FIRRemoteConfigValue to Variant.");
+    return Variant::Null();
   }
-  // double
-  value_info->conversion_successful = true;  // reset to get into check.
-  CheckDoubleConversion(in_value, value_info);
-  if (value_info->conversion_successful) {
-    return Variant::FromDouble(in_value.numberValue.doubleValue);
+  if (in_value.stringValue != nil) {
+    return ValueParser::CoerceToVariant(util::NSStringToString(in_value.stringValue));
   }
-  // boolean
-  value_info->conversion_successful = true;  // reset to get into check.
-  CheckBoolConversion(in_value, value_info);
-  if (value_info->conversion_successful) {
-    return Variant::FromBool(static_cast<bool>(in_value.boolValue));
-  }
-  // string
-  if (in_value.stringValue) {
-    return Variant::FromMutableString(util::NSStringToString(in_value.stringValue));
-  }
-  // data
   NSData *data = in_value.dataValue;
-  if (data) {
-    int size = [data length] / sizeof(unsigned char);
+  if (data != nil) {
+    size_t size = static_cast<size_t>([data length]);
     const unsigned char *bytes = static_cast<const unsigned char *>([data bytes]);
+    if (size == 0 || !bytes) {
+      return Variant::FromMutableBlob("", 0);
+    }
     return Variant::FromMutableBlob(bytes, size);
   }
   // If get here, all conversion fails.
-  LogError("Remote Config: Unable to convert a FIRRemoteConfigValue to "
-           "Variant.");
+  LogError("Remote Config: Unable to convert a FIRRemoteConfigValue to Variant.");
   return Variant::Null();
 }
 
 std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
   std::map<std::string, Variant> value;
+  FIRRemoteConfig *rc = impl();
+  if (!rc) return value;
   std::vector<std::string> keys = GetKeys();
 
-  for (std::string key : keys) {
-    ValueInfo value_info;
-    FIRRemoteConfigValue *f_value;
-    f_value = [impl() configValueForKey:@(key.c_str())];
-    Variant v_value = FIRValueToVariant(f_value, &value_info);
-    value.insert(std::make_pair(key, v_value));
+  for (const std::string &key : keys) {
+    NSString *ns_key = @(key.c_str());
+    if (!ns_key) continue;
+    FIRRemoteConfigValue *f_value = [rc configValueForKey:ns_key];
+    Variant v_value = FIRValueToVariant(f_value);
+    value.insert(std::make_pair(key, std::move(v_value)));
   }
 
   return value;
 }
 
-const ConfigInfo RemoteConfigInternal::GetInfo() const {
+ConfigInfo RemoteConfigInternal::GetInfo() const {
   ConfigInfo config_info;
-  GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_in_sec_);
+  int64_t throttled_end_time = 0;
+  if (state_) {
+    MutexLock lock(state_->mutex);
+    throttled_end_time = state_->throttled_end_time_in_sec;
+  }
+  GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time);
   return config_info;
 }
 
 ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener(
-      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+    std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
-    FIRConfigUpdateListenerRegistration *registration;
-    registration = [impl() addOnConfigUpdateListener: ^(FIRRemoteConfigUpdate *_Nullable update,
-                                  NSError *_Nullable error) {
-          if (error) {
-            config_update_listener({}, ConvertFIRRemoteConfigUpdateError(error));
-            return;
-          }
+  FIRRemoteConfig *rc = impl();
+  if (!rc) {
+    return ConfigUpdateListenerRegistration();
+  }
+  std::weak_ptr<RemoteConfigIosState> weak_state = state_;
+  FIRConfigUpdateListenerRegistration *registration =
+      [rc addOnConfigUpdateListener:^(FIRRemoteConfigUpdate *_Nullable update,
+                                      NSError *_Nullable error) {
+        auto state = weak_state.lock();
+        if (!state) return;
+        {
+          MutexLock lock(state->mutex);
+          if (!state->alive) return;
+        }
+        if (!config_update_listener) return;
+        if (error) {
+          config_update_listener({}, ConvertFIRRemoteConfigUpdateError(error));
+          return;
+        }
+        config_update_listener(ConvertConfigUpdateKeys(update ? update.updatedKeys : nil),
+                               kRemoteConfigErrorNone);
+      }];
 
-          config_update_listener(ConvertConfigUpdateKeys(update.updatedKeys), kRemoteConfigErrorNone);
-    }];
-
-    ConfigUpdateListenerRegistrationInternal* registration_internal =
-        new ConfigUpdateListenerRegistrationInternal(this, [registration]() {
-          [registration remove];
-        });
+  ConfigUpdateListenerRegistrationInternal* registration_internal =
+      new ConfigUpdateListenerRegistrationInternal(this, [registration]() {
+        [registration remove];
+      });
   // Delete the internal registration when RemoteConfigInternal is cleaned up.
-  cleanup_notifier().RegisterObject(registration_internal, [](void* registration) {
-    delete reinterpret_cast<ConfigUpdateListenerRegistrationInternal*>(registration);
+  cleanup_notifier().RegisterObject(registration_internal, [](void* reg) {
+    delete reinterpret_cast<ConfigUpdateListenerRegistrationInternal*>(reg);
   });
 
   ConfigUpdateListenerRegistration registration_wrapper(registration_internal);

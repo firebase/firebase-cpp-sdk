@@ -44,6 +44,7 @@ namespace firestore {
 
 class Firestore;
 class ListenerRegistrationInternal;
+class LoadBundleProgressCompletion;
 class Transaction;
 class WriteBatch;
 
@@ -54,11 +55,16 @@ class PromiseFactory;
 // firebase::util::RegisterCallbackOnTask for context.
 extern const char kApiIdentifier[];
 
-// This is the Android implementation of Firestore. Cannot inherit WrapperFuture
-// as a valid FirestoreInternal is required to construct a WrapperFuture. So we
-// will implement the Future APIs on the fly.
+// This is the Android implementation of Firestore.
 class FirestoreInternal {
  public:
+  struct WeakTarget {
+    explicit WeakTarget(FirestoreInternal* instance) : firestore(instance) {}
+
+    std::recursive_mutex mutex;
+    FirestoreInternal* firestore = nullptr;
+  };
+
   // Each API of Firestore that returns a Future needs to define an enum
   // value here. For example, a Future-returning method Foo() relies on the enum
   // value kFoo. The enum values are used to identify and manage Future in the
@@ -75,8 +81,7 @@ class FirestoreInternal {
     kCount,  // Must be the last enum value.
   };
 
-  // Note: call `set_firestore_public` immediately after construction.
-  FirestoreInternal(App* app, const std::string& database_id);
+  FirestoreInternal(App* app, Firestore* firestore_public, const std::string& database_id);
   ~FirestoreInternal();
 
   App* app() const { return app_; }
@@ -87,9 +92,13 @@ class FirestoreInternal {
   // Manages all Future objects returned from Firestore API.
   FutureManager& future_manager() { return future_manager_; }
 
-  // When this is deleted, it will clean up all DatabaseReferences,
-  // DataSnapshots, and other such objects.
+  // When this is deleted, it will clean up all DocumentReferences,
+  // CollectionReferences, DocumentSnapshots, and other such objects.
   CleanupNotifier& cleanup() { return cleanup_; }
+
+  const std::shared_ptr<WeakTarget>& weak_target() const {
+    return weak_target_;
+  }
 
   // Returns a CollectionReference that refers to the specific path.
   CollectionReference Collection(const char* collection_path) const;
@@ -104,7 +113,7 @@ class FirestoreInternal {
   Settings settings() const;
 
   // Sets any custom settings used to configure this Firestore object.
-  void set_settings(Settings settings);
+  void set_settings(const Settings& settings);
 
   WriteBatch batch() const;
 
@@ -125,7 +134,10 @@ class FirestoreInternal {
   Future<void> ClearPersistence();
 
   ListenerRegistration AddSnapshotsInSyncListener(
-      EventListener<void>* listener, bool passing_listener_ownership = false);
+      EventListener<void>* listener);
+
+  ListenerRegistration AddSnapshotsInSyncListener(
+      std::unique_ptr<EventListener<void>> listener);
 
   ListenerRegistration AddSnapshotsInSyncListener(
       std::function<void()> callback);
@@ -135,6 +147,11 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
   void ClearListeners();
+
+  // Manages active LoadBundle progress listeners.
+  void RegisterBundleListener(LoadBundleProgressCompletion* listener);
+  void UnregisterBundleListener(LoadBundleProgressCompletion* listener);
+  void ClearBundleListeners(jni::Env& env);
 
   const std::string& database_name() const { return database_name_; }
 
@@ -206,14 +223,13 @@ class FirestoreInternal {
   std::unordered_set<ListenerRegistrationInternal*> listener_registrations_;
 
   Mutex bundle_listeners_mutex_;
-  // Using a list to ensure listener instances cannot outlive
-  // FirestoreInternal.
-  std::list<LambdaEventListener<LoadBundleTaskProgress>> bundle_listeners_;
+  std::unordered_set<LoadBundleProgressCompletion*> bundle_listeners_;
 
   FutureManager future_manager_;
   std::unique_ptr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
+  std::shared_ptr<WeakTarget> weak_target_;
 
   std::string database_name_;
 };
@@ -229,42 +245,22 @@ class FirestoreInternal {
 class FirestoreInternalWeakReference {
  public:
   explicit FirestoreInternalWeakReference(FirestoreInternal* firestore)
-      : firestore_(firestore) {
-    if (firestore_) {
-      firestore_->cleanup().RegisterObject(this, CleanUp);
-    }
-  }
+      : target_(firestore ? firestore->weak_target() : nullptr) {}
 
-  FirestoreInternalWeakReference(const FirestoreInternalWeakReference& rhs) {
-    std::lock_guard<std::recursive_mutex> lock(rhs.mutex_);
-    firestore_ = rhs.firestore_;
-    if (firestore_) {
-      firestore_->cleanup().RegisterObject(this, CleanUp);
-    }
-  }
+  FirestoreInternalWeakReference(const FirestoreInternalWeakReference& rhs) =
+      default;
+
+  FirestoreInternalWeakReference(
+      FirestoreInternalWeakReference&& rhs) noexcept = default;
 
   FirestoreInternalWeakReference& operator=(
       const FirestoreInternalWeakReference& rhs) = delete;
 
-  ~FirestoreInternalWeakReference() {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (firestore_) {
-      firestore_->cleanup().UnregisterObject(this);
-    }
-  }
+  ~FirestoreInternalWeakReference() = default;
 
  private:
-  static void CleanUp(void* obj) {
-    auto* instance = static_cast<FirestoreInternalWeakReference*>(obj);
-    std::lock_guard<std::recursive_mutex> lock(instance->mutex_);
-    instance->firestore_ = nullptr;
-  }
+  std::shared_ptr<FirestoreInternal::WeakTarget> target_;
 
-  mutable std::recursive_mutex mutex_;
-  FirestoreInternal* firestore_ = nullptr;
-
-  // Declare `Run()` after declaring `firestore_` so that `firestore_` can be
-  // referenced in the `decltype` return type of `Run()`.
  public:
   /**
    * Invokes the given function with the referent `FirestoreInternal` object,
@@ -280,19 +276,27 @@ class FirestoreInternalWeakReference {
    * thread and will not block.
    */
   template <typename CallbackT>
-  auto Run(CallbackT callback) -> decltype(callback(this->firestore_)) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return callback(firestore_);
+  auto Run(CallbackT callback) const
+      -> decltype(callback( static_cast<FirestoreInternal*>(nullptr))) {
+    if (!target_) {
+      return callback(nullptr);
+    }
+    std::lock_guard<std::recursive_mutex> lock(target_->mutex);
+    return callback(target_->firestore);
   }
 
   /**
    * Same as `Run()` except that it only invokes the given callback if the
    * `FirestoreInternal` pointer is non-null.
    */
-  void RunIfValid(const std::function<void(FirestoreInternal&)>& callback) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (firestore_) {
-      callback(*firestore_);
+  template <typename CallbackT>
+  void RunIfValid(CallbackT callback) const {
+    if (!target_) {
+      return;
+    }
+    std::lock_guard<std::recursive_mutex> lock(target_->mutex);
+    if (target_->firestore != nullptr) {
+      callback(*target_->firestore);
     }
   }
 };

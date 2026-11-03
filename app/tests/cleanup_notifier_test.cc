@@ -414,5 +414,29 @@ TEST_F(TypedCleanupNotifierTest,
   EXPECT_EQ(obj.counter, 2);
 }
 
+TEST_F(CleanupNotifierTest, TestRegisterAfterCleanupAllIsCleanedUp) {
+  Object obj1(0), obj2(0);
+  {
+    CleanupNotifier cleanup;
+    cleanup.RegisterObject(&obj1, Object::IncrementCounter);
+    cleanup.CleanupAll();
+    EXPECT_EQ(obj1.counter, 1);
+    cleanup.RegisterObject(&obj2, Object::IncrementCounter);
+  }
+  EXPECT_EQ(obj1.counter, 1);
+  EXPECT_EQ(obj2.counter, 1);
+}
+
+TEST_F(CleanupNotifierOwnerRegistryTest,
+       TestDestroyEmptyNotifierWhileAnotherExists) {
+  int owner = 42;
+  CleanupNotifier notifier1;
+  {
+    CleanupNotifier notifier2;
+  }
+  notifier1.RegisterOwner(&owner);
+  EXPECT_EQ(&notifier1, CleanupNotifier::FindByOwner(&owner));
+}
+
 }  // namespace testing
 }  // namespace firebase

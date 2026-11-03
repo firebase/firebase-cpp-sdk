@@ -51,7 +51,7 @@ METHOD_LOOKUP_DEFINITION(mutable_data,
 
 MutableDataInternal::MutableDataInternal(DatabaseInternal* db, jobject obj)
     : db_(db) {
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
+  obj_ = obj ? db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj) : nullptr;
 }
 
 MutableDataInternal::~MutableDataInternal() {
@@ -74,14 +74,21 @@ void MutableDataInternal::Terminate(App* app) {
 }
 
 MutableDataInternal* MutableDataInternal::Child(const char* path) {
+  if (path == nullptr) return nullptr;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring path_string = env->NewStringUTF(path);
+  if (util::CheckAndClearJniExceptions(env) || path_string == nullptr) {
+    if (path_string != nullptr) env->DeleteLocalRef(path_string);
+    return nullptr;
+  }
   jobject child_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kChild), path_string);
   env->DeleteLocalRef(path_string);
   if (util::LogException(
           env, kLogLevelWarning,
-          "MutableData::Child(): Couldn't create child reference %s", path)) {
+          "MutableData::Child(): Couldn't create child reference %s", path) ||
+      child_obj == nullptr) {
+    if (child_obj != nullptr) env->DeleteLocalRef(child_obj);
     return nullptr;
   }
   MutableDataInternal* internal = new MutableDataInternal(db_, child_obj);
@@ -96,15 +103,32 @@ std::vector<MutableData> MutableDataInternal::GetChildren() {
   // iterable = mutable_data.getChildren()
   jobject iterable = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetChildren));
+  if (util::CheckAndClearJniExceptions(env) || iterable == nullptr) {
+    if (iterable != nullptr) env->DeleteLocalRef(iterable);
+    return result;
+  }
   // iterator = iterable.iterator()
   jobject iterator = env->CallObjectMethod(
       iterable, util::iterable::GetMethodId(util::iterable::kIterator));
+  if (util::CheckAndClearJniExceptions(env) || iterator == nullptr) {
+    if (iterator != nullptr) env->DeleteLocalRef(iterator);
+    env->DeleteLocalRef(iterable);
+    return result;
+  }
   // while (iterator.hasNext())
-  while (env->CallBooleanMethod(
-      iterator, util::iterator::GetMethodId(util::iterator::kHasNext))) {
+  while (true) {
+    jboolean has_next = env->CallBooleanMethod(
+        iterator, util::iterator::GetMethodId(util::iterator::kHasNext));
+    if (util::CheckAndClearJniExceptions(env) || !has_next) {
+      break;
+    }
     // MutableData java_mutable_data = iterator.next();
     jobject java_mutable_data = env->CallObjectMethod(
         iterator, util::iterator::GetMethodId(util::iterator::kNext));
+    if (util::CheckAndClearJniExceptions(env) || java_mutable_data == nullptr) {
+      if (java_mutable_data != nullptr) env->DeleteLocalRef(java_mutable_data);
+      break;
+    }
     result.push_back(
         MutableData(new MutableDataInternal(db_, java_mutable_data)));
     env->DeleteLocalRef(java_mutable_data);
@@ -116,42 +140,61 @@ std::vector<MutableData> MutableDataInternal::GetChildren() {
 
 size_t MutableDataInternal::GetChildrenCount() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  return env->CallLongMethod(
+  jlong count = env->CallLongMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetChildrenCount));
+  if (util::CheckAndClearJniExceptions(env) || count < 0) {
+    return 0;
+  }
+  return static_cast<size_t>(count);
 }
 
 const char* MutableDataInternal::GetKey() {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  MutexLock lock(key_mutex_);
   if (cached_key_.is_null()) {
+    JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, mutable_data::GetMethodId(mutable_data::kGetKey)));
     if (util::LogException(env, kLogLevelError,
                            "MutableData::GetKey() failed")) {
+      if (key_string != nullptr) env->DeleteLocalRef(key_string);
       return nullptr;
     }
     if (key_string == nullptr) {
-      // For the root MutableData, the Key will be null
-      return nullptr;
+      // For the root MutableData, the Key will be null in Java; return "".
+      cached_key_ = Variant::EmptyMutableString();
+    } else {
+      const char* key = env->GetStringUTFChars(key_string, nullptr);
+      if (util::CheckAndClearJniExceptions(env) || key == nullptr) {
+        if (key != nullptr) {
+          env->ReleaseStringUTFChars(key_string, key);
+        }
+        env->DeleteLocalRef(key_string);
+        return nullptr;
+      }
+      cached_key_ = Variant::MutableStringFromStaticString(key);
+      env->ReleaseStringUTFChars(key_string, key);
+      env->DeleteLocalRef(key_string);
     }
-    const char* key = env->GetStringUTFChars(key_string, nullptr);
-    cached_key_ = Variant::MutableStringFromStaticString(key);
-    env->ReleaseStringUTFChars(key_string, key);
-    env->DeleteLocalRef(key_string);
   }
   return cached_key_.string_value();
 }
 
 std::string MutableDataInternal::GetKeyString() {
-  (void)GetKey();
-  return cached_key_.is_string() ? cached_key_.mutable_string() : "";
+  MutexLock lock(key_mutex_);
+  const char* key = GetKey();
+  return key != nullptr ? std::string(key) : std::string();
 }
 
 Variant MutableDataInternal::GetValue() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject value_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetValue));
+  if (util::CheckAndClearJniExceptions(env)) {
+    if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
+    return Variant::Null();
+  }
   Variant v = internal::JavaObjectToVariant(env, value_obj);
-  env->DeleteLocalRef(value_obj);
+  if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
   return v;
 }
 
@@ -159,14 +202,23 @@ Variant MutableDataInternal::GetPriority() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject value_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetPriority));
+  if (util::CheckAndClearJniExceptions(env)) {
+    if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
+    return Variant::Null();
+  }
   Variant v = internal::JavaObjectToVariant(env, value_obj);
-  env->DeleteLocalRef(value_obj);
+  if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
   return v;
 }
 
 bool MutableDataInternal::HasChild(const char* path) const {
+  if (path == nullptr) return false;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring path_string = env->NewStringUTF(path);
+  if (util::CheckAndClearJniExceptions(env) || path_string == nullptr) {
+    if (path_string != nullptr) env->DeleteLocalRef(path_string);
+    return false;
+  }
   jboolean has_child = env->CallBooleanMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kHasChild), path_string);
   env->DeleteLocalRef(path_string);
@@ -177,16 +229,20 @@ bool MutableDataInternal::HasChild(const char* path) const {
   return has_child;
 }
 
-void MutableDataInternal::SetValue(Variant value) {
+void MutableDataInternal::SetValue(const Variant& value) {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject value_java = internal::VariantToJavaObject(env, value);
+  if (!value.is_null() && value_java == nullptr) {
+    db_->logger()->LogError("MutableData::SetValue() failed: invalid Variant");
+    return;
+  }
   env->CallVoidMethod(obj_, mutable_data::GetMethodId(mutable_data::kSetValue),
                       value_java);
   util::LogException(env, kLogLevelError, "MutableData::SetValue() failed");
-  env->DeleteLocalRef(value_java);
+  if (value_java != nullptr) env->DeleteLocalRef(value_java);
 }
 
-void MutableDataInternal::SetPriority(Variant priority) {
+void MutableDataInternal::SetPriority(const Variant& priority) {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   if (!IsValidPriority(priority)) {
     db_->logger()->LogError(
@@ -194,12 +250,17 @@ void MutableDataInternal::SetPriority(Variant priority) {
         "Container types (Vector/Map) are not allowed.");
   } else {
     jobject priority_java = internal::VariantToJavaObject(env, priority);
+    if (!priority.is_null() && priority_java == nullptr) {
+      db_->logger()->LogError(
+          "MutableData::SetPriority() failed: invalid Variant");
+      return;
+    }
     env->CallVoidMethod(obj_,
                         mutable_data::GetMethodId(mutable_data::kSetPriority),
                         priority_java);
     util::LogException(env, kLogLevelError,
                        "MutableData::SetPriority() failed");
-    env->DeleteLocalRef(priority_java);
+    if (priority_java != nullptr) env->DeleteLocalRef(priority_java);
   }
 }
 

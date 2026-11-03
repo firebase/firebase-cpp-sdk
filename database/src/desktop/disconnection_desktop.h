@@ -27,12 +27,19 @@ namespace internal {
 
 class DatabaseInternal;
 
-// The iOS implementation of the Disconnection handler, which allows you to
+// The desktop implementation of the Disconnection handler, which allows you to
 // register server-side actions to occur when the client disconnects.
 class DisconnectionHandlerInternal {
  public:
   explicit DisconnectionHandlerInternal(DatabaseInternal* database,
                                         const Path& path);
+
+  DisconnectionHandlerInternal(const DisconnectionHandlerInternal&) = delete;
+  DisconnectionHandlerInternal& operator=(const DisconnectionHandlerInternal&) =
+      delete;
+  DisconnectionHandlerInternal(DisconnectionHandlerInternal&&) = delete;
+  DisconnectionHandlerInternal& operator=(DisconnectionHandlerInternal&&) =
+      delete;
 
   ~DisconnectionHandlerInternal();
 
@@ -86,7 +93,7 @@ class DisconnectionHandlerInternal {
  private:
   ReferenceCountedFutureImpl* future();
 
-  DatabaseInternal* database_;
+  DatabaseInternal* database_ = nullptr;
 
   Path path_;
 };

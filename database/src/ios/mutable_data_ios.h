@@ -15,8 +15,11 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_MUTABLE_DATA_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_MUTABLE_DATA_IOS_H_
 
-#include <string>
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <vector>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_ios.h"
 #include "database/src/include/firebase/database/mutable_data.h"
@@ -33,14 +36,17 @@ namespace internal {
 // wrapper around the FIRMutableData Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRMutableData);
 
-#pragma clang assume_nonnull begin
-
 class DatabaseReferenceInternal;
 
 // The iOS implementation of MutableData, which encapsulates the data and
 // priority at a location.
 class MutableDataInternal {
  public:
+  MutableDataInternal(const MutableDataInternal&) = delete;
+  MutableDataInternal& operator=(const MutableDataInternal&) = delete;
+  MutableDataInternal(MutableDataInternal&&) = delete;
+  MutableDataInternal& operator=(MutableDataInternal&&) = delete;
+
   ~MutableDataInternal();
 
   // Used to obtain a MutableData instance that encapsulates the data and
@@ -51,7 +57,7 @@ class MutableDataInternal {
   std::vector<MutableData> GetChildren();
 
   // Get the number of children of this location.
-  size_t GetChildrenCount();
+  size_t GetChildrenCount() const;
 
   // Get the key name of the source location of this data.
   const char* GetKey() const;
@@ -63,17 +69,17 @@ class MutableDataInternal {
   Variant GetValue() const;
 
   // Get the priority of the data contained at this snapshot.
-  Variant GetPriority();
+  Variant GetPriority() const;
 
   // Does this MutableData have data at a particular location?
   bool HasChild(const char* path) const;
 
   // Sets the data at this location to the given value.
-  void SetValue(Variant value);
+  void SetValue(const Variant& value);
 
   // Sets the priority of this field, which controls its sort order relative to
   // its siblings.
-  void SetPriority(Variant priority);
+  void SetPriority(const Variant& priority);
 
   // Returns a pointer to the database this MutableData is from.
   DatabaseInternal* database_internal() const { return db_; }
@@ -85,14 +91,13 @@ class MutableDataInternal {
                       std::unique_ptr<FIRMutableDataPointer> impl);
 
 #ifdef __OBJC__
-  FIRMutableData* impl() const { return impl_->get(); }
+  FIRMutableData* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
 
   DatabaseInternal* db_;
   std::unique_ptr<FIRMutableDataPointer> impl_;
+  std::string cached_key_;
 };
-
-#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace database

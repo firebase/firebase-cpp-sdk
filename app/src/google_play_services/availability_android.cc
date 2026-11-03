@@ -18,11 +18,15 @@
 
 #include <jni.h>
 
-#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "app/google_api_resources.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
@@ -34,6 +38,8 @@ namespace {
 using firebase::Future;
 using firebase::FutureHandle;
 using firebase::JNINativeMethod;
+using firebase::Mutex;
+using firebase::MutexLock;
 
 // clang-format off
 #define GOOGLE_API_AVAILABILITY_METHODS(X)                                     \
@@ -112,19 +118,37 @@ struct AvailabilityData {
   Availability cached_availability;
 };
 
-AvailabilityData* g_data = nullptr;
+static Mutex* g_availability_mutex = new Mutex();
+static std::shared_ptr<AvailabilityData>* g_data = nullptr;
+static JavaVM* g_vm = nullptr;
+// Number of references to this module via Initialize() vs. Terminate().
+static unsigned int g_initialized_count = 0;
+static bool g_implicitly_initialized = false;
+
+std::shared_ptr<AvailabilityData> GetAvailabilityDataLocked() {
+  return g_data ? *g_data : nullptr;
+}
 
 JNIEXPORT void JNICALL GoogleApiAvailabilityHelper_onCompleteNative(
     JNIEnv* env, jobject clazz, jint status_code, jstring status_message) {
-  // If the API is not loaded, this will be nullptr.
-  if (g_data != nullptr) {
-    if (status_code == 0) {
-      g_data->fetched_availability = true;
-      g_data->cached_availability = kAvailabilityAvailable;
+  (void)clazz;
+  std::string message =
+      firebase::util::JniStringToString(env, status_message);
+  std::shared_ptr<AvailabilityData> data;
+  firebase::SafeFutureHandle<void> handle;
+  {
+    MutexLock lock(*g_availability_mutex);
+    data = GetAvailabilityDataLocked();
+    if (data != nullptr) {
+      if (status_code == 0) {
+        data->fetched_availability = true;
+        data->cached_availability = kAvailabilityAvailable;
+      }
+      handle = data->future_handle_make;
     }
-    g_data->future_impl.Complete(
-        g_data->future_handle_make, status_code,
-        firebase::util::JniStringToString(env, status_message).c_str());
+  }
+  if (data != nullptr) {
+    data->future_impl.Complete(handle, status_code, message.c_str());
   }
 }
 
@@ -137,21 +161,31 @@ void ReleaseClasses(JNIEnv* env) {
   googleapiavailabilityhelper::ReleaseClass(env);
 }
 
-// Number of references to this module via Initialize() vs. Terminate().
-static unsigned int g_initialized_count = 0;
-
 }  // namespace
 
 bool Initialize(JNIEnv* env, jobject activity) {
+  if (!env || !activity) return false;
+  MutexLock lock(*g_availability_mutex);
+  env->GetJavaVM(&g_vm);
+  if (g_implicitly_initialized && GetAvailabilityDataLocked() != nullptr) {
+    // Adopt the implicit initialization reference from a prior
+    // CheckAvailability/MakeAvailable call.
+    g_implicitly_initialized = false;
+    g_initialized_count++;
+    return true;
+  }
   g_initialized_count++;
 
-  if (g_data != nullptr) {
+  if (GetAvailabilityDataLocked() != nullptr) {
     // Already initialized.
     return true;
   }
 
   // Instantiate where we store stuff.
-  g_data = new AvailabilityData();
+  if (!g_data) {
+    g_data = new std::shared_ptr<AvailabilityData>();
+  }
+  *g_data = std::make_shared<AvailabilityData>();
 
   // We depend on firebase::util, so initialize it.
   if (firebase::util::Initialize(env, activity)) {
@@ -177,10 +211,18 @@ bool Initialize(JNIEnv* env, jobject activity) {
           googleapiavailabilityhelper::RegisterNatives(
               env, kHelperMethods, FIREBASE_ARRAYSIZE(kHelperMethods))) {
         // Everything initialized properly.
-        g_data->classes_loaded = true;
+        (*g_data)->classes_loaded = true;
         return true;
       }
+      if (env->ExceptionCheck()) {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+      }
       ReleaseClasses(env);
+    }
+    if (env->ExceptionCheck()) {
+      env->ExceptionDescribe();
+      env->ExceptionClear();
     }
     firebase::util::Terminate(env);
   }
@@ -189,7 +231,7 @@ bool Initialize(JNIEnv* env, jobject activity) {
     env->ExceptionClear();
   }
   firebase::LogError(
-      "Unable to check Google Play services availablity as the "
+      "Unable to check Google Play services availability as the "
       "com.google.android.gms.common.GoogleApiAvailability class is not "
       "present in this application.");
   delete g_data;
@@ -199,34 +241,87 @@ bool Initialize(JNIEnv* env, jobject activity) {
 }
 
 void Terminate(JNIEnv* env) {
-  if (g_initialized_count == 0) {
-    // Nothing to terminate.
-    firebase::LogWarning("Extraneous call to google_play_services::Terminate");
-    return;
-  }
-  g_initialized_count--;
-  if (g_data && g_initialized_count == 0) {
-    if (g_data->classes_loaded) {
-      env->CallStaticVoidMethod(
-          googleapiavailabilityhelper::GetClass(),
-          googleapiavailabilityhelper::GetMethodId(
-              googleapiavailabilityhelper::kStopCallbacks));
-      firebase::util::CheckAndClearJniExceptions(env);
-      ReleaseClasses(env);
-      firebase::util::Terminate(env);
+  std::shared_ptr<AvailabilityData> data_to_destroy;
+  jclass helper_class_local = nullptr;
+  jmethodID stop_callbacks_method = nullptr;
+  bool should_cleanup_classes = false;
+  {
+    MutexLock lock(*g_availability_mutex);
+    if (g_initialized_count == 0 && !g_implicitly_initialized) {
+      // Nothing to terminate.
+      firebase::LogWarning("Extraneous call to google_play_services::Terminate");
+      return;
     }
-    delete g_data;
-    g_data = nullptr;
+    if (env == nullptr && g_vm != nullptr) {
+      env = firebase::util::GetThreadsafeJNIEnv(g_vm);
+    }
+    if (env == nullptr) {
+      env = firebase::util::GetJNIEnvFromApp();
+    }
+    std::shared_ptr<AvailabilityData> current_data = GetAvailabilityDataLocked();
+    bool will_destroy = (g_initialized_count == 1) || (g_initialized_count == 0 && g_implicitly_initialized);
+    if (will_destroy && current_data && current_data->classes_loaded && env == nullptr) {
+      firebase::LogWarning(
+          "google_play_services::Terminate called with null JNIEnv "
+          "and no JVM available; deferring class cleanup.");
+      return;
+    }
+    if (g_initialized_count > 0) {
+      g_initialized_count--;
+    }
+    g_implicitly_initialized = false;
+    if (current_data && g_initialized_count == 0) {
+      data_to_destroy = std::move(*g_data);
+      delete g_data;
+      g_data = nullptr;
+      if (data_to_destroy->classes_loaded && env != nullptr) {
+        should_cleanup_classes = true;
+        jclass helper_class = googleapiavailabilityhelper::GetClass();
+        if (helper_class != nullptr) {
+          helper_class_local =
+              static_cast<jclass>(env->NewLocalRef(helper_class));
+        }
+        stop_callbacks_method = googleapiavailabilityhelper::GetMethodId(
+            googleapiavailabilityhelper::kStopCallbacks);
+      }
+    }
   }
+  if (should_cleanup_classes && env != nullptr) {
+    if (helper_class_local != nullptr && stop_callbacks_method != nullptr) {
+      env->CallStaticVoidMethod(helper_class_local, stop_callbacks_method);
+      firebase::util::CheckAndClearJniExceptions(env);
+    }
+    if (helper_class_local != nullptr) {
+      env->DeleteLocalRef(helper_class_local);
+    }
+    {
+      MutexLock lock(*g_availability_mutex);
+      if (g_initialized_count == 0) {
+        ReleaseClasses(env);
+        firebase::util::Terminate(env);
+      }
+    }
+  }
+  data_to_destroy.reset();
 }
 
 Availability CheckAvailability(JNIEnv* env, jobject activity) {
-  if (!g_data && !Initialize(env, activity)) {
-    // Only initializes if necessary, e.g. before App.
-    return kAvailabilityUnavailableOther;
-  }
+  if (!env || !activity) return kAvailabilityUnavailableOther;
+  std::shared_ptr<AvailabilityData> data;
+  {
+    MutexLock lock(*g_availability_mutex);
+    if (GetAvailabilityDataLocked() == nullptr) {
+      if (!Initialize(env, activity)) {
+        // Only initializes if necessary, e.g. before App.
+        return kAvailabilityUnavailableOther;
+      }
+      g_implicitly_initialized = true;
+      g_initialized_count--;
+    }
 
-  if (g_data->fetched_availability) return g_data->cached_availability;
+    data = GetAvailabilityDataLocked();
+    if (data->fetched_availability) return data->cached_availability;
+  }
 
   jobject api = env->CallStaticObjectMethod(
       googleapiavailability::GetClass(),
@@ -237,14 +332,20 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
         googleapiavailability::GetMethodId(
             googleapiavailability::kIsGooglePlayServicesAvailable),
         activity);
-    firebase::util::CheckAndClearJniExceptions(env);
+    bool exception = firebase::util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(api);
-    for (size_t i = 0; i < FIREBASE_ARRAYSIZE(ConnectionResultToAvailability);
-         i++) {
-      if (result == ConnectionResultToAvailability[i].java) {
-        g_data->cached_availability = ConnectionResultToAvailability[i].cpp;
-        g_data->fetched_availability = true;
-        return g_data->cached_availability;
+    if (!exception) {
+      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(ConnectionResultToAvailability);
+           i++) {
+        if (result == ConnectionResultToAvailability[i].java) {
+          Availability availability = ConnectionResultToAvailability[i].cpp;
+          if (availability == kAvailabilityAvailable) {
+            MutexLock lock(*g_availability_mutex);
+            data->cached_availability = availability;
+            data->fetched_availability = true;
+          }
+          return availability;
+        }
       }
     }
   }
@@ -253,6 +354,8 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
 
 struct CallData {
   // Thread-safe call data.
+  std::shared_ptr<AvailabilityData> availability_data;
+  firebase::SafeFutureHandle<void> future_handle;
   JavaVM* vm;
   jobject activity_global;
 };
@@ -261,61 +364,136 @@ void CallMakeAvailable(void* data) {
   CallData* call_data = reinterpret_cast<CallData*>(data);
   JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(call_data->vm);
   if (env != nullptr) {
-    jboolean result = env->CallStaticBooleanMethod(
-        googleapiavailabilityhelper::GetClass(),
-        googleapiavailabilityhelper::GetMethodId(
-            googleapiavailabilityhelper::kMakeGooglePlayServicesAvailable),
-        call_data->activity_global);
-    firebase::util::CheckAndClearJniExceptions(env);
-    env->DeleteGlobalRef(call_data->activity_global);
-    if (result == JNI_FALSE) {
-      g_data->future_impl.Complete(
-          g_data->future_handle_make, -1,
+    jclass helper_class_local = nullptr;
+    jmethodID make_available_method = nullptr;
+    {
+      MutexLock lock(*g_availability_mutex);
+      std::shared_ptr<AvailabilityData> current_data =
+          GetAvailabilityDataLocked();
+      if (current_data != nullptr &&
+          current_data == call_data->availability_data &&
+          current_data->classes_loaded &&
+          googleapiavailabilityhelper::GetClass() != nullptr) {
+        helper_class_local = static_cast<jclass>(
+            env->NewLocalRef(googleapiavailabilityhelper::GetClass()));
+        make_available_method = googleapiavailabilityhelper::GetMethodId(
+            googleapiavailabilityhelper::kMakeGooglePlayServicesAvailable);
+      }
+    }
+    bool failed = true;
+    if (helper_class_local != nullptr && make_available_method != nullptr) {
+      jboolean result = env->CallStaticBooleanMethod(
+          helper_class_local, make_available_method,
+          call_data->activity_global);
+      bool exception_thrown = firebase::util::CheckAndClearJniExceptions(env);
+      failed = exception_thrown || (result == JNI_FALSE);
+    }
+    if (helper_class_local != nullptr) {
+      env->DeleteLocalRef(helper_class_local);
+    }
+    if (failed && call_data->availability_data != nullptr) {
+      call_data->availability_data->future_impl.Complete(
+          call_data->future_handle, -1,
           "Call to makeGooglePlayServicesAvailable failed.");
+    }
+    if (call_data->activity_global != nullptr) {
+      env->DeleteGlobalRef(call_data->activity_global);
+    }
+  } else {
+    if (call_data->availability_data != nullptr) {
+      call_data->availability_data->future_impl.Complete(
+          call_data->future_handle, -1,
+          "Call to makeGooglePlayServicesAvailable failed.");
+    }
+    if (call_data->activity_global != nullptr) {
+      JNIEnv* cleanup_env = firebase::util::GetJNIEnvFromApp();
+      if (cleanup_env != nullptr) {
+        cleanup_env->DeleteGlobalRef(call_data->activity_global);
+      }
     }
   }
   delete call_data;
 }
 
 Future<void> MakeAvailable(JNIEnv* env, jobject activity) {
-  bool is_initialized = g_data || Initialize(env, activity);
-  bool ran_function = false;
-
-  if (g_data && !g_data->future_impl.ValidFuture(g_data->future_handle_make)) {
-    g_data->future_handle_make =
-        g_data->future_impl.SafeAlloc<void>(kAvailabilityFnMakeAvail);
-
-    if (g_data->fetched_availability &&
-        g_data->cached_availability == kAvailabilityAvailable) {
-      g_data->future_impl.Complete(g_data->future_handle_make, 0, "");
-      ran_function = true;
-    } else if (is_initialized && googleapiavailability::GetClass() != nullptr) {
-      jobject api =
-          env->CallStaticObjectMethod(googleapiavailability::GetClass(),
-                                      googleapiavailability::GetMethodId(
-                                          googleapiavailability::kGetInstance));
-      if (!firebase::util::CheckAndClearJniExceptions(env) && api != nullptr) {
-        CallData* call_data = new CallData();  // deleted in CallMakeAvailable
-        env->GetJavaVM(&call_data->vm);
-        call_data->activity_global = env->NewGlobalRef(activity);
-        firebase::util::RunOnMainThread(env, call_data->activity_global,
-                                        CallMakeAvailable, call_data);
-        ran_function = true;
-        env->DeleteLocalRef(api);
+  if (!env || !activity) return Future<void>();
+  std::shared_ptr<AvailabilityData> data;
+  firebase::SafeFutureHandle<void> handle_to_complete;
+  bool should_complete_immediately = false;
+  int complete_error = 0;
+  const char* complete_message = "";
+  {
+    MutexLock lock(*g_availability_mutex);
+    bool is_initialized = (GetAvailabilityDataLocked() != nullptr);
+    if (!is_initialized) {
+      is_initialized = InitializeLocked(env, activity);
+      if (is_initialized) {
+        g_implicitly_initialized = true;
+        g_initialized_count--;
       }
     }
-    if (!ran_function) {
-      g_data->future_impl.Complete(g_data->future_handle_make, -2,
-                                   "GoogleApiAvailability was unavailable.");
+    data = GetAvailabilityDataLocked();
+    if (!data) {
+      return Future<void>();
     }
+    Future<void> last_result = static_cast<const Future<void>&>(
+        data->future_impl.LastResult(kAvailabilityFnMakeAvail));
+    if (last_result.status() == firebase::kFutureStatusPending) {
+      return last_result;
+    }
+
+    data->future_handle_make =
+        data->future_impl.SafeAlloc<void>(kAvailabilityFnMakeAvail);
+    handle_to_complete = data->future_handle_make;
+
+    if (data->fetched_availability &&
+        data->cached_availability == kAvailabilityAvailable) {
+      should_complete_immediately = true;
+      complete_error = 0;
+      complete_message = "";
+    } else {
+      bool scheduled = false;
+      if (is_initialized && googleapiavailability::GetClass() != nullptr) {
+        jobject api = env->CallStaticObjectMethod(
+            googleapiavailability::GetClass(),
+            googleapiavailability::GetMethodId(
+                googleapiavailability::kGetInstance));
+        if (!firebase::util::CheckAndClearJniExceptions(env) &&
+            api != nullptr) {
+          CallData* call_data = new CallData();  // deleted in CallMakeAvailable
+          call_data->availability_data = data;
+          call_data->future_handle = handle_to_complete;
+          env->GetJavaVM(&call_data->vm);
+          call_data->activity_global = env->NewGlobalRef(activity);
+          firebase::util::RunOnMainThread(env, call_data->activity_global,
+                                          CallMakeAvailable, call_data);
+          scheduled = true;
+          env->DeleteLocalRef(api);
+        }
+      }
+      if (!scheduled) {
+        should_complete_immediately = true;
+        complete_error = -2;
+        complete_message = "GoogleApiAvailability was unavailable.";
+      }
+    }
+  }
+  if (should_complete_immediately && data != nullptr) {
+    data->future_impl.Complete(handle_to_complete, complete_error,
+                               complete_message);
   }
   return MakeAvailableLastResult();
 }
 
 Future<void> MakeAvailableLastResult() {
-  if (g_data != nullptr) {
+  std::shared_ptr<AvailabilityData> data;
+  {
+    MutexLock lock(*g_availability_mutex);
+    data = GetAvailabilityDataLocked();
+  }
+  if (data != nullptr) {
     return static_cast<const Future<void>&>(
-        g_data->future_impl.LastResult(kAvailabilityFnMakeAvail));
+        data->future_impl.LastResult(kAvailabilityFnMakeAvail));
   } else {
     return Future<void>();
   }

@@ -15,9 +15,6 @@
  */
 
 #include "firestore/src/android/set_options_android.h"
-#include <cassert>
-
-#include <utility>
 
 #include "app/src/assert.h"
 #include "firestore/src/android/field_path_android.h"

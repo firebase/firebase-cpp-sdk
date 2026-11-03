@@ -15,9 +15,11 @@
  */
 
 #include "firestore/src/jni/loader.h"
-#include <cassert>
 
+#include <cstring>
+#include <limits>
 #include <utility>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
@@ -25,23 +27,98 @@
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni.h"
+#include "firestore/src/jni/object.h"
 
 namespace firebase {
 namespace firestore {
 namespace jni {
 namespace {
 
-constexpr const char* StripProguardPrefix(const char* class_name) {
-  return class_name[0] == '%' ? &class_name[4] : class_name;
+const char* StripProguardPrefix(const char* class_name) {
+  if (!class_name) {
+    return nullptr;
+  }
+  constexpr size_t kPrefixLen = sizeof(PROGUARD_KEEP_CLASS) - 1;
+  return std::strncmp(class_name, PROGUARD_KEEP_CLASS, kPrefixLen) == 0
+             ? class_name + kPrefixLen
+             : class_name;
+}
+
+jmethodID LookupMethod(JNIEnv* env,
+                       jclass clazz,
+                       const char* class_name,
+                       const char* name,
+                       const char* sig,
+                       util::MethodType type,
+                       bool* ok) {
+  if (!clazz || !name || !sig) {
+    *ok = false;
+    return nullptr;
+  }
+  util::MethodNameSignature descriptor = {name, sig, type,
+                                          util::kMethodRequired};
+  jmethodID result = nullptr;
+  *ok = util::LookupMethodIds(env, clazz, &descriptor,
+                              /*number_of_method_name_signatures=*/1u, &result,
+                              class_name);
+  return *ok ? result : nullptr;
 }
 
 }  // namespace
 
-Loader::Loader(App* app) : app_(app), env_(app->GetJNIEnv()) {
+Loader::Loader(App* app)
+    : app_(app),
+      env_(app ? app->GetJNIEnv() : GetEnv()),
+      ok_(env_ != nullptr) {
   Class::Initialize(*this);
+  Object::Initialize(*this);
 }
 
 Loader::~Loader() { Unload(); }
+
+Loader::Loader(Loader&& other) noexcept
+    : app_(other.app_),
+      env_(other.env_),
+      last_class_name_(std::move(other.last_class_name_)),
+      last_class_(other.last_class_),
+      owns_last_class_(other.owns_last_class_),
+      ok_(other.ok_),
+      loaded_classes_(std::move(other.loaded_classes_)),
+      cached_class_refs_(std::move(other.cached_class_refs_)),
+      embedded_files_(std::move(other.embedded_files_)) {
+  other.app_ = nullptr;
+  other.env_ = nullptr;
+  other.last_class_ = nullptr;
+  other.owns_last_class_ = false;
+  other.ok_ = false;
+  other.loaded_classes_.clear();
+  other.cached_class_refs_.clear();
+  other.embedded_files_.clear();
+}
+
+Loader& Loader::operator=(Loader&& other) noexcept {
+  if (this != &other) {
+    Unload();
+    app_ = other.app_;
+    env_ = other.env_;
+    last_class_name_ = std::move(other.last_class_name_);
+    last_class_ = other.last_class_;
+    owns_last_class_ = other.owns_last_class_;
+    ok_ = other.ok_;
+    loaded_classes_ = std::move(other.loaded_classes_);
+    cached_class_refs_ = std::move(other.cached_class_refs_);
+    embedded_files_ = std::move(other.embedded_files_);
+    other.app_ = nullptr;
+    other.env_ = nullptr;
+    other.last_class_ = nullptr;
+    other.owns_last_class_ = false;
+    other.ok_ = false;
+    other.loaded_classes_.clear();
+    other.cached_class_refs_.clear();
+    other.embedded_files_.clear();
+  }
+  return *this;
+}
 
 void Loader::AddEmbeddedFile(const char* name,
                              const unsigned char* data,
@@ -54,67 +131,94 @@ void Loader::AddEmbeddedFile(const char* name,
 }
 
 void Loader::CacheEmbeddedFiles() {
-  if (!ok_) return;
+  if (!ok()) return;
+  if (!app_) {
+    ok_ = false;
+    return;
+  }
 
   util::CacheEmbeddedFiles(env_, app_->activity(), embedded_files_);
+  if (env_->ExceptionCheck()) {
+    env_->ExceptionClear();
+    ok_ = false;
+  }
 }
 
 void Loader::UsingExistingClass(const char* class_name, jclass existing_ref) {
-  if (!ok_) return;
+  if (!ok()) return;
+
+  class_name = StripProguardPrefix(class_name);
+  if (!class_name || !existing_ref) {
+    ok_ = false;
+    last_class_ = nullptr;
+    owns_last_class_ = false;
+    last_class_name_.clear();
+    return;
+  }
 
   last_class_name_ = class_name;
   last_class_ = existing_ref;
+  owns_last_class_ = false;
 }
 
 jclass Loader::LoadClass(const char* class_name) {
-  if (!ok_) return nullptr;
+  if (!ok()) return nullptr;
 
   class_name = StripProguardPrefix(class_name);
+  if (!class_name || !app_) {
+    ok_ = false;
+    last_class_ = nullptr;
+    owns_last_class_ = false;
+    last_class_name_.clear();
+    return nullptr;
+  }
+
   last_class_name_ = class_name;
   last_class_ = util::FindClassGlobal(env_, app_->activity(), &embedded_files_,
                                       class_name, util::kClassRequired);
   if (!last_class_) {
     ok_ = false;
+    owns_last_class_ = false;
     return nullptr;
   }
 
+  owns_last_class_ = true;
   loaded_classes_.push_back(last_class_);
   return last_class_;
 }
 
 void Loader::Load(ConstructorBase& ctor) {
-  if (!ok_) return;
+  if (!ok()) return;
 
-  util::MethodNameSignature descriptor = {
-      "<init>", ctor.sig_, util::kMethodTypeInstance, util::kMethodRequired};
-
-  jmethodID result = nullptr;
-  ok_ = util::LookupMethodIds(env_, last_class_, &descriptor,
-                              /*number_of_method_name_signatures=*/1u, &result,
-                              last_class_name_.c_str());
+  jmethodID result = LookupMethod(env_, last_class_, last_class_name_.c_str(),
+                                  "<init>", ctor.sig_,
+                                  util::kMethodTypeInstance, &ok_);
   if (!ok_) return;
 
   ctor.clazz_ = last_class_;
   ctor.id_ = result;
+  if (owns_last_class_) {
+    cached_class_refs_.push_back(&ctor.clazz_);
+  }
 }
 
 void Loader::Load(MethodBase& method) {
-  if (!ok_) return;
+  if (!ok()) return;
 
-  util::MethodNameSignature descriptor = {method.name_, method.sig_,
-                                          util::kMethodTypeInstance,
-                                          util::kMethodRequired};
-
-  jmethodID result = nullptr;
-  ok_ = util::LookupMethodIds(env_, last_class_, &descriptor, 1u, &result,
-                              last_class_name_.c_str());
+  jmethodID result = LookupMethod(env_, last_class_, last_class_name_.c_str(),
+                                  method.name_, method.sig_,
+                                  util::kMethodTypeInstance, &ok_);
   if (!ok_) return;
 
   method.id_ = result;
 }
 
 void Loader::Load(StaticFieldBase& field) {
-  if (!ok_) return;
+  if (!ok()) return;
+  if (!last_class_ || !field.name_ || !field.sig_) {
+    ok_ = false;
+    return;
+  }
 
   util::FieldDescriptor descriptor = {
       field.name_, field.sig_, util::kFieldTypeStatic, util::kMethodRequired};
@@ -126,45 +230,74 @@ void Loader::Load(StaticFieldBase& field) {
 
   field.clazz_ = last_class_;
   field.id_ = result;
+  if (owns_last_class_) {
+    cached_class_refs_.push_back(&field.clazz_);
+  }
 }
 
 void Loader::Load(StaticMethodBase& method) {
-  if (!ok_) return;
+  if (!ok()) return;
 
-  util::MethodNameSignature descriptor = {method.name_, method.sig_,
-                                          util::kMethodTypeStatic,
-                                          util::kMethodRequired};
-
-  jmethodID result = nullptr;
-  ok_ = util::LookupMethodIds(env_, last_class_, &descriptor, 1u, &result,
-                              last_class_name_.c_str());
+  jmethodID result = LookupMethod(env_, last_class_, last_class_name_.c_str(),
+                                  method.name_, method.sig_,
+                                  util::kMethodTypeStatic, &ok_);
   if (!ok_) return;
 
   method.clazz_ = last_class_;
   method.id_ = result;
+  if (owns_last_class_) {
+    cached_class_refs_.push_back(&method.clazz_);
+  }
 }
 
 bool Loader::RegisterNatives(const JNINativeMethod methods[],
                              size_t num_methods) {
-  if (!ok_) return false;
+  if (!ok()) return false;
+  if (!last_class_ || (!methods && num_methods > 0) ||
+      num_methods > static_cast<size_t>(std::numeric_limits<jint>::max())) {
+    ok_ = false;
+    return false;
+  }
+  if (num_methods == 0) {
+    return true;
+  }
 
-  auto* true_native_methods = ConvertJNINativeMethod(methods, num_methods);
-  jint result =
-      env_->RegisterNatives(last_class_, true_native_methods, num_methods);
+  auto* true_native_methods =
+      ConvertJNINativeMethod(methods, static_cast<jint>(num_methods));
+  jint result = env_->RegisterNatives(last_class_, true_native_methods,
+                                      static_cast<jint>(num_methods));
   CleanUpConvertedJNINativeMethod(true_native_methods);
 
-  if (result != JNI_OK) {
+  if (result != JNI_OK || env_->ExceptionCheck()) {
+    if (env_->ExceptionCheck()) {
+      env_->ExceptionDescribe();
+      env_->ExceptionClear();
+    }
     ok_ = false;
   }
   return ok_;
 }
 
 void Loader::Unload() {
+  for (jclass* clazz_ref : cached_class_refs_) {
+    if (clazz_ref != nullptr) {
+      *clazz_ref = nullptr;
+    }
+  }
+  cached_class_refs_.clear();
+  last_class_ = nullptr;
+  owns_last_class_ = false;
+  last_class_name_.clear();
+
   if (loaded_classes_.empty()) return;
 
   JNIEnv* env = GetEnv();
-  for (jclass clazz : loaded_classes_) {
-    env->DeleteGlobalRef(clazz);
+  if (env != nullptr) {
+    for (jclass clazz : loaded_classes_) {
+      if (clazz != nullptr) {
+        env->DeleteGlobalRef(clazz);
+      }
+    }
   }
   loaded_classes_.clear();
 }

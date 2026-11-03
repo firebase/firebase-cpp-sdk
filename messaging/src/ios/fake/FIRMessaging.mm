@@ -74,6 +74,9 @@ BOOL is_auto_init_enabled = true;
       __deprecated_msg("Please use the shouldEstablishDirectChannel property instead.") {}
 
 + (NSString *)normalizeTopic:(NSString *)topic {
+  if (topic == nil || topic.length == 0 || [topic isEqualToString:@"$invalid"]) {
+    return nil;
+  }
   return topic;
 }
 
@@ -90,6 +93,9 @@ BOOL is_auto_init_enabled = true;
   std::vector<std::string> args = FakeReporter->GetFakeArgs(fake);
   args.push_back(topic.UTF8String);
   FakeReporter->AddReport(fake, "", args);
+  if (completion) {
+    completion(nil);
+  }
 }
 
 - (void)unsubscribeFromTopic:(NSString *)topic NS_SWIFT_NAME(unsubscribe(fromTopic:)) {
@@ -104,6 +110,9 @@ BOOL is_auto_init_enabled = true;
   std::vector<std::string> args = FakeReporter->GetFakeArgs(fake);
   args.push_back(topic.UTF8String);
   FakeReporter->AddReport(fake, "", args);
+  if (completion) {
+    completion(nil);
+  }
 }
 
 - (void)sendMessage:(NSDictionary *)message
@@ -122,14 +131,30 @@ BOOL is_auto_init_enabled = true;
 }
 
 - (void)tokenWithCompletion:(FIRMessagingFCMTokenFetchCompletion)completion
-  NS_SWIFT_NAME(retrieveFCMToken(completion:)) {}
+  NS_SWIFT_NAME(retrieveFCMToken(completion:)) {
+  if (completion) {
+    completion(@"StubToken", nil);
+  }
+}
 
 - (void)deleteTokenWithCompletion:(FIRMessagingDeleteFCMTokenCompletion)completion
-  NS_SWIFT_NAME(deleteFCMToken(completion:)) {}
+  NS_SWIFT_NAME(deleteFCMToken(completion:)) {
+  if (completion) {
+    completion(nil);
+  }
+}
 
-- (void)registerWithCompletion:(void (^)(NSError *__nullable error))completion {}
+- (void)registerWithCompletion:(void (^)(NSError *__nullable error))completion {
+  if (completion) {
+    completion(nil);
+  }
+}
 
-- (void)unregisterWithCompletion:(void (^)(NSError *__nullable error))completion {}
+- (void)unregisterWithCompletion:(void (^)(NSError *__nullable error))completion {
+  if (completion) {
+    completion(nil);
+  }
+}
 
 @end
 

@@ -69,7 +69,7 @@ class RequestJson : public Request {
         GenerateText(*parser_, builder.GetBufferPointer(), &json) == nullptr;
     FIREBASE_ASSERT_RETURN_VOID(generate_status);
 
-    set_post_fields(json.c_str());
+    set_post_fields(json.data(), json.size());
   }
 
   // The FlatBuffer parser used to prepare the request JSON string.

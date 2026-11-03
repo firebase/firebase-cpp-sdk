@@ -57,6 +57,8 @@
 - (instancetype)init {
   self = [super init];
   if (self) {
+    _dataCollectionEnabled = YES;
+    _instrumentationEnabled = YES;
     _customAttributes = [[NSMutableDictionary<NSString *, NSString *> alloc] init];
   }
   return self;

@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_CONTROLLER_DESKTOP_H_
 #define FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_CONTROLLER_DESKTOP_H_
 
+#include <ctime>
+#include <mutex>
 #include <string>
 
 #include "app/src/heartbeat/date_provider.h"
@@ -46,8 +48,8 @@ class HeartbeatController {
   std::string GetAndResetStoredHeartbeats();
 
   // Synchronously fetches and clears today's heartbeat from storage and returns
-  // a string of user agents. If there is no new heartbeat, an empty string is
-  // returned instead.
+  // the user agent string for today's heartbeat. If there is no new heartbeat,
+  // an empty string is returned instead.
   std::string GetAndResetTodaysStoredHeartbeats();
 
  private:
@@ -77,17 +79,22 @@ class HeartbeatController {
   std::string DecodeAndDecompress(const std::string& input);
 
   HeartbeatStorageDesktop storage_;
-  scheduler::Scheduler scheduler_;
   const DateProvider& date_provider_;
 
+  std::mutex mutex_;
   std::time_t last_read_all_heartbeats_time_ = 0;
   std::time_t last_read_todays_heartbeat_time_ = 0;
 
-  // For thread safety, the following variables should only be read or written
-  // by the scheduler thread.
+  // Protected by mutex_ and accessed on the scheduler thread.
   std::string last_logged_date_;
+  std::string last_logged_user_agent_;
   std::string last_flushed_all_heartbeats_date_;
   std::string last_flushed_todays_heartbeat_date_;
+
+  // Declared last so that scheduler_ is destroyed first, joining its worker
+  // thread before any other members referenced by scheduled callbacks are
+  // destroyed.
+  scheduler::Scheduler scheduler_;
 };
 
 }  // namespace heartbeat

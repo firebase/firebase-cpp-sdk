@@ -117,7 +117,11 @@ public final class JniRunnable implements Runnable {
    */
   Task<Void> runOnNewThread() {
     TaskRunnable runnable = new TaskRunnable();
-    new Thread(runnable).start();
+    try {
+      new Thread(runnable).start();
+    } catch (Throwable t) {
+      runnable.setException(new RuntimeException("Failed to start thread", t));
+    }
     return runnable.getTask();
   }
 
@@ -138,10 +142,12 @@ public final class JniRunnable implements Runnable {
     public void run() {
       try {
         JniRunnable.this.run();
+        taskCompletionSource.trySetResult(null);
       } catch (Exception e) {
         taskCompletionSource.trySetException(e);
-      } finally {
-        taskCompletionSource.trySetResult(null);
+      } catch (Throwable t) {
+        taskCompletionSource.trySetException(new RuntimeException(t));
+        throw t;
       }
     }
 

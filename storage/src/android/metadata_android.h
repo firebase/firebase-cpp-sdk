@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <map>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -258,11 +257,15 @@ class MetadataInternal {
 
   mutable Mutex mutex_;
   StorageInternal* storage_ = nullptr;
+  // Cached from storage_->app(); see GetJNIEnv().
+  JavaVM* java_vm_ = nullptr;
   jobject obj_ = nullptr;
 
   mutable std::unique_ptr<CustomMetadata> custom_metadata_;
 
-  mutable std::array<std::optional<std::string>, kCacheStringCount> cache_{};
+  // Each cached string is individually heap-allocated so its characters never
+  // move (moving/retiring moves only the unique_ptr); see CopyStringCache().
+  mutable std::array<std::unique_ptr<std::string>, kCacheStringCount> cache_{};
   mutable std::vector<std::unique_ptr<std::string>> retired_strings_;
 
   // Non-string properties of the StorageMetadata Java object that are lost

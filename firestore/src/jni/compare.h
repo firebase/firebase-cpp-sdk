@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_COMPARE_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_COMPARE_H_
+
 #include "firestore/src/android/exception_android.h"
-#include "firestore/src/android/wrapper.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
 
@@ -37,3 +39,5 @@ bool EqualityCompareJni(const T& lhs, const T& rhs) {
 }  // namespace jni
 }  // namespace firestore
 }  // namespace firebase
+
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_COMPARE_H_

@@ -18,8 +18,6 @@
 
 #include <string>
 
-#include "app/src/scheduler.h"
-
 namespace firebase {
 namespace app {
 namespace secure {

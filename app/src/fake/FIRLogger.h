@@ -17,18 +17,3 @@
 #import <Foundation/Foundation.h>
 
 #import "FIRLoggerLevel.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif  // __cplusplus
-
-/**
- * Changes the default logging level of FIRLoggerLevelNotice to a user-specified level.
- * The default level cannot be set above FIRLoggerLevelNotice if the app is running from App Store.
- * (required) log level (one of the FIRLoggerLevel enum values).
- */
-void FIRSetLoggerLevel(FIRLoggerLevel loggerLevel);
-
-#ifdef __cplusplus
-}
-#endif  // __cplusplus

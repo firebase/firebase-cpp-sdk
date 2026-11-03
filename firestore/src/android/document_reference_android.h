@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 
+#include <mutex>
 #include <string>
 
 #include "app/src/reference_counted_future_impl.h"
@@ -42,6 +43,7 @@ class DocumentReferenceInternal : public Wrapper {
     kGet = 0,
     kSet,
     kUpdate,
+    kUpdateFieldPath,
     kDelete,
     kCount,  // Must be the last enum value.
   };
@@ -55,15 +57,22 @@ class DocumentReferenceInternal : public Wrapper {
                             const jni::Object& object)
       : Wrapper(firestore, object), promises_(firestore) {}
 
+  DocumentReferenceInternal(const DocumentReferenceInternal& other);
+  DocumentReferenceInternal(DocumentReferenceInternal&& other) noexcept;
+  DocumentReferenceInternal& operator=(
+      const DocumentReferenceInternal& other) = delete;
+  DocumentReferenceInternal& operator=(
+      DocumentReferenceInternal&& other) noexcept = delete;
+
   /** Gets the Firestore instance associated with this document reference. */
-  Firestore* firestore();
+  Firestore* firestore() const;
 
   /**
    * Gets the document-id of this document.
    *
    * @return A reference to the document-id of this document.
    */
-  const std::string& id() const;
+  [[nodiscard]] const std::string& id() const;
 
   /**
    * Gets the path of this document (relative to the root of the database) as a
@@ -71,23 +80,23 @@ class DocumentReferenceInternal : public Wrapper {
    *
    * @return A reference to the path of this document.
    */
-  const std::string& path() const;
+  [[nodiscard]] const std::string& path() const;
 
   /**
    * Gets a CollectionReference to the collection that contains this document.
    *
    * @return The CollectionReference that contains this document.
    */
-  CollectionReference Parent() const;
+  [[nodiscard]] CollectionReference Parent() const;
 
   /**
    * Gets a CollectionReference instance that refers to the subcollection at the
    * specified path relative to this document.
    *
-   * @param collectionPath A slash-separated relative path to a subcollection.
+   * @param collection_path A slash-separated relative path to a subcollection.
    * @return The CollectionReference instance.
    */
-  CollectionReference Collection(const std::string& collection_path);
+  [[nodiscard]] CollectionReference Collection(const std::string& collection_path) const;
 
   /**
    * Reads this document.
@@ -101,7 +110,7 @@ class DocumentReferenceInternal : public Wrapper {
    *
    * @return A Future that will be resolved with the contents of the document.
    */
-  Future<DocumentSnapshot> Get(Source source);
+  Future<DocumentSnapshot> Get(Source source) const;
 
   /**
    * Writes to this document.
@@ -170,10 +179,8 @@ class DocumentReferenceInternal : public Wrapper {
    * only DocumentSnapshot.getMetadata() changed) should trigger snapshot
    * events.
    * @param[in] listener The event listener that will be called with the
-   * snapshots, which must remain in memory until you remove the listener from
-   * this DocumentReference. (Ownership is not transferred; you are responsible
-   * for making sure that listener is valid as long as this DocumentReference is
-   * valid and the listener is registered.)
+   * snapshots. If `passing_listener_ownership` is false, the caller retains
+   * ownership and must keep `listener` alive until the listener is removed.
    * @param[in] passing_listener_ownership Whether to pass the ownership of the
    * listener.
    *
@@ -195,6 +202,7 @@ class DocumentReferenceInternal : public Wrapper {
   PromiseFactory<AsyncFn> promises_;
 
   // Below are cached call results.
+  mutable std::mutex mutex_;
   mutable std::string cached_id_;
   mutable std::string cached_path_;
 };

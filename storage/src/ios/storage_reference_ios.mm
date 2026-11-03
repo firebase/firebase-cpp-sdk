@@ -82,13 +82,17 @@ NSURL* _Nullable ParseLocalPathToFileUrl(const char* _Nullable path) {
   }
 }
 
+// Must be called WITHOUT holding storage_token->mutex: the lock order is the
+// listener's SafeReference lock, then the token mutex, then the listener's own
+// mutex (the completion blocks detach listeners the same way). AttachTask()
+// only attaches if the StorageInternal is still alive.
 void SafeAttachListener(
     const firebase::util::SafeReference<ListenerInternal>& listener_ref,
-    StorageInternal* _Nonnull storage,
+    const std::shared_ptr<StorageInternal::LifetimeToken>& storage_token,
     FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task) {
   listener_ref.Run(
-      [storage, task](ListenerInternal* _Nonnull listener_internal) {
-        listener_internal->AttachTask(storage, task);
+      [&storage_token, task](ListenerInternal* _Nonnull listener_internal) {
+        listener_internal->AttachTask(storage_token, task);
       });
 }
 
@@ -243,15 +247,18 @@ Future<void> StorageReferenceInternal::Delete() {
     Future<void> retained_future = DeleteLastResult();
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidError completion = ^(NSError* error) {
       (void)retained_future;
-      if (completed) return;
-      completed = YES;
       if (!storage_token) {
         return;
       }
       MutexLock lock(storage_token->mutex);
+      if (completed) return;
+      completed = YES;
       if (!storage_token->futures_alive) {
         return;
       }
@@ -383,13 +390,16 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
 
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidURLError completion = ^(NSURL* /*url*/, NSError* error) {
       (void)retained_future;
-      if (completed) return;
-      completed = YES;
       if (storage_token) {
         MutexLock lock(storage_token->mutex);
+        if (completed) return;
+        completed = YES;
         if (storage_token->futures_alive) {
           StorageInternal* alive_storage = storage_token->storage;
           Error error_code = NSErrorToErrorCode(error);
@@ -421,22 +431,26 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
         SafeResetPendingController(controller_handle);
         return;
       }
-      MutexLock lock(storage_token->mutex);
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        SafeResetPendingController(controller_handle);
-        if (storage_token->futures_alive && !completed) {
-          completed = YES;
-          future_impl->Complete(handle, kErrorCancelled,
-                                GetErrorMessage(kErrorCancelled));
+      FIRStorageDownloadTask* download_task = nil;
+      {
+        MutexLock lock(storage_token->mutex);
+        StorageInternal* alive_storage = storage_token->storage;
+        if (!alive_storage) {
+          SafeResetPendingController(controller_handle);
+          if (storage_token->futures_alive && !completed) {
+            completed = YES;
+            future_impl->Complete(handle, kErrorCancelled,
+                                  GetErrorMessage(kErrorCancelled));
+          }
+          return;
         }
-        return;
+        download_task =
+            [my_impl writeToFile:local_file_url completion:completion];
+        local_controller->AssignTask(alive_storage, download_task);
+        SafeAssignController(controller_handle, alive_storage, download_task);
       }
-      FIRStorageDownloadTask* download_task =
-          [my_impl writeToFile:local_file_url completion:completion];
-      local_controller->AssignTask(alive_storage, download_task);
-      SafeAttachListener(listener_ref, alive_storage, download_task);
-      SafeAssignController(controller_handle, alive_storage, download_task);
+      // Attached after releasing storage_token->mutex; see SafeAttachListener.
+      SafeAttachListener(listener_ref, storage_token, download_task);
     });
     return retained_future;
   }
@@ -503,16 +517,17 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
 
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidDataError completion =
         ^(NSData* _Nullable data, NSError* _Nullable error) {
           (void)retained_future;
-          if (completed) {
-            return;
-          }
-          completed = YES;
           if (storage_token) {
             MutexLock lock(storage_token->mutex);
+            if (completed) return;
+            completed = YES;
             if (storage_token->futures_alive) {
               StorageInternal* alive_storage = storage_token->storage;
               Error error_code = NSErrorToErrorCode(error);
@@ -552,21 +567,25 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
         SafeResetPendingController(controller_handle);
         return;
       }
-      MutexLock lock(storage_token->mutex);
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        SafeResetPendingController(controller_handle);
-        if (storage_token->futures_alive && !completed) {
-          completed = YES;
-          future_impl->Complete(handle, kErrorCancelled,
-                                GetErrorMessage(kErrorCancelled));
+      FIRStorageDownloadTask* download_task = nil;
+      {
+        MutexLock lock(storage_token->mutex);
+        StorageInternal* alive_storage = storage_token->storage;
+        if (!alive_storage) {
+          SafeResetPendingController(controller_handle);
+          if (storage_token->futures_alive && !completed) {
+            completed = YES;
+            future_impl->Complete(handle, kErrorCancelled,
+                                  GetErrorMessage(kErrorCancelled));
+          }
+          return;
         }
-        return;
+        download_task =
+            [my_impl dataWithMaxSize:max_download_size completion:completion];
+        SafeAssignController(controller_handle, alive_storage, download_task);
       }
-      FIRStorageDownloadTask* download_task =
-          [my_impl dataWithMaxSize:max_download_size completion:completion];
-      SafeAttachListener(listener_ref, alive_storage, download_task);
-      SafeAssignController(controller_handle, alive_storage, download_task);
+      // Attached after releasing storage_token->mutex; see SafeAttachListener.
+      SafeAttachListener(listener_ref, storage_token, download_task);
     });
     return retained_future;
   }
@@ -596,15 +615,18 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
     Future<std::string> retained_future = GetDownloadUrlLastResult();
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidURLError completion = ^(NSURL* url, NSError* error) {
       (void)retained_future;
-      if (completed) return;
-      completed = YES;
       if (!storage_token) {
         return;
       }
       MutexLock lock(storage_token->mutex);
+      if (completed) return;
+      completed = YES;
       if (!storage_token->futures_alive) {
         return;
       }
@@ -678,16 +700,19 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
     Future<Metadata> retained_future = GetMetadataLastResult();
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidMetadataError completion =
         ^(FIRStorageMetadata* metadata, NSError* error) {
           (void)retained_future;
-          if (completed) return;
-          completed = YES;
           if (!storage_token) {
             return;
           }
           MutexLock lock(storage_token->mutex);
+          if (completed) return;
+          completed = YES;
           if (!storage_token->futures_alive) {
             return;
           }
@@ -771,16 +796,19 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
     Future<Metadata> retained_future = UpdateMetadataLastResult();
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidMetadataError completion =
         ^(FIRStorageMetadata* metadata_impl, NSError* error) {
           (void)retained_future;
-          if (completed) return;
-          completed = YES;
           if (!storage_token) {
             return;
           }
           MutexLock lock(storage_token->mutex);
+          if (completed) return;
+          completed = YES;
           if (!storage_token->futures_alive) {
             return;
           }
@@ -929,14 +957,17 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
 
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidMetadataError completion =
         ^(FIRStorageMetadata* resultant_metadata, NSError* error) {
           (void)retained_future;
-          if (completed) return;
-          completed = YES;
           if (storage_token) {
             MutexLock lock(storage_token->mutex);
+            if (completed) return;
+            completed = YES;
             if (storage_token->futures_alive) {
               StorageInternal* alive_storage = storage_token->storage;
               Error error_code = NSErrorToErrorCode(error);
@@ -978,23 +1009,27 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
         SafeResetPendingController(controller_handle);
         return;
       }
-      MutexLock lock(storage_token->mutex);
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        SafeResetPendingController(controller_handle);
-        if (storage_token->futures_alive && !completed) {
-          completed = YES;
-          future_impl->CompleteWithResult(handle, kErrorCancelled,
-                                          GetErrorMessage(kErrorCancelled),
-                                          Metadata(nullptr));
+      FIRStorageUploadTask* upload_task = nil;
+      {
+        MutexLock lock(storage_token->mutex);
+        StorageInternal* alive_storage = storage_token->storage;
+        if (!alive_storage) {
+          SafeResetPendingController(controller_handle);
+          if (storage_token->futures_alive && !completed) {
+            completed = YES;
+            future_impl->CompleteWithResult(handle, kErrorCancelled,
+                                            GetErrorMessage(kErrorCancelled),
+                                            Metadata(nullptr));
+          }
+          return;
         }
-        return;
+        upload_task = [my_impl putData:data_payload
+                              metadata:metadata_impl
+                            completion:completion];
+        SafeAssignController(controller_handle, alive_storage, upload_task);
       }
-      FIRStorageUploadTask* upload_task = [my_impl putData:data_payload
-                                                  metadata:metadata_impl
-                                                completion:completion];
-      SafeAttachListener(listener_ref, alive_storage, upload_task);
-      SafeAssignController(controller_handle, alive_storage, upload_task);
+      // Attached after releasing storage_token->mutex; see SafeAttachListener.
+      SafeAttachListener(listener_ref, storage_token, upload_task);
     });
     return retained_future;
   }
@@ -1078,14 +1113,17 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
 
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidMetadataError completion =
         ^(FIRStorageMetadata* resultant_metadata, NSError* error) {
           (void)retained_future;
-          if (completed) return;
-          completed = YES;
           if (storage_token) {
             MutexLock lock(storage_token->mutex);
+            if (completed) return;
+            completed = YES;
             if (storage_token->futures_alive) {
               StorageInternal* alive_storage = storage_token->storage;
               Error error_code = NSErrorToErrorCode(error);
@@ -1121,40 +1159,44 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
         SafeResetPendingController(controller_handle);
         return;
       }
-      MutexLock lock(storage_token->mutex);
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        SafeResetPendingController(controller_handle);
-        if (storage_token->futures_alive && !completed) {
-          completed = YES;
-          future_impl->CompleteWithResult(handle, kErrorCancelled,
-                                          GetErrorMessage(kErrorCancelled),
-                                          Metadata(nullptr));
+      FIRStorageUploadTask* upload_task = nil;
+      {
+        MutexLock lock(storage_token->mutex);
+        StorageInternal* alive_storage = storage_token->storage;
+        if (!alive_storage) {
+          SafeResetPendingController(controller_handle);
+          if (storage_token->futures_alive && !completed) {
+            completed = YES;
+            future_impl->CompleteWithResult(handle, kErrorCancelled,
+                                            GetErrorMessage(kErrorCancelled),
+                                            Metadata(nullptr));
+          }
+          return;
         }
-        return;
-      }
-      // Due to b/73017865 the iOS SDK can end up in an infinite loop if the
-      // source file doesn't exist so check for file existence here and abort if
-      // it's missing.
-      NSError* file_url_exists_error = nil;
-      if (![local_file_url
-              checkResourceIsReachableAndReturnError:&file_url_exists_error]) {
-        SafeResetPendingController(controller_handle);
-        if (storage_token->futures_alive && !completed) {
-          completed = YES;
-          Error error_code = kErrorObjectNotFound;
-          const char* error_string = GetErrorMessage(error_code);
-          future_impl->CompleteWithResult(handle, error_code, error_string,
-                                          Metadata(nullptr));
+        // Due to b/73017865 the iOS SDK can end up in an infinite loop if the
+        // source file doesn't exist so check for file existence here and abort
+        // if it's missing.
+        NSError* file_url_exists_error = nil;
+        if (![local_file_url checkResourceIsReachableAndReturnError:
+                                 &file_url_exists_error]) {
+          SafeResetPendingController(controller_handle);
+          if (storage_token->futures_alive && !completed) {
+            completed = YES;
+            Error error_code = kErrorObjectNotFound;
+            const char* error_string = GetErrorMessage(error_code);
+            future_impl->CompleteWithResult(handle, error_code, error_string,
+                                            Metadata(nullptr));
+          }
+          return;
         }
-        return;
-      }
 
-      FIRStorageUploadTask* upload_task = [my_impl putFile:local_file_url
-                                                  metadata:metadata_impl
-                                                completion:completion];
-      SafeAttachListener(listener_ref, alive_storage, upload_task);
-      SafeAssignController(controller_handle, alive_storage, upload_task);
+        upload_task = [my_impl putFile:local_file_url
+                              metadata:metadata_impl
+                            completion:completion];
+        SafeAssignController(controller_handle, alive_storage, upload_task);
+      }
+      // Attached after releasing storage_token->mutex; see SafeAttachListener.
+      SafeAttachListener(listener_ref, storage_token, upload_task);
     });
     return retained_future;
   }
@@ -1204,16 +1246,19 @@ Future<StorageListResult> StorageReferenceInternal::List(
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
 
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     auto completion =
         ^(FIRStorageListResult* _Nullable result, NSError* _Nullable error) {
           (void)retained_future;
-          if (completed) return;
-          completed = YES;
           if (!storage_token) {
             return;
           }
           MutexLock lock(storage_token->mutex);
+          if (completed) return;
+          completed = YES;
           if (!storage_token->futures_alive) {
             return;
           }
@@ -1322,16 +1367,19 @@ Future<StorageListResult> StorageReferenceInternal::ListAll() {
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
         storage_->lifetime_token();
 
+    // Set once the future has been completed. Only read or written with
+    // storage_token->mutex held: the completion block and the main-queue
+    // block below may run on different threads.
     __block BOOL completed = NO;
     auto completion =
         ^(FIRStorageListResult* _Nullable result, NSError* _Nullable error) {
           (void)retained_future;
-          if (completed) return;
-          completed = YES;
           if (!storage_token) {
             return;
           }
           MutexLock lock(storage_token->mutex);
+          if (completed) return;
+          completed = YES;
           if (!storage_token->futures_alive) {
             return;
           }

@@ -16,7 +16,7 @@
 
 package com.google.firebase.firestore.internal.cpp;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A companion class used by the C++ class
@@ -28,31 +28,32 @@ import java.util.HashMap;
  * the entire lifetime of the Java application.
  *
  * Technically, the logic in this class could have been written entirely in C++,
- * using JNI to create the {@code HashMap} and call its methods; however, this
- * proved to be slow, mostly due to the boxing and unboxing of the {@code long}
- * primitive values to and from {@code Long} objects, respectively. By instead
- * writing the class in Java, Android's ART runtime elides the boxing and
- * unboxing since it can prove to itself that the code does not rely on object
- * identity of the {@code Long} objects. This improves the performance by an
- * order of magnitude compared the the equivalent JNI calls, which cannot have
- * the boxing and unboxing optimized away.
+ * using JNI to create the map and call its methods; however, this
+ * proved to be slow due to the overhead of JNI calls. By instead
+ * writing the class in Java, this improves the performance compared
+ * to the equivalent JNI calls.
  */
 public final class ObjectArena {
-  private static final HashMap<Long, Object> map = new HashMap<>();
+  private static final ConcurrentHashMap<Long, Object> map =
+      new ConcurrentHashMap<>();
 
   private ObjectArena() {
     throw new UnsupportedOperationException();
   }
 
-  public static synchronized void set(long id, Object object) {
-    map.put(id, object);
+  public static void set(long id, Object object) {
+    if (object == null) {
+      map.remove(id);
+    } else {
+      map.put(id, object);
+    }
   }
 
-  public static synchronized Object get(long id) {
+  public static Object get(long id) {
     return map.get(id);
   }
 
-  public static synchronized void remove(long id) {
+  public static void remove(long id) {
     map.remove(id);
   }
 }

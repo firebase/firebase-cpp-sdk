@@ -63,13 +63,13 @@ class DocumentChange {
   /**
    * The sentinel index used as a return value to indicate no matches.
    */
-#if defined(ANDROID)
+#if defined(__ANDROID__)
   // Older NDK (r16b) fails to define this properly. Fix this when support for
   // the older NDK is removed.
   static const std::size_t npos;
 #else
   static constexpr std::size_t npos = static_cast<std::size_t>(-1);
-#endif  // defined(ANDROID)
+#endif  // defined(__ANDROID__)
 
   /**
    * @brief Creates an invalid DocumentChange that has to be reassigned before
@@ -83,9 +83,6 @@ class DocumentChange {
 
   /**
    * @brief Copy constructor.
-   *
-   * `DocumentChange` is immutable and can be efficiently copied (no deep copy
-   * is performed).
    *
    * @param[in] other `DocumentChange` to copy from.
    */
@@ -106,9 +103,6 @@ class DocumentChange {
 
   /**
    * @brief Copy assignment operator.
-   *
-   * `DocumentChange` is immutable and can be efficiently copied (no deep copy
-   * is performed).
    *
    * @param[in] other `DocumentChange` to copy from.
    *
@@ -188,7 +182,7 @@ class DocumentChange {
 
   explicit DocumentChange(DocumentChangeInternal* internal);
 
-  mutable DocumentChangeInternal* internal_ = nullptr;
+  DocumentChangeInternal* internal_ = nullptr;
 };
 
 /** Checks `lhs` and `rhs` for equality. */

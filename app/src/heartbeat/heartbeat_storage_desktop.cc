@@ -16,11 +16,15 @@
 
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 
-#include <codecvt>
+#if FIREBASE_PLATFORM_WINDOWS
+#include <windows.h>
+#endif  // FIREBASE_PLATFORM_WINDOWS
+
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
-#include <locale>
-#include <regex>
+#include <ios>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -45,6 +49,16 @@ namespace {
 const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
+bool IsInvalidFilenameChar(char c) {
+  constexpr char kInvalidFilenameChars[] = "/\\?%*:|\"<>.,;=";
+  for (size_t i = 0; i < sizeof(kInvalidFilenameChars) - 1; ++i) {
+    if (c == kInvalidFilenameChars[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 #if FIREBASE_PLATFORM_WINDOWS
 std::wstring CreateFilename(const std::string& app_id, const Logger& logger) {
   const std::wstring empty_string;
@@ -56,7 +70,7 @@ std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   std::string app_dir =
       AppDataDir(kHeartbeatDir, /*should_create=*/true, &error);
   if (!error.empty()) {
-    logger.LogError(error.c_str());
+    logger.LogError("%s", error.c_str());
     return empty_string;
   }
   if (app_dir.empty()) {
@@ -64,29 +78,74 @@ std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   }
 
   // Remove any symbols from app_id that might not be allowed in filenames.
-  auto app_id_without_symbols =
-      std::regex_replace(app_id, std::regex("[/\\\\?%*:|\"<>.,;=]"), "");
+  std::string app_id_without_symbols;
+  app_id_without_symbols.reserve(app_id.size());
+  for (char c : app_id) {
+    if (!IsInvalidFilenameChar(c)) {
+      app_id_without_symbols.push_back(c);
+    }
+  }
+  if (app_id_without_symbols != app_id) {
+    // Disambiguate app_ids that differ only in stripped punctuation while
+    // keeping app_id_without_symbols as a substring.
+    uint64_t hash = 14695981039346656037ULL;
+    for (unsigned char c : app_id) {
+      hash ^= c;
+      hash *= 1099511628211ULL;
+    }
+    std::ostringstream hash_ss;
+    hash_ss << "-" << std::hex << hash;
+    app_id_without_symbols += hash_ss.str();
+  }
   // Note: fstream will convert / to \ if needed on windows.
   std::string final_path_utf8 =
       app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
 #if FIREBASE_PLATFORM_WINDOWS
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> final_path_w;
-  return final_path_w.from_bytes(final_path_utf8);
+  if (final_path_utf8.empty()) {
+    return empty_string;
+  }
+  int wide_len = ::MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, final_path_utf8.data(),
+      static_cast<int>(final_path_utf8.size()), nullptr, 0);
+  if (wide_len <= 0) {
+    logger.LogError("Failed to convert heartbeat path to UTF-16 (error: %lu).",
+                    static_cast<unsigned long>(::GetLastError()));
+    return empty_string;
+  }
+  std::wstring final_path_w(static_cast<size_t>(wide_len), L'\0');
+  int converted_len = ::MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, final_path_utf8.data(),
+      static_cast<int>(final_path_utf8.size()), &final_path_w[0], wide_len);
+  if (converted_len != wide_len) {
+    logger.LogError("Failed to convert heartbeat path to UTF-16.");
+    return empty_string;
+  }
+  return final_path_w;
 #else
   return final_path_utf8;
 #endif
 }
 
+#if FIREBASE_PLATFORM_WINDOWS
+#define FIREBASE_PATH_FMT "%ls"
+#else
+#define FIREBASE_PATH_FMT "%s"
+#endif
+
 }  // namespace
 HeartbeatStorageDesktop::HeartbeatStorageDesktop(const std::string& app_id,
                                                  const Logger& logger)
     : filename_(CreateFilename(app_id, logger)), logger_(logger) {
+  if (filename_.empty()) {
+    return;
+  }
   // Ensure the file exists, otherwise the first attempt to read it would
   // fail.
   std::ofstream file(filename_, std::ios_base::app);
 
   if (!file) {
-    logger_.LogError("Unable to open '%s'.", filename_.c_str());
+    logger_.LogError("Unable to open '" FIREBASE_PATH_FMT "'.",
+                     filename_.c_str());
   }
 }
 
@@ -94,39 +153,57 @@ HeartbeatStorageDesktop::HeartbeatStorageDesktop(const std::string& app_id,
 static const int kMaxBufferSize = 1024 * 500;
 
 bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats& heartbeats_output) {
+  if (filename_.empty()) {
+    return false;
+  }
   // Open the file and seek to the end
   std::ifstream file(filename_, std::ios_base::binary | std::ios_base::ate);
   if (!file) {
-    logger_.LogError("Unable to open '%s' for reading.", filename_.c_str());
+    logger_.LogError("Unable to open '" FIREBASE_PATH_FMT "' for reading.",
+                     filename_.c_str());
     return false;
   }
   // Current position in file is file size. Fail if file is too large.
   std::streamsize buffer_len = file.tellg();
   if (buffer_len > kMaxBufferSize) {
-    logger_.LogError("'%s' is too large to read.", filename_.c_str());
+    logger_.LogError("'" FIREBASE_PATH_FMT "' is too large to read.",
+                     filename_.c_str());
     return false;
   }
-  if (buffer_len == -1) {
-    logger_.LogError("Failed to determine size of '%s'.", filename_.c_str());
+  if (buffer_len < 0) {
+    logger_.LogError("Failed to determine size of '" FIREBASE_PATH_FMT "'.",
+                     filename_.c_str());
     return false;
+  }
+  if (buffer_len == 0) {
+    heartbeats_output = LoggedHeartbeats();
+    return true;
   }
   // Rewind to start of the file, then read into a buffer on the heap.
   file.seekg(0, std::ios_base::beg);
-  char* buffer = new char[buffer_len];
-  file.read(buffer, buffer_len);
+  std::string buffer(static_cast<size_t>(buffer_len), '\0');
+  if (!file.read(&buffer[0], buffer_len) || file.gcount() != buffer_len) {
+    logger_.LogError("Failed to read '" FIREBASE_PATH_FMT "'.",
+                     filename_.c_str());
+    return false;
+  }
   // Verify that the buffer is a valid flatbuffer.
-  ::flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(buffer),
-                                   buffer_len);
+  ::flatbuffers::Verifier verifier(
+      reinterpret_cast<const uint8_t*>(buffer.data()),
+      static_cast<size_t>(buffer_len));
   if (!VerifyLoggedHeartbeatsBuffer(verifier)) {
     // If the file is empty or contains corrupted data, return a default
     // instance.
     heartbeats_output = LoggedHeartbeats();
-    delete[] buffer;
     return true;
   }
-  const LoggedHeartbeatsFlatbuffer* heartbeats_fb = GetLoggedHeartbeats(buffer);
+  const LoggedHeartbeatsFlatbuffer* heartbeats_fb =
+      GetLoggedHeartbeats(buffer.data());
+  if (heartbeats_fb == nullptr) {
+    heartbeats_output = LoggedHeartbeats();
+    return true;
+  }
   heartbeats_output = LoggedHeartbeatsFromFlatbuffer(*heartbeats_fb);
-  delete[] buffer;
   return true;
 }
 
@@ -137,15 +214,22 @@ std::string HeartbeatStorageDesktop::GetFilename() const { return filename_; }
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 bool HeartbeatStorageDesktop::Write(const LoggedHeartbeats& heartbeats) const {
+  if (filename_.empty()) {
+    return false;
+  }
   // Clear the file before writing.
   std::ofstream file(filename_, std::ios_base::trunc | std::ios_base::binary);
   if (!file) {
-    logger_.LogError("Unable to open '%s' for writing.", filename_.c_str());
+    logger_.LogError("Unable to open '" FIREBASE_PATH_FMT "' for writing.",
+                     filename_.c_str());
     return false;
   }
 
   flatbuffers::FlatBufferBuilder fbb = LoggedHeartbeatsToFlatbuffer(heartbeats);
-  file.write((char*)fbb.GetBufferPointer(), fbb.GetSize());
+  file.write(reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+             fbb.GetSize());
+  file.flush();
+  file.close();
 
   return !file.fail();
 }
@@ -154,12 +238,26 @@ LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFlatbuffer(
     const LoggedHeartbeatsFlatbuffer& heartbeats_fb) const {
   LoggedHeartbeats heartbeats_struct;
   // TODO(almostmatt): verify format of date string
-  heartbeats_struct.last_logged_date = heartbeats_fb.last_logged_date()->str();
-  for (auto user_agent_and_dates : *(heartbeats_fb.heartbeats())) {
-    std::string user_agent = user_agent_and_dates->user_agent()->str();
-    for (auto date : *(user_agent_and_dates->dates())) {
-      // TODO(almostmatt): verify format of date string
-      heartbeats_struct.heartbeats[user_agent].push_back(date->str());
+  if (heartbeats_fb.last_logged_date() != nullptr) {
+    heartbeats_struct.last_logged_date =
+        heartbeats_fb.last_logged_date()->str();
+  }
+  if (heartbeats_fb.heartbeats() != nullptr) {
+    for (auto user_agent_and_dates : *(heartbeats_fb.heartbeats())) {
+      if (user_agent_and_dates == nullptr ||
+          user_agent_and_dates->user_agent() == nullptr) {
+        continue;
+      }
+      std::string user_agent = user_agent_and_dates->user_agent()->str();
+      if (user_agent_and_dates->dates() != nullptr) {
+        for (auto date : *(user_agent_and_dates->dates())) {
+          if (date == nullptr) {
+            continue;
+          }
+          // TODO(almostmatt): verify format of date string
+          heartbeats_struct.heartbeats[user_agent].push_back(date->str());
+        }
+      }
     }
   }
   return heartbeats_struct;

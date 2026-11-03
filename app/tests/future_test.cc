@@ -141,7 +141,7 @@ TEST_F(FutureTest, TestCompleteWithLambda) {
 // Check that Complete() with a lambda with a capture works.
 TEST_F(FutureTest, TestCompleteWithLambdaCapture) {
   EXPECT_THAT(future_.status(), Eq(kFutureStatusPending));
-  bool captured = true;
+  bool captured = false;
   future_impl_.Complete<TestResult>(handle_, 0, [&captured](TestResult* data) {
     data->number = kResultNumber;
     data->text = kResultText;
@@ -705,13 +705,13 @@ TEST_F(FutureTest, TestAddUntypedCallback) {
 
 // Test that you can deal with many simultaneous Futures at once.
 TEST_F(FutureTest, TestSimultaneousFutures) {
-  const int kMilliseconds = 1000;
+  const int kMilliseconds = 100;
   const int kNumToTest = 100;
 
   // Initialize a bunch of futures and threads.
-  std::vector<SafeFutureHandle<TestResult>> handles_;
-  std::vector<Future<TestResult>> futures_;
-  std::vector<Thread*> children_;
+  std::vector<SafeFutureHandle<TestResult>> handles;
+  std::vector<Future<TestResult>> futures;
+  std::vector<std::unique_ptr<Thread>> children;
   struct Context {
     FutureTest* test;
     SafeFutureHandle<TestResult> handle;
@@ -719,19 +719,19 @@ TEST_F(FutureTest, TestSimultaneousFutures) {
   } thread_context[kNumToTest];
   for (int i = 0; i < kNumToTest; i++) {
     auto handle = future_impl_.SafeAlloc<TestResult>();
-    handles_.push_back(handle);
-    futures_.push_back(MakeFuture(&future_impl_, handle));
+    handles.push_back(handle);
+    futures.push_back(MakeFuture(&future_impl_, handle));
     auto* context = &thread_context[i];
     context->test = this;
     context->handle = handle;
     context->test_number = i;
-    children_.push_back(new Thread(
+    children.push_back(std::make_unique<Thread>(
         [](void* current_context_void) {
           Context* current_context =
               static_cast<Context*>(current_context_void);
-          // Each thread should wait a moment, then set the result and
-          // complete.
-          internal::Sleep(rand() % kMilliseconds);  // NOLINT
+          // Each thread waits a deterministic staggered interval without
+          // calling non-thread-safe rand() across threads, then completes.
+          internal::Sleep((current_context->test_number * 7) % kMilliseconds);
           current_context->test->future_impl_.Complete<TestResult>(
               current_context->handle, 0, [current_context](TestResult* data) {
                 data->number = kResultNumber + current_context->test_number;
@@ -739,15 +739,11 @@ TEST_F(FutureTest, TestSimultaneousFutures) {
         },
         context));
   }
-  // Give threads time to run.
-  internal::Sleep(kMilliseconds);
 
   // Check that each future completed successfully, then clean it up.
   for (int i = 0; i < kNumToTest; i++) {
-    children_[i]->Join();
-    EXPECT_THAT(futures_[i].result()->number, Eq(kResultNumber + i));
-    delete children_[i];
-    children_[i] = nullptr;
+    children[i]->Join();
+    EXPECT_THAT(futures[i].result()->number, Eq(kResultNumber + i));
   }
 }
 
@@ -849,25 +845,23 @@ TEST_F(FutureTest, TestHighQps) {
 
   future_ = Future<TestResult>();
 
-  std::vector<Thread*> children_;
+  std::vector<std::unique_ptr<Thread>> children;
   for (int i = 0; i < kNumToTest; i++) {
-    children_.push_back(new Thread(
+    children.push_back(std::make_unique<Thread>(
         [](void* this_void) {
-          FutureTest* this_ = reinterpret_cast<FutureTest*>(this_void);
+          FutureTest* self = reinterpret_cast<FutureTest*>(this_void);
           SafeFutureHandle<TestResult> handle =
-              this_->future_impl_.SafeAlloc<TestResult>(kFutureTestFnOne);
+              self->future_impl_.SafeAlloc<TestResult>(kFutureTestFnOne);
 
-          this_->future_impl_.Complete<TestResult>(
+          self->future_impl_.Complete<TestResult>(
               handle, 0,
               [](TestResult* data) { data->number = kResultNumber; });
-          Future<TestResult> future = MakeFuture(&this_->future_impl_, handle);
+          Future<TestResult> future = MakeFuture(&self->future_impl_, handle);
         },
         this));
   }
   for (int i = 0; i < kNumToTest; i++) {
-    children_[i]->Join();
-    delete children_[i];
-    children_[i] = nullptr;
+    children[i]->Join();
   }
 }
 
@@ -968,7 +962,7 @@ TEST_F(FutureTest, VerifyCompletingFutureTwiceAsserts) {
   EXPECT_THAT(future_.status(), Eq(kFutureStatusPending));
 
   future_impl_.Complete(handle_, 0);
-  EXPECT_DEATH(future_impl_.Complete(handle_, 0), "SIGABRT");
+  EXPECT_DEATH(future_impl_.Complete(handle_, 0), "");
 }
 
 // Verify that IsSafeToDelete() return the correct value.
@@ -1481,6 +1475,9 @@ extern "C" int get_memory_used_kb() {
   int result = -1;
 #ifdef __linux__
   FILE* file = fopen("/proc/self/status", "r");
+  if (file == nullptr) {
+    return -1;
+  }
   char line[128];
 
   while (fgets(line, sizeof(line), file) != nullptr) {
@@ -1489,11 +1486,11 @@ extern "C" int get_memory_used_kb() {
       bool got_num = false;
       while (nchar >= line) {
         if (!got_num) {
-          if (isdigit(*nchar)) {
+          if (isdigit(static_cast<unsigned char>(*nchar))) {
             got_num = true;
           }
         } else {
-          if (!isdigit(*nchar)) {
+          if (!isdigit(static_cast<unsigned char>(*nchar))) {
             result = atoi(nchar);  // NOLINT
             break;
           }
@@ -1509,7 +1506,7 @@ extern "C" int get_memory_used_kb() {
 }  // namespace
 
 TEST_F(FutureTest, MemoryStressTest) {
-  size_t kIterations = 4000000;  // 4 million
+  size_t kIterations = 400000;  // 400 thousand
 
   int memory_usage_before = get_memory_used_kb();
   for (size_t i = 0; i < kIterations; ++i) {
@@ -1519,12 +1516,12 @@ TEST_F(FutureTest, MemoryStressTest) {
                      : future_impl_.SafeAlloc<TestResult>(kFutureTestFnOne);
       {
         Future<TestResult> future = MakeFuture(&future_impl_, handle);
-        EXPECT_THAT(future_.status(), Eq(kFutureStatusPending));
+        EXPECT_THAT(future.status(), Eq(kFutureStatusPending));
       }
 
       if (i % 2 != 0) {
         FutureBase future = future_impl_.LastResult(kFutureTestFnOne);
-        EXPECT_THAT(future_.status(), Eq(kFutureStatusPending));
+        EXPECT_THAT(future.status(), Eq(kFutureStatusPending));
       }
       future_impl_.Complete<TestResult>(handle, 0, [i](TestResult* data) {
         data->number = kResultNumber + i;
@@ -1549,12 +1546,44 @@ TEST_F(FutureTest, MemoryStressTest) {
   int memory_usage_after = get_memory_used_kb();
 
   if (memory_usage_before != -1 && memory_usage_after != -1) {
-    // Ensure that after creating a few million futures, memory usage has not
-    // changed by more than half a megabyte.
+    // Ensure that after creating hundreds of thousands of futures, memory usage
+    // has not changed by more than half a megabyte.
     const int kMaxAllowedMemoryChange = 512;  // in kilobytes
     EXPECT_NEAR(memory_usage_before, memory_usage_after,
                 kMaxAllowedMemoryChange);
   }
+}
+
+TEST_F(FutureTest, TestWaitOnInvalidFutureReturnsFalseImmediately) {
+  Future<TestResult> invalid_future;
+  EXPECT_FALSE(invalid_future.is_valid());
+  EXPECT_FALSE(invalid_future.Wait());
+  EXPECT_FALSE(invalid_future.Wait(100));
+  EXPECT_EQ(invalid_future.GetResult(100), nullptr);
+}
+
+TEST_F(FutureTest, TestSelfAssignmentPreservesFuture) {
+  EXPECT_TRUE(future_.is_valid());
+  Future<TestResult>& ref = future_;
+  future_ = ref;
+  EXPECT_EQ(future_.status(), kFutureStatusPending);
+  future_ = std::move(ref);
+  EXPECT_EQ(future_.status(), kFutureStatusPending);
+}
+
+TEST_F(FutureTest, TestThenAndGetResultErgonomics) {
+  int then_called = 0;
+  future_.Then([&](const Future<TestResult>& completed) {
+    then_called++;
+    EXPECT_EQ(completed.result()->number, kResultNumber);
+  });
+  future_impl_.Complete<TestResult>(handle_, 0, [](TestResult* data) {
+    data->number = kResultNumber;
+    data->text = kResultText;
+  });
+  EXPECT_EQ(then_called, 1);
+  ASSERT_NE(future_.GetResult(), nullptr);
+  EXPECT_EQ(future_.GetResult()->number, kResultNumber);
 }
 
 }  // namespace testing

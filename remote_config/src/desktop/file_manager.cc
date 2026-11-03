@@ -14,18 +14,18 @@
 
 #include "remote_config/src/desktop/file_manager.h"
 
-#include <cstdint>
+#include <cstdio>
 #include <fstream>
-#include <map>
 #include <sstream>
 #include <string>
-#include <utility>
 
 #include "app/src/filesystem.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/desktop/config_data.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
+#include <windows.h>
+
 #include <codecvt>
 #include <locale>
 #endif
@@ -33,6 +33,15 @@
 namespace firebase {
 namespace remote_config {
 namespace internal {
+
+RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path) {
+#if FIREBASE_PLATFORM_WINDOWS
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_to_wstring;
+  file_path_ = utf8_to_wstring.from_bytes(file_path);
+#else
+  file_path_ = file_path;
+#endif
+}
 
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
                                                  const firebase::App& app) {
@@ -60,14 +69,16 @@ bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {
   if (!configs || file_path_.empty()) {
     return false;
   }
-  std::fstream input(file_path_, std::ios::in | std::ios::binary);
-  if (!input) {
+  std::ifstream input(file_path_, std::ios::in | std::ios::binary);
+  if (!input.is_open() || !input.good()) {
     return false;
   }
   std::stringstream ss;
   ss << input.rdbuf();
-  configs->Deserialize(ss.str());
-  return true;
+  if (input.bad()) {
+    return false;
+  }
+  return configs->Deserialize(ss.str());
 }
 
 bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
@@ -75,12 +86,43 @@ bool RemoteConfigFileManager::Save(const LayeredConfigs& configs) const {
     return false;
   }
   std::string buffer = configs.Serialize();
-  std::fstream output(file_path_, std::ios::out | std::ios::binary);
-  if (!output) {
+#if FIREBASE_PLATFORM_WINDOWS
+  std::wstring tmp_path = file_path_ + L".tmp";
+#else
+  std::string tmp_path = file_path_ + ".tmp";
+#endif
+  {
+    std::ofstream output(tmp_path,
+                         std::ios::out | std::ios::binary | std::ios::trunc);
+    if (!output.is_open()) {
+      return false;
+    }
+    output.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+    output.flush();
+    if (!output.good()) {
+      output.close();
+#if FIREBASE_PLATFORM_WINDOWS
+      _wremove(tmp_path.c_str());
+#else
+      std::remove(tmp_path.c_str());
+#endif
+      return false;
+    }
+  }
+#if FIREBASE_PLATFORM_WINDOWS
+  if (!MoveFileExW(tmp_path.c_str(), file_path_.c_str(),
+                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    _wremove(tmp_path.c_str());
     return false;
   }
-  output.write(buffer.c_str(), buffer.size());
   return true;
+#else
+  if (std::rename(tmp_path.c_str(), file_path_.c_str()) != 0) {
+    std::remove(tmp_path.c_str());
+    return false;
+  }
+  return true;
+#endif
 }
 
 }  // namespace internal

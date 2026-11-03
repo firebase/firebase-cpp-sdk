@@ -15,7 +15,6 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_LISTENER_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_LISTENER_IOS_H_
 
-#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -48,8 +47,8 @@ class ListenerInternal;
                 task:(FIRStorageObservableTask<FIRStorageTaskManagement>*
                           _Nonnull)task;
 
-// Marks the handle detached under its internal NSRecursiveLock so no subsequent
-// observer blocks will invoke Listener callbacks.
+// Marks the handle detached under its internal recursive mutex so no
+// subsequent observer blocks will invoke Listener callbacks.
 - (void)markDetached;
 
 // Waits until any in-flight callbacks on other threads have completed.
@@ -89,9 +88,11 @@ class ListenerInternal {
   void Detach();
 
 #ifdef __OBJC__
-  // Attach this listener to the specified task.
+  // Attach this listener to the specified task, if the StorageInternal that
+  // owns `storage_token` is still alive. Must not be called with
+  // storage_token->mutex held (see the lock order on mutex_).
   void AttachTask(
-      StorageInternal* _Nonnull storage,
+      const std::shared_ptr<StorageInternal::LifetimeToken>& storage_token,
       FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task);
 
   // Remove this listener from the currently attached task.
@@ -105,7 +106,26 @@ class ListenerInternal {
 
  private:
 #ifdef __OBJC__
-  FIRCPPStorageListenerHandle* _Nullable DetachTaskLocked();
+  // State taken out of the listener by DetachTaskLocked(); FinishDetach()
+  // completes the detach once mutex_ has been released.
+  struct DetachedTask {
+    // Retains the Obj-C handle across FinishDetach() so -waitForCallbacks
+    // never messages a deallocated instance after observer blocks are removed.
+    std::unique_ptr<FIRCPPStorageListenerHandlePointer> handle;
+    // Token of the StorageInternal this listener was registered with, or null
+    // if it was not registered.
+    std::shared_ptr<StorageInternal::LifetimeToken> storage_token;
+  };
+
+  // Detaches the current task (if any) under mutex_. Does not wait for
+  // in-flight callbacks or unregister from the StorageInternal: both must
+  // happen after releasing mutex_, via FinishDetach().
+  DetachedTask DetachTaskLocked();
+
+  // Unregisters from the old StorageInternal (through its lifetime token, so a
+  // dying StorageInternal is never touched) and waits for in-flight callbacks
+  // of the detached handle. Must be called without holding mutex_.
+  void FinishDetach(DetachedTask& detached);
 
   // Task monitored by this listener.
   FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable task() const {
@@ -129,14 +149,25 @@ class ListenerInternal {
   }
 #endif  // __OBJC__
 
-  // std::recursive_mutex (not firebase::Mutex) so the StorageInternal cleanup
-  // callback can try_lock() it; see AttachTask().
+  // Guards every field below except safe_reference_holder_ (set only in the
+  // constructor).
+  //
+  // Lock order: the SafeReference lock (held by SafeReference::Run() callers),
+  // then a StorageInternal::LifetimeToken mutex, then mutex_. AttachTask() and
+  // FinishDetach() acquire the token mutex themselves, before mutex_, and must
+  // not be called with it held. The StorageInternal cleanup callback acquires
+  // the SafeReference lock and mutex_ (blocking); that is deadlock-free
+  // because CleanupNotifier::UnregisterObject() is only called under a live
+  // StorageInternal::LifetimeToken (RunWhileAlive()), when no cleanup callback
+  // can be in flight.
   mutable std::recursive_mutex mutex_;
-  // > 0 while DetachTaskLocked() is blocked in
-  // CleanupNotifier::UnregisterObject() with mutex_ held.
-  std::atomic<int> unregistering_{0};
   Listener* _Nonnull listener_;
-  StorageInternal* _Nullable storage_ = nullptr;
+  // Lifetime token of the StorageInternal whose cleanup() this listener is
+  // registered with, or null when not registered.
+  std::shared_ptr<StorageInternal::LifetimeToken> storage_token_;
+  // Incremented on every cleanup registration so a callback belonging to a
+  // superseded registration can tell it no longer owns the attachment.
+  uint64_t cleanup_generation_ = 0;
   bool destroying_ = false;
 
   // Task monitored by this listener.

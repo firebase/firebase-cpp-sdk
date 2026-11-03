@@ -23,8 +23,8 @@ namespace firebase {
 namespace util {
 
 // Attempts to query the custom semaphore prefix from the application's
-// Info.plist file. Returns an empty string if a custom semahpore prefix
-// wasn't conifgured.
+// Info.plist file. Returns an empty string if a custom semaphore prefix
+// wasn't configured.
 std::string GetSandboxModeSemaphorePrefix();
 
 }  // namespace util

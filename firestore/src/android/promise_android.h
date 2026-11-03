@@ -28,6 +28,7 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/task.h"
@@ -47,7 +48,7 @@ class PromiseFactory;
 //     Future<DocumentReference> CollectionReferenceInternal::Add()
 //
 // PublicType is DocumentReference, InternalType is DocumentReferenceInternal,
-// and FnEnumType is CollectionReferenceFn.
+// and FnEnumType is QueryInternal::AsyncFn.
 template <typename PublicType, typename InternalType, typename FnEnumType>
 class Promise {
   friend class PromiseFactory<FnEnumType>;
@@ -60,6 +61,8 @@ class Promise {
   class Completion {
    public:
     virtual ~Completion() = default;
+    // The `result` pointer is only valid during the synchronous execution
+    // of `CompleteWith`. Do not store the pointer for asynchronous use.
     virtual void CompleteWith(Error error_code,
                               const char* error_message,
                               PublicType* result) = 0;
@@ -68,13 +71,34 @@ class Promise {
   Promise(const Promise&) = delete;
   Promise& operator=(const Promise&) = delete;
 
-  Promise(Promise&& other) = default;
-  Promise& operator=(Promise&& other) = default;
+  Promise(Promise&& other) noexcept
+      : firestore_ref_(std::move(other.firestore_ref_)),
+        completer_(std::move(other.completer_)),
+        impl_(other.impl_),
+        handle_(other.handle_) {
+    other.impl_ = nullptr;
+    other.handle_ = SafeFutureHandle<PublicType>{};
+  }
+  Promise& operator=(Promise&& other) noexcept {
+    if (this != &other) {
+      firestore_ref_ = std::move(other.firestore_ref_);
+      completer_ = std::move(other.completer_);
+      impl_ = other.impl_;
+      handle_ = other.handle_;
+      other.impl_ = nullptr;
+      other.handle_ = SafeFutureHandle<PublicType>{};
+    }
+    return *this;
+  }
 
   void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task) {
+    if (!env.ok() || !task) {
+      return;
+    }
+    FIREBASE_ASSERT(completer_ != nullptr);
     handle_ = completer_->Alloc(static_cast<int>(op));
 
-    // Ownership of the completer will pass to to RegisterCallbackOnTask
+    // Ownership of the completer will pass to RegisterCallbackOnTask
     auto* completer = completer_.release();
 
     ::firebase::util::RegisterCallbackOnTask(
@@ -121,19 +145,30 @@ class Promise {
       });
     }
 
-    virtual void CompleteWithResult(jobject raw_result,
+    virtual void CompleteWithResult(JNIEnv* env_ptr,
+                                    jobject raw_result,
                                     ::firebase::util::FutureResult result_code,
                                     const char* status_message) {
       // result can be either the resolved object or exception, depending on
       // result_code.
-      jni::Env env;
+      jni::Env env(env_ptr);
+      jni::ExceptionClearGuard exception_clear_guard(env);
       jni::Object result(raw_result);
 
       if (result_code == ::firebase::util::kFutureResultSuccess) {
-        firestore_ref_.RunIfValid(
-            [this, &env, &result](FirestoreInternal& firestore) {
-              SucceedWithResult(env, result, firestore);
+        bool succeeded = firestore_ref_.Run(
+            [this, &env, &result](FirestoreInternal* firestore) {
+              if (firestore == nullptr) {
+                return false;
+              }
+              SucceedWithResult(env, result, *firestore);
+              return true;
             });
+        if (!succeeded && completion_ != nullptr) {
+          completion_->CompleteWith(Error::kErrorCancelled,
+                                    "Firestore instance has been destroyed",
+                                    nullptr);
+        }
 
         delete this;
 
@@ -222,9 +257,16 @@ class Promise {
                              const char* status_message,
                              void* callback_data) {
     if (callback_data != nullptr) {
-      auto* data =
-          static_cast<Completer<PublicType, InternalType>*>(callback_data);
-      data->CompleteWithResult(result, result_code, status_message);
+#if FIRESTORE_HAVE_EXCEPTIONS
+      try {
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
+        auto* data =
+            static_cast<Completer<PublicType, InternalType>*>(callback_data);
+        data->CompleteWithResult(env, result, result_code, status_message);
+#if FIRESTORE_HAVE_EXCEPTIONS
+      } catch (...) {
+      }
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
     }
   }
 

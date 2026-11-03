@@ -29,7 +29,7 @@ namespace firebase {
  *   * macOS: $container/Library/Application Support/$app_name
  *   * Other UNIX: $HOME/.$app_name. Note: Android is not implemented yet.
  *   * tvOS: $container/Library/Caches/$app_name
- *   * Windows: %USERPROFILE%/AppData/Local
+ *   * Windows: %USERPROFILE%/AppData/Local/$app_name
  *
  * On iOS, tvOS, and macOS (when running sandboxed), these locations are
  * relative to the data container for the current application. On macOS when

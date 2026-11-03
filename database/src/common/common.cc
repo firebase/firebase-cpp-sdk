@@ -53,20 +53,21 @@ static const char* g_error_messages[] = {
 };
 
 const char* GetErrorMessage(Error error) {
-  return error < FIREBASE_ARRAYSIZE(g_error_messages) ? g_error_messages[error]
-                                                      : "";
+  return (error >= 0 &&
+          static_cast<size_t>(error) < FIREBASE_ARRAYSIZE(g_error_messages))
+             ? g_error_messages[error]
+             : "";
 }
 
-static const Variant* g_server_value_timestamp = nullptr;
 const Variant& ServerTimestamp() {
-  if (g_server_value_timestamp == nullptr) {
+  static const Variant* const kServerTimestamp = []() {
     // The Firebase server defines a ServerValue for Timestamp as a map with the
     // key ".sv" and the value "timestamp".
-    std::map<Variant, Variant> server_value;
-    server_value.insert(std::make_pair(".sv", "timestamp"));
-    g_server_value_timestamp = new Variant(server_value);
-  }
-  return *g_server_value_timestamp;
+    Variant server_value = Variant::EmptyMap();
+    server_value.map()[".sv"] = "timestamp";
+    return new Variant(std::move(server_value));
+  }();
+  return *kServerTimestamp;
 }
 
 }  // namespace database

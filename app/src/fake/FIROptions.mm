@@ -18,7 +18,7 @@
 
 + (FIROptions *)defaultOptions {
   FIROptions* options =
-      [[FIROptions alloc] initWithGoogleAppID:@"fake google app id from resource"
+      [[FIROptions alloc] initWithGoogleAppID:@"fake app id from resource"
                                   GCMSenderID:@"fake messaging sender id from resource"];
   options.APIKey = @"fake api key from resource";
   options.bundleID = @"fake bundle ID from resource";
@@ -26,7 +26,6 @@
   options.trackingID = @"fake ga tracking id from resource";
   options.projectID = @"fake project id from resource";
   options.androidClientID = @"fake android client id from resource";
-  options.googleAppID = @"fake app id from resource";
   options.databaseURL = @"fake database url from resource";
   options.deepLinkURLScheme = @"fake deep link url scheme from resource";
   options.storageBucket = @"fake storage bucket from resource";
@@ -54,7 +53,6 @@
     newOptions.trackingID = self.trackingID;
     newOptions.projectID = self.projectID;
     newOptions.androidClientID = self.androidClientID;
-    newOptions.googleAppID = self.googleAppID;
     newOptions.databaseURL = self.databaseURL;
     newOptions.deepLinkURLScheme = self.deepLinkURLScheme;
     newOptions.storageBucket = self.storageBucket;

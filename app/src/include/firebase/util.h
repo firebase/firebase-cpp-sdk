@@ -43,7 +43,12 @@ class ModuleInitializer {
   typedef InitResult (*InitializerFn)(App* app, void* context);
 
   ModuleInitializer();
-  virtual ~ModuleInitializer();
+  ~ModuleInitializer();
+
+#if !defined(SWIG)
+  ModuleInitializer(const ModuleInitializer&) = delete;
+  ModuleInitializer& operator=(const ModuleInitializer&) = delete;
+#endif  // !defined(SWIG)
 
   /// @brief Initialize Firebase modules by calling one or more user-supplied
   /// functions, each of which must initialize at most one library, and should
@@ -56,7 +61,7 @@ class ModuleInitializer {
   /// will attempt to fix Google Play services, and will retry initializations
   /// where it left off, beginning with the one that failed.
   ///
-  /// @returns A future result. When all of the initializers are completed, the
+  /// @return A future result. When all of the initializers are completed, the
   /// Future will be completed with Error() = 0. If an initializer fails and the
   /// situation cannot be fixed, the Future will be completed with Error() equal
   /// to the number of initializers that did not succeed (since they are run in
@@ -84,12 +89,17 @@ class ModuleInitializer {
 
   /// @brief Initialize one Firebase module by calling a single user-supplied
   /// function that should initialize a Firebase module and return the
-  /// InitResult. @see Initialize(::firebase::App*, void*, const InitializerFn*)
+  /// InitResult.
+  /// @see Initialize(::firebase::App*, void*, const InitializerFn*, size_t)
   /// for more information.
   Future<void> Initialize(App* app, void* context, InitializerFn init_fn);
 
   /// @brief Get the result of the most recent call to @see Initialize().
   Future<void> InitializeLastResult();
+#if !defined(SWIG)
+  /// @brief Get the result of the most recent call to @see Initialize().
+  Future<void> InitializeLastResult() const;
+#endif  // !defined(SWIG)
 
  private:
   ModuleInitializerData* data_;

@@ -45,7 +45,11 @@ class ListenerRegistrationInternal {
  private:
   friend class FirestoreInternal;
 
-  void Remove() { registration_->Remove(); }
+  void Remove() {
+    if (registration_) {
+      registration_->Remove();
+    }
+  }
 
   std::unique_ptr<api::ListenerRegistration> registration_;
   FirestoreInternal* firestore_ = nullptr;

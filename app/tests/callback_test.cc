@@ -16,6 +16,7 @@
 
 #include "app/src/callback.h"
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
@@ -44,6 +45,12 @@ class CallbackTest : public ::testing::Test {
     callback_value2_sum_ = 0;
     callback_string_.clear();
     value_and_string_ = std::pair<int, std::string>();
+  }
+
+  void TearDown() override {
+    if (callback::IsInitialized()) {
+      callback::Terminate(true);
+    }
   }
 
   // Counts callbacks from callback::CallbackVoid.
@@ -358,6 +365,7 @@ TEST_F(CallbackTest, CallCallbackWithUniquePtrWrappedInSharedPtr) {
     callback::RemoveCallback(cb_ref);
     EXPECT_THAT(arg_wrapped.use_count(), Eq(1));
     EXPECT_THAT(*arg_wrapped, Not(Eq(nullptr)));
+    EXPECT_THAT(callback::IsInitialized(), Eq(false));
   }
 }
 
@@ -366,12 +374,12 @@ TEST_F(CallbackTest, CallCallbackWithUniquePtrWrappedInSharedPtr) {
 // Also, make sure it's possible to remove a callback from the queue while
 // executing a callback.
 TEST_F(CallbackTest, ThreadedCallbackValue1Ordered) {
-  bool running = true;
-  void* callback_entry_to_remove = nullptr;
+  std::atomic<bool> running(true);
+  std::atomic<void*> callback_entry_to_remove(nullptr);
   Thread pollingThread(
       [](void* arg) -> void {
-        volatile bool* running_ptr = static_cast<bool*>(arg);
-        while (*running_ptr) {
+        auto* running_ptr = static_cast<std::atomic<bool>*>(arg);
+        while (running_ptr->load()) {
           callback::PollCallbacks();
           // Wait 20ms.
           ::firebase::internal::Sleep(20);
@@ -380,26 +388,33 @@ TEST_F(CallbackTest, ThreadedCallbackValue1Ordered) {
       &running);
   Thread addCallbacksThread(
       [](void* arg) -> void {
-        void** callback_entry_to_remove_ptr = static_cast<void**>(arg);
+        auto* callback_entry_to_remove_ptr =
+            static_cast<std::atomic<void*>*>(arg);
         callback::AddCallback(
             new callback::CallbackValue1<int>(1, OrderedCallbackValue1));
         callback::AddCallback(
             new callback::CallbackValue1<int>(2, OrderedCallbackValue1));
         // Adds a callback which removes the entry referenced by
         // callback_entry_to_remove.
-        callback::AddCallback(new callback::CallbackValue1<void**>(
-            callback_entry_to_remove_ptr, [](void** callback_entry) -> void {
-              callback::RemoveCallback(*callback_entry);
-            }));
-        *callback_entry_to_remove_ptr = callback::AddCallback(
-            new callback::CallbackValue1<int>(4, OrderedCallbackValue1));
+        callback::AddCallback(
+            new callback::CallbackValue1<std::atomic<void*>*>(
+                callback_entry_to_remove_ptr,
+                [](std::atomic<void*>* callback_entry) -> void {
+                  while (callback_entry->load() == nullptr) {
+                    ::firebase::internal::Sleep(1);
+                  }
+                  callback::RemoveCallback(callback_entry->load());
+                }));
+        callback_entry_to_remove_ptr->store(callback::AddCallback(
+            new callback::CallbackValue1<int>(4, OrderedCallbackValue1)));
         callback::AddCallback(
             new callback::CallbackValue1<int>(5, OrderedCallbackValue1));
       },
       &callback_entry_to_remove);
   addCallbacksThread.Join();
-  callback::AddCallback(new callback::CallbackValue1<volatile bool*>(
-      &running, [](volatile bool* running_ptr) { *running_ptr = false; }));
+  callback::AddCallback(new callback::CallbackValue1<std::atomic<bool>*>(
+      &running,
+      [](std::atomic<bool>* running_ptr) { running_ptr->store(false); }));
   pollingThread.Join();
   std::vector<int> expected;
   expected.push_back(1);
@@ -500,5 +515,33 @@ TEST_F(CallbackTest, CallbackDeadlockTest) {
     gcThread.Join();
     EXPECT_THAT(callback::IsInitialized(), Eq(false));
   }
+}
+
+TEST_F(CallbackTest, RemoveCallbackAfterPollDoesNotCrash) {
+  void* ref =
+      callback::AddCallback(new callback::CallbackVoid(CountCallbackVoid));
+  callback::PollCallbacks();
+  EXPECT_THAT(callback_void_count_, Eq(1));
+  callback::RemoveCallback(ref);
+  EXPECT_THAT(callback::IsInitialized(), Eq(false));
+
+  // Also verify removing an already-executed handle while the dispatcher
+  // remains initialized does not affect newly queued callbacks.
+  void* ref2 =
+      callback::AddCallback(new callback::CallbackVoid(CountCallbackVoid));
+  EXPECT_THAT(callback::IsInitialized(), Eq(true));
+  callback::RemoveCallback(ref);
+  EXPECT_THAT(callback::IsInitialized(), Eq(true));
+  callback::PollCallbacks();
+  EXPECT_THAT(callback_void_count_, Eq(2));
+  callback::RemoveCallback(ref2);
+  EXPECT_THAT(callback::IsInitialized(), Eq(false));
+}
+
+TEST_F(CallbackTest, NullCallbackSafety) {
+  EXPECT_EQ(callback::AddCallback(nullptr), nullptr);
+  EXPECT_EQ(callback::AddCallbackWithThreadCheck(nullptr), nullptr);
+  callback::AddBlockingCallback(nullptr);
+  EXPECT_THAT(callback::IsInitialized(), Eq(false));
 }
 }  // namespace firebase

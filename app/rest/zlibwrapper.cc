@@ -16,13 +16,10 @@
 
 #include "app/rest/zlibwrapper.h"
 
-#include <assert.h>
-#include <stdio.h>
-
 #include <algorithm>
+#include <atomic>
+#include <cassert>
 #include <cstring>
-#include <memory>
-#include <string>
 
 #include "app/rest/gzipheader.h"
 #include "app/src/assert.h"
@@ -54,7 +51,7 @@ namespace firebase {
 // - Extra bytes after gzip footer (see bug 69126)
 // - No gzip footer (see bug 72896)
 // - Incomplete gzip footer (see bug 71871706)
-bool ZLib::should_be_flexible_with_gzip_footer_ = false;
+std::atomic<bool> ZLib::should_be_flexible_with_gzip_footer_{false};
 
 // Initialize the ZLib class
 ZLib::ZLib()
@@ -91,11 +88,9 @@ void ZLib::Reinit() {
     }
   }
   if (uncomp_init_) {
-    // Use negative window bits size to indicate bare stream with no header.
-    int wbits = (settings_.no_header_mode_ ? -MAX_WBITS : MAX_WBITS);
-    int err = inflateReset2(&uncomp_stream_, wbits);
+    int err = inflateReset2(&uncomp_stream_, MAX_WBITS);
     if (err == Z_OK) {
-      init_settings_.no_header_mode_ = settings_.no_header_mode_;
+      init_settings_.no_header_mode_ = false;
     } else {
       inflateEnd(&uncomp_stream_);
       uncomp_init_ = false;
@@ -206,6 +201,8 @@ int ZLib::DeflateInit() {
                    settings_.mem_level_, Z_DEFAULT_STRATEGY);
   if (err == Z_OK) {
     // Save parameters for later reusability checks
+    init_settings_.dictionary_ = nullptr;
+    init_settings_.dict_len_ = 0;
     init_settings_.compression_level_ = settings_.compression_level_;
     init_settings_.window_bits_ = settings_.window_bits_;
     init_settings_.mem_level_ = settings_.mem_level_;
@@ -290,15 +287,16 @@ int ZLib::CompressAtMostOrAll(Bytef* dest, uLongf* destLen, const Bytef* source,
     return err;
 
   // This is used to figure out how many bytes we wrote *this chunk*
-  int compressed_size = comp_stream_.total_out;
+  const uLong initial_total_out = comp_stream_.total_out;
+  uLong header_bytes = 0;
 
   // Some setup happens only for the first chunk we compress in a run
   if (first_chunk_) {
     // Append the gzip header before we start compressing
     if (settings_.gzip_header_mode_) {
       if ((err = WriteGzipHeader()) != Z_OK) return err;
-      compressed_size -= sizeof(GZIP_HEADER) - 1;  // -= is right: adds to size
-      crc_ = crc32(0, nullptr, 0);                 // initialize
+      header_bytes = sizeof(GZIP_HEADER) - 1;
+      crc_ = crc32(0, nullptr, 0);  // initialize
     }
 
     // Initialize the dictionary just before we start compressing
@@ -340,7 +338,8 @@ int ZLib::CompressAtMostOrAll(Bytef* dest, uLongf* destLen, const Bytef* source,
 
   // update the crc and other metadata
   uncompressed_size_ += source_bytes_consumed;
-  compressed_size = comp_stream_.total_out - compressed_size;  // delta
+  const uLong compressed_size =
+      (comp_stream_.total_out - initial_total_out) + header_bytes;
   *destLen = compressed_size;
   if (settings_.gzip_header_mode_)  // don't bother with crc else
     crc_ = crc32(crc_, source, source_bytes_consumed);
@@ -434,6 +433,8 @@ int ZLib::InflateInit() {
   int wbits = (settings_.no_header_mode_ ? -MAX_WBITS : MAX_WBITS);
   int err = inflateInit2(&uncomp_stream_, wbits);
   if (err == Z_OK) {
+    init_settings_.dictionary_ = nullptr;
+    init_settings_.dict_len_ = 0;
     init_settings_.no_header_mode_ = settings_.no_header_mode_;
   }
   return err;
@@ -519,6 +520,7 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
           reinterpret_cast<const char**>(&bodyBegin));
       switch (status) {
         case GZipHeader::INCOMPLETE_HEADER:  // don't have the complete header
+          *sourceLen = 0;
           *destLen = 0;
           return Z_OK;
         case GZipHeader::INVALID_HEADER:  // bogus header
@@ -530,7 +532,8 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
           crc_ = crc32(0, nullptr, 0);  // initialize CRC
           break;
         default:
-          LogError("Unexpected gzip header parsing result: %s", status);
+          LogError("Unexpected gzip header parsing result: %d",
+                   static_cast<int>(status));
       }
     }
   } else if (gzip_footer_bytes_ >= 0) {
@@ -538,11 +541,11 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
     if (gzip_footer_bytes_ + *sourceLen > sizeof(gzip_footer_) &&
         // When this flag is true, we allow some extra bytes after the
         // gzip footer.
-        !should_be_flexible_with_gzip_footer_) {
-      LogDebug(
-          "UncompressChunkOrAll: Received %d extra bytes after gzip footer: %s",
-          gzip_footer_bytes_ + *sourceLen - sizeof(gzip_footer_),
-          reinterpret_cast<const char*>(source), std::min(*sourceLen, 20UL));
+        !should_be_flexible_with_gzip_footer_.load()) {
+      LogDebug("UncompressChunkOrAll: Received %lu extra bytes after gzip "
+               "footer",
+               static_cast<unsigned long>(gzip_footer_bytes_ + *sourceLen -
+                                          sizeof(gzip_footer_)));
       Reset();
       return Z_DATA_ERROR;
     }
@@ -552,13 +555,14 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
       memcpy(gzip_footer_ + gzip_footer_bytes_, source, len);
       gzip_footer_bytes_ += len;
     }
+    *sourceLen = 0;
     *destLen = 0;
     return Z_OK;
   }
 
   if ((err = UncompressInit(dest, destLen, source, sourceLen)) != Z_OK) {
-    LogWarning("ZLib: UncompressInit: Error: %d SourceLen: %d", err,
-               *sourceLen);
+    LogWarning("ZLib: UncompressInit: Error: %d SourceLen: %lu", err,
+               static_cast<unsigned long>(*sourceLen));
     return err;
   }
 
@@ -570,26 +574,6 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
 
   // Some setup happens only for the first chunk we compress in a run
   if (first_chunk_) {
-    // Initialize the dictionary just before we start compressing
-    if (settings_.gzip_header_mode_ || settings_.no_header_mode_) {
-      // In no_header_mode, we can just set the dictionary, since no
-      // checking is done to advance past header bits to get us in the
-      // dictionary setting mode. In settings_.gzip_header_mode_ we've already
-      // removed headers, so this code works too.
-      if (settings_.dictionary_) {
-        err = inflateSetDictionary(&uncomp_stream_, settings_.dictionary_,
-                                   settings_.dict_len_);
-        if (err != Z_OK) {
-          LogWarning("inflateSetDictionary: Error: %d dict_len: %d", err,
-                     settings_.dict_len_);
-          UncompressErrorInit();
-          return err;
-        }
-        init_settings_.dictionary_ = settings_.dictionary_;
-        init_settings_.dict_len_ = settings_.dict_len_;
-      }
-    }
-
     first_chunk_ = false;  // so we don't do this again
 
     // For the first chunk *only* (to avoid infinite troubles), we let
@@ -636,7 +620,7 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
       (uncomp_stream_.avail_in <= sizeof(gzip_footer_) ||
        // When this flag is true, we allow some extra bytes after the
        // zlib footer.
-       should_be_flexible_with_gzip_footer_)) {
+       should_be_flexible_with_gzip_footer_.load())) {
     // Due to a bug in old versions of zlibwrapper, we appended the gzip
     // footer even in non-gzip mode.  Thus we always allow a gzip footer
     // even if we're not in gzip mode, so we can continue to uncompress
@@ -649,20 +633,18 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
     gzip_footer_bytes_ = std::min(static_cast<size_t>(uncomp_stream_.avail_in),
                                   sizeof(gzip_footer_));
     memcpy(gzip_footer_, source + bytes_read, gzip_footer_bytes_);
+    *sourceLen = 0;
   } else if ((err == Z_STREAM_END || err == Z_OK)  // everything went ok
              && uncomp_stream_.avail_in == 0) {    // and we read it all
     ;
   } else if (err == Z_STREAM_END && uncomp_stream_.avail_in > 0) {
-    LogDebug(
-        "UncompressChunkOrAll: Received some extra data, bytes total: %d "
-        "bytes: %s",
-        uncomp_stream_.avail_in,
-        reinterpret_cast<const char*>(uncomp_stream_.next_in));
+    LogDebug("UncompressChunkOrAll: Received some extra data, bytes total: %u",
+             uncomp_stream_.avail_in);
     UncompressErrorInit();
     return Z_DATA_ERROR;  // what's the extra data for?
   } else if (err != Z_OK && err != Z_STREAM_END && err != Z_BUF_ERROR) {
     // an error happened
-    LogDebug("UncompressChunkOrAll: Error: %d avail_out: %d", err,
+    LogDebug("UncompressChunkOrAll: Error: %d avail_out: %u", err,
              uncomp_stream_.avail_out);
     UncompressErrorInit();
     return err;
@@ -722,7 +704,7 @@ bool ZLib::UncompressChunkDone() {
   Reset();
 
   // We don't need to check footer when this flag is true.
-  if (should_be_flexible_with_gzip_footer_) {
+  if (should_be_flexible_with_gzip_footer_.load()) {
     return true;
   }
 
@@ -809,15 +791,16 @@ int ZLib::UncompressGzipAndAllocate(Bytef** dest, uLongf* destLen,
       LogDebug("Attempted to un-gzip data that is not gzipped.");
       return Z_DATA_ERROR;
     }
-    LogDebug("Uncompressed size %d exceeds maximum expected size %d",
-             uncompress_length, *destLen);
+    LogDebug("Uncompressed size %lu exceeds maximum expected size %lu",
+             static_cast<unsigned long>(uncompress_length),
+             static_cast<unsigned long>(*destLen));
     return Z_MEM_ERROR;  // probably a corrupted gzip buffer
   }
 
   *destLen = uncompress_length;
 
-  *dest = (Bytef*)malloc(*destLen);  // NOLINT
-  if (*dest == nullptr)              // probably a corrupted gzip buffer
+  *dest = static_cast<Bytef*>(malloc(*destLen ? *destLen : 1));
+  if (*dest == nullptr)  // probably a corrupted gzip buffer
     return Z_MEM_ERROR;
 
   const int retval = Uncompress(*dest, destLen, source, sourceLen);

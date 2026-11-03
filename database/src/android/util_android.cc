@@ -57,14 +57,16 @@ void Callbacks::ChildListenerNativeOnChildAdded(JNIEnv* env, jclass clazz,
                                                 jlong listener_ptr,
                                                 jobject data_snapshot,
                                                 jobject previous_child_name) {
+  (void)clazz;
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
+    std::string prev_key =
+        previous_child_name ? util::JStringToString(env, previous_child_name)
+                            : std::string();
     listener->OnChildAdded(
         DataSnapshot(new DataSnapshotInternal(db, data_snapshot)),
-        previous_child_name
-            ? util::JStringToString(env, previous_child_name).c_str()
-            : nullptr);
+        previous_child_name ? prev_key.c_str() : nullptr);
   }
 }
 
@@ -73,14 +75,16 @@ void Callbacks::ChildListenerNativeOnChildChanged(JNIEnv* env, jclass clazz,
                                                   jlong listener_ptr,
                                                   jobject data_snapshot,
                                                   jobject previous_child_name) {
+  (void)clazz;
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
+    std::string prev_key =
+        previous_child_name ? util::JStringToString(env, previous_child_name)
+                            : std::string();
     listener->OnChildChanged(
         DataSnapshot(new DataSnapshotInternal(db, data_snapshot)),
-        previous_child_name
-            ? util::JStringToString(env, previous_child_name).c_str()
-            : nullptr);
+        previous_child_name ? prev_key.c_str() : nullptr);
   }
 }
 
@@ -89,14 +93,16 @@ void Callbacks::ChildListenerNativeOnChildMoved(JNIEnv* env, jclass clazz,
                                                 jlong listener_ptr,
                                                 jobject data_snapshot,
                                                 jobject previous_child_name) {
+  (void)clazz;
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
+    std::string prev_key =
+        previous_child_name ? util::JStringToString(env, previous_child_name)
+                            : std::string();
     listener->OnChildMoved(
         DataSnapshot(new DataSnapshotInternal(db, data_snapshot)),
-        previous_child_name
-            ? util::JStringToString(env, previous_child_name).c_str()
-            : nullptr);
+        previous_child_name ? prev_key.c_str() : nullptr);
   }
 }
 
@@ -104,6 +110,8 @@ void Callbacks::ChildListenerNativeOnChildRemoved(JNIEnv* env, jclass clazz,
                                                   jlong db_ptr,
                                                   jlong listener_ptr,
                                                   jobject data_snapshot) {
+  (void)env;
+  (void)clazz;
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
@@ -115,6 +123,8 @@ void Callbacks::ChildListenerNativeOnChildRemoved(JNIEnv* env, jclass clazz,
 void Callbacks::ValueListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
                                                jlong db_ptr, jlong listener_ptr,
                                                jobject database_error) {
+  (void)env;
+  (void)clazz;
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ValueListener* listener = reinterpret_cast<ValueListener*>(listener_ptr);
@@ -128,8 +138,9 @@ void Callbacks::ValueListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
 void Callbacks::ValueListenerNativeOnDataChange(JNIEnv* env, jclass clazz,
                                                 jlong db_ptr,
                                                 jlong listener_ptr,
-                                                jobject data_snapshot,
-                                                jobject previous_child_name) {
+                                                jobject data_snapshot) {
+  (void)env;
+  (void)clazz;
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ValueListener* listener = reinterpret_cast<ValueListener*>(listener_ptr);
@@ -168,24 +179,34 @@ void Callbacks::TransactionHandlerOnComplete(
         reinterpret_cast<TransactionData*>(transaction_data_ptr);
     if (was_committed) {
       // Transaction success!
-      jobject data_snapshot_global = env->NewGlobalRef(data_snapshot);
+      jobject data_snapshot_global =
+          data_snapshot ? env->NewGlobalRef(data_snapshot) : nullptr;
       data->future->Complete<DataSnapshot>(
           data->handle, kErrorNone, "",
           [db, data_snapshot_global](DataSnapshot* result) {
-            *result = DataSnapshot(
-                new DataSnapshotInternal(db, data_snapshot_global));
-            db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+            if (data_snapshot_global != nullptr) {
+              *result = DataSnapshot(
+                  new DataSnapshotInternal(db, data_snapshot_global));
+              db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+            } else {
+              *result = DataSnapshot(nullptr);
+            }
           });
     } else if (database_error == nullptr) {
-      jobject data_snapshot_global = env->NewGlobalRef(data_snapshot);
+      jobject data_snapshot_global =
+          data_snapshot ? env->NewGlobalRef(data_snapshot) : nullptr;
       data->future->Complete<DataSnapshot>(
           data->handle, kErrorTransactionAbortedByUser,
           "The transaction was aborted, because the transaction function "
           "returned kTransactionResultAbort.",
           [db, data_snapshot_global](DataSnapshot* result) {
-            *result = DataSnapshot(
-                new DataSnapshotInternal(db, data_snapshot_global));
-            db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+            if (data_snapshot_global != nullptr) {
+              *result = DataSnapshot(
+                  new DataSnapshotInternal(db, data_snapshot_global));
+              db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+            } else {
+              *result = DataSnapshot(nullptr);
+            }
           });
     } else {
       // Future error.

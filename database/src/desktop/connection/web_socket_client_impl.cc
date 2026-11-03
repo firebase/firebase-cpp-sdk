@@ -45,6 +45,10 @@ using ::firebase::rest::curl::UniqueEasy;
 namespace {
 // Size of the stack buffer used for each curl_ws_recv() read pass.
 constexpr size_t kRecvBufferSize = 16384;
+// Maximum reassembled incoming WebSocket message size (64 MiB).
+constexpr size_t kMaxIncomingMessageBytes = 64 * 1024 * 1024;
+// Maximum WebSocket PING control frame payload size per RFC 6455 section 5.5.
+constexpr size_t kMaxPingPayloadBytes = 125;
 // WebSocket close code 1000 (Normal Closure) in network byte order.
 const unsigned char kCloseNormalPayload[2] = {0x03, 0xe8};
 }  // namespace
@@ -165,6 +169,7 @@ void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
   }
 
   SetOpt(easy.get(), CURLOPT_URL, uri_.c_str());
+  SetOpt(easy.get(), CURLOPT_PROTOCOLS_STR, "ws,wss");
   // CURLOPT_CONNECT_ONLY = 2L instructs libcurl to perform the HTTP/1.1
   // WebSocket Upgrade handshake and stop after receiving 101 Switching
   // Protocols so framing can be driven via curl_ws_recv() and curl_ws_send().
@@ -410,6 +415,19 @@ void WebSocketClientImpl::ReceiveFrames() {
     }
 
     if (meta->flags & CURLWS_PING) {
+      if (rlen > kMaxPingPayloadBytes - incoming_ping_buffer_.size() ||
+          meta->bytesleft < 0 ||
+          static_cast<size_t>(meta->bytesleft) >
+              kMaxPingPayloadBytes - incoming_ping_buffer_.size() - rlen) {
+        logger_->LogError(
+            "WebSocket PING payload exceeds RFC 6455 125-byte limit on %s",
+            uri_.c_str());
+        CleanupEasyHandle();
+        state_ = kStateClosed;
+        OnError();
+        OnDisconnection();
+        break;
+      }
       if (rlen > 0) {
         incoming_ping_buffer_.append(buffer, rlen);
       }
@@ -439,6 +457,20 @@ void WebSocketClientImpl::ReceiveFrames() {
     }
 
     if (meta->flags & (CURLWS_TEXT | CURLWS_BINARY | CURLWS_CONT)) {
+      if (rlen > kMaxIncomingMessageBytes - incoming_message_buffer_.size() ||
+          meta->bytesleft < 0 ||
+          static_cast<size_t>(meta->bytesleft) >
+              kMaxIncomingMessageBytes - incoming_message_buffer_.size() -
+                  rlen) {
+        logger_->LogError(
+            "WebSocket incoming message exceeds maximum size (%zu bytes) on %s",
+            kMaxIncomingMessageBytes, uri_.c_str());
+        CleanupEasyHandle();
+        state_ = kStateClosed;
+        OnError();
+        OnDisconnection();
+        break;
+      }
       if (rlen > 0) {
         incoming_message_buffer_.append(buffer, rlen);
       }

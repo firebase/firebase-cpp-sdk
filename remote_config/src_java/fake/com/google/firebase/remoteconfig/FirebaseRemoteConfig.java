@@ -15,6 +15,7 @@
 package com.google.firebase.remoteconfig;
 
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.testing.cppsdk.ConfigAndroid;
 import com.google.firebase.testing.cppsdk.ConfigRow;
 import com.google.firebase.testing.cppsdk.FakeReporter;
@@ -46,11 +47,26 @@ public class FirebaseRemoteConfig {
   private static final String FN_SET_CONFIG_SETTINGS_ASYNC =
       "FirebaseRemoteConfig.setConfigSettingsAsync";
   private static final String FN_SET_CUSTOM_SIGNALS = "FirebaseRemoteConfig.setCustomSignals";
+  private static final String FN_ADD_ON_CONFIG_UPDATE_LISTENER =
+      "FirebaseRemoteConfig.addOnConfigUpdateListener";
 
   FirebaseRemoteConfig() {}
 
   public static FirebaseRemoteConfig getInstance() {
     return new FirebaseRemoteConfig();
+  }
+
+  public static FirebaseRemoteConfig getInstance(FirebaseApp app) {
+    return new FirebaseRemoteConfig();
+  }
+
+  public ConfigUpdateListenerRegistration addOnConfigUpdateListener(
+      ConfigUpdateListener listener) {
+    FakeReporter.addReport(FN_ADD_ON_CONFIG_UPDATE_LISTENER);
+    return new ConfigUpdateListenerRegistration() {
+      @Override
+      public void remove() {}
+    };
   }
 
   public long getLong(String key) {

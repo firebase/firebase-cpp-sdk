@@ -57,9 +57,10 @@ enum Availability {
 
 /// @brief Check whether Google Play services is available on this device.
 ///
-/// @return True if Google Play services is available and up-to-date, false if
-/// not. If false was returned, you can call MakeAvailable() to attempt to
-/// resolve the issue.
+/// @return The current Availability state on this device
+/// (kAvailabilityAvailable if Google Play services is available and
+/// up-to-date). If a value other than kAvailabilityAvailable was returned, you
+/// can call MakeAvailable() to attempt to resolve the issue.
 ///
 /// @see MakeAvailable()
 ///

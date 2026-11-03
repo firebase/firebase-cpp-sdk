@@ -33,8 +33,7 @@ class SnapshotMetadataInternal : public jni::Object {
 
   static void Initialize(jni::Loader& loader);
 
-  // Convert a Java SnapshotMetadata into a C++ SnapshotMetadata and release the
-  // reference to the jobject.
+  // Convert a Java SnapshotMetadata into a C++ SnapshotMetadata.
   SnapshotMetadata ToPublic(jni::Env& env) const;
 };
 

@@ -15,10 +15,10 @@
  */
 
 #include "firestore/src/jni/env.h"
-#include <cassert>
-#include <cstdint>
 
+#include <cstdint>
 #include <cstring>
+#include <exception>
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
@@ -42,15 +42,11 @@ namespace {
  * zero if exceptions are disabled.
  */
 int CurrentExceptionCount() {
-#if !__cpp_exceptions
-  return 0;
-
-#elif __cplusplus >= 201703L
+#if __cpp_exceptions
   return std::uncaught_exceptions();
-
 #else
-  return std::uncaught_exception() ? 1 : 0;
-#endif  // !__cpp_exceptions
+  return 0;
+#endif  // __cpp_exceptions
 }
 
 }  // namespace
@@ -65,7 +61,7 @@ Env::~Env() noexcept(false) {
   // slightly more efficient in the common case that no exception handler is
   // specified, and also avoids calling into the JVM in the rare case that the
   // thread is already detached.
-  if (!exception_handler_ || ok()) {
+  if (!exception_handler_ || !env_ || ok()) {
     return;
   }
 
@@ -81,7 +77,7 @@ Env::~Env() noexcept(false) {
 }
 
 Local<Class> Env::FindClass(const char* name) {
-  if (!ok()) return {};
+  if (!ok() || !name) return {};
 
   jclass result = env_->FindClass(name);
   RecordException();
@@ -89,7 +85,7 @@ Local<Class> Env::FindClass(const char* name) {
 }
 
 void Env::Throw(const Throwable& throwable) {
-  if (!ok()) return;
+  if (!ok() || !throwable) return;
 
   jint result = env_->Throw(throwable.get());
   FIREBASE_ASSERT_MESSAGE(
@@ -98,29 +94,35 @@ void Env::Throw(const Throwable& throwable) {
 }
 
 void Env::ThrowNew(const Class& clazz, const char* message) {
-  if (!ok()) return;
+  if (!ok() || !clazz) return;
 
   jint result = env_->ThrowNew(clazz.get(), message);
   FIREBASE_ASSERT_MESSAGE(
       result == JNI_OK, "Failed to throw %s with message %s: %s",
-      ErrorDescription(clazz).c_str(), message, ErrorName(result));
+      ErrorDescription(clazz).c_str(), message ? message : "(null)",
+      ErrorName(result));
 }
 
 Local<Throwable> Env::ExceptionOccurred() {
+  if (!env_) return {};
   jthrowable exception = env_->ExceptionOccurred();
   return Local<Throwable>(env_, exception);
 }
 
-void Env::ExceptionClear() { env_->ExceptionClear(); }
+void Env::ExceptionClear() {
+  if (!env_) return;
+  env_->ExceptionClear();
+}
 
 Local<Throwable> Env::ClearExceptionOccurred() {
+  if (!env_) return {};
   Local<Throwable> result = ExceptionOccurred();
   ExceptionClear();
   return result;
 }
 
 Local<Class> Env::GetObjectClass(const Object& object) {
-  if (!ok()) return {};
+  if (!ok() || !object) return {};
 
   jclass result = env_->GetObjectClass(object.get());
   RecordException();
@@ -128,11 +130,11 @@ Local<Class> Env::GetObjectClass(const Object& object) {
 }
 
 bool Env::IsInstanceOf(const Object& object, const Class& clazz) {
-  if (!ok()) return false;
+  if (!ok() || !object || !clazz) return false;
 
   jboolean result = env_->IsInstanceOf(object.get(), clazz.get());
   RecordException();
-  return result;
+  return result != JNI_FALSE;
 }
 
 bool Env::IsSameObject(const Object& object1, const Object& object2) {
@@ -140,13 +142,13 @@ bool Env::IsSameObject(const Object& object1, const Object& object2) {
 
   jboolean result = env_->IsSameObject(object1.get(), object2.get());
   RecordException();
-  return result;
+  return result != JNI_FALSE;
 }
 
 jmethodID Env::GetMethodId(const Class& clazz,
                            const char* name,
                            const char* sig) {
-  if (!ok()) return nullptr;
+  if (!ok() || !clazz || !name || !sig) return nullptr;
 
   jmethodID result = env_->GetMethodID(clazz.get(), name, sig);
   RecordException();
@@ -156,7 +158,7 @@ jmethodID Env::GetMethodId(const Class& clazz,
 jfieldID Env::GetStaticFieldId(const Class& clazz,
                                const char* name,
                                const char* sig) {
-  if (!ok()) return nullptr;
+  if (!ok() || !clazz || !name || !sig) return nullptr;
 
   jfieldID result = env_->GetStaticFieldID(ToJni(clazz), name, sig);
   RecordException();
@@ -166,7 +168,7 @@ jfieldID Env::GetStaticFieldId(const Class& clazz,
 jmethodID Env::GetStaticMethodId(const Class& clazz,
                                  const char* name,
                                  const char* sig) {
-  if (!ok()) return nullptr;
+  if (!ok() || !clazz || !name || !sig) return nullptr;
 
   jmethodID result = env_->GetStaticMethodID(ToJni(clazz), name, sig);
   RecordException();
@@ -176,13 +178,15 @@ jmethodID Env::GetStaticMethodId(const Class& clazz,
 Local<String> Env::NewStringUtf(const char* bytes) {
   if (!bytes) return {};
 
-  return NewStringUtf(bytes, strlen(bytes));
+  return NewStringUtf(bytes, std::strlen(bytes));
 }
 
 Local<String> Env::NewStringUtf(const char* bytes, size_t size) {
-  if (!ok()) return {};
+  if (!ok() || (!bytes && size > 0)) return {};
 
   Local<Array<uint8_t>> java_bytes = NewArray<uint8_t>(size);
+  if (!ok() || !java_bytes) return {};
+
   SetArrayRegion(java_bytes, 0, size, reinterpret_cast<const uint8_t*>(bytes));
   if (!ok()) return {};
 
@@ -190,16 +194,17 @@ Local<String> Env::NewStringUtf(const char* bytes, size_t size) {
 }
 
 std::string Env::ToStringUtf(const String& string) {
-  if (!ok()) return "";
+  if (!ok() || !string) return "";
 
   Local<Array<uint8_t>> bytes = string.GetBytes(*this, String::GetUtf8());
+  if (!ok() || !bytes) return "";
+
   size_t len = GetArrayLength(bytes);
+  if (!ok() || len == 0) return "";
 
   // Copy directly into the std::string buffer. This is guaranteed to work as
   // of C++11.
-  std::string result;
-  result.resize(len);
-
+  std::string result(len, '\0');
   auto* buffer = reinterpret_cast<uint8_t*>(&result[0]);
   GetArrayRegion(bytes, 0, len, buffer);
   if (!ok()) return "";
@@ -208,22 +213,23 @@ std::string Env::ToStringUtf(const String& string) {
 }
 
 void Env::RecordException() {
-  if (ok()) return;
-
-  env_->ExceptionDescribe();
+  if (!env_ || ok()) return;
 }
 
 std::string Env::ErrorDescription(const Object& object) {
+  if (!object) {
+    return "(null)";
+  }
+
   ExceptionClearGuard block(*this);
   std::string result = object.ToString(*this);
   if (ok()) {
     return result;
   }
 
-  auto exception = ExceptionOccurred();
-
-  ExceptionClearGuard block2(*this);
+  Local<Throwable> exception = ClearExceptionOccurred();
   std::string message = exception.GetMessage(*this);
+  ExceptionClear();
   return std::string("(unknown object: failed trying to describe it: ") +
          message + ")";
 }

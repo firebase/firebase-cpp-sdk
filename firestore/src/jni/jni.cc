@@ -15,11 +15,13 @@
  */
 
 #include "firestore/src/jni/jni.h"
-#include <cassert>
 
 #include <pthread.h>
 
+#include <atomic>
+
 #include "app/src/assert.h"
+#include "app/src/log.h"
 
 namespace firebase {
 namespace firestore {
@@ -28,20 +30,35 @@ namespace {
 
 pthread_key_t jni_env_key;
 
-JavaVM* g_jvm = nullptr;
+std::atomic<JavaVM*> g_jvm{nullptr};
 
 /**
- * Reinterprets `JNIEnv**` out parameters to `void**` on platforms where that's
- * required.
+ * Adapts `JNIEnv**` out parameters to either `JNIEnv**` or `void**` depending
+ * on whether the platform's JNI header uses the Android NDK or standard JDK
+ * signature for `GetEnv` and `AttachCurrentThread`.
  */
-void** EnvOut(JNIEnv** env) { return reinterpret_cast<void**>(env); }
+struct EnvOut {
+  explicit EnvOut(JNIEnv** env) : env_(env), void_env_(nullptr) {}
+  ~EnvOut() {
+    if (void_env_ != nullptr) {
+      *env_ = static_cast<JNIEnv*>(void_env_);
+    }
+  }
+
+  operator JNIEnv**() { return env_; }
+  operator void**() { return &void_env_; }
+
+  JNIEnv** env_;
+  void* void_env_;
+};
 
 JavaVM* GetGlobalJavaVM() {
   // TODO(mcg): Use dlsym to call JNI_GetCreatedJavaVMs.
+  JavaVM* jvm = g_jvm.load(std::memory_order_acquire);
   FIREBASE_ASSERT_MESSAGE(
-      g_jvm != nullptr,
+      jvm != nullptr,
       "Global JVM is unset; missing call to jni::Initialize()");
-  return g_jvm;
+  return jvm;
 }
 
 /**
@@ -49,9 +66,19 @@ JavaVM* GetGlobalJavaVM() {
  * when a thread is destroyed.
  */
 void DetachCurrentThread(void* env) {
-  JavaVM* jvm = g_jvm;
+  JavaVM* jvm = g_jvm.load(std::memory_order_acquire);
   if (jvm == nullptr || env == nullptr) {
     return;
+  }
+
+  JNIEnv* current_env = nullptr;
+  jint get_env_result = jvm->GetEnv(EnvOut(&current_env), JNI_VERSION_1_6);
+  if (get_env_result == JNI_EDETACHED || current_env == nullptr) {
+    return;
+  }
+
+  if (current_env->ExceptionCheck()) {
+    current_env->ExceptionClear();
   }
 
   jint result = jvm->DetachCurrentThread();
@@ -63,7 +90,8 @@ void DetachCurrentThread(void* env) {
 }  // namespace
 
 void Initialize(JavaVM* jvm) {
-  g_jvm = jvm;
+  FIREBASE_ASSERT_MESSAGE(jvm != nullptr,
+                          "Cannot initialize JNI with a null JavaVM");
 
   static pthread_once_t initialized = PTHREAD_ONCE_INIT;
   pthread_once(&initialized, [] {
@@ -71,6 +99,8 @@ void Initialize(JavaVM* jvm) {
     FIREBASE_ASSERT_MESSAGE(err == 0, "pthread_key_create failed (errno=%d)",
                             err);
   });
+
+  g_jvm.store(jvm, std::memory_order_release);
 }
 
 JNIEnv* GetEnv() {
@@ -93,7 +123,7 @@ JNIEnv* GetEnv() {
   // If we've gotten here, the current thread is a native thread that has not
   // been attached, so we need to attach it and set up a thread-local
   // destructor.
-  result = jvm->AttachCurrentThread(&env, nullptr);
+  result = jvm->AttachCurrentThread(EnvOut(&env), nullptr);
   FIREBASE_ASSERT_MESSAGE(result == JNI_OK,
                           "JNI AttachCurrentThread failed (result=%d)", result);
 

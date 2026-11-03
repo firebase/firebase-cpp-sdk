@@ -14,19 +14,18 @@
 
 #include "database/src/desktop/core/sync_tree.h"
 
-#include <cassert>
 #include <cstdint>
+#include <map>
 #include <memory>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "app/src/assert.h"
-#include "app/src/callback.h"
 #include "app/src/include/firebase/variant.h"
-#include "app/src/log.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
-#include "app/src/variant_util.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/keep_synced_event_registration.h"
@@ -39,12 +38,7 @@
 #include "database/src/desktop/view/event.h"
 #include "firebase/database/common.h"
 
-namespace firebase {
-
-using callback::NewCallback;
-
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
 bool SyncTree::IsEmpty() { return sync_point_tree_.IsEmpty(); }
 
@@ -56,8 +50,13 @@ std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
     if (persist) {
       this->persistence_manager_->RemoveUserWrite(write_id);
     }
+    const UserWriteRecord* write_record =
+        pending_write_tree_->GetWrite(write_id);
+    if (write_record == nullptr) {
+      return true;
+    }
     // Make a copy of the write, as it is about to be deleted.
-    UserWriteRecord write = *pending_write_tree_->GetWrite(write_id);
+    UserWriteRecord write = *write_record;
     bool need_to_reevaluate = pending_write_tree_->RemoveWrite(write_id);
     if (write.visible) {
       if (!revert) {
@@ -176,11 +175,12 @@ std::vector<Event> SyncTree::AddEventRegistration(
           }
         }
         // Fill the node with any available children we have.
-        auto& variant = persistent_server_cache.indexed_variant().variant();
+        const auto& variant =
+            persistent_server_cache.indexed_variant().variant();
         if (variant.is_map()) {
-          for (auto& key_value_pair : variant.map()) {
-            const char* key = key_value_pair.first.AsString().string_value();
-            const Variant& value = key_value_pair.second;
+          for (const auto& [raw_key, value] : variant.map()) {
+            Variant key_variant = raw_key.AsString();
+            const char* key = key_variant.string_value();
             if (GetInternalVariant(&*server_cache_variant, key) == nullptr) {
               VariantUpdateChild(&server_cache_variant.value(), key, value);
             }
@@ -240,6 +240,9 @@ std::vector<Event> SyncTree::ApplyTaggedOperation(const QuerySpec& query_spec,
   FIREBASE_DEV_ASSERT_MESSAGE(
       sync_point != nullptr,
       "Missing sync point for query tag that we're tracking");
+  if (sync_point == nullptr) {
+    return {};
+  }
   WriteTreeRef writes_cache = pending_write_tree_->ChildWrites(query_path);
   return sync_point->ApplyOperation(operation, writes_cache, nullptr,
                                     persistence_manager_.get());
@@ -254,6 +257,10 @@ std::vector<Event> SyncTree::ApplyTaggedQueryOverwrite(const Path& path,
     const QuerySpec* query_spec = this->QuerySpecForTag(tag);
     if (query_spec != nullptr) {
       Optional<Path> relative_path = Path::GetRelative(query_spec->path, path);
+      FIREBASE_DEV_ASSERT(relative_path.has_value());
+      if (!relative_path.has_value()) {
+        return true;
+      }
       QuerySpec query_to_overwrite =
           relative_path->empty() ? *query_spec : QuerySpec(path);
       this->persistence_manager_->UpdateServerCache(query_to_overwrite, snap);
@@ -279,6 +286,9 @@ std::vector<Event> SyncTree::ApplyTaggedQueryMerge(
     if (query_spec != nullptr) {
       Optional<Path> relative_path = Path::GetRelative(query_spec->path, path);
       FIREBASE_DEV_ASSERT(relative_path.has_value());
+      if (!relative_path.has_value()) {
+        return true;
+      }
       CompoundWrite merge = CompoundWrite::FromPathMerge(changed_children);
       this->persistence_manager_->UpdateServerCache(path, merge);
       Operation op = Operation::Merge(
@@ -373,7 +383,7 @@ std::vector<Event> SyncTree::ApplyOperationHelper(
     // Apply the operation to the SyncPoint here if there is one here.
     if (sync_point.has_value()) {
       Extend(&events, sync_point->ApplyOperation(operation, *writes_cache,
-                                                 &*server_cache,
+                                                 server_cache,
                                                  persistence_manager_.get()));
     }
     return events;
@@ -395,21 +405,15 @@ std::vector<Event> SyncTree::ApplyOperationDescendantsHelper(
   }
 
   std::vector<Event> events;
-  for (auto& key_subtree_pair : sync_point_tree->children()) {
-    const std::string& key = key_subtree_pair.first;
-    Tree<SyncPoint>* sync_point_subtree = &key_subtree_pair.second;
-
-    const Variant* child_server_cache = nullptr;
-    if (resolved_server_cache != nullptr && resolved_server_cache->is_map()) {
-      auto& map = resolved_server_cache->map();
-      auto iter = map.find(key);
-      child_server_cache = iter != map.end() ? &iter->second : nullptr;
-    }
+  for (auto& [key, sync_point_subtree] : sync_point_tree->children()) {
+    const Variant* child_server_cache =
+        resolved_server_cache ? &VariantGetChild(resolved_server_cache, key)
+                              : nullptr;
     WriteTreeRef child_writes_cache = writes_cache->Child(key);
     Optional<Operation> child_operation = OperationForChild(operation, key);
     if (child_operation.has_value()) {
       Extend(&events, ApplyOperationDescendantsHelper(
-                          *child_operation, sync_point_subtree,
+                          *child_operation, &sync_point_subtree,
                           child_server_cache, &child_writes_cache));
     }
   }
@@ -505,20 +509,25 @@ Optional<Variant> SyncTree::CalcCompleteEventCache(
   const Tree<SyncPoint>* tree = &sync_point_tree_;
   const Optional<SyncPoint>* current_sync_point = &tree->value();
   const Variant* server_cache = nullptr;
+  if (current_sync_point->has_value()) {
+    server_cache = (*current_sync_point)->GetCompleteServerCache(path);
+  }
   Path path_to_follow = path;
   Path path_so_far;
-  do {
+  while (tree != nullptr && !path_to_follow.empty() &&
+         server_cache == nullptr) {
     Path front = path_to_follow.FrontDirectory();
     path_to_follow = path_to_follow.PopFrontDirectory();
     path_so_far = path_so_far.GetChild(front);
     Optional<Path> relative_path = Path::GetRelative(path_so_far, path);
     tree = (!front.empty()) ? tree->GetChild(front) : nullptr;
     current_sync_point = tree ? &tree->value() : nullptr;
-    if (current_sync_point && current_sync_point->has_value()) {
+    if (current_sync_point && current_sync_point->has_value() &&
+        relative_path.has_value()) {
       server_cache =
           (*current_sync_point)->GetCompleteServerCache(*relative_path);
     }
-  } while (!path_to_follow.empty() && server_cache == nullptr);
+  }
   return pending_write_tree_->CalcCompleteEventCache(
       path, server_cache, write_ids_to_exclude, kIncludeHiddenWrites);
 }
@@ -632,8 +641,8 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
       // constraints, check for QuerySpecLoadsAllData(), instead of
       // QuerySpecIsDefault().
       bool removing_default = false;
-      for (QuerySpec& query_removed : removed) {
-        persistence_manager_->SetQueryInactive(query_spec);
+      for (const QuerySpec& query_removed : removed) {
+        persistence_manager_->SetQueryInactive(query_removed);
         removing_default |= QuerySpecLoadsAllData(query_removed);
       }
       Tree<SyncPoint>* current_tree = &sync_point_tree_;
@@ -712,6 +721,9 @@ void SyncTree::RemoveTags(const std::vector<QuerySpec>& queries) {
 }
 
 const QuerySpec* SyncTree::QuerySpecForTag(const Tag& tag) {
+  if (!tag.has_value()) {
+    return nullptr;
+  }
   return MapGet(&tag_to_query_spec_map_, *tag);
 }
 
@@ -722,6 +734,4 @@ Tag SyncTree::TagForQuerySpec(const QuerySpec& query_spec) {
 
 Tag SyncTree::GetNextQueryTag() { return Tag(next_query_tag_++); }
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal

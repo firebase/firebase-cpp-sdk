@@ -16,7 +16,7 @@
 
 #ifndef FIREBASE_APP_SRC_TIME_H_
 #define FIREBASE_APP_SRC_TIME_H_
-#include <cassert>
+#include <cerrno>
 #include <cstdint>
 
 #include "app/src/include/firebase/internal/platform.h"
@@ -39,57 +39,84 @@ namespace firebase {
 namespace internal {
 
 // Some handy conversion constants.
-const int64_t kSecondsPerMinute = 60;
-const int64_t kMinutesPerHour = 60;
-const int64_t kMillisecondsPerSecond = 1000;
-const int64_t kMicrosecondsPerMillisecond = 1000;
-const int64_t kMillisecondsPerMinute =
+constexpr int64_t kSecondsPerMinute = 60;
+constexpr int64_t kMinutesPerHour = 60;
+constexpr int64_t kMillisecondsPerSecond = 1000;
+constexpr int64_t kMicrosecondsPerMillisecond = 1000;
+constexpr int64_t kMillisecondsPerMinute =
     kMillisecondsPerSecond * kSecondsPerMinute;
-const int64_t kNanosecondsPerSecond = 1000000000;
-const int64_t kNanosecondsPerMillisecond = 1000000;
+constexpr int64_t kNanosecondsPerSecond = 1000000000;
+constexpr int64_t kNanosecondsPerMillisecond = 1000000;
 
 // Platform agnostic sleep function, for situations where need to just have
 // the current thread stop and wait for a bit.
 inline void Sleep(int64_t milliseconds) {
+  if (milliseconds <= 0) {
+    return;
+  }
 #if FIREBASE_PLATFORM_WINDOWS
-  // win32 sleep accepts milliseconds, which seems reasonable
-  const int64_t max_time = static_cast<int64_t>(~static_cast<DWORD>(0));
-  if (milliseconds > max_time) milliseconds = max_time;
-  ::Sleep(static_cast<DWORD>(milliseconds));
+  // Win32 Sleep accepts DWORD milliseconds, where 0xFFFFFFFF is INFINITE.
+  // Clamp each sleep call to INFINITE - 1 (0xFFFFFFFE) in a loop.
+  constexpr int64_t kMaxSleepTimeMs = static_cast<int64_t>(INFINITE - 1);
+  while (milliseconds > 0) {
+    const int64_t sleep_ms =
+        milliseconds > kMaxSleepTimeMs ? kMaxSleepTimeMs : milliseconds;
+    ::Sleep(static_cast<DWORD>(sleep_ms));
+    milliseconds -= sleep_ms;
+  }
 #else   // !FIREBASE_PLATFORM_WINDOWS
-  // Unix/Linux/Mac usleep accepts microseconds.
-  usleep(milliseconds * kMicrosecondsPerMillisecond);
+  timespec req;
+  req.tv_sec =
+      static_cast<time_t>(milliseconds / internal::kMillisecondsPerSecond);
+  req.tv_nsec = static_cast<long>(
+      (milliseconds % internal::kMillisecondsPerSecond) *
+      internal::kNanosecondsPerMillisecond);
+  timespec rem;
+  while (nanosleep(&req, &rem) == -1 && errno == EINTR) {
+    req = rem;
+  }
 #endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
 #if !FIREBASE_PLATFORM_WINDOWS
 // Utility function, for converting a timespec struct into milliseconds.
 inline int64_t TimespecToMs(timespec tm) {
-  return tm.tv_sec * firebase::internal::kMillisecondsPerSecond +
+  return static_cast<int64_t>(tm.tv_sec) *
+             firebase::internal::kMillisecondsPerSecond +
          tm.tv_nsec / firebase::internal::kNanosecondsPerMillisecond;
 }
 
 // Utility function for converting milliseconds into a timespec structure.
-inline timespec MsToTimespec(int milliseconds) {
+inline timespec MsToTimespec(int64_t milliseconds) {
   timespec t;
-  t.tv_sec = milliseconds / internal::kMillisecondsPerSecond;
-  t.tv_nsec = (milliseconds - t.tv_sec * internal::kMillisecondsPerSecond) *
-              internal::kNanosecondsPerMillisecond;
+  t.tv_sec = static_cast<time_t>(milliseconds / internal::kMillisecondsPerSecond);
+  t.tv_nsec = static_cast<long>(
+      (milliseconds % internal::kMillisecondsPerSecond) *
+      internal::kNanosecondsPerMillisecond);
+  if (t.tv_nsec < 0) {
+    t.tv_sec -= 1;
+    t.tv_nsec += static_cast<long>(internal::kNanosecondsPerSecond);
+  }
   return t;
 }
 
 // Utility function for converting milliseconds into a timespec structure
 // describing the absolute calendar time, [milliseconds] in the future.
-inline timespec MsToAbsoluteTimespec(int milliseconds) {
+inline timespec MsToAbsoluteTimespec(int64_t milliseconds) {
   timespec t;
   clock_gettime(CLOCK_REALTIME, &t);
 
   const int64_t nanoseconds =
-      t.tv_nsec + (t.tv_sec * internal::kNanosecondsPerSecond) +
+      static_cast<int64_t>(t.tv_nsec) +
+      (static_cast<int64_t>(t.tv_sec) * internal::kNanosecondsPerSecond) +
       (milliseconds * internal::kNanosecondsPerMillisecond);
 
-  t.tv_sec = nanoseconds / internal::kNanosecondsPerSecond;
-  t.tv_nsec = nanoseconds % internal::kNanosecondsPerSecond;
+  t.tv_sec = static_cast<time_t>(nanoseconds / internal::kNanosecondsPerSecond);
+  t.tv_nsec = static_cast<long>(nanoseconds % internal::kNanosecondsPerSecond);
+  if (t.tv_nsec < 0) {
+    t.tv_sec -= 1;
+    t.tv_nsec += static_cast<long>(internal::kNanosecondsPerSecond);
+  }
   return t;
 }
 
@@ -121,21 +148,26 @@ inline uint64_t GetTimestamp() {
   // return the elapse time since the system is started in milliseconds
   return GetTickCount64();
 #elif FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  // clock_gettime is only supported on macOS after 10.10 Sierra.
-  // mach_absolute_time() returns absolute time in nano seconds.
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  // Note that the same function does NOT return nano seconds in iOS.  Requires
-  // mach_timebase_info_data_t to convert returned value into nano seconds.
-  // However, the conversion may have potential risk to introduce overflow or
-  // error.  Re-evaluate this when we need to use this function in iOS.
-  assert(false);
-#endif
-  return mach_absolute_time() / internal::kNanosecondsPerMillisecond;
-#else   // Linux
+  // Convert mach_absolute_time() ticks to milliseconds using
+  // mach_timebase_info_data_t without 64-bit integer overflow.
+  static const mach_timebase_info_data_t timebase_info = [] {
+    mach_timebase_info_data_t info = {0, 0};
+    mach_timebase_info(&info);
+    return info;
+  }();
+  uint64_t ticks = mach_absolute_time();
+  uint64_t numer = timebase_info.numer;
+  uint64_t denom =
+      static_cast<uint64_t>(timebase_info.denom) *
+      static_cast<uint64_t>(internal::kNanosecondsPerMillisecond);
+  return (ticks / denom) * numer + ((ticks % denom) * numer) / denom;
+#else   // Linux / Android
   timespec t;
   clock_gettime(CLOCK_MONOTONIC, &t);
-  return t.tv_sec * internal::kMillisecondsPerSecond +
-         t.tv_nsec / internal::kNanosecondsPerMillisecond;
+  return static_cast<uint64_t>(t.tv_sec) *
+             static_cast<uint64_t>(internal::kMillisecondsPerSecond) +
+         static_cast<uint64_t>(t.tv_nsec) /
+             static_cast<uint64_t>(internal::kNanosecondsPerMillisecond);
 #endif  // platform select
 }
 
@@ -160,8 +192,10 @@ inline uint64_t GetTimestampEpoch() {
   // But Android does not support gettimeofday()
   timespec t;
   clock_gettime(CLOCK_REALTIME, &t);
-  return t.tv_sec * internal::kMillisecondsPerSecond +
-         t.tv_nsec / internal::kNanosecondsPerMillisecond;
+  return static_cast<uint64_t>(t.tv_sec) *
+             static_cast<uint64_t>(internal::kMillisecondsPerSecond) +
+         static_cast<uint64_t>(t.tv_nsec) /
+             static_cast<uint64_t>(internal::kNanosecondsPerMillisecond);
 #endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
@@ -179,36 +213,35 @@ class Timer {
   void Reset() { start_ = GetTicks(); }
 
   // Get the time elapsed in counter ticks since Reset() was called.
-  uint64_t GetElapsedTicks() { return GetTicks() - start_; }
+  uint64_t GetElapsedTicks() const { return GetTicks() - start_; }
 
   // Get the time elapsed in seconds since Reset() was called.
-  double GetElapsedSeconds() {
-    return static_cast<double>(GetElapsedTicks()) * tick_period_;
+  double GetElapsedSeconds() const {
+    return static_cast<double>(GetElapsedTicks()) * GetTickPeriod();
   }
 
- public:
   // Initialize the tick period value.
-  static void InitializeTickPeriod() {
-    if (tick_period_ != 0) {
-      return;
-    }
-#if FIREBASE_PLATFORM_WINDOWS
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-    tick_period_ = 1.0 / static_cast<double>(frequency.QuadPart);
-#elif FIREBASE_PLATFORM_LINUX
-    // Use a fixed frequency of 1ns to match timespec.
-    tick_period_ = 1e-9;
-#else
-    // Use a fixed frequency of 1us to match timeval.
-    tick_period_ = 1e-6;
-#endif  // FIREBASE_PLATFORM_WINDOWS, FIREBASE_PLATFORM_LINUX
-  }
+  static void InitializeTickPeriod() { (void)GetTickPeriod(); }
 
   // Get the period of one counter tick.
   static double GetTickPeriod() {
-    InitializeTickPeriod();
-    return tick_period_;
+    static const double kTickPeriod = []() -> double {
+#if FIREBASE_PLATFORM_WINDOWS
+      LARGE_INTEGER frequency;
+      QueryPerformanceFrequency(&frequency);
+      return 1.0 / static_cast<double>(frequency.QuadPart);
+#elif FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+      mach_timebase_info_data_t info = {0, 0};
+      mach_timebase_info(&info);
+      return (static_cast<double>(info.numer) /
+              static_cast<double>(info.denom)) *
+             1e-9;
+#else
+      // Use a fixed frequency of 1ns to match timespec.
+      return 1e-9;
+#endif  // FIREBASE_PLATFORM_WINDOWS
+    }();
+    return kTickPeriod;
   }
 
   // Get the number of counter ticks elapsed.
@@ -216,21 +249,19 @@ class Timer {
 #if FIREBASE_PLATFORM_WINDOWS
     LARGE_INTEGER ticks;
     QueryPerformanceCounter(&ticks);
-    return ticks.QuadPart;
-#elif FIREBASE_PLATFORM_LINUX
+    return static_cast<uint64_t>(ticks.QuadPart);
+#elif FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+    return mach_absolute_time();
+#else
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
-    return (static_cast<uint64_t>(time.tv_sec) * 1000000000ULL) + time.tv_nsec;
-#else
-    struct timeval time;
-    gettimeofday(&time, NULL);
-    return (static_cast<uint64_t>(time.tv_sec) * 1000000ULL) + time.tv_usec;
-#endif  // FIREBASE_PLATFORM_WINDOWS, FIREBASE_PLATFORM_LINUX
+    return (static_cast<uint64_t>(time.tv_sec) * 1000000000ULL) +
+           static_cast<uint64_t>(time.tv_nsec);
+#endif  // FIREBASE_PLATFORM_WINDOWS
   }
 
  private:
-  uint64_t start_;
-  static double tick_period_;
+  uint64_t start_ = 0;
 };
 }  // namespace internal
 // NOLINTNEXTLINE - allow namespace overridden

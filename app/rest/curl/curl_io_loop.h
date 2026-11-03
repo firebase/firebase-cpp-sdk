@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_REST_CURL_CURL_IO_LOOP_H_
 #define FIREBASE_APP_REST_CURL_CURL_IO_LOOP_H_
 
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <unordered_map>
@@ -112,6 +113,17 @@ class CurlIoLoop {
   // Release(), which is a bug in the caller. Returns true if fn was queued.
   bool Post(std::function<void()> fn);
 
+  // If a CurlIoLoop is currently running, queues fn to run on the I/O thread
+  // and wakes the thread, returning true. If no loop is running (before
+  // Acquire() or after the last Release()), returns false without asserting.
+  // Safe to call concurrently with Acquire() and Release(), and safe to call
+  // from the I/O thread itself (including during shutdown).
+  static bool PostIfRunning(std::function<void()> fn);
+
+  // True when called on the active CurlIoLoop's I/O thread (lock-free, safe to
+  // call even when no loop is running or concurrently with Release()).
+  static bool IsOnIoThreadCurrent();
+
   // True when called on the I/O thread.
   bool IsOnIoThread() const;
 
@@ -159,6 +171,7 @@ class CurlIoLoop {
     curl_socket_t fd;
     short events;
     std::function<void(short)> on_ready;
+    uint64_t generation;
   };
 
   CurlIoLoop();
@@ -187,9 +200,12 @@ class CurlIoLoop {
   // I/O thread only from here on.
   bool quit_;
   std::unordered_map<CURL*, Transfer*> transfers_;
+  std::unordered_map<CURL*, Transfer*> connect_only_transfers_;
   std::vector<ExtraFd> extra_fds_;
+  uint64_t next_extra_fd_generation_;
   // Scratch buffers reused across loop iterations.
   std::vector<curl_waitfd> wait_fds_;
+  std::vector<uint64_t> wait_fd_generations_;
 };
 
 }  // namespace curl

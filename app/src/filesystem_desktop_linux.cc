@@ -12,15 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <dirent.h>
+#include "app/src/filesystem.h"
+
 #include <pwd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <cerrno>
+#include <cstdlib>
 #include <cstring>
+#include <string>
 
-#include "app/src/filesystem.h"
 #include "app/src/util.h"
 
 namespace firebase {
@@ -29,24 +32,43 @@ namespace {
 
 std::string HomeDir(std::string* out_error) {
   const char* home_dir = getenv("HOME");
-  if (home_dir) return home_dir;
+  if (home_dir && home_dir[0] != '\0') return home_dir;
 
-  auto buffer_size = static_cast<size_t>(sysconf(_SC_GETPW_R_SIZE_MAX));
+  long sysconf_size = sysconf(_SC_GETPW_R_SIZE_MAX);
+  size_t buffer_size =
+      sysconf_size > 0 ? static_cast<size_t>(sysconf_size) : 1024;
   std::string buffer(buffer_size, '\0');
   uid_t uid = getuid();
   int rc;
   passwd pwd;
-  passwd* result;
-  do {
+  passwd* result = nullptr;
+  while (true) {
     rc = getpwuid_r(uid, &pwd, &buffer[0], buffer_size, &result);
-  } while (rc == EINTR);
+    if (rc == EINTR) {
+      continue;
+    }
+    if (rc == ERANGE && buffer_size < 1024 * 1024) {
+      buffer_size *= 2;
+      buffer.resize(buffer_size, '\0');
+      continue;
+    }
+    break;
+  }
 
-  if (rc != 0) {
+  if (rc != 0 || result == nullptr || pwd.pw_dir == nullptr ||
+      pwd.pw_dir[0] == '\0') {
     if (out_error) {
-      *out_error = std::string(
-                       "Failed to find the home directory for the current user "
-                       "(errno: ") +
-                   std::to_string(errno) + ")";
+      if (rc != 0) {
+        *out_error =
+            std::string(
+                "Failed to find the home directory for the current user "
+                "(errno: ") +
+            std::to_string(rc) + ")";
+      } else {
+        *out_error =
+            "Failed to find the home directory for the current user "
+            "(user entry not found)";
+      }
     }
     return "";
   }
@@ -54,30 +76,34 @@ std::string HomeDir(std::string* out_error) {
   return pwd.pw_dir;
 }
 
-std::string XdgDataHomeDir(std::string* out_error) {
+std::string XdgDataHomeDir() {
   const char* data_home = getenv("XDG_DATA_HOME");
-  if (data_home) return data_home;
+  if (data_home && data_home[0] != '\0') return data_home;
   return "";
-}
-
-bool Mkdir(const std::string& path, std::string* out_error) {
-  int retval = mkdir(path.c_str(), 0700);
-  if (retval != 0 && errno != EEXIST) {
-    if (out_error) {
-      *out_error = std::string("Could not create directory '") + path +
-                   "' (error code: " + std::to_string(errno) + ")";
-    }
-
-    return false;
-  }
-
-  return true;
 }
 
 bool PathExists(const std::string& path) {
   struct stat sb;
 
   return (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
+}
+
+bool Mkdir(const std::string& path, std::string* out_error) {
+  int retval = mkdir(path.c_str(), 0700);
+  if (retval != 0) {
+    int err = errno;
+    if (err == EEXIST && PathExists(path)) {
+      return true;
+    }
+    if (out_error) {
+      *out_error = std::string("Could not create directory '") + path +
+                   "' (error code: " + std::to_string(err) + ")";
+    }
+
+    return false;
+  }
+
+  return true;
 }
 
 }  // namespace
@@ -94,7 +120,7 @@ std::string AppDataDir(const char* app_name, bool should_create,
   std::string app_dir = app_name;
 
   // On Linux, use XDG_DATA_HOME, usually $HOME/.local/share/$app_name
-  std::string home = XdgDataHomeDir(out_error);
+  std::string home = XdgDataHomeDir();
   if (home.empty()) {
     home = HomeDir(out_error);
     if (home.empty()) return "";
@@ -116,7 +142,7 @@ std::string AppDataDir(const char* app_name, bool should_create,
     }
   }
 
-  return home + "/" + app_dir;
+  return full_path;
 }
 
 }  // namespace firebase

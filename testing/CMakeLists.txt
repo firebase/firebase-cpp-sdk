@@ -160,3 +160,9 @@ target_link_libraries(firebase_testing
 )
 
 add_dependencies(firebase_testing generate_testing_fps)
+
+if(NOT TARGET gtest AND EXISTS "${CMAKE_BINARY_DIR}/external/src/googletest/CMakeLists.txt")
+  add_subdirectory("${CMAKE_BINARY_DIR}/external/src/googletest" "${CMAKE_BINARY_DIR}/googletest-build" EXCLUDE_FROM_ALL)
+  include_directories("${CMAKE_BINARY_DIR}/external/src/googletest/googletest/include")
+  include_directories("${CMAKE_BINARY_DIR}/external/src/googletest/googlemock/include")
+endif()

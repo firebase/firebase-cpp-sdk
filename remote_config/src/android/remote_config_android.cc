@@ -14,12 +14,13 @@
 
 #include "remote_config/src/android/remote_config_android.h"
 
-#include <assert.h>
-
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
@@ -32,6 +33,7 @@
 #include "remote_config/remote_config_resources.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/config_update_listener_registration_internal.h"
+#include "remote_config/src/value_parser.h"
 
 namespace firebase {
 namespace remote_config {
@@ -63,10 +65,6 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
   X(SetCustomSignalsAsync, "setCustomSignals",                             \
     "(Lcom/google/firebase/remoteconfig/CustomSignals;)"                   \
     "Lcom/google/android/gms/tasks/Task;"),                                \
-  X(GetLong, "getLong", "(Ljava/lang/String;)J"),                          \
-  X(GetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;"),     \
-  X(GetBoolean, "getBoolean", "(Ljava/lang/String;)Z"),                    \
-  X(GetDouble, "getDouble", "(Ljava/lang/String;)D"),                      \
   X(GetValue, "getValue",                                                  \
     "(Ljava/lang/String;)"                                                 \
     "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigValue;"),       \
@@ -211,9 +209,10 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jint j_error_code);
 
 static const JNINativeMethod kNativeJniConfigUpdateListenerMethods[] = {
-    {"nativeOnUpdate", "(JLcom/google/firebase/remoteconfig/ConfigUpdate;)V",
+    {const_cast<char*>("nativeOnUpdate"),
+     const_cast<char*>("(JLcom/google/firebase/remoteconfig/ConfigUpdate;)V"),
      reinterpret_cast<void*>(JniConfigUpdateListener_nativeOnUpdate)},
-    {"nativeOnError", "(JI)V",
+    {const_cast<char*>("nativeOnError"), const_cast<char*>("(JI)V"),
      reinterpret_cast<void*>(JniConfigUpdateListener_nativeOnError)},
 };
 
@@ -294,31 +293,47 @@ static void ReleaseClasses(JNIEnv* env) {
   config_update_listener_registration::ReleaseClass(env);
 }
 
-template <typename T>
-static void SaveDefaultKeys(const T* defaults, std::vector<std::string>* keys,
-                            size_t number_of_defaults) {
-  assert(keys);
-  keys->clear();
-  keys->reserve(number_of_defaults);
-  for (size_t i = 0; i < number_of_defaults; i++) {
-    keys->push_back(defaults[i].key);
-  }
-}
-
 // Convert a ConfigKeyValue array to string into a java HashMap of strings to
 // strings.
-static jobject ConfigKeyValueArrayToHashMap(JNIEnv* env,
-                                            const ConfigKeyValue* defaults,
-                                            size_t number_of_defaults) {
+static jobject ConfigKeyValueArrayToHashMap(
+    JNIEnv* env, const ConfigKeyValue* defaults, size_t number_of_defaults,
+    std::vector<std::string>* out_keys) {
+  if (out_keys) {
+    out_keys->clear();
+  }
   jobject hash_map =
       env->NewObject(util::hash_map::GetClass(),
                      util::hash_map::GetMethodId(util::hash_map::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !hash_map) {
+    return nullptr;
+  }
+  if (!defaults || number_of_defaults == 0) {
+    return hash_map;
+  }
+  if (out_keys) {
+    out_keys->reserve(number_of_defaults);
+  }
   jmethodID put_method = util::map::GetMethodId(util::map::kPut);
   for (size_t i = 0; i < number_of_defaults; ++i) {
+    if (!defaults[i].key || !defaults[i].value) {
+      LogWarning("Remote Config: Ignoring null key or value in SetDefaults().");
+      continue;
+    }
     jstring key = env->NewStringUTF(defaults[i].key);
+    if (util::CheckAndClearJniExceptions(env) || !key) {
+      continue;
+    }
     jstring value = env->NewStringUTF(defaults[i].value);
+    if (util::CheckAndClearJniExceptions(env) || !value) {
+      env->DeleteLocalRef(key);
+      continue;
+    }
     jobject previous = env->CallObjectMethod(hash_map, put_method, key, value);
-    if (util::CheckAndClearJniExceptions(env)) previous = nullptr;
+    if (util::CheckAndClearJniExceptions(env)) {
+      previous = nullptr;
+    } else if (out_keys) {
+      out_keys->push_back(defaults[i].key);
+    }
     if (previous) env->DeleteLocalRef(previous);
     env->DeleteLocalRef(value);
     env->DeleteLocalRef(key);
@@ -327,65 +342,90 @@ static jobject ConfigKeyValueArrayToHashMap(JNIEnv* env,
 }
 
 static jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
+  jobject result = nullptr;
   if (variant.is_int64()) {
-    return env->NewObject(
+    result = env->NewObject(
         util::long_class::GetClass(),
         util::long_class::GetMethodId(util::long_class::kConstructor),
         variant.int64_value());
   } else if (variant.is_double()) {
-    return env->NewObject(
+    result = env->NewObject(
         util::double_class::GetClass(),
         util::double_class::GetMethodId(util::double_class::kConstructor),
         variant.double_value());
   } else if (variant.is_bool()) {
-    return env->NewObject(
+    result = env->NewObject(
         util::boolean_class::GetClass(),
         util::boolean_class::GetMethodId(util::boolean_class::kConstructor),
         variant.bool_value());
   } else if (variant.is_string()) {
-    return env->NewStringUTF(variant.string_value());
-  } else if (variant.is_blob()) {
-    // Workaround a Remote Config Android SDK bug: rather than using a byte[]
-    // array, use a String containing binary data instead.
-    jchar* unicode_bytes = new jchar[variant.blob_size()];
-    for (int i = 0; i < variant.blob_size(); ++i) {
-      unicode_bytes[i] = variant.blob_data()[i];
+    const char* str_val = variant.string_value();
+    if (!str_val) {
+      return nullptr;
     }
-    jobject the_string = env->NewString(unicode_bytes, variant.blob_size());
-    delete[] unicode_bytes;
-    return the_string;
-    // TODO(b/141322200) Remote the code above and restore the code below once
-    // this bug is fixed.
-    // return static_cast<jobject>(util::ByteBufferToJavaByteArray(env,
-    // variant.blob_data(), variant.blob_size()));
-  } else {
+    result = env->NewStringUTF(str_val);
+  } else if (variant.is_blob()) {
+    const uint8_t* blob_data = variant.blob_data();
+    size_t blob_size = variant.blob_size();
+    if (!blob_data && blob_size > 0) {
+      return nullptr;
+    }
+    result = static_cast<jobject>(
+        util::ByteBufferToJavaByteArray(env, blob_data, blob_size));
+  }
+  if (util::CheckAndClearJniExceptions(env)) {
     return nullptr;
   }
+  return result;
 }
 
 // Convert a ConfigKeyValueVariant array into a Java HashMap of string to
 // Object.
 static jobject ConfigKeyValueVariantArrayToHashMap(
     JNIEnv* env, const ConfigKeyValueVariant* defaults,
-    size_t number_of_defaults) {
+    size_t number_of_defaults, std::vector<std::string>* out_keys) {
+  if (out_keys) {
+    out_keys->clear();
+  }
   jobject hash_map =
       env->NewObject(util::hash_map::GetClass(),
                      util::hash_map::GetMethodId(util::hash_map::kConstructor));
+  if (util::CheckAndClearJniExceptions(env) || !hash_map) {
+    return nullptr;
+  }
+  if (!defaults || number_of_defaults == 0) {
+    return hash_map;
+  }
+  if (out_keys) {
+    out_keys->reserve(number_of_defaults);
+  }
   jmethodID put_method = util::map::GetMethodId(util::map::kPut);
   for (size_t i = 0; i < number_of_defaults; ++i) {
-    jstring key = env->NewStringUTF(defaults[i].key);
+    if (!defaults[i].key) {
+      LogWarning("Remote Config: Ignoring null key in SetDefaults().");
+      continue;
+    }
     jobject value = VariantToJavaObject(env, defaults[i].value);
     if (value != nullptr) {
+      jstring key = env->NewStringUTF(defaults[i].key);
+      if (util::CheckAndClearJniExceptions(env) || !key) {
+        env->DeleteLocalRef(value);
+        continue;
+      }
       jobject previous =
           env->CallObjectMethod(hash_map, put_method, key, value);
-      if (util::CheckAndClearJniExceptions(env)) previous = nullptr;
+      if (util::CheckAndClearJniExceptions(env)) {
+        previous = nullptr;
+      } else if (out_keys) {
+        out_keys->push_back(defaults[i].key);
+      }
       if (previous) env->DeleteLocalRef(previous);
       env->DeleteLocalRef(value);
+      env->DeleteLocalRef(key);
     } else {
       LogError("Remote Config: Invalid Variant type for SetDefaults() key %s.",
                defaults[i].key);
     }
-    env->DeleteLocalRef(key);
   }
   return hash_map;
 }
@@ -414,7 +454,13 @@ static jobject CustomSignalsFromMap(JNIEnv* env,
                                     custom_signals_builder::kPutString),
                                 key, nullptr);
     } else if (kv.second.is_string()) {
-      jstring str_val = env->NewStringUTF(kv.second.string_value());
+      const char* raw_str = kv.second.string_value();
+      if (!raw_str) {
+        env->DeleteLocalRef(key);
+        env->DeleteLocalRef(builder);
+        return nullptr;
+      }
+      jstring str_val = env->NewStringUTF(raw_str);
       if (util::CheckAndClearJniExceptions(env) || !str_val) {
         env->DeleteLocalRef(key);
         env->DeleteLocalRef(builder);
@@ -447,9 +493,6 @@ static jobject CustomSignalsFromMap(JNIEnv* env,
     }
 
     if (util::CheckAndClearJniExceptions(env) || !result_builder) {
-      if (result_builder) {
-        env->DeleteLocalRef(result_builder);
-      }
       env->DeleteLocalRef(key);
       env->DeleteLocalRef(builder);
       return nullptr;
@@ -463,9 +506,6 @@ static jobject CustomSignalsFromMap(JNIEnv* env,
       builder,
       custom_signals_builder::GetMethodId(custom_signals_builder::kBuild));
   if (util::CheckAndClearJniExceptions(env) || !custom_signals) {
-    if (custom_signals) {
-      env->DeleteLocalRef(custom_signals);
-    }
     custom_signals = nullptr;
   }
   env->DeleteLocalRef(builder);
@@ -481,62 +521,44 @@ static bool CheckKeyRetrievalLogError(JNIEnv* env, const char* key,
     env->ExceptionDescribe();
     env->ExceptionClear();
     LogError("Remote Config: Failed to retrieve %s value from key %s",
-             value_type, key);
+             value_type, key ? key : "<null>");
     return true;
   }
   return false;
 }
 
-// Generate the logic to retrieve an integral type value and source from
-// a FirebaseRemoteConfigValue interface.
-// key is a string with the key to retrieve, info is a pointer to ValueInfo
-// which receives the source of the retrieved value, c_type is the integral type
-// being retrieved, c_type_name is a human readable string for the value being
-// retrieved and java_type is the type portion of the JNI function to call.
-#define CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, info, c_type, c_type_name, \
-                                            java_type)                      \
-  {                                                                         \
-    JNIEnv* env = g_app->GetJNIEnv();                                       \
-    jobject value_object =                                                  \
-        GetValue(env, g_remote_config_class_instance, key, info);           \
-    if (!value_object) return 0;                                            \
-    c_type value = env->Call##java_type##Method(                            \
-        value_object,                                                       \
-        config_value::GetMethodId(config_value::kAs##java_type));           \
-    bool failed = CheckKeyRetrievalLogError(env, key, c_type_name);         \
-    env->DeleteLocalRef(value_object);                                      \
-    if (info) info->conversion_successful = !failed;                        \
-    return failed ? static_cast<c_type>(0) : value;                         \
-  }
-
 // Get the FirebaseRemoteConfigValue interface and the value source for a key.
 static jobject GetValue(JNIEnv* env, jobject rc_obj, const char* key,
                         ValueInfo* info) {
-  bool configFetchFailed = false;
-  jstring key_string = env->NewStringUTF(key);
-  jobject config_value = env->CallObjectMethod(
-      rc_obj, config::GetMethodId(config::kGetValue), key_string);
-  if (util::CheckAndClearJniExceptions(env)) {
-    config_value = nullptr;
-    configFetchFailed = true;
-  }
-  configFetchFailed |= CheckKeyRetrievalLogError(env, key, "<unknown>");
-  env->DeleteLocalRef(key_string);
   if (info) {
     info->source = kValueSourceStaticValue;
     info->conversion_successful = false;
   }
-  if (info && !configFetchFailed) {
+  if (!key || !rc_obj) {
+    return nullptr;
+  }
+  jstring key_string = env->NewStringUTF(key);
+  if (util::CheckAndClearJniExceptions(env) || !key_string) {
+    return nullptr;
+  }
+  jobject config_value = env->CallObjectMethod(
+      rc_obj, config::GetMethodId(config::kGetValue), key_string);
+  bool configFetchFailed = CheckKeyRetrievalLogError(env, key, "<unknown>");
+  env->DeleteLocalRef(key_string);
+  if (configFetchFailed || !config_value) {
+    return nullptr;
+  }
+  if (info) {
     info->source = kValueSourceDefaultValue;
     int value_source = env->CallIntMethod(
         config_value, config_value::GetMethodId(config_value::kGetSource));
-    if (env->ExceptionCheck()) {
-      env->ExceptionDescribe();
-      env->ExceptionClear();
-      configFetchFailed = true;
+    if (CheckKeyRetrievalLogError(env, key, "source")) {
+      env->DeleteLocalRef(config_value);
+      return nullptr;
     }
-    if (!configFetchFailed && value_source >= 0 &&
-        value_source < sizeof(kFirebaseRemoteConfigSourceToValueSourceMap)) {
+    if (value_source >= 0 &&
+        static_cast<size_t>(value_source) <
+            FIREBASE_ARRAYSIZE(kFirebaseRemoteConfigSourceToValueSourceMap)) {
       info->source = kFirebaseRemoteConfigSourceToValueSourceMap[value_source];
     } else {
       LogError(
@@ -545,7 +567,7 @@ static jobject GetValue(JNIEnv* env, jobject rc_obj, const char* key,
           value_source, key);
     }
   }
-  return configFetchFailed ? nullptr : config_value;
+  return config_value;
 }
 
 /**
@@ -554,6 +576,9 @@ static jobject GetValue(JNIEnv* env, jobject rc_obj, const char* key,
 static ConfigUpdate ConfigUpdateFromJavaConfigUpdate(JNIEnv* env,
                                                      jobject j_config_update) {
   ConfigUpdate config_update;
+  if (!j_config_update) {
+    return config_update;
+  }
   jobject key_set_java = env->CallObjectMethod(
       j_config_update,
       config_update::GetMethodId(config_update::kGetUpdatedKeys));
@@ -588,38 +613,30 @@ static RemoteConfigError RemoteConfigErrorFromJavaErrorCode(int error_code) {
   }
 }
 
-// Generate the logic to retrieve an integral type value from the
-// FirebaseRemoteConfig class.
-// key is a string with the key to retrieve, c_type is the integral type being
-// retrieved, c_type_name is a human readable string for the value being
-// retrieved and java_type is the type portion of the JNI function to call.
-#define CONFIG_GET_INTEGRAL_TYPE(key, c_type, c_type_name, java_type) \
-  {                                                                   \
-    JNIEnv* env = g_app->GetJNIEnv();                                 \
-    jstring key_string = env->NewStringUTF(key);                      \
-    c_type value = env->Call##java_type##Method(                      \
-        g_remote_config_class_instance,                               \
-        config::GetMethodId(config::kGet##java_type), key_string);    \
-    bool failed = CheckKeyRetrievalLogError(env, key, c_type_name);   \
-    env->DeleteLocalRef(key_string);                                  \
-    return failed ? static_cast<c_type>(0) : value;                   \
-  }
-
 static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
                                     ConfigInfo* info) {
+  if (!jinfo || !info) {
+    return;
+  }
   FIREBASE_DEV_ASSERT(env->IsInstanceOf(jinfo, config_info::GetClass()));
 
   int64_t fetch_time = env->CallLongMethod(
       jinfo, config_info::GetMethodId(config_info::kGetFetchTimeMillis));
+  if (util::CheckAndClearJniExceptions(env)) {
+    return;
+  }
   // The C++ fetch_time is a uint64_t, so if we are given a negative number,
   // use 0 instead, to prevent getting a very large number.
   if (fetch_time < 0) {
     fetch_time = 0;
   }
-  info->fetch_time = fetch_time;
-  util::CheckAndClearJniExceptions(env);
-  int64_t status_code = env->CallIntMethod(
+  info->fetch_time = static_cast<uint64_t>(fetch_time);
+
+  int status_code = env->CallIntMethod(
       jinfo, config_info::GetMethodId(config_info::kGetLastFetchStatus));
+  if (util::CheckAndClearJniExceptions(env)) {
+    return;
+  }
   switch (status_code) {
     case -1:  // FirebaseRemoteConfig.LAST_FETCH_STATUS_SUCCESS
       info->last_fetch_status = kLastFetchStatusSuccess;
@@ -640,10 +657,9 @@ static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
     default:
       LogWarning("Unknown last fetch status %d.", status_code);
       info->last_fetch_status = kLastFetchStatusFailure;
-      info->last_fetch_failure_reason = kFetchFailureReasonInvalid;
+      info->last_fetch_failure_reason = kFetchFailureReasonError;
       break;
   }
-  util::CheckAndClearJniExceptions(env);
 }
 
 template <typename T>
@@ -656,7 +672,7 @@ struct RCDataHandle {
       : future_api(_future_api),
         future_handle(_future_handle),
         rc_internal(_rc_internal),
-        default_keys(_default_keys) {}
+        default_keys(std::move(_default_keys)) {}
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
@@ -665,14 +681,39 @@ struct RCDataHandle {
 
 // An object wrapping a ConfigUpdateListener callback method
 struct ConfigUpdateListenerWrapper {
-  ConfigUpdateListenerWrapper(
+  explicit ConfigUpdateListenerWrapper(
       std::function<void(ConfigUpdate&&, RemoteConfigError)> listener_)
-      : listener(listener_) {}
+      : listener(std::move(listener_)) {}
   std::function<void(ConfigUpdate&&, RemoteConfigError)> listener;
 };
 
+static Mutex g_listener_wrappers_mutex;
+static std::set<ConfigUpdateListenerWrapper*>* g_active_listener_wrappers =
+    nullptr;
+
+static void RegisterListenerWrapper(ConfigUpdateListenerWrapper* wrapper) {
+  MutexLock lock(g_listener_wrappers_mutex);
+  if (!g_active_listener_wrappers) {
+    g_active_listener_wrappers = new std::set<ConfigUpdateListenerWrapper*>();
+  }
+  g_active_listener_wrappers->insert(wrapper);
+}
+
+static void UnregisterAndDeleteListenerWrapper(
+    ConfigUpdateListenerWrapper* wrapper) {
+  MutexLock lock(g_listener_wrappers_mutex);
+  if (g_active_listener_wrappers) {
+    g_active_listener_wrappers->erase(wrapper);
+  }
+  delete wrapper;
+}
+
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
-    : app_(app), future_impl_(kRemoteConfigFnCount) {
+    : app_(app),
+      future_impl_(kRemoteConfigFnCount),
+      internal_obj_(nullptr),
+      initialized_ref_(false),
+      throttled_end_time_(0) {
   ReferenceCountLock<ReferenceCount> lock(&initializer_);
   LogDebug("Firebase RemoteConfig API Initializing");
   static const char* kApiIdentifier = "Remote Config";
@@ -702,40 +743,51 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
       return;
     }
   }
+  initialized_ref_ = true;
 
   // Create the remote config class.
   jclass config_class = config::GetClass();
   jobject platform_app = app_.GetPlatformApp();
   jobject config_instance_local = env->CallStaticObjectMethod(
       config_class, config::GetMethodId(config::kGetInstance), platform_app);
-  env->DeleteLocalRef(platform_app);
+  if (platform_app) {
+    env->DeleteLocalRef(platform_app);
+  }
   if (util::CheckAndClearJniExceptions(env)) config_instance_local = nullptr;
   FIREBASE_ASSERT(config_instance_local);
-  internal_obj_ = env->NewGlobalRef(config_instance_local);
-  env->DeleteLocalRef(config_instance_local);
+  if (config_instance_local) {
+    internal_obj_ = env->NewGlobalRef(config_instance_local);
+    env->DeleteLocalRef(config_instance_local);
+  }
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-RemoteConfigInternal::~RemoteConfigInternal() {
-  // Trigger CleanupNotifier Cleanup. This will delete
-  // ConfigUpdateListenerRegistrationInternal instances and it will update
-  // ConfigUpdateListenerRegistration instances to no longer point to the
-  // corresponding internal objects.
-  cleanup_notifier().CleanupAll();
-  JNIEnv* env = app_.GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
-}
+RemoteConfigInternal::~RemoteConfigInternal() { Cleanup(); }
 
 bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
 }
 
 void RemoteConfigInternal::Cleanup() {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
-  if (lock.RemoveReference() == 1) {
+  cleanup_notifier().CleanupAll();
+  if (!jni_task_id_.empty()) {
     JNIEnv* env = app_.GetJNIEnv();
-    ReleaseClasses(env);
-    util::Terminate(env);
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+    jni_task_id_.clear();
+  }
+  if (internal_obj_ != nullptr) {
+    JNIEnv* env = app_.GetJNIEnv();
+    env->DeleteGlobalRef(internal_obj_);
+    internal_obj_ = nullptr;
+  }
+  if (initialized_ref_) {
+    initialized_ref_ = false;
+    ReferenceCountLock<ReferenceCount> lock(&initializer_);
+    if (lock.RemoveReference() == 1) {
+      JNIEnv* env = app_.GetJNIEnv();
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
   }
 }
 
@@ -744,19 +796,43 @@ void EnsureInitializedCallback(JNIEnv* env, jobject result,
                                const char* status_message,
                                void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
-  ConfigInfo info;
-  if (success && result) {
-    JConfigInfoToConfigInfo(env, result, &info);
-  }
   auto* data_handle =
       reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
+  ConfigInfo info{};
+  int64_t throttled_end = data_handle->rc_internal->throttled_end_time();
+  info.throttled_end_time =
+      throttled_end > 0 ? static_cast<uint64_t>(throttled_end) : 0;
+  if (success && result) {
+    JConfigInfoToConfigInfo(env, result, &info);
+  } else if (!success) {
+    info.last_fetch_status = kLastFetchStatusFailure;
+    info.last_fetch_failure_reason = kFetchFailureReasonError;
+  }
 
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
-      success ? kFutureStatusSuccess : kFutureStatusFailure, status_message,
-      info);
+      success ? kFutureStatusSuccess : kFutureStatusFailure,
+      status_message ? status_message : "", info);
 
   delete data_handle;
+}
+
+static void UpdateThrottleEndTimeFromTaskResult(JNIEnv* env, jobject result,
+                                                bool success,
+                                                RemoteConfigInternal* rc) {
+  if (!rc) return;
+  if (success) {
+    rc->set_throttled_end_time(0);
+    return;
+  }
+  if (result && env->IsInstanceOf(result, throttled_exception::GetClass())) {
+    int64_t throttle_end_time = static_cast<int64_t>(env->CallLongMethod(
+        result, throttled_exception::GetMethodId(
+                    throttled_exception::kGetThrottleEndTimeMillis)));
+    if (!util::CheckAndClearJniExceptions(env) && throttle_end_time > 0) {
+      rc->set_throttled_end_time(throttle_end_time);
+    }
+  }
 }
 
 void BoolResultCallback(JNIEnv* env, jobject result,
@@ -769,10 +845,12 @@ void BoolResultCallback(JNIEnv* env, jobject result,
   }
 
   auto* data_handle = reinterpret_cast<RCDataHandle<bool>*>(callback_data);
+  UpdateThrottleEndTimeFromTaskResult(env, result, success,
+                                      data_handle->rc_internal);
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
-      success ? kFutureStatusSuccess : kFutureStatusFailure, status_message,
-      result_value);
+      success ? kFutureStatusSuccess : kFutureStatusFailure,
+      status_message ? status_message : "", result_value);
 
   delete data_handle;
 }
@@ -780,29 +858,23 @@ void BoolResultCallback(JNIEnv* env, jobject result,
 void CompleteVoidCallback(JNIEnv* env, jobject result,
                           util::FutureResult result_code,
                           const char* status_message, void* callback_data) {
+  (void)env;
+  (void)result;
   auto* data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
-  data_handle->future_api->Complete(data_handle->future_handle,
-                                    result_code == util::kFutureResultSuccess
-                                        ? kFutureStatusSuccess
-                                        : kFutureStatusFailure);
+  data_handle->future_api->Complete(
+      data_handle->future_handle,
+      result_code == util::kFutureResultSuccess ? kFutureStatusSuccess
+                                                : kFutureStatusFailure,
+      status_message ? status_message : "");
   delete data_handle;
 }
 
 void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                    const char* status_message, void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
-  int64_t throttle_end_time = 0;
-  if (!success && result) {
-    if (env->IsInstanceOf(result, throttled_exception::GetClass())) {
-      throttle_end_time = static_cast<int64_t>(env->CallLongMethod(
-          result, throttled_exception::GetMethodId(
-                      throttled_exception::kGetThrottleEndTimeMillis)));
-    }
-  }
-  auto data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
-  if (throttle_end_time > 0) {
-    data_handle->rc_internal->set_throttled_end_time(throttle_end_time);
-  }
+  auto* data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
+  UpdateThrottleEndTimeFromTaskResult(env, result, success,
+                                      data_handle->rc_internal);
 
   CompleteVoidCallback(env, result, result_code, status_message, callback_data);
 }
@@ -810,10 +882,10 @@ void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
 void SetDefaultsCallback(JNIEnv* env, jobject result,
                          util::FutureResult result_code,
                          const char* status_message, void* callback_data) {
-  auto data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
-  if (result_code == util::kFutureResultSuccess &&
-      !data_handle->default_keys.empty()) {
-    data_handle->rc_internal->SaveTmpKeysToDefault(data_handle->default_keys);
+  auto* data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
+  if (result_code == util::kFutureResultSuccess) {
+    data_handle->rc_internal->SaveTmpKeysToDefault(
+        std::move(data_handle->default_keys));
   }
   CompleteVoidCallback(env, result, result_code, status_message, callback_data);
 }
@@ -824,8 +896,7 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kEnsureInitialized));
-  if (util::CheckAndClearJniExceptions(env)) {
-    task = nullptr;
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "EnsureInitialized native function fails");
   } else {
@@ -835,8 +906,8 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
     util::RegisterCallbackOnTask(env, task, EnsureInitializedCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-  env->DeleteLocalRef(task);
   return MakeFuture<ConfigInfo>(&future_impl_, handle);
 }
 
@@ -850,8 +921,7 @@ Future<bool> RemoteConfigInternal::Activate() {
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(internal_obj_,
                                        config::GetMethodId(config::kActivate));
-  if (util::CheckAndClearJniExceptions(env)) {
-    task = nullptr;
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "Activate native function fails");
   } else {
@@ -859,9 +929,8 @@ Future<bool> RemoteConfigInternal::Activate() {
     util::RegisterCallbackOnTask(env, task, BoolResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-
-  env->DeleteLocalRef(task);
   return MakeFuture<bool>(&future_impl_, handle);
 }
 
@@ -876,8 +945,7 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kFetchAndActivate));
-  if (util::CheckAndClearJniExceptions(env)) {
-    task = nullptr;
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "FetchAndActivate native function fails");
   } else {
@@ -885,9 +953,8 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
     util::RegisterCallbackOnTask(env, task, BoolResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-
-  env->DeleteLocalRef(task);
   return MakeFuture<bool>(&future_impl_, handle);
 }
 
@@ -899,10 +966,14 @@ Future<bool> RemoteConfigInternal::FetchAndActivateLastResult() {
 Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnFetch);
   JNIEnv* env = app_.GetJNIEnv();
-  jobject task =
-      env->CallObjectMethod(internal_obj_, config::GetMethodId(config::kFetch),
-                            static_cast<jlong>(cache_expiration_in_seconds));
-  if (util::CheckAndClearJniExceptions(env)) {
+  constexpr uint64_t kMaxJLong =
+      static_cast<uint64_t>(std::numeric_limits<jlong>::max());
+  jlong clamped_expiration = static_cast<jlong>(
+      cache_expiration_in_seconds > kMaxJLong ? kMaxJLong
+                                              : cache_expiration_in_seconds);
+  jobject task = env->CallObjectMethod(
+      internal_obj_, config::GetMethodId(config::kFetch), clamped_expiration);
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     task = nullptr;
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "Fetch native function fails");
@@ -912,8 +983,8 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
     util::RegisterCallbackOnTask(env, task, FetchCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-  env->DeleteLocalRef(task);
   return MakeFuture<void>(&future_impl_, handle);
 }
 
@@ -929,7 +1000,7 @@ Future<void> RemoteConfigInternal::SetDefaults(int defaults_resource_id) {
       internal_obj_, config::GetMethodId(config::kSetDefaultsAsync),
       defaults_resource_id);
 
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     task = nullptr;
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetDefaults native function fails");
@@ -938,35 +1009,44 @@ Future<void> RemoteConfigInternal::SetDefaults(int defaults_resource_id) {
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-  env->DeleteLocalRef(task);
   return MakeFuture<void>(&future_impl_, handle);
 }
 
 Future<void> RemoteConfigInternal::SetDefaults(
     const ConfigKeyValueVariant* defaults, size_t number_of_defaults) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  if (!defaults && number_of_defaults > 0) {
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetDefaults: defaults array is null");
+    return MakeFuture<void>(&future_impl_, handle);
+  }
   JNIEnv* env = app_.GetJNIEnv();
-  jobject hash_map =
-      ConfigKeyValueVariantArrayToHashMap(env, defaults, number_of_defaults);
   std::vector<std::string> tmp_keys;
-  SaveDefaultKeys(defaults, &tmp_keys, number_of_defaults);
+  jobject hash_map = ConfigKeyValueVariantArrayToHashMap(
+      env, defaults, number_of_defaults, &tmp_keys);
+  if (!hash_map) {
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetDefaults native function fails");
+    return MakeFuture<void>(&future_impl_, handle);
+  }
   jobject task = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kSetDefaultsUsingMapAsync),
       hash_map);
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     task = nullptr;
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetDefaults native function fails");
   } else {
-    auto data_handle =
-        new RCDataHandle<void>(&future_impl_, handle, this, tmp_keys);
+    auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this,
+                                              std::move(tmp_keys));
 
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-  env->DeleteLocalRef(task);
   env->DeleteLocalRef(hash_map);
   return MakeFuture<void>(&future_impl_, handle);
 }
@@ -974,27 +1054,36 @@ Future<void> RemoteConfigInternal::SetDefaults(
 Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
                                                size_t number_of_defaults) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  if (!defaults && number_of_defaults > 0) {
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetDefaults: defaults array is null");
+    return MakeFuture<void>(&future_impl_, handle);
+  }
   JNIEnv* env = app_.GetJNIEnv();
-  jobject hash_map =
-      ConfigKeyValueArrayToHashMap(env, defaults, number_of_defaults);
   std::vector<std::string> tmp_keys;
-  SaveDefaultKeys(defaults, &tmp_keys, number_of_defaults);
+  jobject hash_map = ConfigKeyValueArrayToHashMap(
+      env, defaults, number_of_defaults, &tmp_keys);
+  if (!hash_map) {
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetDefaults native function fails");
+    return MakeFuture<void>(&future_impl_, handle);
+  }
   jobject task = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kSetDefaultsUsingMapAsync),
       hash_map);
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     task = nullptr;
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetDefaults native function fails");
   } else {
-    auto data_handle =
-        new RCDataHandle<void>(&future_impl_, handle, this, tmp_keys);
+    auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this,
+                                              std::move(tmp_keys));
 
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-  env->DeleteLocalRef(task);
   env->DeleteLocalRef(hash_map);
   util::CheckAndClearJniExceptions(env);
   return MakeFuture<void>(&future_impl_, handle);
@@ -1013,32 +1102,57 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   jobject builder = env->NewObject(config_settings_builder::GetClass(),
                                    config_settings_builder::GetMethodId(
                                        config_settings_builder::kConstructor));
-  uint64_t fetch_timeout_in_sec = settings.fetch_timeout_in_milliseconds /
-                                  ::firebase::internal::kMillisecondsPerSecond;
+  if (util::CheckAndClearJniExceptions(env) || !builder) {
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetConfigSettings native function fails");
+    return MakeFuture<void>(&future_impl_, handle);
+  }
+
+  constexpr uint64_t kMsPerSec = ::firebase::internal::kMillisecondsPerSecond;
+  uint64_t fetch_timeout_in_sec =
+      (settings.fetch_timeout_in_milliseconds > 0 &&
+       settings.fetch_timeout_in_milliseconds < kMsPerSec)
+          ? 1
+          : (settings.fetch_timeout_in_milliseconds / kMsPerSec);
   uint64_t minimum_fetch_interval_in_sec =
-      settings.minimum_fetch_interval_in_milliseconds /
-      ::firebase::internal::kMillisecondsPerSecond;
+      settings.minimum_fetch_interval_in_milliseconds / kMsPerSec;
 
   // FirebaseRemoteConfigSettings.Builder.setFetchTimeoutInSeconds(long)
-  env->CallObjectMethod(builder,
-                        config_settings_builder::GetMethodId(
-                            config_settings_builder::kSetFetchTimeoutInSeconds),
-                        fetch_timeout_in_sec);
-  util::CheckAndClearJniExceptions(env);
-
-  // FirebaseRemoteConfigSettings.Builder.setMinimumFetchIntervalInSeconds(long)
-  env->CallObjectMethod(
+  jobject timeout_builder = env->CallObjectMethod(
       builder,
       config_settings_builder::GetMethodId(
-          config_settings_builder::kSetMinimumFetchIntervalInSeconds),
-      minimum_fetch_interval_in_sec);
-  util::CheckAndClearJniExceptions(env);
+          config_settings_builder::kSetFetchTimeoutInSeconds),
+      static_cast<jlong>(fetch_timeout_in_sec));
+  bool builder_failed = util::CheckAndClearJniExceptions(env);
+  if (!builder_failed && timeout_builder) {
+    env->DeleteLocalRef(timeout_builder);
+  }
+
+  if (!builder_failed) {
+    // FirebaseRemoteConfigSettings.Builder.setMinimumFetchIntervalInSeconds(long)
+    jobject interval_builder = env->CallObjectMethod(
+        builder,
+        config_settings_builder::GetMethodId(
+            config_settings_builder::kSetMinimumFetchIntervalInSeconds),
+        static_cast<jlong>(minimum_fetch_interval_in_sec));
+    builder_failed = util::CheckAndClearJniExceptions(env);
+    if (!builder_failed && interval_builder) {
+      env->DeleteLocalRef(interval_builder);
+    }
+  }
+
+  if (builder_failed) {
+    env->DeleteLocalRef(builder);
+    future_impl_.Complete(handle, kFutureStatusFailure,
+                          "SetConfigSettings native function fails");
+    return MakeFuture<void>(&future_impl_, handle);
+  }
 
   // FirebaseRemoteConfigSettings.Builder.build()
   jobject settings_obj = env->CallObjectMethod(
       builder,
       config_settings_builder::GetMethodId(config_settings_builder::kBuild));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || !settings_obj) {
     settings_obj = nullptr;
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetConfigSettings native function fails");
@@ -1046,7 +1160,7 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
     jobject task = env->CallObjectMethod(
         internal_obj_, config::GetMethodId(config::kSetConfigSettingsAsync),
         settings_obj);
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (util::CheckAndClearJniExceptions(env) || !task) {
       task = nullptr;
       future_impl_.Complete(handle, kFutureStatusFailure,
                             "SetConfigSettings native function fails");
@@ -1056,11 +1170,11 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
       util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                    reinterpret_cast<void*>(data_handle),
                                    jni_task_id_.c_str());
+      env->DeleteLocalRef(task);
     }
-    env->DeleteLocalRef(task);
+    env->DeleteLocalRef(settings_obj);
   }
 
-  env->DeleteLocalRef(settings_obj);
   env->DeleteLocalRef(builder);
   return MakeFuture<void>(&future_impl_, handle);
 }
@@ -1084,7 +1198,7 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
   jobject task = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kSetCustomSignalsAsync),
       j_custom_signals);
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || !task) {
     task = nullptr;
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetCustomSignals native function fails");
@@ -1093,8 +1207,8 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
     util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
+    env->DeleteLocalRef(task);
   }
-  env->DeleteLocalRef(task);
   env->DeleteLocalRef(j_custom_signals);
   return MakeFuture<void>(&future_impl_, handle);
 }
@@ -1111,41 +1225,45 @@ ConfigSettings RemoteConfigInternal::GetConfigSettings() {
   // FirebaseRemoteConfig.getInfo()
   jobject jinfo = env->CallObjectMethod(internal_obj_,
                                         config::GetMethodId(config::kGetInfo));
-  util::CheckAndClearJniExceptions(env);
+  if (util::CheckAndClearJniExceptions(env) || !jinfo) {
+    return settings;
+  }
 
   // FirebaseRemoteConfigInfo.getConfigSettings()
   jobject config_settings_obj = env->CallObjectMethod(
       jinfo, config_info::GetMethodId(config_info::kGetConfigSettings));
-  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(jinfo);
+  if (util::CheckAndClearJniExceptions(env) || !config_settings_obj) {
+    return settings;
+  }
 
   // FirebaseRemoteConfigSettings.getFetchTimeoutInSeconds()
-  settings.fetch_timeout_in_milliseconds =
-      env->CallLongMethod(config_settings_obj,
-                          config_settings::GetMethodId(
-                              config_settings::kGetFetchTimeoutInSeconds)) *
-      ::firebase::internal::kMillisecondsPerSecond;
-  util::CheckAndClearJniExceptions(env);
+  int64_t fetch_timeout_sec = env->CallLongMethod(
+      config_settings_obj, config_settings::GetMethodId(
+                               config_settings::kGetFetchTimeoutInSeconds));
+  if (!util::CheckAndClearJniExceptions(env) && fetch_timeout_sec >= 0) {
+    settings.fetch_timeout_in_milliseconds =
+        static_cast<uint64_t>(fetch_timeout_sec) *
+        ::firebase::internal::kMillisecondsPerSecond;
+  }
 
   // FirebaseRemoteConfigSettings.getMinimumFetchIntervalInSeconds()
-  settings.minimum_fetch_interval_in_milliseconds =
-      env->CallLongMethod(
-          config_settings_obj,
-          config_settings::GetMethodId(
-              config_settings::kGetMinimumFetchIntervalInSeconds)) *
-      ::firebase::internal::kMillisecondsPerSecond;
-  util::CheckAndClearJniExceptions(env);
+  int64_t min_interval_sec = env->CallLongMethod(
+      config_settings_obj,
+      config_settings::GetMethodId(
+          config_settings::kGetMinimumFetchIntervalInSeconds));
+  if (!util::CheckAndClearJniExceptions(env) && min_interval_sec >= 0) {
+    settings.minimum_fetch_interval_in_milliseconds =
+        static_cast<uint64_t>(min_interval_sec) *
+        ::firebase::internal::kMillisecondsPerSecond;
+  }
 
-  env->DeleteLocalRef(jinfo);
   env->DeleteLocalRef(config_settings_obj);
   return settings;
 }
 
-// Generate the logic to retrieve an certain type value and source from
+// Generate the logic to retrieve a certain type value and source from
 // a FirebaseRemoteConfigValue interface.
-// key is a string with the key to retrieve, info is a pointer to ValueInfo
-// which receives the source of the retrieved value, c_type is the integral type
-// being retrieved, c_type_name is a human readable string for the value being
-// retrieved and java_type is the type portion of the JNI function to call.
 #define RC_GET_TYPE_FROM_VALUE(app, obj, key, info, c_type, c_type_name, \
                                java_type)                                \
   {                                                                      \
@@ -1182,11 +1300,12 @@ std::string RemoteConfigInternal::GetString(const char* key, ValueInfo* info) {
   if (value_object) {
     jobject value_string = env->CallObjectMethod(
         value_object, config_value::GetMethodId(config_value::kAsString));
-    if (util::CheckAndClearJniExceptions(env)) value_string = nullptr;
     bool failed = CheckKeyRetrievalLogError(env, key, "string");
     env->DeleteLocalRef(value_object);
-    if (!failed) value = util::JniStringToString(env, value_string);
-    if (info) info->conversion_successful = !failed;
+    if (!failed && value_string != nullptr) {
+      value = util::JniStringToString(env, value_string);
+    }
+    if (info) info->conversion_successful = (!failed && value_string != nullptr);
   }
   return value;
 }
@@ -1199,11 +1318,12 @@ std::vector<unsigned char> RemoteConfigInternal::GetData(const char* key,
   if (value_object) {
     jobject value_array = env->CallObjectMethod(
         value_object, config_value::GetMethodId(config_value::kAsByteArray));
-    if (util::CheckAndClearJniExceptions(env)) value_array = nullptr;
     bool failed = CheckKeyRetrievalLogError(env, key, "vector");
     env->DeleteLocalRef(value_object);
-    if (!failed) value = util::JniByteArrayToVector(env, value_array);
-    if (info) info->conversion_successful = !failed;
+    if (!failed && value_array != nullptr) {
+      value = util::JniByteArrayToVector(env, value_array);
+    }
+    if (info) info->conversion_successful = (!failed && value_array != nullptr);
   }
   return value;
 }
@@ -1214,6 +1334,9 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
   std::set<std::string> key_set;
   JNIEnv* env = app_.GetJNIEnv();
   jstring prefix_string = prefix ? env->NewStringUTF(prefix) : nullptr;
+  if (util::CheckAndClearJniExceptions(env)) {
+    prefix_string = nullptr;
+  }
   jobject key_set_java = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kGetKeysByPrefix),
       prefix_string);
@@ -1230,7 +1353,7 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
   MutexLock lock(default_key_mutex_);
   // Add any extra keys that were previously included in defaults but not
   // returned by Get*KeysByPrefix.
-  size_t prefix_length = prefix ? strlen(prefix) : 0;
+  size_t prefix_length = prefix ? std::strlen(prefix) : 0;
   for (auto i = default_keys_.begin(); i != default_keys_.end(); ++i) {
     if (key_set.find(*i) != key_set.end()) {
       // Already in the list of keys, no need to add it.
@@ -1238,7 +1361,8 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
     }
     // If the prefix matches (or we have no prefix to compare), add it to the
     // defaults list.
-    if (prefix_length == 0 || strncmp(prefix, i->c_str(), prefix_length) == 0) {
+    if (prefix_length == 0 ||
+        std::strncmp(prefix, i->c_str(), prefix_length) == 0) {
       keys.push_back(*i);
       key_set.insert(*i);  // In case the defaults vector has duplicate keys.
     }
@@ -1250,49 +1374,26 @@ std::vector<std::string> RemoteConfigInternal::GetKeys() {
   return GetKeysByPrefix(nullptr);
 }
 
-// Generate the logic to convert an certain type value from a
-// FirebaseRemoteConfigValue interface to Variant. key is a string with the key
-// to retrieve, ic_type is the cpp type being retrieved, variant_fn is the
-// function to construct the Variant. java_type is the type portion of the JNI
-// function to call.
-#define RC_SET_VALUE_TO_VARIANT(env, from_obj, c_type, variant_fn, java_type) \
-  {                                                                           \
-    c_type value = env->Call##java_type##Method(                              \
-        from_obj, config_value::GetMethodId(config_value::kAs##java_type));   \
-    if (!CheckKeyRetrievalLogError(env, "", "c_type")) {                      \
-      return Variant::variant_fn(value);                                      \
-    }                                                                         \
-  }
-
 // FirebaseRemoteConfigValue -> Variant
 static Variant RemoteConfigValueToVariant(JNIEnv* env, jobject from) {
   if (!from) return Variant::Null();
   if (!env->IsInstanceOf(from, config_value::GetClass()))
     return Variant::Null();
-  // Try int
-  RC_SET_VALUE_TO_VARIANT(env, from, int64_t, FromInt64, Long)
-  // Not int, try double
-  RC_SET_VALUE_TO_VARIANT(env, from, double, FromDouble, Double)
-  // Not double, try bool
-  RC_SET_VALUE_TO_VARIANT(env, from, bool, FromBool, Boolean)
 
-  // Not bool, try string
   jobject value_string = env->CallObjectMethod(
       from, config_value::GetMethodId(config_value::kAsString));
-  if (util::CheckAndClearJniExceptions(env)) value_string = nullptr;
-  if (!CheckKeyRetrievalLogError(env, "", "string")) {
-    return Variant::FromMutableString(
-        util::JniStringToString(env, value_string));
+  if (!CheckKeyRetrievalLogError(env, "", "string") && value_string != nullptr) {
+    std::string str = util::JniStringToString(env, value_string);
+    return ValueParser::CoerceToVariant(str);
   }
 
-  // Not string, try byte array
+  // Fallback to byte array
   jobject value_array = env->CallObjectMethod(
       from, config_value::GetMethodId(config_value::kAsByteArray));
-  if (util::CheckAndClearJniExceptions(env)) value_array = nullptr;
-  if (!CheckKeyRetrievalLogError(env, "", "vector")) {
+  if (!CheckKeyRetrievalLogError(env, "", "vector") && value_array != nullptr) {
     std::vector<unsigned char> blob =
         util::JniByteArrayToVector(env, value_array);
-    return Variant::FromMutableBlob(&blob, blob.size());
+    return Variant::FromMutableBlob(blob.data(), blob.size());
   }
   // If get here, all conversion fails.
   LogError(
@@ -1304,34 +1405,42 @@ static Variant RemoteConfigValueToVariant(JNIEnv* env, jobject from) {
 static void JavaMapToStringVariantMap(JNIEnv* env,
                                       std::map<std::string, Variant>* to,
                                       jobject from) {
+  if (!from || !to) return;
   jobject key_set =
       env->CallObjectMethod(from, util::map::GetMethodId(util::map::kKeySet));
-  if (util::CheckAndClearJniExceptions(env)) {
-    env->DeleteLocalRef(key_set);
+  if (util::CheckAndClearJniExceptions(env) || !key_set) {
     return;
   }
   jobject iter = env->CallObjectMethod(
       key_set, util::set::GetMethodId(util::set::kIterator));
-  if (util::CheckAndClearJniExceptions(env)) {
-    env->DeleteLocalRef(iter);
+  if (util::CheckAndClearJniExceptions(env) || !iter) {
+    env->DeleteLocalRef(key_set);
     return;
   }
   while (env->CallBooleanMethod(
       iter, util::iterator::GetMethodId(util::iterator::kHasNext))) {
+    if (util::CheckAndClearJniExceptions(env)) {
+      break;
+    }
     jobject key_object = env->CallObjectMethod(
         iter, util::iterator::GetMethodId(util::iterator::kNext));
-    bool call_native_success = !util::CheckAndClearJniExceptions(env);
-    jobject value_object = env->CallObjectMethod(
-        from, util::map::GetMethodId(util::map::kGet), key_object);
-    call_native_success =
-        call_native_success && !util::CheckAndClearJniExceptions(env);
-    if (call_native_success) {
-      std::string key = util::JStringToString(env, key_object);
-      Variant v_value = RemoteConfigValueToVariant(env, value_object);
-      to->insert(std::make_pair(key, v_value));
+    if (util::CheckAndClearJniExceptions(env)) {
+      key_object = nullptr;
     }
-    env->DeleteLocalRef(key_object);
-    env->DeleteLocalRef(value_object);
+    jobject value_object = nullptr;
+    if (key_object) {
+      value_object = env->CallObjectMethod(
+          from, util::map::GetMethodId(util::map::kGet), key_object);
+      if (util::CheckAndClearJniExceptions(env)) {
+        value_object = nullptr;
+      } else {
+        std::string key = util::JStringToString(env, key_object);
+        Variant v_value = RemoteConfigValueToVariant(env, value_object);
+        to->insert(std::make_pair(std::move(key), std::move(v_value)));
+      }
+    }
+    if (key_object) env->DeleteLocalRef(key_object);
+    if (value_object) env->DeleteLocalRef(value_object);
   }
   env->DeleteLocalRef(iter);
   env->DeleteLocalRef(key_set);
@@ -1350,14 +1459,18 @@ std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
   return value;
 }
 
-const ConfigInfo RemoteConfigInternal::GetInfo() const {
+ConfigInfo RemoteConfigInternal::GetInfo() const {
   JNIEnv* env = app_.GetJNIEnv();
-  ConfigInfo info;
-  info.throttled_end_time = throttled_end_time_;
+  ConfigInfo info{};
+  int64_t throttled_end = throttled_end_time();
+  info.throttled_end_time =
+      throttled_end > 0 ? static_cast<uint64_t>(throttled_end) : 0;
 
   jobject jinfo = env->CallObjectMethod(internal_obj_,
                                         config::GetMethodId(config::kGetInfo));
-  if (util::CheckAndClearJniExceptions(env)) jinfo = nullptr;
+  if (util::CheckAndClearJniExceptions(env) || !jinfo) {
+    return info;
+  }
   JConfigInfoToConfigInfo(env, jinfo, &info);
   env->DeleteLocalRef(jinfo);
   return info;
@@ -1370,19 +1483,28 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
   JNIEnv* env = app_.GetJNIEnv();
   // Create a struct to wrap the listener function.
   ConfigUpdateListenerWrapper* listener_wrapper =
-      new ConfigUpdateListenerWrapper(config_update_listener);
+      new ConfigUpdateListenerWrapper(std::move(config_update_listener));
+  RegisterListenerWrapper(listener_wrapper);
+
   // Create a Java Listener and give it a pointer to the listener struct.
   jobject j_listener =
       env->NewObject(jni_config_update_listener::GetClass(),
                      jni_config_update_listener::GetMethodId(
                          jni_config_update_listener::kConstructor),
                      reinterpret_cast<jlong>(listener_wrapper));
-  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+  if (util::CheckAndClearJniExceptions(env) || !j_listener) {
+    UnregisterAndDeleteListenerWrapper(listener_wrapper);
+    return ConfigUpdateListenerRegistration();
+  }
 
   jobject j_local_registration = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kAddOnConfigUpdateListener),
       j_listener);
-  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+  env->DeleteLocalRef(j_listener);
+  if (util::CheckAndClearJniExceptions(env) || !j_local_registration) {
+    UnregisterAndDeleteListenerWrapper(listener_wrapper);
+    return ConfigUpdateListenerRegistration();
+  }
 
   // Create a global reference to the registration
   jobject j_registration = env->NewGlobalRef(j_local_registration);
@@ -1390,15 +1512,19 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
 
   // Create a C++ registration to wrap the native registration
   ConfigUpdateListenerRegistrationInternal* registration_internal =
-      new ConfigUpdateListenerRegistrationInternal(this, [j_registration]() {
-        // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
-        JNIEnv* env = firebase::util::GetJNIEnvFromApp();
-        env->CallVoidMethod(j_registration,
-                            config_update_listener_registration::GetMethodId(
-                                config_update_listener_registration::kRemove));
-        FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-        env->DeleteGlobalRef(j_registration);
-      });
+      new ConfigUpdateListenerRegistrationInternal(
+          this, [j_registration, listener_wrapper]() {
+            JNIEnv* env = firebase::util::GetJNIEnvFromApp();
+            if (env && j_registration) {
+              env->CallVoidMethod(
+                  j_registration,
+                  config_update_listener_registration::GetMethodId(
+                      config_update_listener_registration::kRemove));
+              util::CheckAndClearJniExceptions(env);
+              env->DeleteGlobalRef(j_registration);
+            }
+            UnregisterAndDeleteListenerWrapper(listener_wrapper);
+          });
   // Delete the internal registration when RemoteConfigInternal is cleaned up.
   cleanup_notifier().RegisterObject(
       registration_internal, [](void* registration) {
@@ -1406,25 +1532,50 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
             registration);
       });
 
-  ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
-  return registration_wrapper;
+  return ConfigUpdateListenerRegistration(registration_internal);
 }
 
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jobject j_config_update) {
-  auto config_update_listener =
+  (void)clazz;
+  auto* wrapper =
       reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
-  config_update_listener->listener(
-      ConfigUpdateFromJavaConfigUpdate(env, j_config_update),
-      kRemoteConfigErrorNone);
+  std::function<void(ConfigUpdate&&, RemoteConfigError)> listener_copy;
+  {
+    MutexLock lock(g_listener_wrappers_mutex);
+    if (!wrapper || !g_active_listener_wrappers ||
+        g_active_listener_wrappers->find(wrapper) ==
+            g_active_listener_wrappers->end()) {
+      return;
+    }
+    listener_copy = wrapper->listener;
+  }
+  if (listener_copy) {
+    listener_copy(ConfigUpdateFromJavaConfigUpdate(env, j_config_update),
+                  kRemoteConfigErrorNone);
+  }
 }
 
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jint j_error_code) {
-  auto config_update_listener =
+  (void)env;
+  (void)clazz;
+  auto* wrapper =
       reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
-  config_update_listener->listener(
-      {}, RemoteConfigErrorFromJavaErrorCode(static_cast<int>(j_error_code)));
+  std::function<void(ConfigUpdate&&, RemoteConfigError)> listener_copy;
+  {
+    MutexLock lock(g_listener_wrappers_mutex);
+    if (!wrapper || !g_active_listener_wrappers ||
+        g_active_listener_wrappers->find(wrapper) ==
+            g_active_listener_wrappers->end()) {
+      return;
+    }
+    listener_copy = wrapper->listener;
+  }
+  if (listener_copy) {
+    listener_copy({}, RemoteConfigErrorFromJavaErrorCode(
+                          static_cast<int>(j_error_code)));
+  }
 }
 
 }  // namespace internal

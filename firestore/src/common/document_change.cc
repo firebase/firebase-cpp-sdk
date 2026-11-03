@@ -34,13 +34,13 @@ namespace firestore {
 using CleanupFnDocumentChange = CleanupFn<DocumentChange>;
 using Type = DocumentChange::Type;
 
-#if defined(ANDROID)
+#if defined(__ANDROID__)
 // Older NDK (r16b) fails to define this properly. Fix this when support for
 // the older NDK is removed.
 const std::size_t DocumentChange::npos = static_cast<std::size_t>(-1);
 #else
 constexpr std::size_t DocumentChange::npos;
-#endif  // defined(ANDROID)
+#endif  // defined(__ANDROID__)
 
 DocumentChange::DocumentChange() {}
 
@@ -48,7 +48,12 @@ DocumentChange::DocumentChange(const DocumentChange& value) {
   if (value.internal_) {
     internal_ = new DocumentChangeInternal(*value.internal_);
   }
-  CleanupFnDocumentChange::Register(this, internal_);
+  try {
+    CleanupFnDocumentChange::Register(this, internal_);
+  } catch (...) {
+    delete internal_;
+    throw;
+  }
 }
 
 DocumentChange::DocumentChange(DocumentChange&& value) {
@@ -74,13 +79,14 @@ DocumentChange& DocumentChange::operator=(const DocumentChange& value) {
     return *this;
   }
 
+  DocumentChangeInternal* new_internal = nullptr;
+  if (value.internal_) {
+    new_internal = new DocumentChangeInternal(*value.internal_);
+  }
+
   CleanupFnDocumentChange::Unregister(this, internal_);
   delete internal_;
-  if (value.internal_) {
-    internal_ = new DocumentChangeInternal(*value.internal_);
-  } else {
-    internal_ = nullptr;
-  }
+  internal_ = new_internal;
   CleanupFnDocumentChange::Register(this, internal_);
   return *this;
 }
@@ -110,16 +116,16 @@ DocumentSnapshot DocumentChange::document() const {
 }
 
 std::size_t DocumentChange::old_index() const {
-  if (!internal_) return {};
+  if (!internal_) return npos;
   return internal_->old_index();
 }
 
 std::size_t DocumentChange::new_index() const {
-  if (!internal_) return {};
+  if (!internal_) return npos;
   return internal_->new_index();
 }
 
-size_t DocumentChange::Hash() const {
+std::size_t DocumentChange::Hash() const {
   if (!internal_) return {};
   return internal_->Hash();
 }

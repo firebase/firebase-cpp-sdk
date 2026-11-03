@@ -47,7 +47,7 @@ class DeviceCheckProviderFactory : public AppCheckProviderFactory {
   DeviceCheckProviderFactory();
   ~DeviceCheckProviderFactory() override;
 
-  internal::DeviceCheckProviderFactoryInternal* internal_;
+  internal::DeviceCheckProviderFactoryInternal* internal_{nullptr};
 };
 
 }  // namespace app_check

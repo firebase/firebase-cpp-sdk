@@ -46,8 +46,8 @@ NS_ASSUME_NONNULL_BEGIN
 // Cached properties, if there is no listener set when
 // messaging:didReceiveRegistrationToken: is called.
 @property(nonatomic, readwrite, nullable) FIRMessaging *cachedMessaging;
-@property(nonatomic, readwrite, nullable) NSString *cachedFCMToken;
-@property(nonatomic, readwrite, nullable) NSString *cachedRegistrationId;
+@property(nonatomic, copy, nullable) NSString *cachedFCMToken;
+@property(nonatomic, copy, nullable) NSString *cachedRegistrationId;
 
 // If a listener is set, this will notify Messaging of the token as normal.
 // If no listener is set yet, the data will be cached until one is.
@@ -58,8 +58,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 // Once the listener is registered, process cached token (if there is one).
 // This will call messaging:didReceiveRegistrationToken:, passing in the cached values:
-// cachedMessaging and cachedFCMToken.
-- (void)processCachedRegistrationToken;
+// cachedMessaging and cachedFCMToken. Returns YES if a cached FCM token was processed.
+- (BOOL)processCachedRegistrationToken;
 @end
 NS_ASSUME_NONNULL_END
 
@@ -80,6 +80,7 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseMessaging);
 
 static FIRCppDelegate *g_delegate = nil;
 static Mutex g_delegate_mutex;  // Mutex for g_delegate's properties
+static Mutex g_future_data_mutex;  // Mutex for FutureData lifecycle
 static MessagingOptions g_messaging_options;
 
 static bool MessagingIsInitialized() {
@@ -107,13 +108,19 @@ static NSString *const kTitle = @"title";
 static NSString *const kBody = @"body";
 static NSString *const kSound = @"sound";
 static NSString *const kBadge = @"badge";
+static NSString *const kCategory = @"category";
+static NSString *const kBodyLocKey = @"loc-key";
+static NSString *const kBodyLocArgs = @"loc-args";
+static NSString *const kTitleLocKey = @"title-loc-key";
+static NSString *const kTitleLocArgs = @"title-loc-args";
 static NSString *const kLink = @"gcm.n.link";
 
 // Dual purpose body text or data dictionary.
 static NSString *const kAlert = @"alert";
 
 static void HookAppDelegateMethods(Class clazz);
-static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info);
+static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info,
+                                                 bool notification_opened = false);
 
 // Global reference to the Firebase App.
 static const ::firebase::App *g_app = nullptr;
@@ -124,8 +131,6 @@ static id<UNUserNotificationCenterDelegate> g_user_delegate = nil;
 // initialized.
 static NSDictionary *g_launch_notification;
 
-static bool g_message_notification_opened = false;
-
 static SafeFutureHandle<void> g_permission_prompt_future_handle;
 
 static void RetrieveRegistrationToken();
@@ -134,6 +139,25 @@ static ::firebase::util::ClassMethodImplementationCache& SwizzledMethodCache() {
   static ::firebase::util::ClassMethodImplementationCache *g_swizzled_method_cache;
   return *::firebase::util::ClassMethodImplementationCache::GetCreateCache(
        &g_swizzled_method_cache);
+}
+
+static void CompletePermissionFuture(::firebase::messaging::Error error,
+                                     const char* error_msg = nullptr) {
+  MutexLock lock(g_future_data_mutex);
+  if (internal::IsInitialized() && FutureData::Get() && FutureData::Get()->api()) {
+    ::firebase::ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+    if (api->ValidFuture(g_permission_prompt_future_handle) &&
+        api->GetFutureStatus(g_permission_prompt_future_handle.get()) ==
+            kFutureStatusPending) {
+      if (error_msg) {
+        api->Complete(g_permission_prompt_future_handle, error, error_msg);
+      } else {
+        api->Complete(g_permission_prompt_future_handle, error);
+      }
+    }
+  } else {
+    LogError("Attempting to complete future before FCM initialized.");
+  }
 }
 
 InitResult Initialize(const ::firebase::App &app, Listener *listener) {
@@ -147,22 +171,24 @@ InitResult Initialize(
     [FIRMessaging messaging].delegate = g_delegate;
   }
 
-  if (!g_app) {
-#if !defined(NDEBUG)
-    {
-      MutexLock lock(g_delegate_mutex);
+  {
+    MutexLock lock(g_delegate_mutex);
+    if (!g_app) {
       assert(!g_delegate.isListenerSet);
+      g_app = &app;
+    } else {
+      SetListenerIfNotNull(listener);
+      LogError("Messaging already initialized.");
+      return kInitResultSuccess;
     }
-#endif  // !defined(NDEBUG)
-    g_app = &app;
-  } else {
-    LogError("Messaging already initialized.");
-    return kInitResultSuccess;
   }
-  FutureData::Create();
+  {
+    MutexLock lock(g_future_data_mutex);
+    FutureData::Create();
+  }
   g_messaging_options = options;
   SetListenerIfNotNull(listener);
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnDefaultAppDestroy(app);
   return kInitResultSuccess;
 }
 
@@ -176,6 +202,32 @@ void NotifyListenerSet(Listener* listener) {
     g_delegate.isListenerSet = YES;
   }
 
+  // Deliver any cached registration token and launch notification even when the
+  // permission prompt is suppressed.
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (!internal::IsInitialized()) return;
+    id appDelegate = [UIApplication sharedApplication];
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+    if ([UNUserNotificationCenter class] != nil && appDelegate != nil) {
+      UNUserNotificationCenter *center =
+          [UNUserNotificationCenter currentNotificationCenter];
+      if (center.delegate != nil && center.delegate != appDelegate) {
+        g_user_delegate = center.delegate;
+      }
+      center.delegate = appDelegate;
+    }
+#endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+    if ([FIRMessaging messaging].autoInitEnabled) {
+      if (![g_delegate processCachedRegistrationToken]) {
+        RetrieveRegistrationToken();
+      }
+    }
+    if (g_launch_notification != nil) {
+      NotifyApplicationAndServiceOfMessage(g_launch_notification, true);
+      g_launch_notification = nil;
+    }
+  });
+
   if (!g_messaging_options.suppress_notification_permission_prompt) {
     RequestPermission();
   }
@@ -184,77 +236,83 @@ void NotifyListenerSet(Listener* listener) {
 Future<void> RequestPermission() {
   FIREBASE_ASSERT_RETURN(RequestPermissionLastResult(), internal::IsInitialized());
 
-  if (RequestPermissionLastResult().status() == kFutureStatusPending) {
-    return RequestPermissionLastResult();
+  MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) {
+    return Future<void>();
+  }
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  const Future<void>& last_result = static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnRequestPermission));
+  if (last_result.status() == kFutureStatusPending) {
+    return last_result;
   }
 
   // Create the future.
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   g_permission_prompt_future_handle =
       api->SafeAlloc<void>(kMessagingFnRequestPermission);
+  SafeFutureHandle<void> handle = g_permission_prompt_future_handle;
   // Run on UI thread.
   dispatch_async(dispatch_get_main_queue(), ^{
+    std::string sender_id_str;
+    {
+      MutexLock app_lock(g_delegate_mutex);
+      if (!g_app) return;
+      sender_id_str = g_app->options().messaging_sender_id();
+    }
     LogInfo("FCM: Initialize Firebase Messaging");
 
-    NSString *senderID = @(firebase::App::GetInstance()->options().messaging_sender_id());
+    NSString *senderID = @(sender_id_str.c_str());
     LogInfo("FCM: Using FCM senderID %s", senderID.UTF8String);
     id appDelegate = [UIApplication sharedApplication];
 
-  #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     if ([UNUserNotificationCenter class] != nil) {
       // iOS 10 or later, and tvOS
-      // For iOS 10 display notification (sent via APNS)
-      [UNUserNotificationCenter currentNotificationCenter].delegate = appDelegate;
+      UNUserNotificationCenter *center =
+          [UNUserNotificationCenter currentNotificationCenter];
+      if (center.delegate != nil && center.delegate != appDelegate) {
+        g_user_delegate = center.delegate;
+      }
+      center.delegate = appDelegate;
       UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert |
           UNAuthorizationOptionSound | UNAuthorizationOptionBadge;
-      [[UNUserNotificationCenter currentNotificationCenter]
-          requestAuthorizationWithOptions:authOptions
-          completionHandler:^(BOOL granted, NSError * _Nullable error) {
-          }];
-      [appDelegate registerForRemoteNotifications];
+      [center requestAuthorizationWithOptions:authOptions
+                            completionHandler:^(BOOL granted,
+                                                NSError * _Nullable error) {
+        if (error != nil || !granted) {
+          const char* err_str =
+              error ? error.localizedDescription.UTF8String
+                    : "Notification permission was not granted.";
+          CompletePermissionFuture(
+              ::firebase::messaging::kErrorFailedToRegisterForRemoteNotifications,
+              err_str);
+        } else {
+          dispatch_async(dispatch_get_main_queue(), ^{
+            if ([appDelegate respondsToSelector:@selector(registerForRemoteNotifications)]) {
+              [appDelegate registerForRemoteNotifications];
+            } else {
+              CompletePermissionFuture(::firebase::messaging::kErrorNone);
+            }
+          });
+        }
+      }];
+    } else {
+      CompletePermissionFuture(::firebase::messaging::kErrorNone);
     }
-    #endif //FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-
-    #if FIREBASE_PLATFORM_IOS
-      // Register for remote notifications. Both codepaths result in
-      // application:didRegisterForRemoteNotificationsWithDeviceToken: being called when they
-      // complete, or application:didFailToRegisterForRemoteNotificationsWithError: if there was an
-      // error. We complete the future there.
-      if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
-        // iOS 7.1 or earlier
-        UIRemoteNotificationType allNotificationTypes =
-            (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
-            UIRemoteNotificationTypeBadge);
-        [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-      } else if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_9_4) {
-        // 8.0 <= iOS version <= 9.4
-        // >= 10.0 is handled by the first if block above.
-        UIUserNotificationType allNotificationTypes =
-            (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
-        UIUserNotificationSettings *settings =
-            [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
-        [appDelegate registerUserNotificationSettings:settings];
-        [appDelegate registerForRemoteNotifications];
-      }
-    #endif // FIREBASE_PLATFORM_IOS
-
-    // Only request the token automatically if permitted
-    if ([FIRMessaging messaging].autoInitEnabled) {
-      [g_delegate processCachedRegistrationToken];
-      RetrieveRegistrationToken();
-    }
-
-    // Notify the application of the launch notification.
-    if (g_launch_notification != nil) {
-      NotifyApplicationAndServiceOfMessage(g_launch_notification);
-      g_launch_notification = nil;
-    }
+#else
+    (void)appDelegate;
+    CompletePermissionFuture(::firebase::messaging::kErrorNone);
+#endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   });
-  return MakeFuture(api, g_permission_prompt_future_handle);
+  return MakeFuture(api, handle);
 }
 
 Future<void> RequestPermissionLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) {
+    return Future<void>();
+  }
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnRequestPermission));
@@ -265,18 +323,26 @@ namespace internal {
 // As opposed to MessagingIsInitialized() which determines whether FIRMessaging is configured, this
 // returns whether the C++ has been initialized by the developer.
 bool IsInitialized() {
+  MutexLock lock(g_delegate_mutex);
   return g_app != nullptr;
 }
 
 }  // namespace internal
 
 void Terminate() {
-  if (!g_app) {
-    LogError("Messaging already shut down.");
-    return;
+  {
+    MutexLock lock(g_delegate_mutex);
+    if (!g_app) {
+      LogError("Messaging already shut down.");
+      return;
+    }
   }
-  FutureData::Destroy();
   internal::UnregisterTerminateOnDefaultAppDestroy();
+  {
+    MutexLock lock(g_future_data_mutex);
+    FutureData::Destroy();
+    g_permission_prompt_future_handle = SafeFutureHandle<void>();
+  }
   // Ensure g_delegate still exists (it cannot be unallocated in case a token is received via a
   // different Firebase library e.g. Invites while Messaging is not enabled).
   {
@@ -285,47 +351,12 @@ void Terminate() {
     g_delegate.cachedMessaging = nil;
     g_delegate.cachedFCMToken = nil;
     g_delegate.cachedRegistrationId = nil;
+    g_app = nullptr;
   }
   SetListener(nullptr);
-  g_app = nullptr;
-}
-
-// Reconnect to FCM when an app returns to the foreground.
-static void AppDelegateApplicationDidBecomeActive(id self, SEL selector_value,
-                                                  UIApplication *application) {
-  IMP app_delegate_application_did_become_active =
-      SwizzledMethodCache().GetMethodForObject(self, @selector(applicationDidBecomeActive:));
-  if (app_delegate_application_did_become_active) {
-    ((util::AppDelegateApplicationDidBecomeActiveFunc)app_delegate_application_did_become_active)(
-        self, selector_value, application);
-  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
-             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
-    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
-    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-    [invocation setSelector:selector_value];
-    [invocation setTarget:self];
-    [invocation setArgument:&application atIndex:2];
-    [self forwardInvocation:invocation];
-  }
-}
-
-// Disconnect from FCM when an app is moved to the background.
-static void AppDelegateApplicationDidEnterBackground(id self, SEL selector_value,
-                                                     UIApplication *application) {
-  IMP app_delegate_application_did_enter_background =
-      SwizzledMethodCache().GetMethodForObject(self, @selector(applicationDidEnterBackground:));
-  if (app_delegate_application_did_enter_background) {
-    ((util::AppDelegateApplicationDidEnterBackgroundFunc)
-         app_delegate_application_did_enter_background)(self, selector_value, application);
-  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
-             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
-    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
-    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-    [invocation setSelector:selector_value];
-    [invocation setTarget:self];
-    [invocation setArgument:&application atIndex:2];
-    [self forwardInvocation:invocation];
-  }
+  g_messaging_options = MessagingOptions();
+  g_launch_notification = nil;
+  g_user_delegate = nil;
 }
 
 // Register the device with FCM and retrieve a new registration token.
@@ -336,20 +367,6 @@ static void RetrieveRegistrationToken() {
   // call back into this function.
   if (registration_token.length) {
     NotifyListenerOnTokenReceived(registration_token.UTF8String);
-  }
-}
-
-static void CompletePermissionFuture(::firebase::messaging::Error error) {
-  if (internal::IsInitialized()) {
-    ::firebase::ReferenceCountedFutureImpl* api = ::firebase::messaging::FutureData::Get()->api();
-    // The ReferenceCountedFutureImpl object should be initialized in Initialize().
-    FIREBASE_ASSERT_RETURN_VOID(api != nullptr);
-    if (api->ValidFuture(::firebase::messaging::g_permission_prompt_future_handle) &&
-        RequestPermissionLastResult().status() == kFutureStatusPending) {
-      api->Complete(::firebase::messaging::g_permission_prompt_future_handle, error);
-    }
-  } else {
-    LogError("Attempting to complete future before FCM initialized.");
   }
 }
 
@@ -409,12 +426,50 @@ static std::string NSDictionaryGetString(const NSDictionary *dictionary, NSStrin
   if (dictionary != nil) {
     id value = [dictionary objectForKey:key];
     if (value != nil && [value isKindOfClass:[NSString class]]) {
-      string_value = ((NSString *)value).UTF8String;
+      const char *utf8 = ((NSString *)value).UTF8String;
+      if (utf8) string_value = utf8;
     }
   }
   return string_value;
 }
 
+static std::string NSDictionaryGetStringOrNumber(const NSDictionary *dictionary, NSString *key) {
+  std::string string_value;
+  if (dictionary != nil) {
+    id value = [dictionary objectForKey:key];
+    if (value != nil) {
+      if ([value isKindOfClass:[NSString class]]) {
+        const char *utf8 = ((NSString *)value).UTF8String;
+        if (utf8) string_value = utf8;
+      } else if ([value isKindOfClass:[NSNumber class]]) {
+        const char *utf8 = [((NSNumber *)value) stringValue].UTF8String;
+        if (utf8) string_value = utf8;
+      }
+    }
+  }
+  return string_value;
+}
+
+static std::vector<std::string> NSDictionaryGetStringVector(
+    const NSDictionary *dictionary, NSString *key) {
+  std::vector<std::string> result;
+  if (dictionary != nil) {
+    id value = [dictionary objectForKey:key];
+    if (value != nil && [value isKindOfClass:[NSArray class]]) {
+      NSArray *array = (NSArray *)value;
+      for (id item in array) {
+        if ([item isKindOfClass:[NSString class]]) {
+          const char *utf8 = ((NSString *)item).UTF8String;
+          result.push_back(utf8 ? utf8 : "");
+        } else if ([item isKindOfClass:[NSNumber class]]) {
+          const char *utf8 = [((NSNumber *)item) stringValue].UTF8String;
+          result.push_back(utf8 ? utf8 : "");
+        }
+      }
+    }
+  }
+  return result;
+}
 
 static std::vector<uint8_t> NSDictionaryGetByteVector(
     const NSDictionary *dictionary, NSString *key) {
@@ -445,8 +500,10 @@ static NSDictionary *NSDictionaryGetDictionary(const NSDictionary *dictionary, N
 
 // Get an integer value from a dictionary.
 static int32_t NSDictionaryGetInteger(const NSDictionary *dictionary, NSString *key) {
+  if (dictionary == nil) return 0;
   id value = dictionary[key];
-  if ([value isKindOfClass:[NSNumber class]]) {
+  if ([value isKindOfClass:[NSNumber class]] ||
+      [value isKindOfClass:[NSString class]]) {
     return [value intValue];
   }
   return 0;
@@ -460,8 +517,8 @@ static bool IsUnreservedKey(NSString *key) {
   }
   static NSString *const reserved_keys[] = {kFrom, kTo, kCollapseKey, kRawData, kMessageID,
                                             kMessageType, kPriority, kTimeToLive, kError,
-                                            kErrorDescription};
-  for (int i = 0; i < FIREBASE_ARRAYSIZE(reserved_keys); ++i) {
+                                            kErrorDescription, @"aps"};
+  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(reserved_keys); ++i) {
     if ([key isEqualToString:reserved_keys[i]]) {
       return false;
     }
@@ -474,15 +531,24 @@ static bool IsUnreservedKey(NSString *key) {
 static void NSDictionaryToStringMap(const NSDictionary *dictionary,
                                     std::map<std::string, std::string> *string_map) {
   [dictionary enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-    if ([key isKindOfClass:[NSString class]] && IsUnreservedKey(key) &&
-        [obj isKindOfClass:[NSString class]]) {
-      (*string_map)[((NSString *)key).UTF8String] = ((NSString *)obj).UTF8String;
+    (void)stop;
+    if ([key isKindOfClass:[NSString class]] && IsUnreservedKey(key)) {
+      const char *key_utf8 = ((NSString *)key).UTF8String;
+      if (!key_utf8) return;
+      if ([obj isKindOfClass:[NSString class]]) {
+        const char *val_utf8 = ((NSString *)obj).UTF8String;
+        if (val_utf8) (*string_map)[key_utf8] = val_utf8;
+      } else if ([obj isKindOfClass:[NSNumber class]]) {
+        const char *val_utf8 = [((NSNumber *)obj) stringValue].UTF8String;
+        if (val_utf8) (*string_map)[key_utf8] = val_utf8;
+      }
     }
   }];
 }
 
 // Notify the application of the message and the service.
-static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info) {
+static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info,
+                                                 bool notification_opened) {
   Message message;
   Notification notification;
 
@@ -490,12 +556,21 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info) {
   // See https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/
   // RemoteNotificationsPG/Chapters/TheNotificationPayload.html
   NSDictionary *aps = NSDictionaryGetDictionary(user_info, @"aps");
-  if (aps != nil) {
+  if (aps != nil &&
+      (aps[kAlert] != nil || aps[kSound] != nil || aps[kBadge] != nil)) {
     message.notification = &notification;
-    NSDictionary<NSString *, NSString *> *alert_dictionary = NSDictionaryGetDictionary(aps, kAlert);
+    NSDictionary *alert_dictionary = NSDictionaryGetDictionary(aps, kAlert);
     if (alert_dictionary != nil) {
       notification.title = NSDictionaryGetString(alert_dictionary, kTitle);
       notification.body = NSDictionaryGetString(alert_dictionary, kBody);
+      notification.body_loc_key =
+          NSDictionaryGetString(alert_dictionary, kBodyLocKey);
+      notification.body_loc_args =
+          NSDictionaryGetStringVector(alert_dictionary, kBodyLocArgs);
+      notification.title_loc_key =
+          NSDictionaryGetString(alert_dictionary, kTitleLocKey);
+      notification.title_loc_args =
+          NSDictionaryGetStringVector(alert_dictionary, kTitleLocArgs);
     } else {
       std::string alert_string = NSDictionaryGetString(aps, kAlert);
       if (alert_string.length()) {
@@ -503,7 +578,8 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info) {
       }
     }
     notification.sound = NSDictionaryGetString(aps, kSound);
-    notification.badge = NSDictionaryGetString(aps, kBadge);
+    notification.badge = NSDictionaryGetStringOrNumber(aps, kBadge);
+    notification.click_action = NSDictionaryGetString(aps, kCategory);
   }
 
   message.from = NSDictionaryGetString(user_info, kFrom);
@@ -517,10 +593,8 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info) {
   message.error_description = NSDictionaryGetString(user_info, kErrorDescription);
   NSDictionaryToStringMap(user_info, &message.data);
   message.raw_data = NSDictionaryGetByteVector(user_info, kRawData);
-  message.notification_opened = g_message_notification_opened;
+  message.notification_opened = notification_opened;
   message.link = NSDictionaryGetString(user_info, kLink);
-  g_message_notification_opened = false;
-  // TODO(smiles): Do we need to handle binary / raw payloads?
   if (HasListener()) {
     NotifyListenerOnMessage(message);
     [[FIRMessaging messaging] appDidReceiveMessage:user_info];
@@ -531,34 +605,19 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info) {
 static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL selector_value,
                                                                 UIApplication *application,
                                                                 NSDictionary *launch_options) {
-  // Set up Messaging on iOS 10, if possible.
-  Class notification_center_class = NSClassFromString(@"UNUserNotificationCenter");
-  if (notification_center_class && application) {
-    LogInfo("Setting up iOS 10 message delegate.");
-
-    // Cache the existing delegate if one exists it so we can pass along messages when needed.
-    id user_notification_center = [notification_center_class currentNotificationCenter];
-    g_user_delegate = [user_notification_center delegate];
-
-    // Because we've added the methods, we know that `application` supports the
-    // UNUserNotificationCenterDelegate protocol.
-    [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
-  }
-
-  g_message_notification_opened = false;
-  #if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS
   // If the app was launched with a notification, cache it until we're connected.
   g_launch_notification =
       [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
-  g_message_notification_opened = g_launch_notification != nil;
-  #endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
+  BOOL ret = NO;
   IMP app_delegate_application_did_finish_launching_with_options =
       SwizzledMethodCache().GetMethodForObject(
           self, @selector(application:didFinishLaunchingWithOptions:));
   if (app_delegate_application_did_finish_launching_with_options) {
-    return ((util::AppDelegateApplicationDidFinishLaunchingWithOptionsFunc)
-                app_delegate_application_did_finish_launching_with_options)(
+    ret = ((util::AppDelegateApplicationDidFinishLaunchingWithOptionsFunc)
+               app_delegate_application_did_finish_launching_with_options)(
         self, selector_value, application, launch_options);
   } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
              [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
@@ -569,20 +628,34 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     [invocation setArgument:&application atIndex:2];
     [invocation setArgument:&launch_options atIndex:3];
     [self forwardInvocation:invocation];
-    // Read the return value from the invocation.
-    BOOL ret = NO;
     [invocation getReturnValue:&ret];
-    return ret;
   }
-  return NO;
+
+  // Capture any UNUserNotificationCenterDelegate set by the app's
+  // didFinishLaunchingWithOptions: before installing our forwarding delegate.
+  Class notification_center_class = NSClassFromString(@"UNUserNotificationCenter");
+  if (notification_center_class && application) {
+    LogInfo("Setting up iOS 10 message delegate.");
+    id user_notification_center = [notification_center_class currentNotificationCenter];
+    id existing_delegate = [user_notification_center delegate];
+    if (existing_delegate != nil && existing_delegate != application) {
+      g_user_delegate = existing_delegate;
+    }
+    [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
+  }
+
+  if (g_launch_notification != nil && MessagingIsInitialized()) {
+    NotifyApplicationAndServiceOfMessage(g_launch_notification, true);
+    g_launch_notification = nil;
+  }
+
+  return ret;
 }
 
 // Intercepts a notification (message).
 static void AppDelegateApplicationDidReceiveRemoteNotification(id self, SEL selector_value,
                                                                UIApplication *application,
                                                                NSDictionary *user_info) {
-  g_message_notification_opened = (application.applicationState == UIApplicationStateInactive ||
-                                   application.applicationState == UIApplicationStateBackground);
 #if !defined(NDEBUG)
   LogInfo("FCM: Received notification (no handler): %s", [user_info description].UTF8String);
 #else
@@ -590,7 +663,7 @@ static void AppDelegateApplicationDidReceiveRemoteNotification(id self, SEL sele
 #endif
 
   if (MessagingIsInitialized()) {
-    NotifyApplicationAndServiceOfMessage(user_info);
+    NotifyApplicationAndServiceOfMessage(user_info, false);
   }
   IMP app_delegate_application_did_receive_remote_notification =
       SwizzledMethodCache().GetMethodForObject(
@@ -616,15 +689,13 @@ static void AppDelegateApplicationDidReceiveRemoteNotification(id self, SEL sele
 static void AppDelegateApplicationDidReceiveRemoteNotificationFetchCompletionHandler(
     id self, SEL selector_value, UIApplication *application, NSDictionary *user_info,
     util::UIBackgroundFetchResultFunction handler) {
-  g_message_notification_opened = (application.applicationState == UIApplicationStateInactive ||
-                                   application.applicationState == UIApplicationStateBackground);
 #if !defined(NDEBUG)
   LogInfo("FCM: Received notification (using handler): %s", [user_info description].UTF8String);
 #else
   LogInfo("FCM: Received notification (using handler)");
 #endif
   if (MessagingIsInitialized()) {
-    NotifyApplicationAndServiceOfMessage(user_info);
+    NotifyApplicationAndServiceOfMessage(user_info, false);
   }
   IMP app_delegate_application_did_receive_remote_notification_fetch_completion_handler =
       SwizzledMethodCache().GetMethodForObject(
@@ -644,46 +715,17 @@ static void AppDelegateApplicationDidReceiveRemoteNotificationFetchCompletionHan
     [invocation setArgument:&handler atIndex:4];
     [self forwardInvocation:invocation];
   } else {
-    // TODO(smiles): We should determine whether the entire message is sent to this notification
-    // method, if not this is clearly wrong and will need to download the rest of the message.
-    // This is conditional based upon whether the user has implemented this method so they can
-    // callback the handler when they've completed a background fetch.
     handler(UIBackgroundFetchResultNoData);
   }
 }
 
 // Hook all AppDelegate methods that FCM requires to intercept messaging events.
-//
-// The user of the library provides the class which implements AppDelegate protocol so this
-// method hooks methods of user's UIApplication class in order to intercept events required for
-// FCM.  The alternative to this procedure would require the user to implement boilerplate code
-// in their UIApplication in order to plumb in FCM.
-//
-// The following methods are replaced in order to intercept AppDelegate events:
-// * applicationDidBecomeActive:
-//   Reconnect to FCM when an app returns to the foreground.
-// * applicationDidEnterBackground:
-//   Disconnect from FCM when an app is moved to the background.
-// * application:didFailToRegisterForRemoteNotificationsWithError:
-//   Captures any errors that occur if remote notification registration fails.
-// * application:didReceiveRemoteNotification:
-//   Intercepts a notification (message).
-//   NOTE: This should never be called since we've implemented the fetchCompletionHandler variant.
-// * application:didReceiveRemoteNotification:fetchCompletionHandler:
-//   Intercepts a notification (message), provides a completion handler which is called when the
-//   notification payload has been downloaded.
 static void HookAppDelegateMethods(Class clazz) {
   Class method_encoding_class = [FIRSAMAppDelegate class];
   auto& method_cache = SwizzledMethodCache();
   method_cache.ReplaceOrAddMethod(
       clazz, @selector(application:didFinishLaunchingWithOptions:),
       (IMP)AppDelegateApplicationDidFinishLaunchingWithOptions, method_encoding_class);
-  method_cache.ReplaceOrAddMethod(
-      clazz, @selector(applicationDidBecomeActive:), (IMP)AppDelegateApplicationDidBecomeActive,
-      method_encoding_class);
-  method_cache.ReplaceOrAddMethod(
-      clazz, @selector(applicationDidEnterBackground:),
-      (IMP)AppDelegateApplicationDidEnterBackground, method_encoding_class);
   method_cache.ReplaceOrAddMethod(
       clazz, @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:),
       (IMP)AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceToken,
@@ -705,14 +747,23 @@ static void HookAppDelegateMethods(Class clazz) {
 }
 
 static const char kErrorMessageNoRegistrationToken[] =
-    "Cannot update subscritption when SetTokenRegistrationOnInitEnabled is set to false";
+    "Cannot update subscription when SetTokenRegistrationOnInitEnabled is set to false";
+
+static const char kErrorMessageInvalidTopicName[] =
+    "Topic name must not be null or empty.";
 
 Future<void> Subscribe(const char *topic) {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
 
+  MutexLock lock(g_future_data_mutex);
   // Create the future.
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
+
+  if (!topic || topic[0] == '\0') {
+    api->Complete(handle, kErrorInvalidTopicName, kErrorMessageInvalidTopicName);
+    return MakeFuture(api, handle);
+  }
 
   LogInfo("FCM: Subscribe to topic `%s`", topic);
 
@@ -721,7 +772,8 @@ Future<void> Subscribe(const char *topic) {
                   kErrorMessageNoRegistrationToken);
     return MakeFuture(api, handle);
   }
-  if (![FIRMessaging normalizeTopic:@(topic)]) {
+  if ([FIRMessaging respondsToSelector:@selector(normalizeTopic:)] &&
+      ![FIRMessaging normalizeTopic:@(topic)]) {
     std::string error = "Cannot parse topic name ";
     error += topic;
     error += ". Will not subscribe.";
@@ -730,10 +782,15 @@ Future<void> Subscribe(const char *topic) {
   }
   [[FIRMessaging messaging] subscribeToTopic:@(topic)
                                   completion:^void(NSError *error) {
+        MutexLock completion_lock(g_future_data_mutex);
+        if (!FutureData::Get() || !FutureData::Get()->api()) return;
+        ReferenceCountedFutureImpl* completion_api = FutureData::Get()->api();
         if (error) {
-          api->Complete(handle, kErrorInvalidTopicName, error.localizedDescription.UTF8String);
+          completion_api->Complete(
+              handle, kErrorUnknown,
+              util::NSStringToString(error.localizedDescription).c_str());
         } else {
-          api->Complete(handle, kErrorNone);
+          completion_api->Complete(handle, kErrorNone);
         }
       }];
   return MakeFuture(api, handle);
@@ -741,6 +798,7 @@ Future<void> Subscribe(const char *topic) {
 
 Future<void> SubscribeLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnSubscribe));
@@ -749,9 +807,15 @@ Future<void> SubscribeLastResult() {
 Future<void> Unsubscribe(const char *topic) {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
 
+  MutexLock lock(g_future_data_mutex);
   // Create the future.
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
+
+  if (!topic || topic[0] == '\0') {
+    api->Complete(handle, kErrorInvalidTopicName, kErrorMessageInvalidTopicName);
+    return MakeFuture(api, handle);
+  }
 
   LogInfo("FCM: Unsubscribe to topic `%s`", topic);
 
@@ -760,7 +824,8 @@ Future<void> Unsubscribe(const char *topic) {
                   kErrorMessageNoRegistrationToken);
     return MakeFuture(api, handle);
   }
-  if (![FIRMessaging normalizeTopic:@(topic)]) {
+  if ([FIRMessaging respondsToSelector:@selector(normalizeTopic:)] &&
+      ![FIRMessaging normalizeTopic:@(topic)]) {
     std::string error = "Cannot parse topic name ";
     error += topic;
     error += ". Will not unsubscribe.";
@@ -769,10 +834,15 @@ Future<void> Unsubscribe(const char *topic) {
   }
   [[FIRMessaging messaging] unsubscribeFromTopic:@(topic)
                                       completion:^void(NSError *error) {
+        MutexLock completion_lock(g_future_data_mutex);
+        if (!FutureData::Get() || !FutureData::Get()->api()) return;
+        ReferenceCountedFutureImpl* completion_api = FutureData::Get()->api();
         if (error) {
-          api->Complete(handle, kErrorInvalidTopicName, error.localizedDescription.UTF8String);
+          completion_api->Complete(
+              handle, kErrorUnknown,
+              util::NSStringToString(error.localizedDescription).c_str());
         } else {
-          api->Complete(handle, kErrorNone);
+          completion_api->Complete(handle, kErrorNone);
         }
       }];
   return MakeFuture(api, handle);
@@ -780,6 +850,7 @@ Future<void> Unsubscribe(const char *topic) {
 
 Future<void> UnsubscribeLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnUnsubscribe));
@@ -812,21 +883,25 @@ void SetTokenRegistrationOnInitEnabled(bool enable) {
   // doesn't raise the event when flipping the bit to true, so we watch for
   // that here.
   if (!was_enabled && IsTokenRegistrationOnInitEnabled()) {
-    [g_delegate processCachedRegistrationToken];
-    RetrieveRegistrationToken();
+    if (![g_delegate processCachedRegistrationToken]) {
+      RetrieveRegistrationToken();
+    }
   }
 }
 
 Future<void> Register() {
   FIREBASE_ASSERT_RETURN(RegisterLastResult(), internal::IsInitialized());
 
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnRegister);
 
   [[FIRMessaging messaging] registerWithCompletion:^(NSError *_Nullable error) {
-    api->Complete(handle,
-                  error == nullptr ? kErrorNone : kErrorUnknown,
-                  util::NSStringToString(error.localizedDescription).c_str());
+    MutexLock completion_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) return;
+    FutureData::Get()->api()->Complete(
+        handle, error == nullptr ? kErrorNone : kErrorUnknown,
+        util::NSStringToString(error.localizedDescription).c_str());
   }];
 
   return MakeFuture(api, handle);
@@ -834,6 +909,7 @@ Future<void> Register() {
 
 Future<void> RegisterLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnRegister));
@@ -842,13 +918,16 @@ Future<void> RegisterLastResult() {
 Future<void> Unregister() {
   FIREBASE_ASSERT_RETURN(UnregisterLastResult(), internal::IsInitialized());
 
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnregister);
 
   [[FIRMessaging messaging] unregisterWithCompletion:^(NSError *_Nullable error) {
-    api->Complete(handle,
-                  error == nullptr ? kErrorNone : kErrorUnknown,
-                  util::NSStringToString(error.localizedDescription).c_str());
+    MutexLock completion_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) return;
+    FutureData::Get()->api()->Complete(
+        handle, error == nullptr ? kErrorNone : kErrorUnknown,
+        util::NSStringToString(error.localizedDescription).c_str());
   }];
 
   return MakeFuture(api, handle);
@@ -856,6 +935,7 @@ Future<void> Unregister() {
 
 Future<void> UnregisterLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnUnregister));
@@ -864,18 +944,24 @@ Future<void> UnregisterLastResult() {
 Future<std::string> GetToken() {
   FIREBASE_ASSERT_RETURN(GetTokenLastResult(), internal::IsInitialized());
 
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<std::string> handle =
       api->SafeAlloc<std::string>(kMessagingFnGetToken);
 
   [[FIRMessaging messaging] tokenWithCompletion:^(NSString *_Nullable token,
                                            NSError *_Nullable error) {
+    MutexLock completion_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) return;
+    ReferenceCountedFutureImpl* completion_api = FutureData::Get()->api();
     if (error) {
-      api->Complete(handle, kErrorUnknown,
-                    util::NSStringToString(error.localizedDescription).c_str());
+      completion_api->CompleteWithResult(
+          handle, kErrorUnknown,
+          util::NSStringToString(error.localizedDescription).c_str(),
+          std::string());
     } else {
-      api->CompleteWithResult(handle, kErrorNone,
-                              "", util::NSStringToString(token));
+      completion_api->CompleteWithResult(handle, kErrorNone, "",
+                                         util::NSStringToString(token));
     }
   }];
 
@@ -884,6 +970,10 @@ Future<std::string> GetToken() {
 
 Future<std::string> GetTokenLastResult() {
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) {
+    return Future<std::string>();
+  }
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<std::string>&>(
       api->LastResult(kMessagingFnGetToken));
@@ -892,13 +982,16 @@ Future<std::string> GetTokenLastResult() {
 Future<void> DeleteToken() {
   FIREBASE_ASSERT_RETURN(DeleteTokenLastResult(), internal::IsInitialized());
 
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
 
   [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError *_Nullable error) {
-    api->Complete(handle,
-                  error == nullptr ? kErrorNone : kErrorUnknown,
-                  util::NSStringToString(error.localizedDescription).c_str());
+    MutexLock completion_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) return;
+    FutureData::Get()->api()->Complete(
+        handle, error == nullptr ? kErrorNone : kErrorUnknown,
+        util::NSStringToString(error.localizedDescription).c_str());
   }];
 
   return MakeFuture(api, handle);
@@ -906,6 +999,7 @@ Future<void> DeleteToken() {
 
 Future<void> DeleteTokenLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  MutexLock lock(g_future_data_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnDeleteToken));
@@ -931,7 +1025,7 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
   });
 }
 
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 - (void)userNotificationCenter:(UNUserNotificationCenter *)notificationCenter
        willPresentNotification:(UNNotification *)notification
          withCompletionHandler:
@@ -943,15 +1037,23 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
 #if !defined(NDEBUG)
     ::firebase::LogInfo("FCM: userInfo: %s.", userInfo.description.UTF8String);
 #endif
-    ::firebase::messaging::g_message_notification_opened = false;
-    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo);
-    id<UNUserNotificationCenterDelegate> user_delegate = ::firebase::messaging::g_user_delegate;
+    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo, false);
+  }
+  id<UNUserNotificationCenterDelegate> user_delegate = ::firebase::messaging::g_user_delegate;
+  if (user_delegate &&
+      [user_delegate respondsToSelector:@selector(userNotificationCenter:
+                                                 willPresentNotification:
+                                                   withCompletionHandler:)]) {
     [user_delegate userNotificationCenter:notificationCenter
                   willPresentNotification:notification
                     withCompletionHandler:completionHandler];
+  } else if (completionHandler) {
+    completionHandler(UNNotificationPresentationOptionNone);
   }
 }
+#endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 
+#if FIREBASE_PLATFORM_IOS
 - (void)userNotificationCenter:(UNUserNotificationCenter *)notificationCenter
 didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void (^)())completionHandler {
@@ -960,64 +1062,91 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 #if !defined(NDEBUG)
     ::firebase::LogInfo("FCM: userInfo: %s.", userInfo.description.UTF8String);
 #endif
-    ::firebase::messaging::g_message_notification_opened = true;
-    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo);
+    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo, true);
   }
   id<UNUserNotificationCenterDelegate> user_delegate = ::firebase::messaging::g_user_delegate;
-  [user_delegate userNotificationCenter:notificationCenter
-         didReceiveNotificationResponse:response
-                  withCompletionHandler:completionHandler];
+  if (user_delegate &&
+      [user_delegate respondsToSelector:@selector(userNotificationCenter:
+                                           didReceiveNotificationResponse:
+                                                    withCompletionHandler:)]) {
+    [user_delegate userNotificationCenter:notificationCenter
+           didReceiveNotificationResponse:response
+                    withCompletionHandler:completionHandler];
+  } else if (completionHandler) {
+    completionHandler();
+  }
 }
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 @end
 
 @implementation FIRCppDelegate
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
-  ::firebase::messaging::g_delegate_mutex.Acquire();
-  if (_isListenerSet) {
-    ::firebase::messaging::g_delegate_mutex.Release();
+  BOOL listener_set = NO;
+  {
+    firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
+    listener_set = _isListenerSet;
+    if (!listener_set) {
+      _cachedMessaging = messaging;
+      _cachedFCMToken = fcmToken;
+    }
+  }
+  if (listener_set) {
     ::firebase::LogInfo("FCM: new registration token received.");
-    ::firebase::messaging::RetrieveRegistrationToken();
+    if (fcmToken.length) {
+      ::firebase::messaging::NotifyListenerOnTokenReceived(fcmToken.UTF8String);
+    } else {
+      ::firebase::messaging::RetrieveRegistrationToken();
+    }
   } else {
-    _cachedMessaging = messaging;
-    _cachedFCMToken = fcmToken;
-    ::firebase::messaging::g_delegate_mutex.Release();
     ::firebase::LogInfo(
         "FCM: registration token received, but no listener set yet - cached the token.");
   }
 }
 
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistration:(NSString *)installationId {
-  ::firebase::messaging::g_delegate_mutex.Acquire();
-  if (_isListenerSet) {
-    ::firebase::messaging::g_delegate_mutex.Release();
+  BOOL listener_set = NO;
+  {
+    firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
+    listener_set = _isListenerSet;
+    if (!listener_set) {
+      _cachedMessaging = messaging;
+      _cachedRegistrationId = installationId;
+    }
+  }
+  if (listener_set) {
     ::firebase::LogInfo("FCM: registration installation ID received.");
-    ::firebase::messaging::NotifyListenerOnRegistrationReceived(installationId.UTF8String);
+    if (installationId != nil) {
+      ::firebase::messaging::NotifyListenerOnRegistrationReceived(installationId.UTF8String);
+    }
   } else {
-    _cachedMessaging = messaging;
-    _cachedRegistrationId = installationId;
-    ::firebase::messaging::g_delegate_mutex.Release();
     ::firebase::LogInfo(
         "FCM: registration installation ID received, but no listener set yet - cached the ID.");
   }
 }
 
 - (void)messaging:(FIRMessaging *)messaging didUnregister:(NSString *)installationId {
+  (void)messaging;
+  {
+    firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
+    _cachedFCMToken = nil;
+    _cachedRegistrationId = nil;
+    _cachedMessaging = nil;
+  }
   ::firebase::LogInfo("FCM: unregistration received.");
-  ::firebase::messaging::NotifyListenerOnUnregistrationReceived(installationId.UTF8String);
+  if (installationId != nil) {
+    ::firebase::messaging::NotifyListenerOnUnregistrationReceived(installationId.UTF8String);
+  }
 }
 
-- (void)processCachedRegistrationToken {
+- (BOOL)processCachedRegistrationToken {
   FIRMessaging *msg;
   NSString *token;
   NSString *regId;
   {
     firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
-    // TODO(butterfield): What if there's no cached message but there is a cached token?
-    // The user may never get notified of the old token before a new one is registered.
     if (!_isListenerSet) {
-      return;
+      return NO;
     }
     msg = _cachedMessaging;
     token = _cachedFCMToken;
@@ -1032,5 +1161,6 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   if (regId) {
     [self messaging:msg didReceiveRegistration:regId];
   }
+  return token != nil;
 }
 @end

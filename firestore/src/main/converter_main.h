@@ -66,9 +66,10 @@ struct InternalTypeMap<FieldPath> {
 // The struct is just to make declaring `MakePublic` a friend easier (and
 // future-proof in case more parameters are added to it).
 struct ConverterImpl {
-  template <typename PublicT, typename InternalT = InternalType<PublicT>>
-  static PublicT MakePublicFromInternal(InternalT&& from) {
-    auto* internal = new InternalT(std::move(from));
+  template <typename PublicT, typename ArgT>
+  static PublicT MakePublicFromInternal(ArgT&& from) {
+    using ConcreteInternalT = typename std::decay<ArgT>::type;
+    auto* internal = new ConcreteInternalT(std::forward<ArgT>(from));
     return PublicT{internal};
   }
 
@@ -76,14 +77,20 @@ struct ConverterImpl {
             typename CoreT,
             typename InternalT = InternalType<PublicT>,
             typename... Args>
-  static PublicT MakePublicFromCore(CoreT&& from, Args... args) {
-    auto* internal = new InternalT(std::move(from), std::move(args)...);
+  static PublicT MakePublicFromCore(CoreT&& from, Args&&... args) {
+    auto* internal =
+        new InternalT(std::forward<CoreT>(from), std::forward<Args>(args)...);
     return PublicT{internal};
   }
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
   static InternalT* GetInternal(PublicT* from) {
-    return from->internal_;
+    return from ? from->internal_ : nullptr;
+  }
+
+  template <typename PublicT, typename InternalT = InternalType<PublicT>>
+  static const InternalT* GetInternal(const PublicT* from) {
+    return from ? from->internal_ : nullptr;
   }
 };
 
@@ -136,16 +143,19 @@ inline ListenerRegistration MakePublic(
 }
 
 inline Query MakePublic(api::Query&& from) {
-  return ConverterImpl::MakePublicFromCore<Query>(from);
+  return ConverterImpl::MakePublicFromCore<Query>(std::move(from));
 }
 
 inline QuerySnapshot MakePublic(api::QuerySnapshot&& from) {
-  return ConverterImpl::MakePublicFromCore<QuerySnapshot>(from);
+  return ConverterImpl::MakePublicFromCore<QuerySnapshot>(std::move(from));
 }
 
-// TODO(c++17): Add a `MakePublic` overload for `Transaction`, which is not
-// copy- or move-constructible (it's okay to return such a class from a function
-// in C++17, but not in prior versions).
+inline Transaction MakePublic(std::shared_ptr<core::Transaction> transaction,
+                              std::shared_ptr<api::Firestore> firestore_core,
+                              Firestore* firestore_public) {
+  return ConverterImpl::MakePublicFromCore<Transaction>(
+      std::move(transaction), std::move(firestore_core), firestore_public);
+}
 
 inline WriteBatch MakePublic(api::WriteBatch&& from) {
   return ConverterImpl::MakePublicFromCore<WriteBatch>(std::move(from));
@@ -158,18 +168,23 @@ InternalT* GetInternal(PublicT* from) {
   return ConverterImpl::GetInternal(from);
 }
 
+template <typename PublicT, typename InternalT = InternalType<PublicT>>
+const InternalT* GetInternal(const PublicT* from) {
+  return ConverterImpl::GetInternal(from);
+}
+
 inline const model::FieldPath& GetInternal(const FieldPath& from) {
-  return *ConverterImpl::GetInternal(&from);
+  return *NOT_NULL(ConverterImpl::GetInternal(&from));
 }
 
 // GetCoreApi
 
 inline const api::DocumentReference& GetCoreApi(const DocumentReference& from) {
-  return GetInternal(&from)->document_reference_core();
+  return NOT_NULL(GetInternal(&from))->document_reference_core();
 }
 
 inline const api::DocumentSnapshot& GetCoreApi(const DocumentSnapshot& from) {
-  return GetInternal(&from)->document_snapshot_core();
+  return NOT_NULL(GetInternal(&from))->document_snapshot_core();
 }
 
 }  // namespace firestore

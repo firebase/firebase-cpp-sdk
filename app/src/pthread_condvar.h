@@ -31,7 +31,7 @@
 
 namespace firebase {
 namespace internal {
-// A simple RAII wraper around pthread_cond_t.
+// A simple RAII wrapper around pthread_cond_t.
 //
 // It is not portable so it lives here.
 class ConditionVariable {
@@ -43,11 +43,11 @@ class ConditionVariable {
 
   void Wait(pthread_mutex_t* mutex) { pthread_cond_wait(&cond_, mutex); }
   bool TimedWait(pthread_mutex_t* mutex, const timespec* abstime) {
-    return pthread_cond_wait(&cond_, mutex) != 0;
+    return pthread_cond_timedwait(&cond_, mutex, abstime) == 0;
   }
   bool TimedWait(pthread_mutex_t* mutex, int milliseconds) {
     timespec abstime = MsToAbsoluteTimespec(milliseconds);
-    return pthread_cond_timedwait(&cond_, mutex, &abstime) != 0;
+    return pthread_cond_timedwait(&cond_, mutex, &abstime) == 0;
   }
   template <class Predicate>
   void Wait(pthread_mutex_t* lock, Predicate predicate) {
@@ -63,13 +63,12 @@ class ConditionVariable {
   bool TimedWait(pthread_mutex_t* lock, Predicate predicate, int milliseconds) {
     int64_t end_time_ms = TimespecToMs(MsToAbsoluteTimespec(milliseconds));
     int64_t current_time_ms = TimespecToMs(MsToAbsoluteTimespec(0));
-    while (!predicate() && current_time_ms < end_time_ms) {
-      TimedWait(lock, end_time_ms - current_time_ms);
+    bool matched = false;
+    while (!(matched = predicate()) && current_time_ms < end_time_ms) {
+      TimedWait(lock, static_cast<int>(end_time_ms - current_time_ms));
       current_time_ms = TimespecToMs(MsToAbsoluteTimespec(0));
     }
-    // If time isn't up, AND the predicate is true, then we return true.
-    // False otherwise.
-    return current_time_ms < end_time_ms;
+    return matched;
   }
 
   void NotifyOne() { pthread_cond_signal(&cond_); }

@@ -41,7 +41,7 @@
 #endif  // platform selector
 
 #include <algorithm>
-#include <codecvt>
+#include <cstdlib>
 #include <locale>
 #include <string>
 #include <vector>
@@ -50,6 +50,41 @@
 
 namespace firebase {
 namespace internal {
+
+#if FIREBASE_PLATFORM_WINDOWS
+namespace {
+
+std::string WideToUtf8(const std::wstring& input, bool* out_success = nullptr) {
+  if (out_success) {
+    *out_success = true;
+  }
+  if (input.empty()) {
+    return "";
+  }
+  int utf8_len = ::WideCharToMultiByte(
+      CP_UTF8, WC_ERR_INVALID_CHARS, input.data(),
+      static_cast<int>(input.size()), nullptr, 0, nullptr, nullptr);
+  if (utf8_len <= 0) {
+    if (out_success) {
+      *out_success = false;
+    }
+    return "";
+  }
+  std::string output(static_cast<size_t>(utf8_len), '\0');
+  int converted_len = ::WideCharToMultiByte(
+      CP_UTF8, WC_ERR_INVALID_CHARS, input.data(),
+      static_cast<int>(input.size()), &output[0], utf8_len, nullptr, nullptr);
+  if (converted_len != utf8_len) {
+    if (out_success) {
+      *out_success = false;
+    }
+    return "";
+  }
+  return output;
+}
+
+}  // namespace
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Get the current locale, e.g. "en_US"
 std::string GetLocale() {
@@ -61,7 +96,7 @@ std::string GetLocale() {
     return "";
   }
   std::wstring woutput(&locale_name[0]);
-  std::string output(woutput.begin(), woutput.end());
+  std::string output = WideToUtf8(woutput);
   // Change all hyphens to underscores to normalize the locale.
   std::replace(output.begin(), output.end(), '-', '_');
   return output;
@@ -70,15 +105,22 @@ std::string GetLocale() {
   // of the LANG or LC_CTYPE environment variables if set, or otherwise return a
   // default locale (empty in real life, or placeholder when running in a unit
   // test, as the test environment has no locale variables set).
-  // clang-format off
-  std::string output = std::locale().name() != "C"
-                           ? std::locale().name()
-                           : getenv("LANG")
-                                 ? getenv("LANG")
-                                 : getenv("LC_CTYPE")
-                                       ? getenv("LC_CTYPE")
-                                       : getenv("TEST_TMPDIR") ? "en_US" : "";
-  // clang-format on
+  std::string output;
+  std::string current_locale = std::locale().name();
+  if (current_locale != "C" && !current_locale.empty()) {
+    output = current_locale;
+  } else {
+    const char* lang_env = std::getenv("LANG");
+    const char* lc_ctype_env = std::getenv("LC_CTYPE");
+    const char* test_tmpdir_env = std::getenv("TEST_TMPDIR");
+    if (lang_env && *lang_env) {
+      output = lang_env;
+    } else if (lc_ctype_env && *lc_ctype_env) {
+      output = lc_ctype_env;
+    } else if (test_tmpdir_env && *test_tmpdir_env) {
+      output = "en_US";
+    }
+  }
   // Some of the environment variables have a "." after the name to specify the
   // terminal encoding, e.g.  "en_US.UTF-8", so we want to cut the string on the
   // ".".
@@ -122,39 +164,36 @@ std::wstring GetWindowsTimezoneInEnglish(int daylight) {
 // Get the current time zone, e.g. "US/Pacific"
 std::string GetTimezone() {
 #if FIREBASE_PLATFORM_WINDOWS
-  static bool tz_was_set = false;
-  if (!tz_was_set) {
-    _tzset();  // Set the time zone used by the below functions, based on OS
-               // settings or the TZ variable, as appropriate.
-    tz_was_set = true;
-  }
+  // Set the time zone used by the below functions, based on OS settings or the
+  // TZ variable, as appropriate.
+  static const bool tz_was_set = (_tzset(), true);
+  (void)tz_was_set;
 
   // Get the non-daylight time zone, as the IANA conversion below requires the
   // name of the standard time zone. For example, "Central European Standard
   // Time" which converts to "Europe/Warsaw" or similar.
   std::wstring windows_tz_utf16 = GetWindowsTimezoneInEnglish(0);
-  std::string windows_tz_utf8;
-  {
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
-    windows_tz_utf8 = to_utf8.to_bytes(windows_tz_utf16);
-  }
+  std::string windows_tz_utf8 = WideToUtf8(windows_tz_utf16);
 
   std::string locale_name = GetLocale();
-  wchar_t iana_time_zone_buffer[128];
+  constexpr size_t kIanaBufferCapacity = 128;
+  wchar_t iana_time_zone_buffer[kIanaBufferCapacity];
+  int32_t iana_tz_size = 0;
   bool got_time_zone = false;
-  if (locale_name.size() >= 5) {
-    wcscpy(iana_time_zone_buffer, L"");
-    UErrorCode error_code = (UErrorCode)0;
-    int32_t size = 0;
-    // Try time zone first with the region code returned above, assuming it's at
-    // least 5 characters. For example, "en_US" -> "US"
-    std::string region_code = std::string(&locale_name[3], 2);
-    size = ucal_getTimeZoneIDForWindowsID(
+  size_t sep_pos = locale_name.find_last_of("_-");
+  if (sep_pos != std::string::npos && sep_pos + 1 < locale_name.size()) {
+    iana_time_zone_buffer[0] = L'\0';
+    UErrorCode error_code = U_ZERO_ERROR;
+    // Try time zone first with the region code returned above.
+    // For example, "en_US" -> "US", "fil_PH" -> "PH", "zh_Hans_CN" -> "CN".
+    std::string region_code = locale_name.substr(sep_pos + 1);
+    iana_tz_size = ucal_getTimeZoneIDForWindowsID(
         windows_tz_utf16.c_str(), -1, region_code.c_str(),
-        iana_time_zone_buffer,
-        sizeof(iana_time_zone_buffer) / sizeof(iana_time_zone_buffer[0]),
+        iana_time_zone_buffer, static_cast<int32_t>(kIanaBufferCapacity),
         &error_code);
-    got_time_zone = (U_SUCCESS(error_code) && size > 0);
+    got_time_zone =
+        (U_SUCCESS(error_code) && iana_tz_size > 0 &&
+         static_cast<size_t>(iana_tz_size) <= kIanaBufferCapacity);
     if (!got_time_zone) {
       LogDebug(
           "Couldn't convert Windows time zone '%s' with region '%s' to IANA: "
@@ -164,15 +203,15 @@ std::string GetTimezone() {
     }
   }
   if (!got_time_zone) {
-    wcscpy(iana_time_zone_buffer, L"");
-    UErrorCode error_code = (UErrorCode)0;
-    int32_t size = 0;
+    iana_time_zone_buffer[0] = L'\0';
+    UErrorCode error_code = U_ZERO_ERROR;
     // Try without specifying a region
-    size = ucal_getTimeZoneIDForWindowsID(
+    iana_tz_size = ucal_getTimeZoneIDForWindowsID(
         windows_tz_utf16.c_str(), -1, nullptr, iana_time_zone_buffer,
-        sizeof(iana_time_zone_buffer) / sizeof(iana_time_zone_buffer[0]),
-        &error_code);
-    got_time_zone = (U_SUCCESS(error_code) && size > 0);
+        static_cast<int32_t>(kIanaBufferCapacity), &error_code);
+    got_time_zone =
+        (U_SUCCESS(error_code) && iana_tz_size > 0 &&
+         static_cast<size_t>(iana_tz_size) <= kIanaBufferCapacity);
     if (!got_time_zone) {
       // Couldn't convert to IANA
       LogDebug(
@@ -184,22 +223,20 @@ std::string GetTimezone() {
   if (got_time_zone) {
     // One of the above two succeeded, convert the new time zone name back to
     // UTF-8.
-    std::wstring iana_tz_utf16(iana_time_zone_buffer);
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
-    std::string iana_tz_utf8;
-    try {
-      iana_tz_utf8 = to_utf8.to_bytes(iana_tz_utf16);
-    } catch (std::range_error& ex) {
-      LogError("Failed to convert IANA time zone to UTF-8: %s", ex.what());
+    std::wstring iana_tz_utf16(iana_time_zone_buffer,
+                               static_cast<size_t>(iana_tz_size));
+    bool converted = false;
+    std::string iana_tz_utf8 = WideToUtf8(iana_tz_utf16, &converted);
+    if (!converted) {
+      LogError("Failed to convert IANA time zone to UTF-8");
       got_time_zone = false;
-    }
-    if (got_time_zone) {
+    } else {
       return iana_tz_utf8;
     }
   }
   if (!got_time_zone) {
     // Either the IANA time zone couldn't be determined, or couldn't be
-    // converted into UTF-8 for some reason (the std::range_error above).
+    // converted into UTF-8 for some reason.
     //
     // In any case, return the Windows time zone ID as a backup. We now need to
     // get the correct daylight saving time setting to get the right name.
@@ -214,10 +251,7 @@ std::string GetTimezone() {
     }
     if (daylight) {
       windows_tz_utf16 = GetWindowsTimezoneInEnglish(daylight);
-      {
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
-        windows_tz_utf8 = to_utf8.to_bytes(windows_tz_utf16);
-      }
+      windows_tz_utf8 = WideToUtf8(windows_tz_utf16);
     }
     return windows_tz_utf8;
   }
@@ -228,15 +262,30 @@ std::string GetTimezone() {
   std::string tz;
   if (std::getline(tz_file, tz)) {
     // Trim trailing whitespace, including the '\r' of a CRLF line ending.
-    tz.erase(tz.find_last_not_of(" \t\r\n") + 1);
-    if (!tz.empty()) {
-      return tz;
+    size_t last_non_ws = tz.find_last_not_of(" \t\r\n");
+    if (last_non_ws != std::string::npos) {
+      tz.erase(last_non_ws + 1);
+      if (!tz.empty()) {
+        return tz;
+      }
     }
   }
   // If TZ environment variable is defined and not empty, use it, else use
-  // tzname.
-  return (getenv("TZ") && *getenv("TZ")) ? getenv("TZ")
-                                         : tzname[daylight ? 1 : 0];
+  // localtime_r / tzname.
+  const char* tz_env = std::getenv("TZ");
+  if (tz_env && *tz_env) {
+    return tz_env;
+  }
+  tzset();
+  std::time_t now = std::time(nullptr);
+  std::tm local_tm{};
+  if (localtime_r(&now, &local_tm) != nullptr &&
+      local_tm.tm_zone != nullptr && local_tm.tm_zone[0] != '\0') {
+    return local_tm.tm_zone;
+  }
+  int is_dst = (local_tm.tm_isdst > 0) ? 1 : (daylight ? 1 : 0);
+  const char* tz_str = tzname[is_dst];
+  return tz_str ? tz_str : "";
 #else
   // An error was already triggered above.
   return "";

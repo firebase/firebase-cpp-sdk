@@ -18,8 +18,7 @@
 #include <cstdint>
 
 #include <ostream>
-#include <sstream>
-
+#include <string>
 #include <utility>
 
 #if !defined(__ANDROID__)
@@ -35,12 +34,7 @@ const char kDefaultHost[] = "firestore.googleapis.com";
 
 std::string ToStr(bool v) { return v ? "true" : "false"; }
 
-std::string ToStr(int64_t v) {
-  // TODO(b/192885139): when possible, use `std::to_string` instead.
-  std::ostringstream s;
-  s << v;
-  return s.str();
-}
+std::string ToStr(int64_t v) { return std::to_string(v); }
 
 }  // namespace
 
@@ -74,7 +68,7 @@ std::ostream& operator<<(std::ostream& out, const Settings& settings) {
 // Apple uses a different mechanism, defined in `settings_apple.mm`.
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 std::unique_ptr<util::Executor> Settings::CreateExecutor() const {
-  return util::Executor::CreateSerial("integration_tests");
+  return util::Executor::CreateSerial("com.google.firebase.firestore.callback");
 }
 #endif
 

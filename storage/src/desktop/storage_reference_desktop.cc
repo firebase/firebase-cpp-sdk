@@ -83,60 +83,25 @@ struct FutureApiOwner {
 };
 
 // Registers the calling thread as an active user of the StorageInternal behind
-// a FutureApiOwner's lifetime token. While a scope is engaged,
-// ~StorageInternal() blocks (unless it runs on this same thread) before it
-// invalidates the token, so `storage()`, the StorageInternal reached through
-// any StorageReference of it, and `FutureApiOwner::api` stay valid for the
-// whole scope rather than only at the instant of a liveness check.
+// a FutureApiOwner's lifetime token (see StorageLifetimeScope). While a scope
+// is engaged, `storage()`, the StorageInternal reached through any
+// StorageReference of it, and `FutureApiOwner::api` stay valid for the whole
+// scope rather than only at the instant of a liveness check.
 class StorageUseScope {
  public:
-  enum class Mode {
-    // Engage as long as the StorageInternal has not been invalidated, even if
-    // it is shutting down (used to complete futures during shutdown).
-    kAllowShutdown,
-    // Do not engage once shutdown has started (used to start new requests).
-    kRejectShutdown,
-  };
+  using Mode = StorageLifetimeScope::Mode;
 
-  StorageUseScope(const std::shared_ptr<FutureApiOwner>& owner, Mode mode) {
-    if (!owner || !owner->api || !owner->storage_token) {
-      return;
-    }
-    std::lock_guard<std::mutex> lock(owner->storage_token->mutex);
-    StorageInternal* storage = owner->storage_token->storage;
-    if (storage == nullptr ||
-        (mode == Mode::kRejectShutdown && owner->storage_token->shutting_down)) {
-      return;
-    }
-    token_ = owner->storage_token;
-    id_ = std::this_thread::get_id();
-    token_->active_users.push_back(id_);
-    storage_ = storage;
-  }
-
-  ~StorageUseScope() {
-    if (!token_) {
-      return;
-    }
-    std::lock_guard<std::mutex> lock(token_->mutex);
-    auto it = std::find(token_->active_users.begin(),
-                        token_->active_users.end(), id_);
-    if (it != token_->active_users.end()) {
-      token_->active_users.erase(it);
-    }
-    token_->cv.notify_all();
-  }
+  StorageUseScope(const std::shared_ptr<FutureApiOwner>& owner, Mode mode)
+      : scope_((owner && owner->api) ? owner->storage_token : nullptr, mode) {}
 
   StorageUseScope(const StorageUseScope&) = delete;
   StorageUseScope& operator=(const StorageUseScope&) = delete;
 
-  explicit operator bool() const { return storage_ != nullptr; }
-  StorageInternal* storage() const { return storage_; }
+  explicit operator bool() const { return static_cast<bool>(scope_); }
+  StorageInternal* storage() const { return scope_.storage(); }
 
  private:
-  std::shared_ptr<StorageInternal::LifetimeToken> token_;
-  std::thread::id id_;
-  StorageInternal* storage_ = nullptr;
+  StorageLifetimeScope scope_;
 };
 
 namespace {
@@ -278,7 +243,8 @@ std::string StorageReferenceInternal::full_path() const {
   return "/" + storage_uri_.GetPath().str();
 }
 
-// Gets a reference to a location relative to this one.
+// Gets a reference to a location relative to this one. Ownership passes to
+// the caller.
 StorageReferenceInternal* StorageReferenceInternal::Child(
     const char* path) const {
   if (path == nullptr) return nullptr;
@@ -286,7 +252,12 @@ StorageReferenceInternal* StorageReferenceInternal::Child(
 }
 
 StorageReference StorageReferenceInternal::AsStorageReference() const {
-  return StorageReference(new StorageReferenceInternal(*this));
+  return Adopt(std::make_unique<StorageReferenceInternal>(*this));
+}
+
+StorageReference StorageReferenceInternal::Adopt(
+    std::unique_ptr<StorageReferenceInternal> internal) {
+  return StorageReference(internal.release());
 }
 
 // Handy utility function.  Takes ownership of request/response controllers
@@ -1423,8 +1394,8 @@ std::string StorageReferenceInternal::name() const {
   return storage_uri_.GetPath().GetBaseName();
 }
 
-// Returns a new instance of StorageReference pointing to the parent location
-// or null if this instance references the root location.
+// Returns a new instance pointing to the parent location, or null if this
+// instance references the root location. Ownership passes to the caller.
 StorageReferenceInternal* StorageReferenceInternal::GetParent() const {
   if (storage_uri_.GetPath().str().empty()) {
     return nullptr;

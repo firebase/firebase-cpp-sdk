@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-#if defined(__ANDROID__)
-#error "This header should not be used on Android."
-#endif
-
 #include <utility>
 #include <vector>
 
@@ -31,12 +27,12 @@ namespace firebase {
 namespace firestore {
 
 CompositeFilterInternal::CompositeFilterInternal(
-    core::CompositeFilter::Operator op, std::vector<FilterInternal*>& filters)
-    : FilterInternal(FilterType::Composite), op_(op) {
-  for (FilterInternal* filter_internal : filters) {
-    filters_.emplace_back(std::shared_ptr<FilterInternal>(filter_internal));
-  }
-}
+    core::CompositeFilter::Operator op,
+    std::vector<std::unique_ptr<FilterInternal>> filters)
+    : FilterInternal(FilterType::Composite),
+      op_(op),
+      filters_(std::make_move_iterator(filters.begin()),
+               std::make_move_iterator(filters.end())) {}
 
 CompositeFilterInternal* CompositeFilterInternal::clone() {
   return new CompositeFilterInternal(*this);
@@ -47,8 +43,9 @@ bool CompositeFilterInternal::IsEmpty() const { return filters_.empty(); }
 core::Filter CompositeFilterInternal::ToCoreFilter(
     const api::Query& query,
     const firebase::firestore::UserDataConverter& user_data_converter) const {
-  std::vector<core::Filter> core_filters{};
-  for (auto& filter : filters_) {
+  std::vector<core::Filter> core_filters;
+  core_filters.reserve(filters_.size());
+  for (const auto& filter : filters_) {
     core_filters.push_back(filter->ToCoreFilter(query, user_data_converter));
   }
   return core::CompositeFilter::Create(std::move(core_filters), op_);

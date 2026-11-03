@@ -18,10 +18,11 @@
 
 static NSString *kFIRDefaultAppName = @"__FIRAPP_DEFAULT";
 
-@implementation FIRApp
+@implementation FIRApp {
+  BOOL _dataCollectionEnabled;
+}
 
 @synthesize options = _options;
-BOOL _dataCollectionEnabled;
 
 static NSMutableDictionary *sAllApps;
 
@@ -65,7 +66,9 @@ static NSMutableDictionary *sAllApps;
   if (sAllApps) {
     [sAllApps removeObjectForKey:self.name];
   }
-  completion(TRUE);
+  if (completion) {
+    completion(YES);
+  }
 }
 
 - (void)setDataCollectionDefaultEnabled:(BOOL)dataCollectionDefaultEnabled {

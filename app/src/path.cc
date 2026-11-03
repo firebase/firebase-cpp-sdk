@@ -17,8 +17,11 @@
 #include "app/src/path.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <iterator>
+#include <string>
+#include <vector>
 
 namespace firebase {
 
@@ -32,11 +35,11 @@ static std::vector<std::string> Split(const std::string& str,
   for (auto iter = str.begin(); iter != str.end(); iter = finish) {
     // Find next non-delimiter.
     auto start = std::find_if(iter, str.end(), [delims](char c) {
-      return strchr(delims, c) == nullptr;
+      return c == '\0' || std::strchr(delims, c) == nullptr;
     });
     // Find next delimiter.
     finish = std::find_if(start, str.end(), [delims](char c) {
-      return strchr(delims, c) != nullptr;
+      return c != '\0' && std::strchr(delims, c) != nullptr;
     });
     if (start != finish) {
       result.push_back(std::string(start, finish));
@@ -50,22 +53,22 @@ static std::vector<std::string> Split(const std::string& str,
 // conjuntion with the `GetDirectories()` function, while iterating over the
 // directories that make up a path.
 static std::string Join(const char* separator,
-                        std::vector<std::string>::iterator start,
-                        std::vector<std::string>::iterator finish) {
+                        std::vector<std::string>::const_iterator start,
+                        std::vector<std::string>::const_iterator finish) {
   std::string result;
 
   // Starting and ending at the same place results in an empty path.
-  int iterator_distance = std::distance(start, finish);
-  if (iterator_distance == 0) return result;
+  ptrdiff_t iterator_distance = std::distance(start, finish);
+  if (iterator_distance <= 0) return result;
 
   // Reserve space to avoid unnecessary allocations.
-  int separator_count = iterator_distance - 1;
-  int separator_length = std::strlen(separator);
-  int joined_strings_length = 0;
+  size_t separator_count = static_cast<size_t>(iterator_distance - 1);
+  size_t separator_length = std::strlen(separator);
+  size_t joined_strings_length = 0;
   for (auto iter = start; iter != finish; ++iter) {
     joined_strings_length += iter->size();
   }
-  int total_string_length =
+  size_t total_string_length =
       (separator_count * separator_length) + joined_strings_length;
   result.reserve(total_string_length);
 
@@ -84,15 +87,8 @@ static std::string Join(const char* separator,
 // Utility function to join a vector of strings, separated by the separator
 // string.
 static std::string Join(const char* separator,
-                        std::vector<std::string> strings) {
+                        const std::vector<std::string>& strings) {
   return Join(separator, strings.begin(), strings.end());
-}
-
-// Utility function to join a vector of strings, separated by the separator
-// string.
-static std::string Join(const std::string& separator,
-                        std::vector<std::string> strings) {
-  return Join(separator.c_str(), strings.begin(), strings.end());
 }
 
 Path::Path(const std::string& path) : path_(NormalizeSlashes(path)) {}
@@ -140,7 +136,8 @@ bool Path::IsParent(const Path& other) const {
        ++other_iter, ++this_iter) {
     if (*other_iter != *this_iter) break;
   }
-  return other_iter == other.path_.end() || *other_iter == '/';
+  return this_iter == path_.end() &&
+         (other_iter == other.path_.end() || *other_iter == '/');
 }
 
 std::vector<std::string> Path::GetDirectories() const {
@@ -149,12 +146,15 @@ std::vector<std::string> Path::GetDirectories() const {
 
 Path Path::FrontDirectory() const {
   if (empty()) return Path();
-  return Path(GetDirectories().front());
+  std::vector<std::string> directories = GetDirectories();
+  if (directories.empty()) return Path();
+  return Path(directories.front());
 }
 
 Path Path::PopFrontDirectory() const {
   if (empty()) return Path();
   std::vector<std::string> directories = GetDirectories();
+  if (directories.empty()) return Path();
   auto iter = directories.begin();
   return Path(++iter, directories.end());
 }
@@ -162,7 +162,9 @@ Path Path::PopFrontDirectory() const {
 bool Path::GetRelative(const Path& from, const Path& to, Path* out_result) {
   Optional<Path> result = GetRelative(from, to);
   if (result.has_value()) {
-    *out_result = result.value();
+    if (out_result != nullptr) {
+      *out_result = result.value();
+    }
     return true;
   } else {
     return false;
@@ -205,11 +207,11 @@ std::string Path::NormalizeSlashes(const std::string& path) {
   for (auto iter = path.begin(); iter != path.end(); iter = finish) {
     // Find next non-slash.
     auto start = std::find_if(iter, path.end(), [](char c) {
-      return strchr(kSeparator, c) == nullptr;
+      return c == '\0' || std::strchr(kSeparator, c) == nullptr;
     });
     // Find next slash.
     finish = std::find_if(start, path.end(), [](char c) {
-      return strchr(kSeparator, c) != nullptr;
+      return c != '\0' && std::strchr(kSeparator, c) != nullptr;
     });
 
     // Append the string (and separator).

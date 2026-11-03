@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if(APPLE AND NOT ANDROID)
+if(APPLE)
   set(settings_apple_SRCS
       src/common/settings_apple.mm)
 else()
@@ -29,6 +29,7 @@ set(common_SRCS
     src/common/document_change.cc
     src/common/document_reference.cc
     src/common/document_snapshot.cc
+    src/common/event_listener.h
     src/common/exception_common.cc
     src/common/exception_common.h
     src/common/filter.cc
@@ -52,6 +53,7 @@ set(common_SRCS
     src/common/to_string.h
     src/common/type_mapping.h
     src/common/transaction.cc
+    src/common/transaction_function.h
     src/common/transaction_options.cc
     src/common/util.cc
     src/common/util.h
@@ -68,6 +70,7 @@ binary_to_array("firestore_resources"
 
 set(android_SRCS
     ${firestore_resources_source}
+    ${firestore_resources_header}
     src/android/aggregate_query_android.cc
     src/android/aggregate_query_android.h
     src/android/aggregate_query_snapshot_android.cc
@@ -240,10 +243,9 @@ set(main_SRCS
     src/main/write_batch_main.cc
     src/main/write_batch_main.h)
 
-# CredentialsProvider has no implementatation on Android and distinct
-# implementations for iOS and desktop platforms. On iOS, the implementation of
-# the interface actually comes from the FirebaseFirestore CocoaPod, so there's
-# no implementation listed here.
+# CredentialsProvider has no implementation on Android and distinct
+# implementations for iOS and desktop platforms. On iOS, the factory functions
+# bridge to the implementation provided by the FirebaseFirestore Swift Package.
 set(credentials_provider_desktop_SRCS
     src/main/app_check_credentials_provider_desktop.cc
     src/main/app_check_credentials_provider_desktop.h
@@ -261,9 +263,8 @@ set(credentials_provider_ios_SRCS
     src/main/create_credentials_provider_ios.mm)
 
 # FirebaseMetadataProvider has no implementation on Android and distinct
-# implementations for iOS and desktop platforms. On iOS, the implementation of
-# the interface actually comes from the FirebaseFirestore CocoaPod, so there's
-# no implementation listed here.
+# implementations for iOS and desktop platforms. On iOS, the factory function
+# bridges to the implementation provided by the FirebaseFirestore Swift Package.
 set(firebase_metadata_provider_desktop_SRCS
     src/main/create_firebase_metadata_provider.h
     src/main/create_firebase_metadata_provider_desktop.cc
@@ -273,17 +274,6 @@ set(firebase_metadata_provider_desktop_SRCS
 set(firebase_metadata_provider_ios_SRCS
     src/main/create_firebase_metadata_provider.h
     src/main/create_firebase_metadata_provider_ios.mm)
-
-set(wrapper_assertions_SRCS
-    src/common/wrapper_assertions.cc
-    src/common/wrapper_assertions.h)
-
-set(ios_only_SRCS
-    src/main/create_firebase_metadata_provider_ios.mm)
-
-set(desktop_only_SRCS
-    src/main/create_firebase_metadata_provider_desktop.cc
-    src/main/firebase_metadata_provider_desktop.cc)
 
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
@@ -311,7 +301,6 @@ set_property(TARGET firebase_firestore PROPERTY FOLDER "Firebase Cpp")
 target_link_libraries(firebase_firestore
   PUBLIC
     firebase_app
-    firebase_auth
 )
 
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
@@ -330,6 +319,7 @@ target_include_directories(firebase_firestore
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
+    ${FIREBASE_CPP_SDK_ROOT_DIR}/auth/src/include
 )
 
 # Additional public headers come from the Firestore core
@@ -380,7 +370,7 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E make_directory
           "${firestore_generated_headers_dir}"
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${FIREBASE_FIRESTORE_CORE_HEADER_DIR}
+          "${FIREBASE_FIRESTORE_CORE_HEADER_DIR}/firebase/firestore"
           "${firestore_generated_headers_dir}"
   COMMENT "Copying internal Firestore headers"
 )
@@ -389,19 +379,21 @@ add_custom_target(
 # are guarded by this flag, such as GetUserAgent and function_registry.
 set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
 
-if (MSVC AND NOT ANDROID AND NOT IOS)
+if(MSVC)
   # On Windows, gRPC gives a compiler error in firebase_metadata_provider_desktop.cc
   # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
-  # Also set -DNOMINMAX for both Firestore and Firestore Core.
+  # Also set -DNOMINMAX for Windows builds.
   set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600 -DNOMINMAX)
   # Special handling for the absl time zone library, define _LIBCPP_VERSION on
   # Windows to avoid the shenanigans they do with Windows mangled symbols to
   # accomplish weak linking. See
   # https://github.com/google/cctz/blob/master/src/zone_info_source.cc for a
   # look at what we're up against.
-  target_compile_definitions(absl_time_zone
-    PRIVATE
-    _LIBCPP_VERSION=99)
+  if(TARGET absl_time_zone)
+    target_compile_definitions(absl_time_zone
+      PRIVATE
+      _LIBCPP_VERSION=99)
+  endif()
 endif()
 
 target_compile_definitions(firebase_firestore
@@ -414,16 +406,17 @@ target_compile_definitions(firebase_firestore
   PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC -DPB_NO_PACKED_STRUCTS
 )
 
+if(APPLE)
+  # Enable Automatic Reference Counting (ARC) for Objective-C++ sources.
+  target_compile_options(
+    firebase_firestore
+    PRIVATE $<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fobjc-arc>)
+endif()
+
 if(ANDROID)
   firebase_cpp_proguard_file(firestore)
 
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
-  target_compile_options(firebase_firestore
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_firestore
-                        PUBLIC "-fembed-bitcode")
-
   setup_spm_headers(
     firebase_firestore
     INCLUDE_PRIVATE_HEADERS
@@ -442,6 +435,10 @@ elseif(IOS)
       FRAMEWORK TRUE
     )
   endif()
+endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  add_subdirectory(tests)
 endif()
 
 cpp_pack_library(firebase_firestore "")

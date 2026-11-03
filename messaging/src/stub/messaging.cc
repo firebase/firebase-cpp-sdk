@@ -16,6 +16,8 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
@@ -23,98 +25,26 @@
 #include "app/src/log.h"
 #include "messaging/src/common.h"
 
-#ifdef _WIN32
-// pthreads not available on Windows, so disable the fake implementation.
-#define FIREBASE_MESSAGING_TEST_ENABLED 0
-#else
-#define FIREBASE_MESSAGING_TEST_ENABLED 0
-#endif  // _WIN32
-
-#if FIREBASE_MESSAGING_TEST_ENABLED
-#include <pthread.h>
-#include <unistd.h>
-
-#include <sstream>
-
-#include "app/src/include/firebase/internal/mutex.h"
-#endif  // FIREBASE_MESSAGING_TEST_ENABLED
-
 namespace firebase {
 namespace messaging {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseMessaging);
 
 static bool g_initialized = false;
-
-#if FIREBASE_MESSAGING_TEST_ENABLED
-static pthread_t g_message_thread;
-static Mutex g_message_thread_mutex;  // NOLINT
-static bool g_message_thread_run;
-static const int kMessageIntervalMilliseconds = 5000;
-#endif  // FIREBASE_MESSAGING_TEST_ENABLED
-
-#if FIREBASE_MESSAGING_TEST_ENABLED
-// Thread which sends a message every few seconds.
-static void* MessageTestThread(void* arg) {
-  static const int kPollIntervalMilliseconds = 100;
-  static const int kMicrosecondsPerMillisecond = 1000;
-  int time_elapsed_milliseconds = 0;
-  for (;;) {
-    {
-      MutexLock lock(g_message_thread_mutex);
-      if (!g_message_thread_run) break;
-    }
-    // Wait until kMessageIntervalMilliseconds has elapsed.
-    usleep(kPollIntervalMilliseconds * kMicrosecondsPerMillisecond);
-    time_elapsed_milliseconds += kPollIntervalMilliseconds;
-    if (time_elapsed_milliseconds < kMessageIntervalMilliseconds) continue;
-    time_elapsed_milliseconds = 0;
-
-    // Send a message.
-    time_t seconds_since_epoch = time(nullptr);
-    std::stringstream ss;
-    ss << static_cast<int64_t>(seconds_since_epoch);
-    Notification* notification = new Notification;
-    notification->title = "Testing testing 1 2 3...";
-    notification->body = "Hi, this is just a test.";
-    notification->body += " " + ss.str();
-    Message message;
-    message.from = "test";
-    message.to = "you";
-    message.data["this"] = "is";
-    message.data["a"] = "test";
-    ss << reinterpret_cast<intptr_t>(notification);
-    message.message_id = ss.str();
-    message.notification = notification;
-    NotifyListenerOnMessage(message);
-  }
-  return arg;
-}
-#endif  // FIREBASE_MESSAGING_TEST_ENABLED
+static bool g_reg_on_init_enabled = true;
+static bool g_delivery_metrics_to_bigquery = false;
 
 InitResult Initialize(const ::firebase::App& app, Listener* listener) {
   return Initialize(app, listener, MessagingOptions());
 }
 
-InitResult Initialize(const ::firebase::App& /*app*/, Listener* listener,
+InitResult Initialize(const ::firebase::App& app, Listener* listener,
                       const MessagingOptions& /*options*/) {
-  if (internal::IsInitialized()) return kInitResultSuccess;
   SetListenerIfNotNull(listener);
+  if (internal::IsInitialized()) return kInitResultSuccess;
   FutureData::Create();
-#if FIREBASE_MESSAGING_TEST_ENABLED
-  {
-    MutexLock lock(g_message_thread_mutex);
-    if (g_message_thread_run) return kInitResultSuccess;
-    g_message_thread_run = true;
-    pthread_attr_t attr;
-    int ret = pthread_attr_init(&attr);
-    FIREBASE_ASSERT(ret == 0);
-    ret = pthread_create(&g_message_thread, &attr, MessageTestThread, nullptr);
-    FIREBASE_ASSERT(ret == 0);
-  }
-#endif  // FIREBASE_MESSAGING_TEST_ENABLED
   g_initialized = true;
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnDefaultAppDestroy(app);
   return kInitResultSuccess;
 }
 
@@ -127,16 +57,10 @@ bool IsInitialized() { return g_initialized; }
 void Terminate() {
   if (!internal::IsInitialized()) return;
   internal::UnregisterTerminateOnDefaultAppDestroy();
-#if FIREBASE_MESSAGING_TEST_ENABLED
-  {
-    MutexLock lock(g_message_thread_mutex);
-    if (!g_message_thread_run) return;
-    g_message_thread_run = false;
-  }
-  int ret = pthread_join(g_message_thread, nullptr);
-  FIREBASE_ASSERT(ret == 0);
-#endif  // FIREBASE_MESSAGING_TEST_ENABLED
+  SetListener(nullptr);
   FutureData::Destroy();
+  g_reg_on_init_enabled = true;
+  g_delivery_metrics_to_bigquery = false;
   g_initialized = false;
 }
 
@@ -145,16 +69,39 @@ void NotifyListenerSet(Listener* /*listener*/) {}
 namespace {
 // Functions to handle returning completed stub futures.
 
-const int kStubResultCode = 0;  // Complete with no error.
+const int kStubResultCode = kErrorNone;  // Complete with no error.
 const char kStubMessage[] = "Successfully completed as a stub.";
+const char kStubInvalidTopicMessage[] = "Invalid topic name.";
 const char kStubToken[] = "StubToken";
 
-Future<void> CreateAndCompleteStubFuture(MessagingFn fn) {
+bool IsValidTopicName(const char* topic) {
+  if (!topic || topic[0] == '\0') return false;
+  const char* p = topic;
+  const char kTopicsPrefix[] = "/topics/";
+  const size_t kTopicsPrefixLen = sizeof(kTopicsPrefix) - 1;
+  if (std::strncmp(p, kTopicsPrefix, kTopicsPrefixLen) == 0) {
+    p += kTopicsPrefixLen;
+  }
+  size_t len = 0;
+  for (; *p != '\0'; ++p, ++len) {
+    const char c = *p;
+    const bool valid_char =
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' ||
+        c == '~' || c == '%';
+    if (!valid_char) return false;
+  }
+  return len >= 1 && len <= 900;
+}
+
+Future<void> CreateAndCompleteStubFuture(MessagingFn fn,
+                                         int error = kStubResultCode,
+                                         const char* msg = kStubMessage) {
   // Create a future and complete it immediately.
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
-  api->Complete(handle, kStubResultCode, kStubMessage);
+  api->Complete(handle, error, msg);
   return Future<void>(api, handle.get());
 }
 
@@ -166,7 +113,12 @@ Future<void> GetLastResultFuture(MessagingFn fn) {
 
 }  // namespace
 
-Future<void> Subscribe(const char* /*topic*/) {
+Future<void> Subscribe(const char* topic) {
+  if (!IsValidTopicName(topic)) {
+    return CreateAndCompleteStubFuture(kMessagingFnSubscribe,
+                                       kErrorInvalidTopicName,
+                                       kStubInvalidTopicMessage);
+  }
   return CreateAndCompleteStubFuture(kMessagingFnSubscribe);
 }
 
@@ -174,7 +126,12 @@ Future<void> SubscribeLastResult() {
   return GetLastResultFuture(kMessagingFnSubscribe);
 }
 
-Future<void> Unsubscribe(const char* /*topic*/) {
+Future<void> Unsubscribe(const char* topic) {
+  if (!IsValidTopicName(topic)) {
+    return CreateAndCompleteStubFuture(kMessagingFnUnsubscribe,
+                                       kErrorInvalidTopicName,
+                                       kStubInvalidTopicMessage);
+  }
   return CreateAndCompleteStubFuture(kMessagingFnUnsubscribe);
 }
 
@@ -190,19 +147,28 @@ Future<void> RequestPermissionLastResult() {
   return GetLastResultFuture(kMessagingFnRequestPermission);
 }
 
-bool IsRegistrationOnInitEnabled() { return true; }
+bool IsRegistrationOnInitEnabled() { return g_reg_on_init_enabled; }
 
-void SetRegistrationOnInitEnabled(bool /*enable*/) {}
+void SetRegistrationOnInitEnabled(bool enable) {
+  g_reg_on_init_enabled = enable;
+}
 
-bool IsTokenRegistrationOnInitEnabled() { return true; }
+bool IsTokenRegistrationOnInitEnabled() { return g_reg_on_init_enabled; }
 
-void SetTokenRegistrationOnInitEnabled(bool /*enable*/) {}
+void SetTokenRegistrationOnInitEnabled(bool enable) {
+  g_reg_on_init_enabled = enable;
+}
 
-bool DeliveryMetricsExportToBigQueryEnabled() { return false; }
+bool DeliveryMetricsExportToBigQueryEnabled() {
+  return g_delivery_metrics_to_bigquery;
+}
 
-void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {}
+void SetDeliveryMetricsExportToBigQuery(bool enable) {
+  g_delivery_metrics_to_bigquery = enable;
+}
 
 Future<void> Register() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   NotifyListenerOnRegistrationReceived("StubRegistrationId");
   return CreateAndCompleteStubFuture(kMessagingFnRegister);
 }
@@ -212,6 +178,7 @@ Future<void> RegisterLastResult() {
 }
 
 Future<void> Unregister() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   NotifyListenerOnUnregistrationReceived("StubRegistrationId");
   return CreateAndCompleteStubFuture(kMessagingFnUnregister);
 }
@@ -221,6 +188,7 @@ Future<void> UnregisterLastResult() {
 }
 
 Future<std::string> GetToken() {
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<std::string> handle =
       api->SafeAlloc<std::string>(kMessagingFnGetToken);
@@ -230,22 +198,18 @@ Future<std::string> GetToken() {
 }
 
 Future<std::string> GetTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<std::string>&>(
       api->LastResult(kMessagingFnGetToken));
 }
 
 Future<void> DeleteToken() {
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
-  api->Complete(handle, kStubResultCode, kStubMessage);
-  return MakeFuture(api, handle);
+  return CreateAndCompleteStubFuture(kMessagingFnDeleteToken);
 }
 
 Future<void> DeleteTokenLastResult() {
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  return static_cast<const Future<void>&>(
-      api->LastResult(kMessagingFnDeleteToken));
+  return GetLastResultFuture(kMessagingFnDeleteToken);
 }
 
 }  // namespace messaging

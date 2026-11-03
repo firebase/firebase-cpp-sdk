@@ -77,19 +77,17 @@ Local<SettingsInternal> SettingsInternal::Create(Env& env,
   Local<Object> builder = env.New(kNewBuilder);
 
   Local<String> host = env.NewStringUtf(settings.host());
-  builder = env.Call(builder, kSetHost, host);
-
-  builder = env.Call(builder, kSetSslEnabled, settings.is_ssl_enabled());
-
-  builder = env.Call(builder, kSetPersistenceEnabled,
-                     settings.is_persistence_enabled());
-
-  builder = env.Call(builder, kSetCacheSizeBytes, settings.cache_size_bytes());
+  env.Call(builder, kSetHost, host);
+  env.Call(builder, kSetSslEnabled, settings.is_ssl_enabled());
+  env.Call(builder, kSetPersistenceEnabled, settings.is_persistence_enabled());
+  env.Call(builder, kSetCacheSizeBytes, settings.cache_size_bytes());
 
   return env.Call(builder, kBuild);
 }
 
 Settings SettingsInternal::ToPublic(Env& env) const {
+  if (!*this) return {};
+
   Settings result;
 
   // Set host
@@ -108,6 +106,7 @@ Settings SettingsInternal::ToPublic(Env& env) const {
   int64_t cache_size_bytes = env.Call(*this, kGetCacheSizeBytes);
   result.set_cache_size_bytes(cache_size_bytes);
 
+  if (!env.ok()) return {};
   return result;
 }
 

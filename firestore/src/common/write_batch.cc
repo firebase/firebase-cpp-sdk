@@ -51,10 +51,15 @@ WriteBatch::WriteBatch(const WriteBatch& value) {
   if (value.internal_) {
     internal_ = new WriteBatchInternal(*value.internal_);
   }
-  CleanupFnWriteBatch::Register(this, internal_);
+  try {
+    CleanupFnWriteBatch::Register(this, internal_);
+  } catch (...) {
+    delete internal_;
+    throw;
+  }
 }
 
-WriteBatch::WriteBatch(WriteBatch&& value) {
+WriteBatch::WriteBatch(WriteBatch&& value) noexcept {
   CleanupFnWriteBatch::Unregister(&value, value.internal_);
   std::swap(internal_, value.internal_);
   CleanupFnWriteBatch::Register(this, internal_);
@@ -77,17 +82,17 @@ WriteBatch& WriteBatch::operator=(const WriteBatch& value) {
   }
 
   CleanupFnWriteBatch::Unregister(this, internal_);
-  delete internal_;
+  WriteBatchInternal* new_internal = nullptr;
   if (value.internal_) {
-    internal_ = new WriteBatchInternal(*value.internal_);
-  } else {
-    internal_ = nullptr;
+    new_internal = new WriteBatchInternal(*value.internal_);
   }
+  delete internal_;
+  internal_ = new_internal;
   CleanupFnWriteBatch::Register(this, internal_);
   return *this;
 }
 
-WriteBatch& WriteBatch::operator=(WriteBatch&& value) {
+WriteBatch& WriteBatch::operator=(WriteBatch&& value) noexcept {
   if (this == &value) {
     return *this;
   }
@@ -104,35 +109,35 @@ WriteBatch& WriteBatch::operator=(WriteBatch&& value) {
 WriteBatch& WriteBatch::Set(const DocumentReference& document,
                             const MapFieldValue& data,
                             const SetOptions& options) {
+  ValidateReference(document);
   if (!internal_) return *this;
 
-  ValidateReference(document);
   internal_->Set(document, data, options);
   return *this;
 }
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldValue& data) {
+  ValidateReference(document);
   if (!internal_) return *this;
 
-  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldPathValue& data) {
+  ValidateReference(document);
   if (!internal_) return *this;
 
-  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Delete(const DocumentReference& document) {
+  ValidateReference(document);
   if (!internal_) return *this;
 
-  ValidateReference(document);
   internal_->Delete(document);
   return *this;
 }

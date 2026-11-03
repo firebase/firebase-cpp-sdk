@@ -94,7 +94,10 @@ METHOD_LOOKUP_DEFINITION(firebase_database,
 // clang-format off
 #define DATABASE_ERROR_METHODS(X)                                              \
     X(GetCode, "getCode", "()I"),                                              \
-    X(GetMessage, "getMessage", "()Ljava/lang/String;")
+    X(GetMessage, "getMessage", "()Ljava/lang/String;"),                       \
+    X(FromException, "fromException",                                          \
+      "(Ljava/lang/Throwable;)Lcom/google/firebase/database/DatabaseError;",   \
+      util::kMethodTypeStatic, util::kMethodOptional)
 // clang-format on
 
 // clang-format off
@@ -169,8 +172,10 @@ int DatabaseInternal::initialize_count_ = 0;
 std::map<jint, Error>* DatabaseInternal::java_error_to_cpp_ = nullptr;
 
 DatabaseInternal::DatabaseInternal(App* app)
-    : logger_(app_common::FindAppLoggerByName(app->name())) {
-  app_ = nullptr;
+    : app_(nullptr),
+      obj_(nullptr),
+      logger_(app_common::FindAppLoggerByName(app->name())),
+      safe_this_(this) {
   if (!Initialize(app)) return;
   app_ = app;
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
@@ -181,10 +186,10 @@ DatabaseInternal::DatabaseInternal(App* app)
       firebase_database::GetClass(),
       firebase_database::GetMethodId(firebase_database::kGetInstance),
       platform_app);
-  env->DeleteLocalRef(platform_app);
-  if (database_obj == nullptr) {
+  if (platform_app != nullptr) env->DeleteLocalRef(platform_app);
+  if (util::CheckAndClearJniExceptions(env) || database_obj == nullptr) {
+    if (database_obj != nullptr) env->DeleteLocalRef(database_obj);
     logger_.LogWarning("Could not create default Database");
-    util::CheckAndClearJniExceptions(env);
     // Something went wrong -> uninitialize the database
     Terminate(app_);
     app_ = nullptr;
@@ -195,24 +200,27 @@ DatabaseInternal::DatabaseInternal(App* app)
 }
 
 DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : constructor_url_(url),
-      logger_(app_common::FindAppLoggerByName(app->name())) {
-  app_ = nullptr;
+    : app_(nullptr),
+      obj_(nullptr),
+      constructor_url_(url ? url : ""),
+      logger_(app_common::FindAppLoggerByName(app->name())),
+      safe_this_(this) {
   if (!Initialize(app)) return;
   app_ = app;
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   JNIEnv* env = app_->GetJNIEnv();
-  jobject url_string = env->NewStringUTF(url);
+  jobject url_string = env->NewStringUTF(constructor_url_.c_str());
   jobject platform_app = app->GetPlatformApp();
   jobject database_obj = env->CallStaticObjectMethod(
       firebase_database::GetClass(),
       firebase_database::GetMethodId(firebase_database::kGetInstanceFromUrl),
       platform_app, url_string);
-  env->DeleteLocalRef(platform_app);
-  if (database_obj == nullptr) {
-    logger_.LogWarning("Could not create Database with URL '%s' .", url);
-    util::CheckAndClearJniExceptions(env);
+  if (platform_app != nullptr) env->DeleteLocalRef(platform_app);
+  if (util::CheckAndClearJniExceptions(env) || database_obj == nullptr) {
+    if (database_obj != nullptr) env->DeleteLocalRef(database_obj);
+    logger_.LogWarning("Could not create Database with URL '%s' .",
+                       constructor_url_.c_str());
     // Something went wrong -> uninitialize the database
     Terminate(app_);
     app_ = nullptr;
@@ -220,7 +228,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
     obj_ = env->NewGlobalRef(database_obj);
     env->DeleteLocalRef(database_obj);
   }
-  env->DeleteLocalRef(url_string);
+  if (url_string != nullptr) env->DeleteLocalRef(url_string);
 }
 
 // Which DatabaseError Java fields correspond to which C++ Error enum values.
@@ -238,6 +246,7 @@ static const struct {
     {database_error::kPermissionDenied, kErrorPermissionDenied},
     {database_error::kUnavailable, kErrorUnavailable},
     {database_error::kUnknownError, kErrorUnknownError},
+    {database_error::kUserCodeException, kErrorUnknownError},
     {database_error::kWriteCanceled, kErrorWriteCanceled},
     {database_error::kFieldCount, kErrorNone},  // sentinel value for end
 };
@@ -396,6 +405,7 @@ void DatabaseInternal::Terminate(App* app) {
 }
 
 DatabaseInternal::~DatabaseInternal() {
+  safe_this_.ClearReference();
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
 
@@ -409,17 +419,22 @@ DatabaseInternal::~DatabaseInternal() {
     for (auto i = java_value_listener_lookup_.begin();
          i != java_value_listener_lookup_.end(); ++i) {
       ClearJavaEventListener(i->second);
+      env->DeleteGlobalRef(i->second);
     }
+    java_value_listener_lookup_.clear();
     for (auto i = java_child_listener_lookup_.begin();
          i != java_child_listener_lookup_.end(); ++i) {
       ClearJavaEventListener(i->second);
+      env->DeleteGlobalRef(i->second);
     }
+    java_child_listener_lookup_.clear();
     for (auto i = java_single_value_listeners_.begin();
          i != java_single_value_listeners_.end(); ++i) {
       ClearJavaEventListener(*i);
       env->DeleteGlobalRef(*i);
     }
     java_single_value_listeners_.clear();
+    single_value_listeners_.clear();
   }
   {
     MutexLock lock(transaction_mutex_);
@@ -428,12 +443,13 @@ DatabaseInternal::~DatabaseInternal() {
       jlong transaction_ptr = env->CallLongMethod(
           *i, cpp_transaction_handler::GetMethodId(
                   cpp_transaction_handler::kDiscardPointers));
+      util::CheckAndClearJniExceptions(env);
       TransactionData* data =
           reinterpret_cast<TransactionData*>(transaction_ptr);
       delete data;
       env->DeleteGlobalRef(*i);
     }
-    java_single_value_listeners_.clear();
+    java_transaction_handlers_.clear();
   }
 
   env->DeleteGlobalRef(obj_);
@@ -451,11 +467,16 @@ DatabaseReference DatabaseInternal::GetReference() const {
   jobject database_reference_obj = env->CallObjectMethod(
       obj_,
       firebase_database::GetMethodId(firebase_database::kGetRootReference));
-  FIREBASE_ASSERT(database_reference_obj != nullptr);
+  if (util::CheckAndClearJniExceptions(env) ||
+      database_reference_obj == nullptr) {
+    if (database_reference_obj != nullptr) {
+      env->DeleteLocalRef(database_reference_obj);
+    }
+    return DatabaseReference(nullptr);
+  }
   DatabaseReferenceInternal* internal = new DatabaseReferenceInternal(
       const_cast<DatabaseInternal*>(this), database_reference_obj);
   env->DeleteLocalRef(database_reference_obj);
-  util::CheckAndClearJniExceptions(env);
   return DatabaseReference(internal);
 }
 
@@ -463,15 +484,22 @@ DatabaseReference DatabaseInternal::GetReference(const char* path) const {
   FIREBASE_ASSERT_RETURN(DatabaseReference(nullptr), path != nullptr);
   JNIEnv* env = app_->GetJNIEnv();
   jobject path_string = env->NewStringUTF(path);
+  if (util::CheckAndClearJniExceptions(env) || path_string == nullptr) {
+    if (path_string != nullptr) env->DeleteLocalRef(path_string);
+    return DatabaseReference(nullptr);
+  }
   jobject database_reference_obj = env->CallObjectMethod(
       obj_,
       firebase_database::GetMethodId(firebase_database::kGetReferenceFromPath),
       path_string);
   env->DeleteLocalRef(path_string);
-  if (database_reference_obj == nullptr) {
+  if (util::CheckAndClearJniExceptions(env) ||
+      database_reference_obj == nullptr) {
+    if (database_reference_obj != nullptr) {
+      env->DeleteLocalRef(database_reference_obj);
+    }
     logger_.LogWarning("Database::GetReference(): Invalid path specified: %s",
                        path);
-    util::CheckAndClearJniExceptions(env);
     return DatabaseReference(nullptr);
   }
   DatabaseReferenceInternal* internal = new DatabaseReferenceInternal(
@@ -484,17 +512,24 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
   FIREBASE_ASSERT_RETURN(DatabaseReference(nullptr), url != nullptr);
   JNIEnv* env = app_->GetJNIEnv();
   jobject url_string = env->NewStringUTF(url);
+  if (util::CheckAndClearJniExceptions(env) || url_string == nullptr) {
+    if (url_string != nullptr) env->DeleteLocalRef(url_string);
+    return DatabaseReference(nullptr);
+  }
   jobject database_reference_obj = env->CallObjectMethod(
       obj_,
       firebase_database::GetMethodId(firebase_database::kGetReferenceFromUrl),
       url_string);
   env->DeleteLocalRef(url_string);
-  if (database_reference_obj == nullptr) {
+  if (util::CheckAndClearJniExceptions(env) ||
+      database_reference_obj == nullptr) {
+    if (database_reference_obj != nullptr) {
+      env->DeleteLocalRef(database_reference_obj);
+    }
     logger_.LogWarning(
         "Database::GetReferenceFromUrl(): URL '%s' does not match the "
         "Database URL.",
         url);
-    util::CheckAndClearJniExceptions(env);
     return DatabaseReference(nullptr);
   }
   DatabaseReferenceInternal* internal = new DatabaseReferenceInternal(
@@ -534,17 +569,19 @@ void DatabaseInternal::SetPersistenceEnabled(bool enabled) const {
 }
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
-  FIREBASE_ASSERT_RETURN_VOID(log_level <
-                              (sizeof(kCppLogLevelToLoggerLevelName) /
-                               sizeof(kCppLogLevelToLoggerLevelName[0])));
+  FIREBASE_ASSERT_RETURN_VOID(
+      log_level >= 0 &&
+      static_cast<size_t>(log_level) <
+          FIREBASE_ARRAYSIZE(kCppLogLevelToLoggerLevelName));
   JNIEnv* env = app_->GetJNIEnv();
   jstring enum_name =
       env->NewStringUTF(kCppLogLevelToLoggerLevelName[log_level]);
-  if (!util::CheckAndClearJniExceptions(env)) {
+  if (!util::CheckAndClearJniExceptions(env) && enum_name != nullptr) {
     jobject log_level_enum_obj = env->CallStaticObjectMethod(
         logger_level::GetClass(),
         logger_level::GetMethodId(logger_level::kValueOf), enum_name);
-    if (!util::CheckAndClearJniExceptions(env)) {
+    if (!util::CheckAndClearJniExceptions(env) &&
+        log_level_enum_obj != nullptr) {
       env->CallVoidMethod(
           obj_, firebase_database::GetMethodId(firebase_database::kSetLogLevel),
           log_level_enum_obj);
@@ -553,6 +590,8 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
       }
       env->DeleteLocalRef(log_level_enum_obj);
     }
+  }
+  if (enum_name != nullptr) {
     env->DeleteLocalRef(enum_name);
   }
 }
@@ -569,6 +608,7 @@ Error DatabaseInternal::ErrorFromResultAndErrorCode(
     case util::kFutureResultFailure:
       return ErrorFromJavaErrorCode(error_code);
   }
+  return kErrorUnknownError;
 }
 
 Error DatabaseInternal::ErrorFromJavaErrorCode(jint error_code) const {
@@ -583,18 +623,48 @@ Error DatabaseInternal::ErrorFromJavaErrorCode(jint error_code) const {
 
 Error DatabaseInternal::ErrorFromJavaDatabaseError(
     jobject error, std::string* error_message) const {
+  if (error == nullptr) {
+    return kErrorUnknownError;
+  }
   JNIEnv* env = app_->GetJNIEnv();
 
   if (error_message != nullptr) {
     jobject message = env->CallObjectMethod(
         error, database_error::GetMethodId(database_error::kGetMessage));
-    if (message) {
+    if (util::CheckAndClearJniExceptions(env)) {
+      if (message != nullptr) env->DeleteLocalRef(message);
+    } else if (message != nullptr) {
       *error_message = util::JniStringToString(env, message);
     }
   }
   jint java_error_code = env->CallIntMethod(
       error, database_error::GetMethodId(database_error::kGetCode));
+  if (util::CheckAndClearJniExceptions(env)) {
+    return kErrorUnknownError;
+  }
   return ErrorFromJavaErrorCode(java_error_code);
+}
+
+Error DatabaseInternal::ErrorFromJavaThrowable(
+    jobject throwable, std::string* error_message) const {
+  if (throwable == nullptr) {
+    return kErrorUnknownError;
+  }
+  JNIEnv* env = app_->GetJNIEnv();
+  jmethodID from_exception =
+      database_error::GetMethodId(database_error::kFromException);
+  if (from_exception != nullptr) {
+    jobject db_error = env->CallStaticObjectMethod(
+        database_error::GetClass(), from_exception, throwable);
+    if (util::CheckAndClearJniExceptions(env)) {
+      if (db_error != nullptr) env->DeleteLocalRef(db_error);
+    } else if (db_error != nullptr) {
+      Error code = ErrorFromJavaDatabaseError(db_error, error_message);
+      env->DeleteLocalRef(db_error);
+      return code;
+    }
+  }
+  return kErrorUnknownError;
 }
 
 jobject DatabaseInternal::CreateJavaEventListener(ValueListener* listener) {
@@ -604,37 +674,50 @@ jobject DatabaseInternal::CreateJavaEventListener(ValueListener* listener) {
       cpp_value_event_listener::GetMethodId(
           cpp_value_event_listener::kConstructor),
       reinterpret_cast<jlong>(this), reinterpret_cast<jlong>(listener));
+  if (util::CheckAndClearJniExceptions(env) || java_listener == nullptr) {
+    if (java_listener != nullptr) env->DeleteLocalRef(java_listener);
+    return nullptr;
+  }
   jobject java_listener_global = env->NewGlobalRef(java_listener);
   env->DeleteLocalRef(java_listener);
+  if (util::CheckAndClearJniExceptions(env)) {
+    return nullptr;
+  }
   return java_listener_global;
 }
 
 void DatabaseInternal::ClearJavaEventListener(jobject java_listener) {
+  if (java_listener == nullptr) return;
   JNIEnv* env = app_->GetJNIEnv();
   env->CallVoidMethod(java_listener, cpp_event_listener::GetMethodId(
                                          cpp_event_listener::kDiscardPointers));
+  util::CheckAndClearJniExceptions(env);
 }
 
 jobject DatabaseInternal::RegisterValueEventListener(
     const internal::QuerySpec& spec, ValueListener* listener) {
   MutexLock lock(listener_mutex_);
+  JNIEnv* env = app_->GetJNIEnv();
   if (value_listeners_by_query_.Register(spec, listener)) {
     auto found = java_value_listener_lookup_.find(listener);
     if (found != java_value_listener_lookup_.end()) {
-      return found->second;
+      return env->NewLocalRef(found->second);
     } else {
       jobject java_listener = CreateJavaEventListener(listener);
+      if (java_listener == nullptr) {
+        value_listeners_by_query_.Unregister(spec, listener);
+        return nullptr;
+      }
       java_value_listener_lookup_.insert(
           std::make_pair(listener, java_listener));
-      return java_listener;
+      return env->NewLocalRef(java_listener);
     }
   }
   return nullptr;
 }
 
-jobject DatabaseInternal::UnregisterValueEventListener(
+jobject DatabaseInternal::UnregisterValueEventListenerLocked(
     const internal::QuerySpec& spec, ValueListener* listener) {
-  MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = java_value_listener_lookup_.find(listener);
     if (found != java_value_listener_lookup_.end()) {
@@ -655,13 +738,21 @@ jobject DatabaseInternal::UnregisterValueEventListener(
   return nullptr;
 }
 
+jobject DatabaseInternal::UnregisterValueEventListener(
+    const internal::QuerySpec& spec, ValueListener* listener) {
+  MutexLock lock(listener_mutex_);
+  return UnregisterValueEventListenerLocked(spec, listener);
+}
+
 std::vector<jobject> DatabaseInternal::UnregisterAllValueEventListeners(
     const internal::QuerySpec& spec) {
+  MutexLock lock(listener_mutex_);
   std::vector<jobject> java_listeners;
   std::vector<ValueListener*> listeners;
   if (value_listeners_by_query_.Get(spec, &listeners)) {
-    for (int i = 0; i < listeners.size(); i++) {
-      jobject java_listener = UnregisterValueEventListener(spec, listeners[i]);
+    for (size_t i = 0; i < listeners.size(); i++) {
+      jobject java_listener =
+          UnregisterValueEventListenerLocked(spec, listeners[i]);
       if (java_listener != nullptr) java_listeners.push_back(java_listener);
     }
   }
@@ -675,31 +766,42 @@ jobject DatabaseInternal::CreateJavaEventListener(ChildListener* listener) {
       cpp_child_event_listener::GetMethodId(
           cpp_child_event_listener::kConstructor),
       reinterpret_cast<jlong>(this), reinterpret_cast<jlong>(listener));
+  if (util::CheckAndClearJniExceptions(env) || java_listener == nullptr) {
+    if (java_listener != nullptr) env->DeleteLocalRef(java_listener);
+    return nullptr;
+  }
   jobject java_listener_global = env->NewGlobalRef(java_listener);
   env->DeleteLocalRef(java_listener);
+  if (util::CheckAndClearJniExceptions(env)) {
+    return nullptr;
+  }
   return java_listener_global;
 }
 
 jobject DatabaseInternal::RegisterChildEventListener(
     const internal::QuerySpec& spec, ChildListener* listener) {
   MutexLock lock(listener_mutex_);
+  JNIEnv* env = app_->GetJNIEnv();
   if (child_listeners_by_query_.Register(spec, listener)) {
     auto found = java_child_listener_lookup_.find(listener);
     if (found != java_child_listener_lookup_.end()) {
-      return found->second;
+      return env->NewLocalRef(found->second);
     } else {
       jobject java_listener = CreateJavaEventListener(listener);
+      if (java_listener == nullptr) {
+        child_listeners_by_query_.Unregister(spec, listener);
+        return nullptr;
+      }
       java_child_listener_lookup_.insert(
           std::make_pair(listener, java_listener));
-      return java_listener;
+      return env->NewLocalRef(java_listener);
     }
   }
   return nullptr;
 }
 
-jobject DatabaseInternal::UnregisterChildEventListener(
+jobject DatabaseInternal::UnregisterChildEventListenerLocked(
     const internal::QuerySpec& spec, ChildListener* listener) {
-  MutexLock lock(listener_mutex_);
   if (child_listeners_by_query_.Unregister(spec, listener)) {
     auto found = java_child_listener_lookup_.find(listener);
     if (found != java_child_listener_lookup_.end()) {
@@ -720,13 +822,21 @@ jobject DatabaseInternal::UnregisterChildEventListener(
   return nullptr;
 }
 
+jobject DatabaseInternal::UnregisterChildEventListener(
+    const internal::QuerySpec& spec, ChildListener* listener) {
+  MutexLock lock(listener_mutex_);
+  return UnregisterChildEventListenerLocked(spec, listener);
+}
+
 std::vector<jobject> DatabaseInternal::UnregisterAllChildEventListeners(
     const internal::QuerySpec& spec) {
+  MutexLock lock(listener_mutex_);
   std::vector<jobject> java_listeners;
   std::vector<ChildListener*> listeners;
   if (child_listeners_by_query_.Get(spec, &listeners)) {
-    for (int i = 0; i < listeners.size(); i++) {
-      jobject java_listener = UnregisterChildEventListener(spec, listeners[i]);
+    for (size_t i = 0; i < listeners.size(); i++) {
+      jobject java_listener =
+          UnregisterChildEventListenerLocked(spec, listeners[i]);
       if (java_listener != nullptr) java_listeners.push_back(java_listener);
     }
   }
@@ -742,8 +852,15 @@ jobject DatabaseInternal::CreateJavaTransactionHandler(
       cpp_transaction_handler::GetMethodId(
           cpp_transaction_handler::kConstructor),
       reinterpret_cast<jlong>(this), reinterpret_cast<jlong>(transaction_fn));
+  if (util::CheckAndClearJniExceptions(env) || java_handler == nullptr) {
+    if (java_handler != nullptr) env->DeleteLocalRef(java_handler);
+    return nullptr;
+  }
   jobject java_handler_global = env->NewGlobalRef(java_handler);
   env->DeleteLocalRef(java_handler);
+  if (util::CheckAndClearJniExceptions(env) || java_handler_global == nullptr) {
+    return nullptr;
+  }
   auto found = java_transaction_handlers_.find(java_handler_global);
   if (found == java_transaction_handlers_.end()) {
     java_transaction_handlers_.insert(java_handler_global);
@@ -754,18 +871,20 @@ jobject DatabaseInternal::CreateJavaTransactionHandler(
 
 void DatabaseInternal::DeleteJavaTransactionHandler(
     jobject java_handler_global) {
+  if (java_handler_global == nullptr) return;
   MutexLock lock(transaction_mutex_);
   JNIEnv* env = app_->GetJNIEnv();
   auto found = java_transaction_handlers_.find(java_handler_global);
   if (found != java_transaction_handlers_.end()) {
     java_transaction_handlers_.erase(found);
+    jlong transaction_ptr = env->CallLongMethod(
+        java_handler_global, cpp_transaction_handler::GetMethodId(
+                                 cpp_transaction_handler::kDiscardPointers));
+    util::CheckAndClearJniExceptions(env);
+    TransactionData* data = reinterpret_cast<TransactionData*>(transaction_ptr);
+    delete data;
+    env->DeleteGlobalRef(java_handler_global);
   }
-  jlong transaction_ptr = env->CallLongMethod(
-      java_handler_global, cpp_transaction_handler::GetMethodId(
-                               cpp_transaction_handler::kDiscardPointers));
-  TransactionData* data = reinterpret_cast<TransactionData*>(transaction_ptr);
-  delete data;
-  env->DeleteGlobalRef(java_handler_global);
 }
 
 }  // namespace internal

@@ -17,12 +17,12 @@
 #include "remote_config/src/desktop/remote_config_request.h"
 
 #include <map>
-#include <sstream>
 #include <string>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/variant_util.h"
+#include "remote_config/src/value_parser.h"
 
 namespace firebase {
 namespace remote_config {
@@ -48,15 +48,17 @@ void RemoteConfigRequest::UpdatePostFields() {
     std::map<Variant, Variant> variant_map;
     for (const auto& kv : custom_signals_) {
       const Variant& val = kv.second;
-      if (val.is_string()) {
-        variant_map[Variant(kv.first)] = Variant(val.string_value());
+      if (val.is_mutable_string()) {
+        variant_map[Variant(kv.first)] = Variant(val.mutable_string());
+      } else if (val.is_static_string()) {
+        const char* s = val.string_value();
+        variant_map[Variant(kv.first)] = Variant(s ? s : "");
       } else if (val.is_int64()) {
         variant_map[Variant(kv.first)] =
             Variant(std::to_string(val.int64_value()));
       } else if (val.is_double()) {
-        std::ostringstream ss;
-        ss << val.double_value();
-        variant_map[Variant(kv.first)] = Variant(ss.str());
+        variant_map[Variant(kv.first)] =
+            Variant(ValueParser::FormatGeneralDouble(val.double_value()));
       }
     }
     std::string custom_signals_json = util::VariantToJson(variant_map);

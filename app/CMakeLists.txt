@@ -35,16 +35,19 @@ binary_to_array("google_api_resources"
     "${FIREBASE_GEN_FILE_DIR}/app")
 
 # Generate version.h
-set(version_header_dir ${FIREBASE_GEN_FILE_DIR}/app/src/include/firebase)
-set(version_header ${version_header_dir}/version.h)
+set(version_header_dir "${FIREBASE_GEN_FILE_DIR}/app/src/include/firebase")
+set(version_header "${version_header_dir}/version.h")
 add_custom_target(FIREBASE_APP_GENERATED_HEADERS DEPENDS "${version_header}")
-file(MAKE_DIRECTORY ${version_header_dir})
+file(MAKE_DIRECTORY "${version_header_dir}")
 add_custom_command(
-    OUTPUT ${version_header}
-    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/version_header.py"
+    OUTPUT "${version_header}"
+    COMMAND "${FIREBASE_PYTHON_EXECUTABLE}" "${FIREBASE_SCRIPT_DIR}/version_header.py"
         "--input_file=${FIREBASE_SCRIPT_DIR}/cpp_sdk_version.json"
         "--output_file=${version_header}"
         "--build_type=released"
+    DEPENDS
+        "${FIREBASE_SCRIPT_DIR}/version_header.py"
+        "${FIREBASE_SCRIPT_DIR}/cpp_sdk_version.json"
     COMMENT "Generating version header"
 )
 
@@ -67,7 +70,6 @@ build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
 
 set(log_common_SRCS
     src/log.cc
-    src/log.h
     src/logger.cc
     src/logger.h)
 set(log_common_HDRS)
@@ -149,27 +151,21 @@ set(app_ios_SRCS
     src/uuid_ios_darwin.mm)
 
 
-# Flatbuffer schemas used by the desktop implementation.
-set(desktop_flatbuffers_schema_dir
-    "${CMAKE_CURRENT_LIST_DIR}/src/heartbeat/schemas")
-set(desktop_flatbuffers_schemas
-    "${desktop_flatbuffers_schema_dir}/logged_heartbeats.fbs")
-set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
-    "--no-union-value-namespacing"
-    "--gen-generated"
-    "--gen-object-api"
-    "--cpp-ptr-type" "std::unique_ptr")
-# Because of a bug in the version of Flatbuffers we are pinned to,
-# additional flags need to be set.
-# also see if app_generated_includes will conflict
-set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
-build_flatbuffers("${desktop_flatbuffers_schemas}"
-                  "${CMAKE_CURRENT_LIST_DIR}"
-                  "app_generated_includes"
-                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
-                  "${FIREBASE_GEN_FILE_DIR}/app"
-                  ""
-                  "")
+if(NOT ANDROID AND NOT IOS)
+  # Flatbuffer schemas used by the desktop implementation.
+  set(desktop_flatbuffers_schema_dir
+      "${CMAKE_CURRENT_LIST_DIR}/src/heartbeat/schemas")
+  set(desktop_flatbuffers_schemas
+      "${desktop_flatbuffers_schema_dir}/logged_heartbeats.fbs")
+  set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+  build_flatbuffers("${desktop_flatbuffers_schemas}"
+                    "${CMAKE_CURRENT_LIST_DIR}"
+                    "app_generated_includes"
+                    "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                    "${FIREBASE_GEN_FILE_DIR}/app"
+                    ""
+                    "")
+endif()
 
 set(app_desktop_SRCS
     src/app_desktop.cc
@@ -209,9 +205,9 @@ else()
                            systems via: \
                            apt-get install libsecret-1-dev")
     endif()
-    # If building for 32 bit, the include directories might need to be fixed.
+    # If building for 32 bit, the multiarch include directories might need to be fixed.
     if("${CMAKE_CXX_FLAGS}" MATCHES "-m32")
-      string(REGEX REPLACE "x86_64" "i386"
+      string(REGEX REPLACE "x86_64-linux-gnu" "i386-linux-gnu"
              LIBSECRET_INCLUDE_DIRS "${LIBSECRET_INCLUDE_DIRS}")
     endif()
     set(app_desktop_extra_SRCS
@@ -322,6 +318,9 @@ add_library(firebase_app STATIC
 
 add_dependencies(firebase_app FIREBASE_APP_GENERATED_HEADERS)
 add_dependencies(firebase_app app_generated_google_services_includes)
+if(NOT ANDROID AND NOT IOS)
+  add_dependencies(firebase_app app_generated_includes)
+endif()
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 
@@ -342,7 +341,7 @@ target_include_directories(firebase_app
     ${LIBSECRET_INCLUDE_DIRS}
 )
 
-if (DESKTOP)
+if (NOT ANDROID AND NOT IOS)
   target_include_directories(firebase_app
     PRIVATE
       ${ZLIB_SOURCE_DIR}/..
@@ -370,6 +369,7 @@ target_link_libraries(firebase_app
 
 if(ANDROID)
   firebase_cpp_proguard_file(app)
+  target_link_libraries(firebase_app PUBLIC android log)
 elseif(IOS)
   # Enable Automatic Reference Counting (ARC) for Objective-C/Swift interop.
   # Note: Bitcode (-fembed-bitcode) was removed because it was deprecated in
@@ -420,91 +420,176 @@ if (IOS)
   else()
     set(analytics_HDRS "")
   endif()
-  set(app_check_HDRS
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/debug_provider.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/device_check_provider.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h)
-  set(auth_HDRS
-    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth.h
-    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/credential.h
-    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/types.h
-    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/user.h)
-  set(database_HDRS
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/common.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/data_snapshot.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/database_reference.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/disconnection.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/listener.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/mutable_data.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/query.h
-    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/transaction.h)
-  set(firestore_HDRS
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query_snapshot.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_source.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/filter.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/load_bundle_task_progress.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/map_field_value.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/metadata_changes.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query_snapshot.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/set_options.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/settings.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/snapshot_metadata.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/source.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
-    ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_errors.h
-    ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_version.h
-    ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h
-    ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/timestamp.h)
-  set(functions_HDRS
-    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions.h
-    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
-    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_result.h
-    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
-  set(installations_HDRS
-    ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
-  set(messaging_HDRS
-    ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
-  set(remote_config_HDRS
-    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h
-    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config/config_update_listener_registration.h)
-  set(storage_HDRS
-    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h
-    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/common.h
-    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/controller.h
-    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/list_result.h
-    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/listener.h
-    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/metadata.h
-    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/storage_reference.h)
-  set(ump_HDRS
-    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump.h
-    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/consent_info.h
-    ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/types.h)
+  if (FIREBASE_INCLUDE_APP_CHECK)
+    set(app_check_HDRS
+      ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check.h
+      ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h
+      ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/debug_provider.h
+      ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/device_check_provider.h
+      ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h)
+  else()
+    set(app_check_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_AUTH)
+    set(auth_HDRS
+      ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth.h
+      ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/credential.h
+      ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/types.h
+      ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/user.h)
+  else()
+    set(auth_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_DATABASE)
+    set(database_HDRS
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/common.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/data_snapshot.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/database_reference.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/disconnection.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/listener.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/mutable_data.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/query.h
+      ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/transaction.h)
+  else()
+    set(database_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_FIRESTORE)
+    set(firestore_HDRS
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query_snapshot.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_source.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/filter.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/load_bundle_task_progress.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/map_field_value.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/metadata_changes.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query_snapshot.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/set_options.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/settings.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/snapshot_metadata.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/source.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
+      ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
+      ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_errors.h
+      ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_version.h
+      ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h
+      ${FIREBASE_SPM_CHECKOUTS_DIR}/firebase-ios-sdk/Firestore/core/include/firebase/firestore/timestamp.h)
+  else()
+    set(firestore_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_FUNCTIONS)
+    set(functions_HDRS
+      ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions.h
+      ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
+      ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_result.h
+      ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
+  else()
+    set(functions_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_INSTALLATIONS)
+    set(installations_HDRS
+      ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
+  else()
+    set(installations_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_MESSAGING)
+    set(messaging_HDRS
+      ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
+  else()
+    set(messaging_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_PERFORMANCE)
+    set(performance_HDRS
+      ${FIREBASE_SOURCE_DIR}/performance/src/include/firebase/performance.h
+      ${FIREBASE_SOURCE_DIR}/performance/src/include/firebase/performance/http_metric.h
+      ${FIREBASE_SOURCE_DIR}/performance/src/include/firebase/performance/trace.h)
+  else()
+    set(performance_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_REMOTE_CONFIG)
+    set(remote_config_HDRS
+      ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h
+      ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config/config_update_listener_registration.h)
+  else()
+    set(remote_config_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_STORAGE)
+    set(storage_HDRS
+      ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h
+      ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/common.h
+      ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/controller.h
+      ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/list_result.h
+      ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/listener.h
+      ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/metadata.h
+      ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/storage_reference.h)
+  else()
+    set(storage_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_UMP)
+    set(ump_HDRS
+      ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump.h
+      ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/consent_info.h
+      ${FIREBASE_SOURCE_DIR}/ump/src/include/firebase/ump/types.h)
+  else()
+    set(ump_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_GMA)
+    set(gma_HDRS
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_error.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_Inspector_closed_listener.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_parent.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_request.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_Result.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_size.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_value.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/adapter_response_info.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/mediation_extra_builder.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/QueryInfo.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/response_info.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h
+      ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ump.h)
+  else()
+    set(gma_HDRS "")
+  endif()
+  if (FIREBASE_INCLUDE_AI)
+    set(ai_HDRS
+      ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai.h
+      ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/chat.h
+      ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/generative_model.h
+      ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/imagen_model.h
+      ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/schema.h
+      ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/type_traits.h
+      ${FIREBASE_SOURCE_DIR}/ai/src/include/firebase/ai/types.h)
+  else()
+    set(ai_HDRS "")
+  endif()
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
+    ${ai_HDRS}
     ${analytics_HDRS}
     ${app_check_HDRS}
     ${auth_HDRS}
     ${database_HDRS}
     ${firestore_HDRS}
     ${functions_HDRS}
+    ${gma_HDRS}
     ${installations_HDRS}
     ${messaging_HDRS}
+    ${performance_HDRS}
     ${remote_config_HDRS}
     ${storage_HDRS}
     ${ump_HDRS}
@@ -517,21 +602,24 @@ if (IOS)
   # Copy header from source dir "src/include/firebase/*" to destination dir "Headers/*"
   # Firestore has few headers from a different directory pattern (core/include/firebase/*).
   list(APPEND framework_HDRS ${internal_HDRS})
-  foreach(hfile ${framework_HDRS})
-    string(FIND ${hfile} "/include/firebase/" pos_firebase)
-    string(COMPARE NOTEQUAL ${pos_firebase} -1 find)
-    if(${find})
-      string(FIND ${hfile} "/" pos_e REVERSE)
-      math(EXPR pos_s "${pos_firebase} + 17")
-      math(EXPR len "${pos_e} - ${pos_s}")
-      string(SUBSTRING ${hfile} ${pos_s} ${len} dir)
-      # file(COPY ${hfile} DESTINATION Headers/${dir})
-      set_property(SOURCE ${hfile} PROPERTY 
-                  MACOSX_PACKAGE_LOCATION Headers/${dir})
+  foreach(hfile IN LISTS framework_HDRS)
+    string(FIND "${hfile}" "/include/firebase/" pos_firebase)
+    if(NOT pos_firebase EQUAL -1)
+      string(FIND "${hfile}" "/" pos_e REVERSE)
+      math(EXPR pos_s "${pos_firebase} + 18")
+      if(pos_e GREATER pos_s)
+        math(EXPR len "${pos_e} - ${pos_s}")
+        string(SUBSTRING "${hfile}" ${pos_s} ${len} dir)
+        set_property(SOURCE "${hfile}" PROPERTY
+                    MACOSX_PACKAGE_LOCATION "Headers/${dir}")
+      else()
+        set_property(SOURCE "${hfile}" PROPERTY
+                    MACOSX_PACKAGE_LOCATION "Headers")
+      endif()
     endif()
-  endforeach(hfile)
-  # Copy header from source dir "src/include/google_play_services/*" 
+  endforeach()
+  # Copy header from source dir "src/include/google_play_services/*"
   # to destination dir "Headers/google_play_services/*"
-  set_property(SOURCE "src/include/google_play_services/availability.h" PROPERTY 
-                  MACOSX_PACKAGE_LOCATION Headers/google_play_services)
+  set_property(SOURCE "src/include/google_play_services/availability.h" PROPERTY
+                  MACOSX_PACKAGE_LOCATION "Headers/google_play_services")
 endif()

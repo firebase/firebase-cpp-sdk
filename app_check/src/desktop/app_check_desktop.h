@@ -15,8 +15,12 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 
+#include <condition_variable>
 #include <list>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -43,11 +47,19 @@ class FunctionRegistryAppCheckListener : public AppCheckListener {
 
  private:
   using Entry = std::pair<FunctionRegistryCallback, void*>;
+  mutable std::mutex mutex_;
   std::vector<Entry> callbacks_;
 };
 
 class AppCheckInternal {
  public:
+  struct LifetimeState {
+    std::mutex mutex;
+    std::condition_variable cv;
+    AppCheckInternal* owner{nullptr};
+    std::vector<std::thread::id> active_threads;
+  };
+
   explicit AppCheckInternal(::firebase::App* app);
 
   ~AppCheckInternal();
@@ -83,8 +95,10 @@ class AppCheckInternal {
   ReferenceCountedFutureImpl* future();
 
  private:
-  // Is the cached token valid
+  // Is the cached token valid (caller must NOT hold mutex_).
   bool HasValidCacheToken() const;
+  // Is the cached token valid (caller MUST hold mutex_).
+  bool HasValidCacheTokenLocked() const;
 
   // Update the cached Token, and call the listeners
   void UpdateCachedToken(AppCheckToken token);
@@ -114,21 +128,25 @@ class AppCheckInternal {
   static bool RemoveAppCheckListenerForRegistry(App* app, void* callback,
                                                 void* context);
 
-  ::firebase::App* app_;
+  ::firebase::App* app_{nullptr};
 
   FutureManager future_manager_;
 
+  mutable std::mutex mutex_;
+  std::shared_ptr<LifetimeState> lifetime_state_;
+
   // Cached provider for the App. Use GetProvider instead of this.
-  AppCheckProvider* cached_provider_;
+  AppCheckProvider* cached_provider_{nullptr};
+  AppCheckProviderFactory* cached_provider_factory_{nullptr};
   // Cached token, can be expired.
-  AppCheckToken cached_token_;
+  AppCheckToken cached_token_{};
   // List of registered listeners for Token changes.
   std::list<AppCheckListener*> token_listeners_;
   // Internal listener used by the function registry to track Token changes.
   FunctionRegistryAppCheckListener internal_listener_;
   // Should it automatically get an App Check token if there is not a valid
   // cached token.
-  bool is_token_auto_refresh_enabled_;
+  bool is_token_auto_refresh_enabled_{true};
 };
 
 }  // namespace internal

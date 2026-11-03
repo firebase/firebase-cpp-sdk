@@ -61,22 +61,25 @@ class HttpMetric {
   /// @param url The string representation of the url for the network request
   /// that's being instrumented with this http metric.
   /// @param http_method The http method of the network request that's being
-  /// instrumented by this http metirc.
+  /// instrumented by this http metric.
   HttpMetric(const char* url, HttpMethod http_method);
 
   /// @brief Destroys any resources allocated for a HttpMetric object.
   ~HttpMetric();
 
+  HttpMetric(const HttpMetric& src) = delete;
+  HttpMetric& operator=(const HttpMetric& src) = delete;
+
   /// @brief Move constructor.
-  HttpMetric(HttpMetric&& other);
+  HttpMetric(HttpMetric&& other) noexcept;
 
   /// @brief Move assignment operator.
-  HttpMetric& operator=(HttpMetric&& other);
+  HttpMetric& operator=(HttpMetric&& other) noexcept;
 
   /// @brief Gets whether the HttpMetric associated with this object is started.
   /// @return true if the HttpMetric is started, false if it's stopped or
   /// canceled.
-  bool is_started();
+  bool is_started() const;
 
   /// @brief Cancels the http metric, and makes sure it isn't logged to the
   /// backend.
@@ -95,6 +98,7 @@ class HttpMetric {
   void Start(const char* url, HttpMethod http_method);
 
 #if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+  /// @cond FIREBASE_APP_INTERNAL
   // We need to decouple creating and starting an HttpMetric for the Unity
   // implementation and so we expose these methods.
 
@@ -106,6 +110,7 @@ class HttpMetric {
   /// @brief Starts the HttpMetric that was created. Does nothing if there isn't
   /// one created.
   void StartCreatedHttpMetric();
+  /// @endcond
 #endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
   /// @brief Sets a custom attribute for the given network trace with the
@@ -121,7 +126,7 @@ class HttpMetric {
   void SetAttribute(const char* attribute_name, const char* attribute_value);
 
   /// @brief Gets the value of the custom attribute identified by the given
-  /// name or nullptr if it hasn't been set.
+  /// name or an empty string if it hasn't been set.
   ///
   /// @param[in] attribute_name The name of the attribute you want to retrieve
   /// the value for.
@@ -157,10 +162,7 @@ class HttpMetric {
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
-  internal::HttpMetricInternal* internal_;
-
-  HttpMetric(const HttpMetric& src);
-  HttpMetric& operator=(const HttpMetric& src);
+  internal::HttpMetricInternal* internal_ = nullptr;
   /// @endcond
 };
 

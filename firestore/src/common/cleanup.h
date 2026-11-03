@@ -17,11 +17,11 @@
 #ifndef FIREBASE_FIRESTORE_SRC_COMMON_CLEANUP_H_
 #define FIREBASE_FIRESTORE_SRC_COMMON_CLEANUP_H_
 
-#if __ANDROID__
+#if defined(__ANDROID__)
 #include "firestore/src/android/firestore_android.h"
 #else
 #include "firestore/src/main/firestore_main.h"
-#endif  // __ANDROID__
+#endif  // defined(__ANDROID__)
 
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
@@ -31,12 +31,8 @@ namespace firestore {
 
 class FirestoreInternal;
 
-// T is a Firestore public type. U is a internal type that can provide a
+// T is a Firestore public type. U is an internal type that can provide a
 // FirestoreInternal instance. Normally U is just the internal type of T.
-//
-// F is almost always FirestoreInternal unless one wants something else to
-// manage the cleanup process. We define type F to make this CleanupFn
-// implementation platform-independent.
 template <typename T,
           typename U = InternalType<T>,
           typename F = FirestoreInternal>
@@ -45,13 +41,13 @@ struct CleanupFn {
 
   static void Register(T* obj, F* firestore) {
     if (firestore) {
-      firestore->cleanup().RegisterObject(obj, CleanupFn<T, U>::Cleanup);
+      firestore->cleanup().RegisterObject(obj, CleanupFn<T, U, F>::Cleanup);
     }
   }
 
   static void Register(T* obj, U* internal) {
     if (internal) {
-      Register(obj, internal->firestore_internal());
+      Register(obj, static_cast<F*>(internal->firestore_internal()));
     }
   }
 
@@ -63,7 +59,7 @@ struct CleanupFn {
 
   static void Unregister(T* obj, U* internal) {
     if (internal) {
-      Unregister(obj, internal->firestore_internal());
+      Unregister(obj, static_cast<F*>(internal->firestore_internal()));
     }
   }
 

@@ -17,7 +17,12 @@
 #ifndef FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_H_
 #define FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_H_
 
+#include "firebase/internal/common.h"
 #include "firebase/ump/consent_info.h"
 #include "firebase/ump/types.h"
+
+#if !defined(DOXYGEN) && !defined(SWIG)
+FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(ump)
+#endif  // !defined(DOXYGEN) && !defined(SWIG)
 
 #endif  // FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_H_

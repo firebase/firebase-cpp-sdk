@@ -91,6 +91,9 @@ void TransactionInternal::Initialize(jni::Loader& loader) {
 void TransactionInternal::Set(const DocumentReference& document,
                               const MapFieldValue& data,
                               const SetOptions& options) {
+  if (!ValidateReference(document)) {
+    return;
+  }
   Env env = GetEnv();
   Local<HashMap> java_data = MakeJavaMap(env, data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
@@ -99,6 +102,9 @@ void TransactionInternal::Set(const DocumentReference& document,
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldValue& data) {
+  if (!ValidateReference(document)) {
+    return;
+  }
   Env env = GetEnv();
   Local<HashMap> java_data = MakeJavaMap(env, data);
   env.Call(obj_, kUpdate, document.internal_->ToJava(), java_data);
@@ -106,6 +112,9 @@ void TransactionInternal::Update(const DocumentReference& document,
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldPathValue& data) {
+  if (!ValidateReference(document)) {
+    return;
+  }
   if (data.empty()) {
     Update(document, MapFieldValue{});
     return;
@@ -118,6 +127,9 @@ void TransactionInternal::Update(const DocumentReference& document,
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
+  if (!ValidateReference(document)) {
+    return;
+  }
   Env env = GetEnv();
   env.Call(obj_, kDelete, document.internal_->ToJava());
 }
@@ -125,6 +137,10 @@ void TransactionInternal::Delete(const DocumentReference& document) {
 DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
                                           Error* error_code,
                                           std::string* error_message) {
+  if (!ValidateReference(document, error_code, error_message)) {
+    return DocumentSnapshot{};
+  }
+
   Env env = GetEnv();
 
   Local<Object> snapshot = env.Call(obj_, kGet, document.internal_->ToJava());
@@ -159,6 +175,36 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   return firestore_->NewDocumentSnapshot(env, snapshot);
 }
 
+bool TransactionInternal::ValidateReference(const DocumentReference& document,
+                                            Error* error_code,
+                                            std::string* error_message) {
+  const char* error = nullptr;
+  if (document.internal_ == nullptr) {
+    error = "Invalid document reference provided.";
+  } else if (document.internal_->firestore_internal() != firestore_) {
+    error =
+        "Provided document reference is from a different Cloud Firestore "
+        "instance.";
+  }
+  if (error == nullptr) {
+    return true;
+  }
+  if (error_code != nullptr) {
+    *error_code = Error::kErrorInvalidArgument;
+  }
+  if (error_message != nullptr) {
+    *error_message = error;
+  }
+  Env env = GetEnv();
+  PreserveException(
+      env, ExceptionInternal::Create(env, Error::kErrorInvalidArgument, error));
+#if FIRESTORE_HAVE_EXCEPTIONS
+  throw std::invalid_argument(error);
+#else
+  return false;
+#endif
+}
+
 Env TransactionInternal::GetEnv() {
 #if FIRESTORE_HAVE_EXCEPTIONS
   // If exceptions are enabled, report Java exceptions by translating them to
@@ -185,7 +231,7 @@ void TransactionInternal::ExceptionHandler(Env& env,
 void TransactionInternal::PreserveException(jni::Env& env,
                                             Local<Throwable>&& exception) {
   // Only preserve the first real exception.
-  if (*first_exception_ || !exception) {
+  if (!first_exception_ || *first_exception_ || !exception) {
     return;
   }
 
@@ -196,8 +242,8 @@ void TransactionInternal::PreserveException(jni::Env& env,
 }
 
 Local<Throwable> TransactionInternal::ClearExceptionOccurred() {
-  if (!*first_exception_) return {};
-  return std::move(*first_exception_);
+  if (!first_exception_ || !*first_exception_) return {};
+  return Local<Throwable>(std::move(*first_exception_));
 }
 
 Local<Object> TransactionInternal::Create(Env& env,
@@ -213,7 +259,8 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
     jlong firestore_ptr,
     jlong transaction_function_ptr,
     jobject java_transaction) {
-  if (firestore_ptr == 0 || transaction_function_ptr == 0) {
+  if (firestore_ptr == 0 || transaction_function_ptr == 0 ||
+      java_transaction == nullptr) {
     return nullptr;
   }
 
@@ -222,16 +269,16 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   TransactionFunction* transaction_function =
       reinterpret_cast<TransactionFunction*>(transaction_function_ptr);
 
-  Transaction transaction(
-      new TransactionInternal(firestore, Object(java_transaction)));
-
+  Transaction transaction;
   std::string message;
-  Error code;
+  Error code = Error::kErrorOk;
 
 #if FIRESTORE_HAVE_EXCEPTIONS
   try {
 #endif
 
+    transaction = Transaction(
+        new TransactionInternal(firestore, Object(java_transaction)));
     code = transaction_function->Apply(transaction, message);
 
 #if FIRESTORE_HAVE_EXCEPTIONS
@@ -265,7 +312,10 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   }
 
   Env env(raw_env);
-  return ExceptionInternal::Create(env, code, message).release();
+  if (code != Error::kErrorOk) {
+    return ExceptionInternal::Create(env, code, message).release();
+  }
+  return nullptr;
 }
 
 }  // namespace firestore

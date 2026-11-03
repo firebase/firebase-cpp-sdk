@@ -46,7 +46,7 @@ class AppAttestProviderFactory : public AppCheckProviderFactory {
   AppAttestProviderFactory();
   ~AppAttestProviderFactory() override;
 
-  internal::AppAttestProviderFactoryInternal* internal_;
+  internal::AppAttestProviderFactoryInternal* internal_{nullptr};
 };
 
 }  // namespace app_check

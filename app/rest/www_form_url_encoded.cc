@@ -31,14 +31,15 @@ void WwwFormUrlEncoded::Add(const char* key, const char* value) {
   if (output_->length()) {
     *output_ += "&";
   }
-  *output_ += util::EncodeUrl(key);
+  *output_ += util::EncodeUrl(key ? key : "");
   *output_ += "=";
-  *output_ += util::EncodeUrl(value);
+  *output_ += util::EncodeUrl(value ? value : "");
 }
 
 std::vector<WwwFormUrlEncoded::Item> WwwFormUrlEncoded::Parse(
     const char* form) {
   std::vector<Item> form_data;
+  if (!form) return form_data;
   const char* current_field = form;
   const char* end_of_form = form + strlen(form);
   while (current_field < end_of_form) {
@@ -49,9 +50,12 @@ std::vector<WwwFormUrlEncoded::Item> WwwFormUrlEncoded::Parse(
     if (end_of_field != current_field) {
       const char* separator = std::find(current_field, end_of_field, '=');
       if (separator != end_of_field) {
+        std::string key_raw(current_field, separator);
+        std::replace(key_raw.begin(), key_raw.end(), '+', ' ');
+        std::string val_raw(separator + 1, end_of_field);
+        std::replace(val_raw.begin(), val_raw.end(), '+', ' ');
         form_data.push_back(
-            Item(util::DecodeUrl(std::string(current_field, separator)),
-                 util::DecodeUrl(std::string(separator + 1, end_of_field))));
+            Item(util::DecodeUrl(key_raw), util::DecodeUrl(val_raw)));
       }
     }
     current_field = end_of_field + 1;

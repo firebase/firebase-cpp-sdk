@@ -16,6 +16,7 @@
 
 #include "firestore/src/common/exception_common.h"
 
+#include <atomic>
 #include <sstream>
 
 #if FIRESTORE_HAVE_EXCEPTIONS
@@ -90,14 +91,12 @@ FIRESTORE_ATTRIBUTE_NORETURN void DefaultThrowHandler(
   FIRESTORE_UNREACHABLE();
 }
 
-ThrowHandler throw_handler = DefaultThrowHandler;
+std::atomic<ThrowHandler> throw_handler{DefaultThrowHandler};
 
 }  // namespace
 
 ThrowHandler SetThrowHandler(ThrowHandler handler) {
-  ThrowHandler previous = throw_handler;
-  throw_handler = handler;
-  return previous;
+  return throw_handler.exchange(handler ? handler : DefaultThrowHandler);
 }
 
 FIRESTORE_ATTRIBUTE_NORETURN void Throw(ExceptionType exception,
@@ -105,7 +104,10 @@ FIRESTORE_ATTRIBUTE_NORETURN void Throw(ExceptionType exception,
                                         const char* func,
                                         int line,
                                         const std::string& message) {
-  throw_handler(exception, file, func, line, message);
+  ThrowHandler handler = throw_handler.load();
+  if (handler) {
+    handler(exception, file, func, line, message);
+  }
 
   // It's expected that the throw handler above does not return. If it does,
   // just terminate.

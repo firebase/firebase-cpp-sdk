@@ -200,6 +200,12 @@ StorageInternal::StorageInternal(App* app, const char* url)
 }
 
 StorageInternal::~StorageInternal() {
+  // Mark dead first: blocks until any holder of the token mutex is done with
+  // this object, and prevents any further use through the token.
+  {
+    std::lock_guard<std::mutex> lock(lifetime_token_->mutex);
+    lifetime_token_->alive = false;
+  }
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
 
@@ -250,9 +256,16 @@ bool StorageInternal::Initialize(App* app) {
     const bool controller_ok = meta_ok && ControllerInternal::Initialize(app);
     const bool embedded_ok = controller_ok && InitializeEmbeddedClasses(app);
     if (!embedded_ok) {
-      if (controller_ok) ControllerInternal::Terminate(app);
-      if (meta_ok) MetadataInternal::Terminate(app);
-      if (ref_ok) StorageReferenceInternal::Terminate(app);
+      // Roll back every sub-module whose Initialize() was attempted, including
+      // the one that failed (Terminate() / ReleaseClass() are safe to call on
+      // partially-initialized or uninitialized state: they only release what
+      // was actually cached).
+      const bool controller_attempted = meta_ok;
+      const bool meta_attempted = ref_ok;
+      const bool ref_attempted = own_classes_ok;
+      if (controller_attempted) ControllerInternal::Terminate(app);
+      if (meta_attempted) MetadataInternal::Terminate(app);
+      if (ref_attempted) StorageReferenceInternal::Terminate(app);
       index_out_of_bounds_exception::ReleaseClass(env);
       storage_exception::ReleaseClass(env);
       firebase_storage::ReleaseClass(env);

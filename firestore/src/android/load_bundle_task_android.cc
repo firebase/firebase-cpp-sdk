@@ -25,9 +25,7 @@ namespace firestore {
 namespace {
 
 using jni::Env;
-using jni::Global;
 using jni::Loader;
-using jni::Local;
 using jni::Object;
 
 constexpr char kLoadBundleTaskClassName[] =

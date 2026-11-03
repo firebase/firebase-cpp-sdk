@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
+#include "firestore/src/main/create_app_check_credentials_provider.h"
+
 #include <memory>
 
 #include "firestore/src/main/app_check_credentials_provider_desktop.h"
-#include "firestore/src/main/create_credentials_provider.h"
 
 namespace firebase {
 namespace firestore {

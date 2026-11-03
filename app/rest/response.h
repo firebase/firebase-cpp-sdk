@@ -34,23 +34,47 @@ namespace rest {
 class Response : public Transfer {
  public:
   Response();
-  virtual ~Response() {}
+  ~Response() override = default;
 
-  // Note: remove if support for Visual Studio <2015 is no longer needed.
-  // Prior to version 2015, Visual Studio didn't support implicitly
-  // defined move constructors, so one has to be provided.
-  // Linter is suppressed because it complains about unnecessary moves. In this
-  // case, applying move is more future-proof, in case one of the variables
-  // which is now a fundamental gets changed to a user-defined type further on.
+  Response(const Response&) = delete;
+  Response& operator=(const Response&) = delete;
+
   Response(Response&& rhs)
-      : status_(std::move(rhs.status_)),                      // NOLINT
-        header_completed_(std::move(rhs.header_completed_)),  // NOLINT
-        body_completed_(std::move(rhs.body_completed_)),      // NOLINT
-        sdk_error_code_(std::move(rhs.sdk_error_code_)),      // NOLINT
-        fetch_time_(std::move(rhs.fetch_time_)),              // NOLINT
+      : Transfer(std::move(rhs)),
+        status_(rhs.status_),
+        header_completed_(rhs.header_completed_),
+        body_completed_(rhs.body_completed_),
+        sdk_error_code_(rhs.sdk_error_code_),
+        fetch_time_(rhs.fetch_time_),
         header_(std::move(rhs.header_)),
         body_(std::move(rhs.body_)),
-        body_cache_(std::move(rhs.body_cache_)) {}
+        body_cache_(std::move(rhs.body_cache_)) {
+    rhs.status_ = 0;
+    rhs.header_completed_ = false;
+    rhs.body_completed_ = false;
+    rhs.sdk_error_code_ = 0;
+    rhs.fetch_time_ = 0;
+  }
+
+  Response& operator=(Response&& rhs) {
+    if (this != &rhs) {
+      Transfer::operator=(std::move(rhs));
+      status_ = rhs.status_;
+      header_completed_ = rhs.header_completed_;
+      body_completed_ = rhs.body_completed_;
+      sdk_error_code_ = rhs.sdk_error_code_;
+      fetch_time_ = rhs.fetch_time_;
+      header_ = std::move(rhs.header_);
+      body_ = std::move(rhs.body_);
+      body_cache_ = std::move(rhs.body_cache_);
+      rhs.status_ = 0;
+      rhs.header_completed_ = false;
+      rhs.body_completed_ = false;
+      rhs.sdk_error_code_ = 0;
+      rhs.fetch_time_ = 0;
+    }
+    return *this;
+  }
 
   // Process headers. Return false when it fails and will interrupt the request.
   virtual bool ProcessHeader(const char* buffer, size_t length);
@@ -92,7 +116,7 @@ class Response : public Transfer {
 
   // Get the field value for the specific field name in header. If no such field
   // is found in the header, return nullptr.
-  const char* GetHeader(const char* name);
+  const char* GetHeader(const char* name) const;
 
   // Get the body. If no body line has been received yet, return empty string.
   const char* GetBody() const;

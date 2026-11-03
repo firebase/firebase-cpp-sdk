@@ -16,31 +16,36 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_
 
 #include <set>
+#include <string>
+#include <utility>
 
 #include "app/src/include/firebase/variant.h"
+#include "app/src/optional.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/query_params_comparator.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
 class IndexedVariantGetOrderByVariantTest;
 
 // Represents a Variant together with an index. The index and variant are
-// updated in unison. The index representes the order elements of a variant map
+// updated in unison. The index represents the order elements of a variant map
 // should be in according to the QueryParams's ordering.
 class IndexedVariant {
  public:
-  typedef std::set<std::pair<const Variant, const Variant>, QueryParamsLesser>
-      Index;
+  using Index =
+      std::set<std::pair<const Variant, const Variant>, QueryParamsLesser>;
 
   IndexedVariant();
-  IndexedVariant(const Variant& variant);
+  explicit IndexedVariant(const Variant& variant);
   IndexedVariant(const Variant& variant, const QueryParams& query_params);
+  IndexedVariant(Variant&& variant, const QueryParams& query_params);
 
   IndexedVariant(const IndexedVariant& other);
   IndexedVariant& operator=(const IndexedVariant& other);
+
+  IndexedVariant(IndexedVariant&& other) noexcept;
+  IndexedVariant& operator=(IndexedVariant&& other) noexcept;
 
   const QueryParams& query_params() const { return query_params_; }
   const Variant& variant() const { return variant_; }
@@ -86,17 +91,18 @@ class IndexedVariant {
   // This function does NOT prune the priority from the result if it is a map
   // because the return value is only used to compare with a fundamental type,
   // ex. QueryParams::equal_to_value.
-  const Variant* GetOrderByVariant(const Variant& key, const Variant& value);
+  const Variant* GetOrderByVariant(const Variant& key,
+                                   const Variant& value) const;
 
   // Return if the key-value pair is within range given QueryParams based on
   // order_by, order_by_child, equal_to_(value|child_key),
   // start_at_(value|child_key) and end_at_(value|child_key).
   // This does not take limit_first and limit_last into account.
   bool IsKeyValueInRange(const QueryParams& qs, const Variant& key,
-                         const Variant& value);
+                         const Variant& value) const;
 
   // The raw variant underlying this IndexedVariant. When a Variant represents a
-  // map, it doesn't organize the map's elements accoring to the QueryParams.
+  // map, it doesn't organize the map's elements according to the QueryParams.
   // That's why we keep a separate Index that is ordered by the parameters in
   // the QueryParams for when the elements need to be iterated over in order.
   Variant variant_;
@@ -104,10 +110,9 @@ class IndexedVariant {
   // The query params that contains the ordering rules.
   QueryParams query_params_;
 
-  // An ordered set of key/value pairs. This set uses pointers to Variants that
-  // point directly into the variant_ map, so it is dangrous to change elements
-  // of the variant_ map as it may invalidate these pointers. All updates should
-  // be funneled through UpdateChild or UpdatePriority.
+  // An ordered set of key/value Variant pairs stored by value and ordered by
+  // QueryParamsLesser(&query_params_). To keep index_ and variant_ in sync,
+  // all updates should be funneled through UpdateChild or UpdatePriority.
   Index index_;
 
   friend class IndexedVariantGetOrderByVariantTest;
@@ -116,8 +121,6 @@ class IndexedVariant {
 bool operator==(const IndexedVariant& lhs, const IndexedVariant& rhs);
 bool operator!=(const IndexedVariant& lhs, const IndexedVariant& rhs);
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal
 
 #endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_

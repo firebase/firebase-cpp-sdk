@@ -19,7 +19,8 @@
 
 // This file contains definitions that configure the SDK.
 
-// Include a STL header file, othewise _STLPORT_VERSION won't be set.
+// Include a STL header file, otherwise _STLPORT_VERSION won't be set.
+#include <cstddef>
 #include <utility>
 
 // Move operators use rvalue references, which are a C++11 extension.
@@ -43,7 +44,7 @@ namespace firebase {
 template <std::size_t Length, std::size_t Alignment>
 struct AlignedStorage {
   struct type {
-    alignas(Alignment) unsigned char data[Length];
+    alignas(Alignment) unsigned char data[Length > 0 ? Length : 1];
   };
 };
 }  // namespace firebase
@@ -93,18 +94,18 @@ struct AlignedStorage {
   } /* namespace firebase */
 
 // Generates code which references a module initializer.
-// For example, FIREBASE_APP_REGISTER_REFERENCE(analytics) will register the
-// module initializer for the analytics module.
+// For example, FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(analytics) will
+// register the module initializer for the analytics module.
 #define FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(module_name)        \
   FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_VARIABLE(module_name)   \
   namespace firebase {                                                \
   static void* module_name##_ref FIREBASE_APP_KEEP_SYMBOL =           \
       &FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name); \
   }     /* namespace firebase */
-#endif  //  !defined(DOXYGEN) && !defined(SWIG)
+#endif  // !defined(DOXYGEN) && !defined(SWIG)
 
 #if defined(SWIG) || defined(DOXYGEN)
-// SWIG needs to ignore the FIREBASE_DEPRECATED tag.
+// SWIG and Doxygen need to ignore the FIREBASE_DEPRECATED tag.
 #define FIREBASE_DEPRECATED
 #endif  // defined(SWIG) || defined(DOXYGEN)
 
@@ -119,10 +120,17 @@ struct AlignedStorage {
 #endif
 #endif  // FIREBASE_DEPRECATED
 
+namespace firebase {
+namespace internal {
+template <typename T, std::size_t N>
+char (&ArraySizeHelper(T (&array)[N]))[N];
+}  // namespace internal
+}  // namespace firebase
+
 // Calculates the number of elements in an array.
-#define FIREBASE_ARRAYSIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define FIREBASE_ARRAYSIZE(x) (sizeof(::firebase::internal::ArraySizeHelper(x)))
 
 // Guaranteed compile time strlen.
-#define FIREBASE_STRLEN(s) (FIREBASE_ARRAYSIZE(s) - sizeof((s)[0]))
+#define FIREBASE_STRLEN(s) (FIREBASE_ARRAYSIZE(s) - 1)
 
 #endif  // FIREBASE_APP_SRC_INCLUDE_FIREBASE_INTERNAL_COMMON_H_

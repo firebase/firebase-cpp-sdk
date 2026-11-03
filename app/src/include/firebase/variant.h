@@ -64,13 +64,13 @@ class Variant {
     kTypeVector,
     /// A std::map, mapping Variant to Variant.
     kTypeMap,
-    /// An statically-allocated blob of data that we point to. Never constructed
-    /// by default. Use Variant::FromStaticBlob() to create a Variant of this
-    /// type.
+    /// A statically-allocated blob of data that we point to. Never constructed
+    /// by default. Use Variant::FromStaticBlob() or set_static_blob() to
+    /// create or populate a Variant of this type.
     kTypeStaticBlob,
     /// A blob of data that the Variant holds. Never constructed by default. Use
-    /// Variant::FromMutableBlob() to create a Variant of this type, and copy
-    /// binary data from an existing source.
+    /// Variant::FromMutableBlob(), Variant::EmptyMutableBlob(), or
+    /// set_mutable_blob() to create or populate a Variant of this type.
     kTypeMutableBlob,
 
     // Note: If you add new types update enum InternalType;
@@ -90,12 +90,12 @@ class Variant {
   ///
   /// @param[in] value The value to construct the variant.
   ///
-  /// Valid types for this constructor are `int`, `int64_t`, `float`, `double`,
-  /// `bool`, `const char*`, and `char*` (but see below for additional Variant
-  /// types).
+  /// Valid types for this constructor are `int`, `int8_t`, `uint8_t`,
+  /// `int16_t`, `int64_t`, `char`, `float`, `double`, `bool`, `const char*`,
+  /// and `char*` (but see below for additional Variant types).
   ///
   ///
-  /// Type `int` or `int64_t`:
+  /// Type `int`, `int8_t`, `uint8_t`, `int16_t`, `int64_t`, or `char`:
   ///   * The Variant constructed will be of type Int64.
   ///
   /// Type `double` or `float`:
@@ -141,6 +141,17 @@ class Variant {
     set_mutable_string(value);
   }
 
+  /// @brief Construct a Variant by moving the given string value.
+  ///
+  /// The Variant constructed will be of type MutableString, and is_string()
+  /// will return true.
+  ///
+  /// @param[in] value The string to move into the Variant.
+  Variant(std::string&& value)  // NOLINT
+      : type_(kInternalTypeNull) {
+    set_mutable_string(std::move(value));
+  }
+
   /// @brief Construct a Variant containing the given std::vector of Variant.
   ///
   /// The Variant constructed will be of type Vector.
@@ -149,6 +160,16 @@ class Variant {
   Variant(const std::vector<Variant>& value)  // NOLINT
       : type_(kInternalTypeNull) {
     set_vector(value);
+  }
+
+  /// @brief Construct a Variant by moving the given std::vector of Variant.
+  ///
+  /// The Variant constructed will be of type Vector.
+  ///
+  /// @param[in] value The STL vector to move into the Variant.
+  Variant(std::vector<Variant>&& value)  // NOLINT
+      : type_(kInternalTypeNull) {
+    set_vector(std::move(value));
   }
 
   /// @brief Construct a Variant containing the given std::vector of something
@@ -165,7 +186,19 @@ class Variant {
     Clear(kTypeVector);
     vector().reserve(value.size());
     for (size_t i = 0; i < value.size(); i++) {
-      vector().push_back(Variant(static_cast<T>(value[i])));
+      vector().push_back(Variant(value[i]));
+    }
+  }
+
+  /// @brief Construct a Variant containing the given std::vector<bool>.
+  ///
+  /// @param[in] value An STL vector of booleans to copy into the Variant.
+  Variant(const std::vector<bool>& value)  // NOLINT
+      : type_(kInternalTypeNull) {
+    Clear(kTypeVector);
+    vector().reserve(value.size());
+    for (size_t i = 0; i < value.size(); i++) {
+      vector().push_back(Variant(static_cast<bool>(value[i])));
     }
   }
 
@@ -182,13 +215,15 @@ class Variant {
   Variant(const T array_of_values[], size_t array_size)
       : type_(kInternalTypeNull) {
     Clear(kTypeVector);
-    vector().reserve(array_size);
-    for (size_t i = 0; i < array_size; i++) {
-      vector()[i] = Variant(array_of_values[i]);
+    if (array_of_values != nullptr && array_size > 0) {
+      vector().resize(array_size);
+      for (size_t i = 0; i < array_size; i++) {
+        vector()[i] = Variant(array_of_values[i]);
+      }
     }
   }
 
-  /// @brief Construct a Variatn containing the given std::map of Variant to
+  /// @brief Construct a Variant containing the given std::map of Variant to
   /// Variant.
   ///
   /// The Variant constructed will be of type Map.
@@ -197,6 +232,17 @@ class Variant {
   Variant(const std::map<Variant, Variant>& value)  // NOLINT
       : type_(kInternalTypeNull) {
     set_map(value);
+  }
+
+  /// @brief Construct a Variant by moving the given std::map of Variant to
+  /// Variant.
+  ///
+  /// The Variant constructed will be of type Map.
+  ///
+  /// @param[in] value The STL map to move into the Variant.
+  Variant(std::map<Variant, Variant>&& value)  // NOLINT
+      : type_(kInternalTypeNull) {
+    set_map(std::move(value));
   }
 
   /// @brief Construct a Variant containing the given std::map of something that
@@ -215,7 +261,7 @@ class Variant {
     Clear(kTypeMap);
     for (typename std::map<K, V>::const_iterator i = value.begin();
          i != value.end(); ++i) {
-      map().insert(std::make_pair(Variant(i->first), Variant(i->second)));
+      map().emplace(Variant(i->first), Variant(i->second));
     }
   }
 
@@ -228,8 +274,6 @@ class Variant {
   ///
   /// @param[in] other Source Variant to copy from.
   Variant& operator=(const Variant& other);
-
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief Move constructor. Efficiently moves  the more complex data types by
   /// simply reassigning pointer ownership.
@@ -244,8 +288,6 @@ class Variant {
   ///
   /// @param[in] other Source Variant to move from.
   Variant& operator=(Variant&& other) noexcept;
-
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 #endif  // SWIG
 
   /// Destructor. Frees the memory that this Variant owns.
@@ -294,7 +336,7 @@ class Variant {
   /// @return Results of the comparison, as described in this documentation.
   ///
   /// @note This will not give you the results you expect if you compare
-  /// Variants of different types! For example, Variant(0.0) < Variant(1).
+  /// Variants of different types! For example, Variant(1) < Variant(0.0).
   bool operator<(const Variant& other) const;
 
   /// @brief Inequality operator: x != y is evaluated as !(x == y).
@@ -380,7 +422,8 @@ class Variant {
   /// @return A Variant of type MutableString, containing an empty string.
   static Variant EmptyMutableString() {
     Variant v;
-    v.Clear(kTypeMutableString);
+    v.type_ = kInternalTypeSmallString;
+    v.value_.small_string[0] = '\0';
     return v;
   }
 
@@ -413,12 +456,7 @@ class Variant {
   /// @returns A Variant containing a mutable blob of the requested size, filled
   /// with 0-bytes.
   static Variant EmptyMutableBlob(size_t size_bytes) {
-    Variant v;
-    uint8_t* blank_data = new uint8_t[size_bytes];
-    memset(blank_data, 0, size_bytes);
-    v.Clear(kTypeMutableBlob);
-    v.set_blob_pointer(blank_data, size_bytes);
-    return v;
+    return FromMutableBlob(nullptr, size_bytes);
   }
 
   /// @brief Get the current type contained in this Variant.
@@ -477,13 +515,11 @@ class Variant {
   /// @brief Get whether this Variant contains a string.
   ///
   /// @return True if the Variant's type is either StaticString or
-  /// MutableString or SmallString; false otherwise.
+  /// MutableString; false otherwise.
   ///
   /// @note No matter which type of string the Variant contains, you can read
   /// its value via string_value().
-  bool is_string() const {
-    return is_static_string() || is_mutable_string() || is_small_string();
-  }
+  bool is_string() const { return is_static_string() || is_mutable_string(); }
 
   /// @brief Get whether this Variant contains a static blob.
   ///
@@ -512,10 +548,10 @@ class Variant {
 
   /// @brief Get whether this Variant contains a fundamental type: Null, Int64,
   /// Double, Bool, or one of the two String types. Essentially
-  /// !is_containerType().
+  /// !(is_container_type() || is_blob()).
   ///
-  /// @return True if the Variant's type is Int64, Double, Bool, or Null; false
-  /// otherwise.
+  /// @return True if the Variant's type is Int64, Double, Bool, StaticString,
+  /// MutableString, or Null; false otherwise.
   bool is_fundamental_type() const {
     return is_int64() || is_double() || is_string() || is_bool() || is_null();
   }
@@ -525,24 +561,23 @@ class Variant {
   /// @return True if the Variant's type is Vector or Map; false otherwise.
   bool is_container_type() const { return is_vector() || is_map(); }
 
-  /// @brief Get the current Variant converted into a string. Only valid for
-  /// fundamental types.
+  /// @brief Get the current Variant converted into a mutable string. Only valid
+  /// for fundamental types.
   ///
-  /// Special cases: Booleans will be returned as "true" or "false".  Null will
-  /// be returned as an empty string. The returned string may be either mutable
-  /// or static, depending on the source type. All other cases will return an
-  /// empty string.
+  /// Special cases: Booleans will be returned as "true" or "false". Null and
+  /// non-fundamental types will be returned as an empty string. The returned
+  /// Variant is always of type MutableString.
   ///
-  /// @return A Variant containing a String that represents the value of this
-  /// original Variant.
+  /// @return A Variant containing a MutableString that represents the value of
+  /// this original Variant.
   Variant AsString() const;
 
   /// @brief Get the current Variant converted into an integer. Only valid for
   /// fundamental types.
   ///
-  /// Special cases: If a String can be parsed as a number
-  /// via strtol(), it will be. If a Bool is true, this will return 1. All other
-  /// cases (including non-fundamental types) will return 0.
+  /// Special cases: If a String can be parsed as a number via strtoll(), it
+  /// will be. If a Bool is true, this will return 1. All other cases (including
+  /// non-fundamental types) will return 0.
   ///
   /// @return A Variant containing an Int64 that represents the value of this
   /// original Variant.
@@ -551,16 +586,19 @@ class Variant {
   /// @brief Get the current Variant converted into a floating-point
   /// number. Only valid for fundamental types.
   ///
-  /// Special cases: If a Bool is true, this will return 1. All other cases will
-  /// return 0.
+  /// Special cases: If a String can be parsed as a finite floating-point number
+  /// via strtod(), it will be. If a Bool is true, this will return 1.0. All
+  /// other cases (including non-fundamental types and non-finite values) will
+  /// return 0.0.
   ///
   /// @return A Variant containing a Double that represents the value of this
   /// original Variant.
   Variant AsDouble() const;
 
   /// @brief Get the current Variant converted into a boolean. Null, 0, 0.0,
-  /// empty strings, empty vectors, empty maps, blobs of size 0, and "false"
-  /// (case-sensitive) are all considered false. All other values are true.
+  /// NaN, empty strings, "0", "false" (case-insensitive), empty vectors, empty
+  /// maps, and blobs of size 0 are all considered false. All other values are
+  /// true.
   ///
   /// @return A Variant of type Bool containing the original Variant interpreted
   /// as a Bool.
@@ -600,7 +638,8 @@ class Variant {
   /// number of bytes.
   const uint8_t* blob_data() const {
     assert_is_blob();
-    return value_.blob_value.ptr;
+    return value_.blob_value.ptr != nullptr ? value_.blob_value.ptr
+                                            : EmptyBlobData();
   }
 
   /// @brief Get a mutable pointer to the binary data contained in
@@ -678,7 +717,7 @@ class Variant {
   /// @return The bool contained in this Variant.
   ///
   /// @note If the Variant is not of Bool type, this will assert.
-  const bool& bool_value() const {
+  bool bool_value() const {
     assert_is_type(kTypeBool);
     return value_.bool_value;
   }
@@ -686,7 +725,10 @@ class Variant {
   /// @brief Const accessor for a Variant containing a string.
   ///
   /// This can return both static and mutable strings. The pointer is only
-  /// guaranteed to persist if this Variant's type is StaticString.
+  /// guaranteed to persist if this Variant's type is StaticString. For
+  /// MutableString (including short strings stored inline inside the Variant),
+  /// moving, modifying, or destroying the Variant or calling mutable_string()
+  /// may invalidate the returned pointer.
   ///
   /// @return The string contained in this Variant.
   ///
@@ -711,6 +753,9 @@ class Variant {
   /// @return std::string with the string contents contained in this Variant.
   std::string mutable_string() const {
     assert_is_string();
+    if (type_ == kInternalTypeMutableString) {
+      return *value_.mutable_string_value;
+    }
     return string_value();
   }
 
@@ -724,9 +769,7 @@ class Variant {
     return *value_.vector_value;
   }
 
-  /// @brief Const accessor for a Variant containing a map of strings to
-  /// Variant
-  /// data.
+  /// @brief Const accessor for a Variant containing a map of Variant data.
   ///
   /// @return Reference to the map contained in this Variant.
   ///
@@ -784,8 +827,21 @@ class Variant {
   /// @param[in] value A pointer to the static null-terminated string for the
   /// Variant.
   void set_string_value(const char* value) {
+    const char* safe_value = value != nullptr ? value : "";
+    if (type_ == kInternalTypeMutableString ||
+        type_ == kInternalTypeSmallString) {
+      const char* current = string_value();
+      size_t len = type_ == kInternalTypeMutableString
+                       ? value_.mutable_string_value->size()
+                       : strlen(value_.small_string);
+      if (safe_value >= current && safe_value <= current + len) {
+        std::string copy(safe_value);
+        set_mutable_string(std::move(copy));
+        return;
+      }
+    }
     Clear(kTypeStaticString);
-    value_.static_string_value = value;
+    value_.static_string_value = safe_value;
   }
 
   /// @brief Sets the Variant to a mutable string.
@@ -795,12 +851,16 @@ class Variant {
   /// @param[in] value A pointer to a null-terminated string, which will be
   /// copied into to the Variant.
   void set_string_value(char* value) {
-    size_t len = strlen(value);
+    const char* safe_value = value != nullptr ? value : "";
+    size_t len = strlen(safe_value);
     if (len < kMaxSmallStringSize) {
-      Clear(static_cast<Type>(kInternalTypeSmallString));
-      strncpy(value_.small_string, value, len + 1);
+      char buffer[kMaxSmallStringSize];
+      memcpy(buffer, safe_value, len + 1);
+      Clear(kTypeNull);
+      type_ = kInternalTypeSmallString;
+      memcpy(value_.small_string, buffer, len + 1);
     } else {
-      set_mutable_string(std::string(value, len));
+      set_mutable_string(std::string(safe_value, len), false);
     }
   }
 
@@ -810,6 +870,17 @@ class Variant {
   ///
   /// @param[in] value The string to use for the Variant.
   void set_string_value(const std::string& value) { set_mutable_string(value); }
+
+#if !defined(SWIG)
+  /// @brief Sets the Variant to a mutable string by moving.
+  ///
+  /// The Variant's type will be set to MutableString.
+  ///
+  /// @param[in] value The string to move into the Variant.
+  void set_string_value(std::string&& value) {
+    set_mutable_string(std::move(value));
+  }
+#endif  // !defined(SWIG)
 
   /// @brief Sets the Variant to a copy of the given string.
   ///
@@ -822,14 +893,53 @@ class Variant {
   ///            treated as a small string or left as a mutable string
   void set_mutable_string(const std::string& value,
                           bool use_small_string = true) {
-    if (value.size() < kMaxSmallStringSize && use_small_string) {
-      Clear(static_cast<Type>(kInternalTypeSmallString));
-      strncpy(value_.small_string, value.data(), value.size() + 1);
+    if (use_small_string && value.size() < kMaxSmallStringSize &&
+        value.find('\0') == std::string::npos) {
+      char buffer[kMaxSmallStringSize];
+      size_t len = value.size();
+      memcpy(buffer, value.data(), len);
+      buffer[len] = '\0';
+      Clear(kTypeNull);
+      type_ = kInternalTypeSmallString;
+      memcpy(value_.small_string, buffer, len + 1);
     } else {
+      if (type_ == kInternalTypeMutableString &&
+          value_.mutable_string_value == &value) {
+        return;
+      }
+      std::string copy(value);
       Clear(kTypeMutableString);
-      *value_.mutable_string_value = value;
+      *value_.mutable_string_value = std::move(copy);
     }
   }
+
+#if !defined(SWIG)
+  /// @brief Sets the Variant by moving the given string.
+  ///
+  /// @param[in] value The string to move into the Variant.
+  /// @param[in] use_small_string Check to see if the input string should be
+  ///            treated as a small string or left as a mutable string.
+  void set_mutable_string(std::string&& value, bool use_small_string = true) {
+    if (use_small_string && value.size() < kMaxSmallStringSize &&
+        value.find('\0') == std::string::npos) {
+      char buffer[kMaxSmallStringSize];
+      size_t len = value.size();
+      memcpy(buffer, value.data(), len);
+      buffer[len] = '\0';
+      Clear(kTypeNull);
+      type_ = kInternalTypeSmallString;
+      memcpy(value_.small_string, buffer, len + 1);
+    } else {
+      if (type_ == kInternalTypeMutableString &&
+          value_.mutable_string_value == &value) {
+        return;
+      }
+      std::string moved(std::move(value));
+      Clear(kTypeMutableString);
+      *value_.mutable_string_value = std::move(moved);
+    }
+  }
+#endif  // !defined(SWIG)
 
   /// @brief Sets the Variant to a copy of the given binary data.
   ///
@@ -837,15 +947,21 @@ class Variant {
   ///
   /// @param[in] src_data The data to use for the Variant. If you
   /// pass in nullptr, no data will be copied, but a buffer of the
-  /// requested size will be allocated.
+  /// requested size will be allocated and zero-initialized.
   /// @param[in] size_bytes The size of the data, in bytes.
   void set_mutable_blob(const void* src_data, size_t size_bytes) {
-    uint8_t* dest_data = new uint8_t[size_bytes];  // Will be deleted when
-                                                   // `this` is deleted.
-    if (src_data != nullptr) {
+    size_t alloc_size = size_bytes > 0 ? size_bytes : 1;
+    uint8_t* dest_data = nullptr;
+    if (size_bytes > 0 && src_data != nullptr) {
+      dest_data = new uint8_t[alloc_size];  // Will be deleted when
+                                            // `this` is deleted.
       memcpy(dest_data, src_data, size_bytes);
+    } else {
+      dest_data = new uint8_t[alloc_size]();  // Will be deleted when
+                                              // `this` is deleted.
     }
-    Clear(kTypeMutableBlob);
+    Clear(kTypeNull);
+    type_ = kInternalTypeMutableBlob;
     set_blob_pointer(dest_data, size_bytes);
   }
 
@@ -862,8 +978,9 @@ class Variant {
   /// mutable_blob_data() or set_mutable_blob(), which will copy the data into
   /// an internal buffer.
   void set_static_blob(const void* static_data, size_t size_bytes) {
+    size_t safe_size = static_data != nullptr ? size_bytes : 0;
     Clear(kTypeStaticBlob);
-    set_blob_pointer(static_data, size_bytes);
+    set_blob_pointer(static_data, safe_size);
   }
 
   /// @brief Sets the Variant to a copy of the given vector.
@@ -871,11 +988,30 @@ class Variant {
   /// The Variant's type will be set to Vector.
   ///
   /// @param[in] value The STL vector to copy into the Variant.
-
   void set_vector(const std::vector<Variant>& value) {
+    if (type_ == kInternalTypeVector && value_.vector_value == &value) {
+      return;
+    }
+    std::vector<Variant> copy(value);
     Clear(kTypeVector);
-    *value_.vector_value = value;
+    *value_.vector_value = std::move(copy);
   }
+
+#if !defined(SWIG)
+  /// @brief Sets the Variant by moving the given vector.
+  ///
+  /// The Variant's type will be set to Vector.
+  ///
+  /// @param[in] value The STL vector to move into the Variant.
+  void set_vector(std::vector<Variant>&& value) {
+    if (type_ == kInternalTypeVector && value_.vector_value == &value) {
+      return;
+    }
+    std::vector<Variant> moved(std::move(value));
+    Clear(kTypeVector);
+    *value_.vector_value = std::move(moved);
+  }
+#endif  // !defined(SWIG)
 
   /// @brief Sets the Variant to a copy of the given map.
   ///
@@ -883,9 +1019,29 @@ class Variant {
   ///
   /// @param[in] value The STL map to copy into the Variant.
   void set_map(const std::map<Variant, Variant>& value) {
+    if (type_ == kInternalTypeMap && value_.map_value == &value) {
+      return;
+    }
+    std::map<Variant, Variant> copy(value);
     Clear(kTypeMap);
-    *value_.map_value = value;
+    *value_.map_value = std::move(copy);
   }
+
+#if !defined(SWIG)
+  /// @brief Sets the Variant by moving the given map.
+  ///
+  /// The Variant's type will be set to Map.
+  ///
+  /// @param[in] value The STL map to move into the Variant.
+  void set_map(std::map<Variant, Variant>&& value) {
+    if (type_ == kInternalTypeMap && value_.map_value == &value) {
+      return;
+    }
+    std::map<Variant, Variant> moved(std::move(value));
+    Clear(kTypeMap);
+    *value_.map_value = std::move(moved);
+  }
+#endif  // !defined(SWIG)
 
   /// @brief Assigns an existing string which was allocated on the heap into the
   /// Variant without performing a copy. This object will take over ownership of
@@ -898,10 +1054,19 @@ class Variant {
   /// pointer
   /// you passed in to NULL.
   void AssignMutableString(std::string** str) {
-    Clear(kTypeNull);
-    type_ = kInternalTypeMutableString;
-    value_.mutable_string_value = *str;
-    *str = NULL;  // NOLINT
+    if (str != nullptr && *str != nullptr) {
+      std::string* taken = *str;
+      *str = nullptr;
+      if (type_ == kInternalTypeMutableString &&
+          value_.mutable_string_value == taken) {
+        return;
+      }
+      Clear(kTypeNull);
+      type_ = kInternalTypeMutableString;
+      value_.mutable_string_value = taken;
+    } else {
+      Clear(kTypeMutableString);
+    }
   }
 
   /// @brief Assigns an existing vector which was allocated on the heap into the
@@ -915,10 +1080,18 @@ class Variant {
   /// pointer
   /// you passed in to NULL.
   void AssignVector(std::vector<Variant>** vect) {
-    Clear(kTypeNull);
-    type_ = kInternalTypeVector;
-    value_.vector_value = *vect;
-    *vect = NULL;  // NOLINT
+    if (vect != nullptr && *vect != nullptr) {
+      std::vector<Variant>* taken = *vect;
+      *vect = nullptr;
+      if (type_ == kInternalTypeVector && value_.vector_value == taken) {
+        return;
+      }
+      Clear(kTypeNull);
+      type_ = kInternalTypeVector;
+      value_.vector_value = taken;
+    } else {
+      Clear(kTypeVector);
+    }
   }
 
   /// @brief Assigns an existing map which was allocated on the heap into the
@@ -932,10 +1105,18 @@ class Variant {
   /// take over ownership of the pointer to the map, and set the pointer you
   /// passed in to NULL.
   void AssignMap(std::map<Variant, Variant>** map) {
-    Clear(kTypeNull);
-    type_ = kInternalTypeMap;
-    value_.map_value = *map;
-    *map = NULL;  // NOLINT
+    if (map != nullptr && *map != nullptr) {
+      std::map<Variant, Variant>* taken = *map;
+      *map = nullptr;
+      if (type_ == kInternalTypeMap && value_.map_value == taken) {
+        return;
+      }
+      Clear(kTypeNull);
+      type_ = kInternalTypeMap;
+      value_.map_value = taken;
+    } else {
+      Clear(kTypeMap);
+    }
   }
 
   // Convenience methods for the times when constructors are too ambiguious.
@@ -985,6 +1166,53 @@ class Variant {
     return Variant(value);
   }
 
+  /// @brief Return a Variant from a vector of Variant values.
+  ///
+  /// @param[in] value Vector value to copy into the Variant.
+  ///
+  /// @returns A Variant containing a copy of the vector.
+  static Variant FromVector(const std::vector<Variant>& value) {
+    return Variant(value);
+  }
+
+  /// @brief Return a Variant from a map of Variant keys and values.
+  ///
+  /// @param[in] value Map value to copy into the Variant.
+  ///
+  /// @returns A Variant containing a copy of the map.
+  static Variant FromMap(const std::map<Variant, Variant>& value) {
+    return Variant(value);
+  }
+
+#if !defined(SWIG)
+  /// @brief Return a Variant from a movable string.
+  ///
+  /// @param[in] value String value to move into the Variant.
+  ///
+  /// @returns A Variant containing the moved string.
+  static Variant FromMutableString(std::string&& value) {
+    return Variant(std::move(value));
+  }
+
+  /// @brief Return a Variant from a movable vector of Variant values.
+  ///
+  /// @param[in] value Vector value to move into the Variant.
+  ///
+  /// @returns A Variant containing the moved vector.
+  static Variant FromVector(std::vector<Variant>&& value) {
+    return Variant(std::move(value));
+  }
+
+  /// @brief Return a Variant from a movable map of Variant keys and values.
+  ///
+  /// @param[in] value Map value to move into the Variant.
+  ///
+  /// @returns A Variant containing the moved map.
+  static Variant FromMap(std::map<Variant, Variant>&& value) {
+    return Variant(std::move(value));
+  }
+#endif  // !defined(SWIG)
+
   /// @brief Return a Variant that points to static binary data.
   ///
   /// @param[in] static_data Pointer to statically-allocated binary data. The
@@ -995,7 +1223,7 @@ class Variant {
   ///
   /// @note If you use this function, you must ensure that the memory pointed
   /// to stays valid for the life of the Variant, otherwise call
-  /// mutable_blob() or set_mutable_blob(), which will copy the data to an
+  /// mutable_blob_data() or set_mutable_blob(), which will copy the data to an
   /// internal buffer.
   static Variant FromStaticBlob(const void* static_data, size_t size_bytes) {
     Variant v;
@@ -1015,6 +1243,18 @@ class Variant {
     return v;
   }
 
+#if !defined(SWIG)
+  /// @brief Return a Variant containing a copy of binary data from a byte
+  /// vector.
+  ///
+  /// @param[in] blob Vector of bytes to copy into the Variant.
+  ///
+  /// @returns A Variant containing a copy of the binary data.
+  static Variant FromMutableBlob(const std::vector<uint8_t>& blob) {
+    return FromMutableBlob(blob.data(), blob.size());
+  }
+#endif  // !defined(SWIG)
+
   /// @brief Return a Variant from a string, but make it mutable.
   ///
   /// Only copies the string once, unlike Variant(std::string(value)), which
@@ -1024,9 +1264,16 @@ class Variant {
   ///
   /// @returns A Variant containing a mutable copy of the string.
   static Variant MutableStringFromStaticString(const char* value) {
-    std::string* str = new std::string(value);
+    const char* safe_value = value != nullptr ? value : "";
+    size_t len = strlen(safe_value);
     Variant v;
-    v.AssignMutableString(&str);
+    if (len < kMaxSmallStringSize) {
+      v.type_ = kInternalTypeSmallString;
+      memcpy(v.value_.small_string, safe_value, len + 1);
+    } else {
+      std::string* str = new std::string(safe_value, len);
+      v.AssignMutableString(&str);
+    }
     return v;
   }
 
@@ -1096,7 +1343,12 @@ class Variant {
   void set_blob_pointer(const void* blob_ptr, size_t size) {
     assert_is_blob();
     value_.blob_value.ptr = static_cast<const uint8_t*>(blob_ptr);
-    value_.blob_value.size = size;
+    value_.blob_value.size = blob_ptr != nullptr ? size : 0;
+  }
+
+  static const uint8_t* EmptyBlobData() noexcept {
+    static constexpr uint8_t kEmptyBlob[1] = {0};
+    return kEmptyBlob;
   }
 
   // If you hit a compiler error here it means you are trying to construct a
@@ -1188,7 +1440,7 @@ inline void Variant::set_value_t<const char*>(const char* value) {
 
 template <>
 inline void Variant::set_value_t<char*>(char* value) {
-  set_mutable_string(value);
+  set_string_value(value);
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

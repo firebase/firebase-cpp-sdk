@@ -17,14 +17,16 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_STRING_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_STRING_H_
 
-#include <stdint.h>
+#include <cstdint>
+#include <string>
+
+#include "firestore/src/jni/array.h"
 #include "firestore/src/jni/object.h"
+#include "firestore/src/jni/ownership.h"
 
 namespace firebase {
 namespace firestore {
 namespace jni {
-
-class Class;
 
 /**
  * A wrapper for a JNI `jstring` that adds additional behavior. This is a proxy
@@ -61,6 +63,8 @@ class String : public Object {
   static String GetUtf8();
 
   Local<Array<uint8_t>> GetBytes(Env& env, const String& encoding) const;
+
+  using Object::ToString;
 
   /**
    * Converts this Java String to a C++ string encoded in UTF-8.

@@ -14,10 +14,12 @@
 
 #include "database/src/desktop/database_desktop.h"
 
+#include <algorithm>
 #include <cassert>
 #include <memory>
-#include <queue>
-#include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -41,83 +43,116 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
+// Referenced by database/src/common/database.cc and database_reference.cc to
+// synchronize DatabaseReference construction, copy/move, and cleanup.
 Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
                                          const QuerySpec& query_spec,
                                          ReferenceCountedFutureImpl* future,
                                          SafeFutureHandle<DataSnapshot> handle)
-    : database_(database),
+    : database_ref_(
+          database
+              ? database->this_ref()
+              : firebase::internal::SafeReference<DatabaseInternal>(nullptr)),
       query_spec_(query_spec),
       future_(future),
-      handle_(handle) {}
+      handle_(handle),
+      backing_future_(future ? MakeFuture(future, handle)
+                             : Future<DataSnapshot>()),
+      completed_(false) {}
 
-SingleValueListener::~SingleValueListener() {}
+SingleValueListener::~SingleValueListener() {
+  if (!completed_ && future_ != nullptr &&
+      backing_future_.status() == kFutureStatusPending) {
+    completed_ = true;
+    future_->Complete(handle_, kErrorUnknownError,
+                      "The database is being destroyed.");
+  }
+  firebase::internal::SafeReferenceLock<DatabaseInternal> lock(&database_ref_);
+  if (lock.GetReference() != nullptr) {
+    lock.GetReference()->UnregisterValueListener(query_spec_, this);
+  }
+}
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
-  future_->CompleteWithResult<DataSnapshot>(handle_, kErrorNone, "", snapshot);
+  if (!completed_ && future_ != nullptr) {
+    completed_ = true;
+    future_->CompleteWithResult<DataSnapshot>(handle_, kErrorNone, "",
+                                              snapshot);
+  }
 }
 
 void SingleValueListener::OnCancelled(const Error& error_code,
                                       const char* error_message) {
-  future_->Complete(handle_, error_code, error_message);
+  if (!completed_ && future_ != nullptr) {
+    completed_ = true;
+    future_->Complete(handle_, error_code, error_message);
+  }
 }
 
 DatabaseInternal::DatabaseInternal(App* app)
     : DatabaseInternal(app, app ? app->options().database_url() : "") {
-  constructor_url_ = std::string();
+  constructor_url_.clear();
 }
 
 DatabaseInternal::DatabaseInternal(App* app, const char* url)
     : app_(app),
       future_manager_(),
       cleanup_(),
-      database_url_(url),
-      constructor_url_(url),
+      database_url_(url ? url : ""),
+      constructor_url_(url ? url : ""),
       persistence_enabled_(false),
-      logger_(app_common::FindAppLoggerByName(app->name())),
+      logger_(app ? app_common::FindAppLoggerByName(app->name()) : nullptr),
+      safe_this_(this),
       repo_(nullptr) {
-  assert(app);
   assert(url);
 
-  // Spin up the token auto-update thread in Auth.
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthStartTokenListener, app_, nullptr, nullptr);
+  if (app_ != nullptr) {
+    // Spin up the token auto-update thread in Auth.
+    app_->function_registry()->CallFunction(
+        ::firebase::internal::FnAuthStartTokenListener, app_, nullptr, nullptr);
+  }
 }
 
 DatabaseInternal::~DatabaseInternal() {
+  safe_this_.ClearReference();
   cleanup_.CleanupAll();
-
-  // If initialization failed, there is nothing to clean up.
-  if (app_ == nullptr) return;
-
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
+  if (app_ != nullptr) {
+    app_->function_registry()->CallFunction(
+        ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
+  }
+  {
+    MutexLock lock(repo_mutex_);
+    repo_.reset(nullptr);
+  }
 }
 
-App* DatabaseInternal::GetApp() { return app_; }
+App* DatabaseInternal::GetApp() const { return app_; }
 
 DatabaseReference DatabaseInternal::GetReference() {
   EnsureRepo();
-  return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), Path()));
+  return DatabaseReference(new DatabaseReferenceInternal(this, Path()));
 }
 
 DatabaseReference DatabaseInternal::GetReference(const char* path) {
+  if (path == nullptr) {
+    logger_.LogError("Database::GetReference(): Path cannot be null.");
+    return DatabaseReference();
+  }
   EnsureRepo();
-  return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), Path(path)));
+  return DatabaseReference(new DatabaseReferenceInternal(this, Path(path)));
 }
 
 DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
-  EnsureRepo();
+  if (url == nullptr) {
+    logger_.LogError("Database::GetReferenceFromUrl(): Url cannot be null.");
+    return DatabaseReference();
+  }
   ParseUrl parser;
   auto result = parser.Parse(url);
-  if (parser.Parse(url) != ParseUrl::kParseOk) {
-    logger_.LogError("Url is not valid: %s", url);
-  }
-
   if (result != ParseUrl::kParseOk) {
+    logger_.LogError("Url is not valid: %s", url);
     return DatabaseReference();
   }
 
@@ -132,12 +167,13 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
     return DatabaseReference();
   }
 
-  return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), Path(parser.path)));
+  EnsureRepo();
+  return DatabaseReference(
+      new DatabaseReferenceInternal(this, Path(parser.path)));
 }
 
 void DatabaseInternal::GoOffline() {
-  EnsureRepo();
+  Repo::ThisRef repo_ref = EnsureRepoRef();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -145,11 +181,11 @@ void DatabaseInternal::GoOffline() {
           lock.GetReference()->connection()->Interrupt();
         }
       },
-      repo_->this_ref()));
+      repo_ref));
 }
 
 void DatabaseInternal::GoOnline() {
-  EnsureRepo();
+  Repo::ThisRef repo_ref = EnsureRepoRef();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -157,11 +193,11 @@ void DatabaseInternal::GoOnline() {
           lock.GetReference()->connection()->Resume();
         }
       },
-      repo_->this_ref()));
+      repo_ref));
 }
 
 void DatabaseInternal::PurgeOutstandingWrites() {
-  EnsureRepo();
+  Repo::ThisRef repo_ref = EnsureRepoRef();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -169,15 +205,12 @@ void DatabaseInternal::PurgeOutstandingWrites() {
           lock.GetReference()->PurgeOutstandingWrites();
         }
       },
-      repo_->this_ref()));
+      repo_ref));
 }
 
-static std::string* g_sdk_version = nullptr;
-const char* DatabaseInternal::GetSdkVersion() {
-  if (g_sdk_version == nullptr) {
-    g_sdk_version = new std::string("Firebase Realtime Database 0.0.1");
-  }
-  return g_sdk_version->c_str();
+const char* DatabaseInternal::GetSdkVersion() const {
+  static const char kSdkVersion[] = "Firebase Realtime Database 0.0.1";
+  return kSdkVersion;
 }
 
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
@@ -195,84 +228,87 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
 LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
 
 bool DatabaseInternal::RegisterValueListener(
-    const internal::QuerySpec& spec, ValueListener* listener,
+    const QuerySpec& spec, ValueListener* listener,
     ValueListenerCleanupData cleanup_data) {
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Register(spec, listener)) {
-    auto found = cleanup_value_listener_lookup_.find(listener);
+    auto key = std::make_pair(spec, listener);
+    auto found = cleanup_value_listener_lookup_.find(key);
     if (found == cleanup_value_listener_lookup_.end()) {
       cleanup_value_listener_lookup_.insert(
-          std::make_pair(listener, std::move(cleanup_data)));
+          std::make_pair(std::move(key), std::move(cleanup_data)));
     }
     return true;
   }
   return false;
 }
 
-bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
+bool DatabaseInternal::UnregisterValueListener(const QuerySpec& spec,
                                                ValueListener* listener) {
-  EventRegistration* registration =
-      ActiveEventRegistration(spec, (void*)listener);
-  if (registration) {
-    registration->set_status(EventRegistration::kRemoved);
-  }
-
   MutexLock lock(listener_mutex_);
+  return UnregisterValueListenerLocked(spec, listener);
+}
+
+bool DatabaseInternal::UnregisterValueListenerLocked(const QuerySpec& spec,
+                                                     ValueListener* listener) {
+  RemoveActiveEventRegistrationsLocked(spec, static_cast<void*>(listener));
   if (value_listeners_by_query_.Unregister(spec, listener)) {
-    auto found = cleanup_value_listener_lookup_.find(listener);
-    if (found != cleanup_value_listener_lookup_.end()) {
-      // ValueListenerCleanupData& cleanup_data = found->second;
-      cleanup_value_listener_lookup_.erase(found);
-    }
+    cleanup_value_listener_lookup_.erase(std::make_pair(spec, listener));
     return true;
   }
   return false;
 }
 
-void DatabaseInternal::UnregisterAllValueListeners(
-    const internal::QuerySpec& spec) {
+void DatabaseInternal::UnregisterAllValueListeners(const QuerySpec& spec) {
+  MutexLock lock(listener_mutex_);
+  RemoveActiveEventRegistrationsLocked(spec, nullptr);
   std::vector<ValueListener*> listeners;
   if (value_listeners_by_query_.Get(spec, &listeners)) {
     for (ValueListener* listener : listeners) {
-      UnregisterValueListener(spec, listener);
+      UnregisterValueListenerLocked(spec, listener);
     }
   }
 }
 
 bool DatabaseInternal::RegisterChildListener(
-    const internal::QuerySpec& spec, ChildListener* listener,
+    const QuerySpec& spec, ChildListener* listener,
     ChildListenerCleanupData cleanup_data) {
   MutexLock lock(listener_mutex_);
   if (child_listeners_by_query_.Register(spec, listener)) {
-    auto found = cleanup_child_listener_lookup_.find(listener);
+    auto key = std::make_pair(spec, listener);
+    auto found = cleanup_child_listener_lookup_.find(key);
     if (found == cleanup_child_listener_lookup_.end()) {
       cleanup_child_listener_lookup_.insert(
-          std::make_pair(listener, std::move(cleanup_data)));
+          std::make_pair(std::move(key), std::move(cleanup_data)));
     }
     return true;
   }
   return false;
 }
 
-bool DatabaseInternal::UnregisterChildListener(const internal::QuerySpec& spec,
+bool DatabaseInternal::UnregisterChildListener(const QuerySpec& spec,
                                                ChildListener* listener) {
   MutexLock lock(listener_mutex_);
+  return UnregisterChildListenerLocked(spec, listener);
+}
+
+bool DatabaseInternal::UnregisterChildListenerLocked(const QuerySpec& spec,
+                                                     ChildListener* listener) {
+  RemoveActiveEventRegistrationsLocked(spec, static_cast<void*>(listener));
   if (child_listeners_by_query_.Unregister(spec, listener)) {
-    auto found = cleanup_child_listener_lookup_.find(listener);
-    if (found != cleanup_child_listener_lookup_.end()) {
-      cleanup_child_listener_lookup_.erase(found);
-    }
+    cleanup_child_listener_lookup_.erase(std::make_pair(spec, listener));
     return true;
   }
   return false;
 }
 
-void DatabaseInternal::UnregisterAllChildListeners(
-    const internal::QuerySpec& spec) {
+void DatabaseInternal::UnregisterAllChildListeners(const QuerySpec& spec) {
+  MutexLock lock(listener_mutex_);
+  RemoveActiveEventRegistrationsLocked(spec, nullptr);
   std::vector<ChildListener*> listeners;
   if (child_listeners_by_query_.Get(spec, &listeners)) {
     for (ChildListener* listener : listeners) {
-      UnregisterChildListener(spec, listener);
+      UnregisterChildListenerLocked(spec, listener);
     }
   }
 }
@@ -280,35 +316,88 @@ void DatabaseInternal::UnregisterAllChildListeners(
 void DatabaseInternal::AddEventRegistration(
     const QuerySpec& query_spec, void* listener_ptr,
     EventRegistration* event_registration) {
+  MutexLock lock(listener_mutex_);
   event_registration_lookup_[query_spec][listener_ptr].push_back(
       event_registration);
 }
 
-EventRegistration* DatabaseInternal::ActiveEventRegistration(
-    const QuerySpec& query_spec, void* listener_ptr) {
-  auto* listener_registration_map =
-      MapGet(&event_registration_lookup_, query_spec);
-  if (!listener_registration_map) {
-    return nullptr;
+void DatabaseInternal::RemoveEventRegistration(
+    const QuerySpec& query_spec, void* listener_ptr,
+    EventRegistration* event_registration) {
+  MutexLock lock(listener_mutex_);
+  auto query_it = event_registration_lookup_.find(query_spec);
+  if (query_it == event_registration_lookup_.end()) {
+    return;
   }
-  auto* registration_vector = MapGet(listener_registration_map, listener_ptr);
-  if (!registration_vector) {
-    return nullptr;
+  auto& listener_map = query_it->second;
+  auto listener_it = listener_map.find(listener_ptr);
+  if (listener_it == listener_map.end()) {
+    return;
   }
-  for (auto* registration : *registration_vector) {
-    if (registration->status() == EventRegistration::kActive) {
-      return registration;
+  auto& vec = listener_it->second;
+  vec.erase(std::remove(vec.begin(), vec.end(), event_registration), vec.end());
+  if (vec.empty()) {
+    listener_map.erase(listener_it);
+    if (listener_map.empty()) {
+      event_registration_lookup_.erase(query_it);
     }
   }
-  return nullptr;
 }
 
-void DatabaseInternal::EnsureRepo() {
+void DatabaseInternal::RemoveActiveEventRegistrations(
+    const QuerySpec& query_spec, void* listener_ptr) {
+  MutexLock lock(listener_mutex_);
+  RemoveActiveEventRegistrationsLocked(query_spec, listener_ptr);
+}
+
+void DatabaseInternal::RemoveActiveEventRegistrationsLocked(
+    const QuerySpec& query_spec, void* listener_ptr) {
+  auto query_it = event_registration_lookup_.find(query_spec);
+  if (query_it == event_registration_lookup_.end()) {
+    return;
+  }
+  auto& listener_map = query_it->second;
+  if (listener_ptr != nullptr) {
+    auto listener_it = listener_map.find(listener_ptr);
+    if (listener_it != listener_map.end()) {
+      for (auto* registration : listener_it->second) {
+        if (registration->status() == EventRegistration::kActive) {
+          registration->set_status(EventRegistration::kRemoved);
+        }
+      }
+      listener_map.erase(listener_it);
+      if (listener_map.empty()) {
+        event_registration_lookup_.erase(query_it);
+      }
+    }
+  } else {
+    for (auto& kv : listener_map) {
+      for (auto* registration : kv.second) {
+        if (registration->status() == EventRegistration::kActive) {
+          registration->set_status(EventRegistration::kRemoved);
+        }
+      }
+    }
+    event_registration_lookup_.erase(query_it);
+  }
+}
+
+Repo* DatabaseInternal::EnsureRepo() {
   MutexLock lock(repo_mutex_);
   if (!repo_) {
     repo_ = std::make_unique<Repo>(app_, this, database_url_.c_str(), &logger_,
                                    persistence_enabled_);
   }
+  return repo_.get();
+}
+
+Repo::ThisRef DatabaseInternal::EnsureRepoRef() {
+  MutexLock lock(repo_mutex_);
+  if (!repo_) {
+    repo_ = std::make_unique<Repo>(app_, this, database_url_.c_str(), &logger_,
+                                   persistence_enabled_);
+  }
+  return repo_->this_ref();
 }
 
 }  // namespace internal

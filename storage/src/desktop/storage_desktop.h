@@ -47,7 +47,7 @@ class StorageInternal {
     StorageInternal* storage = nullptr;
     std::vector<std::thread::id> retry_threads;
     // Threads currently dereferencing `storage` outside of `mutex` (see
-    // StorageUseScope in storage_reference_desktop.cc). ~StorageInternal()
+    // StorageLifetimeScope below). ~StorageInternal()
     // waits for this to drain (ignoring its own thread) before invalidating
     // `storage`.
     std::vector<std::thread::id> active_users;
@@ -207,6 +207,40 @@ class StorageInternal {
   std::string scheme_ = "https";
   int port_ = 443;
   bool configured_ = false;
+};
+
+// Registers the calling thread in LifetimeToken::active_users for the
+// lifetime of the scope. While engaged, ~StorageInternal() blocks (unless it
+// runs on this same thread) before it invalidates the token, so storage()
+// stays valid for the whole scope, without LifetimeToken::mutex being held
+// (holding it would deadlock with anything in the scope that locks it again,
+// e.g. ~StorageReferenceInternal()).
+class StorageLifetimeScope {
+ public:
+  enum class Mode {
+    // Engage as long as the StorageInternal has not been invalidated, even if
+    // it is shutting down (used to complete futures during shutdown).
+    kAllowShutdown,
+    // Do not engage once shutdown has started (used to start new work).
+    kRejectShutdown,
+  };
+
+  // Does not engage if `token` is null or has been invalidated (or, with
+  // kRejectShutdown, is shutting down); check operator bool before use.
+  StorageLifetimeScope(std::shared_ptr<StorageInternal::LifetimeToken> token,
+                       Mode mode);
+  ~StorageLifetimeScope();
+
+  StorageLifetimeScope(const StorageLifetimeScope&) = delete;
+  StorageLifetimeScope& operator=(const StorageLifetimeScope&) = delete;
+
+  explicit operator bool() const { return storage_ != nullptr; }
+  StorageInternal* storage() const { return storage_; }
+
+ private:
+  std::shared_ptr<StorageInternal::LifetimeToken> token_;
+  std::thread::id id_;
+  StorageInternal* storage_ = nullptr;
 };
 
 }  // namespace firebase::storage::internal

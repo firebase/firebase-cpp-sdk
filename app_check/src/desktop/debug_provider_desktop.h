@@ -16,6 +16,7 @@
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 
 #include <map>
+#include <mutex>
 #include <string>
 
 #include "firebase/app_check.h"
@@ -24,19 +25,23 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
+class DebugAppCheckProvider;
+
 class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   DebugAppCheckProviderFactoryInternal();
 
-  virtual ~DebugAppCheckProviderFactoryInternal();
+  ~DebugAppCheckProviderFactoryInternal() override;
 
   AppCheckProvider* CreateProvider(App* app) override;
 
   void SetDebugToken(const std::string& token);
 
- private:
-  std::map<App*, AppCheckProvider*> provider_map_;
+  void RemoveProvider(App* app);
 
+ private:
+  mutable std::mutex mutex_;
+  std::map<App*, DebugAppCheckProvider*> provider_map_;
   std::string debug_token_;
 };
 

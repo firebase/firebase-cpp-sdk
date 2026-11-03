@@ -84,62 +84,106 @@ ControllerInternal::ControllerInternal() = default;
 
 ControllerInternal::~ControllerInternal() = default;
 
-ControllerInternal::ControllerInternal(const ControllerInternal& other) {
-  *this = other;
-}
+ControllerInternal::ControllerInternal(State&& state) noexcept
+    : binding_(std::move(state.binding)),
+      reference_(std::move(state.reference)),
+      op_handle_(std::move(state.op_handle)),
+      cached_handle_(std::move(state.cached_handle)),
+      bytes_transferred_(state.bytes_transferred),
+      total_byte_count_(state.total_byte_count),
+      is_valid_(state.is_valid) {}
+
+ControllerInternal::ControllerInternal(const ControllerInternal& other)
+    : ControllerInternal(other.Snapshot()) {}
 
 ControllerInternal& ControllerInternal::operator=(
     const ControllerInternal& other) {
   if (this == &other) {
     return *this;
   }
-  StorageReference other_ref;
-  std::shared_ptr<RestOperation::OperationHandle> other_handle;
-  std::shared_ptr<ControllerBinding> other_binding;
-  int64_t other_transferred = 0;
-  int64_t other_total = -1;
-  bool other_valid = false;
-  {
-    MutexLock other_lock(other.mutex_);
-    other_ref = other.reference_;
-    other_handle = other.op_handle_;
-    other_binding = other.binding_;
-    other_transferred = other.bytes_transferred_;
-    other_total = other.total_byte_count_;
-    other_valid = other.is_valid_;
-  }
-
-  // Refresh the byte counts from the live (or finished) operation.
-  if (other_handle) {
-    int64_t op_transferred = -1;
-    int64_t op_total = -1;
-    ReadHandle(*other_handle, &op_transferred, &op_total);
-    if (op_transferred >= 0) other_transferred = op_transferred;
-    if (op_total >= 0) other_total = op_total;
-  }
-
-  MutexLock lock(mutex_);
-  reference_ = std::move(other_ref);
-  op_handle_ = std::move(other_handle);
-  binding_ = std::move(other_binding);
-  bytes_transferred_ = other_transferred;
-  total_byte_count_ = other_total;
-  is_valid_ = other_valid;
+  // Snapshot `other` (under other.mutex_ only) before locking mutex_, so the
+  // two controllers' mutexes are never held at the same time.
+  Assign(other.Snapshot());
   return *this;
 }
 
-ControllerInternal::ControllerInternal(ControllerInternal&& other) noexcept {
-  *this = std::move(other);
-}
+ControllerInternal::ControllerInternal(ControllerInternal&& other) noexcept
+    : ControllerInternal(other.TakeState()) {}
 
 ControllerInternal& ControllerInternal::operator=(
     ControllerInternal&& other) noexcept {
   if (this == &other) {
     return *this;
   }
-  *this = static_cast<const ControllerInternal&>(other);
-  other.Initialize(StorageReference(), nullptr);
+  Assign(other.TakeState());
   return *this;
+}
+
+ControllerInternal::State ControllerInternal::Snapshot() const {
+  State state;
+  {
+    MutexLock lock(mutex_);
+    state.binding = binding_;
+    state.reference = reference_;
+    state.op_handle = op_handle_;
+    state.cached_handle = cached_handle_;
+    state.bytes_transferred = bytes_transferred_;
+    state.total_byte_count = total_byte_count_;
+    state.is_valid = is_valid_;
+  }
+
+  // Refresh the byte counts from the live (or finished) operation, resolving
+  // the active handle the same way UpdateFromOperation() does: the binding's
+  // current attempt if there is one, otherwise the initially bound operation.
+  std::shared_ptr<RestOperation::OperationHandle> active = state.op_handle;
+  if (state.binding) {
+    std::shared_ptr<RestOperation::OperationHandle> bound =
+        state.binding->current();
+    if (bound) {
+      active = std::move(bound);
+    }
+  }
+  if (active) {
+    int64_t op_transferred = -1;
+    int64_t op_total = -1;
+    ReadHandle(*active, &op_transferred, &op_total);
+    state.cached_handle = active;
+    if (op_transferred >= 0) state.bytes_transferred = op_transferred;
+    if (op_total >= 0) state.total_byte_count = op_total;
+  }
+  return state;
+}
+
+ControllerInternal::State ControllerInternal::TakeState() noexcept {
+  State state;
+  MutexLock lock(mutex_);
+  state.binding = std::move(binding_);
+  state.reference = std::move(reference_);
+  state.op_handle = std::move(op_handle_);
+  state.cached_handle = std::move(cached_handle_);
+  state.bytes_transferred = bytes_transferred_;
+  state.total_byte_count = total_byte_count_;
+  state.is_valid = is_valid_;
+  // Leave the moved-from object as Initialize(StorageReference(), nullptr).
+  binding_.reset();
+  reference_ = StorageReference();
+  op_handle_.reset();
+  cached_handle_.reset();
+  bytes_transferred_ = 0;
+  total_byte_count_ = -1;
+  is_valid_ = false;
+  return state;
+}
+
+void ControllerInternal::Assign(State&& state) noexcept {
+  MutexLock lock(mutex_);
+  binding_ = std::move(state.binding);
+  reference_ = std::move(state.reference);
+  op_handle_ = std::move(state.op_handle);
+  cached_handle_ = std::move(state.cached_handle);
+  bytes_transferred_ = state.bytes_transferred;
+  total_byte_count_ = state.total_byte_count;
+  is_valid_ = state.is_valid;
 }
 
 std::shared_ptr<RestOperation::OperationHandle>
@@ -245,37 +289,31 @@ bool ControllerInternal::operator==(const ControllerInternal& other) const {
   StorageReference this_ref;
   std::shared_ptr<RestOperation::OperationHandle> this_handle;
   std::shared_ptr<ControllerBinding> this_binding;
-  int64_t this_transferred = 0;
-  int64_t this_total = -1;
   bool this_valid = false;
   {
     MutexLock lock(mutex_);
     this_ref = reference_;
     this_handle = op_handle_;
     this_binding = binding_;
-    this_transferred = bytes_transferred_;
-    this_total = total_byte_count_;
     this_valid = is_valid_ || (binding_ != nullptr);
   }
 
   StorageReference other_ref;
   std::shared_ptr<RestOperation::OperationHandle> other_handle;
   std::shared_ptr<ControllerBinding> other_binding;
-  int64_t other_transferred = 0;
-  int64_t other_total = -1;
   bool other_valid = false;
   {
     MutexLock lock(other.mutex_);
     other_ref = other.reference_;
     other_handle = other.op_handle_;
     other_binding = other.binding_;
-    other_transferred = other.bytes_transferred_;
-    other_total = other.total_byte_count_;
     other_valid = other.is_valid_ || (other.binding_ != nullptr);
   }
 
   if (!this_valid && !other_valid) {
-    return true;
+    // Two controllers that are not (or no longer) attached to an operation
+    // are only equal if they refer to the same storage location.
+    return this_ref == other_ref;
   }
   if (this_valid != other_valid) {
     return false;
@@ -283,11 +321,7 @@ bool ControllerInternal::operator==(const ControllerInternal& other) const {
   if (this_binding != nullptr || other_binding != nullptr) {
     return this_binding == other_binding && this_ref == other_ref;
   }
-  if (this_handle != nullptr || other_handle != nullptr) {
-    return this_handle == other_handle && this_ref == other_ref;
-  }
-  return this_ref == other_ref && this_transferred == other_transferred &&
-         this_total == other_total;
+  return this_handle == other_handle && this_ref == other_ref;
 }
 
 void ControllerInternal::Initialize(const StorageReference& reference,
@@ -302,6 +336,7 @@ void ControllerInternal::Initialize(const StorageReference& reference,
   MutexLock lock(mutex_);
   reference_ = reference;
   binding_.reset();
+  cached_handle_ = new_handle;
   op_handle_ = std::move(new_handle);
   bytes_transferred_ = (op_transferred >= 0) ? op_transferred : 0;
   total_byte_count_ = (op_total >= 0) ? op_total : -1;
@@ -346,16 +381,32 @@ void ControllerInternal::UpdateFromOperation(int64_t* transferred,
   int64_t op_total = -1;
   ReadHandle(*handle, &op_transferred, &op_total);
 
+  // Re-verify the active handle on the binding (outside mutex_ to preserve
+  // lock order) so a read from a superseded retry attempt is discarded.
+  const std::shared_ptr<RestOperation::OperationHandle> current_bound =
+      binding ? binding->current() : nullptr;
+
   MutexLock lock(mutex_);
-  // Only cache values read from the handle this object is still bound to.
   const bool still_bound =
-      binding ? (binding_ == binding) : (op_handle_ == handle);
+      binding ? (binding_ == binding &&
+                 (current_bound ? current_bound == handle
+                                : op_handle_ == handle))
+              : (!binding_ && op_handle_ == handle);
   if (still_bound) {
-    if (op_transferred >= 0) {
-      bytes_transferred_ = op_transferred;
-    }
-    if (op_total >= 0) {
-      total_byte_count_ = op_total;
+    if (cached_handle_ != handle) {
+      // Bound to a new retry attempt: reset the cached counts for this handle.
+      cached_handle_ = handle;
+      bytes_transferred_ = (op_transferred >= 0) ? op_transferred : 0;
+      total_byte_count_ = (op_total >= 0) ? op_total : -1;
+    } else {
+      // Within the same attempt, progress is monotonic: never let an older,
+      // out-of-order read overwrite a newer cached byte count.
+      if (op_transferred > bytes_transferred_) {
+        bytes_transferred_ = op_transferred;
+      }
+      if (op_total >= 0) {
+        total_byte_count_ = op_total;
+      }
     }
   }
   if (transferred) *transferred = bytes_transferred_;

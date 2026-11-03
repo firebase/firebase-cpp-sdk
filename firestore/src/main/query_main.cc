@@ -65,7 +65,7 @@ using nanopb::SharedMessage;
 QueryInternal::QueryInternal(api::Query&& query)
     : query_{std::move(query)},
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)},
-      user_data_converter_{&firestore_internal()->database_id()} {}
+      user_data_converter_{&query_.firestore()->database_id()} {}
 
 Firestore* QueryInternal::firestore() { return GetFirestore(&query_); }
 
@@ -99,10 +99,14 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   return promise.future();
 }
 
-AggregateQuery QueryInternal::Count() { return MakePublic(query_.Count()); }
+AggregateQuery QueryInternal::Count() const {
+  return MakePublic(query_.Count());
+}
 
 Query QueryInternal::Where(const Filter& filter) const {
-  SIMPLE_HARD_ASSERT(!filter.IsEmpty());
+  if (filter.IsEmpty()) {
+    return MakePublic(api::Query{query_});
+  }
   core::Filter core_filter =
       GetInternal(&filter)->ToCoreFilter(query_, user_data_converter_);
   api::Query decorated = query_.AddNewFilter(std::move(core_filter));
@@ -166,9 +170,14 @@ core::Bound QueryInternal::ToBound(
   }
 
   const api::DocumentSnapshot& api_snapshot = GetCoreApi(public_snapshot);
+  const model::DatabaseId& database_id = query_.firestore()->database_id();
+  if (api_snapshot.firestore()->database_id() != database_id) {
+    SimpleThrowInvalidArgument(
+        "Invalid query. You are trying to start or end a query using a "
+        "document from a different database.");
+  }
   const model::DocumentKey& key =
       api_snapshot.internal_document().value()->key();
-  const model::DatabaseId& database_id = firestore_internal()->database_id();
   const core::Query& internal_query = query_.query();
 
   SharedMessage<google_firestore_v1_ArrayValue> components{{}};
@@ -252,7 +261,7 @@ core::Bound QueryInternal::ToBound(
   components->values =
       MakeArray<google_firestore_v1_Value>(components->values_count);
 
-  for (int i = 0; i != field_values.size(); ++i) {
+  for (size_t i = 0; i != field_values.size(); ++i) {
     Message<google_firestore_v1_Value> field_value =
         user_data_converter_.ParseQueryValue(field_values[i]);
     const core::OrderBy& order_by = explicit_order_bys[i];
@@ -276,14 +285,13 @@ Message<google_firestore_v1_Value> QueryInternal::ConvertDocumentId(
   }
 
   std::string document_id = MakeString(from->string_value);
+  if (document_id.empty()) {
+    SimpleThrowInvalidArgument(
+        "Invalid query. Document ID must not be an empty string.");
+  }
 
   if (!internal_query.IsCollectionGroupQuery() &&
       document_id.find('/') != std::string::npos) {
-    // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument(
-    //     "Invalid query. When querying a collection and ordering by document "
-    //     "ID, you must pass a plain document ID, but '%s' contains a slash.",
-    //     document_id);
     auto message =
         std::string(
             "Invalid query. When querying a collection and ordering "
@@ -295,12 +303,6 @@ Message<google_firestore_v1_Value> QueryInternal::ConvertDocumentId(
   ResourcePath path =
       internal_query.path().Append(ResourcePath::FromString(document_id));
   if (!DocumentKey::IsDocumentKey(path)) {
-    // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument(
-    //     "Invalid query. When querying a collection group and ordering by "
-    //     "document ID, you must pass a value that results in a valid document
-    //     " "path, but '%s' is not because it contains an odd number of
-    //     segments.", path.CanonicalString());
     auto message =
         std::string(
             "Invalid query. When querying a collection group and ordering by "
@@ -311,7 +313,7 @@ Message<google_firestore_v1_Value> QueryInternal::ConvertDocumentId(
     SimpleThrowInvalidArgument(message);
   }
 
-  const model::DatabaseId& database_id = firestore_internal()->database_id();
+  const model::DatabaseId& database_id = query_.firestore()->database_id();
   return RefValue(database_id, DocumentKey{std::move(path)});
 }
 

@@ -81,6 +81,8 @@ void ExpectAllMethodsAreNoOps(CollectionReference* ptr) {
   EXPECT_EQ(ptr->id(), "");
   EXPECT_EQ(ptr->path(), "");
 
+  EXPECT_EQ(ptr->Parent(), DocumentReference());
+
   EXPECT_EQ(ptr->Document(), DocumentReference());
   EXPECT_EQ(ptr->Document("foo"), DocumentReference());
   EXPECT_EQ(ptr->Document(std::string("foo")), DocumentReference());
@@ -98,8 +100,8 @@ void ExpectAllMethodsAreNoOps(DocumentChange* ptr) {
   EXPECT_EQ(ptr->type(), DocumentChange::Type());
   // TODO(b/137966104): implement == on `DocumentSnapshot`
   ptr->document();
-  EXPECT_EQ(ptr->old_index(), 0);
-  EXPECT_EQ(ptr->new_index(), 0);
+  EXPECT_EQ(ptr->old_index(), DocumentChange::npos);
+  EXPECT_EQ(ptr->new_index(), DocumentChange::npos);
 }
 
 void ExpectAllMethodsAreNoOps(DocumentReference* ptr) {
@@ -159,10 +161,9 @@ void ExpectAllMethodsAreNoOps(FieldValue* ptr) {
   ExpectEqualityToWork(ptr);
   ExpectCopyableAndMoveable(ptr);
 
-  // FieldValue doesn't have a separate "invalid" type in its enum.
-  EXPECT_TRUE(ptr->is_null());
+  EXPECT_FALSE(ptr->is_null());
 
-  EXPECT_EQ(ptr->type(), FieldValue::Type());
+  EXPECT_EQ(ptr->type(), FieldValue::Type::kInvalid);
 
   EXPECT_FALSE(ptr->is_boolean());
   EXPECT_FALSE(ptr->is_integer());
@@ -206,6 +207,9 @@ void ExpectAllMethodsAreNoOps(Query* ptr) {
   EXPECT_EQ(ptr->WhereEqualTo("foo", FieldValue()), Query());
   EXPECT_EQ(ptr->WhereEqualTo(FieldPath{"foo"}, FieldValue()), Query());
 
+  EXPECT_EQ(ptr->WhereNotEqualTo("foo", FieldValue()), Query());
+  EXPECT_EQ(ptr->WhereNotEqualTo(FieldPath{"foo"}, FieldValue()), Query());
+
   EXPECT_EQ(ptr->WhereLessThan("foo", FieldValue()), Query());
   EXPECT_EQ(ptr->WhereLessThan(FieldPath{"foo"}, FieldValue()), Query());
 
@@ -222,6 +226,17 @@ void ExpectAllMethodsAreNoOps(Query* ptr) {
 
   EXPECT_EQ(ptr->WhereArrayContains("foo", FieldValue()), Query());
   EXPECT_EQ(ptr->WhereArrayContains(FieldPath{"foo"}, FieldValue()), Query());
+
+  EXPECT_EQ(ptr->WhereArrayContainsAny("foo", std::vector<FieldValue>()), Query());
+  EXPECT_EQ(ptr->WhereArrayContainsAny(FieldPath{"foo"}, std::vector<FieldValue>()), Query());
+
+  EXPECT_EQ(ptr->WhereIn("foo", std::vector<FieldValue>()), Query());
+  EXPECT_EQ(ptr->WhereIn(FieldPath{"foo"}, std::vector<FieldValue>()), Query());
+
+  EXPECT_EQ(ptr->WhereNotIn("foo", std::vector<FieldValue>()), Query());
+  EXPECT_EQ(ptr->WhereNotIn(FieldPath{"foo"}, std::vector<FieldValue>()), Query());
+
+  EXPECT_EQ(ptr->Where(Filter()), Query());
 
   EXPECT_EQ(ptr->OrderBy("foo"), Query());
   EXPECT_EQ(ptr->OrderBy(FieldPath{"foo"}), Query());
@@ -242,7 +257,7 @@ void ExpectAllMethodsAreNoOps(Query* ptr) {
 
   EXPECT_EQ(ptr->Get(), FailedFuture<QuerySnapshot>());
 
-  EXPECT_EQ(ptr->Get(), FailedFuture<QuerySnapshot>());
+  EXPECT_EQ(ptr->Get(Source::kCache), FailedFuture<QuerySnapshot>());
 
   ptr->AddSnapshotListener(
       [](const QuerySnapshot&, Error, const std::string&) {});

@@ -17,8 +17,14 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_COLLECTION_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_COLLECTION_REFERENCE_ANDROID_H_
 
+#include <mutex>
+#include <string>
+
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_android.h"
+#include "firestore/src/include/firebase/firestore/document_reference.h"
+#include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/include/firebase/future.h"
 #include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
@@ -29,12 +35,19 @@ class CollectionReferenceInternal : public QueryInternal {
  public:
   using QueryInternal::QueryInternal;
 
+  CollectionReferenceInternal(const CollectionReferenceInternal& other);
+  CollectionReferenceInternal(CollectionReferenceInternal&& other) noexcept;
+  CollectionReferenceInternal& operator=(
+      const CollectionReferenceInternal& other) = delete;
+  CollectionReferenceInternal& operator=(
+      CollectionReferenceInternal&& other) noexcept = delete;
+
   // To make things simple, CollectionReferenceInternal uses the Future
   // management from its base class, QueryInternal. Each API of
   // CollectionReference that returns a Future needs to define an enum value in
-  // QueryFn. For example, a Future-returning method Foo() relies on the enum
-  // value AsyncFn::kFoo. The enum values are used to identify and manage Future
-  // in the Firestore Future manager.
+  // QueryInternal::AsyncFn. For example, a Future-returning method Foo() relies
+  // on the enum value AsyncFn::kFoo. The enum values are used to identify and
+  // manage Future in the Firestore Future manager.
   using AsyncFn = QueryInternal::AsyncFn;
 
   static void Initialize(jni::Loader& loader);
@@ -50,6 +63,7 @@ class CollectionReferenceInternal : public QueryInternal {
   friend class FirestoreInternal;
 
   // Below are cached call results.
+  mutable std::mutex mutex_;
   mutable std::string cached_id_;
   mutable std::string cached_path_;
 };

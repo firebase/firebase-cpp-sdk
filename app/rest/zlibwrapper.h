@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+#include <atomic>
+
 #include "zlib/zlib.h"
 
 namespace firebase {
@@ -28,13 +30,16 @@ class ZLib {
   ZLib();
   ~ZLib();
 
+  ZLib(const ZLib&) = delete;
+  ZLib& operator=(const ZLib&) = delete;
+
   // Set this to true if you want to be flexible with the gzip footer.
   static void set_should_be_flexible_with_gzip_footer(bool b) {
-    should_be_flexible_with_gzip_footer_ = b;
+    should_be_flexible_with_gzip_footer_.store(b);
   }
 
   static bool should_be_flexible_with_gzip_footer() {
-    return should_be_flexible_with_gzip_footer_;
+    return should_be_flexible_with_gzip_footer_.load();
   }
 
   // Wipe a ZLib object to a virgin state.  This differs from Reset()
@@ -126,8 +131,8 @@ class ZLib {
   int Uncompress(Bytef* dest, uLongf* destLen, const Bytef* source,
                  uLong sourceLen);
 
-  // Get the uncompressed size from the gzip header. Returns 0 if source is too
-  // short (len < 5).
+  // Get the uncompressed size from the gzip footer. Returns 0 if source is too
+  // short (len <= 4).
   uLongf GzipUncompressedLength(const Bytef* source, uLong len);
 
   // Special helper function to help uncompress gzipped documents:
@@ -284,7 +289,7 @@ class ZLib {
   // - Extra bytes after gzip footer (see bug 69126)
   // - No gzip footer (see bug 72896)
   // - Incomplete gzip footer (see bug 71871706)
-  static bool should_be_flexible_with_gzip_footer_;
+  static std::atomic<bool> should_be_flexible_with_gzip_footer_;
 
   // "Current" settings. These will be used whenever we next configure zlib.
   // For example changing compression level or header mode will be recorded

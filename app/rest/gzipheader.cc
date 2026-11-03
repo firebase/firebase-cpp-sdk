@@ -25,7 +25,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/util.h"
-#include "zlib/zlib.h"  // for Z_DEFAULT_COMPRESSION
+#include "zlib/zlib.h"  // for Z_DEFLATED
 
 namespace firebase {
 
@@ -65,6 +65,7 @@ GZipHeader::Status GZipHeader::ReadMore(const char* inbuf, int inbuf_len,
         state_++;
         break;
       case IN_HEADER_FLG:
+        if ((*pos) & FLAG_RESERVED) return INVALID_HEADER;
         flags_ =
             (*pos) & (FLAG_FHCRC | FLAG_FEXTRA | FLAG_FNAME | FLAG_FCOMMENT);
         pos++;
@@ -158,7 +159,7 @@ GZipHeader::Status GZipHeader::ReadMore(const char* inbuf, int inbuf_len,
           flags_ &= ~FLAG_FCOMMENT;  // we're done with the FCOMMENT stuff
           state_ = IN_FHCRC_BYTE_0;
         } else {
-          pos = end;  // everything we have so far is part of the FNAME
+          pos = end;  // everything we have so far is part of the FCOMMENT
         }
         break;
 

@@ -17,17 +17,13 @@
 #ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_FUTURE_H_
 #define FIREBASE_APP_SRC_INCLUDE_FIREBASE_FUTURE_H_
 
-#include <stddef.h>
-#include <stdint.h>
-
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <utility>
 
 #include "firebase/internal/common.h"
 #include "firebase/internal/mutex.h"
-
-#ifdef FIREBASE_USE_STD_FUNCTION
-#include <functional>
-#endif
 
 namespace firebase {
 
@@ -86,6 +82,7 @@ class FutureHandle {
 
   FutureHandleId id() const { return id_; }
   detail::FutureApiInterface* api() const { return api_; }
+  bool is_valid() const { return id_ != 0 && api_ != nullptr; }
 
   // Detach from the FutureApi. This handle will no longer increment the
   // Future's reference count. This is mainly used for testing, so that you can
@@ -96,7 +93,10 @@ class FutureHandle {
   // Called by CleanupNotifier when the API is being deleted. At this point we
   // can ignore all of the reference counts since all Future data is about to be
   // deleted anyway.
-  void Cleanup() { api_ = nullptr; }
+  void Cleanup() {
+    id_ = 0;
+    api_ = nullptr;
+  }
 
  private:
   FutureHandleId id_;
@@ -131,11 +131,9 @@ class FutureBase {
   typedef void (*CompletionCallback)(const FutureBase& result_data,
                                      void* user_data);
 
-#if defined(INTERNAL_EXPERIMENTAL)
   /// Handle, representing a completion callback, that can be passed to
   /// RemoveOnCompletion.
   using CompletionCallbackHandle = detail::CompletionCallbackHandle;
-#endif
 
   /// Construct an untyped future.
   FutureBase();
@@ -176,6 +174,10 @@ class FutureBase {
   /// Completion status of the asynchronous call.
   FutureStatus status() const;
 
+  /// Returns true if this Future references a valid (pending or completed)
+  /// asynchronous operation.
+  bool is_valid() const { return status() != kFutureStatusInvalid; }
+
   /// When status() is firebase::kFutureStatusComplete, returns the API-defined
   /// error code. Otherwise, return value is undefined.
   int error() const;
@@ -192,7 +194,6 @@ class FutureBase {
   /// pending. Cast is required since GetFutureResult() returns void*.
   const void* result_void() const;
 
-#if defined(INTERNAL_EXPERIMENTAL)
   /// Special timeout value indicating an infinite timeout.
   ///
   /// Passing this value to FutureBase::Wait() or Future<T>::Await() will cause
@@ -210,8 +211,7 @@ class FutureBase {
   ///
   /// @return True if the future completed, or
   ///         false if the timeout period elapsed before the future completed.
-  bool Wait(int timeout_milliseconds) const;
-#endif  // defined(INTERNAL_EXPERIMENTAL)
+  bool Wait(int timeout_milliseconds = kWaitTimeoutInfinite) const;
 
   /// Register a single callback that will be called at most once, when the
   /// future is completed.
@@ -219,14 +219,12 @@ class FutureBase {
   /// If you call any OnCompletion() method more than once on the same future,
   /// only the most recent callback you registered with OnCompletion() will be
   /// called.
-#if defined(INTERNAL_EXPERIMENTAL)
-  /// However completions registered with AddCompletion() will still be
+  /// However completions registered with AddOnCompletion() will still be
   /// called even if there is a subsequent call to OnCompletion().
   ///
   /// When the future completes, first the most recent callback registered with
   /// OnCompletion(), if any, will be called; then all callbacks registered with
-  /// AddCompletion() will be called, in the order that they were registered.
-#endif
+  /// AddOnCompletion() will be called, in the order that they were registered.
   ///
   /// When your callback is called, the user_data that you supplied here will be
   /// passed back as the second parameter.
@@ -234,7 +232,8 @@ class FutureBase {
   /// @param[in] callback Function pointer to your callback.
   /// @param[in] user_data Optional user data. We will pass this back to your
   /// callback.
-  void OnCompletion(CompletionCallback callback, void* user_data) const;
+  void OnCompletion(CompletionCallback callback,
+                    void* user_data = nullptr) const;
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Register a single callback that will be called at most once, when the
@@ -243,14 +242,12 @@ class FutureBase {
   /// If you call any OnCompletion() method more than once on the same future,
   /// only the most recent callback you registered with OnCompletion() will be
   /// called.
-#if defined(INTERNAL_EXPERIMENTAL)
-  /// However completions registered with AddCompletion() will still be
+  /// However completions registered with AddOnCompletion() will still be
   /// called even if there is a subsequent call to OnCompletion().
   ///
   /// When the future completes, first the most recent callback registered with
   /// OnCompletion(), if any, will be called; then all callbacks registered with
-  /// AddCompletion() will be called, in the order that they were registered.
-#endif
+  /// AddOnCompletion() will be called, in the order that they were registered.
   ///
   /// @param[in] callback Function or lambda to call.
   ///
@@ -259,36 +256,35 @@ class FutureBase {
   void OnCompletion(std::function<void(const FutureBase&)> callback) const;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-#if defined(INTERNAL_EXPERIMENTAL)
   /// Like OnCompletion, but allows adding multiple callbacks.
   ///
-  /// If you call AddCompletion() more than once, all of the completions that
+  /// If you call AddOnCompletion() more than once, all of the completions that
   /// you register will be called, when the future is completed.  However, any
   /// callbacks which were subsequently removed by calling RemoveOnCompletion
   /// will not be called.
   ///
   /// When the future completes, first the most recent callback registered with
   /// OnCompletion(), if any, will be called; then all callbacks registered with
-  /// AddCompletion() will be called, in the order that they were registered.
+  /// AddOnCompletion() will be called, in the order that they were registered.
   ///
   /// @param[in] callback Function pointer to your callback.
   /// @param[in] user_data Optional user data. We will pass this back to your
   /// callback.
   /// @return A handle that can be passed to RemoveOnCompletion.
   CompletionCallbackHandle AddOnCompletion(CompletionCallback callback,
-                                           void* user_data) const;
+                                           void* user_data = nullptr) const;
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Like OnCompletion, but allows adding multiple callbacks.
   ///
-  /// If you call AddCompletion() more than once, all of the completions that
+  /// If you call AddOnCompletion() more than once, all of the completions that
   /// you register will be called, when the future is completed.  However, any
   /// callbacks which were subsequently removed by calling RemoveOnCompletion
   /// will not be called.
   ///
   /// When the future completes, first the most recent callback registered with
   /// OnCompletion(), if any, will be called; then all callbacks registered with
-  /// AddCompletion() will be called, in the order that they were registered.
+  /// AddOnCompletion() will be called, in the order that they were registered.
   ///
   /// @param[in] callback Function or lambda to call.
   /// @return A handle that can be passed to RemoveOnCompletion.
@@ -306,24 +302,31 @@ class FutureBase {
   /// @param[in] completion_handle The return value of a previous call to
   ///                              AddOnCompletion.
   void RemoveOnCompletion(CompletionCallbackHandle completion_handle) const;
-#endif  // defined(INTERNAL_EXPERIMENTAL)
 
   /// Returns true if the two Futures reference the same result.
   bool operator==(const FutureBase& rhs) const {
-    MutexLock lock(mutex_);
-    return api_ == rhs.api_ && handle_ == rhs.handle_;
+    if (this == &rhs) {
+      return true;
+    }
+    detail::FutureApiInterface* lhs_api;
+    FutureHandleId lhs_id;
+    {
+      MutexLock lock(mutex_);
+      lhs_api = api_;
+      lhs_id = handle_.id();
+    }
+    MutexLock rhs_lock(rhs.mutex_);
+    return lhs_api == rhs.api_ && lhs_id == rhs.handle_.id();
   }
 
   /// Returns true if the two Futures reference different results.
   bool operator!=(const FutureBase& rhs) const { return !operator==(rhs); }
 
-#if defined(INTERNAL_EXPERIMENTAL)
   /// Returns the API-specific handle. Should only be called by the API.
   FutureHandle GetHandle() const {
     MutexLock lock(mutex_);
     return handle_;
   }
-#endif  // defined(INTERNAL_EXPERIMENTAL)
 
  protected:
   /// @cond FIREBASE_APP_INTERNAL
@@ -429,7 +432,6 @@ class Future : public FutureBase {
     return static_cast<const ResultType*>(result_void());
   }
 
-#if defined(INTERNAL_EXPERIMENTAL)
   /// Waits (blocks) until either the future is completed, or the specified
   /// timeout period (in milliseconds) has elapsed, then returns the result of
   /// the asynchronous call.
@@ -439,11 +441,28 @@ class Future : public FutureBase {
   /// If `timeout_milliseconds` is `kWaitTimeoutInfinite`, then the timeout
   /// period is treated as being infinite, i.e. this will block until the
   /// future is completed.
-  const ResultType* Await(int timeout_milliseconds) const {
+  const ResultType* Await(
+      int timeout_milliseconds = kWaitTimeoutInfinite) const {
     Wait(timeout_milliseconds);
     return result();
   }
-#endif  // defined(INTERNAL_EXPERIMENTAL)
+
+#if !defined(SWIG)
+  /// Blocks until the future completes (or the specified timeout period in
+  /// milliseconds elapses) and returns the result pointer.
+  ///
+  /// @return A pointer to the result if the future completed before the
+  ///         timeout elapsed, or `nullptr` if the timeout period elapsed
+  ///         before completion, if the Future is invalid, or for
+  ///         `Future<void>`.
+  const ResultType* GetResult(
+      int timeout_milliseconds = kWaitTimeoutInfinite) const {
+    if (!Wait(timeout_milliseconds)) {
+      return nullptr;
+    }
+    return result();
+  }
+#endif  // !defined(SWIG)
 
   /// Register a single callback that will be called at most once, when the
   /// future is completed.
@@ -462,7 +481,7 @@ class Future : public FutureBase {
   /// can't expect to set both and have both run; again, only the most recently
   /// registered one will run.
   inline void OnCompletion(TypedCompletionCallback callback,
-                           void* user_data) const;
+                           void* user_data = nullptr) const;
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Register a single callback that will be called at most once, when the
@@ -483,36 +502,35 @@ class Future : public FutureBase {
       std::function<void(const Future<ResultType>&)> callback) const;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-#if defined(INTERNAL_EXPERIMENTAL)
   /// Like OnCompletion, but allows adding multiple callbacks.
   ///
-  /// If you call AddCompletion() more than once, all of the completions that
+  /// If you call AddOnCompletion() more than once, all of the completions that
   /// you register will be called, when the future is completed.  However, any
   /// callbacks which were subsequently removed by calling RemoveOnCompletion
   /// will not be called.
   ///
   /// When the future completes, first the most recent callback registered with
   /// OnCompletion(), if any, will be called; then all callbacks registered with
-  /// AddCompletion() will be called, in the order that they were registered.
+  /// AddOnCompletion() will be called, in the order that they were registered.
   ///
   /// @param[in] callback Function pointer to your callback.
   /// @param[in] user_data Optional user data. We will pass this back to your
   /// callback.
   /// @return A handle that can be passed to RemoveOnCompletion.
   inline CompletionCallbackHandle AddOnCompletion(
-      TypedCompletionCallback callback, void* user_data) const;
+      TypedCompletionCallback callback, void* user_data = nullptr) const;
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Like OnCompletion, but allows adding multiple callbacks.
   ///
-  /// If you call AddCompletion() more than once, all of the completions that
+  /// If you call AddOnCompletion() more than once, all of the completions that
   /// you register will be called, when the future is completed.  However, any
   /// callbacks which were subsequently removed by calling RemoveOnCompletion
   /// will not be called.
   ///
   /// When the future completes, first the most recent callback registered with
   /// OnCompletion(), if any, will be called; then all callbacks registered with
-  /// AddCompletion() will be called, in the order that they were registered.
+  /// AddOnCompletion() will be called, in the order that they were registered.
   ///
   /// @param[in] callback Function or lambda to call.
   /// @return A handle that can be passed to RemoveOnCompletion.
@@ -521,8 +539,18 @@ class Future : public FutureBase {
   /// `std::function` is not supported on STLPort.
   inline CompletionCallbackHandle AddOnCompletion(
       std::function<void(const Future<ResultType>&)> callback) const;
+
+#if !defined(SWIG)
+  /// Registers a completion callback and returns a copy of `*this` for fluent
+  /// chaining without dangling-reference hazards on temporary `Future`
+  /// instances.
+  Future<ResultType> Then(
+      std::function<void(const Future<ResultType>&)> callback) const {
+    AddOnCompletion(std::move(callback));
+    return *this;
+  }
+#endif  // !defined(SWIG)
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-#endif  // defined(INTERNAL_EXPERIMENTAL)
 };
 
 }  // namespace firebase

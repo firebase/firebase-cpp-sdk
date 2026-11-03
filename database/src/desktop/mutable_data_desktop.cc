@@ -65,7 +65,8 @@ std::vector<MutableData> MutableDataInternal::GetChildren() {
 }
 
 size_t MutableDataInternal::GetChildrenCount() {
-  return CountEffectiveChildren(*GetNode());
+  Variant* node = GetNode();
+  return node != nullptr ? CountEffectiveChildren(*node) : 0;
 }
 
 const char* MutableDataInternal::GetKey() const { return path_.GetBaseName(); }
@@ -109,7 +110,9 @@ void MutableDataInternal::SetValue(const Variant& value) {
 
 void MutableDataInternal::SetPriority(const Variant& priority) {
   if (!priority.is_fundamental_type()) {
-    db_->logger()->LogError(kErrorMsgInvalidVariantForPriority);
+    if (db_ && db_->logger()) {
+      db_->logger()->LogError(kErrorMsgInvalidVariantForPriority);
+    }
     return;
   }
   VariantUpdateChild(holder_.get(), path_.GetChild(kPriorityKey), priority);

@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/view/view.h"
 
+#include <algorithm>
 #include <cassert>
 #include <memory>
 #include <utility>
@@ -26,7 +27,9 @@
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/core/operation.h"
+#include "database/src/desktop/query_params_comparator.h"
 #include "database/src/desktop/util_desktop.h"
+#include "database/src/desktop/view/change.h"
 #include "database/src/desktop/view/event.h"
 #include "database/src/desktop/view/event_generator.h"
 #include "database/src/desktop/view/indexed_filter.h"
@@ -35,6 +38,61 @@
 namespace firebase {
 namespace database {
 namespace internal {
+
+namespace {
+
+void GenerateEventsForSingleRegistrationAndType(
+    const QuerySpec& query_spec, EventType event_type,
+    const std::vector<Change>& changes, EventRegistration* registration,
+    const IndexedVariant& event_cache, std::vector<Event>* events) {
+  if (!registration->RespondsTo(event_type)) {
+    return;
+  }
+
+  std::vector<const Change*> filtered_changes;
+  filtered_changes.reserve(changes.size());
+  for (const Change& change : changes) {
+    if (change.event_type != kEventTypeValue) {
+      FIREBASE_DEV_ASSERT_MESSAGE(!change.child_key.empty(),
+                                  "Child changes must have a child_key");
+    }
+    if (change.event_type == event_type) {
+      filtered_changes.push_back(&change);
+    }
+  }
+  if (filtered_changes.empty()) {
+    return;
+  }
+
+  QueryParamsComparator comparator(&query_spec.params);
+  std::sort(filtered_changes.begin(), filtered_changes.end(),
+            [&comparator](const Change* a, const Change* b) {
+              return comparator.Compare(
+                         a->child_key.c_str(), a->indexed_variant.variant(),
+                         b->child_key.c_str(), b->indexed_variant.variant()) <
+                     0;
+            });
+
+  if (event_type == kEventTypeValue) {
+    FIREBASE_DEV_ASSERT_MESSAGE(filtered_changes.size() <= 1,
+                                "Value changes must occur one at a time");
+  }
+
+  for (const Change* change : filtered_changes) {
+    if (change->event_type == kEventTypeValue ||
+        change->event_type == kEventTypeChildRemoved) {
+      events->push_back(registration->GenerateEvent(*change, query_spec));
+    } else {
+      const char* prev_child_key = event_cache.GetPredecessorChildName(
+          change->child_key, change->indexed_variant.variant());
+      Change new_change =
+          ChangeWithPrevName(*change, prev_child_key ? prev_child_key : "");
+      events->push_back(registration->GenerateEvent(new_change, query_spec));
+    }
+  }
+}
+
+}  // namespace
 
 View::View(const QuerySpec& query_spec, const ViewCache& initial_view_cache)
     : query_spec_(query_spec) {
@@ -65,28 +123,30 @@ View::View(const QuerySpec& query_spec, const ViewCache& initial_view_cache)
 }
 
 View::View(const View& other)
-    : query_spec_(std::move(const_cast<View*>(&other)->query_spec_)),
-      view_processor_(std::move(const_cast<View*>(&other)->view_processor_)),
-      view_cache_(std::move(const_cast<View*>(&other)->view_cache_)),
-      event_registrations_(
-          std::move(const_cast<View*>(&other)->event_registrations_)) {}
+    : query_spec_(other.query_spec_),
+      view_processor_(std::make_unique<ViewProcessor>(
+          VariantFilterFromQueryParams(other.query_spec_.params))),
+      view_cache_(other.view_cache_),
+      event_registrations_() {}
 
 View& View::operator=(const View& other) {
-  query_spec_ = std::move(const_cast<View*>(&other)->query_spec_);
-  view_processor_ = std::move(const_cast<View*>(&other)->view_processor_);
-  view_cache_ = std::move(const_cast<View*>(&other)->view_cache_);
-  event_registrations_ =
-      std::move(const_cast<View*>(&other)->event_registrations_);
+  if (&other == this) return *this;
+  query_spec_ = other.query_spec_;
+  view_processor_ = std::make_unique<ViewProcessor>(
+      VariantFilterFromQueryParams(other.query_spec_.params));
+  view_cache_ = other.view_cache_;
+  event_registrations_.clear();
   return *this;
 }
 
-View::View(View&& other)
+View::View(View&& other) noexcept
     : query_spec_(std::move(other.query_spec_)),
       view_processor_(std::move(other.view_processor_)),
       view_cache_(std::move(other.view_cache_)),
       event_registrations_(std::move(other.event_registrations_)) {}
 
-View& View::operator=(View&& other) {
+View& View::operator=(View&& other) noexcept {
+  if (&other == this) return *this;
   query_spec_ = std::move(other.query_spec_);
   view_processor_ = std::move(other.view_processor_);
   view_cache_ = std::move(other.view_cache_);
@@ -94,7 +154,7 @@ View& View::operator=(View&& other) {
   return *this;
 }
 
-View::~View() {}
+View::~View() = default;
 
 const Variant* View::GetCompleteServerCache(const Path& path) const {
   const Variant* snap = view_cache_.GetCompleteServerSnap();
@@ -154,6 +214,7 @@ std::vector<Event> View::ApplyOperation(
     const Operation& operation, const WriteTreeRef& writes_cache,
     const Variant* opt_complete_server_cache,
     std::vector<Change>* out_changes) {
+  FIREBASE_DEV_ASSERT(out_changes != nullptr);
   if (operation.type == Operation::kTypeMerge &&
       operation.source.query_params.has_value()) {
     FIREBASE_DEV_ASSERT_MESSAGE(
@@ -182,8 +243,9 @@ std::vector<Event> View::GetInitialEvents(EventRegistration* registration) {
   const CacheNode& local_snap = view_cache_.local_snap();
   std::vector<Change> initial_changes;
   for (auto& child : local_snap.indexed_variant().index()) {
+    Variant child_key = child.first.AsString();
     initial_changes.push_back(
-        ChildAddedChange(child.first.AsString().string_value(), child.second));
+        ChildAddedChange(child_key.string_value(), child.second));
   }
   if (local_snap.fully_initialized()) {
     initial_changes.push_back(ValueChange(local_snap.indexed_variant()));
@@ -195,31 +257,44 @@ std::vector<Event> View::GetInitialEvents(EventRegistration* registration) {
 std::vector<Event> View::GenerateEvents(const std::vector<Change>& changes,
                                         const IndexedVariant& event_cache,
                                         EventRegistration* registration) {
-  // If we have a single event registration, we generate the events for just
-  // that registration. If the registration is null, we instead use all the
-  // registrations on this view.
-  //
-  // In the case where we're passing along a single registration, we have to
-  // manually set up a temporary vector to hold the registration, making sure to
-  // release it at the end without deallocating it.
-  std::vector<std::unique_ptr<EventRegistration>> temp_registrations;
-  if (registration) {
-    temp_registrations.emplace_back(registration);
+  // If no single EventRegistration was specified, generate events across all
+  // registrations owned by this View.
+  if (registration == nullptr) {
+    return GenerateEventsForChanges(query_spec_, changes, event_cache,
+                                    event_registrations_);
   }
 
-  // Decide if we're using the individual registration that was passed in, or
-  // the entire list of registrations.
-  std::vector<std::unique_ptr<EventRegistration>>& registrations =
-      registration ? temp_registrations : event_registrations_;
-
-  std::vector<Event> results = GenerateEventsForChanges(
-      query_spec_, changes, event_cache, registrations);
-
-  // Clean up the temporary vector we filled in initially.
-  for (auto& temp_registration : temp_registrations) {
-    temp_registration.release();
+  std::vector<Event> events;
+  std::vector<Change> moves;
+  QueryParamsComparator comparator(&query_spec_.params);
+  for (const Change& change : changes) {
+    if (change.event_type == kEventTypeChildChanged) {
+      const Variant& old_variant = change.old_indexed_variant.variant();
+      const Variant& variant = change.indexed_variant.variant();
+      if (comparator.Compare(QueryParamsComparator::kMinKey, old_variant,
+                             QueryParamsComparator::kMinKey, variant) != 0) {
+        moves.push_back(
+            ChildMovedChange(change.child_key, change.indexed_variant));
+      }
+    }
   }
-  return results;
+
+  GenerateEventsForSingleRegistrationAndType(
+      query_spec_, kEventTypeChildRemoved, changes, registration, event_cache,
+      &events);
+  GenerateEventsForSingleRegistrationAndType(query_spec_, kEventTypeChildAdded,
+                                             changes, registration, event_cache,
+                                             &events);
+  GenerateEventsForSingleRegistrationAndType(query_spec_, kEventTypeChildMoved,
+                                             moves, registration, event_cache,
+                                             &events);
+  GenerateEventsForSingleRegistrationAndType(
+      query_spec_, kEventTypeChildChanged, changes, registration, event_cache,
+      &events);
+  GenerateEventsForSingleRegistrationAndType(query_spec_, kEventTypeValue,
+                                             changes, registration, event_cache,
+                                             &events);
+  return events;
 }
 
 }  // namespace internal

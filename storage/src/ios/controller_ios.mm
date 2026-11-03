@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <thread>  // NOLINT
 #include <utility>
 
 #import "FirebaseStorage-Swift.h"
@@ -32,15 +31,28 @@ namespace internal {
 ControllerInternal::LifetimeHandle::LifetimeHandle()
     : storage(nullptr),
       task_impl(std::make_unique<FIRStorageObservableTaskPointer>(nil)),
+      action_generation(0),
       pending_valid(false),
       pending_cancel(false),
-      pending_pause(false) {}
+      pending_pause(false),
+      pending_resume(false) {}
 
 ControllerInternal::LifetimeHandle::~LifetimeHandle() {
-  std::lock_guard<std::recursive_mutex> lock(mutex);
-  if (storage != nullptr) {
-    storage->cleanup().UnregisterObject(this);
+  // The last shared_ptr is gone, so no other thread can reach this handle: the
+  // cleanup callback only holds a weak_ptr, whose lock() now fails. If that
+  // callback is running right now, the StorageInternal is inside its
+  // destructor and has already marked storage_token dead, so
+  // UnregisterCleanupObject() is a no-op; otherwise it unregisters while the
+  // token mutex keeps the StorageInternal alive. Either way this never touches
+  // a freed StorageInternal.
+  std::shared_ptr<StorageInternal::LifetimeToken> token;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    token = std::move(storage_token);
     storage = nullptr;
+  }
+  if (token) {
+    token->UnregisterCleanupObject(this);
   }
   task_impl.reset();
 }
@@ -52,74 +64,101 @@ void ControllerInternal::LifetimeHandle::AssignTask(
   if (!self) {
     return;
   }
-  std::lock_guard<std::recursive_mutex> lock(self->mutex);
-  if (self->storage != nullptr && self->storage != new_storage) {
-    // UnregisterObject() blocks while the old storage's cleanup callback for
-    // this handle runs on another thread. That callback only try-locks
-    // `mutex` and bails out while `unregistering > 0` (we overwrite the
-    // binding right below anyway), so this cannot deadlock.
-    self->unregistering.fetch_add(1);
-    self->storage->cleanup().UnregisterObject(self.get());
-    self->unregistering.fetch_sub(1);
-  }
-  self->storage = new_storage;
-  self->task_impl = std::make_unique<FIRStorageObservableTaskPointer>(new_task);
-  self->pending_valid = false;
-  if (self->storage != nullptr) {
-    std::weak_ptr<LifetimeHandle> weak_self(self);
-    self->storage->cleanup().RegisterObject(
-        self.get(), [weak_self](void* /*obj*/) {
-          if (std::shared_ptr<LifetimeHandle> locked = weak_self.lock()) {
-            std::unique_lock<std::recursive_mutex> state_lock(locked->mutex,
-                                                              std::defer_lock);
-            while (!state_lock.try_lock()) {
-              if (locked->unregistering.load() > 0) {
-                return;  // AssignTask() is rebinding this handle.
+  // Registration with a previous StorageInternal that must be dropped. It is
+  // unregistered only after self->mutex is released: the token mutex must not
+  // be acquired under self->mutex (see the lock order in controller_ios.h).
+  std::shared_ptr<StorageInternal::LifetimeToken> stale_token;
+  {
+    std::lock_guard<std::recursive_mutex> lock(self->mutex);
+    // Register only when the binding actually changes: re-assigning a task
+    // from the same, still-registered StorageInternal keeps the existing
+    // registration instead of adding a duplicate. (If that StorageInternal's
+    // cleanup callback already ran, it reset `storage`, so we re-register.)
+    if (self->storage != new_storage) {
+      stale_token = std::move(self->storage_token);
+      self->storage = new_storage;
+      if (new_storage != nullptr) {
+        self->storage_token = new_storage->lifetime_token();
+        const uint64_t generation = ++self->cleanup_generation;
+        std::weak_ptr<LifetimeHandle> weak_self(self);
+        // Cleanup callbacks only run from ~StorageInternal(), after the
+        // lifetime token was marked dead; UnregisterObject() is only called
+        // under a live token, so it never waits for this callback. Hence the
+        // callback may simply block on `mutex`.
+        new_storage->cleanup().RegisterObject(
+            self.get(), [weak_self, generation](void* /*obj*/) {
+              std::shared_ptr<LifetimeHandle> locked = weak_self.lock();
+              if (!locked) {
+                return;  // The handle is gone or being destroyed.
               }
-              std::this_thread::yield();
+              std::lock_guard<std::recursive_mutex> state_lock(locked->mutex);
+              if (locked->cleanup_generation != generation) {
+                return;  // Superseded by a later AssignTask().
+              }
+              locked->storage = nullptr;
+              locked->storage_token.reset();
+              locked->task_impl.reset();
+              ++locked->action_generation;
+              locked->pending_valid = false;
+              locked->pending_cancel = false;
+              locked->pending_pause = false;
+              locked->pending_resume = false;
+            });
+      }
+    }
+    self->task_impl =
+        std::make_unique<FIRStorageObservableTaskPointer>(new_task);
+    self->pending_valid = false;
+    self->pending_resume = false;
+    const uint64_t gen = ++self->action_generation;
+    // Native pause/resume/cancel calls are dispatched while holding
+    // self->mutex (as in Pause(), Resume() and Cancel()) so their order on the
+    // main queue matches the order of the C++ calls. self->mutex is
+    // recursive, so the block may re-acquire it when
+    // DispatchAsyncSafeMainQueue runs it synchronously on the main thread.
+    if (self->pending_cancel) {
+      self->pending_cancel = false;
+      self->pending_pause = false;
+      if (new_task && [new_task respondsToSelector:@selector(cancel)]) {
+        util::DispatchAsyncSafeMainQueue(^() {
+          [new_task cancel];
+        });
+      }
+    } else if (self->pending_pause) {
+      if (new_task && [new_task respondsToSelector:@selector(pause)]) {
+        // Leave pending_pause set until the native pause has actually been
+        // issued, so is_paused() never transiently reports false between here
+        // and the task's snapshot status transitioning to paused.
+        std::weak_ptr<LifetimeHandle> weak_self(self);
+        util::DispatchAsyncSafeMainQueue(^() {
+          [new_task pause];
+          if (std::shared_ptr<LifetimeHandle> locked = weak_self.lock()) {
+            std::lock_guard<std::recursive_mutex> state_lock(locked->mutex);
+            if (locked->get_task() == new_task &&
+                locked->action_generation == gen) {
+              locked->pending_pause = false;
             }
-            locked->storage = nullptr;
-            locked->task_impl.reset();
-            locked->pending_valid = false;
-            locked->pending_cancel = false;
-            locked->pending_pause = false;
           }
         });
+      } else {
+        self->pending_pause = false;
+      }
+    }
   }
-  // Native pause/resume/cancel calls are dispatched while holding self->mutex
-  // (as in Pause(), Resume() and Cancel()) so their order on the main queue
-  // matches the order of the C++ calls. self->mutex is recursive, so the block
-  // may re-acquire it when DispatchAsyncSafeMainQueue runs it synchronously on
-  // the main thread.
-  if (self->pending_cancel) {
-    self->pending_cancel = false;
-    self->pending_pause = false;
-    if (new_task && [new_task respondsToSelector:@selector(cancel)]) {
-      util::DispatchAsyncSafeMainQueue(^() {
-        [new_task cancel];
-      });
-    }
-  } else if (self->pending_pause) {
-    if (new_task && [new_task respondsToSelector:@selector(pause)]) {
-      // Leave pending_pause set until the native pause has actually been
-      // issued, so is_paused() never transiently reports false between here
-      // and the task's snapshot status transitioning to paused.
-      std::weak_ptr<LifetimeHandle> weak_self(self);
-      util::DispatchAsyncSafeMainQueue(^() {
-        [new_task pause];
-        if (std::shared_ptr<LifetimeHandle> locked = weak_self.lock()) {
-          std::lock_guard<std::recursive_mutex> state_lock(locked->mutex);
-          // Only clear the flag on behalf of this task: if the handle has
-          // since been reassigned or cleaned up, its pending state belongs to
-          // someone else.
-          if (locked->get_task() == new_task) {
-            locked->pending_pause = false;
-          }
-        }
-      });
-    } else {
-      self->pending_pause = false;
-    }
+  if (stale_token) {
+    stale_token->RunWhileAlive([&self, &stale_token](
+                                   StorageInternal& alive_storage) {
+      // Lock order: token mutex (held by RunWhileAlive), then self->mutex,
+      // which serializes this with the registration above.
+      // UnregisterObject() does not block here (see RunWhileAlive()).
+      std::lock_guard<std::recursive_mutex> lock(self->mutex);
+      // If the handle was re-bound to that same StorageInternal in the
+      // meantime, the registration keyed by self.get() is the new one: keep
+      // it.
+      if (self->storage_token != stale_token) {
+        alive_storage.cleanup().UnregisterObject(self.get());
+      }
+    });
   }
 }
 
@@ -148,14 +187,28 @@ bool ControllerInternal::Pause() {
   FIRStorageObservableTask<FIRStorageTaskManagement>* task = state_->get_task();
   if (task) {
     if ([task respondsToSelector:@selector(pause)]) {
+      // Keep pending_pause set until the main-queue block has run [task pause]
+      // so is_paused() never transiently returns false right after Pause().
+      state_->pending_pause = true;
+      state_->pending_resume = false;
+      const uint64_t gen = ++state_->action_generation;
+      std::weak_ptr<LifetimeHandle> weak_state(state_);
       util::DispatchAsyncSafeMainQueue(^() {
         [task pause];
+        if (std::shared_ptr<LifetimeHandle> locked = weak_state.lock()) {
+          std::lock_guard<std::recursive_mutex> state_lock(locked->mutex);
+          if (locked->get_task() == task && locked->action_generation == gen) {
+            locked->pending_pause = false;
+          }
+        }
       });
     } else {
       return false;
     }
   } else if (state_->pending_valid) {
+    ++state_->action_generation;
     state_->pending_pause = true;
+    state_->pending_resume = false;
   } else {
     return false;
   }
@@ -170,14 +223,29 @@ bool ControllerInternal::Resume() {
   FIRStorageObservableTask<FIRStorageTaskManagement>* task = state_->get_task();
   if (task) {
     if ([task respondsToSelector:@selector(resume)]) {
+      // Keep pending_resume set until the main-queue block has run
+      // [task resume] so is_paused() never transiently returns true right
+      // after Resume().
+      state_->pending_pause = false;
+      state_->pending_resume = true;
+      const uint64_t gen = ++state_->action_generation;
+      std::weak_ptr<LifetimeHandle> weak_state(state_);
       util::DispatchAsyncSafeMainQueue(^() {
         [task resume];
+        if (std::shared_ptr<LifetimeHandle> locked = weak_state.lock()) {
+          std::lock_guard<std::recursive_mutex> state_lock(locked->mutex);
+          if (locked->get_task() == task && locked->action_generation == gen) {
+            locked->pending_resume = false;
+          }
+        }
       });
     } else {
       return false;
     }
   } else if (state_->pending_valid) {
+    ++state_->action_generation;
     state_->pending_pause = false;
+    state_->pending_resume = false;
   } else {
     return false;
   }
@@ -192,6 +260,9 @@ bool ControllerInternal::Cancel() {
   FIRStorageObservableTask<FIRStorageTaskManagement>* task = state_->get_task();
   if (task) {
     if ([task respondsToSelector:@selector(cancel)]) {
+      ++state_->action_generation;
+      state_->pending_pause = false;
+      state_->pending_resume = false;
       util::DispatchAsyncSafeMainQueue(^() {
         [task cancel];
       });
@@ -199,8 +270,10 @@ bool ControllerInternal::Cancel() {
       return false;
     }
   } else if (state_->pending_valid) {
+    ++state_->action_generation;
     state_->pending_cancel = true;
     state_->pending_pause = false;
+    state_->pending_resume = false;
   } else {
     return false;
   }
@@ -215,11 +288,16 @@ bool ControllerInternal::is_paused() const {
   // case the caller is a C++ thread without an autorelease pool.
   @autoreleasepool {
     std::lock_guard<std::recursive_mutex> lock(state_->mutex);
+    if (state_->pending_pause) {
+      return true;
+    }
+    if (state_->pending_resume) {
+      return false;
+    }
     FIRStorageObservableTask<FIRStorageTaskManagement>* task = state_->get_task();
     FIRStorageTaskSnapshot* snapshot = task ? task.snapshot : nil;
-    return (snapshot != nil ? snapshot.status == FIRStorageTaskStatusPause
-                            : false) ||
-           state_->pending_pause;
+    return snapshot != nil ? snapshot.status == FIRStorageTaskStatusPause
+                           : false;
   }
 }
 
@@ -240,6 +318,9 @@ int64_t ControllerInternal::bytes_transferred() const {
 }
 
 int64_t ControllerInternal::total_byte_count() const {
+  // Per firebase/storage/controller.h, total_byte_count() returns -1 when the
+  // Controller is invalid or the total transfer size could not be determined
+  // (matching the Android and desktop implementations).
   if (!state_) {
     return -1;
   }
@@ -260,15 +341,28 @@ StorageReferenceInternal* ControllerInternal::GetReference() const {
     return nullptr;
   }
   @autoreleasepool {
-    std::lock_guard<std::recursive_mutex> lock(state_->mutex);
-    FIRStorageObservableTask<FIRStorageTaskManagement>* task = state_->get_task();
-    if (!state_->storage || !task) {
+    FIRStorageObservableTask<FIRStorageTaskManagement>* task = nil;
+    std::shared_ptr<StorageInternal::LifetimeToken> token;
+    {
+      std::lock_guard<std::recursive_mutex> lock(state_->mutex);
+      task = state_->get_task();
+      token = state_->storage_token;
+    }
+    if (!task || !token) {
+      return nullptr;
+    }
+    // Acquired after releasing state_->mutex (lock order: token mutex first).
+    // Holding it keeps the StorageInternal alive while the new reference is
+    // constructed.
+    MutexLock token_lock(token->mutex);
+    StorageInternal* storage = token->storage;
+    if (!storage) {
       return nullptr;
     }
     FIRStorageTaskSnapshot* snapshot = task.snapshot;
     if (snapshot != nil && snapshot.reference != nil) {
       return new StorageReferenceInternal(
-          state_->storage,
+          storage,
           std::make_unique<FIRStorageReferencePointer>(snapshot.reference));
     }
     return nullptr;
@@ -298,9 +392,11 @@ void ControllerInternal::set_pending_valid(bool pending_valid) {
       if (state_->storage != nullptr || state_->get_task() != nil) {
         needs_fresh_state = true;
       } else {
+        ++state_->action_generation;
         state_->pending_valid = true;
         state_->pending_cancel = false;
         state_->pending_pause = false;
+        state_->pending_resume = false;
       }
     }
     if (needs_fresh_state) {
@@ -310,9 +406,11 @@ void ControllerInternal::set_pending_valid(bool pending_valid) {
     }
   } else if (state_) {
     std::lock_guard<std::recursive_mutex> lock(state_->mutex);
+    ++state_->action_generation;
     state_->pending_valid = false;
     state_->pending_cancel = false;
     state_->pending_pause = false;
+    state_->pending_resume = false;
   }
 }
 

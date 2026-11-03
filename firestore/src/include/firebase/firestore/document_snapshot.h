@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_DOCUMENT_SNAPSHOT_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_DOCUMENT_SNAPSHOT_H_
 
+#include <cstddef>
 #include <iosfwd>
 #include <string>
 
@@ -38,8 +39,9 @@ class Firestore;
  *
  * The data can be extracted with the GetData() method, or by using
  * Get() to access a specific field. For a DocumentSnapshot that points to
- * a non-existing document, any data access will cause a failed assertion. You
- * can use the exists() method to explicitly verify a document's existence.
+ * a non-existing document, any data access will return an empty map or an
+ * invalid FieldValue. You can use the exists() method to explicitly verify a
+ * document's existence.
  *
  * @note Firestore classes are not meant to be subclassed except for use in test
  * mocks. Subclassing is not supported in production code and new SDK releases
@@ -111,7 +113,7 @@ class DocumentSnapshot {
    *
    * @param[in] other `DocumentSnapshot` to move data from.
    */
-  DocumentSnapshot(DocumentSnapshot&& other);
+  DocumentSnapshot(DocumentSnapshot&& other) noexcept;
 
   virtual ~DocumentSnapshot();
 
@@ -138,7 +140,7 @@ class DocumentSnapshot {
    *
    * @return Reference to the destination `DocumentSnapshot`.
    */
-  DocumentSnapshot& operator=(DocumentSnapshot&& other);
+  DocumentSnapshot& operator=(DocumentSnapshot&& other) noexcept;
 
   /**
    * @brief Returns the string ID of the document for which this
@@ -281,7 +283,7 @@ class DocumentSnapshot {
 
   explicit DocumentSnapshot(DocumentSnapshotInternal* internal);
 
-  mutable DocumentSnapshotInternal* internal_ = nullptr;
+  DocumentSnapshotInternal* internal_ = nullptr;
 };
 
 /** Checks `lhs` and `rhs` for equality. */

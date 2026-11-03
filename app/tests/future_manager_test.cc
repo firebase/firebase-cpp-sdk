@@ -16,19 +16,14 @@
 
 #include "app/src/future_manager.h"
 
-#include <stdlib.h>
-
-#include <ctime>
+#include <functional>
 #include <memory>
-#include <vector>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "thread/fiber/fiber.h"
-#include "util/random/mt_random_thread_safe.h"
 
 using ::testing::Eq;
 using ::testing::IsNull;
@@ -44,12 +39,12 @@ enum FutureManagerTestFn { kTestFnOne, kTestFnCount };
 class FutureManagerTest : public ::testing::Test {
  protected:
   FutureManager future_manager_;
-  int value1_;
-  int value2_;
-  int value3_;
+  int value1_ = 0;
+  int value2_ = 0;
+  int value3_ = 0;
 };
 
-typedef FutureManagerTest FutureManagerDeathTest;
+using FutureManagerDeathTest = FutureManagerTest;
 
 TEST_F(FutureManagerTest, TestAllocFutureApis) {
   EXPECT_THAT(future_manager_.GetFutureApi(&value1_), IsNull());
@@ -136,22 +131,23 @@ TEST_F(FutureManagerTest, TestFutureManagerCanBeDeletedByFutureInParallel) {
   ReferenceCountedFutureImpl* future_impl =
       future_manager->GetFutureApi(&value1_);
 
-  Semaphore running_callback_sem(2);
+  Semaphore callback_a_entered(0);
+  Semaphore callback_b_entered(0);
 
   // Prepare two futures.
   auto handle_a = future_impl->SafeAlloc<void>(0);
   Future<void> future_a(future_impl, handle_a.get());
   future_a.OnCompletion([&](const Future<void>&) {
-    running_callback_sem.Post();
-    running_callback_sem.Wait();
+    callback_a_entered.Post();
+    callback_b_entered.Wait();
   });
 
   auto handle_b = future_impl->SafeAlloc<void>(1);
   Future<void> future_b(future_impl, handle_b.get());
   Semaphore destroyed_future_manager_sem(0);
   future_b.OnCompletion([&](const Future<void>&) {
-    running_callback_sem.Post();
-    running_callback_sem.Wait();
+    callback_b_entered.Post();
+    callback_a_entered.Wait();
     // Only destroy the future manager once both callbacks are running, to make
     // their execution as close to each other as possible.
     future_manager = nullptr;
@@ -159,19 +155,19 @@ TEST_F(FutureManagerTest, TestFutureManagerCanBeDeletedByFutureInParallel) {
     destroyed_future_manager_sem.Post();
   });
 
-  // Complete both futures in parallel, so that the callbacks run in parallel as
-  // well.
-  future_impl->Complete(handle_a, 0, "");
-  // Using a `std::function` allows easily capturing the two necessary locals.
+  // Spawn thread B first so both futures complete and run their callbacks in
+  // parallel across the two threads.
   std::function<void()> callback_b = [&] {
     future_impl->Complete(handle_b, 0, "");
   };
   firebase::Thread thread(
       [](void* raw_callback_b) {
-        auto* callback_b = static_cast<std::function<void()>*>(raw_callback_b);
-        (*callback_b)();
+        auto* fn = static_cast<std::function<void()>*>(raw_callback_b);
+        (*fn)();
       },
       &callback_b);
+
+  future_impl->Complete(handle_a, 0, "");
 
   destroyed_future_manager_sem.Wait();
   thread.Join();
@@ -184,6 +180,11 @@ TEST_F(FutureManagerDeathTest, TestCleanupOrphanedFuturesApis) {
   ReferenceCountedFutureImpl* future_impl =
       future_manager_.GetFutureApi(&value1_);
   EXPECT_THAT(future_impl, NotNull());
+
+  bool api_deleted = false;
+  future_impl->cleanup().cleanup_notifier().RegisterObject(
+      &api_deleted,
+      [](void* ptr) { *static_cast<bool*>(ptr) = true; });
 
   auto handle = future_impl->SafeAlloc<void>(kTestFnOne);
   handle.Detach();
@@ -198,13 +199,14 @@ TEST_F(FutureManagerDeathTest, TestCleanupOrphanedFuturesApis) {
 
   // Future should still be valid even after cleanup since it is still pending.
   future_manager_.CleanupOrphanedFutureApis(false);
+  EXPECT_FALSE(api_deleted);
   EXPECT_THAT(future_impl->LastResult(kTestFnOne).status(),
               Eq(kFutureStatusPending));
 
-  // Future should no longer be valid after cleanup since it is complete.
+  // Future API should be deleted after completion and non-forced cleanup.
   future_impl->Complete(handle, 0, "");
   future_manager_.CleanupOrphanedFutureApis(false);
-  EXPECT_DEATH(future_impl->SafeAlloc<void>(kTestFnOne), "SIGSEGV");
+  EXPECT_TRUE(api_deleted);
 }
 
 TEST_F(FutureManagerDeathTest, TestCleanupOrphanedFuturesApisForcefully) {
@@ -214,6 +216,11 @@ TEST_F(FutureManagerDeathTest, TestCleanupOrphanedFuturesApisForcefully) {
   ReferenceCountedFutureImpl* future_impl =
       future_manager_.GetFutureApi(&value1_);
   EXPECT_THAT(future_impl, NotNull());
+
+  bool api_deleted = false;
+  future_impl->cleanup().cleanup_notifier().RegisterObject(
+      &api_deleted,
+      [](void* ptr) { *static_cast<bool*>(ptr) = true; });
 
   future_impl->SafeAlloc<void>(kTestFnOne);
 
@@ -226,10 +233,10 @@ TEST_F(FutureManagerDeathTest, TestCleanupOrphanedFuturesApisForcefully) {
     EXPECT_THAT(future.status(), Eq(kFutureStatusPending));
   }
 
-  // Future should no longer be valid after force cleanup regardless of whether
-  // or not it is complete.
+  // Future API should be deleted after force cleanup even while pending.
+  EXPECT_FALSE(api_deleted);
   future_manager_.CleanupOrphanedFutureApis(true);
-  EXPECT_DEATH(future_impl->SafeAlloc<void>(kTestFnOne), "SIGSEGV");
+  EXPECT_TRUE(api_deleted);
 }
 
 TEST_F(FutureManagerDeathTest,

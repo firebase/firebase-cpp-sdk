@@ -38,11 +38,13 @@ class Array : public Object {
 
   size_t Size(Env& env) const { return env.GetArrayLength(*this); }
 
-  Local<T> Get(Env& env, size_t i) const {
+  template <typename U = T>
+  EnableForReference<U, Local<U>> Get(Env& env, size_t i) const {
     return env.GetArrayElement<T>(*this, i);
   }
 
-  void Set(Env& env, size_t i, const T& value) {
+  template <typename U = T>
+  EnableForReference<U, void> Set(Env& env, size_t i, const T& value) {
     env.SetArrayElement<T>(*this, i, value);
   }
 };

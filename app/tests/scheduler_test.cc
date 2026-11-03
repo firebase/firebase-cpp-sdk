@@ -94,7 +94,6 @@ TEST_F(SchedulerTest, Basic) {
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
 }
 
-#ifdef FIREBASE_USE_STD_FUNCTION
 TEST_F(SchedulerTest, BasicStdFunction) {
   std::function<void(void)> func = [this]() { callback_sem1_.Post(); };
 
@@ -104,7 +103,6 @@ TEST_F(SchedulerTest, BasicStdFunction) {
   scheduler_.Schedule(func, 1);
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
 }
-#endif
 
 TEST_F(SchedulerTest, TriggerOrderNoDelay) {
   std::vector<int> expected;
@@ -252,9 +250,9 @@ TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
 
 TEST_F(SchedulerTest, CancelImmediateCallback) {
   auto test_func = [](int delay) {
-    // Use standalone scheduler and counter
-    Scheduler scheduler;
+    // Declare counter before scheduler so it outlives the worker thread.
     std::atomic<int> count(0);
+    Scheduler scheduler;
     int success_cancel = 0;
     for (int i = 0; i < kThreadTestIteration; ++i) {
       bool cancelled =
@@ -263,7 +261,7 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
                   new callback::CallbackValue1<std::atomic<int>*>(
                       &count,
                       [](std::atomic<int>* count) { count->fetch_add(1); }),
-                  0)
+                  delay)
               .Cancel();
       if (cancelled) {
         ++success_cancel;
@@ -271,6 +269,7 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
     }
 
     internal::Sleep(10);
+    scheduler.CancelAllAndShutdownWorkerThread();
 
     // Does not guarantee 100% successful cancellation
     float success_rate = success_cancel * 100.0f / kThreadTestIteration;
@@ -291,20 +290,22 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
 // This test can take around 5s ~ 30s depending on the platform
 TEST_F(SchedulerTest, CancelRepeatCallback) {
   auto test_func = [](int delay, int repeat, int wait_repeat) {
-    // Use standalone scheduler and counter for iterations
-    Scheduler scheduler;
+    // Declare counter and mutex before scheduler so they outlive worker thread.
     std::atomic<int> count(0);
+    Mutex count_mutex;
+    Scheduler scheduler;
     while (callback_sem1_.TryWait()) {
     }
 
-    RequestHandle handler =
-        scheduler.Schedule(new callback::CallbackValue1<std::atomic<int>*>(
-                               &count,
-                               [](std::atomic<int>* count) {
-                                 count->fetch_add(1);
-                                 callback_sem1_.Post();
-                               }),
-                           delay, repeat);
+    RequestHandle handler = scheduler.Schedule(
+        [&count, &count_mutex]() {
+          {
+            MutexLock lock(count_mutex);
+            count.fetch_add(1);
+          }
+          callback_sem1_.Post();
+        },
+        delay, repeat);
     EXPECT_FALSE(handler.IsCancelled());
 
     for (int i = 0; i < wait_repeat; ++i) {
@@ -312,16 +313,21 @@ TEST_F(SchedulerTest, CancelRepeatCallback) {
       EXPECT_TRUE(handler.IsTriggered());
     }
 
-    // Cancellation of a repeat cb should always be successful, as long as
-    // it is not cancelled yet
-    EXPECT_TRUE(handler.Cancel());
-    EXPECT_TRUE(handler.IsCancelled());
-    EXPECT_FALSE(handler.Cancel());
+    int saved_count = 0;
+    {
+      MutexLock lock(count_mutex);
+      // Cancellation of a repeat cb should always be successful, as long as
+      // it is not cancelled yet
+      EXPECT_TRUE(handler.Cancel());
+      EXPECT_TRUE(handler.IsCancelled());
+      EXPECT_FALSE(handler.Cancel());
 
-    // Should have no more cb triggered after the cancellation
-    int saved_count = count.load();
+      // Should have no more cb triggered after the cancellation
+      saved_count = count.load();
+    }
 
     internal::Sleep(1);
+    scheduler.CancelAllAndShutdownWorkerThread();
     EXPECT_THAT(count.load(), Eq(saved_count));
   };
 
@@ -359,6 +365,35 @@ TEST_F(SchedulerTest, DeleteScheduler) {
   float trigger_rate = atomic_count_.load() * 100.0f / kThreadTestIteration;
   printf("Callback trigger rate: %.1f%% (And it is ok if not 0%%)\n",
          trigger_rate);
+}
+
+TEST_F(SchedulerTest, DefaultRequestHandleIsSafe) {
+  RequestHandle handle;
+  EXPECT_FALSE(handle.IsValid());
+  EXPECT_FALSE(handle.Cancel());
+  EXPECT_FALSE(handle.IsCancelled());
+  EXPECT_FALSE(handle.IsTriggered());
+}
+
+TEST_F(SchedulerTest, CancelInsideCallbackDoesNotDeadlock) {
+  RequestHandle handle;
+  Mutex handle_mutex;
+  {
+    MutexLock lock(handle_mutex);
+    handle = scheduler_.Schedule(
+        [&]() {
+          {
+            MutexLock cb_lock(handle_mutex);
+            EXPECT_FALSE(handle.IsCancelled());
+            EXPECT_TRUE(handle.Cancel());
+            EXPECT_TRUE(handle.IsCancelled());
+          }
+          callback_sem1_.Post();
+        },
+        0, 10);
+  }
+  EXPECT_TRUE(callback_sem1_.TimedWait(1000));
+  scheduler_.CancelAllAndShutdownWorkerThread();
 }
 
 }  // namespace scheduler

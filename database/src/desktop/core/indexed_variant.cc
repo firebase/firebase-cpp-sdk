@@ -16,16 +16,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <string>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/query_params_comparator.h"
 #include "database/src/desktop/util_desktop.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
 IndexedVariant::IndexedVariant()
     : variant_(), query_params_(), index_(QueryParamsLesser(&query_params_)) {
@@ -47,6 +48,14 @@ IndexedVariant::IndexedVariant(const Variant& variant,
   EnsureIndexed();
 }
 
+IndexedVariant::IndexedVariant(Variant&& variant,
+                               const QueryParams& query_params)
+    : variant_(std::move(variant)),
+      query_params_(query_params),
+      index_(QueryParamsLesser(&query_params_)) {
+  EnsureIndexed();
+}
+
 IndexedVariant::IndexedVariant(const IndexedVariant& other)
     : variant_(other.variant_),
       query_params_(other.query_params_),
@@ -55,6 +64,7 @@ IndexedVariant::IndexedVariant(const IndexedVariant& other)
 }
 
 IndexedVariant& IndexedVariant::operator=(const IndexedVariant& other) {
+  if (&other == this) return *this;
   variant_ = other.variant_;
   query_params_ = other.query_params_;
   index_ = Index(QueryParamsLesser(&query_params_));
@@ -62,9 +72,29 @@ IndexedVariant& IndexedVariant::operator=(const IndexedVariant& other) {
   return *this;
 }
 
+IndexedVariant::IndexedVariant(IndexedVariant&& other) noexcept
+    : variant_(std::move(other.variant_)),
+      query_params_(std::move(other.query_params_)),
+      index_(QueryParamsLesser(&query_params_)) {
+  while (!other.index_.empty()) {
+    index_.insert(index_.end(), other.index_.extract(other.index_.begin()));
+  }
+}
+
+IndexedVariant& IndexedVariant::operator=(IndexedVariant&& other) noexcept {
+  if (&other == this) return *this;
+  variant_ = std::move(other.variant_);
+  query_params_ = std::move(other.query_params_);
+  index_ = Index(QueryParamsLesser(&query_params_));
+  while (!other.index_.empty()) {
+    index_.insert(index_.end(), other.index_.extract(other.index_.begin()));
+  }
+  return *this;
+}
+
 const char* IndexedVariant::GetPredecessorChildName(
     const std::string& child_key, const Variant& child_value) const {
-  Variant key = child_key.c_str();
+  Variant key(child_key);
   auto iter = index_.find(std::make_pair(key, child_value));
 
   if (iter == index_.end()) {
@@ -93,19 +123,15 @@ IndexedVariant::Index::const_iterator IndexedVariant::Find(
 }
 
 const Variant* IndexedVariant::GetOrderByVariant(const Variant& key,
-                                                 const Variant& value) {
+                                                 const Variant& value) const {
   switch (query_params_.order_by) {
     case QueryParams::kOrderByPriority: {
       return &GetVariantPriority(value);
     }
     case QueryParams::kOrderByChild: {
-      if (value.is_map()) {
-        auto iter = value.map().find(query_params_.order_by_child);
-        if (iter != value.map().end()) {
-          return GetVariantValue(&iter->second);
-        }
-      }
-      return nullptr;
+      Path child_path(query_params_.order_by_child);
+      const Variant& child = VariantGetChild(&value, child_path);
+      return child.is_null() ? nullptr : GetVariantValue(&child);
     }
     case QueryParams::kOrderByKey: {
       return &key;
@@ -116,24 +142,6 @@ const Variant* IndexedVariant::GetOrderByVariant(const Variant& key,
   }
   FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
   return nullptr;
-}
-
-static bool IsDefinedOn(const Variant& variant, const QueryParams& params) {
-  switch (params.order_by) {
-    case QueryParams::kOrderByPriority: {
-      return !VariantIsEmpty(GetVariantPriority(variant));
-    }
-    case QueryParams::kOrderByKey: {
-      return true;
-    }
-    case QueryParams::kOrderByChild: {
-      return !VariantIsEmpty(
-          VariantGetChild(&variant, Path(params.order_by_child)));
-    }
-    case QueryParams::kOrderByValue: {
-      return true;
-    }
-  }
 }
 
 void IndexedVariant::EnsureIndexed() {
@@ -157,7 +165,7 @@ IndexedVariant IndexedVariant::UpdateChild(const std::string& key,
                                            const Variant& child) const {
   Variant result = variant_;
   VariantUpdateChild(&result, key, child);
-  return IndexedVariant(result, query_params_);
+  return IndexedVariant(std::move(result), query_params_);
 }
 
 IndexedVariant IndexedVariant::UpdatePriority(const Variant& priority) const {
@@ -168,21 +176,15 @@ IndexedVariant IndexedVariant::UpdatePriority(const Variant& priority) const {
 Optional<std::pair<Variant, Variant>> IndexedVariant::GetFirstChild() const {
   if (index().empty()) {
     return Optional<std::pair<Variant, Variant>>();
-  } else {
-    auto front = index().begin();
-    return Optional<std::pair<Variant, Variant>>(
-        std::make_pair(front->first, front->second));
   }
+  return Optional<std::pair<Variant, Variant>>(*index().begin());
 }
 
 Optional<std::pair<Variant, Variant>> IndexedVariant::GetLastChild() const {
   if (index().empty()) {
     return Optional<std::pair<Variant, Variant>>();
-  } else {
-    auto back = --index().end();
-    return Optional<std::pair<Variant, Variant>>(
-        std::make_pair(back->first, back->second));
   }
+  return Optional<std::pair<Variant, Variant>>(*index().rbegin());
 }
 
 bool operator==(const IndexedVariant& lhs, const IndexedVariant& rhs) {
@@ -194,6 +196,4 @@ bool operator!=(const IndexedVariant& lhs, const IndexedVariant& rhs) {
   return !(lhs == rhs);
 }
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal

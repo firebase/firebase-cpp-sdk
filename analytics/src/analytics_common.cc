@@ -16,8 +16,6 @@
 
 #include "analytics/src/analytics_common.h"
 
-#include <assert.h>
-
 #include "analytics/src/include/firebase/analytics.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/util.h"
@@ -36,7 +34,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       return kInitResultSuccess;
     },
     {
-      if (app == ::firebase::App::GetInstance()) {
+      if (app == ::firebase::App::GetInstance() &&
+          firebase::analytics::internal::IsInitialized()) {
         firebase::analytics::Terminate();
       }
     },
@@ -46,52 +45,112 @@ namespace firebase {
 namespace analytics {
 namespace internal {
 
-const char* kAnalyticsModuleName = "analytics";
+const char* const kAnalyticsModuleName = "analytics";
 
-FutureData* FutureData::s_future_data_;
+static App* s_registered_app = nullptr;
+
+std::shared_ptr<FutureData>& FutureData::FutureDataPtr() {
+  static auto* s_future_data = new std::shared_ptr<FutureData>();
+  return *s_future_data;
+}
+
+std::recursive_mutex& FutureData::mutex() {
+  static auto* s_mutex = new std::recursive_mutex();
+  return *s_mutex;
+}
 
 // Create FutureData singleton.
 FutureData* FutureData::Create() {
-  s_future_data_ = new FutureData();
-  return s_future_data_;
+  std::lock_guard<std::recursive_mutex> lock(mutex());
+  auto& future_data = FutureDataPtr();
+  future_data = std::make_shared<FutureData>();
+  return future_data.get();
 }
 
 // Destroy the FutureData singleton.
 void FutureData::Destroy() {
-  delete s_future_data_;
-  s_future_data_ = nullptr;
+  std::lock_guard<std::recursive_mutex> lock(mutex());
+  FutureDataPtr().reset();
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() { return s_future_data_; }
+FutureData* FutureData::Get() {
+  std::lock_guard<std::recursive_mutex> lock(mutex());
+  return FutureDataPtr().get();
+}
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kAnalyticsModuleName)) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
+std::shared_ptr<FutureData> FutureData::GetShared() {
+  std::lock_guard<std::recursive_mutex> lock(mutex());
+  return FutureDataPtr();
+}
+
+void RegisterTerminateOnAppDestroy(const App* app) {
+  App* target_app = const_cast<App*>(app ? app : App::GetInstance());
+  App* old_app = nullptr;
+  {
+    std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+    if (s_registered_app && s_registered_app != target_app) {
+      old_app = s_registered_app;
+      s_registered_app = nullptr;
+    }
+    if (target_app) {
+      s_registered_app = target_app;
+    }
+  }
+  if (old_app) {
+    CleanupNotifier* old_notifier = CleanupNotifier::FindByOwner(old_app);
+    if (old_notifier) {
+      old_notifier->UnregisterObject(const_cast<char*>(kAnalyticsModuleName));
+    }
+  }
+  if (!target_app) {
+    return;
+  }
+  CleanupNotifier* cleanup_notifier = CleanupNotifier::FindByOwner(target_app);
+  if (cleanup_notifier) {
     cleanup_notifier->RegisterObject(
         const_cast<char*>(kAnalyticsModuleName), [](void*) {
-          LogError(
-              "analytics::Terminate() should be called before default app is "
-              "destroyed.");
+          {
+            std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+            s_registered_app = nullptr;
+          }
           if (firebase::analytics::internal::IsInitialized()) {
             firebase::analytics::Terminate();
           }
         });
+  } else {
+    std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+    if (s_registered_app == target_app) {
+      s_registered_app = nullptr;
+    }
+  }
+}
+
+// Registers a cleanup task for this module if auto-initialization is disabled.
+void RegisterTerminateOnDefaultAppDestroy() {
+  RegisterTerminateOnAppDestroy(App::GetInstance());
+}
+
+void UnregisterTerminateOnAppDestroy() {
+  App* target_app = nullptr;
+  {
+    std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+    target_app = s_registered_app;
+    s_registered_app = nullptr;
+  }
+  if (target_app) {
+    CleanupNotifier* cleanup_notifier =
+        CleanupNotifier::FindByOwner(target_app);
+    if (cleanup_notifier) {
+      cleanup_notifier->UnregisterObject(
+          const_cast<char*>(kAnalyticsModuleName));
+    }
   }
 }
 
 // Remove the cleanup task for this module if auto-initialization is disabled.
 void UnregisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kAnalyticsModuleName) &&
-      firebase::analytics::internal::IsInitialized()) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
-    cleanup_notifier->UnregisterObject(const_cast<char*>(kAnalyticsModuleName));
-  }
+  UnregisterTerminateOnAppDestroy();
 }
 
 }  // namespace internal

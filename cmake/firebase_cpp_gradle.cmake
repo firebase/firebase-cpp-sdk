@@ -12,27 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# If the expected file does not already exist, defines a custom command to use
-# the Gradle Wrapper in the root directory to invoke the given build rule.
+# Defines a custom command to use the Gradle Wrapper in the root directory to
+# invoke the given build rule when the expected output file needs to be built.
 #
 # Args:
 #   GRADLE_TARGET: The gradle target that will be built, if needed.
 #   EXPECTED_FILE: The expected output from the gradle target.
 function(firebase_cpp_gradle GRADLE_TARGET EXPECTED_FILE)
-  if(NOT EXISTS ${EXPECTED_FILE})
-    if(WIN32)
-      set(gradle_command "gradlew.bat")
-    else()
-      set(gradle_command "./gradlew")
-    endif()
-
-    # Run gradle to generated the expected file
-    add_custom_command(
-      COMMAND ${gradle_command} ${GRADLE_TARGET}
-      OUTPUT ${EXPECTED_FILE}
-      WORKING_DIRECTORY ${FIREBASE_SOURCE_DIR}
-    )
+  if(WIN32)
+    set(gradle_command "gradlew.bat")
+  else()
+    set(gradle_command "./gradlew")
   endif()
+
+  # Run gradle to generate the expected file
+  add_custom_command(
+    COMMAND "${gradle_command}" "${GRADLE_TARGET}"
+    OUTPUT "${EXPECTED_FILE}"
+    WORKING_DIRECTORY "${FIREBASE_SOURCE_DIR}"
+    USES_TERMINAL
+  )
 endfunction()
 
 # Defines a variable for generating the proguard file for a given library.
@@ -43,15 +42,21 @@ endfunction()
 function(firebase_cpp_proguard_file LIBRARY_NAME)
   string(TOUPPER "${LIBRARY_NAME}" upper_name)
   set(proguard_var "FIREBASE_CPP_${upper_name}_PROGUARD")
+  string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type_lower)
+  if(build_type_lower STREQUAL "debug")
+    set(gradle_build_type "Debug")
+  else()
+    set(gradle_build_type "Release")
+  endif()
   set(${proguard_var}
-      "${FIREBASE_SOURCE_DIR}/${LIBRARY_NAME}/build/${CMAKE_BUILD_TYPE}/${LIBRARY_NAME}.pro"
+      "${FIREBASE_SOURCE_DIR}/${LIBRARY_NAME}/build/${gradle_build_type}/${LIBRARY_NAME}.pro"
       CACHE FILEPATH "Proguard file for ${LIBRARY_NAME}" FORCE)
 
-  firebase_cpp_gradle(":${LIBRARY_NAME}:externalNativeBuildRelease"
+  firebase_cpp_gradle(":${LIBRARY_NAME}:externalNativeBuild${gradle_build_type}"
                       "${${proguard_var}}")
 
   add_custom_target(
     "${proguard_var}"
-    DEPENDS ${${proguard_var}}
+    DEPENDS "${${proguard_var}}"
   )
 endfunction()

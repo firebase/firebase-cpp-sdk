@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # Copyright 2016 Google LLC
 #
@@ -62,11 +62,11 @@ def read_xml_value(xml_node):
     The value of the node, or None, if it could not be read.
   """
   if xml_node.tag == 'string':
-    return xml_node.text
+    return xml_node.text if xml_node.text is not None else ''
   elif xml_node.tag == 'integer':
-    return int(xml_node.text)
+    return int(xml_node.text.strip()) if xml_node.text and xml_node.text.strip() else 0
   elif xml_node.tag == 'real':
-    return float(xml_node.text)
+    return float(xml_node.text.strip()) if xml_node.text and xml_node.text.strip() else 0.0
   elif xml_node.tag == 'false':
     return 0
   elif xml_node.tag == 'true':
@@ -169,10 +169,10 @@ def construct_google_services_json(xml_dict):
             }],
             'services': {
                 'analytics_service': {
-                    'status': xml_dict['IS_ANALYTICS_ENABLED']
+                    'status': 2 if xml_dict.get('IS_ANALYTICS_ENABLED') else 1
                 },
                 'appinvite_service': {
-                    'status': xml_dict['IS_APPINVITE_ENABLED']
+                    'status': 2 if xml_dict.get('IS_APPINVITE_ENABLED') else 1
                 }
             }
         },],
@@ -267,7 +267,7 @@ def argv_as_unicode_win32():
   """Returns unicode command line arguments on windows.
   """
 
-  get_command_line_w = ctypes.cdll.kernel32.GetCommandLineW
+  get_command_line_w = ctypes.windll.kernel32.GetCommandLineW
   get_command_line_w.restype = ctypes.wintypes.LPCWSTR
 
   # CommandLineToArgvW parses the Unicode command line
@@ -279,15 +279,21 @@ def argv_as_unicode_win32():
   command_line_to_argv_w.restype = ctypes.POINTER(
       ctypes.wintypes.LPWSTR)
 
-  argc = ctypes.c_int(0)
-  argv = command_line_to_argv_w(get_command_line_w(), argc)
+  local_free = ctypes.windll.kernel32.LocalFree
+  local_free.argtypes = [ctypes.c_void_p]
 
-  # Strip the python executable from the arguments if it exists
-  # (It would be listed as the first argument on the windows command line, but
-  # not in the arguments to the python script)
-  sys_argv_len = len(sys.argv)
-  return [unicode(argv[i]) for i in
-          range(argc.value - sys_argv_len, argc.value)]
+  argc = ctypes.c_int(0)
+  argv = command_line_to_argv_w(get_command_line_w(), ctypes.byref(argc))
+  try:
+    # Strip the python executable from the arguments if it exists
+    # (It would be listed as the first argument on the windows command line, but
+    # not in the arguments to the python script)
+    sys_argv_len = len(sys.argv)
+    return [unicode(argv[i]) for i in
+            range(argc.value - sys_argv_len, argc.value)]
+  finally:
+    if argv:
+      local_free(argv)
 
 
 def main():
@@ -394,13 +400,22 @@ def main():
       package_name = client.get('client_info', {}).get(
           'android_client_info', {}).get('package_name', '')
       if not package_name:
-        package_name = client.get('oauth_client', {}).get(
-            'android_info', {}).get('package_name', '')
+        oauth_clients = client.get('oauth_client', [])
+        if isinstance(oauth_clients, dict):
+          oauth_clients = [oauth_clients]
+        for oc in oauth_clients:
+          if isinstance(oc, dict):
+            package_name = oc.get('android_info', {}).get('package_name', '')
+            if package_name:
+              break
       if package_name:
         if not selected_package_name:
           selected_package_name = package_name
           selected_client = client
-        if package_name == find_package_name:
+        if package_name == find_package_name and selected_package_name != find_package_name:
+          selected_package_name = package_name
+          selected_client = client
+        elif package_name == find_package_name and selected_client is client_list[0]:
           selected_package_name = package_name
           selected_client = client
         packages.add(package_name)

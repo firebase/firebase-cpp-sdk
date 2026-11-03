@@ -15,10 +15,9 @@
  */
 
 #include "firestore/src/android/document_change_type_android.h"
-#include <cassert>
+
 #include <cstdint>
 
-#include "../include/firebase/firestore/document_change.h"
 #include "app/src/assert.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
@@ -29,7 +28,6 @@ namespace {
 
 using jni::Env;
 using jni::Method;
-using jni::Object;
 
 using Type = DocumentChange::Type;
 
@@ -48,6 +46,9 @@ Type DocumentChangeTypeInternal::GetType(Env& env) const {
   static constexpr int32_t kMaxType = static_cast<int32_t>(Type::kRemoved);
 
   int32_t ordinal = env.Call(*this, kOrdinal);
+  if (!env.ok()) {
+    return Type::kAdded;
+  }
   if (ordinal >= kMinType && ordinal <= kMaxType) {
     return static_cast<DocumentChange::Type>(ordinal);
   } else {

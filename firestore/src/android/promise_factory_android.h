@@ -87,7 +87,13 @@ class PromiseFactory {
       const jni::Task& task,
       typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
           nullptr) {
-    if (!env.ok()) return {};
+    if (!env.ok() || !task) {
+      if (completion != nullptr) {
+        completion->CompleteWith(Error::kErrorUnknown,
+                                 "Failed to create Java Task", nullptr);
+      }
+      return {};
+    }
 
     auto promise = MakePromise<PublicT, InternalT>(completion);
     promise.RegisterForTask(env, op, task);

@@ -46,7 +46,7 @@ class QuerySnapshotInternal : public Wrapper {
    * @brief Metadata about this snapshot, concerning its source and if it has
    * local modifications.
    *
-   * @return The metadata for this document snapshot.
+   * @return The metadata for this query snapshot.
    */
   SnapshotMetadata metadata() const;
 
@@ -54,10 +54,8 @@ class QuerySnapshotInternal : public Wrapper {
    * @brief The list of documents that changed since the last snapshot. If it's
    * the first snapshot, all documents will be in the list as added changes.
    *
-   * Documents with changes only to their metadata will not be included.
-   *
    * @param[in] metadata_changes Indicates whether metadata-only changes (i.e.
-   * only Query.getMetadata() changed) should be included.
+   * only DocumentSnapshot.getMetadata() changed) should be included.
    *
    * @return The list of document changes since the last snapshot.
    */

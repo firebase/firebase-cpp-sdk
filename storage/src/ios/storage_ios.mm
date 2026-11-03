@@ -66,11 +66,11 @@ StorageInternal::StorageInternal(App* _Nullable app, const char* _Nullable url)
     }
   }
   if (impl()) {
-    std::weak_ptr<LifetimeToken> weak_token(lifetime_token_);
-    cleanup_.RegisterObject(this, [weak_token](void* /*obj*/) {
-      if (std::shared_ptr<LifetimeToken> token = weak_token.lock()) {
-        MutexLock lock(token->mutex);
-        token->storage = nullptr;
+    cleanup_.RegisterObject(this, [](void* obj) {
+      auto* self = static_cast<StorageInternal*>(obj);
+      if (self->lifetime_token_) {
+        MutexLock lock(self->lifetime_token_->mutex);
+        self->lifetime_token_->storage = nullptr;
       }
     });
   }
@@ -87,6 +87,23 @@ StorageInternal::~StorageInternal() {
     lifetime_token_->futures_alive = false;
     future_manager_.CleanupOrphanedFutureApis(/*force_delete_all=*/true);
   }
+}
+
+bool StorageInternal::LifetimeToken::RunWhileAlive(
+    const std::function<void(StorageInternal&)>& fn) {
+  MutexLock lock(mutex);
+  if (storage == nullptr) {
+    return false;
+  }
+  fn(*storage);
+  return true;
+}
+
+void StorageInternal::LifetimeToken::UnregisterCleanupObject(
+    void* _Nonnull object) {
+  RunWhileAlive([object](StorageInternal& alive_storage) {
+    alive_storage.cleanup().UnregisterObject(object);
+  });
 }
 
 ::firebase::App* _Nullable StorageInternal::app() const { return app_; }

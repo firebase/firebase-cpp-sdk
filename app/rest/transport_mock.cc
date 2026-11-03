@@ -16,17 +16,56 @@
 
 #include "app/rest/transport_mock.h"
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 
+#include "app/rest/controller_interface.h"
 #include "app/rest/util.h"
 #include "testing/config_desktop.h"
 
 namespace firebase {
 namespace rest {
+namespace {
+
+class ControllerMock : public Controller {
+ public:
+  ControllerMock() : paused_(false), canceled_(false) {}
+  ~ControllerMock() override = default;
+
+  bool Pause() override {
+    if (canceled_ || paused_) return false;
+    paused_ = true;
+    return true;
+  }
+  bool Resume() override {
+    if (canceled_ || !paused_) return false;
+    paused_ = false;
+    return true;
+  }
+  bool IsPaused() override { return paused_; }
+  bool Cancel() override {
+    if (canceled_) return false;
+    canceled_ = true;
+    return true;
+  }
+  float Progress() override { return 1.0f; }
+  int64_t TransferSize() override { return 0; }
+  int64_t BytesTransferred() override { return 0; }
+
+ private:
+  bool paused_;
+  bool canceled_;
+};
+
+}  // namespace
+
 void TransportMock::PerformInternal(
     Request* request, Response* response,
     flatbuffers::unique_ptr<Controller>* controller_out) {
+  if (controller_out) {
+    controller_out->reset(new ControllerMock());
+  }
   const char* url = request->options().url.c_str();
   // Naively use the whole request url as a key.
   const firebase::testing::cppsdk::ConfigRow* row =
@@ -40,6 +79,7 @@ void TransportMock::PerformInternal(
     const char* kHttp404Status = "HTTP/1.1 404 Not Found\r\n";
     response->ProcessHeader(kHttp404Status, strlen(kHttp404Status));
     response->ProcessHeader(util::kCrLf, strlen(util::kCrLf));
+    request->MarkCompleted();
     response->MarkCompleted();
     return;
   }
@@ -55,6 +95,7 @@ void TransportMock::PerformInternal(
       const std::string& canonical_header = trimmed_header + util::kCrLf;
       if (!response->ProcessHeader(canonical_header.c_str(),
                                    canonical_header.size())) {
+        request->MarkCompleted();
         response->MarkCompleted();
         return;
       }
@@ -66,6 +107,7 @@ void TransportMock::PerformInternal(
   if (row->httpresponse()->body()) {
     for (const auto* body : *row->httpresponse()->body()) {
       if (!response->ProcessBody(body->c_str(), body->size())) {
+        request->MarkCompleted();
         response->MarkCompleted();
         return;
       }
@@ -73,6 +115,7 @@ void TransportMock::PerformInternal(
   }
 
   // Mark completed
+  request->MarkCompleted();
   response->MarkCompleted();
 }
 }  // namespace rest

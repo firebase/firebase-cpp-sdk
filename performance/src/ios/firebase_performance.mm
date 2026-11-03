@@ -16,21 +16,29 @@ static bool g_initialized = false;
 
 // Initializes the API.
 InitResult Initialize(const ::firebase::App& app) {
+  if (g_initialized) {
+    LogWarning("%s API already initialized", internal::kPerformanceModuleName);
+    return InitResult::kInitResultSuccess;
+  }
   g_initialized = true;
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnDefaultAppDestroy(&app);
   // TODO(tdeshpande): Figure out if there are any situations where initalizing fails on iOS.
   return InitResult::kInitResultSuccess;
 }
 
 namespace internal {
 
-// Determines whether the analytics module is initialized.
+// Determines whether the performance module is initialized.
 bool IsInitialized() { return g_initialized; }
 
 }  // namespace internal
 
 // Terminates the API.
 void Terminate() {
+  if (!g_initialized) {
+    LogWarning("%s API already shut down", internal::kPerformanceModuleName);
+    return;
+  }
   internal::UnregisterTerminateOnDefaultAppDestroy();
   g_initialized = false;
 }

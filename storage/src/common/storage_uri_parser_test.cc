@@ -121,6 +121,12 @@ TEST(StorageUriParserTest, TestExtractGsSchemeComponents) {
           "somebucket",
           "/a/path/to/an/object?generation=123#frag",
       },
+      {
+          // Schemes are case-insensitive (RFC 3986, section 3.1).
+          "GS://somebucket/a/path",
+          "somebucket",
+          "/a/path",
+      },
   };
   ExtractComponents(kTestParams, FIREBASE_ARRAYSIZE(kTestParams), "gsscheme");
 }

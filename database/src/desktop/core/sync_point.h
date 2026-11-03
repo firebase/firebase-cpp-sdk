@@ -15,6 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_POINT_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_POINT_H_
 
+#include <map>
 #include <memory>
 #include <set>
 #include <vector>
@@ -26,9 +27,7 @@
 #include "database/src/desktop/view/event.h"
 #include "database/src/desktop/view/view.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
 // SyncPoint represents a single location in a SyncTree with 1 or more event
 // registrations, meaning we need to maintain 1 or more Views at this location
@@ -44,20 +43,18 @@ class SyncPoint {
  public:
   SyncPoint() = default;
 
-  // Copy that actually performs a move.  This is useful for STL implementations
-  // that do not support emplace (e.g stlport).
   SyncPoint(const SyncPoint& other);
   SyncPoint& operator=(const SyncPoint& other);
 
   // Allow moving.
-  SyncPoint(SyncPoint&& other);
-  SyncPoint& operator=(SyncPoint&& other);
+  SyncPoint(SyncPoint&& other) noexcept;
+  SyncPoint& operator=(SyncPoint&& other) noexcept;
 
   // Return true if there are no views on this sync point.
   bool IsEmpty() const;
 
-  // Apply the given operation to the sync point, taking ito account the data in
-  // the pending write tree and the server cache.
+  // Apply the given operation to the sync point, taking into account the data
+  // in the pending write tree and the server cache.
   std::vector<Event> ApplyOperation(
       const Operation& operation, const WriteTreeRef& writes_cache,
       const Variant* opt_complete_server_cache,
@@ -73,8 +70,8 @@ class SyncPoint {
   // specified.
   //
   // If query is the default query, we'll check all views for the specified
-  // event_registration. If event_registration is , we'll remove all callbacks
-  // for the specified view(s).
+  // event_registration. If event_registration is null, we'll remove all
+  // callbacks for the specified view(s).
   //
   // If event_registration is null, remove all callbacks.
   // cancel_error If a cancel_error is provided, appropriate cancel events will
@@ -83,7 +80,7 @@ class SyncPoint {
       const QuerySpec& query_spec, void* listener_ptr, Error cancel_error,
       std::vector<QuerySpec>* out_removed);
 
-  // Return the list of views that have and incomplete (i.e. filtered) view of
+  // Return the list of views that have an incomplete (i.e. filtered) view of
   // the data.
   std::vector<const View*> GetIncompleteQueryViews() const;
 
@@ -121,8 +118,6 @@ class SyncPoint {
   std::map<QueryParams, View> views_;
 };
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal
 
 #endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_POINT_H_

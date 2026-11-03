@@ -24,6 +24,7 @@ namespace internal {
 
 // Registers a cleanup task for this module if auto-initialization is disabled.
 void RegisterTerminateOnDefaultAppDestroy();
+void RegisterTerminateOnDefaultAppDestroy(const App& app);
 
 // Unregisters the cleanup task for this module if auto-initialization is
 // disabled.
@@ -76,6 +77,9 @@ bool HasListener();
 
 // Override the current listener if the supplied listener is not null.
 Listener* SetListenerIfNotNull(Listener* listener);
+
+// Unregister a listener if it is currently active (e.g., on destruction).
+void UnregisterListener(Listener* listener);
 
 // Notify the currently set listener of a new message.
 void NotifyListenerOnMessage(const Message& message);

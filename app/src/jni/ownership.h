@@ -169,9 +169,13 @@ class GlobalRefReaper {
     }
     State& state = GetState();
     std::lock_guard<std::mutex> lock(state.mutex);
-    state.pending_deletes.push_back(ref);
-    state.pending_count.store(state.pending_deletes.size(),
-                              std::memory_order_release);
+    try {
+      state.pending_deletes.push_back(ref);
+      state.pending_count.store(state.pending_deletes.size(),
+                                std::memory_order_release);
+    } catch (...) {
+      // Just leak if we cannot allocate memory to queue the deletion.
+    }
   }
 
   static size_t PendingCount() noexcept {
@@ -300,14 +304,47 @@ class Borrowed : public internal::ReferenceBase<T> {
 
   constexpr Borrowed() noexcept = default;
   explicit constexpr Borrowed(JniType object) noexcept : Base(object) {}
+
   // NOLINTNEXTLINE(google-explicit-constructor)
   constexpr Borrowed(const Local<T>& local) noexcept : Base(static_cast<JniType>(local.get())) {}
+
   // NOLINTNEXTLINE(google-explicit-constructor)
   constexpr Borrowed(const Global<T>& global) noexcept : Base(static_cast<JniType>(global.get())) {}
+
+  template <typename U,
+            typename = std::enable_if_t<
+                std::is_convertible_v<typename JniTypeMap<U>::type, JniType> ||
+                std::is_base_of_v<T, U>>>
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  constexpr Borrowed(const Borrowed<U>& other) noexcept : Base(static_cast<JniType>(other.get())) {}
+
+  template <typename U,
+            typename = std::enable_if_t<
+                std::is_convertible_v<typename JniTypeMap<U>::type, JniType> ||
+                std::is_base_of_v<T, U>>>
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  constexpr Borrowed(const Local<U>& local) noexcept : Base(static_cast<JniType>(local.get())) {}
+
+  template <typename U,
+            typename = std::enable_if_t<
+                std::is_convertible_v<typename JniTypeMap<U>::type, JniType> ||
+                std::is_base_of_v<T, U>>>
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  constexpr Borrowed(const Global<U>& global) noexcept : Base(static_cast<JniType>(global.get())) {}
+
   constexpr Borrowed(const Borrowed&) noexcept = default;
   constexpr Borrowed(Borrowed&&) noexcept = default;
   constexpr Borrowed& operator=(const Borrowed&) noexcept = default;
   constexpr Borrowed& operator=(Borrowed&&) noexcept = default;
+
+  template <typename U,
+            typename = std::enable_if_t<
+                std::is_convertible_v<typename JniTypeMap<U>::type, JniType> ||
+                std::is_base_of_v<T, U>>>
+  constexpr Borrowed& operator=(const Borrowed<U>& other) noexcept {
+    this->object_ = static_cast<JniType>(other.get());
+    return *this;
+  }
 
   template <typename U>
   constexpr Borrowed<U> CastTo() const noexcept {
@@ -495,6 +532,9 @@ class Local : public internal::ReferenceBase<T> {
         target_env->DeleteLocalRef(pending);
       }
     }
+    if (target_env && !new_ref) {
+      return;
+    }
     reset(target_env, new_ref);
   }
 
@@ -510,6 +550,8 @@ using ScopedLocalRef = Local<T>;
 template <typename T = jobject>
 class Global : public internal::ReferenceBase<T> {
   using Base = internal::ReferenceBase<T>;
+  template <typename U>
+  friend class Global;
 
  public:
   using JniType = typename Base::JniType;
@@ -675,6 +717,7 @@ class Global : public internal::ReferenceBase<T> {
       } else {
         new_ref = static_cast<JniType>(
             internal::GlobalRefReaper::NewGlobalRef(env, object, jvm_));
+        if (!new_ref) return;
       }
     }
     if (this->object_) {
@@ -698,7 +741,10 @@ class Global : public internal::ReferenceBase<T> {
 
   template <typename U>
   Global<U> CastTo() && noexcept {
-    return Global<U>(nullptr, static_cast<typename JniTypeMap<U>::type>(release()), /*adopt_existing_global=*/true);
+    Global<U> result;
+    result.jvm_ = jvm_;
+    result.object_ = static_cast<typename JniTypeMap<U>::type>(release());
+    return result;
   }
 
  private:
@@ -719,6 +765,7 @@ class Global : public internal::ReferenceBase<T> {
     if (src != nullptr) {
       new_ref = static_cast<JniType>(
           internal::GlobalRefReaper::NewGlobalRef(env, src, jvm_));
+      if (!new_ref) return;
     }
     if (this->object_) {
       internal::GlobalRefReaper::DeleteOrEnqueue(this->object_, env, jvm_);

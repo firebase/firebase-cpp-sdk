@@ -61,7 +61,6 @@ class Promise {
   }
 
   ~Promise() {
-    std::lock_guard<std::mutex> lock(destruction_mutex_);
     UnregisterForCleanup();
   }
 
@@ -85,6 +84,7 @@ class Promise {
   }
 
   Promise& operator=(const Promise& rhs) {
+    if (this == &rhs) return *this;
     UnregisterForCleanup();
 
     cleanup_ = rhs.cleanup_;
@@ -98,6 +98,7 @@ class Promise {
   }
 
   Promise& operator=(Promise&& rhs) noexcept {
+    if (this == &rhs) return *this;
     rhs.UnregisterForCleanup();
     UnregisterForCleanup();
 
@@ -124,10 +125,15 @@ class Promise {
   template <typename DummyT = ResultT,
             typename = absl::enable_if_t<!std::is_void<DummyT>::value>>
   void SetValue(DummyT result) {
-    if (IsCleanedUp()) {
-      return;
+    ReferenceCountedFutureImpl* future_api = nullptr;
+    SafeFutureHandle<ResultT> handle;
+    {
+      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      if (cleanup_ == nullptr) return;
+      future_api = future_api_;
+      handle = handle_;
     }
-    future_api_->Complete(handle_, NoError(), /*error_message=*/"",
+    future_api->Complete(handle, NoError(), /*error_message=*/"",
                           [&](ResultT* value) {
                             // Future API doesn't support moving the value, use
                             // callback to achieve this.
@@ -138,30 +144,47 @@ class Promise {
   template <typename DummyT = ResultT,
             typename = absl::enable_if_t<std::is_void<DummyT>::value>>
   void SetValue() {
-    if (IsCleanedUp()) {
-      return;
+    ReferenceCountedFutureImpl* future_api = nullptr;
+    SafeFutureHandle<ResultT> handle;
+    {
+      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      if (cleanup_ == nullptr) return;
+      future_api = future_api_;
+      handle = handle_;
     }
-    future_api_->Complete(handle_, NoError());
+    future_api->Complete(handle, NoError());
   }
 
   void SetError(const util::Status& status) {
     SIMPLE_HARD_ASSERT(
         !status.ok(),
         "To fulfill a promise with 'ok' status, use Promise::SetValue.");
-    if (IsCleanedUp()) {
-      return;
+    ReferenceCountedFutureImpl* future_api = nullptr;
+    SafeFutureHandle<ResultT> handle;
+    {
+      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      if (cleanup_ == nullptr) return;
+      future_api = future_api_;
+      handle = handle_;
     }
 
-    future_api_->Complete(handle_, status.code(),
+    future_api->Complete(handle, status.code(),
                           status.error_message().c_str());
   }
 
   Future<ResultT> future() {
-    if (IsCleanedUp()) {
-      return Future<ResultT>{};
+    ReferenceCountedFutureImpl* future_api = nullptr;
+    SafeFutureHandle<ResultT> handle;
+    {
+      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      if (cleanup_ == nullptr) {
+        return Future<ResultT>{};
+      }
+      future_api = future_api_;
+      handle = handle_;
     }
 
-    return Future<ResultT>{future_api_, handle_.get()};
+    return Future<ResultT>{future_api, handle.get()};
   }
 
  private:
@@ -185,30 +208,27 @@ class Promise {
 
     cleanup_->RegisterObject(this, [](void* raw_this) {
       auto* this_ptr = static_cast<Promise*>(raw_this);
-      std::unique_lock<std::mutex> lock(this_ptr->destruction_mutex_,
-                                        std::try_to_lock_t());
-      // If the destruction mutex is locked, it means the destructor is
-      // currently running. In that case, leave the cleanup to destructor;
-      // otherwise, trying to acquire the mutex will result in a deadlock
-      // (because cleanup is currently holding the cleanup mutex which the
-      // destructor will try to acquire to unregister itself from cleanup).
-      if (!lock) {
-        return;
-      }
-
+      std::lock_guard<std::mutex> lock(this_ptr->destruction_mutex_);
       this_ptr->Reset();
     });
   }
 
   void UnregisterForCleanup() {
-    if (IsCleanedUp()) {
-      return;
+    CleanupNotifier* cleanup = nullptr;
+    {
+      std::lock_guard<std::mutex> lock(destruction_mutex_);
+      cleanup = cleanup_;
+      cleanup_ = nullptr;
     }
-    cleanup_->UnregisterObject(this);
+    if (cleanup != nullptr) {
+      cleanup->UnregisterObject(this);
+    }
   }
 
+ public:
   bool IsCleanedUp() const { return cleanup_ == nullptr; }
 
+ private:
   CleanupNotifier* cleanup_ = nullptr;
   ReferenceCountedFutureImpl* future_api_ = nullptr;
   int identifier_ = 0;

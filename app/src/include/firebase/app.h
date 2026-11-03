@@ -32,14 +32,16 @@
 #ifdef __OBJC__
 @class FIRApp;
 #endif  // __OBJC__
-#endif  // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 
+/// @cond FIREBASE_APP_INTERNAL
 #ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
 // Check to see if the shared object compiler string matches the input
 void CheckCompilerString(const char* input);
 #endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+/// @endcond
 
 // Predeclarations.
 #ifdef INTERNAL_EXPERIMENTAL
@@ -108,16 +110,17 @@ class AppOptions {
   /// @brief Create AppOptions.
   ///
   /// @if cpp_examples
-  /// To create a firebase::App object, the Firebase application identifier
-  /// and API key should be set using set_app_id() and set_api_key()
-  /// respectively.
+  /// To create a firebase::App object without a configuration file, the
+  /// Firebase application identifier, API key, and project ID should be set
+  /// using set_app_id(), set_api_key(), and set_project_id() respectively.
   ///
   /// @see firebase::App::Create().
   /// @endif
   /// <SWIG>
   /// @if swig_examples
-  /// To create a FirebaseApp object, the Firebase application identifier
-  /// and API key should be set using AppId and ApiKey respectively.
+  /// To create a FirebaseApp object, the Firebase application identifier,
+  /// API key, and project ID should be set using AppId, ApiKey, and ProjectId
+  /// respectively.
   ///
   /// @see FirebaseApp.Create().
   /// @endif
@@ -131,7 +134,11 @@ class AppOptions {
   ///
   /// This only needs to be specified if your application does not include
   /// google-services.json or GoogleService-Info.plist in its resources.
-  void set_app_id(const char* id) { app_id_ = id; }
+  void set_app_id(const char* id) { app_id_ = id ? id : ""; }
+#if !defined(SWIG)
+  /// Set the Firebase app ID used to uniquely identify an instance of an app.
+  void set_app_id(const std::string& id) { app_id_ = id; }
+#endif  // !defined(SWIG)
 
   /// Retrieves the app ID.
   ///
@@ -161,7 +168,11 @@ class AppOptions {
   ///
   /// This only needs to be specified if your application does not include
   /// google-services.json or GoogleService-Info.plist in its resources.
-  void set_api_key(const char* key) { api_key_ = key; }
+  void set_api_key(const char* key) { api_key_ = key ? key : ""; }
+#if !defined(SWIG)
+  /// Set the API key used to authenticate requests from your app.
+  void set_api_key(const std::string& key) { api_key_ = key; }
+#endif  // !defined(SWIG)
 
   /// Get the API key.
   ///
@@ -191,8 +202,14 @@ class AppOptions {
   /// This only needs to be specified if your application does not include
   /// google-services.json or GoogleService-Info.plist in its resources.
   void set_messaging_sender_id(const char* sender_id) {
+    fcm_sender_id_ = sender_id ? sender_id : "";
+  }
+#if !defined(SWIG)
+  /// Set the Firebase Cloud Messaging sender ID.
+  void set_messaging_sender_id(const std::string& sender_id) {
     fcm_sender_id_ = sender_id;
   }
+#endif  // !defined(SWIG)
 
   /// Get the Firebase Cloud Messaging sender ID.
   ///
@@ -212,54 +229,75 @@ class AppOptions {
   /// </SWIG>
   const char* messaging_sender_id() const { return fcm_sender_id_.c_str(); }
 
-  /// Set the database root URL, e.g. @"http://abc-xyz-123.firebaseio.com".
-  void set_database_url(const char* url) { database_url_ = url; }
+  /// Set the database root URL, e.g. "https://abc-xyz-123.firebaseio.com".
+  void set_database_url(const char* url) { database_url_ = url ? url : ""; }
+#if !defined(SWIG)
+  /// Set the database root URL, e.g. "https://abc-xyz-123.firebaseio.com".
+  void set_database_url(const std::string& url) { database_url_ = url; }
+#endif  // !defined(SWIG)
 
-  /// Get database root URL, e.g. @"http://abc-xyz-123.firebaseio.com".
+  /// Get database root URL, e.g. "https://abc-xyz-123.firebaseio.com".
   ///
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="DatabaseUrl">
   /// Gets or sets the database root URL, e.g.
-  /// @\"http://abc-xyz-123.firebaseio.com\".
+  /// \"https://abc-xyz-123.firebaseio.com\".
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
   const char* database_url() const { return database_url_.c_str(); }
 
-  /// @cond FIREBASE_APP_INTERNAL
+  /// Set the tracking ID for Google Analytics, e.g. "UA-12345678-1".
+  void set_ga_tracking_id(const char* id) { ga_tracking_id_ = id ? id : ""; }
+#if !defined(SWIG)
+  /// Set the tracking ID for Google Analytics, e.g. "UA-12345678-1".
+  void set_ga_tracking_id(const std::string& id) { ga_tracking_id_ = id; }
+#endif  // !defined(SWIG)
 
-  /// Set the tracking ID for Google Analytics, e.g. @"UA-12345678-1".
-  void set_ga_tracking_id(const char* id) { ga_tracking_id_ = id; }
-
-  /// Get the tracking ID for Google Analytics,
+  /// Get the tracking ID for Google Analytics.
   ///
   /// @if cpp_examples
   /// @see set_ga_tracking_id().
   /// @endif
-  ///
   const char* ga_tracking_id() const { return ga_tracking_id_.c_str(); }
 
-  /// @endcond
-
   /// Set the Google Cloud Storage bucket name,
-  /// e.g. @\"abc-xyz-123.storage.firebase.com\".
-  void set_storage_bucket(const char* bucket) { storage_bucket_ = bucket; }
+  /// e.g. "abc-xyz-123.appspot.com".
+  void set_storage_bucket(const char* bucket) {
+    storage_bucket_ = bucket ? bucket : "";
+  }
+#if !defined(SWIG)
+  /// Set the Google Cloud Storage bucket name,
+  /// e.g. "abc-xyz-123.appspot.com".
+  void set_storage_bucket(const std::string& bucket) {
+    storage_bucket_ = bucket;
+  }
+#endif  // !defined(SWIG)
 
-  /// Get the Google Cloud Storage bucket name,
+  /// Get the Google Cloud Storage bucket name.
   /// @see set_storage_bucket().
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="StorageBucket">
   /// Gets or sets the Google Cloud Storage bucket name, e.g.
-  /// @\"abc-xyz-123.storage.firebase.com\".
+  /// \"abc-xyz-123.appspot.com\".
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
   const char* storage_bucket() const { return storage_bucket_.c_str(); }
 
   /// Set the Google Cloud project ID.
-  void set_project_id(const char* project) { project_id_ = project; }
+  ///
+  /// This only needs to be specified if your application does not include
+  /// google-services.json or GoogleService-Info.plist in its resources.
+  void set_project_id(const char* project) {
+    project_id_ = project ? project : "";
+  }
+#if !defined(SWIG)
+  /// Set the Google Cloud project ID.
+  void set_project_id(const std::string& project) { project_id_ = project; }
+#endif  // !defined(SWIG)
 
   /// Get the Google Cloud project ID.
   ///
@@ -268,7 +306,7 @@ class AppOptions {
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="ProjectID">
-  /// Gets the Google Cloud project ID.
+  /// Gets or sets the Google Cloud project ID.
   ///
   /// This is the project_id in the Android google-services.json config
   /// file or PROJECT_ID in the GoogleService-Info.plist.
@@ -278,29 +316,41 @@ class AppOptions {
   const char* project_id() const { return project_id_.c_str(); }
 
 #ifdef INTERNAL_EXPERIMENTAL
-  /// @brief set the iOS client ID.
+  /// @brief Set the iOS client ID.
   ///
-  /// This is the clientID in the GoogleService-Info.plist.
-  void set_client_id(const char* client_id) { client_id_ = client_id; }
+  /// This is the CLIENT_ID in the GoogleService-Info.plist.
+  void set_client_id(const char* client_id) {
+    client_id_ = client_id ? client_id : "";
+  }
+#if !defined(SWIG)
+  /// @brief Set the iOS client ID.
+  void set_client_id(const std::string& client_id) { client_id_ = client_id; }
+#endif  // !defined(SWIG)
 
   /// @brief Get the iOS client ID.
   ///
-  /// This is the client_id in the GoogleService-Info.plist.
+  /// This is the CLIENT_ID in the GoogleService-Info.plist.
   const char* client_id() const { return client_id_.c_str(); }
 #endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL
-  /// @brief Set the Android or iOS client project name.
+  /// @brief Set the Android package name or iOS bundle ID.
   ///
-  /// This is the project_name in the Android google-services.json config
+  /// This is the package_name in the Android google-services.json config
   /// file or BUNDLE_ID in the GoogleService-Info.plist.
   void set_package_name(const char* package_name) {
+    package_name_ = package_name ? package_name : "";
+  }
+#if !defined(SWIG)
+  /// @brief Set the Android package name or iOS bundle ID.
+  void set_package_name(const std::string& package_name) {
     package_name_ = package_name;
   }
+#endif  // !defined(SWIG)
 
-  /// @brief Get the Android or iOS client project name.
+  /// @brief Get the Android package name or iOS bundle ID.
   ///
-  /// This is the project_name in the Android google-services.json config
+  /// This is the package_name in the Android google-services.json config
   /// file or BUNDLE_ID in the GoogleService-Info.plist.
   const char* package_name() const { return package_name_.c_str(); }
 #endif  // INTERNAL_EXPERIMENTAL
@@ -309,24 +359,29 @@ class AppOptions {
   ///
   /// @param[in] config A JSON string that contains Firebase configuration i.e.
   /// the content of the downloaded google-services.json file.
-  /// @param[out] options Optional: If provided, load options into it.
+  /// @param[out] options Optional: If provided, load options into it on
+  /// success. Left unmodified on failure.
   ///
-  /// @returns An instance containing the loaded options if successful.
-  /// If the options argument to this function is null, this method returns an
-  /// AppOptions instance allocated from the heap.
+  /// @returns The populated `options` pointer if successful, or `nullptr` on
+  /// failure. If the `options` argument is null and loading succeeds, returns
+  /// a newly heap-allocated `AppOptions` instance that the caller owns and must
+  /// delete.
   static AppOptions* LoadFromJsonConfig(const char* config,
                                         AppOptions* options = nullptr);
+#if !defined(SWIG)
+  /// @brief Load options from a JSON config string.
+  static AppOptions* LoadFromJsonConfig(const std::string& config,
+                                        AppOptions* options = nullptr) {
+    return LoadFromJsonConfig(config.c_str(), options);
+  }
 
-#if INTERNAL_EXPERIMENTAL
-  /// @brief Determine whether the specified options match this set of options.
-  ///
-  /// Fields of this object that are empty are ignored in the comparison.
-  ///
-  /// @param[in] options Options to compare with.
-  bool operator==(const AppOptions& options) const {
+  /// @brief Determine whether all non-empty fields of this instance match the
+  /// corresponding fields of `options`.
+  bool MatchesSubsetOf(const AppOptions& options) const noexcept {
     return (package_name_.empty() || package_name_ == options.package_name_) &&
            (api_key_.empty() || api_key_ == options.api_key_) &&
            (app_id_.empty() || app_id_ == options.app_id_) &&
+           (client_id_.empty() || client_id_ == options.client_id_) &&
            (database_url_.empty() || database_url_ == options.database_url_) &&
            (ga_tracking_id_.empty() ||
             ga_tracking_id_ == options.ga_tracking_id_) &&
@@ -336,9 +391,44 @@ class AppOptions {
             storage_bucket_ == options.storage_bucket_) &&
            (project_id_.empty() || project_id_ == options.project_id_);
   }
-#endif  // INTERNAL_EXPERIMENTAL
 
-#if INTERNAL_EXPERIMENTAL
+  /// @brief Determine whether all fields of this instance equal the
+  /// corresponding fields of `options`.
+  bool EqualsExact(const AppOptions& options) const noexcept {
+    return package_name_ == options.package_name_ &&
+           api_key_ == options.api_key_ && app_id_ == options.app_id_ &&
+           client_id_ == options.client_id_ &&
+           database_url_ == options.database_url_ &&
+           ga_tracking_id_ == options.ga_tracking_id_ &&
+           fcm_sender_id_ == options.fcm_sender_id_ &&
+           storage_bucket_ == options.storage_bucket_ &&
+           project_id_ == options.project_id_;
+  }
+#endif  // !defined(SWIG)
+
+#if defined(INTERNAL_EXPERIMENTAL)
+  /// @brief Determine whether the specified options match this set of options.
+  ///
+  /// Fields of this object that are empty are ignored in the comparison.
+  ///
+  /// @param[in] options Options to compare with.
+  bool operator==(const AppOptions& options) const {
+    return (package_name_.empty() || package_name_ == options.package_name_) &&
+           (api_key_.empty() || api_key_ == options.api_key_) &&
+           (app_id_.empty() || app_id_ == options.app_id_) &&
+           (client_id_.empty() || client_id_ == options.client_id_) &&
+           (database_url_.empty() || database_url_ == options.database_url_) &&
+           (ga_tracking_id_.empty() ||
+            ga_tracking_id_ == options.ga_tracking_id_) &&
+           (fcm_sender_id_.empty() ||
+            fcm_sender_id_ == options.fcm_sender_id_) &&
+           (storage_bucket_.empty() ||
+            storage_bucket_ == options.storage_bucket_) &&
+           (project_id_.empty() || project_id_ == options.project_id_);
+  }
+#endif  // defined(INTERNAL_EXPERIMENTAL)
+
+#if defined(INTERNAL_EXPERIMENTAL)
   /// @brief Determine whether the specified options don't match this set of
   /// options.
   ///
@@ -348,21 +438,21 @@ class AppOptions {
   bool operator!=(const AppOptions& options) const {
     return !operator==(options);
   }
-#endif  // INTERNAL_EXPERIMENTAL
+#endif  // defined(INTERNAL_EXPERIMENTAL)
 
-#if INTERNAL_EXPERIMENTAL
+#if defined(INTERNAL_EXPERIMENTAL)
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Load default options from the resource file.
   ///
+  /// @param[in] options Optional: Options to populate from a resource file.
   /// @param[in] jni_env JNI environment required to allow Firebase services
   /// to interact with the Android framework.
   /// @param[in] activity JNI reference to the Android activity, required to
   /// allow Firebase services to interact with the Android application.
-  /// @param options Options to populate from a resource file.
   ///
-  /// @return An instance containing the loaded options if successful.
-  /// If the options argument to this function is null, this method returns an
-  /// AppOptions instance allocated from the heap..
+  /// @return An instance containing the loaded options if successful, or
+  /// nullptr on failure. If the options argument to this function is null, this
+  /// method returns an AppOptions instance allocated from the heap.
   static AppOptions* LoadDefault(AppOptions* options, JNIEnv* jni_env,
                                  jobject activity);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -370,14 +460,14 @@ class AppOptions {
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Load default options from the resource file.
   ///
-  /// @param options Options to populate from a resource file.
+  /// @param[in] options Optional: Options to populate from a resource file.
   ///
-  /// @return An instance containing the loaded options if successful.
-  /// If the options argument to this function is null, this method returns an
-  /// AppOptions instance allocated from the heap.
-  static AppOptions* LoadDefault(AppOptions* options);
+  /// @return An instance containing the loaded options if successful, or
+  /// nullptr on failure. If the options argument to this function is null, this
+  /// method returns an AppOptions instance allocated from the heap.
+  static AppOptions* LoadDefault(AppOptions* options = nullptr);
 #endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-#endif  // INTERNAL_EXPERIMENTAL
+#endif  // defined(INTERNAL_EXPERIMENTAL)
 
 #if INTERNAL_EXPERIMENTAL
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -434,9 +524,9 @@ class AppOptions {
 /// For example:
 /// @code
 /// #if defined(__ANDROID__)
-/// firebase::App::Create(firebase::AppOptions(), jni_env, activity);
+/// firebase::App* app = firebase::App::Create(jni_env, activity);
 /// #else
-/// firebase::App::Create(firebase::AppOptions());
+/// firebase::App* app = firebase::App::Create();
 /// #endif  // defined(__ANDROID__)
 /// @endcode
 /// @endif
@@ -450,15 +540,21 @@ class AppOptions {
 class App {
  public:
   ~App();
+#if !defined(SWIG)
+  App(const App&) = delete;
+  App& operator=(const App&) = delete;
+  App(App&&) = delete;
+  App& operator=(App&&) = delete;
+#endif  // !defined(SWIG)
 
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// @brief Initializes the default firebase::App with default options.
+  /// @brief Initializes the default firebase::App with default options, or
+  /// returns the existing default App if already created.
   ///
   /// @note This method is specific to non-Android implementations.
   ///
-  /// @return New App instance, the App should not be destroyed for the
-  /// lifetime of the application.  If default options can't be loaded this
-  /// will return null.
+  /// @return Default App instance, or nullptr if default options cannot be
+  /// loaded.
   static App* Create();
 #endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
@@ -467,7 +563,8 @@ class App {
 // For Unity, we actually use the simpler, iOS version for both platforms
 // </SWIG>
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// @brief Initializes the default firebase::App with default options.
+  /// @brief Initializes the default firebase::App with default options, or
+  /// returns the existing default App if already created.
   ///
   /// @note This method is specific to the Android implementation.
   ///
@@ -476,15 +573,15 @@ class App {
   /// @param[in] activity JNI reference to the Android activity, required to
   /// allow Firebase services to interact with the Android application.
   ///
-  /// @return New App instance. The App should not be destroyed for the
-  /// lifetime of the application.  If default options can't be loaded this
-  /// will return null.
+  /// @return Default App instance, or nullptr if default options cannot be
+  /// loaded.
   static App* Create(JNIEnv* jni_env, jobject activity);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// @brief Initializes the default firebase::App with the given options.
+  /// @brief Initializes the default firebase::App with the given options, or
+  /// returns the existing default App if already created.
   ///
   /// @note This method is specific to non-Android implementations.
   ///
@@ -492,8 +589,7 @@ class App {
   /// ignored.
   /// @param[in] options Options that control the creation of the App.
   ///
-  /// @return New App instance, the App should not be destroyed for the
-  /// lifetime of the application.
+  /// @return Default App instance, or nullptr if required options are missing.
   static App* Create(const AppOptions& options);
 #endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
@@ -502,7 +598,8 @@ class App {
 // For Unity, we actually use the simpler, iOS version for both platforms
 // </SWIG>
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// @brief Initializes the default firebase::App with the given options.
+  /// @brief Initializes the default firebase::App with the given options, or
+  /// returns the existing default App if already created.
   ///
   /// @note This method is specific to the Android implementation.
   ///
@@ -514,8 +611,7 @@ class App {
   /// @param[in] activity JNI reference to the Android activity, required to
   /// allow Firebase services to interact with the Android application.
   ///
-  /// @return New App instance. The App should not be destroyed for the
-  /// lifetime of the application.
+  /// @return Default App instance, or nullptr if required options are missing.
   static App* Create(const AppOptions& options, JNIEnv* jni_env,
                      jobject activity);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -523,7 +619,7 @@ class App {
 
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes a firebase::App with the given options that operates
-  /// on the named app.
+  /// on the named app, or returns the existing App if already created.
   ///
   /// @note This method is specific to non-Android implementations.
   ///
@@ -533,9 +629,15 @@ class App {
   /// @param[in] name Name of this App instance.  This is only required when
   /// one application uses multiple App instances.
   ///
-  /// @return New App instance, the App should not be destroyed for the
-  /// lifetime of the application.
+  /// @return App instance, or nullptr if name is invalid or required options
+  /// are missing.
   static App* Create(const AppOptions& options, const char* name);
+#if !defined(SWIG)
+  /// @brief Initializes a firebase::App with the given options and name.
+  static App* Create(const AppOptions& options, const std::string& name) {
+    return Create(options, name.c_str());
+  }
+#endif  // !defined(SWIG)
 #endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #ifndef SWIG
@@ -544,7 +646,7 @@ class App {
 // </SWIG>
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes a firebase::App with the given options that operates
-  /// on the named app.
+  /// on the named app, or returns the existing App if already created.
   ///
   /// @note This method is specific to the Android implementation.
   ///
@@ -558,10 +660,15 @@ class App {
   /// @param[in] activity JNI reference to the Android activity, required to
   /// allow Firebase services to interact with the Android application.
   ///
-  /// @return New App instance. The App should not be destroyed for the
-  /// lifetime of the application.
+  /// @return App instance, or nullptr if name is invalid or required options
+  /// are missing.
   static App* Create(const AppOptions& options, const char* name,
                      JNIEnv* jni_env, jobject activity);
+  /// @brief Initializes a firebase::App with the given options and name.
+  static App* Create(const AppOptions& options, const std::string& name,
+                     JNIEnv* jni_env, jobject activity) {
+    return Create(options, name.c_str(), jni_env, activity);
+  }
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
@@ -570,6 +677,12 @@ class App {
 
   /// Get the App with the given name, or nullptr if none have been created.
   static App* GetInstance(const char* name);
+#if !defined(SWIG)
+  /// Get the App with the given name, or nullptr if none have been created.
+  static App* GetInstance(const std::string& name) {
+    return GetInstance(name.c_str());
+  }
+#endif  // !defined(SWIG)
 
   /// Get all the apps, including the default one.
   static std::vector<App*> GetApps();
@@ -628,7 +741,6 @@ class App {
   /// </SWIG>
   const AppOptions& options() const { return options_; }
 
-#ifdef INTERNAL_EXPERIMENTAL
   /// Sets whether automatic data collection is enabled for all products.
   ///
   /// By default, automatic data collection is enabled. To disable automatic
@@ -670,17 +782,12 @@ class App {
   /// Gets whether automatic data collection is enabled for all
   /// products. Defaults to true unless
   /// "firebase_data_collection_default_enabled" is set to false in your
-  /// Android manifest and FirebaseDataCollectionDefaultEnabled is set to NO
+  /// Android manifest or FirebaseDataCollectionDefaultEnabled is set to NO
   /// in your iOS app's Info.plist.
   ///
   /// @return Whether or not automatic data collection is enabled for all
   /// products.
   bool IsDataCollectionDefaultEnabled() const;
-#endif  // INTERNAL_EXPERIMENTAL
-#ifdef SWIG
-  void SetDataCollectionDefaultEnabled(bool enabled);
-  bool IsDataCollectionDefaultEnabled() const;
-#endif  // SWIG
 
 #ifdef INTERNAL_EXPERIMENTAL
   // This is only visible to SWIG and internal users of firebase::App.
@@ -711,10 +818,14 @@ class App {
 
   // On desktop, when App.Create() is invoked without parameters, it looks for a
   // file named 'google-services-desktop.json', to load parameters from.
-  // This function sets the location to search in.
-  // Note - when setting this, make sure to end the path with the appropriate
-  // path separator!
+  // This function sets the location to search in. A trailing path separator is
+  // appended automatically if not already present.
   static void SetDefaultConfigPath(const char* path);
+#if !defined(SWIG)
+  static void SetDefaultConfigPath(const std::string& path) {
+    SetDefaultConfigPath(path.c_str());
+  }
+#endif  // !defined(SWIG)
 #endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL
@@ -734,8 +845,8 @@ class App {
 #if FIREBASE_PLATFORM_ANDROID
   /// Get the platform specific app implementation referenced by this object.
   ///
-  /// @return Global reference to the FirebaseApp.  The returned reference
-  /// most be deleted after use.
+  /// @return Local JNI reference to the FirebaseApp. The returned reference
+  /// must be deleted with DeleteLocalRef() after use.
   jobject GetPlatformApp() const;
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #ifdef __OBJC__
@@ -748,6 +859,7 @@ class App {
         // FIREBASE_PLATFORM_TVOS
 #endif  // INTERNAL_EXPERIMENTAL
 
+  /// @cond FIREBASE_APP_INTERNAL
  private:
   /// Construct the object.
   App()

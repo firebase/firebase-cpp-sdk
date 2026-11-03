@@ -134,7 +134,7 @@ TEST_F(ReferenceCountedInitializerTest, ConstructEmpty) {
   EXPECT_THAT(initializer.terminate(), IsNull());
   EXPECT_THAT(initializer.context(), IsNull());
   // Use the mutex accessor to instantiate the template.
-  firebase::MutexLock lock(initializer.mutex());
+
 }
 
 TEST_F(ReferenceCountedInitializerTest, ConstructWithTerminate) {

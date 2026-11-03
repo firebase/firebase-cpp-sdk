@@ -18,7 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_MAIN_COMPOSITE_FILTER_MAIN_H_
 
 #if defined(__ANDROID__)
-#error "This header should not be used on Android."
+#error "This file should not be used on Android."
 #endif
 
 #include <memory>
@@ -32,8 +32,9 @@ namespace firestore {
 
 class CompositeFilterInternal : public FilterInternal {
  public:
-  CompositeFilterInternal(core::CompositeFilter::Operator op,
-                          std::vector<FilterInternal*>& filters);
+  CompositeFilterInternal(
+      core::CompositeFilter::Operator op,
+      std::vector<std::unique_ptr<FilterInternal>> filters);
 
   core::Filter ToCoreFilter(const api::Query& query,
                             const firebase::firestore::UserDataConverter&

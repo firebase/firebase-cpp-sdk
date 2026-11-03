@@ -16,8 +16,11 @@
 
 #include "firestore/src/main/user_data_converter_main.h"
 
+#include <algorithm>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/field_mask.h"
@@ -161,16 +164,15 @@ FieldMask CreateFieldMask(const ParseAccumulator& accumulator,
   std::set<model::FieldPath> validated;
 
   for (const FieldPath& public_path : field_paths) {
+    if (!public_path.is_valid()) {
+      SimpleThrowInvalidArgument(
+          "Invalid data. FieldPath in field mask cannot be invalid.");
+    }
     const model::FieldPath& path = GetInternal(public_path);
 
     // Verify that all elements specified in the field mask are part of the
     // parsed context.
     if (!accumulator.Contains(path)) {
-      // TODO(b/147444199): use string formatting.
-      // ThrowInvalidArgument(
-      //     "Field '%s' is specified in your field mask but missing from your "
-      //     "input data.",
-      //     path.CanonicalString());
       auto message =
           std::string("Field '") + path.CanonicalString() +
           "' is specified in your field mask but not in your input data.";
@@ -222,6 +224,9 @@ ParsedUpdateData UserDataConverter::ParseUpdateData(
   converted_input.reserve(input.size());
 
   for (const auto& kv : input) {
+    if (!kv.first.is_valid()) {
+      SimpleThrowInvalidArgument("Invalid data. FieldPath cannot be invalid.");
+    }
     converted_input.emplace_back(GetInternal(kv.first), &kv.second);
   }
 
@@ -270,6 +275,10 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseQueryValue(
 
 absl::optional<Message<google_firestore_v1_Value>> UserDataConverter::ParseData(
     const FieldValue& value, ParseContext&& context) const {
+  if (!value.is_valid()) {
+    ThrowInvalidData(context, "Cannot parse an invalid FieldValue");
+  }
+
   auto maybe_add_to_field_mask = [&] {
     if (context.path()) {
       context.AddToFieldMask(*context.path());
@@ -335,30 +344,45 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseMap(
       context.AddToFieldMask(*path);
     }
   } else {
-    // Compute the final size of the fields array, which contains an entry for
-    // all fields that are not FieldValue sentinels
-    pb_size_t count = 0;
+    // Sort keys deterministically before parsing so that nanopb map_value
+    // fields are in canonical sorted key order (required by model::Equals() for
+    // map elements inside ArrayUnion/ArrayRemove transforms) and error/transform
+    // traversal order does not depend on std::unordered_map hash buckets.
+    std::vector<const MapFieldValue::value_type*> sorted_input;
+    sorted_input.reserve(input.size());
     for (const auto& kv : input) {
-      if (!IsSentinel(kv.second)) {
-        ++count;
-      }
+      sorted_input.push_back(&kv);
     }
+    std::sort(sorted_input.begin(), sorted_input.end(),
+              [](const MapFieldValue::value_type* lhs,
+                 const MapFieldValue::value_type* rhs) {
+                return lhs->first < rhs->first;
+              });
 
-    result->map_value.fields_count = count;
-    result->map_value.fields =
-        nanopb::MakeArray<google_firestore_v1_MapValue_FieldsEntry>(count);
-
-    pb_size_t index = 0;
-    for (const auto& kv : input) {
-      const std::string& key = kv.first;
-      const FieldValue& value = kv.second;
+    std::vector<std::pair<const std::string*, Message<google_firestore_v1_Value>>>
+        parsed_entries;
+    parsed_entries.reserve(sorted_input.size());
+    for (const auto* kv : sorted_input) {
+      const auto& [key, value] = *kv;
 
       auto parsed_value = ParseData(value, context.ChildContext(key));
       if (parsed_value) {
-        result->map_value.fields[index].key = nanopb::MakeBytesArray(key);
-        result->map_value.fields[index].value = *parsed_value->release();
-        ++index;
+        parsed_entries.emplace_back(&key, std::move(*parsed_value));
       }
+    }
+
+    pb_size_t count = CheckedSize(parsed_entries.size());
+    result->map_value.fields_count = count;
+    result->map_value.fields =
+        count > 0
+            ? nanopb::MakeArray<google_firestore_v1_MapValue_FieldsEntry>(count)
+            : nullptr;
+
+    for (pb_size_t index = 0; index < count; ++index) {
+      result->map_value.fields[index].key =
+          nanopb::MakeBytesArray(*parsed_entries[index].first);
+      result->map_value.fields[index].value =
+          *parsed_entries[index].second.release();
     }
   }
 
@@ -463,19 +487,17 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseScalar(
     }
 
     case Type::kReference: {
-      DocumentReference reference = value.reference_value();
+      const DocumentReference& reference = value.reference_value();
+      if (!reference.is_valid()) {
+        ThrowInvalidData(context, "Document reference cannot be invalid");
+      }
 
-      const DatabaseId& other =
-          GetInternal(reference.firestore())->database_id();
+      const FirestoreInternal* other_firestore =
+          GetInternal(&reference)->firestore_internal();
+      SIMPLE_HARD_ASSERT(other_firestore != nullptr,
+                         "Valid DocumentReference must have FirestoreInternal");
+      const DatabaseId& other = other_firestore->database_id();
       if (other != *database_id_) {
-        // TODO(b/147444199): use string formatting.
-        // ThrowInvalidData(
-        //     context,
-        //     "DocumentReference is for database %s/%s but should be for "
-        //     "database %s/%s%s",
-        //     other.project_id(), other.database_id(),
-        //     database_id_->project_id(), database_id_->database_id(),
-        //     context.FieldDescription());
         auto actual_db = other.project_id() + "/" + other.database_id();
         auto expected_db =
             database_id_->project_id() + "/" + database_id_->database_id();
@@ -485,16 +507,7 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseScalar(
       }
 
       const model::DocumentKey& key = GetInternal(&reference)->key();
-      std::string reference_name =
-          model::ResourcePath({"projects", database_id_->project_id(),
-                               "databases", database_id_->database_id(),
-                               "documents", key.ToString()})
-              .CanonicalString();
-
-      result->which_value_type = google_firestore_v1_Value_reference_value_tag;
-      result->reference_value = nanopb::MakeBytesArray(reference_name);
-
-      break;
+      return model::RefValue(*database_id_, key);
     }
 
     case Type::kGeoPoint:

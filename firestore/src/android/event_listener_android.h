@@ -55,30 +55,19 @@ class EventListenerInternal {
       FirestoreInternal* firestore,
       EventListener<DocumentSnapshot>* listener);
 
-  static jobject EventListenerToJavaEventListener(
-      JNIEnv* env,
-      FirestoreInternal* firestore,
-      EventListener<DocumentSnapshot>* listener);
-
   static jni::Local<jni::Object> Create(jni::Env& env,
                                         FirestoreInternal* firestore,
                                         EventListener<QuerySnapshot>* listener);
 
-  static jobject EventListenerToJavaEventListener(
-      JNIEnv* env,
-      FirestoreInternal* firestore,
-      EventListener<QuerySnapshot>* listener);
-
   static jni::Local<jni::Object> Create(jni::Env& env,
                                         EventListener<void>* listener);
-
-  static jobject EventListenerToJavaRunnable(JNIEnv* env,
-                                             EventListener<void>* listener);
 
   static jni::Local<jni::Object> Create(
       jni::Env& env,
       FirestoreInternal* firestore,
       EventListener<LoadBundleTaskProgress>* listener);
+
+  static void DiscardPointers(jni::Env& env, const jni::Object& listener);
 };
 
 }  // namespace firestore

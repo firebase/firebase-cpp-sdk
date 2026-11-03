@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import org.gradle.util.ConfigureUtil;
-
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
-  'app' : ['com.google.firebase:firebase-analytics'],
+  'app' : ['com.google.firebase:firebase-common'],
   'app_check' : ['com.google.firebase:firebase-appcheck',
                  'com.google.firebase:firebase-appcheck-debug',
                  'com.google.firebase:firebase-appcheck-playintegrity'],
@@ -94,7 +92,9 @@ class FirebaseCppExtension {
   Dependencies dependencies = new Dependencies()
 
   void dependencies(Closure c) {
-    ConfigureUtil.configure(c, dependencies)
+    c.resolveStrategy = Closure.DELEGATE_FIRST
+    c.delegate = dependencies
+    c.call(dependencies)
   }
   void dependencies(Action<? super Dependencies> action) {
     action.execute(dependencies)
@@ -133,7 +133,9 @@ project.afterEvaluate {
       }
 
       // Add the proguard file and dependencies for the library
-      addProguard(lib)
+      if (lib != 'play_services') {
+        addProguard(lib)
+      }
       for (String dep : firebaseDependenciesMap.get(lib)) {
         project.dependencies {
           implementation "$dep"

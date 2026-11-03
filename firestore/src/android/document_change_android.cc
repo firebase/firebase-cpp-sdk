@@ -40,8 +40,8 @@ Method<DocumentChangeTypeInternal> kType(
     "getType", "()Lcom/google/firebase/firestore/DocumentChange$Type;");
 Method<Object> kDocument(
     "getDocument", "()Lcom/google/firebase/firestore/QueryDocumentSnapshot;");
-Method<size_t> kOldIndex("getOldIndex", "()I");
-Method<size_t> kNewIndex("getNewIndex", "()I");
+Method<int32_t> kOldIndex("getOldIndex", "()I");
+Method<int32_t> kNewIndex("getNewIndex", "()I");
 Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
@@ -53,28 +53,42 @@ void DocumentChangeInternal::Initialize(jni::Loader& loader) {
 Type DocumentChangeInternal::type() const {
   Env env = GetEnv();
   Local<DocumentChangeTypeInternal> type = env.Call(obj_, kType);
+  if (!env.ok() || !type) {
+    return Type::kAdded;
+  }
   return type.GetType(env);
 }
 
 DocumentSnapshot DocumentChangeInternal::document() const {
   Env env = GetEnv();
   Local<Object> snapshot = env.Call(obj_, kDocument);
+  if (!env.ok() || !snapshot) {
+    return DocumentSnapshot();
+  }
   return firestore_->NewDocumentSnapshot(env, snapshot);
 }
 
 std::size_t DocumentChangeInternal::old_index() const {
   Env env = GetEnv();
-  return env.Call(obj_, kOldIndex);
+  int32_t index = env.Call(obj_, kOldIndex);
+  if (!env.ok() || index < 0) {
+    return DocumentChange::npos;
+  }
+  return static_cast<std::size_t>(index);
 }
 
 std::size_t DocumentChangeInternal::new_index() const {
   Env env = GetEnv();
-  return env.Call(obj_, kNewIndex);
+  int32_t index = env.Call(obj_, kNewIndex);
+  if (!env.ok() || index < 0) {
+    return DocumentChange::npos;
+  }
+  return static_cast<std::size_t>(index);
 }
 
 std::size_t DocumentChangeInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return static_cast<uint32_t>(env.Call(obj_, kHashCode));
 }
 
 bool operator==(const DocumentChangeInternal& lhs,

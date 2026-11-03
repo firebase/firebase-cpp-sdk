@@ -24,7 +24,7 @@ namespace internal {
 
 ConsentInfoInternal::ConsentInfoInternal() : futures_(kConsentInfoFnCount) {}
 
-ConsentInfoInternal::~ConsentInfoInternal() {}
+ConsentInfoInternal::~ConsentInfoInternal() = default;
 
 const char* ConsentInfoInternal::GetConsentRequestErrorMessage(
     ConsentRequestError error_code) {
@@ -35,8 +35,8 @@ const char* ConsentInfoInternal::GetConsentRequestErrorMessage(
 #if FIREBASE_PLATFORM_ANDROID
       return "Missing or invalid com.google.android.gms.ads.APPLICATION_ID in "
              "AndroidManifest.xml";
-#elif FIREBASE_PLATFORM_IOS
-      return "Missing or invalid GADApplicationidentifier in Info.plist";
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+      return "Missing or invalid GADApplicationIdentifier in Info.plist";
 #else
       return "Missing or invalid App ID";
 #endif
@@ -53,6 +53,8 @@ const char* ConsentInfoInternal::GetConsentRequestErrorMessage(
     case kConsentRequestErrorOperationInProgress:
       return "Operation already in progress. Please wait for it to finish by "
              "checking RequestConsentInfoUpdateLastResult().";
+    case kConsentRequestErrorTimeout:
+      return "Timed out";
     default:
       return "Bad error code";
   }
@@ -77,7 +79,10 @@ const char* ConsentInfoInternal::GetConsentFormErrorMessage(
       return "Invalid operation";
     case kConsentFormErrorOperationInProgress:
       return "Operation already in progress. Please wait for it to finish by "
-             "checking LoadFormLastResult() or ShowFormLastResult().";
+             "checking LoadConsentFormLastResult() or "
+             "ShowConsentFormLastResult().";
+    case kConsentFormErrorNetwork:
+      return "Network error";
     default:
       return "Bad error code";
   }

@@ -23,6 +23,9 @@ namespace internal {
 
 bool FunctionRegistry::RegisterFunction(
     FunctionId id, RegisteredFunction registered_function) {
+  if (!registered_function) {
+    return false;
+  }
   MutexLock lock(map_mutex_);
   auto itr = registered_functions_.find(id);
   if (itr != registered_functions_.end()) {
@@ -39,7 +42,7 @@ bool FunctionRegistry::UnregisterFunction(FunctionId id) {
   if (itr == registered_functions_.end()) {
     return false;
   } else {
-    registered_functions_.erase(itr, itr);
+    registered_functions_.erase(itr);
     return true;
   }
 }
@@ -52,18 +55,17 @@ bool FunctionRegistry::FunctionExists(FunctionId id) {
 
 bool FunctionRegistry::CallFunction(FunctionId id, App* app, void* args,
                                     void* out) {
-  RegisteredFunction function;
+  RegisteredFunction function = nullptr;
   {
-    std::map<FunctionId, RegisteredFunction>::iterator itr;
     MutexLock lock(map_mutex_);
-    itr = registered_functions_.find(id);
+    auto itr = registered_functions_.find(id);
     if (itr != registered_functions_.end()) {
       function = itr->second;
     } else {
       return false;
     }
   }
-  return function(app, args, out);
+  return function ? function(app, args, out) : false;
 }
 
 }  // namespace internal

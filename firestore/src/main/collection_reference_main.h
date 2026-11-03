@@ -45,7 +45,11 @@ class CollectionReferenceInternal : public QueryInternal {
   Future<DocumentReference> Add(const MapFieldValue& data);
 
  private:
-  const api::CollectionReference& collection_core_api() const;
+  const api::CollectionReference& collection_core_api() const {
+    return collection_;
+  }
+
+  api::CollectionReference collection_;
 };
 
 }  // namespace firestore

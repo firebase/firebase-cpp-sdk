@@ -16,7 +16,6 @@
 
 #include "firestore/src/jni/class.h"
 
-#include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -32,19 +31,37 @@ Method<bool> kIsArray("isArray", "()Z");
 }  // namespace
 
 void Class::Initialize(Loader& loader) {
-  loader.LoadFromExistingClass(kClass, util::class_class::GetClass(), kGetName,
-                               kIsArray);
+  loader.LoadClass(kClass, kGetName, kIsArray);
 }
 
 std::string Class::GetName(Env& env) const {
-  return env.Call(*this, kGetName).ToString(env);
+  if (!*this || !env.ok()) {
+    return "";
+  }
+  Local<String> name = env.Call(*this, kGetName);
+  if (!env.ok() || !name) {
+    return "";
+  }
+  return name.ToString(env);
 }
 
 std::string Class::GetClassName(Env& env, const Object& object) {
-  return util::JObjectClassName(env.get(), object.get());
+  if (!object || !env.ok()) {
+    return "";
+  }
+  Local<Class> clazz = env.GetObjectClass(object);
+  if (!env.ok() || !clazz) {
+    return "";
+  }
+  return clazz.GetName(env);
 }
 
-bool Class::IsArray(Env& env) const { return env.Call(*this, kIsArray); }
+bool Class::IsArray(Env& env) const {
+  if (!*this || !env.ok()) {
+    return false;
+  }
+  return env.Call(*this, kIsArray);
+}
 
 }  // namespace jni
 }  // namespace firestore

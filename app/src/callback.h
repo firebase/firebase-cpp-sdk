@@ -17,21 +17,19 @@
 #ifndef FIREBASE_APP_SRC_CALLBACK_H_
 #define FIREBASE_APP_SRC_CALLBACK_H_
 
+#include <functional>
+#include <string>
+#include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include "firebase/internal/common.h"
-
-#ifdef FIREBASE_USE_STD_FUNCTION
-#include <functional>
-#endif
 
 /// @cond FIREBASE_APP_INTERNAL
 
 /// This file is intended for use with the C# interfaces, to allow registration
 /// of callbacks so that they can be handled in the desired context, as opposed
 /// to the threads created to handle them internally.
-
-#include <string>
 
 namespace firebase {
 namespace callback {
@@ -48,14 +46,13 @@ void Terminate(bool flush_all);
 
 // TODO(73547295): Use CallbackArg to simplify the versions of Callback that
 // accept strings.
-/// A simple class to hold a value, or if the value's type is const char*, it
-/// holds a std::string.
+/// A simple class to hold a value, or if the value's type is const char* or
+/// char*, it holds a std::string copy.
 template <typename T>
 class CallbackArg {
  public:
-  explicit CallbackArg(const T value) : value_(value) {}
-  const T value() const { return value_; }
-  T value() { return value_; }
+  explicit CallbackArg(T value) : value_(std::move(value)) {}
+  const T& value() const { return value_; }
 
  private:
   T value_;
@@ -66,7 +63,21 @@ template <>
 class CallbackArg<const char*> {
  public:
   explicit CallbackArg(const char* value) : value_(SafeString(value)) {}
-  const char* value() { return value_.c_str(); }
+  const char* value() const { return value_.c_str(); }
+
+ private:
+  std::string value_;
+  static const char* SafeString(const char* string) {
+    return string ? string : "";
+  }
+};
+
+// The template specialization to hold a std::string instead of a char*.
+template <>
+class CallbackArg<char*> {
+ public:
+  explicit CallbackArg(const char* value) : value_(SafeString(value)) {}
+  char* value() const { return const_cast<char*>(value_.c_str()); }
 
  private:
   std::string value_;
@@ -76,8 +87,8 @@ class CallbackArg<const char*> {
 };
 
 /// Interface for Callbacks that will later be called from the correct context.
-/// We don't use std::function because stlport has weak support for it, and we
-/// need to guarantee that any string conversion happens on the C# thread.
+/// String arguments are copied into std::string so that any C# string
+/// conversion happens on the C# thread.
 class Callback {
  public:
   virtual ~Callback() {}
@@ -97,9 +108,14 @@ class CallbackVoid : public Callback {
  public:
   typedef void (*UserCallback)();
 
-  CallbackVoid(UserCallback user_callback) : user_callback_(user_callback) {}
+  explicit CallbackVoid(UserCallback user_callback)
+      : user_callback_(user_callback) {}
   ~CallbackVoid() override {}
-  void Run() override { user_callback_(); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_();
+    }
+  }
 
  private:
   UserCallback user_callback_;
@@ -114,7 +130,11 @@ class Callback1 : public Callback {
   Callback1(const T& data, UserCallback user_callback)
       : data_(data), user_callback_(user_callback) {}
   ~Callback1() override {}
-  void Run() override { user_callback_(&data_); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(&data_);
+    }
+  }
 
  private:
   T data_;
@@ -128,10 +148,14 @@ class CallbackValue1 : public Callback {
  public:
   typedef void (*UserCallback)(T data);
 
-  CallbackValue1(const T data, UserCallback user_callback)
-      : data_(data), user_callback_(user_callback) {}
+  CallbackValue1(T data, UserCallback user_callback)
+      : data_(std::move(data)), user_callback_(user_callback) {}
   ~CallbackValue1() override {}
-  void Run() override { user_callback_(data_); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(data_);
+    }
+  }
 
  private:
   T data_;
@@ -145,10 +169,16 @@ class CallbackValue2 : public Callback {
  public:
   typedef void (*UserCallback)(T1 data1, T2 data2);
 
-  CallbackValue2(const T1 data1, const T2 data2, UserCallback user_callback)
-      : data1_(data1), data2_(data2), user_callback_(user_callback) {}
+  CallbackValue2(T1 data1, T2 data2, UserCallback user_callback)
+      : data1_(std::move(data1)),
+        data2_(std::move(data2)),
+        user_callback_(user_callback) {}
   ~CallbackValue2() override {}
-  void Run() override { user_callback_(data1_, data2_); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(data1_, data2_);
+    }
+  }
 
  private:
   T1 data1_;
@@ -164,7 +194,11 @@ class CallbackString : public Callback {
   CallbackString(const char* data, UserCallback user_callback)
       : data_(SafeString(data)), user_callback_(user_callback) {}
   ~CallbackString() override {}
-  void Run() override { user_callback_(data_.c_str()); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(data_.c_str());
+    }
+  }
 
  private:
   std::string data_;
@@ -177,11 +211,16 @@ class CallbackValue1String1 : public Callback {
  public:
   typedef void (*UserCallback)(T data, const char* str);
 
-  CallbackValue1String1(const T data, const char* str,
-                        UserCallback user_callback)
-      : data_(data), str_(SafeString(str)), user_callback_(user_callback) {}
+  CallbackValue1String1(T data, const char* str, UserCallback user_callback)
+      : data_(std::move(data)),
+        str_(SafeString(str)),
+        user_callback_(user_callback) {}
   ~CallbackValue1String1() override {}
-  void Run() override { user_callback_(data_, str_.c_str()); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(data_, str_.c_str());
+    }
+  }
 
  private:
   T data_;
@@ -195,14 +234,18 @@ class CallbackString2Value1 : public Callback {
  public:
   typedef void (*UserCallback)(const char* str1, const char* str2, T data);
 
-  CallbackString2Value1(const char* str1, const char* str2, const T data,
+  CallbackString2Value1(const char* str1, const char* str2, T data,
                         UserCallback user_callback)
       : str1_(SafeString(str1)),
         str2_(SafeString(str2)),
-        data_(data),
+        data_(std::move(data)),
         user_callback_(user_callback) {}
   ~CallbackString2Value1() override {}
-  void Run() override { user_callback_(str1_.c_str(), str2_.c_str(), data_); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(str1_.c_str(), str2_.c_str(), data_);
+    }
+  }
 
  private:
   std::string str1_;
@@ -217,14 +260,18 @@ class CallbackValue2String1 : public Callback {
  public:
   typedef void (*UserCallback)(T1 data1, T2 data2, const char* str);
 
-  CallbackValue2String1(const T1 data1, const T2 data2, const char* str,
+  CallbackValue2String1(T1 data1, T2 data2, const char* str,
                         UserCallback user_callback)
-      : data1_(data1),
-        data2_(data2),
+      : data1_(std::move(data1)),
+        data2_(std::move(data2)),
         str_(SafeString(str)),
         user_callback_(user_callback) {}
   ~CallbackValue2String1() override {}
-  void Run() override { user_callback_(data1_, data2_, str_.c_str()); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(data1_, data2_, str_.c_str());
+    }
+  }
 
  private:
   T1 data1_;
@@ -239,15 +286,19 @@ class CallbackValue3String1 : public Callback {
  public:
   typedef void (*UserCallback)(T1 data1, T2 data2, T3 data3, const char* str);
 
-  CallbackValue3String1(const T1 data1, const T2 data2, T3 data3,
-                        const char* str, UserCallback user_callback)
-      : data1_(data1),
-        data2_(data2),
-        data3_(data3),
+  CallbackValue3String1(T1 data1, T2 data2, T3 data3, const char* str,
+                        UserCallback user_callback)
+      : data1_(std::move(data1)),
+        data2_(std::move(data2)),
+        data3_(std::move(data3)),
         str_(SafeString(str)),
         user_callback_(user_callback) {}
   ~CallbackValue3String1() override {}
-  void Run() override { user_callback_(data1_, data2_, data3_, str_.c_str()); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(data1_, data2_, data3_, str_.c_str());
+    }
+  }
 
  private:
   T1 data1_;
@@ -268,55 +319,31 @@ class CallbackMoveValue1 : public Callback {
   CallbackMoveValue1(T data, UserCallback user_callback)
       : data_(std::move(data)), user_callback_(user_callback) {}
   ~CallbackMoveValue1() override {}
-  void Run() override { user_callback_(&data_); }
+  void Run() override {
+    if (user_callback_) {
+      user_callback_(&data_);
+    }
+  }
 
  private:
   T data_;
   UserCallback user_callback_;
 };
 
-#ifdef FIREBASE_USE_STD_FUNCTION
 /// Callback implementation that wraps std::function
 class CallbackStdFunction : public Callback {
  public:
-  explicit CallbackStdFunction(const std::function<void()>& func)
-      : func_(func) {}
+  explicit CallbackStdFunction(std::function<void()> func)
+      : func_(std::move(func)) {}
   ~CallbackStdFunction() override {}
-  void Run() override { func_(); }
+  void Run() override {
+    if (func_) {
+      func_();
+    }
+  }
 
  private:
   std::function<void()> func_;
-};
-#endif
-
-// STLPort doens't support std::tuple or std::get, which are needed for
-// CallbackVariadic to work.
-#if !defined(_STLPORT_VERSION)
-template <int...>
-struct IntegerSequence {};
-
-// This generates a sequence where the first value is a counter, and the rest of
-// the sequence counts up to the target value.
-//
-// For example, if you start with GenerateSequence<5> (for a function with 5
-// arguments) the inheritance evaluates to this:
-//
-// GenerateSequence<5> :
-// GenerateSequence<4, 4> :
-// GenerateSequence<3, 3, 4> :
-// GenerateSequence<2, 2, 3, 4> :
-// GenerateSequence<1, 1, 2, 3, 4> :
-// GenerateSequence<0, 0, 1, 2, 3, 4>
-//
-// Finally, since GenerateSequence<0, 0, 1, 2, 3, 4> starts with a 0, the
-// IntegerSequence that it holds in it's typedef Type contains <0, 1, 2, 3, 4>.
-template <int counter, int... sequence>
-struct GenerateSequence
-    : GenerateSequence<counter - 1, counter - 1, sequence...> {};
-
-template <int... sequence>
-struct GenerateSequence<0, sequence...> {
-  typedef IntegerSequence<sequence...> Type;
 };
 
 // A Variadic Callback that can be used on any number of arguments.
@@ -325,47 +352,55 @@ class CallbackVariadic : public Callback {
  public:
   typedef void (*UserCallback)(ArgTypes... args);
 
-  explicit CallbackVariadic(UserCallback user_callback, ArgTypes... args)
-      : user_callback_(user_callback), args_(CallbackArg<ArgTypes>(args)...) {}
+  template <typename... CallArgs>
+  explicit CallbackVariadic(UserCallback user_callback, CallArgs&&... args)
+      : user_callback_(user_callback),
+        args_(CallbackArg<ArgTypes>(std::forward<CallArgs>(args))...) {}
   ~CallbackVariadic() override {}
-  void Run() override {
-    // Get the number of args and generate an IntegerSequence from them.
-    RunInternal(typename GenerateSequence<sizeof...(ArgTypes)>::Type());
-  }
+  void Run() override { RunInternal(std::index_sequence_for<ArgTypes...>{}); }
 
  private:
-  template <int... Indexes>
-  void RunInternal(IntegerSequence<Indexes...> unused) {
-    // We only pass the unused variable so that we can unpack the Indexes stored
-    // in the templated type.
-    (void)unused;
-    user_callback_(std::get<Indexes>(args_).value()...);
+  template <size_t... Indexes>
+  void RunInternal(std::index_sequence<Indexes...>) {
+    if (user_callback_) {
+      user_callback_(std::get<Indexes>(args_).value()...);
+    }
   }
 
   UserCallback user_callback_;
   std::tuple<CallbackArg<ArgTypes>...> args_;
 };
 
+template <typename... FuncArgs, typename... CallArgs>
+Callback* NewCallbackHelper(void (*user_callback)(FuncArgs...),
+                            CallArgs&&... args) {
+  return new CallbackVariadic<std::decay_t<FuncArgs>...>(
+      user_callback, std::forward<CallArgs>(args)...);
+}
+
 template <typename UserCallback, typename... ArgTypes>
-Callback* NewCallbackHelper(UserCallback user_callback, ArgTypes... args) {
-  return new CallbackVariadic<ArgTypes...>(user_callback, args...);
+Callback* NewCallbackHelper(UserCallback user_callback, ArgTypes&&... args) {
+  return new CallbackVariadic<std::decay_t<ArgTypes>...>(
+      user_callback, std::forward<ArgTypes>(args)...);
 }
 
 // The first argument should be the Callback, the remaining arguments (if any)
-// are the function arguments.
+// are the function arguments. Returns a newly heap-allocated Callback* whose
+// ownership is transferred to the caller (typically passed to AddCallback).
 template <typename... CallbackAndArgs>
-Callback* NewCallback(CallbackAndArgs... callback_and_args) {
-  return NewCallbackHelper(callback_and_args...);
+Callback* NewCallback(CallbackAndArgs&&... callback_and_args) {
+  return NewCallbackHelper(std::forward<CallbackAndArgs>(callback_and_args)...);
 }
-#endif  // !defined(_STLPORT_VERSION)
 
 /// Adds a Callback to be called on the next PollCallbacks call.
+/// Takes ownership of `callback` and deletes it after execution or removal.
 /// This function returns a reference in the queue that can be used to remove
 /// the callback from the queue.  The reference is only valid until the
 /// callback is executed.
 void* AddCallback(Callback* callback);
 
 /// Adds a Callback to be called on the next PollCallbacks call.
+/// Takes ownership of `callback` and deletes it after execution or removal.
 /// This function returns a reference in the queue that can be used to remove
 /// the callback from the queue.  The reference is only valid until the
 /// callback is executed.
@@ -376,6 +411,7 @@ void* AddCallback(Callback* callback);
 void* AddCallbackWithThreadCheck(Callback* callback);
 
 /// Adds a Callback to be called on the next PollCallbacks call.
+/// Takes ownership of `callback` and deletes it after execution or removal.
 /// This function blocks until the callback has been executed or removed from
 /// the queue.  If AddBlockingCallback is called from the callback thread,
 /// the new callback is executed immediately to avoid deadlocks.

@@ -23,6 +23,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -170,14 +171,18 @@ class Analytics {
   bool Initialize(const Options& options) {
     GoogleAnalytics_Options* google_analytics_options =
         GoogleAnalytics_Options_Create();
+    if (!google_analytics_options) {
+      return false;
+    }
     google_analytics_options->app_id = options.app_id.c_str();
     google_analytics_options->package_name = options.package_name.c_str();
     google_analytics_options->analytics_collection_enabled_at_first_launch =
         options.analytics_collection_enabled_at_first_launch;
     google_analytics_options->app_data_directory =
-        options.app_data_directory.value_or("").empty()
+        (!options.app_data_directory.has_value() ||
+         options.app_data_directory->empty())
             ? nullptr
-            : options.app_data_directory.value().c_str();
+            : options.app_data_directory->c_str();
     google_analytics_options->session_timeout_duration_seconds =
         options.session_timeout_duration_seconds.value_or(-1);
     return GoogleAnalytics_Initialize(google_analytics_options);
@@ -188,7 +193,7 @@ class Analytics {
    *
    * @return true if the Analytics SDK is initialized, false otherwise.
    */
-  bool IsInitialized() { return GoogleAnalytics_IsInitialized(); }
+  bool IsInitialized() const { return GoogleAnalytics_IsInitialized(); }
 
   /**
    * @brief Sets whether debug mode is enabled.
@@ -237,32 +242,35 @@ class Analytics {
    * - session_start_with_rollout
    * - user_engagement
    *
-   * @param[in] name The name of the event. Should contain 1 to 40 alphanumeric
-   * characters or underscores. The name must start with an alphabetic
-   * character. Some event names are reserved. See event_names.h for the list
-   * of reserved event names. The "firebase_", "google_", and "ga_" prefixes are
-   * reserved and should not be used. Note that event names are case-sensitive
-   * and that logging two events whose names differ only in case will result in
-   * two distinct events. To manually log screen view events, use the
-   * `screen_view` event name. Must be UTF-8 encoded.
+   * @param[in] event_name The name of the event. Should contain 1 to 40
+   * alphanumeric characters or underscores. The name must start with an
+   * alphabetic character. Some event names are reserved. See event_names.h for
+   * the list of reserved event names. The "firebase_", "google_", and "ga_"
+   * prefixes are reserved and should not be used. Note that event names are
+   * case-sensitive and that logging two events whose names differ only in case
+   * will result in two distinct events. To manually log screen view events, use
+   * the `screen_view` event name. Must be UTF-8 encoded.
    * @param[in] parameters The map of event parameters. Passing `std::nullopt`
    * indicates that the event has no parameters. Parameter names can be up to 40
    * characters long and must start with an alphabetic character and contain
-   * only alphanumeric characters and underscores. Only String, Int, and Double
-   * parameter types are supported. String parameter values can be up to 100
-   * characters long for standard Google Analytics properties, and up to 500
-   * characters long for Google Analytics 360 properties. The "firebase_",
+   * only alphanumeric characters and underscores. Only String, Int, Double, and
+   * ItemVector parameter types are supported. String parameter values can be up
+   * to 100 characters long for standard Google Analytics properties, and up to
+   * 500 characters long for Google Analytics 360 properties. The "firebase_",
    * "google_", and "ga_" prefixes are reserved and should not be used for
    * parameter names. String keys and values must be UTF-8 encoded.
    */
   void LogEvent(const std::string& event_name,
-                const std::optional<const EventParameters>& parameters) {
+                const std::optional<EventParameters>& parameters) {
     if (!parameters.has_value()) {
-      GoogleAnalytics_LogEvent(std::string(event_name).c_str(), nullptr);
+      GoogleAnalytics_LogEvent(event_name.c_str(), nullptr);
       return;
     }
     GoogleAnalytics_EventParameters* map =
         GoogleAnalytics_EventParameters_Create();
+    if (!map) {
+      return;
+    }
     for (const auto& [name, value] : parameters.value()) {
       if (auto* int_value = std::get_if<int64_t>(&value)) {
         GoogleAnalytics_EventParameters_InsertInt(map, name.c_str(),
@@ -276,8 +284,14 @@ class Analytics {
       } else if (auto* items = std::get_if<ItemVector>(&value)) {
         GoogleAnalytics_ItemVector* item_vector =
             GoogleAnalytics_ItemVector_Create();
+        if (!item_vector) {
+          continue;
+        }
         for (const auto& item : *items) {
           GoogleAnalytics_Item* nested_item = GoogleAnalytics_Item_Create();
+          if (!nested_item) {
+            continue;
+          }
           for (const auto& [nested_name, nested_value] : item) {
             if (auto* nested_int_value = std::get_if<int64_t>(&nested_value)) {
               GoogleAnalytics_Item_InsertInt(nested_item, nested_name.c_str(),
@@ -299,7 +313,7 @@ class Analytics {
                                                          item_vector);
       }
     }
-    GoogleAnalytics_LogEvent(std::string(event_name).c_str(), map);
+    GoogleAnalytics_LogEvent(event_name.c_str(), map);
   }
 
   /**
@@ -324,7 +338,7 @@ class Analytics {
    * property. Must be UTF-8 encoded.
    */
   void SetUserProperty(const std::string& name,
-                       std::optional<std::string> value) {
+                       const std::optional<std::string>& value) {
     const char* value_ptr = value.has_value() ? value->c_str() : nullptr;
     GoogleAnalytics_SetUserProperty(name.c_str(), value_ptr);
   }
@@ -341,7 +355,7 @@ class Analytics {
    * long, and UTF-8 encoded. Setting user_id to std::nullopt removes the
    * user ID.
    */
-  void SetUserId(std::optional<std::string> user_id) {
+  void SetUserId(const std::optional<std::string>& user_id) {
     if (!user_id.has_value()) {
       GoogleAnalytics_SetUserId(nullptr);
     } else {
@@ -374,12 +388,10 @@ class Analytics {
    * @param[in] callback The callback to use. Must be thread-safe.
    */
   void SetLogCallback(LogCallback callback) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      current_callback_ = callback;
-    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    current_callback_ = std::move(callback);
 
-    if (!callback) {
+    if (!current_callback_) {
       GoogleAnalytics_SetLogCallback(nullptr);
       return;
     }
@@ -409,7 +421,7 @@ class Analytics {
         local_callback = self.current_callback_;
       }
       if (local_callback) {
-        local_callback(cpp_log_level, std::string(message));
+        local_callback(cpp_log_level, std::string(message ? message : ""));
       }
     });
   }

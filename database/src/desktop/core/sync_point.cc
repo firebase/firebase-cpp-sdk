@@ -30,21 +30,21 @@
 #include "database/src/desktop/view/view.h"
 #include "database/src/include/firebase/database/common.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
-SyncPoint::SyncPoint(const SyncPoint& other)
-    : views_(std::move(const_cast<SyncPoint*>(&other)->views_)) {}
+SyncPoint::SyncPoint(const SyncPoint& other) : views_(other.views_) {}
 
 SyncPoint& SyncPoint::operator=(const SyncPoint& other) {
-  views_ = std::move(const_cast<SyncPoint*>(&other)->views_);
+  if (&other == this) return *this;
+  views_ = other.views_;
   return *this;
 }
 
-SyncPoint::SyncPoint(SyncPoint&& other) : views_(std::move(other.views_)) {}
+SyncPoint::SyncPoint(SyncPoint&& other) noexcept
+    : views_(std::move(other.views_)) {}
 
-SyncPoint& SyncPoint::operator=(SyncPoint&& other) {
+SyncPoint& SyncPoint::operator=(SyncPoint&& other) noexcept {
+  if (&other == this) return *this;
   views_ = std::move(other.views_);
   return *this;
 }
@@ -59,12 +59,15 @@ std::vector<Event> SyncPoint::ApplyOperation(
   if (query_params.has_value()) {
     auto iter = views_.find(*query_params);
     assert(iter != views_.end());
+    if (iter == views_.end()) {
+      return {};
+    }
     return ApplyOperationToView(&iter->second, operation, writes_cache,
                                 opt_complete_server_cache, persistence_manager);
   } else {
     std::vector<Event> result;
-    for (auto& query_spec_view_pair : views_) {
-      View& view = query_spec_view_pair.second;
+    for (auto& [params, view] : views_) {
+      (void)params;
       Extend(&result, ApplyOperationToView(&view, operation, writes_cache,
                                            opt_complete_server_cache,
                                            persistence_manager));
@@ -77,6 +80,9 @@ std::vector<Event> SyncPoint::AddEventRegistration(
     std::unique_ptr<EventRegistration> event_registration,
     const WriteTreeRef& writes_cache, const CacheNode& server_cache,
     PersistenceManagerInterface* persistence_manager) {
+  if (!event_registration) {
+    return {};
+  }
   const QuerySpec& query_spec = event_registration->query_spec();
   View* view = MapGet(&views_, query_spec.params);
   if (view == nullptr) {
@@ -91,23 +97,30 @@ std::vector<Event> SyncPoint::AddEventRegistration(
       event_cache_complete = false;
     }
     IndexedVariant indexed(*event_cache, query_spec.params);
-    ViewCache view_cache(CacheNode(indexed, event_cache_complete, false),
+    ViewCache view_cache(CacheNode(std::move(indexed), event_cache_complete,
+                                   false),
                          server_cache);
-    auto iter = views_.insert(
-        std::make_pair(query_spec.params, View(query_spec, view_cache)));
-    view = &iter.first->second;
+    auto [iter, inserted] =
+        views_.try_emplace(query_spec.params, query_spec, view_cache);
+    (void)inserted;
+    view = &iter->second;
 
     // If this is a non-default query we need to tell persistence our current
     // view of the data.
     if (!QuerySpecLoadsAllData(query_spec)) {
       std::set<std::string> all_children;
       const Variant* value = GetVariantValue(&view->GetLocalCache());
-      if (value->is_map()) {
-        for (const auto& key_value_pair : value->map()) {
-          all_children.insert(key_value_pair.first.string_value());
+      if (value != nullptr && value->is_map()) {
+        for (const auto& [key, child_value] : value->map()) {
+          (void)child_value;
+          if (key.is_string()) {
+            all_children.insert(key.string_value());
+          }
         }
       }
-      persistence_manager->SetTrackedQueryKeys(query_spec, all_children);
+      if (persistence_manager != nullptr) {
+        persistence_manager->SetTrackedQueryKeys(query_spec, all_children);
+      }
     }
   }
 
@@ -130,7 +143,8 @@ std::vector<Event> SyncPoint::RemoveEventRegistration(
              view.RemoveEventRegistration(listener_ptr, cancel_error));
       if (view.IsEmpty()) {
         // We'll deal with complete views later.
-        if (!QuerySpecLoadsAllData(view.query_spec())) {
+        if (!QuerySpecLoadsAllData(view.query_spec()) &&
+            out_removed != nullptr) {
           out_removed->push_back(view.query_spec());
         }
         iter = views_.erase(iter);
@@ -146,7 +160,7 @@ std::vector<Event> SyncPoint::RemoveEventRegistration(
              view->RemoveEventRegistration(listener_ptr, cancel_error));
       if (view->IsEmpty()) {
         // We'll deal with complete views later.
-        if (!QuerySpecLoadsAllData(query_spec)) {
+        if (!QuerySpecLoadsAllData(query_spec) && out_removed != nullptr) {
           out_removed->push_back(query_spec);
         }
         views_.erase(query_spec.params);
@@ -154,7 +168,7 @@ std::vector<Event> SyncPoint::RemoveEventRegistration(
     }
   }
 
-  if (had_complete_view && !HasCompleteView()) {
+  if (had_complete_view && !HasCompleteView() && out_removed != nullptr) {
     // We removed our last complete view.
     out_removed->push_back(MakeDefaultQuerySpec(query_spec));
   }
@@ -163,8 +177,8 @@ std::vector<Event> SyncPoint::RemoveEventRegistration(
 
 std::vector<const View*> SyncPoint::GetIncompleteQueryViews() const {
   std::vector<const View*> result;
-  for (auto& query_spec_view_pair : views_) {
-    const View& view = query_spec_view_pair.second;
+  for (const auto& [params, view] : views_) {
+    (void)params;
     if (!QuerySpecLoadsAllData(view.query_spec())) {
       result.push_back(&view);
     }
@@ -173,8 +187,8 @@ std::vector<const View*> SyncPoint::GetIncompleteQueryViews() const {
 }
 
 const Variant* SyncPoint::GetCompleteServerCache(const Path& path) const {
-  for (auto& query_spec_view_pair : views_) {
-    const View& view = query_spec_view_pair.second;
+  for (const auto& [params, view] : views_) {
+    (void)params;
     const Variant* result = view.GetCompleteServerCache(path);
     if (result != nullptr) {
       return result;
@@ -198,8 +212,8 @@ bool SyncPoint::ViewExistsForQuery(const QuerySpec& query_spec) const {
 bool SyncPoint::HasCompleteView() const { return GetCompleteView() != nullptr; }
 
 const View* SyncPoint::GetCompleteView() const {
-  for (auto& query_spec_view_pair : views_) {
-    const View& view = query_spec_view_pair.second;
+  for (const auto& [params, view] : views_) {
+    (void)params;
     if (QuerySpecLoadsAllData(view.query_spec())) {
       return &view;
     }
@@ -211,6 +225,9 @@ std::vector<Event> SyncPoint::ApplyOperationToView(
     View* view, const Operation& operation, const WriteTreeRef& writes,
     const Variant* opt_complete_server_cache,
     PersistenceManagerInterface* persistence_manager) {
+  if (view == nullptr) {
+    return {};
+  }
   std::vector<Change> changes;
   std::vector<Event> events = view->ApplyOperation(
       operation, writes, opt_complete_server_cache, &changes);
@@ -225,7 +242,8 @@ std::vector<Event> SyncPoint::ApplyOperationToView(
         removed.insert(change.child_key);
       }
     }
-    if (!added.empty() || !removed.empty()) {
+    if ((!added.empty() || !removed.empty()) &&
+        persistence_manager != nullptr) {
       persistence_manager->UpdateTrackedQueryKeys(view->query_spec(), added,
                                                   removed);
     }
@@ -233,6 +251,4 @@ std::vector<Event> SyncPoint::ApplyOperationToView(
   return events;
 }
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal

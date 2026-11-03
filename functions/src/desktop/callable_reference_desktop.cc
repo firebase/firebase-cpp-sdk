@@ -14,112 +14,254 @@
 
 #include "functions/src/desktop/callable_reference_desktop.h"
 
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
-#include "app/rest/request.h"
+#include "app/rest/transport_builder.h"
+#include "app/rest/transport_curl.h"
+#include "app/rest/transport_interface.h"
 #include "app/rest/util.h"
 #include "app/src/function_registry.h"
+#include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/variant.h"
+#include "app/src/log.h"
+#include "app/src/reference_counted_future_impl.h"
 #include "app/src/variant_util.h"
+#include "flatbuffers/stl_emulation.h"
 #include "functions/src/desktop/functions_desktop.h"
 #include "functions/src/desktop/serialization.h"
 #include "functions/src/include/firebase/functions.h"
+#include "functions/src/include/firebase/functions/callable_reference.h"
+#include "functions/src/include/firebase/functions/callable_result.h"
+#include "functions/src/include/firebase/functions/common.h"
 
 namespace firebase {
 namespace functions {
 namespace internal {
 
-enum CallableReferenceFn {
-  kCallableReferenceFnCall = 0,
-  kCallableReferenceFnCount,
+enum HttpsCallableReferenceFn {
+  kHttpsCallableReferenceFnCall = 0,
+  kHttpsCallableReferenceFnCount,
 };
+
+FunctionsCallableRequest::FunctionsCallableRequest(const char* url) {
+  set_url(url ? url : "");
+  options_.method = rest::util::kPost;
+  add_header(rest::util::kContentType, rest::util::kApplicationJson);
+}
+
+void FunctionsCallableRequest::set_url(const char* url) {
+  options_.url = url ? url : "";
+}
+
+void FunctionsCallableResponse::SetCallback(Callback callback) {
+  callback_ = std::move(callback);
+}
+
+void FunctionsCallableResponse::MarkCompleted() {
+  rest::Response::MarkCompleted();
+  InvokeCallback();
+}
+
+void FunctionsCallableResponse::MarkFailed() {
+  rest::Response::MarkFailed();
+  failed_ = true;
+  InvokeCallback();
+}
+
+void FunctionsCallableResponse::InvokeCallback() {
+  Callback cb = std::move(callback_);
+  if (cb) {
+    cb();
+  }
+}
+
+namespace {
+
+// Self-contained execution context for a single Call() invocation.
+// Owned via std::shared_ptr by the asynchronous callbacks so destroying
+// HttpsCallableReference or FunctionsInternal while a request is in flight
+// never causes a Use-After-Free, and concurrent Call() invocations on the
+// same HttpsCallableReference never share mutable Request/Response/Transport.
+struct CallExecutionContext
+    : public std::enable_shared_from_this<CallExecutionContext> {
+  CallExecutionContext(
+      const char* url, int64_t timeout_ms,
+      ReferenceCountedFutureImpl* future_api_in,
+      SafeFutureHandle<HttpsCallableResult> handle_in,
+      std::shared_ptr<FunctionsLifetimeState> lifetime_state_in)
+      : request(url),
+        transport(rest::CreateTransport()),
+        future_api(future_api_in),
+        handle(handle_in),
+        lifetime_state(std::move(lifetime_state_in)) {
+    request.options().timeout_ms =
+        timeout_ms > 0 ? timeout_ms : kDefaultTimeoutMilliseconds;
+    if (auto* curl_transport =
+            dynamic_cast<rest::TransportCurl*>(transport.get())) {
+      curl_transport->set_is_async(true);
+    }
+  }
+
+  void StartPerform() {
+    auto self = shared_from_this();
+    response.SetCallback([self]() {
+      if (self->lifetime_state) {
+        MutexLock lock(self->lifetime_state->mutex);
+        // Defer destruction of `self` until outside Response::MarkCompleted().
+        self->lifetime_state->retired_calls.push_back(self);
+        if (!self->lifetime_state->alive) {
+          return;
+        }
+        ResolveFuture(self->future_api, self->handle, &self->response);
+      } else {
+        ResolveFuture(self->future_api, self->handle, &self->response);
+      }
+    });
+    transport->Perform(&request, &response, nullptr);
+  }
+
+  FunctionsCallableRequest request;
+  FunctionsCallableResponse response;
+  flatbuffers::unique_ptr<rest::Transport> transport;
+  ReferenceCountedFutureImpl* future_api;
+  SafeFutureHandle<HttpsCallableResult> handle;
+  std::shared_ptr<FunctionsLifetimeState> lifetime_state;
+};
+
+}  // namespace
+
+HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
+    FunctionsInternal* functions, const char* url)
+    : HttpsCallableReferenceInternal(functions, url, /*is_url=*/true,
+                                     HttpsCallableOptions()) {}
+
+HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
+    FunctionsInternal* functions, const char* target, bool is_url)
+    : HttpsCallableReferenceInternal(functions, target, is_url,
+                                     HttpsCallableOptions()) {}
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, const char* url,
     const HttpsCallableOptions& options)
-    : functions_(functions), url_(url), options_(options) {
-  functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
-  rest::InitTransportCurl();
-  transport_.set_is_async(true);
+    : HttpsCallableReferenceInternal(functions, url, /*is_url=*/true, options) {
+}
+
+HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
+    FunctionsInternal* functions, const char* target, bool is_url,
+    const HttpsCallableOptions& options)
+    : functions_(functions),
+      target_(target ? target : ""),
+      is_url_(is_url),
+      options_(options) {
+  if (functions_) {
+    functions_->future_manager().AllocFutureApi(this,
+                                                kHttpsCallableReferenceFnCount);
+  }
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
-  functions_->future_manager().ReleaseFutureApi(this);
-  rest::CleanupTransportCurl();
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
-    : functions_(other.functions_), url_(other.url_), options_(other.options_) {
-  functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
-  rest::InitTransportCurl();
-  transport_.set_is_async(true);
+    : functions_(other.functions_),
+      target_(other.target_),
+      is_url_(other.is_url_),
+      options_(other.options_) {
+  if (functions_) {
+    functions_->future_manager().AllocFutureApi(this,
+                                                kHttpsCallableReferenceFnCount);
+  }
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& other) {
-  functions_ = other.functions_;
-  url_ = other.url_;
+  if (this == &other) {
+    return *this;
+  }
+  if (functions_ != other.functions_) {
+    if (functions_) {
+      functions_->future_manager().ReleaseFutureApi(this);
+    }
+    functions_ = other.functions_;
+    if (functions_) {
+      functions_->future_manager().AllocFutureApi(
+          this, kHttpsCallableReferenceFnCount);
+    }
+  }
+  target_ = other.target_;
+  is_url_ = other.is_url_;
   options_ = other.options_;
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    HttpsCallableReferenceInternal&& other)
-    : functions_(other.functions_),
-      url_(std::move(other.url_)),
+    HttpsCallableReferenceInternal&& other) noexcept
+    : functions_(std::exchange(other.functions_, nullptr)),
+      target_(std::move(other.target_)),
+      is_url_(other.is_url_),
       options_(other.options_) {
-  other.functions_ = nullptr;
-  functions_->future_manager().MoveFutureApi(&other, this);
-  rest::InitTransportCurl();
-  transport_.set_is_async(true);
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&other, this);
+  }
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
-    HttpsCallableReferenceInternal&& other) {
-  functions_ = other.functions_;
-  other.functions_ = nullptr;
-  url_ = std::move(other.url_);
+    HttpsCallableReferenceInternal&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
+  functions_ = std::exchange(other.functions_, nullptr);
+  target_ = std::move(other.target_);
+  is_url_ = other.is_url_;
   options_ = other.options_;
-  functions_->future_manager().MoveFutureApi(&other, this);
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&other, this);
+  }
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Functions* HttpsCallableReferenceInternal::functions() const {
-  return Functions::GetInstance(functions_->app());
+  if (!functions_) {
+    return nullptr;
+  }
+  return Functions::GetInstance(functions_->app(), functions_->region());
 }
 
-std::string HttpsCallableReferenceInternal::GetAuthToken() const {
-  std::string result;
-  App* app = functions_->app();
-  app->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetCurrentToken, app, nullptr, &result);
-  return result;
+std::string HttpsCallableReferenceInternal::url() const {
+  if (is_url_) {
+    return target_;
+  }
+  return functions_ ? functions_->GetUrl(target_) : "";
 }
 
-void HttpsCallableRequest::MarkCompleted() {
-  rest::Request::MarkCompleted();
-  HttpsCallableReferenceInternal::ResolveFuture(future_impl_, future_handle_,
-                                                response_);
+bool HttpsCallableReferenceInternal::is_valid() const {
+  return functions_ != nullptr && !url().empty();
 }
 
-void HttpsCallableRequest::MarkFailed() {
-  rest::Request::MarkFailed();
-  HttpsCallableReferenceInternal::ResolveFuture(future_impl_, future_handle_,
-                                                response_);
+ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
+  return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
 }
 
-// Takes an HTTP status code and returns the corresponding FUNErrorCode error
-// code. This is the standard HTTP status code -> error mapping defined in:
-// https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto
-//
-// @param status An HTTP status code.
-// @return The corresponding Code, or Code.UNKNOWN if none.
 Error ErrorFromHttpStatus(int status) {
   switch (status) {
     case 200:
+    case 201:
+    case 202:
       return kErrorNone;
+    case 204:
+      // TransportCurl sets 204 (HttpNoContent) when a transfer is canceled.
+      return kErrorCancelled;
     case 400:
       return kErrorInvalidArgument;
     case 401:
@@ -128,6 +270,9 @@ Error ErrorFromHttpStatus(int status) {
       return kErrorPermissionDenied;
     case 404:
       return kErrorNotFound;
+    case 408:
+      // TransportCurl sets 408 (HttpRequestTimeout) on request timeout.
+      return kErrorDeadlineExceeded;
     case 409:
       return kErrorAborted;
     case 429:
@@ -142,232 +287,290 @@ Error ErrorFromHttpStatus(int status) {
       return kErrorUnavailable;
     case 504:
       return kErrorDeadlineExceeded;
+    case 0:
+      // Wait/connection failure before receiving an HTTP response.
+      return kErrorUnavailable;
+    default:
+      if (status >= 200 && status < 300) {
+        return kErrorNone;
+      }
+      return kErrorInternal;
   }
-  return kErrorUnknown;
 }
 
-// Returns true if the given status string is a known error, and sets the out
-// parameter with the enum code number for it.
-bool ErrorFromStatus(const std::string& status, Error* error) {
-  if (status == "OK") {
-    *error = kErrorNone;
-    return true;
+Error ErrorFromStatus(const std::string& status) {
+  struct StatusEntry {
+    const char* name;
+    Error error;
+  };
+  static constexpr StatusEntry kStatusTable[] = {
+      {"OK", kErrorNone},
+      {"CANCELLED", kErrorCancelled},
+      {"UNKNOWN", kErrorUnknown},
+      {"INVALID_ARGUMENT", kErrorInvalidArgument},
+      {"DEADLINE_EXCEEDED", kErrorDeadlineExceeded},
+      {"NOT_FOUND", kErrorNotFound},
+      {"ALREADY_EXISTS", kErrorAlreadyExists},
+      {"PERMISSION_DENIED", kErrorPermissionDenied},
+      {"UNAUTHENTICATED", kErrorUnauthenticated},
+      {"RESOURCE_EXHAUSTED", kErrorResourceExhausted},
+      {"FAILED_PRECONDITION", kErrorFailedPrecondition},
+      {"ABORTED", kErrorAborted},
+      {"OUT_OF_RANGE", kErrorOutOfRange},
+      {"UNIMPLEMENTED", kErrorUnimplemented},
+      {"INTERNAL", kErrorInternal},
+      {"UNAVAILABLE", kErrorUnavailable},
+      {"DATA_LOSS", kErrorDataLoss},
+  };
+  for (const auto& entry : kStatusTable) {
+    if (status == entry.name) {
+      return entry.error;
+    }
   }
-  if (status == "CANCELLED") {
-    *error = kErrorCancelled;
-    return true;
-  }
-  if (status == "UNKNOWN") {
-    *error = kErrorUnknown;
-    return true;
-  }
-  if (status == "INVALID_ARGUMENT") {
-    *error = kErrorInvalidArgument;
-    return true;
-  }
-  if (status == "DEADLINE_EXCEEDED") {
-    *error = kErrorDeadlineExceeded;
-    return true;
-  }
-  if (status == "NOT_FOUND") {
-    *error = kErrorNotFound;
-    return true;
-  }
-  if (status == "ALREADY_EXISTS") {
-    *error = kErrorAlreadyExists;
-    return true;
-  }
-  if (status == "PERMISSION_DENIED") {
-    *error = kErrorPermissionDenied;
-    return true;
-  }
-  if (status == "UNAUTHENTICATED") {
-    *error = kErrorUnauthenticated;
-    return true;
-  }
-  if (status == "RESOURCE_EXHAUSTED") {
-    *error = kErrorResourceExhausted;
-    return true;
-  }
-  if (status == "FAILED_PRECONDITION") {
-    *error = kErrorFailedPrecondition;
-    return true;
-  }
-  if (status == "ABORTED") {
-    *error = kErrorAborted;
-    return true;
-  }
-  if (status == "OUT_OF_RANGE") {
-    *error = kErrorOutOfRange;
-    return true;
-  }
-  if (status == "UNIMPLEMENTED") {
-    *error = kErrorUnimplemented;
-    return true;
-  }
-  if (status == "INTERNAL") {
-    *error = kErrorInternal;
-    return true;
-  }
-  if (status == "UNAVAILABLE") {
-    *error = kErrorUnavailable;
-    return true;
-  }
-  if (status == "DATA_LOSS") {
-    *error = kErrorDataLoss;
-    return true;
-  }
-  *error = kErrorUnknown;
-  return false;
+  return kErrorInternal;
 }
 
-/* static */
 void HttpsCallableReferenceInternal::ResolveFuture(
-    ReferenceCountedFutureImpl* future_impl,
-    SafeFutureHandle<HttpsCallableResult> future_handle,
-    rest::Response* response) {
-  // See if the HTTP status code indicates an error.
+    ReferenceCountedFutureImpl* future_api,
+    SafeFutureHandle<HttpsCallableResult> handle, rest::Response* response) {
+  ::firebase::functions::internal::ResolveFuture(future_api, handle, response);
+}
+
+void ResolveFuture(ReferenceCountedFutureImpl* future_api,
+                   SafeFutureHandle<HttpsCallableResult> handle,
+                   rest::Response* response) {
+  if (!future_api || !response) {
+    return;
+  }
+
   Error error = ErrorFromHttpStatus(response->status());
+  const auto* callable_response =
+      dynamic_cast<const FunctionsCallableResponse*>(response);
+  if (callable_response && callable_response->failed() && error == kErrorNone) {
+    error = kErrorUnavailable;
+  }
   bool has_error = (error != kErrorNone);
 
-  // Set default values for the rest of the fields.
-  std::string error_description = GetErrorMessage(error);
-  Variant error_details = Variant::Null();
-  Variant data = Variant::Null();
+  const char* body_str = response->GetBody();
+  Variant body_variant =
+      (body_str && body_str[0] != '\0')
+          ? firebase::util::JsonToVariant(body_str)
+          : Variant::Null();
 
-  // Try to parse the body of the response.
-  std::string body_str = response->GetBody();
-  firebase::LogDebug("Cloud Function response body = %s", body_str.c_str());
-  Variant body = util::JsonToVariant(body_str.c_str());
-  if (!body.is_map()) {
-    has_error = true;
-    error = kErrorInternal;
-    error_description = "INTERNAL";
-  } else {
-    // Try to parse error info out of the body.
-    auto error_it = body.map().find("error");
-    if (error_it != body.map().end()) {
-      if (!has_error) {
-        // If there is an error field, treat this as an error regardless.
-        has_error = true;
-        error = kErrorInternal;
-        error_description = GetErrorMessage(error);
-      }
-      Variant error_variant = error_it->second;
-      if (error_variant.is_map()) {
-        std::map<Variant, Variant> error_map = error_variant.map();
-        // Try to parse the message.
-        if (error_map.find("message") != error_map.end()) {
-          Variant message_variant = error_map["message"];
-          if (message_variant.is_string()) {
-            error_description = message_variant.string_value();
-          }
-        }
-        // Try to parse the details.
-        if (error_map.find("details") != error_map.end()) {
-          error_details = Decode(error_map["details"]);
-          // TODO(klimt): Include error details in C++ future somehow.
-        }
-        // Try to parse the status.
-        if (error_map.find("status") != error_map.end()) {
-          Variant status_variant = error_map["status"];
-          if (status_variant.is_string()) {
-            if (!ErrorFromStatus(status_variant.string_value(), &error)) {
-              // The status was invalid, so clear everything.
-              error = kErrorInternal;
-              error_description = "INTERNAL";
-              error_details = Variant::Null();
-            }
-          }
-        }
-      }
-    }
-
+  if (body_variant.is_null() || !body_variant.is_map()) {
     if (!has_error) {
-      // Try to parse the returned data.
-      auto result_it = body.map().find("result");
-      auto data_it = body.map().find("data");
-      if (result_it != body.map().end()) {
-        data = Decode(result_it->second);
-      } else if (data_it != body.map().end()) {
-        data = Decode(data_it->second);
-      } else {
-        has_error = true;
-        error = kErrorInternal;
-        error_description = "Response is missing data field.";
-      }
+      error = kErrorInternal;
     }
+    future_api->Complete(handle, error, GetErrorMessage(error));
+    return;
   }
 
-  HttpsCallableResult callable_result(std::move(data));
-  future_impl->CompleteWithResult(future_handle, error,
-                                  error_description.c_str(), callable_result);
+  const auto& body_map = body_variant.map();
+  auto error_it = body_map.find("error");
+  if (error_it != body_map.end() && !error_it->second.is_null()) {
+    has_error = true;
+    if (!error_it->second.is_map()) {
+      if (error == kErrorNone) {
+        error = kErrorInternal;
+      }
+      future_api->Complete(handle, error, GetErrorMessage(error));
+      return;
+    }
+
+    const auto& error_map = error_it->second.map();
+    auto status_it = error_map.find("status");
+    if (status_it != error_map.end()) {
+      if (!status_it->second.is_string()) {
+        error = kErrorInternal;
+        future_api->Complete(handle, error, GetErrorMessage(error));
+        return;
+      }
+      Error status_error = ErrorFromStatus(status_it->second.string_value());
+      // "status": "OK" inside an error envelope is invalid.
+      error = (status_error == kErrorNone) ? kErrorInternal : status_error;
+    } else if (error == kErrorNone) {
+      error = kErrorInternal;
+    }
+
+    std::string message;
+    auto message_it = error_map.find("message");
+    if (message_it != error_map.end() && message_it->second.is_string()) {
+      message = message_it->second.string_value();
+    } else {
+      message = GetErrorMessage(error);
+    }
+
+    Variant details;
+    auto details_it = error_map.find("details");
+    if (details_it != error_map.end()) {
+      details = Decode(details_it->second);
+      if (details.is_null() && !details_it->second.is_null()) {
+        error = kErrorInternal;
+        message = GetErrorMessage(error);
+      }
+    }
+
+    HttpsCallableResult result(std::move(details));
+    future_api->CompleteWithResult(handle, error, message.c_str(), result);
+    return;
+  }
+
+  if (has_error) {
+    future_api->Complete(handle, error, GetErrorMessage(error));
+    return;
+  }
+
+  auto data_it = body_map.find("data");
+  if (data_it == body_map.end()) {
+    data_it = body_map.find("result");
+  }
+  if (data_it == body_map.end()) {
+    error = kErrorInternal;
+    future_api->Complete(handle, error, GetErrorMessage(error));
+    return;
+  }
+
+  Variant data = Decode(data_it->second);
+  if (data.is_null() && !data_it->second.is_null()) {
+    error = kErrorInternal;
+    future_api->Complete(handle, error, GetErrorMessage(error));
+    return;
+  }
+  HttpsCallableResult result(std::move(data));
+  future_api->CompleteWithResult(handle, kErrorNone, "", result);
+}
+
+Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
+  return Call(Variant::Null());
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     const Variant& data) {
-  // Set up the request.
-  request_.set_url(url_.data());
-  request_.set_method(rest::util::kPost);
-  request_.add_header(rest::util::kContentType, rest::util::kApplicationJson);
+  ReferenceCountedFutureImpl* future_api = future();
+  if (!future_api || !functions_) {
+    return Future<HttpsCallableResult>();
+  }
+  if (functions_->lifetime_state()) {
+    std::vector<std::shared_ptr<void>> to_destroy;
+    {
+      MutexLock lock(functions_->lifetime_state()->mutex);
+      to_destroy.swap(functions_->lifetime_state()->retired_calls);
+    }
+  }
+  SafeFutureHandle<HttpsCallableResult> handle =
+      future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
 
-  // Add the auth token header.
-  std::string token = GetAuthToken();
-  if (!token.empty()) {
-    const char bearer[] = "Bearer ";
-    request_.add_header("Authorization", (std::string(bearer) + token).c_str());
+  const std::string resolved_url = url();
+  if (resolved_url.empty()) {
+    future_api->Complete(handle, kErrorInvalidArgument,
+                         GetErrorMessage(kErrorInvalidArgument));
+    return MakeFuture(future_api, handle);
   }
 
-  // Add the params as the JSON body.
-  Variant body = Variant::EmptyMap();
-  body.map()["data"] = Encode(data);
-  std::string json = util::VariantToJson(body);
-  request_.set_post_fields(json.data());
+  Variant body_variant = Variant::EmptyMap();
+  Variant encoded_data = Encode(data);
+  if (encoded_data.is_null() && !data.is_null()) {
+    future_api->Complete(handle, kErrorInvalidArgument,
+                         GetErrorMessage(kErrorInvalidArgument));
+    return MakeFuture(future_api, handle);
+  }
+  body_variant.map()["data"] = std::move(encoded_data);
+  std::string body = firebase::util::VariantToJson(body_variant);
 
-  firebase::LogDebug("Calling Cloud Function with url: %s\ndata: %s",
-                     url_.c_str(), json.c_str());
+  auto ctx = std::make_shared<CallExecutionContext>(
+      resolved_url.c_str(), options_.timeout_ms, future_api, handle,
+      functions_->lifetime_state());
+  ctx->request.set_post_fields(body.c_str(), body.length());
 
-  // Set up the future to resolve when the request is complete.
-  ReferenceCountedFutureImpl* future_impl = future();
-  HttpsCallableResult null_result(Variant::Null());
-  SafeFutureHandle<HttpsCallableResult> handle =
-      future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
-  request_.set_future_impl(future());
-  request_.set_future_handle(handle);
-  request_.set_response(&response_);
+  App* app = functions_->app();
+  if (!app) {
+    ctx->StartPerform();
+    return MakeFuture(future_api, handle);
+  }
 
-  // Check for App Check token function
-  Future<std::string> app_check_future;
-  ::firebase::internal::FunctionId token_function_id =
-      options_.limited_use_app_check_token
-          ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
-          : ::firebase::internal::FnAppCheckGetTokenAsync;
-  bool succeeded = functions_->app()->function_registry()->CallFunction(
-      token_function_id, functions_->app(), nullptr, &app_check_future);
-  if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-    // Perform the transform request on a completion
-    app_check_future.OnCompletion([&](const Future<std::string>& future_token) {
-      if (future_token.result()) {
-        request_.add_header("X-Firebase-AppCheck",
-                            future_token.result()->c_str());
+  auto fetch_app_check_and_perform = [ctx, app,
+                                      limited_use =
+                                          options_.limited_use_app_check_tokens]() {
+    if (ctx->lifetime_state) {
+      MutexLock lock(ctx->lifetime_state->mutex);
+      if (!ctx->lifetime_state->alive) {
+        return;
       }
-      transport_.Perform(&request_, &response_, nullptr);
+    }
+    Future<std::string> future_app_check;
+    ::firebase::internal::FunctionId app_check_fn =
+        limited_use ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
+                    : ::firebase::internal::FnAppCheckGetTokenAsync;
+    bool has_app_check_future = app->function_registry()->CallFunction(
+        app_check_fn, app, nullptr, &future_app_check);
+    if (has_app_check_future &&
+        future_app_check.status() != kFutureStatusInvalid) {
+      future_app_check.OnCompletion(
+          [ctx](const Future<std::string>& future_token) {
+            if (ctx->lifetime_state) {
+              MutexLock lock(ctx->lifetime_state->mutex);
+              if (!ctx->lifetime_state->alive) {
+                return;
+              }
+            }
+            if (future_token.error() == 0 && future_token.result() != nullptr &&
+                !future_token.result()->empty()) {
+              ctx->request.add_header("X-Firebase-AppCheck",
+                                      future_token.result()->c_str());
+            } else if (future_token.error() != 0) {
+              LogWarning("Failed to get AppCheck token with Error %d: %s",
+                         future_token.error(), future_token.error_message());
+            }
+            ctx->StartPerform();
+          });
+    } else {
+      ctx->StartPerform();
+    }
+  };
+
+  bool force_refresh = false;
+  Future<std::string> future_auth;
+  bool has_async_auth = app->function_registry()->CallFunction(
+      ::firebase::internal::FnAuthGetTokenAsync, app, &force_refresh,
+      &future_auth);
+  if (has_async_auth && future_auth.status() != kFutureStatusInvalid) {
+    future_auth.OnCompletion([ctx, fetch_app_check_and_perform](
+                                 const Future<std::string>& completed_auth) {
+      if (ctx->lifetime_state) {
+        MutexLock lock(ctx->lifetime_state->mutex);
+        if (!ctx->lifetime_state->alive) {
+          return;
+        }
+      }
+      if (completed_auth.error() == 0 && completed_auth.result() != nullptr &&
+          !completed_auth.result()->empty()) {
+        std::string header("Bearer ");
+        header += *completed_auth.result();
+        ctx->request.add_header(rest::util::kAuthorization, header.c_str());
+      }
+      fetch_app_check_and_perform();
     });
   } else {
-    // Start the request.
-    transport_.Perform(&request_, &response_, nullptr);
+    std::string auth_token;
+    if (app->function_registry()->CallFunction(
+            ::firebase::internal::FnAuthGetCurrentToken, app, nullptr,
+            &auth_token) &&
+        !auth_token.empty()) {
+      std::string header("Bearer ");
+      header += auth_token;
+      ctx->request.add_header(rest::util::kAuthorization, header.c_str());
+    }
+    fetch_app_check_and_perform();
   }
 
-  return CallLastResult();
+  return MakeFuture(future_api, handle);
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
-  return static_cast<const Future<HttpsCallableResult>&>(
-      future()->LastResult(kCallableReferenceFnCall));
-}
-
-ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
-  return functions_->future_manager().GetFutureApi(this);
+  ReferenceCountedFutureImpl* future_api = future();
+  return future_api ? static_cast<const Future<HttpsCallableResult>&>(
+                          future_api->LastResult(kHttpsCallableReferenceFnCall))
+                    : Future<HttpsCallableResult>();
 }
 
 }  // namespace internal

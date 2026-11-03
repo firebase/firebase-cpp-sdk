@@ -28,26 +28,27 @@ namespace firestore {
 namespace jni {
 
 /**
- * An RAII wrapper for a global JNI reference, that automatically deletes the
- * JNI global reference when it goes out of scope.
+ * An RAII wrapper for a Java object reference stored in a Java-side
+ * `ObjectArena` table, automatically removing the entry when the last copy of
+ * the `ArenaRef` goes out of scope.
  *
  * This class is mostly a drop-in replacement for the `Global` template class;
  * however, `ArenaRef` has the added benefit that it does _not_ consume a JNI
- * global reference from Android's limitied global reference pool. In contrast,
+ * global reference from Android's limited global reference pool. In contrast,
  * each `Global` instance consumes one JNI global reference.
  *
- * Instead, `ArenaRef` just stores a `long` unique ID, which is used as a key
- * into a Java HashMap. When the referenced object is needed then `ArenaRef`
+ * Instead, `ArenaRef` just stores a `jlong` unique ID, which is used as a key
+ * into a Java `HashMap`. When the referenced object is needed then `ArenaRef`
  * retrieves the object from the hash table by its ID.
  *
  * This class supports move and copy semantics. Moves and copies are *very*
  * efficient: they have the same cost as the corresponding operation on a
- * std::shared_ptr<jlong> (which is very small compared to a JNI call).
+ * `std::shared_ptr` (which is very small compared to a JNI call).
  *
  * This class is not thread safe; concurrent use of an instance of this class
  * without external synchronization is undefined behavior. However, distinct
  * instances can be created concurrently in multiple threads as access to the
- * backing HashMap _is_ synchronized.
+ * backing `HashMap` _is_ synchronized.
  */
 class ArenaRef final {
  public:
@@ -59,7 +60,7 @@ class ArenaRef final {
   ~ArenaRef() = default;
 
   /**
-   * Creates an `ArenaRef` that does not refer to the given object.
+   * Creates an `ArenaRef` that refers to the given object.
    *
    * The given `Env` is used to perform the JNI call to insert the key/value
    * pair into the backing Java `HashMap`. The given `jobject` may be null, in

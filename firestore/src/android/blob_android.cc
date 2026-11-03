@@ -53,7 +53,9 @@ Local<BlobInternal> BlobInternal::Create(Env& env,
                                          const uint8_t* value,
                                          size_t size) {
   Local<Array<uint8_t>> byte_array = env.NewArray<uint8_t>(size);
-  env.SetArrayRegion(byte_array, 0, size, value);
+  if (size > 0 && value != nullptr) {
+    env.SetArrayRegion(byte_array, 0, size, value);
+  }
   return env.Call(kFromBytes, byte_array);
 }
 

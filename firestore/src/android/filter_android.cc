@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-#include <utility>
-
 #include "firestore/src/android/filter_android.h"
 
-#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/firestore_android.h"
-
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/compare.h"
@@ -92,10 +88,10 @@ StaticMethod<Object> kOr("or",
 }  // namespace
 
 void FilterInternal::Initialize(jni::Loader& loader) {
-  filter_class = loader.LoadClass(kClassName);
-  loader.LoadClass(kClassName, kEqualTo, kNotEqualTo, kLessThan,
-                   kLessThanOrEqualTo, kGreaterThan, kGreaterThanOrEqualTo,
-                   kArrayContains, kArrayContainsAny, kIn, kNotIn, kAnd, kOr);
+  filter_class = loader.LoadClass(
+      kClassName, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
+      kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
+      kIn, kNotIn, kAnd, kOr);
 }
 
 FilterInternal::FilterInternal(const jni::Object& obj, bool is_empty)
@@ -171,6 +167,7 @@ Filter FilterInternal::Where(const FieldPath& field,
   Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> filter =
       env.Call(method, java_field, FieldValueInternal::ToJava(value));
+  if (!env.ok() || !filter) return Filter(nullptr);
   return Filter(new FilterInternal(filter, false));
 }
 
@@ -178,35 +175,46 @@ Filter FilterInternal::Where(const FieldPath& field,
                              const jni::StaticMethod<Object>& method,
                              const std::vector<FieldValue>& values) {
   Env env = GetEnv();
+  Local<Object> java_field = FieldPathConverter::Create(env, field);
   size_t size = values.size();
   Local<ArrayList> java_values = ArrayList::Create(env, size);
   for (size_t i = 0; i < size; ++i) {
     java_values.Add(env, FieldValueInternal::ToJava(values[i]));
   }
 
-  Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> filter = env.Call(method, java_field, java_values);
+  if (!env.ok() || !filter) return Filter(nullptr);
   return Filter(new FilterInternal(filter, false));
 }
 
 Filter FilterInternal::Where(const StaticMethod<Object>& method,
                              const std::vector<Filter>& filters) {
   Env env = GetEnv();
-  std::vector<int> non_empty_indexes;
+  std::vector<size_t> non_empty_indexes;
   size_t filters_size = filters.size();
-  for (int i = 0; i < filters_size; ++i) {
+  for (size_t i = 0; i < filters_size; ++i) {
+    if (filters[i].internal_ == nullptr) {
+      return Filter(nullptr);
+    }
     if (!filters[i].internal_->IsEmpty()) {
       non_empty_indexes.push_back(i);
     }
   }
   size_t non_empty_size = non_empty_indexes.size();
+  if (non_empty_size == 0) {
+    if (!env.ok()) {
+      return Filter(nullptr);
+    }
+    return Filter(new FilterInternal(Object(), true));
+  }
   Local<Array<Object>> java_filters =
       env.NewArray(non_empty_size, filter_class);
-  for (int i = 0; i < non_empty_size; ++i) {
+  for (size_t i = 0; i < non_empty_size; ++i) {
     java_filters.Set(env, i, filters[non_empty_indexes[i]].internal_->ToJava());
   }
   Local<Object> filter = env.Call(method, java_filters);
-  return Filter(new FilterInternal(filter, non_empty_size == 0));
+  if (!env.ok() || !filter) return Filter(nullptr);
+  return Filter(new FilterInternal(filter, false));
 }
 
 Local<Object> FilterInternal::ToJava() const {

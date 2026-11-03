@@ -16,6 +16,9 @@
 
 #include "firestore/src/jni/array_list.h"
 
+#include <limits>
+
+#include "app/src/assert.h"
 #include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
@@ -26,20 +29,23 @@ namespace jni {
 namespace {
 
 Constructor<ArrayList> kConstructor("()V");
-Constructor<ArrayList> kConstructorWithSize("(I)V");
+Constructor<ArrayList> kConstructorWithCapacity("(I)V");
 
 }  // namespace
 
 void ArrayList::Initialize(Loader& loader) {
   loader.LoadFromExistingClass("java/util/ArrayList",
-                               util::array_list::GetClass(), kConstructor,
-                               kConstructorWithSize);
+                               firebase::util::array_list::GetClass(), kConstructor,
+                               kConstructorWithCapacity);
 }
 
 Local<ArrayList> ArrayList::Create(Env& env) { return env.New(kConstructor); }
 
-Local<ArrayList> ArrayList::Create(Env& env, size_t size) {
-  return env.New(kConstructorWithSize, size);
+Local<ArrayList> ArrayList::Create(Env& env, size_t initial_capacity) {
+  FIREBASE_ASSERT(initial_capacity <=
+                  static_cast<size_t>(std::numeric_limits<jint>::max()));
+  return env.New(kConstructorWithCapacity,
+                 static_cast<jint>(initial_capacity));
 }
 
 }  // namespace jni

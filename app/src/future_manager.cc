@@ -16,61 +16,85 @@
 
 #include "app/src/future_manager.h"
 
+#include <vector>
+
 namespace firebase {
 
-FutureManager::FutureManager() {}
+FutureManager::FutureManager() = default;
 
 FutureManager::~FutureManager() {
-  MutexLock lock(future_api_mutex_);
-  // Move all future APIs to the orphaned list.
-  for (auto i = future_apis_.begin(); i != future_apis_.end(); ++i) {
-    orphaned_future_apis_.insert(i->second);
+  {
+    MutexLock lock(future_api_mutex_);
+    // Move all future APIs to the orphaned list.
+    for (const auto& entry : future_apis_) {
+      orphaned_future_apis_.insert(entry.second);
+    }
+    future_apis_.clear();
   }
-  future_apis_.clear();
   CleanupOrphanedFutureApis(/*force_delete_all=*/true);
 }
 
 void FutureManager::AllocFutureApi(void* owner, int num_fns) {
-  MutexLock lock(future_api_mutex_);
-
   ReferenceCountedFutureImpl* impl = new ReferenceCountedFutureImpl(num_fns);
   InsertFutureApi(owner, impl);
 }
 
 void FutureManager::InsertFutureApi(void* owner,
                                     ReferenceCountedFutureImpl* api) {
-  MutexLock lock(future_api_mutex_);
-  orphaned_future_apis_.erase(api);
-  auto found = future_apis_.find(owner);
-  if (found != future_apis_.end()) {
-    // Orphan the existing API, and set the new one.
-    orphaned_future_apis_.insert(found->second);
-    future_apis_[owner] = api;
+  bool should_cleanup = false;
+  {
+    MutexLock lock(future_api_mutex_);
+    orphaned_future_apis_.erase(api);
+    auto found = future_apis_.find(owner);
+    if (found != future_apis_.end()) {
+      if (found->second != api) {
+        // Orphan the existing API, and set the new one.
+        orphaned_future_apis_.insert(found->second);
+        found->second = api;
+        should_cleanup = true;
+      }
+    } else {
+      future_apis_.emplace(owner, api);
+    }
+  }
+  if (should_cleanup) {
     CleanupOrphanedFutureApis();
-  } else {
-    future_apis_.insert(std::make_pair(owner, api));
   }
 }
 
 void FutureManager::MoveFutureApi(void* prev_owner, void* new_owner) {
-  MutexLock lock(future_api_mutex_);
-
-  auto found = future_apis_.find(prev_owner);
-  if (found != future_apis_.end()) {
-    ReferenceCountedFutureImpl* future_api = found->second;
-    future_apis_.erase(found);
+  if (prev_owner == new_owner) {
+    return;
+  }
+  ReferenceCountedFutureImpl* future_api = nullptr;
+  {
+    MutexLock lock(future_api_mutex_);
+    auto found = future_apis_.find(prev_owner);
+    if (found != future_apis_.end()) {
+      future_api = found->second;
+      future_apis_.erase(found);
+    }
+  }
+  if (future_api != nullptr) {
     InsertFutureApi(new_owner, future_api);
+  } else {
+    ReleaseFutureApi(new_owner);
   }
 }
 
 void FutureManager::ReleaseFutureApi(void* prev_owner) {
-  MutexLock lock(future_api_mutex_);
-
-  auto found = future_apis_.find(prev_owner);
-  if (found != future_apis_.end()) {
-    // Move the API to the orphaned list.
-    orphaned_future_apis_.insert(found->second);
-    future_apis_.erase(found);
+  bool should_cleanup = false;
+  {
+    MutexLock lock(future_api_mutex_);
+    auto found = future_apis_.find(prev_owner);
+    if (found != future_apis_.end()) {
+      // Move the API to the orphaned list.
+      orphaned_future_apis_.insert(found->second);
+      future_apis_.erase(found);
+      should_cleanup = true;
+    }
+  }
+  if (should_cleanup) {
     CleanupOrphanedFutureApis();
   }
 }
@@ -87,40 +111,35 @@ ReferenceCountedFutureImpl* FutureManager::GetFutureApi(void* owner) {
 }
 
 void FutureManager::CleanupOrphanedFutureApis(bool force_delete_all) {
-  MutexLock lock(future_api_mutex_);
   std::vector<ReferenceCountedFutureImpl*> to_delete;
-  for (auto api = orphaned_future_apis_.begin();
-       api != orphaned_future_apis_.end(); ++api) {
-    if (IsSafeToDeleteFutureApi(*api)) {
-      to_delete.push_back(*api);
-    } else if (force_delete_all) {
-      // Deleting an API while it's running a callback (which could have
-      // triggered the current call to `CleanupOrphanedFutureApis`) will lead to
-      // a use-after-free. Instead, mark the API to be deleted once the callback
-      // finishes.
-      if ((*api)->IsRunningCallback()) {
-        (*api)->MarkOrphaned();
-      } else {
-        to_delete.push_back(*api);
+  {
+    MutexLock lock(future_api_mutex_);
+    for (ReferenceCountedFutureImpl* api : orphaned_future_apis_) {
+      if (api == nullptr) {
+        continue;
       }
+      if (api->IsSafeToDelete() && !api->IsReferencedExternally()) {
+        to_delete.push_back(api);
+      } else if (force_delete_all) {
+        // Deleting an API while it's running a callback (which could have
+        // triggered the current call to `CleanupOrphanedFutureApis`) will lead
+        // to a use-after-free. Instead, mark the API to be deleted once the
+        // callback finishes.
+        if (api->IsRunningCallback()) {
+          api->MarkOrphaned();
+        } else {
+          to_delete.push_back(api);
+        }
+      }
+    }
+
+    for (ReferenceCountedFutureImpl* api : to_delete) {
+      orphaned_future_apis_.erase(api);
     }
   }
 
-  for (int i = 0; i < to_delete.size(); i++) {
-    auto* api = to_delete[i];
-    // Deleting the API could result in the side effect of running
-    // CleanupOrphanedFutureApis() again so make sure the API we're going to
-    // delete is still in the orphan list.
-    orphaned_future_apis_.erase(api);
-    api->cleanup().cleanup_notifier().RegisterObject(
-        &to_delete[i], [](void* object) {
-          *(reinterpret_cast<ReferenceCountedFutureImpl**>(object)) = nullptr;
-        });
-  }
-
-  for (int i = 0; i < to_delete.size(); i++) {
-    auto* api = to_delete[i];
-    if (api) delete api;
+  for (ReferenceCountedFutureImpl* api : to_delete) {
+    delete api;
   }
 }
 
@@ -129,5 +148,4 @@ bool FutureManager::IsSafeToDeleteFutureApi(ReferenceCountedFutureImpl* api) {
   return api ? api->IsSafeToDelete() && !api->IsReferencedExternally() : false;
 }
 
-// NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase

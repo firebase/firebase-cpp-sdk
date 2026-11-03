@@ -39,11 +39,12 @@ template <typename PublicT, typename InternalT = InternalType<PublicT>>
 std::vector<PublicT> MakePublicVector(jni::Env& env,
                                       FirestoreInternal* firestore,
                                       const jni::List& from) {
+  if (!from) return {};
   size_t size = from.Size(env);
   std::vector<PublicT> result;
   result.reserve(size);
 
-  for (int i = 0; i < size; ++i) {
+  for (size_t i = 0; i < size; ++i) {
     jni::Local<jni::Object> element = from.Get(env, i);
 
     // Avoid creating a partially valid public object on failure.
@@ -62,11 +63,6 @@ jni::Local<jni::HashMap> MakeJavaMap(jni::Env& env, const MapFieldValue& data);
  * The result of parsing a `MapFieldPathValue` object into its equivalent
  * arguments, prepared for calling a Firestore Java `update` method. `update`
  * takes its first two arguments separate from a varargs array.
- *
- * An `UpdateFieldPathArgs` object is only valid as long as the
- * `MapFieldPathValue` object from which it is created is valid because these
- * are not new references. This is reflected in the fact that `first_value`
- * is not an owning reference to its `jni::Object`.
  */
 struct UpdateFieldPathArgs {
   jni::Local<jni::Object> first_field;

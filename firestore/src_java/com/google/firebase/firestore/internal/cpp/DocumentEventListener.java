@@ -16,6 +16,7 @@
 
 package com.google.firebase.firestore.internal.cpp;
 
+import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -26,6 +27,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
  * firebase::firestore::EventListener<firebase::firestore::DocumentSnapshot>} by
  * redirecting calls into the C++ equivalent.
  */
+@Keep
 public class DocumentEventListener
     extends CppEventListener implements EventListener<DocumentSnapshot> {
   /**
@@ -48,9 +50,17 @@ public class DocumentEventListener
   }
 
   @Override
-  public synchronized void onEvent(@Nullable DocumentSnapshot value,
+  public void onEvent(@Nullable DocumentSnapshot value,
       @Nullable FirebaseFirestoreException error) {
-    nativeOnEvent(cppFirestoreObject, cppListenerObject, value, error);
+    long firestorePtr;
+    long listenerPtr;
+    synchronized (this) {
+      firestorePtr = cppFirestoreObject;
+      listenerPtr = cppListenerObject;
+    }
+    if (firestorePtr != 0 && listenerPtr != 0) {
+      nativeOnEvent(firestorePtr, listenerPtr, value, error);
+    }
   }
 
   /**
@@ -65,6 +75,6 @@ public class DocumentEventListener
    */
   private static native void nativeOnEvent(long firestoreObject,
       long listenerObject,
-      @Nullable Object value,
+      @Nullable DocumentSnapshot value,
       @Nullable FirebaseFirestoreException error);
 }

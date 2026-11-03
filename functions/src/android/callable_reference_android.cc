@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,14 @@
 
 #include <jni.h>
 
-#include <cassert>
+#include <string>
+#include <utility>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "functions/src/android/functions_android.h"
 #include "functions/src/include/firebase/functions.h"
@@ -30,101 +34,135 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-// clang-format off
-#define CALLABLE_REFERENCE_METHODS(X)                                          \
-  X(Call, "call",                                                              \
-    "()"                                                                       \
-    "Lcom/google/android/gms/tasks/Task;"),                                    \
-  X(CallWithData, "call",                                                      \
-    "(Ljava/lang/Object;)"                                                     \
-    "Lcom/google/android/gms/tasks/Task;")
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(callable_reference, CALLABLE_REFERENCE_METHODS)
 METHOD_LOOKUP_DEFINITION(callable_reference,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/functions/HttpsCallableReference",
                          CALLABLE_REFERENCE_METHODS)
 
-enum CallableReferenceFn {
-  kCallableReferenceFnCall = 0,
-  kCallableReferenceFnCount,
-};
-
-// clang-format off
-#define CALLABLE_RESULT_METHODS(X)                                             \
-  X(GetData, "getData",                                                        \
-    "()"                                                                       \
-    "Ljava/lang/Object;")
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(callable_result, CALLABLE_RESULT_METHODS)
 METHOD_LOOKUP_DEFINITION(callable_result,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/functions/HttpsCallableResult",
                          CALLABLE_RESULT_METHODS)
 
-bool HttpsCallableReferenceInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  return callable_reference::CacheMethodIds(env, activity) &&
-         callable_result::CacheMethodIds(env, activity);
-}
-
-void HttpsCallableReferenceInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  callable_reference::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
-}
+enum HttpsCallableReferenceFn {
+  kHttpsCallableReferenceFnCall = 0,
+  kHttpsCallableReferenceFnCount,
+};
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    FunctionsInternal* functions, jobject obj)
-    : functions_(functions) {
-  functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
-  obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(obj);
+    FunctionsInternal* functions, jobject wrapper_obj)
+    : functions_(functions), obj_(nullptr) {
+  if (functions_ && functions_->app()) {
+    functions_->future_manager().AllocFutureApi(this,
+                                                kHttpsCallableReferenceFnCount);
+    if (wrapper_obj) {
+      obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(wrapper_obj);
+    }
+  }
+}
+
+HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
+  if (obj_ != nullptr && functions_ != nullptr &&
+      functions_->app() != nullptr) {
+    functions_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
+    obj_ = nullptr;
+  }
+  if (functions_ != nullptr) {
+    functions_->future_manager().ReleaseFutureApi(this);
+    functions_ = nullptr;
+  }
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& src)
-    : functions_(src.functions_) {
-  functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
-  obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
+    : functions_(src.functions_), obj_(nullptr) {
+  if (functions_ && functions_->app()) {
+    functions_->future_manager().AllocFutureApi(this,
+                                                kHttpsCallableReferenceFnCount);
+    if (src.obj_ != nullptr) {
+      obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
+    }
+  }
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& src) {
-  obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
-  return *this;
-}
-
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    HttpsCallableReferenceInternal&& src)
-    : functions_(src.functions_) {
-  obj_ = src.obj_;
-  src.obj_ = nullptr;
-  functions_->future_manager().MoveFutureApi(&src, this);
-}
-
-HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
-    HttpsCallableReferenceInternal&& src) {
-  obj_ = src.obj_;
-  src.obj_ = nullptr;
-  functions_->future_manager().MoveFutureApi(&src, this);
-  return *this;
-}
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-
-HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
-  if (obj_ != nullptr) {
+  if (this == &src) {
+    return *this;
+  }
+  if (obj_ != nullptr && functions_ != nullptr &&
+      functions_->app() != nullptr) {
     functions_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
     obj_ = nullptr;
   }
-  functions_->future_manager().ReleaseFutureApi(this);
+  if (functions_ != src.functions_) {
+    if (functions_) {
+      functions_->future_manager().ReleaseFutureApi(this);
+    }
+    functions_ = src.functions_;
+    if (functions_) {
+      functions_->future_manager().AllocFutureApi(
+          this, kHttpsCallableReferenceFnCount);
+    }
+  }
+  if (src.obj_ != nullptr && functions_ != nullptr &&
+      functions_->app() != nullptr) {
+    obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
+  }
+  return *this;
 }
 
-Functions* HttpsCallableReferenceInternal::functions() {
-  return Functions::GetInstance(functions_->app());
+#if defined(FIREBASE_USE_MOVE_OPERATORS)
+HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
+    HttpsCallableReferenceInternal&& src) noexcept
+    : functions_(src.functions_), obj_(src.obj_) {
+  src.functions_ = nullptr;
+  src.obj_ = nullptr;
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&src, this);
+  }
+}
+
+HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
+    HttpsCallableReferenceInternal&& src) noexcept {
+  if (this == &src) {
+    return *this;
+  }
+  if (obj_ != nullptr && functions_ != nullptr &&
+      functions_->app() != nullptr) {
+    functions_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
+    obj_ = nullptr;
+  }
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
+  functions_ = src.functions_;
+  obj_ = src.obj_;
+  src.functions_ = nullptr;
+  src.obj_ = nullptr;
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&src, this);
+  }
+  return *this;
+}
+#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
+
+Functions* HttpsCallableReferenceInternal::functions() const {
+  if (!functions_) return nullptr;
+  return Functions::GetInstance(functions_->app(), functions_->region());
+}
+
+bool HttpsCallableReferenceInternal::is_valid() const {
+  return functions_ != nullptr && obj_ != nullptr;
+}
+
+bool HttpsCallableReferenceInternal::operator==(
+    const HttpsCallableReferenceInternal& other) const {
+  if (functions_ != other.functions_) return false;
+  if (obj_ == other.obj_) return true;
+  if (!obj_ || !other.obj_ || !functions_ || !functions_->app()) return false;
+  JNIEnv* env = functions_->app()->GetJNIEnv();
+  return env->IsSameObject(obj_, other.obj_) == JNI_TRUE;
 }
 
 namespace {
@@ -132,100 +170,136 @@ namespace {
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<HttpsCallableResult> handle_,
                      ReferenceCountedFutureImpl* impl_,
-                     FunctionsInternal* functions_, CallableReferenceFn func_)
-      : handle(handle_), impl(impl_), functions(functions_), func(func_) {}
+                     FunctionsInternal* functions_)
+      : handle(handle_), future_impl(impl_), functions(functions_) {}
   SafeFutureHandle<HttpsCallableResult> handle;
-  ReferenceCountedFutureImpl* impl;
+  ReferenceCountedFutureImpl* future_impl;
   FunctionsInternal* functions;
-  CallableReferenceFn func;
 };
 
 }  // namespace
 
-// Universal callback handler.
 void HttpsCallableReferenceInternal::FutureCallback(
-    JNIEnv* env, jobject java_result, util::FutureResult result_code,
+    JNIEnv* env, jobject result, util::FutureResult result_code,
     const char* status_message, void* callback_data) {
-  auto data = reinterpret_cast<FutureCallbackData*>(callback_data);
-  assert(data != nullptr);
-  if (result_code != util::kFutureResultSuccess) {
-    // Failed, so the java_result is a FunctionsException.
-    std::string message;
-    Error code = result_code == util::kFutureResultCancelled
-                     ? kErrorCancelled
-                     : data->functions->ErrorFromJavaFunctionsException(
-                           java_result, &message);
-    data->impl->Complete(data->handle, code, message.c_str());
-  } else {
-    jmethodID getData = callable_result::GetMethodId(callable_result::kGetData);
-    jobject java_result_data = env->CallObjectMethod(java_result, getData);
-    Variant result_data = util::JavaObjectToVariant(env, java_result_data);
-    env->DeleteLocalRef(java_result_data);
-    HttpsCallableResult result(result_data);
-    data->impl->CompleteWithResult(data->handle, kErrorNone, status_message,
-                                   result);
+  FutureCallbackData* data = static_cast<FutureCallbackData*>(callback_data);
+  if (!data) return;
+
+  if (data->future_impl != nullptr) {
+    if (result_code == util::kFutureResultCancelled) {
+      data->future_impl->Complete(data->handle, kErrorCancelled,
+                                  GetErrorMessage(kErrorCancelled));
+    } else if (result_code == util::kFutureResultFailure) {
+      std::string error_msg = status_message ? status_message : "";
+      Variant details;
+      Error code = kErrorInternal;
+      if (data->functions != nullptr) {
+        code = data->functions->ErrorFromJavaFunctionsException(
+            env, result, &error_msg, &details);
+      }
+      if (error_msg.empty()) {
+        error_msg = GetErrorMessage(code);
+      }
+      HttpsCallableResult callable_result(std::move(details));
+      data->future_impl->CompleteWithResult(data->handle, code,
+                                            error_msg.c_str(), callable_result);
+    } else if (!result) {
+      data->future_impl->Complete(data->handle, kErrorInternal,
+                                  GetErrorMessage(kErrorInternal));
+    } else {
+      jobject java_result = env->CallObjectMethod(
+          result, callable_result::GetMethodId(callable_result::kGetData));
+      if (util::CheckAndClearJniExceptions(env)) {
+        data->future_impl->Complete(data->handle, kErrorInternal,
+                                    GetErrorMessage(kErrorInternal));
+      } else {
+        Variant result_variant = util::JavaObjectToVariant(env, java_result);
+        util::CheckAndClearJniExceptions(env);
+        if (java_result != nullptr) {
+          env->DeleteLocalRef(java_result);
+        }
+        HttpsCallableResult callable_result(std::move(result_variant));
+        data->future_impl->CompleteWithResult(data->handle, kErrorNone, "",
+                                              callable_result);
+      }
+    }
   }
-  // TODO(klimt): Do we need to clear any references to java_result?
   delete data;
-
-  util::CheckAndClearJniExceptions(env);
-}
-
-ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
-  return functions_->future_manager().GetFutureApi(this);
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
-  JNIEnv* env = functions_->app()->GetJNIEnv();
-  ReferenceCountedFutureImpl* future_impl = future();
-  HttpsCallableResult null_result(Variant::Null());
+  ReferenceCountedFutureImpl* future_api = future();
+  if (!future_api || !functions_ || !functions_->app() || !obj_) {
+    return Future<HttpsCallableResult>();
+  }
   SafeFutureHandle<HttpsCallableResult> handle =
-      future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
+      future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
+  JNIEnv* env = functions_->app()->GetJNIEnv();
 
   jobject task = env->CallObjectMethod(
       obj_, callable_reference::GetMethodId(callable_reference::kCall));
+  if (util::CheckAndClearJniExceptions(env) || !task) {
+    future_api->Complete(handle, kErrorInternal,
+                         GetErrorMessage(kErrorInternal));
+    return MakeFuture(future_api, handle);
+  }
 
-  util::RegisterCallbackOnTask(
-      env, task, FutureCallback,
-      // FutureCallback will delete the newed FutureCallbackData.
-      reinterpret_cast<void*>(new FutureCallbackData(
-          handle, future(), functions_, kCallableReferenceFnCall)),
-      functions_->jni_task_id());
-
-  util::CheckAndClearJniExceptions(env);
+  FutureCallbackData* callback_data =
+      new FutureCallbackData(handle, future_api, functions_);
+  util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
+                               "Functions");
   env->DeleteLocalRef(task);
-  return CallLastResult();
-}
+  util::CheckAndClearJniExceptions(env);
 
-Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
-  return static_cast<const Future<HttpsCallableResult>&>(
-      future()->LastResult(kCallableReferenceFnCall));
+  return MakeFuture(future_api, handle);
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     const Variant& data) {
-  JNIEnv* env = functions_->app()->GetJNIEnv();
-  ReferenceCountedFutureImpl* future_impl = future();
-  HttpsCallableResult null_result(Variant::Null());
+  ReferenceCountedFutureImpl* future_api = future();
+  if (!future_api || !functions_ || !functions_->app() || !obj_) {
+    return Future<HttpsCallableResult>();
+  }
   SafeFutureHandle<HttpsCallableResult> handle =
-      future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
+      future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
+  JNIEnv* env = functions_->app()->GetJNIEnv();
 
-  jobject java_data = util::VariantToJavaObject(env, data);
+  jobject java_object = util::VariantToJavaObject(env, data);
+  if (util::CheckAndClearJniExceptions(env)) {
+    future_api->Complete(handle, kErrorInvalidArgument,
+                         GetErrorMessage(kErrorInvalidArgument));
+    return MakeFuture(future_api, handle);
+  }
+
   jobject task = env->CallObjectMethod(
-      obj_, callable_reference::GetMethodId(callable_reference::kCallWithData),
-      java_data);
-  env->DeleteLocalRef(java_data);
+      obj_, callable_reference::GetMethodId(callable_reference::kCallWithParam),
+      java_object);
+  if (java_object) env->DeleteLocalRef(java_object);
+  if (util::CheckAndClearJniExceptions(env) || !task) {
+    future_api->Complete(handle, kErrorInternal,
+                         GetErrorMessage(kErrorInternal));
+    return MakeFuture(future_api, handle);
+  }
 
-  util::RegisterCallbackOnTask(
-      env, task, FutureCallback,
-      // FutureCallback will delete the newed FutureCallbackData.
-      reinterpret_cast<void*>(new FutureCallbackData(
-          handle, future(), functions_, kCallableReferenceFnCall)),
-      functions_->jni_task_id());
-
-  util::CheckAndClearJniExceptions(env);
+  FutureCallbackData* callback_data =
+      new FutureCallbackData(handle, future_api, functions_);
+  util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
+                               "Functions");
   env->DeleteLocalRef(task);
-  return CallLastResult();
+  util::CheckAndClearJniExceptions(env);
+
+  return MakeFuture(future_api, handle);
+}
+
+Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
+  ReferenceCountedFutureImpl* future_api = future();
+  return future_api ? static_cast<const Future<HttpsCallableResult>&>(
+                          future_api->LastResult(kHttpsCallableReferenceFnCall))
+                    : Future<HttpsCallableResult>();
+}
+
+ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
+  return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
 }
 
 }  // namespace internal

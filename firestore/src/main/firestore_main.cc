@@ -24,7 +24,6 @@
 
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
-#include "Firestore/core/src/credentials/empty_credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/async_queue.h"
@@ -34,7 +33,6 @@
 #include "Firestore/core/src/util/log.h"
 #include "Firestore/core/src/util/status.h"
 #include "absl/memory/memory.h"
-#include "absl/types/any.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_version.h"
@@ -57,7 +55,6 @@ namespace {
 
 using credentials::AppCheckCredentialsProvider;
 using credentials::AuthCredentialsProvider;
-using credentials::EmptyAppCheckCredentialsProvider;
 using model::DatabaseId;
 using util::AsyncQueue;
 using util::Executor;
@@ -90,22 +87,28 @@ LoadBundleTaskProgress ToApiProgress(
           ToApiProgressState(internal_progress.state())};
 }
 
-void ValidateDoubleSlash(const char* path) {
+bool ValidateDoubleSlash(const char* path) {
+  if (path == nullptr) {
+    SimpleThrowInvalidArgument("Invalid path. Path must not be null.");
+    return false;
+  }
   if (std::strstr(path, "//") != nullptr) {
-    // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument(
-    //     "Invalid path (%s). Paths must not contain // in them.", path);
     auto message = std::string("Invalid path (") + path +
                    "). Paths must not contain // in them.";
     SimpleThrowInvalidArgument(message);
+    return false;
   }
+  return true;
 }
+
+std::mutex g_is_alive_mutex;
 
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id)
-    : FirestoreInternal{app, database_id, CreateCredentialsProvider(*app),
-                        CreateAppCheckCredentialsProvider(*app)} {}
+    : FirestoreInternal{NOT_NULL(app), database_id,
+                        CreateCredentialsProvider(*NOT_NULL(app)),
+                        CreateAppCheckCredentialsProvider(*NOT_NULL(app))} {}
 
 FirestoreInternal::FirestoreInternal(
     App* app,
@@ -121,8 +124,7 @@ FirestoreInternal::FirestoreInternal(
           "com.google.firebase.firestore.transaction", /*threads=*/5))),
       database_name_(database_id) {
   ApplyDefaultSettings();
-
-#if FIREBASE_PLATFORM_ANDROID
+#if defined(__ANDROID__)
   App::RegisterLibrary("fire-fst", kFirestoreVersionString, app->GetJNIEnv());
 #else
   App::RegisterLibrary("fire-fst", kFirestoreVersionString, nullptr);
@@ -130,9 +132,13 @@ FirestoreInternal::FirestoreInternal(
 }
 
 FirestoreInternal::~FirestoreInternal() {
+  {
+    std::lock_guard<std::mutex> lock(g_is_alive_mutex);
+    *is_alive_ = false;
+  }
   ClearListeners();
-  transaction_executor_->Dispose();
   firestore_core_->Dispose();
+  transaction_executor_->Dispose();
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
@@ -149,26 +155,25 @@ std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
 
 CollectionReference FirestoreInternal::Collection(
     const char* collection_path) const {
-  ValidateDoubleSlash(collection_path);
+  if (!ValidateDoubleSlash(collection_path)) return CollectionReference{};
 
   auto result = firestore_core_->GetCollection(collection_path);
   return MakePublic(std::move(result));
 }
 
 DocumentReference FirestoreInternal::Document(const char* document_path) const {
-  ValidateDoubleSlash(document_path);
+  if (!ValidateDoubleSlash(document_path)) return DocumentReference{};
 
   auto result = firestore_core_->GetDocument(document_path);
   return MakePublic(std::move(result));
 }
 
 Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
+  if (collection_id == nullptr) {
+    SimpleThrowInvalidArgument("Invalid collection ID. Must not be null.");
+    return Query{};
+  }
   if (std::strchr(collection_id, '/') != nullptr) {
-    // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument(
-    //     "Invalid collection ID (%s). Collection IDs must not contain / in "
-    //     "them.",
-    //     collection_id);
     auto message = std::string("Invalid collection ID (") + collection_id +
                    "). Collection IDs must not contain / in them.";
     SimpleThrowInvalidArgument(message);
@@ -189,7 +194,7 @@ Settings FirestoreInternal::settings() const {
       "kCacheSizeUnlimited must be in sync between the public API and the core "
       "API");
 
-  Settings result;
+  Settings result = settings_;
 
   const api::Settings& from = firestore_core_->settings();
   result.set_host(from.host());
@@ -202,7 +207,7 @@ Settings FirestoreInternal::settings() const {
 
 void FirestoreInternal::set_settings(Settings from) {
   api::Settings settings;
-  settings.set_host(std::move(from.host()));
+  settings.set_host(from.host());
   settings.set_ssl_enabled(from.is_ssl_enabled());
   settings.set_persistence_enabled(from.is_persistence_enabled());
   settings.set_cache_size_bytes(from.cache_size_bytes());
@@ -210,6 +215,7 @@ void FirestoreInternal::set_settings(Settings from) {
 
   std::unique_ptr<Executor> user_executor = from.CreateExecutor();
   firestore_core_->set_user_executor(std::move(user_executor));
+  settings_ = std::move(from);
 }
 
 WriteBatch FirestoreInternal::batch() const {
@@ -219,38 +225,67 @@ WriteBatch FirestoreInternal::batch() const {
 Future<void> FirestoreInternal::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update,
     int32_t max_attempts) {
-  SIMPLE_HARD_ASSERT(max_attempts > 0);
+  if (max_attempts <= 0) {
+    SimpleThrowInvalidArgument("Max attempts must be at least 1.");
+  }
 
   auto executor = transaction_executor_;
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kRunTransaction);
 
-  // TODO(c++14): move into lambda.
   auto update_callback =
-      [this, update, executor](
+      [is_alive = is_alive_, weak_core = std::weak_ptr<api::Firestore>(firestore_core_), firestore_public = firestore_public_, update = std::move(update), executor = std::move(executor)](
           std::shared_ptr<core::Transaction> core_transaction,
           core::TransactionResultCallback eventual_result_callback) {
         executor->Execute(
-            [this, update, core_transaction, eventual_result_callback] {
+            [is_alive, weak_core, firestore_public, update, core_transaction = std::move(core_transaction),
+             eventual_result_callback = std::move(eventual_result_callback)] {
+              bool alive = false;
+              {
+                std::lock_guard<std::mutex> lock(g_is_alive_mutex);
+                alive = *is_alive;
+              }
+              if (!alive) {
+                eventual_result_callback(Status{Error::kErrorAborted, "Firestore instance has been destroyed"});
+                return;
+              }
+              auto core = weak_core.lock();
+              if (!core) {
+                eventual_result_callback(Status{Error::kErrorAborted, "Firestore instance has been destroyed"});
+                return;
+              }
               std::string error_message;
 
               // Note: there is no `MakePublic` overload for `Transaction`
               // because it is not copyable or movable and thus cannot be
               // returned from a function.
               auto* transaction_internal =
-                  new TransactionInternal(core_transaction, this);
+                  new TransactionInternal(core_transaction, core, firestore_public);
               Transaction transaction{transaction_internal};
 
-              Error error_code = update(transaction, error_message);
+              Error error_code = Error::kErrorOk;
+#if FIRESTORE_HAVE_EXCEPTIONS
+              try {
+                error_code = update(transaction, error_message);
+              } catch (const std::exception& e) {
+                core_transaction->MarkPermanentlyFailed();
+                eventual_result_callback(
+                    Status{Error::kErrorAborted, e.what()});
+                return;
+              } catch (...) {
+                core_transaction->MarkPermanentlyFailed();
+                eventual_result_callback(
+                    Status{Error::kErrorAborted,
+                           "Transaction callback threw an exception."});
+                return;
+              }
+#else
+              error_code = update(transaction, error_message);
+#endif
               if (error_code == Error::kErrorOk) {
                 eventual_result_callback(Status::OK());
               } else {
-                // TODO(varconst): port this from iOS
-                // If the error is a user error, set flag to not retry the
-                // transaction.
-                // if (is_user_error) {
-                //   transaction.MarkPermanentlyFailed();
-                // }
+                core_transaction->MarkPermanentlyFailed();
                 eventual_result_callback(Status{error_code, error_message});
               }
             });
@@ -258,8 +293,6 @@ Future<void> FirestoreInternal::RunTransaction(
 
   auto final_result_callback = [promise](util::Status status) mutable {
     if (status.ok()) {
-      // Note: the result is deliberately ignored here, because it is not
-      // clear how to surface the `any` to the public API.
       promise.SetValue();
     } else {
       promise.SetError(std::move(status));
@@ -308,12 +341,14 @@ Future<void> FirestoreInternal::ClearPersistence() {
 }
 
 void FirestoreInternal::ClearListeners() {
-  std::lock_guard<std::mutex> lock(listeners_mutex_);
-  for (auto* listener : listeners_) {
-    listener->Remove();
+  std::unordered_set<ListenerRegistrationInternal*> listeners;
+  {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
+    listeners.swap(listeners_);
+  }
+  for (auto* listener : listeners) {
     delete listener;
   }
-  listeners_.clear();
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
@@ -341,12 +376,16 @@ void FirestoreInternal::RegisterListenerRegistration(
 
 void FirestoreInternal::UnregisterListenerRegistration(
     ListenerRegistrationInternal* registration) {
-  std::lock_guard<std::mutex> lock(listeners_mutex_);
-  auto iter = listeners_.find(registration);
-  if (iter != listeners_.end()) {
-    delete *iter;
-    listeners_.erase(iter);
+  ListenerRegistrationInternal* to_delete = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
+    auto iter = listeners_.find(registration);
+    if (iter != listeners_.end()) {
+      to_delete = *iter;
+      listeners_.erase(iter);
+    }
   }
+  delete to_delete;
 }
 
 void FirestoreInternal::ApplyDefaultSettings() {
@@ -392,26 +431,7 @@ void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
 
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     const std::string& bundle) {
-  auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
-      AsyncApi::kLoadBundle);
-  auto bundle_stream = std::make_unique<util::ByteStreamCpp>(
-      std::make_unique<std::stringstream>(bundle));
-
-  std::shared_ptr<api::LoadBundleTask> task =
-      firestore_core_->LoadBundle(std::move(bundle_stream));
-  task->Observe(
-      [promise, task](const api::LoadBundleTaskProgress& progress) mutable {
-        if (progress.state() == api::LoadBundleTaskState::kSuccess) {
-          promise.SetValue(ToApiProgress(progress));
-          task->RemoveAllObservers();
-
-        } else if (progress.state() == api::LoadBundleTaskState::kError) {
-          promise.SetError(progress.error_status());
-          task->RemoveAllObservers();
-        }
-      });
-
-  return promise.future();
+  return LoadBundle(bundle, nullptr);
 }
 
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
@@ -424,19 +444,19 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
 
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
-  // TODO(C++14): Move progress_callback into the lambda.
-  task->Observe([promise, task, progress_callback](
-                    const api::LoadBundleTaskProgress& progress) mutable {
-    progress_callback(ToApiProgress(progress));
-    if (progress.state() == api::LoadBundleTaskState::kSuccess) {
-      promise.SetValue(ToApiProgress(progress));
-      task->RemoveAllObservers();
-
-    } else if (progress.state() == api::LoadBundleTaskState::kError) {
-      promise.SetError(progress.error_status());
-      task->RemoveAllObservers();
-    }
-  });
+  task->Observe(
+      [promise, progress_callback = std::move(progress_callback)](
+          const api::LoadBundleTaskProgress& progress) mutable {
+        LoadBundleTaskProgress api_progress = ToApiProgress(progress);
+        if (progress_callback) {
+          progress_callback(api_progress);
+        }
+        if (progress.state() == api::LoadBundleTaskState::kSuccess) {
+          promise.SetValue(api_progress);
+        } else if (progress.state() == api::LoadBundleTaskState::kError) {
+          promise.SetError(progress.error_status());
+        }
+      });
 
   return promise.future();
 }
@@ -445,9 +465,9 @@ Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
   auto promise = promise_factory_.CreatePromise<Query>(AsyncApi::kNamedQuery);
   firestore_core_->GetNamedQuery(
       query_name,
-      [this, promise](const core::Query& query, bool found) mutable {
+      [core = firestore_core_, promise](const core::Query& query, bool found) mutable {
         if (found) {
-          promise.SetValue(MakePublic(api::Query(query, firestore_core_)));
+          promise.SetValue(MakePublic(api::Query(query, core)));
         } else {
           promise.SetError(
               Status(Error::kErrorNotFound, "Named query cannot be found"));

@@ -19,6 +19,7 @@
 #include "Firestore/core/src/api/listener_registration.h"
 #include "Firestore/core/src/core/listen_options.h"
 #include "Firestore/core/src/core/user_data.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/main/document_snapshot_main.h"
 #include "firestore/src/main/listener_main.h"
@@ -37,22 +38,26 @@ DocumentReferenceInternal::DocumentReferenceInternal(
     api::DocumentReference&& reference)
     : reference_{std::move(reference)},
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)},
-      user_data_converter_{&firestore_internal()->database_id()} {}
+      user_data_converter_{&reference_.firestore()->database_id()} {}
 
-Firestore* DocumentReferenceInternal::firestore() {
+Firestore* DocumentReferenceInternal::firestore() const {
   return GetFirestore(&reference_);
 }
 
-FirestoreInternal* DocumentReferenceInternal::firestore_internal() {
+FirestoreInternal* DocumentReferenceInternal::firestore_internal() const {
   return GetFirestoreInternal(&reference_);
 }
 
-CollectionReference DocumentReferenceInternal::Parent() {
+CollectionReference DocumentReferenceInternal::Parent() const {
   return MakePublic(reference_.Parent());
 }
 
 CollectionReference DocumentReferenceInternal::Collection(
-    const std::string& collection_path) {
+    const std::string& collection_path) const {
+  if (collection_path.find("//") != std::string::npos) {
+    SimpleThrowInvalidArgument(std::string("Invalid path (") + collection_path +
+                               "). Paths must not contain // in them.");
+  }
   return MakePublic(reference_.GetCollectionReference(collection_path));
 }
 
@@ -66,9 +71,9 @@ Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
 
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
                                             const SetOptions& options) {
+  ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
   auto promise = promise_factory_.CreatePromise<void>(AsyncApis::kSet);
   auto callback = StatusCallbackWithPromise(promise);
-  ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
   reference_.SetData(std::move(parsed), std::move(callback));
   return promise.future();
 }

@@ -91,7 +91,9 @@ class ControllerInternal {
   // Returns the total bytes to be transferred.
   int64_t total_byte_count() const;
 
-  // Returns the StorageReference associated with this Controller.
+  // Returns a new StorageReferenceInternal for the reference associated with
+  // this Controller, or null if there is none. Ownership is transferred to
+  // the caller (Controller::GetReference() wraps it in a StorageReference).
   StorageReferenceInternal* GetReference() const;
 
   // Returns if a ControllerInternal is valid and ready to be used.
@@ -120,6 +122,32 @@ class ControllerInternal {
   std::shared_ptr<RestOperation::OperationHandle> operation_handle() const;
 
  private:
+  // Value snapshot of the guarded members, used to implement copy/move
+  // without holding two ControllerInternal mutexes at once.
+  struct State {
+    std::shared_ptr<ControllerBinding> binding;
+    StorageReference reference;
+    std::shared_ptr<RestOperation::OperationHandle> op_handle;
+    std::shared_ptr<RestOperation::OperationHandle> cached_handle;
+    int64_t bytes_transferred = 0;
+    int64_t total_byte_count = -1;
+    bool is_valid = false;
+  };
+
+  explicit ControllerInternal(State&& state) noexcept;
+
+  // Copies the guarded members under mutex_, refreshing the byte counts from
+  // the active operation (the binding's current attempt if bound, otherwise
+  // op_handle_), exactly like UpdateFromOperation().
+  State Snapshot() const;
+
+  // Moves the guarded members out under mutex_, leaving this object in the
+  // same state as Initialize(StorageReference(), nullptr).
+  State TakeState() noexcept;
+
+  // Replaces the guarded members with `state` under mutex_.
+  void Assign(State&& state) noexcept;
+
   // Returns the handle to act on: the binding's current attempt if bound,
   // otherwise op_handle_.
   std::shared_ptr<RestOperation::OperationHandle> CurrentHandle() const;
@@ -133,12 +161,13 @@ class ControllerInternal {
   static void ReadHandle(RestOperation::OperationHandle& handle,
                          int64_t* transferred, int64_t* total);
 
-  // Guards reference_, op_handle_, binding_, bytes_transferred_,
-  // total_byte_count_, and is_valid_.
+  // Guards reference_, op_handle_, cached_handle_, binding_,
+  // bytes_transferred_, total_byte_count_, and is_valid_.
   mutable Mutex mutex_;
   std::shared_ptr<ControllerBinding> binding_;
   StorageReference reference_;
   std::shared_ptr<RestOperation::OperationHandle> op_handle_;
+  mutable std::shared_ptr<RestOperation::OperationHandle> cached_handle_;
   mutable int64_t bytes_transferred_ = 0;
   mutable int64_t total_byte_count_ = -1;
   bool is_valid_ = false;

@@ -15,9 +15,9 @@
  */
 
 #include "firestore/src/android/document_reference_android.h"
-#include <cassert>
 
 #include <utility>
+
 #include "app/src/assert.h"
 #include "firestore/src/android/collection_reference_android.h"
 #include "firestore/src/android/event_listener_android.h"
@@ -32,6 +32,7 @@
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
+#include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"
 
@@ -39,8 +40,8 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using jni::Class;
 using jni::Env;
+using jni::HashMap;
 using jni::Local;
 using jni::Method;
 using jni::Object;
@@ -85,14 +86,30 @@ Method<Object> kAddSnapshotListener(
 }  // namespace
 
 void DocumentReferenceInternal::Initialize(jni::Loader& loader) {
-  clazz = loader.LoadClass(kClassName);
-  loader.LoadAll(kGetFirestore, kGetId, kGetPath, kGetParent, kCollection, kGet,
-                 kSet, kUpdate, kUpdateVarargs, kDelete, kAddSnapshotListener);
+  clazz = loader.LoadClass(kClassName, kGetFirestore, kGetId, kGetPath,
+                           kGetParent, kCollection, kGet, kSet, kUpdate,
+                           kUpdateVarargs, kDelete, kAddSnapshotListener);
+}
+
+DocumentReferenceInternal::DocumentReferenceInternal(
+    const DocumentReferenceInternal& other)
+    : Wrapper(other), promises_(other.promises_) {
+  std::lock_guard<std::mutex> lock(other.mutex_);
+  cached_id_ = other.cached_id_;
+  cached_path_ = other.cached_path_;
+}
+
+DocumentReferenceInternal::DocumentReferenceInternal(
+    DocumentReferenceInternal&& other) noexcept
+    : Wrapper(std::move(other)), promises_(std::move(other.promises_)) {
+  std::lock_guard<std::mutex> lock(other.mutex_);
+  cached_id_ = std::move(other.cached_id_);
+  cached_path_ = std::move(other.cached_path_);
 }
 
 DocumentReference DocumentReferenceInternal::Create(Env& env,
                                                     const Object& reference) {
-  if (!reference) return {};
+  if (!env.ok() || !reference) return {};
 
   Local<Object> java_firestore = env.Call(reference, kGetFirestore);
   auto* firestore = FirestoreInternal::RecoverFirestore(env, java_firestore);
@@ -101,12 +118,15 @@ DocumentReference DocumentReferenceInternal::Create(Env& env,
   return firestore->NewDocumentReference(env, reference);
 }
 
-Firestore* DocumentReferenceInternal::firestore() {
-  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
+Firestore* DocumentReferenceInternal::firestore() const {
+  if (firestore_ == nullptr) {
+    return nullptr;
+  }
   return firestore_->firestore_public();
 }
 
 const std::string& DocumentReferenceInternal::id() const {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (cached_id_.empty()) {
     Env env = GetEnv();
     cached_id_ = env.Call(obj_, kGetId).ToString(env);
@@ -115,6 +135,7 @@ const std::string& DocumentReferenceInternal::id() const {
 }
 
 const std::string& DocumentReferenceInternal::path() const {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (cached_path_.empty()) {
     Env env = GetEnv();
     cached_path_ = env.Call(obj_, kGetPath).ToString(env);
@@ -129,7 +150,7 @@ CollectionReference DocumentReferenceInternal::Parent() const {
 }
 
 CollectionReference DocumentReferenceInternal::Collection(
-    const std::string& collection_path) {
+    const std::string& collection_path) const {
   Env env = GetEnv();
   Local<String> java_path = env.NewStringUtf(collection_path);
   Local<Object> collection = env.Call(obj_, kCollection, java_path);
@@ -146,16 +167,16 @@ Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
                                             const SetOptions& options) {
   Env env = GetEnv();
-  FieldValueInternal map_value(data);
+  Local<HashMap> java_data = MakeJavaMap(env, data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  Local<Task> task = env.Call(obj_, kSet, map_value.ToJava(), java_options);
+  Local<Task> task = env.Call(obj_, kSet, java_data, java_options);
   return promises_.NewFuture<void>(env, AsyncFn::kSet, task);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
   Env env = GetEnv();
-  FieldValueInternal map_value(data);
-  Local<Task> task = env.Call(obj_, kUpdate, map_value.ToJava());
+  Local<HashMap> java_data = MakeJavaMap(env, data);
+  Local<Task> task = env.Call(obj_, kUpdate, java_data);
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 
@@ -169,7 +190,7 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
   Local<Task> task = env.Call(obj_, kUpdateVarargs, args.first_field,
                               args.first_value, args.varargs);
 
-  return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
+  return promises_.NewFuture<void>(env, AsyncFn::kUpdateFieldPath, task);
 }
 
 Future<void> DocumentReferenceInternal::Delete() {
@@ -203,12 +224,18 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
       env.Call(obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
                java_metadata, java_listener);
 
-  if (!env.ok() || !java_registration) return {};
+  if (!env.ok() || !java_registration) {
+    if (passing_listener_ownership) {
+      delete listener;
+    }
+    return {};
+  }
   return ListenerRegistration(new ListenerRegistrationInternal(
-      firestore_, listener, passing_listener_ownership, java_registration));
+      firestore_, listener, passing_listener_ownership, java_registration,
+      java_listener));
 }
 
-Class DocumentReferenceInternal::GetClass() { return Class(clazz); }
+jni::Class DocumentReferenceInternal::GetClass() { return jni::Class(clazz); }
 
 }  // namespace firestore
 }  // namespace firebase

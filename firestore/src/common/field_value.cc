@@ -69,19 +69,17 @@ std::string ValueToString(const std::vector<FieldValue>& value) {
 
 // The output will look like "00 0a"
 std::string ValueToString(const uint8_t* blob, size_t size) {
-  // TODO(varconst): not the most efficient implementation.
   std::ostringstream stream;
   stream << "Blob(";
 
-  stream << std::hex << std::setfill('0');
-  bool is_first = true;
-  for (const auto* ptr = blob; ptr != blob + size; ++ptr) {
-    if (!is_first) {
-      stream << " ";
+  if (blob != nullptr && size > 0) {
+    stream << std::hex << std::setfill('0');
+    for (size_t i = 0; i < size; ++i) {
+      if (i > 0) {
+        stream << " ";
+      }
+      stream << std::setw(2) << static_cast<int>(blob[i]);
     }
-    is_first = false;
-
-    stream << std::setw(2) << static_cast<int>(*ptr);
   }
 
   stream << ")";
@@ -116,12 +114,12 @@ FieldValue& FieldValue::operator=(const FieldValue& value) {
     return *this;
   }
 
-  delete internal_;
+  FieldValueInternal* new_internal = nullptr;
   if (value.internal_) {
-    internal_ = new FieldValueInternal(*value.internal_);
-  } else {
-    internal_ = nullptr;
+    new_internal = new FieldValueInternal(*value.internal_);
   }
+  delete internal_;
+  internal_ = new_internal;
   return *this;
 }
 
@@ -152,7 +150,7 @@ FieldValue FieldValue::Double(double value) {
 }
 
 /* static */
-FieldValue FieldValue::Timestamp(class Timestamp value) {
+FieldValue FieldValue::Timestamp(Timestamp value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
@@ -172,7 +170,7 @@ FieldValue FieldValue::Reference(DocumentReference value) {
 }
 
 /* static */
-FieldValue FieldValue::GeoPoint(class GeoPoint value) {
+FieldValue FieldValue::GeoPoint(GeoPoint value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
@@ -187,7 +185,7 @@ FieldValue FieldValue::Map(MapFieldValue value) {
 }
 
 Type FieldValue::type() const {
-  if (!internal_) return {};
+  if (!internal_) return Type::kInvalid;
   return internal_->type();
 }
 
@@ -248,9 +246,7 @@ MapFieldValue FieldValue::map_value() const {
 
 /* static */
 FieldValue FieldValue::Null() {
-  FieldValue result;
-  result.internal_ = new FieldValueInternal();
-  return result;
+  return FieldValue{new FieldValueInternal()};
 }
 
 /* static */
@@ -335,6 +331,9 @@ std::string FieldValue::ToString() const {
     case Type::kIncrementInteger:
     case Type::kIncrementDouble:
       return "FieldValue::Increment()";
+
+    case Type::kInvalid:
+      return "<invalid>";
   }
 
   // TODO(b/147444199): use string formatting.

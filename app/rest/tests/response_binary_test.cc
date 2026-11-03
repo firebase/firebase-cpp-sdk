@@ -118,11 +118,23 @@ TEST_F(ResponseBinaryTest, GetBinaryBodyWihGunzipHugeBuffer) {
                                                           // (no rand_r on msvc)
   }
 
-  std::string s(buffer, sizeof(buffer));
+  std::string s(buffer, size);
   SetBody(Compress(s));
   EXPECT_EQ(GetBody(), s);
 
   delete[] buffer;
+}
+
+TEST_F(ResponseBinaryTest, GetBodyWithGunzipInvalidHeader) {
+  response_.set_use_gunzip(true);
+  SetBody("not a valid gzip stream");
+  EXPECT_EQ(GetBody(), "");
+}
+
+TEST_F(ResponseBinaryTest, GetBodyWithGunzipEmptyPayload) {
+  response_.set_use_gunzip(true);
+  SetBody(Compress(""));
+  EXPECT_EQ(GetBody(), "");
 }
 
 }  // namespace rest

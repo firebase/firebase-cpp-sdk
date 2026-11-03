@@ -17,7 +17,7 @@
 #include <cstddef>
 #include <cstring>
 #include <memory>
-#include <mutex>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -451,18 +451,18 @@ void ReturnedListResponse::MarkCompleted() {
   if (status() == rest::util::HttpSuccess) {
     Variant response_variant = util::JsonToVariant(buffer_.c_str());
     if (response_variant.is_map()) {
-      std::unique_lock<std::mutex> token_lock;
-      StorageInternal* storage = nullptr;
-      if (storage_token_) {
-        token_lock = std::unique_lock<std::mutex>(storage_token_->mutex);
-        if (!storage_token_->shutting_down) {
-          storage = storage_token_->storage;
-        }
-      }
+      // Keep the StorageInternal alive while references are created from it
+      // by registering as an active user of its lifetime token, rather than
+      // by holding LifetimeToken::mutex: the temporary
+      // StorageReferenceInternal objects created below lock that same
+      // (non-recursive) mutex in their destructors (~FutureApiOwner), so
+      // holding it here would self-deadlock.
+      std::optional<StorageLifetimeScope> storage_scope;
+      storage_scope.emplace(storage_token_,
+                            StorageLifetimeScope::Mode::kRejectShutdown);
+      StorageInternal* storage = storage_scope->storage();
       if (!storage) {
-        if (token_lock.owns_lock()) {
-          token_lock.unlock();
-        }
+        storage_scope.reset();
         ref_future_->Complete(handle, kErrorCancelled,
                               GetErrorMessage(kErrorCancelled));
       } else {
@@ -481,11 +481,11 @@ void ReturnedListResponse::MarkCompleted() {
               if (!prefix_str.empty() && prefix_str.back() == '/') {
                 prefix_str.pop_back();
               }
-              std::unique_ptr<StorageReferenceInternal> ref_internal(
-                  storage->GetReference(prefix_str.c_str()));
-              prefixes.push_back(ref_internal
-                                     ? ref_internal->AsStorageReference()
-                                     : StorageReference());
+              // StorageInternal::GetReference() transfers ownership; Adopt()
+              // hands it to the StorageReference without a temporary copy.
+              prefixes.push_back(StorageReferenceInternal::Adopt(
+                  std::unique_ptr<StorageReferenceInternal>(
+                      storage->GetReference(prefix_str.c_str()))));
             }
           }
         }
@@ -497,17 +497,17 @@ void ReturnedListResponse::MarkCompleted() {
               const auto& item_map = item_variant.map();
               auto name_it = item_map.find(Variant("name"));
               if (name_it != item_map.end() && name_it->second.is_string()) {
-                std::unique_ptr<StorageReferenceInternal> ref_internal(
-                    storage->GetReference(name_it->second.string_value()));
-                items.push_back(ref_internal
-                                    ? ref_internal->AsStorageReference()
-                                    : StorageReference());
+                // Ownership transferred to the StorageReference (see above).
+                items.push_back(StorageReferenceInternal::Adopt(
+                    std::unique_ptr<StorageReferenceInternal>(
+                        storage->GetReference(
+                            name_it->second.string_value()))));
               }
             }
           }
         }
 
-        token_lock.unlock();
+        storage_scope.reset();
 
         auto token_it = map.find(Variant("nextPageToken"));
         if (token_it != map.end() && token_it->second.is_string()) {

@@ -16,9 +16,8 @@
 
 #include "firestore/src/android/event_listener_android.h"
 
-#include <utility>
+#include <string>
 
-#include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -26,6 +25,7 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/load_bundle_task_progress_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/jni/env.h"
@@ -41,23 +41,23 @@ using jni::Local;
 using jni::Method;
 using jni::Object;
 
-constexpr char kCppEventListenerClassName[] =
+constexpr char kCppEventListenerClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/CppEventListener";
 Method<void> kDiscardPointers("discardPointers", "()V");
 
-constexpr char kDocumentEventListenerClassName[] =
+constexpr char kDocumentEventListenerClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/DocumentEventListener";
 Constructor<Object> kNewDocumentEventListener("(JJ)V");
 
-constexpr char kQueryEventListenerClassName[] =
+constexpr char kQueryEventListenerClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/QueryEventListener";
 Constructor<Object> kNewQueryEventListener("(JJ)V");
 
-constexpr char kVoidEventListenerClassName[] =
+constexpr char kVoidEventListenerClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/VoidEventListener";
 Constructor<Object> kNewVoidEventListener("(J)V");
 
-constexpr char kProgressListenerClassName[] =
+constexpr char kProgressListenerClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/LoadBundleProgressListener";
 Constructor<Object> kNewProgressListener("(JJ)V");
 
@@ -114,21 +114,28 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
   if (firestore_ptr == 0 || listener_ptr == 0) {
     return;
   }
-  auto* listener =
-      reinterpret_cast<EventListener<DocumentSnapshot>*>(listener_ptr);
-  auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
+#if FIRESTORE_HAVE_EXCEPTIONS
+  try {
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
+    auto* listener =
+        reinterpret_cast<EventListener<DocumentSnapshot>*>(listener_ptr);
+    auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
 
-  Env env(raw_env);
-  Object error(raw_error);
-  Error error_code = ExceptionInternal::GetErrorCode(env, error);
-  std::string error_message = ExceptionInternal::ToString(env, error);
-  if (error_code != Error::kErrorOk) {
-    listener->OnEvent({}, error_code, error_message);
-    return;
+    Env env(raw_env);
+    Object error(raw_error);
+    Error error_code = ExceptionInternal::GetErrorCode(env, error);
+    std::string error_message = ExceptionInternal::ToString(env, error);
+    if (error_code != Error::kErrorOk) {
+      listener->OnEvent({}, error_code, error_message);
+      return;
+    }
+
+    auto snapshot = firestore->NewDocumentSnapshot(env, Object(value));
+    listener->OnEvent(snapshot, error_code, error_message);
+#if FIRESTORE_HAVE_EXCEPTIONS
+  } catch (...) {
   }
-
-  auto snapshot = firestore->NewDocumentSnapshot(env, Object(value));
-  listener->OnEvent(snapshot, error_code, error_message);
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 /* static */
@@ -141,21 +148,28 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* raw_env,
   if (firestore_ptr == 0 || listener_ptr == 0) {
     return;
   }
-  auto* listener =
-      reinterpret_cast<EventListener<QuerySnapshot>*>(listener_ptr);
-  auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
+#if FIRESTORE_HAVE_EXCEPTIONS
+  try {
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
+    auto* listener =
+        reinterpret_cast<EventListener<QuerySnapshot>*>(listener_ptr);
+    auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
 
-  Env env(raw_env);
-  Object error(raw_error);
-  Error error_code = ExceptionInternal::GetErrorCode(env, error);
-  std::string error_message = ExceptionInternal::ToString(env, error);
-  if (error_code != Error::kErrorOk) {
-    listener->OnEvent({}, error_code, error_message);
-    return;
+    Env env(raw_env);
+    Object error(raw_error);
+    Error error_code = ExceptionInternal::GetErrorCode(env, error);
+    std::string error_message = ExceptionInternal::ToString(env, error);
+    if (error_code != Error::kErrorOk) {
+      listener->OnEvent({}, error_code, error_message);
+      return;
+    }
+
+    auto snapshot = firestore->NewQuerySnapshot(env, Object(value));
+    listener->OnEvent(snapshot, error_code, error_message);
+#if FIRESTORE_HAVE_EXCEPTIONS
+  } catch (...) {
   }
-
-  auto snapshot = firestore->NewQuerySnapshot(env, Object(value));
-  listener->OnEvent(snapshot, error_code, error_message);
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 /* static */
@@ -165,28 +179,43 @@ void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv*,
   if (listener_ptr == 0) {
     return;
   }
-  auto* listener = reinterpret_cast<EventListener<void>*>(listener_ptr);
-  listener->OnEvent(Error::kErrorOk, EmptyString());
+#if FIRESTORE_HAVE_EXCEPTIONS
+  try {
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
+    auto* listener = reinterpret_cast<EventListener<void>*>(listener_ptr);
+    listener->OnEvent(Error::kErrorOk, EmptyString());
+#if FIRESTORE_HAVE_EXCEPTIONS
+  } catch (...) {
+  }
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 /* static */
 void EventListenerInternal::ProgressListenerNativeOnProgress(
-    JNIEnv*,
+    JNIEnv* raw_env,
     jclass,
     jlong firestore_ptr,
     jlong listener_ptr,
     jobject progress) {
-  if (listener_ptr == 0) {
+  if (firestore_ptr == 0 || listener_ptr == 0 || progress == nullptr) {
     return;
   }
-  auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
-  auto* listener =
-      reinterpret_cast<EventListener<LoadBundleTaskProgress>*>(listener_ptr);
-  LoadBundleTaskProgressInternal internal(firestore, Object(progress));
-  LoadBundleTaskProgress cpp_progress(
-      internal.documents_loaded(), internal.total_documents(),
-      internal.bytes_loaded(), internal.total_bytes(), internal.state());
-  listener->OnEvent(cpp_progress, Error::kErrorOk, EmptyString());
+#if FIRESTORE_HAVE_EXCEPTIONS
+  try {
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
+    auto* listener =
+        reinterpret_cast<EventListener<LoadBundleTaskProgress>*>(listener_ptr);
+    Env env(raw_env);
+    LoadBundleTaskProgress cpp_progress =
+        LoadBundleTaskProgressInternal::ToPublic(env, Object(progress));
+    if (!env.ok()) {
+      return;
+    }
+    listener->OnEvent(cpp_progress, Error::kErrorOk, EmptyString());
+#if FIRESTORE_HAVE_EXCEPTIONS
+  } catch (...) {
+  }
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 Local<Object> EventListenerInternal::Create(
@@ -216,6 +245,13 @@ Local<Object> EventListenerInternal::Create(
     EventListener<LoadBundleTaskProgress>* listener) {
   return env.New(kNewProgressListener, reinterpret_cast<jlong>(firestore),
                  reinterpret_cast<jlong>(listener));
+}
+
+/* static */
+void EventListenerInternal::DiscardPointers(Env& env, const Object& listener) {
+  if (listener) {
+    env.Call(listener, kDiscardPointers);
+  }
 }
 
 }  // namespace firestore

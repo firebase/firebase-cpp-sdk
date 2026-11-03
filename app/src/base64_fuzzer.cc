@@ -16,6 +16,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 
 #include "app/src/base64.h"
@@ -28,24 +29,32 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   bool success;
   success = firebase::internal::Base64Encode(orig, &encoded);
   assert(success);
+  if (!success) std::abort();
   success = firebase::internal::Base64Decode(encoded, &decoded);
   assert(success);
   assert(orig == decoded);
+  if (!success || orig != decoded) std::abort();
   success = firebase::internal::Base64EncodeWithPadding(orig, &encoded);
   assert(success);
+  if (!success) std::abort();
   success = firebase::internal::Base64Decode(encoded, &decoded);
   assert(success);
   assert(orig == decoded);
+  if (!success || orig != decoded) std::abort();
   success = firebase::internal::Base64EncodeUrlSafe(orig, &encoded);
   assert(success);
+  if (!success) std::abort();
   success = firebase::internal::Base64Decode(encoded, &decoded);
   assert(success);
   assert(orig == decoded);
+  if (!success || orig != decoded) std::abort();
   success = firebase::internal::Base64EncodeUrlSafeWithPadding(orig, &encoded);
   assert(success);
+  if (!success) std::abort();
   success = firebase::internal::Base64Decode(encoded, &decoded);
   assert(success);
   assert(orig == decoded);
+  if (!success || orig != decoded) std::abort();
 
   // Test passing in this string to the decoder, and make sure it doesn't crash.
   std::string unused;

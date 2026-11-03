@@ -19,7 +19,8 @@
 
 #include <vector>
 
-#include "firestore/src/android/wrapper.h"
+#include "firestore/src/jni/arena_ref.h"
+#include "firestore/src/jni/object.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/filter.h"
@@ -56,8 +57,9 @@ class FilterInternal final {
  private:
   friend class Filter;
   friend class FirestoreInternal;
+  friend class QueryInternal;
 
-  FilterInternal* clone() { return new FilterInternal(*this); }
+  FilterInternal* clone() const { return new FilterInternal(*this); }
 
   bool IsEmpty() const { return is_empty_; }
 

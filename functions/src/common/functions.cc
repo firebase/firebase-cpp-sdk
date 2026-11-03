@@ -14,22 +14,24 @@
 
 #include "functions/src/include/firebase/functions.h"
 
-#include <assert.h>
-
 #include <cstdint>
-#include <cstring>
+#include <functional>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "functions/src/include/firebase/functions/callable_reference.h"
 
-// QueryInternal is defined in these 3 files, one implementation for each OS.
+// Include the header that matches the platform being used.
 #if FIREBASE_PLATFORM_ANDROID
 #include "functions/src/android/functions_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
@@ -41,9 +43,18 @@
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
-    functions, { return ::firebase::kInitResultSuccess; },
+    functions,
     {
-        // Nothing to tear down.
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::InitResult init_result;
+        firebase::functions::Functions::GetInstance(app, &init_result);
+        return init_result;
+      }
+      return kInitResultSuccess;
+    },
+    {
+      // Cleanup for any Functions instances associated with this App is
+      // performed by CleanupNotifier.
     },
     false);
 
@@ -52,133 +63,182 @@ namespace functions {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseFunctions);
 
-constexpr const char* kDefaultRegion = "us-central1";
+namespace {
+using FunctionsMapKey = std::pair<App*, std::string>;
+using FunctionsMap = std::map<FunctionsMapKey, Functions*, std::less<>>;
 
-Mutex g_functions_lock;  // NOLINT
-static std::map<std::pair<App*, std::string>, Functions*>* g_functions =
-    nullptr;
+Mutex& GetFunctionsLock() {
+  static auto* lock = new Mutex();
+  return *lock;
+}
+
+FunctionsMap* g_functions = nullptr;
+
+FunctionsMap& GetFunctionsMap() {
+  if (!g_functions) {
+    g_functions = new FunctionsMap();
+  }
+  return *g_functions;
+}
+}  // namespace
 
 Functions* Functions::GetInstance(::firebase::App* app,
                                   InitResult* init_result_out) {
-  return GetInstance(app, nullptr, init_result_out);
+  return GetInstance(app, "us-central1", init_result_out);
 }
 
 Functions* Functions::GetInstance(::firebase::App* app, const char* region,
                                   InitResult* init_result_out) {
-  MutexLock lock(g_functions_lock);
-  if (!g_functions) {
-    g_functions = new std::map<std::pair<App*, std::string>, Functions*>();
+  if (!app) {
+    LogError("Functions::GetInstance: App cannot be null.");
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return nullptr;
   }
+  const char* effective_region =
+      (region && region[0] != '\0') ? region : "us-central1";
 
-  // Region we use for our global index of Functions instances.
-  // If a null region is given, we use the default region.
-  std::string region_idx;
-  if (region != nullptr && strlen(region) > 0) {
-    region_idx = region;
-  } else {
-    region_idx = std::string(kDefaultRegion);
-  }
-
-  auto it = g_functions->find(std::make_pair(app, region_idx));
-  if (it != g_functions->end()) {
-    if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
+  MutexLock lock(GetFunctionsLock());
+  auto& functions_map = GetFunctionsMap();
+  std::pair key{app, std::string(effective_region)};
+  auto it = functions_map.find(key);
+  if (it != functions_map.end()) {
+    if (init_result_out != nullptr) {
+      *init_result_out = kInitResultSuccess;
+    }
     return it->second;
   }
 
-  Functions* functions = new Functions(app, region_idx.c_str());
-  if (!functions->internal_->initialized()) {
-    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
+  Functions* functions = new Functions(app, effective_region);
+  if (!functions->internal_ || !functions->internal_->is_valid()) {
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
     delete functions;
     return nullptr;
   }
-  g_functions->insert(
-      std::make_pair(std::make_pair(app, region_idx), functions));
-  if (init_result_out) *init_result_out = kInitResultSuccess;
+
+  functions_map[key] = functions;
+  if (init_result_out) {
+    *init_result_out = kInitResultSuccess;
+  }
   return functions;
 }
 
 Functions::Functions(::firebase::App* app, const char* region) {
-  internal_ = new internal::FunctionsInternal(app, region);
-
-  if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app);
-    assert(app_notifier);
-    app_notifier->RegisterObject(this, [](void* object) {
-      Functions* functions = reinterpret_cast<Functions*>(object);
-      LogWarning(
-          "Functions object 0x%08x should be deleted before the App 0x%08x "
-          "it depends upon.",
-          static_cast<int>(reinterpret_cast<intptr_t>(functions)),
-          static_cast<int>(reinterpret_cast<intptr_t>(functions->app())));
-      functions->DeleteInternal();
-    });
+  FIREBASE_ASSERT(app != nullptr);
+  const char* effective_region =
+      (region && region[0] != '\0') ? region : "us-central1";
+  internal_ = new internal::FunctionsInternal(app, effective_region);
+  if (!internal_->is_valid()) {
+    delete internal_;
+    internal_ = nullptr;
+    return;
   }
+  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+  FIREBASE_ASSERT(notifier);
+  notifier->RegisterObject(this, [](void* object) {
+    Functions* functions = reinterpret_cast<Functions*>(object);
+    LogWarning(
+        "Functions object 0x%08x should be deleted before the App 0x%08x "
+        "it depends upon.",
+        static_cast<int>(reinterpret_cast<intptr_t>(functions)),
+        static_cast<int>(reinterpret_cast<intptr_t>(functions->app())));
+    functions->DeleteInternal();
+  });
 }
 
 Functions::~Functions() { DeleteInternal(); }
 
 void Functions::DeleteInternal() {
-  MutexLock lock(g_functions_lock);
-
+  MutexLock lock(GetFunctionsLock());
   if (!internal_) return;
 
-  // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to g_functions, and app() may be null.
-  if (!internal_->initialized()) {
-    delete internal_;
-    internal_ = nullptr;
-    return;
+  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app());
+  if (notifier) {
+    notifier->UnregisterObject(this);
   }
 
-  CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
-  assert(app_notifier);
-  app_notifier->UnregisterObject(this);
-  // Force cleanup to happen first.
+  // Force cleanup of any live HttpsCallableReference instances first.
   internal_->cleanup().CleanupAll();
+
   // If a Functions is explicitly deleted, remove it from our cache.
-  std::string region = internal_->region();
-  std::string region_idx = region.empty() ? kDefaultRegion : region;
-  g_functions->erase(std::make_pair(app(), region_idx));
+  if (g_functions) {
+    g_functions->erase({app(), std::string(region())});
+    for (auto it = g_functions->begin(); it != g_functions->end();) {
+      if (it->second == this) {
+        it = g_functions->erase(it);
+      } else {
+        ++it;
+      }
+    }
+    if (g_functions->empty()) {
+      delete g_functions;
+      g_functions = nullptr;
+    }
+  }
+
   delete internal_;
   internal_ = nullptr;
-  // If it's the last one, delete the map.
-  if (g_functions->empty()) {
-    delete g_functions;
-    g_functions = nullptr;
-  }
 }
 
 ::firebase::App* Functions::app() {
   return internal_ ? internal_->app() : nullptr;
 }
 
+::firebase::App* Functions::app() const {
+  return internal_ ? internal_->app() : nullptr;
+}
+
+const char* Functions::region() const {
+  return internal_ ? internal_->region() : "";
+}
+
 HttpsCallableReference Functions::GetHttpsCallable(const char* name) const {
-  if (!internal_) return HttpsCallableReference();
+  if (!internal_ || !name) return HttpsCallableReference();
   return HttpsCallableReference(internal_->GetHttpsCallable(name));
 }
 
 HttpsCallableReference Functions::GetHttpsCallable(
     const char* name, const HttpsCallableOptions& options) const {
-  if (!internal_) return HttpsCallableReference();
-  return HttpsCallableReference(internal_->GetHttpsCallable(name, options));
+  return GetHttpsCallableWithOptions(name, options);
+}
+
+HttpsCallableReference Functions::GetHttpsCallableWithOptions(
+    const char* name, const HttpsCallableOptions& options) const {
+  if (!internal_ || !name) return HttpsCallableReference();
+  return HttpsCallableReference(
+      internal_->GetHttpsCallableWithOptions(name, options));
 }
 
 HttpsCallableReference Functions::GetHttpsCallableFromURL(
     const char* url) const {
-  if (!internal_) return HttpsCallableReference();
+  if (!internal_ || !url) return HttpsCallableReference();
   return HttpsCallableReference(internal_->GetHttpsCallableFromURL(url));
 }
 
 HttpsCallableReference Functions::GetHttpsCallableFromURL(
     const char* url, const HttpsCallableOptions& options) const {
-  if (!internal_) return HttpsCallableReference();
+  return GetHttpsCallableFromURLWithOptions(url, options);
+}
+
+HttpsCallableReference Functions::GetHttpsCallableFromURLWithOptions(
+    const char* url, const HttpsCallableOptions& options) const {
+  if (!internal_ || !url) return HttpsCallableReference();
   return HttpsCallableReference(
-      internal_->GetHttpsCallableFromURL(url, options));
+      internal_->GetHttpsCallableFromURLWithOptions(url, options));
 }
 
 void Functions::UseFunctionsEmulator(const char* origin) {
-  if (!internal_) return;
+  if (!internal_ || !origin) return;
   internal_->UseFunctionsEmulator(origin);
+}
+
+void Functions::UseEmulator(const char* host, int port) {
+  if (!internal_ || !host || host[0] == '\0' || port <= 0) return;
+  std::string origin = std::string(host) + ":" + std::to_string(port);
+  internal_->UseFunctionsEmulator(origin.c_str());
 }
 
 }  // namespace functions

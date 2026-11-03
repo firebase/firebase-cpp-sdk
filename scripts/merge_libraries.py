@@ -152,9 +152,13 @@ class Demangler(object):
     if not FLAGS.streaming_demanglers:
       return None
     try:
-      return self.pipe.stdout.read(1).decode(DEFAULT_ENCODING)
+      b = self.pipe.stdout.read(1)
+      if not b:
+        return None
+      return b.decode(DEFAULT_ENCODING)
     except Exception as e:  # pylint: disable=broad-except
       logging.error("Demangler returned error on read: %s", e)
+      self.restart()
       return None
 
   def start(self):
@@ -183,22 +187,19 @@ class Demangler(object):
       self.start()
 
     to_write = symbol + "\n"
-    self.pipe.stdin.write(to_write.encode())
-    self.pipe.stdin.flush()
-    # Read a line of output from the pipe.
-    demangled_str = ""
-    self.pipe.stdout.flush()
-    if self.pipe.poll() is not None:
-      # Process crashed, return the original symbol.
-      self.start()
-    c = self.readbyte()
-    while c != "\n":
-      if c is None:
-        # The process crashed, return the undemangled symbol.
+    try:
+      self.pipe.stdin.write(to_write.encode(DEFAULT_ENCODING))
+      self.pipe.stdin.flush()
+      line = self.pipe.stdout.readline()
+      if not line:
+        self.restart()
         return symbol
-      demangled_str += str(c)
-      c = self.readbyte()
-    return demangled_str if demangled_str else symbol
+      demangled_str = line.decode(DEFAULT_ENCODING).rstrip("\r\n")
+      return demangled_str if demangled_str else symbol
+    except Exception as e:  # pylint: disable=broad-except
+      logging.error("Demangler returned error: %s", e)
+      self.restart()
+      return symbol
 
   def restart(self):
     """Close the subprocess, then start it again."""
@@ -211,7 +212,7 @@ class Demangler(object):
       return
     if self.pipe:
       logging.debug("Stop demangler process %s", self.cmdline)
-      if self.pipe.poll() is not None:
+      if self.pipe.poll() is None:
         self.pipe.terminate()
         self.pipe.wait()
       self.pipe = None
@@ -272,10 +273,10 @@ def create_archive(output_archive_file, object_files, old_archive=None):
     Empty list if there are no errors, or error text if there was an error.
   """
   errors = []
-  if old_archive and FLAGS.platform != "windows" and FLAGS.platform != "darwin":
+  if old_archive and FLAGS.platform not in ("windows", "darwin", "ios"):
     # Copy the old archive to the new archive, then clear the files from it.
     # This preserves the file format of the old archive file.
-    # On Windows, we'll always create a new archive.
+    # On Windows and Apple platforms, we'll always create a new archive.
     shutil.copy(old_archive, output_archive_file)
     (old_contents, errors) = list_objects_in_archive(output_archive_file)
     run_binutils_command(
@@ -313,11 +314,11 @@ def replace_strings_in_archive(archive_path, replacements):
                     match, replace)
       return None
     file_bytes = re.sub(match, replace, file_bytes)
-  named_tempfile = tempfile.NamedTemporaryFile(suffix=".a")
+  named_tempfile = tempfile.NamedTemporaryFile(mode="wb", suffix=".a")
   _tempfiles.append(named_tempfile)  # Will be cleaned up on program exit.
+  named_tempfile.write(file_bytes)
+  named_tempfile.flush()
   new_filename = os.path.abspath(named_tempfile.name)
-  with open(new_filename, "wb") as binary_write:
-    binary_write.write(file_bytes)
   return new_filename
 
 
@@ -332,11 +333,17 @@ def init_demanglers():
     List of Demangle objects. Also sets the _demanglers global.
   """
   for c in FLAGS.demangle_cmds:
+    if not shutil.which(c):
+      logging.warning("Demangler executable not found, skipping: %s", c)
+      continue
     cmdline = [c]
     if "demumble" in c:
       # Special rule, demumble needs -u to use unbuffered.
       cmdline.append("-u")
     _demanglers.append(Demangler(cmdline))
+  if FLAGS.demangle_cmds and not _demanglers:
+    raise Error("No valid C++ demangler executables found in: %s" %
+                ", ".join(FLAGS.demangle_cmds))
   return _demanglers
 
 
@@ -355,7 +362,8 @@ def demangle_symbol(symbol):
   Returns:
     Demangled symbol.
   """
-  if "demangle" not in _cache: return symbol  # No demanglers active.
+  if not _demanglers or "demangle" not in _cache:
+    return symbol  # No demanglers active.
   if FLAGS.platform == "windows":
     symbol = re.sub(r"^\$[^$]*\$", "", symbol)  # Filter out "$pdata$" etc.
   if symbol not in _cache["demangle"][FLAGS.platform]:
@@ -593,7 +601,8 @@ def symbol_includes_top_level_cpp_namespace(cpp_symbol, namespace):
   if not FLAGS.strict_cpp:
     # If we aren't being fully strict about C++ symbol renaming,
     # we can use this placeholder method.
-    if FLAGS.platform == "windows" and re.search(r"[^a-z_]%s@@" % namespace, cpp_symbol):
+    if FLAGS.platform == "windows" and re.search(
+        r"[^a-zA-Z0-9_]%s@@" % re.escape(namespace), cpp_symbol):
       return True
     elif (FLAGS.platform != "windows" and
           ("%d%s" % (len(namespace), namespace)) in cpp_symbol):
@@ -609,7 +618,7 @@ def symbol_includes_top_level_cpp_namespace(cpp_symbol, namespace):
   # Or, check if the demangled symbol has "namespace::" preceded by a non-
   # alphanumeric character. This avoids a false positive on "notmynamespace::".
   # Also don't allow a namespace :: right before the name.
-  regex = re.compile("[^0-9a-zA-Z_:]%s::" % namespace)
+  regex = re.compile(r"[^0-9a-zA-Z_:]%s::" % re.escape(namespace))
   if re.search(regex, demangled):
     return True
 
@@ -675,17 +684,20 @@ def rename_symbol(symbol):
           # (the number is the length of the namespace name)
           # See https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling
           new_ns = FLAGS.rename_string + ns
-          new_symbol = re.sub("(?<=[^0-9])%d%s" % (len(ns), ns),
-                              "%d%s" % (len(new_ns), new_ns), new_symbol)
+          new_symbol = re.sub(r"(?<=[^0-9])%d%s" % (len(ns), re.escape(ns)),
+                              lambda _: "%d%s" % (len(new_ns), new_ns),
+                              new_symbol)
       new_renames[symbol] = new_symbol
     elif FLAGS.platform == "windows":
       for ns in FLAGS.hide_cpp_namespaces:
         if symbol_includes_top_level_cpp_namespace(symbol, ns):
           # Windows: To rename "namespace" to "prefixnamespace",
-          # change all instances of "[^a-z_]namespace@@" to "[^a-z]prefixnamespace@@",
+          # change all instances of "[^a-zA-Z0-9_]namespace@@" to
+          # "[^a-zA-Z0-9_]prefixnamespace@@",
           # See https://msdn.microsoft.com/en-us/library/56h2zst2.aspx
           new_ns = FLAGS.rename_string + ns
-          new_symbol = re.sub(r"(?<=[^a-z_])%s@@" % ns, r"%s@@" % new_ns, new_symbol)
+          new_symbol = re.sub(r"(?<=[^a-zA-Z0-9_])%s@@" % re.escape(ns),
+                              lambda _: "%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
     if is_ignored_symbol(symbol):
@@ -695,7 +707,7 @@ def rename_symbol(symbol):
     new_symbol = prefix + FLAGS.rename_string + remainder
     new_renames[symbol] = new_symbol
     for added_prefix in _additional_symbol_prefixes.get(FLAGS.platform, []):
-      new_renames[added_prefix + symbol] = new_renames[symbol]
+      new_renames[added_prefix + symbol] = added_prefix + new_renames[symbol]
 
   return new_renames
 
@@ -713,15 +725,17 @@ def create_symbol_redefinition_file(rename_symbols):
     return None
   # Write the symbol redefinition file. It will be cleaned up when the program
   # exits.
-  redefinition_file = tempfile.NamedTemporaryFile()
-  redefinition_data = open(redefinition_file.name, "w")
+  redefinition_file = tempfile.NamedTemporaryFile(mode="w")
   any_written = False
   for key, val in rename_symbols.items():
     if key != val:
       any_written = True
-      redefinition_data.write("%s %s\n" % (key, val))
-  redefinition_data.close()
-  return redefinition_file if any_written else None
+      redefinition_file.write("%s %s\n" % (key, val))
+  redefinition_file.flush()
+  if not any_written:
+    redefinition_file.close()
+    return None
+  return redefinition_file
 
 
 def move_object_file(src_obj_file, dest_obj_file, redefinition_file=None):
@@ -755,8 +769,8 @@ def move_object_file(src_obj_file, dest_obj_file, redefinition_file=None):
   if os.path.isfile(dest_obj_file):
     os.unlink(src_obj_file)
   else:
-    logging.error("Failed to create '%s':", dest_obj_file)
-    logging.error("\n".join(errors))
+    logging.fatal("Failed to create '%s':\n%s", dest_obj_file,
+                  "\n".join(errors))
   return output
 
 
@@ -781,6 +795,8 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     A list of lines of text of the command's stdout.
   """
   global binutils_force_target_format
+  if error_output is None:
+    error_output = []
   if binutils_force_target_format:
     # Once we've had to force the format once, assume all subsequent
     # files use the same format. Also we will need to explicitly specify this
@@ -797,7 +813,7 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
   else:
     # Otherwise, if we've never had to force a format, use the default.
     output = run_command(cmdline, error_output, True)
-  if error_output and not output:
+  if error_output:
     # There are some expected errors: "Bad value" or "File format is ambiguous".
     #
     # For some reason, when working with a MIPS file, the autodetected target
@@ -806,22 +822,22 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     # depending on whether the file is 32-bit or 64-bit.
     #
     # Line 0: filename.o: Bad value
-    if not binutils_force_target_format and error_output and "Bad value" in error_output[0]:
+    if not binutils_force_target_format and "Bad value" in error_output[0]:
       # Workaround for MIPS, force elf32-little and/or elf64-little.
-      error_output = []
+      error_output.clear()
       logging.debug("Bad value when running %s %s",
                     os.path.basename(cmdline[0]), " ".join(cmdline[1:]))
       logging.debug("Retrying with --target=elf32-little")
       output = run_command([cmdline[0]] + ["--target=elf32-little"] +
                            cmdline[1:], error_output, True)
-      binutils_force_target_format='elf32-little'
+      binutils_force_target_format = "elf32-little"
       if error_output:
         # Oops, it wasn't 32-bit, try 64-bit instead.
-        error_output = []
+        error_output.clear()
         logging.debug("Retrying with --target=elf64-little")
         output = run_command([cmdline[0]] + ["--target=elf64-little"] +
                              cmdline[1:], error_output, ignore_errors)
-        binutils_force_target_format='elf64-little'
+        binutils_force_target_format = "elf64-little"
     # In other cases, we sometimes get an expected error about ambiguous file
     # format, which also includes a list of matching formats:
     #
@@ -843,10 +859,10 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
               BINUTILS_PREFERRED_FORMAT_PREFIX_IF_AMBIGUOUS[FLAGS.platform])
         ]
         # Or if for some reason none was found, just take the default (first).
-        binutils_force_target_format=(preferred_formats[0]
-                                      if len(preferred_formats) > 0
-                                      else all_formats[0])
-        error_output = []
+        binutils_force_target_format = (preferred_formats[0]
+                                        if len(preferred_formats) > 0
+                                        else all_formats[0])
+        error_output.clear()
         logging.debug("Ambiguous file format when running %s %s (%s)",
                       os.path.basename(cmdline[0]), " ".join(cmdline[1:]), ", ".join(all_formats))
         logging.debug("Retrying with --target=%s", binutils_force_target_format)
@@ -905,20 +921,36 @@ _cache = {}
 _tempfiles = []
 
 
+def _symbol_cache_key(libfile):
+  """Returns a cache key incorporating path, mtime, and size."""
+  abs_path = os.path.abspath(libfile)
+  try:
+    st = os.stat(abs_path)
+    return (abs_path, st.st_mtime_ns, st.st_size)
+  except OSError:
+    return (abs_path, 0, 0)
+
+
 def init_cache():
   """Initialize the cache, loading from FLAGS.cache or creating a new one."""
-  if FLAGS.cache and os.path.isfile(
-      FLAGS.cache) and os.path.getsize(FLAGS.cache) > 0:
-    # If a data cache was specified, load it now.
-    with open(FLAGS.cache, "rb") as handle:
-      fcntl.lockf(handle, fcntl.LOCK_SH)  # For reading, shared lock is OK.
-      _cache.update(pickle.load(handle))
-      fcntl.lockf(handle, fcntl.LOCK_UN)
-  else:
-    # Set up a default cache dictionary.
-    # _cache["symbols"] is indexed by abspath of library file
-    # _cache["demangle"] is indexed by platform, then by symbol
-    _cache.update({"symbols": {}, "demangle": {}})
+  _cache.update({"symbols": {}, "demangle": {}})
+  if FLAGS.cache and os.path.isfile(FLAGS.cache):
+    try:
+      with open(FLAGS.cache, "rb") as handle:
+        fcntl.flock(handle, fcntl.LOCK_SH)
+        try:
+          handle.seek(0, os.SEEK_END)
+          if handle.tell() > 0:
+            handle.seek(0)
+            loaded = pickle.load(handle)
+            if isinstance(loaded, dict):
+              _cache.update(loaded)
+        except (EOFError, pickle.UnpicklingError, Exception):  # pylint: disable=broad-except
+          pass
+        finally:
+          fcntl.flock(handle, fcntl.LOCK_UN)
+    except OSError:
+      pass
   if FLAGS.platform not in _cache["demangle"]:
     _cache["demangle"][FLAGS.platform] = {}
 
@@ -926,17 +958,36 @@ def init_cache():
 def shutdown_cache():
   """If FLAGS.cache is set, write the cache data to disk."""
   if FLAGS.cache:
-    if os.path.isfile(FLAGS.cache):
-      os.unlink(FLAGS.cache)
-    with open(FLAGS.cache, "wb") as handle:
-      fcntl.lockf(handle, fcntl.LOCK_EX)  # For writing, need exclusive lock.
-      pickle.dump(_cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
-      fcntl.lockf(handle, fcntl.LOCK_UN)
+    with open(FLAGS.cache, "a+b") as handle:
+      fcntl.flock(handle, fcntl.LOCK_EX)
+      try:
+        handle.seek(0)
+        raw = handle.read()
+        if raw:
+          try:
+            disk_cache = pickle.loads(raw)
+            if isinstance(disk_cache, dict):
+              if "symbols" in disk_cache:
+                disk_cache["symbols"].update(_cache.get("symbols", {}))
+                _cache["symbols"] = disk_cache["symbols"]
+              if "demangle" in disk_cache:
+                for plat, plat_map in _cache.get("demangle", {}).items():
+                  disk_cache["demangle"].setdefault(plat, {}).update(plat_map)
+                _cache["demangle"] = disk_cache["demangle"]
+          except Exception:  # pylint: disable=broad-except
+            pass
+        handle.seek(0)
+        handle.truncate()
+        pickle.dump(_cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        handle.flush()
+      finally:
+        fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 def main(argv):
   global binutils_force_target_format
   binutils_force_target_format = FLAGS.force_binutils_target
+  orig_cwd = os.getcwd()
   try:
     working_root = None
     input_paths = []
@@ -972,13 +1023,12 @@ def main(argv):
       [libfile, regex] = libfile_and_regex.split(":", 1)
       logging.debug("Scanning for C symbols in %s", libfile)
       regex_compiled = re.compile(regex)
-      if os.path.abspath(libfile) in _cache["symbols"]:
-        (defined_symbols,
-         all_symbols) = _cache["symbols"][os.path.abspath(libfile)]
+      cache_key = _symbol_cache_key(libfile)
+      if cache_key in _cache["symbols"]:
+        (defined_symbols, all_symbols) = _cache["symbols"][cache_key]
       else:
         (defined_symbols, all_symbols) = read_symbols_from_archive(libfile)
-        _cache["symbols"][os.path.abspath(libfile)] = (defined_symbols,
-                                                       all_symbols)
+        _cache["symbols"][cache_key] = (defined_symbols, all_symbols)
       for symbol in defined_symbols:
         # For C symbols, only use them if they are defined.
         if (not is_cpp_symbol(symbol)) and regex_compiled.match(symbol):
@@ -994,14 +1044,13 @@ def main(argv):
       all_defined_symbols = set()
       for input_path in input_paths + additional_input_paths:
         logging.debug("Scanning for C++ symbols in %s", input_path[1])
-        if os.path.abspath(input_path[1]) in _cache["symbols"]:
-          (defined_symbols,
-           all_symbols) = _cache["symbols"][os.path.abspath(input_path[1])]
+        cache_key = _symbol_cache_key(input_path[1])
+        if cache_key in _cache["symbols"]:
+          (defined_symbols, all_symbols) = _cache["symbols"][cache_key]
         else:
           (defined_symbols,
            all_symbols) = read_symbols_from_archive(input_path[1])
-          _cache["symbols"][os.path.abspath(input_path[1])] = (defined_symbols,
-                                                               all_symbols)
+          _cache["symbols"][cache_key] = (defined_symbols, all_symbols)
         cpp_symbols.update(all_symbols
                            if FLAGS.rename_external_cpp_symbols
                            else defined_symbols)
@@ -1096,7 +1145,8 @@ def main(argv):
     logging.error("Got error: %s", e)
     raise
   finally:
-    if working_root:
+    os.chdir(orig_cwd)
+    if working_root and os.path.exists(working_root):
       shutil.rmtree(working_root)
 
   return 0

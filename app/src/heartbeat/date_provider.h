@@ -24,6 +24,7 @@ namespace heartbeat {
 
 class DateProvider {
  public:
+  virtual ~DateProvider() = default;
   virtual std::string GetDate() const = 0;
 };
 

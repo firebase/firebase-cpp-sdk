@@ -24,6 +24,9 @@ namespace firestore {
 namespace jni {
 
 std::string Throwable::GetMessage(Env& env) const {
+  if (!*this || !env.get()) {
+    return "";
+  }
   ExceptionClearGuard block(env);
   return util::GetMessageFromException(env.get(), object_);
 }

@@ -180,10 +180,8 @@ enum Error {
   //
   // HTTP Mapping: 500 Internal Server Error
   kErrorDataLoss = 15,
-
 };
 
-#ifdef INTERNAL_EXPERIMENTAL
 /// @cond FIREBASE_APP_INTERNAL
 namespace internal {
 
@@ -194,7 +192,11 @@ const char* GetErrorMessage(Error error);
 
 }  // namespace internal
 /// @endcond
-#endif  // INTERNAL_EXPERIMENTAL
+
+/// @brief Get the human-readable error message corresponding to an Error code.
+[[nodiscard]] inline const char* GetErrorMessage(Error error) {
+  return internal::GetErrorMessage(error);
+}
 
 }  // namespace functions
 }  // namespace firebase

@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include "firestore/src/jni/jni.h"
 #include "firestore/src/jni/traits.h"
 
 namespace firebase {
@@ -42,11 +43,15 @@ class Object {
  public:
   Object() = default;
   constexpr explicit Object(jobject object) : object_(object) {}
-  virtual ~Object() = default;
+  ~Object() = default;
+  protected:
+  Object(const Object&) = default;
+  Object& operator=(const Object&) = default;
+ public:
 
   explicit operator bool() const { return object_ != nullptr; }
 
-  virtual jobject get() const { return object_; }
+  jobject get() const { return object_; }
 
   static void Initialize(Loader& loader);
 
@@ -74,8 +79,19 @@ class Object {
   jobject object_ = nullptr;
 };
 
+/**
+ * Compares two `Object` wrappers for exact JNI handle equality (`lhs.get() ==
+ * rhs.get()`). Note that two distinct JNI local/global references to the same
+ * Java object have different `jobject` handles; use `Env::IsSameObject` to
+ * test Java reference identity across distinct handles, or `Object::Equals` to
+ * invoke `java.lang.Object.equals`.
+ */
 inline bool operator==(const Object& lhs, const Object& rhs) {
-  return lhs.get() == rhs.get();
+  if (lhs.get() == rhs.get()) return true;
+  if (!lhs || !rhs) return false;
+  JNIEnv* env = GetEnv();
+  if (!env) return false;
+  return env->IsSameObject(lhs.get(), rhs.get());
 }
 
 inline bool operator!=(const Object& lhs, const Object& rhs) {

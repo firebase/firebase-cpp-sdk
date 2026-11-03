@@ -56,6 +56,40 @@ TEST(UtilTest, TestToUpper) {
   EXPECT_EQ("1A2B3C", ToUpper("1a2b3c"));
 }
 
+TEST(UtilTest, TestToLower) {
+  EXPECT_EQ("", ToLower(""));
+  EXPECT_EQ("3.1415926", ToLower("3.1415926"));
+  EXPECT_EQ("a", ToLower("A"));
+  EXPECT_EQ("abc", ToLower("AbC"));
+  EXPECT_EQ("789 abc", ToLower("789 ABC"));
+  EXPECT_EQ("1a2b3c", ToLower("1A2B3C"));
+}
+
+TEST(UtilTest, TestInitializeEncodeDecodeTerminate) {
+  Initialize();
+  Initialize();
+  EXPECT_EQ("", EncodeUrl(""));
+  EXPECT_EQ("", DecodeUrl(""));
+  std::string raw = "hello world/foo?bar=1&baz=2+3";
+  std::string encoded = EncodeUrl(raw);
+  EXPECT_EQ("hello%20world%2Ffoo%3Fbar%3D1%26baz%3D2%2B3", encoded);
+  EXPECT_EQ(raw, DecodeUrl(encoded));
+  void* ptr = CreateCurlPtr();
+  EXPECT_NE(nullptr, ptr);
+  DestroyCurlPtr(ptr);
+  DestroyCurlPtr(nullptr);
+  Terminate();
+  Terminate();
+}
+
+TEST(UtilTest, TestJsonDataParse) {
+  JsonData data;
+  EXPECT_FALSE(data.is_valid());
+  EXPECT_TRUE(data.Parse("{\"key\":\"value\",\"num\":42}"));
+  EXPECT_TRUE(data.is_valid());
+  EXPECT_TRUE(data.root().is_map());
+}
+
 }  // namespace util
 }  // namespace rest
 }  // namespace firebase

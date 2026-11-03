@@ -49,7 +49,14 @@ template <> struct IsReference<jobject> : public true_type {};
 template <> struct IsReference<jstring> : public true_type {};
 template <> struct IsReference<jthrowable> : public true_type {};
 template <> struct IsReference<jarray> : public true_type {};
+template <> struct IsReference<jbooleanArray> : public true_type {};
 template <> struct IsReference<jbyteArray> : public true_type {};
+template <> struct IsReference<jcharArray> : public true_type {};
+template <> struct IsReference<jshortArray> : public true_type {};
+template <> struct IsReference<jintArray> : public true_type {};
+template <> struct IsReference<jlongArray> : public true_type {};
+template <> struct IsReference<jfloatArray> : public true_type {};
+template <> struct IsReference<jdoubleArray> : public true_type {};
 template <> struct IsReference<jobjectArray> : public true_type {};
 
 
@@ -59,6 +66,7 @@ template <> struct IsReference<jobjectArray> : public true_type {};
 template <typename T> struct JniTypeMap { using type = jobject; };
 
 template <> struct JniTypeMap<bool> { using type = jboolean; };
+template <> struct JniTypeMap<int8_t> { using type = jbyte; };
 template <> struct JniTypeMap<uint8_t> { using type = jbyte; };
 template <> struct JniTypeMap<uint16_t> { using type = jchar; };
 template <> struct JniTypeMap<int16_t> { using type = jshort; };
@@ -79,6 +87,7 @@ template <typename T> struct JniTypeMap<Array<T>> {
   using type = jobjectArray;
 };
 template <> struct JniTypeMap<Array<bool>> { using type = jbooleanArray; };
+template <> struct JniTypeMap<Array<int8_t>> { using type = jbyteArray; };
 template <> struct JniTypeMap<Array<uint8_t>> { using type = jbyteArray; };
 template <> struct JniTypeMap<Array<uint16_t>> { using type = jcharArray; };
 template <> struct JniTypeMap<Array<int16_t>> { using type = jshortArray; };
@@ -149,12 +158,22 @@ T RankedToJni(T value, ConverterChoice<0>) {
 }
 
 /**
+ * Converts C++ `bool` to `jboolean` (`JNI_TRUE` or `JNI_FALSE`).
+ */
+template <typename T>
+typename enable_if<is_same<T, bool>::value, jboolean>::type RankedToJni(
+    T value, ConverterChoice<1>) {
+  return value ? JNI_TRUE : JNI_FALSE;
+}
+
+/**
  * Converts C++ primitive types to their equivalent JNI primitive types by
  * casting.
  */
-template <typename T,
-          typename = typename enable_if<IsPrimitive<JniType<T>>::value>::type>
-JniType<T> RankedToJni(T value, ConverterChoice<1>) {
+template <typename T>
+typename enable_if<IsPrimitive<JniType<T>>::value && !is_same<T, bool>::value,
+                   JniType<T>>::type
+RankedToJni(T value, ConverterChoice<1>) {
   return static_cast<JniType<T>>(value);
 }
 

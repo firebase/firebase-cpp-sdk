@@ -26,7 +26,7 @@ namespace jni {
 namespace {
 
 constexpr char kClassName[] = "java/lang/Boolean";
-Constructor<Boolean> kConstructor("(Z)V");
+StaticMethod<Boolean> kValueOf("valueOf", "(Z)Ljava/lang/Boolean;");
 Method<bool> kBooleanValue("booleanValue", "()Z");
 jclass g_clazz = nullptr;
 
@@ -34,14 +34,13 @@ jclass g_clazz = nullptr;
 
 void Boolean::Initialize(Loader& loader) {
   g_clazz = util::boolean_class::GetClass();
-  loader.LoadFromExistingClass(kClassName, g_clazz, kConstructor,
-                               kBooleanValue);
+  loader.LoadFromExistingClass(kClassName, g_clazz, kValueOf, kBooleanValue);
 }
 
 Class Boolean::GetClass() { return Class(g_clazz); }
 
 Local<Boolean> Boolean::Create(Env& env, bool value) {
-  return env.New(kConstructor, value);
+  return env.Call(kValueOf, value);
 }
 
 bool Boolean::BooleanValue(Env& env) const {

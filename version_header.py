@@ -93,7 +93,7 @@ namespace firebase {{
 /// @see FIREBASE_VERSION_MAJOR
 /// @see FIREBASE_VERSION_MINOR
 /// @see FIREBASE_VERSION_REVISION
-static const char* kFirebaseVersionString = FIREBASE_VERSION_STRING;
+static const char* kFirebaseVersionString = FIREBASE_VERSION_NUMBER_STRING;
 
 }}  // namespace firebase
 #endif  // !defined(DOXYGEN)

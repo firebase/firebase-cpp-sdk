@@ -16,12 +16,11 @@
 #define FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_PATH_H_
 
 #include <string>
+#include <string_view>
 
 #include "app/src/path.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
 extern const char kGsScheme[];
 
@@ -33,7 +32,7 @@ class StorageInternal;
 class StoragePath {
  public:
   // Default constructor.
-  StoragePath() : storage_internal_(nullptr) {}
+  StoragePath() = default;
 
   // Constructs a storage path, based on an input URL.  The URL can either be
   // an HTTP[s] link, or a gs URI.
@@ -86,18 +85,17 @@ class StoragePath {
 
   StoragePath(StorageInternal* storage, const std::string& bucket,
               const Path& path)
-      : storage_internal_(storage), bucket_(bucket), path_(path) {}
+      : bucket_(bucket), path_(path), storage_internal_(storage) {}
 
-  void ConstructFromGsUri(const std::string& uri, int path_start);
-  void ConstructFromHttpUrl(const std::string& url, int path_start);
+  // Both take the input with its scheme ("gs://", "http[s]://") stripped.
+  void ConstructFromGsUri(std::string_view bucket_and_path);
+  void ConstructFromHttpUrl(std::string_view url);
 
   std::string bucket_;
   Path path_;
-  StorageInternal* storage_internal_;
+  StorageInternal* storage_internal_ = nullptr;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal
 
 #endif  // FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_PATH_H_

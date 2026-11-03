@@ -1,11 +1,13 @@
 // Copyright 2021 Google LLC
 
-#import "performance/src/include/firebase/performance/trace.h"
+#include "performance/src/include/firebase/performance/trace.h"
 
-#include <cassert>
 #include <cstdint>
+#include <string>
+#include <utility>
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "performance/src/android/performance_android_internal.h"
 #include "performance/src/include/firebase/performance.h"
 #include "performance/src/performance_common.h"
@@ -15,61 +17,79 @@ namespace performance {
 
 namespace internal {
 
-// The Internal implementation of Trace as recommended by the pImpl design
-// pattern. This class is thread safe as long as we can assume that raw ponter
-// access is atomic on any of the platforms this will be used on.
+// The internal implementation of Trace using the pImpl design pattern.
+// Access to the underlying JNI global reference and lifecycle state is
+// synchronized with mutex_.
 class TraceInternal {
  public:
-  explicit TraceInternal() {}
+  TraceInternal() = default;
+  TraceInternal(const TraceInternal&) = delete;
+  TraceInternal& operator=(const TraceInternal&) = delete;
 
   ~TraceInternal() {
-    if (active_trace_) {
-      if (stop_on_destroy_) {
+    MutexLock lock(mutex_);
+    if (IsInitialized() && active_trace_) {
+      if (stop_on_destroy_ && is_started_) {
         StopTrace();
       } else {
         CancelTrace();
       }
     }
+    active_trace_ = nullptr;
+    is_started_ = false;
   }
 
   // Creates a Trace using the Android implementation. If this method
   // is called before stopping the previous trace, the previous trace is
   // cancelled.
-  void CreateTrace(const char* name, bool stop_on_destroy) {
-    FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
+  bool CreateTrace(const char* name, bool stop_on_destroy) {
+    FIREBASE_ASSERT_RETURN(false, IsInitialized());
 
-    stop_on_destroy_ = stop_on_destroy;
+    if (WarnIf(name == nullptr, "Cannot start trace. Name cannot be null.")) {
+      return false;
+    }
 
-    if (WarnIf(name == nullptr, "Cannot start trace. Name cannot be null."))
-      return;
-
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-
+    MutexLock lock(mutex_);
     if (active_trace_ != nullptr) {
       CancelTrace();
     }
+
+    stop_on_destroy_ = stop_on_destroy;
+    is_started_ = false;
+
+    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
 
     jstring name_jstring = env->NewStringUTF(name);
 
     jobject local_active_trace = env->CallObjectMethod(
         GetFirebasePerformanceClassInstance(),
         performance_jni::GetMethodId(performance_jni::kNewTrace), name_jstring);
-    util::CheckAndClearJniExceptions(env);
+    bool had_exception = util::CheckAndClearJniExceptions(env);
 
-    active_trace_ = env->NewGlobalRef(local_active_trace);
-    env->DeleteLocalRef(local_active_trace);
-    env->DeleteLocalRef(name_jstring);
+    if (!had_exception && local_active_trace != nullptr) {
+      active_trace_ = env->NewGlobalRef(local_active_trace);
+    }
+    if (local_active_trace != nullptr) {
+      env->DeleteLocalRef(local_active_trace);
+    }
+    if (name_jstring != nullptr) {
+      env->DeleteLocalRef(name_jstring);
+    }
+    return active_trace_ != nullptr;
   }
 
-  // Creates and Starts a Trace using the Android implementation. If this
-  // method is called before stopping the previous trace, the previous trace
-  // is cancelled.
+  // Starts a created Trace using the Android implementation.
   void StartCreatedTrace() {
-    if (active_trace_) {
+    FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
+    MutexLock lock(mutex_);
+    if (WarnIfNotCreated("Cannot start Trace.")) return;
+    if (!is_started_) {
       JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kStartTrace));
-      util::CheckAndClearJniExceptions(env);
+      if (!util::CheckAndClearJniExceptions(env)) {
+        is_started_ = true;
+      }
     }
   }
 
@@ -77,37 +97,48 @@ class TraceInternal {
   // method is called before stopping the previous trace, the previous trace
   // is cancelled.
   void CreateAndStartTrace(const char* name) {
-    CreateTrace(name, true);
-    StartCreatedTrace();
+    MutexLock lock(mutex_);
+    if (CreateTrace(name, true)) {
+      StartCreatedTrace();
+    }
   }
 
   // Stops the underlying Java trace if it has been started. Does nothing
   // otherwise.
   void StopTrace() {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
+    MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot stop Trace.")) return;
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-    env->CallVoidMethod(active_trace_,
-                        trace_jni::GetMethodId(trace_jni::kStopTrace));
-    util::CheckAndClearJniExceptions(env);
+    if (is_started_) {
+      env->CallVoidMethod(active_trace_,
+                          trace_jni::GetMethodId(trace_jni::kStopTrace));
+      util::CheckAndClearJniExceptions(env);
+    }
     env->DeleteGlobalRef(active_trace_);
     active_trace_ = nullptr;
+    is_started_ = false;
   }
 
   // Cancels the currently running trace if one exists, which prevents it from
   // being logged to the backend.
   void CancelTrace() {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
+    MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot cancel Trace.")) return;
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
     env->DeleteGlobalRef(active_trace_);
     active_trace_ = nullptr;
+    is_started_ = false;
   }
 
-  // Returns whether there is a trace that is currently created.
-  bool IsTraceCreated() { return active_trace_ != nullptr; }
+  // Returns whether the trace has been started.
+  bool IsStarted() const {
+    MutexLock lock(mutex_);
+    return active_trace_ != nullptr && is_started_;
+  }
 
   // Sets a value for the given attribute for the given trace.
   void SetAttribute(const char* attribute_name, const char* attribute_value) {
@@ -115,6 +146,7 @@ class TraceInternal {
     if (WarnIf(attribute_name == nullptr,
                "Cannot SetAttribute for null attribute_name."))
       return;
+    MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot SetAttribute.")) return;
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
@@ -125,41 +157,44 @@ class TraceInternal {
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kRemoveAttribute),
                           attribute_name_jstring);
+      util::CheckAndClearJniExceptions(env);
     } else {
       jstring attribute_value_jstring = env->NewStringUTF(attribute_value);
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kSetAttribute),
                           attribute_name_jstring, attribute_value_jstring);
+      util::CheckAndClearJniExceptions(env);
       env->DeleteLocalRef(attribute_value_jstring);
     }
 
-    util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(attribute_name_jstring);
   }
 
   // Gets the value of the custom attribute identified by the given
-  // name or nullptr if it hasn't been set.
+  // name or an empty string if it hasn't been set.
   std::string GetAttribute(const char* attribute_name) const {
     FIREBASE_ASSERT_RETURN("", IsInitialized());
     if (WarnIf(attribute_name == nullptr,
                "Cannot GetAttribute for null attribute_name."))
       return "";
+    MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot GetAttribute.")) return "";
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-    jstring attribute_name_jstring =
-        attribute_name ? env->NewStringUTF(attribute_name) : nullptr;
+    jstring attribute_name_jstring = env->NewStringUTF(attribute_name);
     jobject attribute_value_jstring = env->CallObjectMethod(
         active_trace_, trace_jni::GetMethodId(trace_jni::kGetAttribute),
         attribute_name_jstring);
-    util::CheckAndClearJniExceptions(env);
+    bool exception_pending = util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(attribute_name_jstring);
 
-    if (attribute_value_jstring == nullptr) {
+    if (exception_pending || attribute_value_jstring == nullptr) {
+      if (attribute_value_jstring != nullptr) {
+        env->DeleteLocalRef(attribute_value_jstring);
+      }
       return "";
-    } else {
-      return util::JniStringToString(env, attribute_value_jstring);
     }
+    return util::JniStringToString(env, attribute_value_jstring);
   }
 
   // Gets the value of the metric identified by the metric_name or 0 if it
@@ -169,17 +204,20 @@ class TraceInternal {
     if (WarnIf(metric_name == nullptr,
                "Cannot GetLongMetric for null metric_name."))
       return 0;
+    MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot GetLongMetric.")) return 0;
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-    jstring metric_name_jstring =
-        metric_name ? env->NewStringUTF(metric_name) : nullptr;
+    jstring metric_name_jstring = env->NewStringUTF(metric_name);
 
     jlong metric_value = env->CallLongMethod(
         active_trace_, trace_jni::GetMethodId(trace_jni::kGetLongMetric),
         metric_name_jstring);
+    bool exception_pending = util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(metric_name_jstring);
-    util::CheckAndClearJniExceptions(env);
+    if (exception_pending) {
+      return 0;
+    }
 
     // jlong == int64_t, and so this is ok.
     return metric_value;
@@ -192,6 +230,7 @@ class TraceInternal {
     if (WarnIf(metric_name == nullptr,
                "Cannot IncrementMetric for null metric_name."))
       return;
+    MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot IncrementMetric.")) return;
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
@@ -212,6 +251,7 @@ class TraceInternal {
     if (WarnIf(metric_name == nullptr,
                "Cannot SetMetric for null metric_name."))
       return;
+    MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot SetMetric.")) return;
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
@@ -227,6 +267,7 @@ class TraceInternal {
   }
 
  private:
+  mutable Mutex mutex_;
   jobject active_trace_ = nullptr;
 
   // The unity implementation doesn't stop the underlying Java trace, whereas
@@ -234,6 +275,7 @@ class TraceInternal {
   // created to track whether it should be stopped before deallocating the
   // object.
   bool stop_on_destroy_ = false;
+  bool is_started_ = false;
 
   bool WarnIfNotCreated(const char* warning_message_details) const {
     if (!active_trace_) {
@@ -247,7 +289,7 @@ class TraceInternal {
   }
 
   bool WarnIf(bool condition, const char* warning_message) const {
-    if (condition) LogWarning(warning_message);
+    if (condition) LogWarning("%s", warning_message);
     return condition;
   }
 };
@@ -267,61 +309,76 @@ Trace::Trace(const char* name) {
 
 Trace::~Trace() { delete internal_; }
 
-Trace::Trace(Trace&& other) {
-  internal_ = other.internal_;
-  other.internal_ = nullptr;
-}
+Trace::Trace(Trace&& other) noexcept
+    : internal_(std::exchange(other.internal_, nullptr)) {}
 
-Trace& Trace::operator=(Trace&& other) {
+Trace& Trace::operator=(Trace&& other) noexcept {
   if (this != &other) {
     delete internal_;
-
-    internal_ = other.internal_;
-    other.internal_ = nullptr;
+    internal_ = std::exchange(other.internal_, nullptr);
   }
   return *this;
 }
 
-bool Trace::is_started() {
-  // In the C++ API we never allow a situation where an underlying HttpMetric
-  // is created, but not started, which is why this check is sufficient.
-  return internal_->IsTraceCreated();
+bool Trace::is_started() const {
+  return internal_ != nullptr && internal_->IsStarted();
 }
 
-void Trace::Cancel() { internal_->CancelTrace(); }
+void Trace::Cancel() {
+  if (!internal_) return;
+  internal_->CancelTrace();
+}
 
-void Trace::Stop() { internal_->StopTrace(); }
+void Trace::Stop() {
+  if (!internal_) return;
+  internal_->StopTrace();
+}
 
 void Trace::Start(const char* name) {
-  internal_->StopTrace();
+  if (!internal_) {
+    internal_ = new internal::TraceInternal();
+  }
   internal_->CreateAndStartTrace(name);
 }
 
 void Trace::SetAttribute(const char* attribute_name,
                          const char* attribute_value) {
+  if (!internal_) return;
   internal_->SetAttribute(attribute_name, attribute_value);
 }
 
 std::string Trace::GetAttribute(const char* attribute_name) const {
+  if (!internal_) return "";
   return internal_->GetAttribute(attribute_name);
 }
 
 int64_t Trace::GetLongMetric(const char* metric_name) const {
+  if (!internal_) return 0;
   return internal_->GetLongMetric(metric_name);
 }
 
 void Trace::IncrementMetric(const char* metric_name,
                             const int64_t increment_by) {
+  if (!internal_) return;
   internal_->IncrementMetric(metric_name, increment_by);
 }
 
 void Trace::SetMetric(const char* metric_name, const int64_t metric_value) {
+  if (!internal_) return;
   internal_->SetMetric(metric_name, metric_value);
 }
 
-void Trace::Create(const char* name) { internal_->CreateTrace(name, false); }
+void Trace::Create(const char* name) {
+  if (!internal_) {
+    internal_ = new internal::TraceInternal();
+  }
+  internal_->CreateTrace(name, false);
+}
 
-void Trace::StartCreatedTrace() { internal_->StartCreatedTrace(); }
+void Trace::StartCreatedTrace() {
+  if (!internal_) return;
+  internal_->StartCreatedTrace();
+}
 
 }  // namespace performance
 }  // namespace firebase

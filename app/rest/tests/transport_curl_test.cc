@@ -80,14 +80,14 @@ class TestResponse : public Response {
   int completed_calls() const { return completed_calls_.load(); }
   int failed_calls() const { return failed_calls_.load(); }
   bool completion_thread_was_io_thread() const {
-    return completion_thread_was_io_thread_;
+    return completion_thread_was_io_thread_.load();
   }
 
  private:
   Semaphore done_;
   std::atomic<int> completed_calls_;
   std::atomic<int> failed_calls_;
-  bool completion_thread_was_io_thread_ = false;
+  std::atomic<bool> completion_thread_was_io_thread_{false};
 };
 
 // A Request whose upload size is unknown up front, forcing
@@ -447,16 +447,16 @@ TEST_F(TransportCurlTest, TimeoutFailsWithRequestTimeout) {
 
 TEST_F(TransportCurlTest, ManyConcurrentTransportsComplete) {
   const int kCount = 16;
-  std::vector<std::unique_ptr<TransportCurl>> transports;
   std::vector<std::unique_ptr<Request>> requests;
   std::vector<std::unique_ptr<TestResponse>> responses;
+  std::vector<std::unique_ptr<TransportCurl>> transports;
   auto start = std::chrono::steady_clock::now();
   for (int i = 0; i < kCount; ++i) {
-    transports.emplace_back(new TransportCurl());
-    transports.back()->set_is_async(true);
-    requests.emplace_back(new Request());
+    requests.push_back(std::make_unique<Request>());
     requests.back()->set_url(Url("/slow?ms=200").c_str());
-    responses.emplace_back(new TestResponse());
+    responses.push_back(std::make_unique<TestResponse>());
+    transports.push_back(std::make_unique<TransportCurl>());
+    transports.back()->set_is_async(true);
     transports.back()->Perform(*requests.back(), responses.back().get());
   }
   for (int i = 0; i < kCount; ++i) {
@@ -506,6 +506,14 @@ TEST_F(TransportCurlTest, DestructorWaitsForInFlightRequest) {
 }
 
 TEST_F(TransportCurlTest, CleanupWithInFlightRequestFailsIt) {
+  struct ReinitGuard {
+    ~ReinitGuard() {
+      if (!curl::CurlIoLoop::IsRunning()) {
+        InitTransportCurl();
+      }
+    }
+  } reinit_guard;
+
   Request request;
   request.set_url(Url("/slow?ms=5000").c_str());
   TestResponse response;
@@ -526,9 +534,6 @@ TEST_F(TransportCurlTest, CleanupWithInFlightRequestFailsIt) {
   ASSERT_TRUE(response.Wait());
   EXPECT_EQ(util::HttpNoContent, response.status());
   EXPECT_EQ(1, response.failed_calls());
-
-  // Re-initialize so that ~TransportCurl() and TearDown() behave normally.
-  InitTransportCurl();
 }
 
 TEST_F(TransportCurlTest, FastRequestsNotDelayedByInFlightSlowRequest) {
@@ -561,6 +566,126 @@ TEST_F(TransportCurlTest, FastRequestsNotDelayedByInFlightSlowRequest) {
 
   ASSERT_TRUE(slow_response.Wait());
   EXPECT_EQ(200, slow_response.status());
+}
+
+TEST_F(TransportCurlTest, PerformAndCancelAfterCleanupDoNotCrash) {
+  struct ReinitGuard {
+    ~ReinitGuard() {
+      if (!curl::CurlIoLoop::IsRunning()) {
+        InitTransportCurl();
+      }
+    }
+  } reinit_guard;
+
+  // Start a request and obtain a controller while the loop is running, then
+  // shut down the loop via CleanupTransportCurl() and verify that calling
+  // Cancel()/Pause()/Resume() on the controller or starting a new Perform()
+  // after cleanup fails cleanly without asserting or crashing.
+  Request in_flight_request;
+  in_flight_request.set_url(Url("/slow?ms=5000").c_str());
+  TestResponse in_flight_response;
+  Request post_cleanup_request;
+  post_cleanup_request.set_url(Url("/").c_str());
+  TestResponse post_cleanup_response;
+
+  TransportCurl curl;
+  curl.set_is_async(true);
+  flatbuffers::unique_ptr<Controller> in_flight_controller;
+  curl.Perform(in_flight_request, &in_flight_response, &in_flight_controller);
+  ASSERT_NE(nullptr, in_flight_controller.get());
+
+  CleanupTransportCurl();
+  EXPECT_FALSE(curl::CurlIoLoop::IsRunning());
+  ASSERT_TRUE(in_flight_response.Wait());
+  EXPECT_EQ(util::HttpNoContent, in_flight_response.status());
+  EXPECT_EQ(1, in_flight_response.failed_calls());
+
+  // Calling controller methods after CleanupTransportCurl() must be a safe
+  // no-op.
+  EXPECT_FALSE(in_flight_controller->Pause());
+  EXPECT_FALSE(in_flight_controller->Resume());
+  EXPECT_FALSE(in_flight_controller->Cancel());
+
+  // Calling Perform() after CleanupTransportCurl() must immediately fail the
+  // response via AbortWithoutLoop() instead of asserting in CurlIoLoop::Get().
+  flatbuffers::unique_ptr<Controller> post_cleanup_controller;
+  curl.Perform(post_cleanup_request, &post_cleanup_response,
+               &post_cleanup_controller);
+  ASSERT_TRUE(post_cleanup_response.Wait());
+  EXPECT_EQ(util::HttpNoContent, post_cleanup_response.status());
+  EXPECT_EQ(1, post_cleanup_response.failed_calls());
+  ASSERT_NE(nullptr, post_cleanup_controller.get());
+  EXPECT_FALSE(post_cleanup_controller->Cancel());
+}
+
+TEST_F(TransportCurlTest, ConcurrentOverlappingAsyncPerformsOnSingleTransport) {
+  Request req1;
+  req1.set_url(Url("/slow?ms=200").c_str());
+  TestResponse resp1;
+
+  Request req2;
+  req2.set_url(Url("/echo").c_str());
+  req2.set_method("POST");
+  req2.set_post_fields("concurrent-second-transfer");
+  TestResponse resp2;
+
+  TransportCurl curl;
+  curl.set_is_async(true);
+
+  auto start = std::chrono::steady_clock::now();
+  curl.Perform(req1, &resp1);
+  curl.Perform(req2, &resp2);
+
+  ASSERT_TRUE(resp2.Wait());
+  ASSERT_TRUE(resp1.Wait());
+  auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - start)
+                        .count();
+  EXPECT_EQ(200, resp1.status());
+  EXPECT_STREQ("test", resp1.GetBody());
+  EXPECT_EQ(200, resp2.status());
+  EXPECT_STREQ("concurrent-second-transfer", resp2.GetBody());
+  EXPECT_LT(elapsed_ms, 2000);
+}
+
+TEST_F(TransportCurlTest,
+       StaleControllerCancelDoesNotAffectNewTransferAtSameResponseAddress) {
+  using PlacementPtr =
+      std::unique_ptr<TestResponse, void (*)(TestResponse*)>;
+  auto destroy_placement = +[](TestResponse* p) {
+    if (p) p->~TestResponse();
+  };
+
+  alignas(TestResponse) unsigned char response_storage[sizeof(TestResponse)];
+  flatbuffers::unique_ptr<Controller> first_controller;
+
+  {
+    PlacementPtr first_response(new (response_storage) TestResponse(),
+                                destroy_placement);
+    Request first_request;
+    first_request.set_url(Url("/").c_str());
+    TransportCurl curl;
+    curl.set_is_async(true);
+    curl.Perform(first_request, first_response.get(), &first_controller);
+    ASSERT_TRUE(first_response->Wait());
+    EXPECT_EQ(200, first_response->status());
+  }
+
+  // Construct a new TestResponse at the exact same memory address and start a
+  // slow transfer. Canceling first_controller must not cancel the new transfer.
+  PlacementPtr second_response(new (response_storage) TestResponse(),
+                               destroy_placement);
+  Request second_request;
+  second_request.set_url(Url("/slow?ms=200").c_str());
+  flatbuffers::unique_ptr<Controller> second_controller;
+  TransportCurl curl;
+  curl.set_is_async(true);
+  curl.Perform(second_request, second_response.get(), &second_controller);
+
+  EXPECT_FALSE(first_controller->Cancel());
+  ASSERT_TRUE(second_response->Wait());
+  EXPECT_EQ(200, second_response->status());
+  EXPECT_STREQ("test", second_response->GetBody());
 }
 
 #if !defined(_WIN32)

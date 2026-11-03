@@ -22,6 +22,7 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/src/include/firebase/database/data_snapshot.h"
@@ -44,11 +45,9 @@ class DataSnapshotInternal {
 
   DataSnapshotInternal& operator=(const DataSnapshotInternal& snapshot);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  DataSnapshotInternal(DataSnapshotInternal&& snapshot);
+  DataSnapshotInternal(DataSnapshotInternal&& snapshot) noexcept;
 
-  DataSnapshotInternal& operator=(DataSnapshotInternal&& snapshot);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  DataSnapshotInternal& operator=(DataSnapshotInternal&& snapshot) noexcept;
 
   ~DataSnapshotInternal();
 
@@ -115,6 +114,7 @@ class DataSnapshotInternal {
 
   DatabaseInternal* db_;
   jobject obj_;
+  mutable Mutex key_mutex_;
   Variant cached_key_;
 };
 

@@ -37,9 +37,30 @@ firebase_cpp_cc_test(
 )
 
 firebase_cpp_cc_test(
+  firebase_remote_config_desktop_file_manager_test
+  SOURCES
+    desktop/file_manager_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_remote_config
+    firebase_testing
+)
+
+firebase_cpp_cc_test(
+  firebase_remote_config_desktop_notification_channel_test
+  SOURCES
+    desktop/notification_channel_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_remote_config
+    firebase_testing
+)
+
+firebase_cpp_cc_test(
   firebase_remote_config_desktop_test
   SOURCES
     desktop/remote_config_desktop_test.cc
+    ${FIREBASE_CPP_SDK_ROOT_DIR}/app/rest/transport_mock.cc
   DEPENDS
     firebase_app_for_testing
     firebase_remote_config

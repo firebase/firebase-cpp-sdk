@@ -18,6 +18,8 @@
 #include <jni.h>
 
 #include <map>
+#include <memory>
+#include <mutex>
 #include <string>
 
 #include "app/src/cleanup_notifier.h"
@@ -122,6 +124,19 @@ class StorageInternal {
   // firebase::util::RegisterCallbackOnTask for context.
   const char* jni_task_id() const { return jni_task_id_.c_str(); }
 
+  // Shared liveness token. `alive` is cleared under `mutex` at the very start
+  // of ~StorageInternal(), before any teardown. Objects that may outlive this
+  // StorageInternal (e.g. ControllerInternal) hold the token and only touch
+  // the StorageInternal while holding `mutex` and seeing `alive == true`,
+  // which also blocks ~StorageInternal() until they are done.
+  struct LifetimeToken {
+    std::mutex mutex;
+    bool alive = true;
+  };
+  std::shared_ptr<LifetimeToken> lifetime_token() const {
+    return lifetime_token_;
+  }
+
  private:
   // Initialize JNI for all classes.
   static bool Initialize(App* app);
@@ -146,6 +161,9 @@ class StorageInternal {
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;
+
+  std::shared_ptr<LifetimeToken> lifetime_token_ =
+      std::make_shared<LifetimeToken>();
 };
 
 }  // namespace internal

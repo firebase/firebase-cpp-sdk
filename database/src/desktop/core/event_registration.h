@@ -15,15 +15,15 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_EVENT_REGISTRATION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_EVENT_REGISTRATION_H_
 
-#include "app/src/path.h"
+#include <atomic>
+
+#include "app/src/include/firebase/internal/mutex.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/view/change.h"
 #include "database/src/desktop/view/event_type.h"
 #include "firebase/database/common.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
 struct Event;
 
@@ -34,8 +34,20 @@ struct Event;
 // can be used to fire the event later.
 class EventRegistration {
  public:
+  // Indicates whether this EventRegistration has been removed from the
+  // database. A removed EventRegistration will not fire any incoming Events.
+  enum Status {
+    kRemoved,
+    kActive,
+  };
+
   explicit EventRegistration(const QuerySpec& query_spec)
-      : status_(kActive), query_spec_(query_spec) {}
+      : status_(kActive), query_spec_(query_spec), is_user_initiated_(false) {}
+
+  EventRegistration(const EventRegistration&) = delete;
+  EventRegistration& operator=(const EventRegistration&) = delete;
+  EventRegistration(EventRegistration&&) = delete;
+  EventRegistration& operator=(EventRegistration&&) = delete;
 
   virtual ~EventRegistration();
 
@@ -61,26 +73,27 @@ class EventRegistration {
 
   const QuerySpec& query_spec() const { return query_spec_; }
 
-  bool is_user_initiated() { return is_user_initiated_; }
+  bool is_user_initiated() const { return is_user_initiated_.load(); }
 
   void set_is_user_initiated(bool is_user_initiated) {
-    is_user_initiated_ = is_user_initiated;
+    is_user_initiated_.store(is_user_initiated);
   }
-
-  // Indicates whether this EventRegistration has been removed from the
-  // database. A removed EventRegistration will not fire any incoming Events.
-  enum Status {
-    kRemoved,
-    kActive,
-  };
 
   // Returns the current status of this EventRegistration, indicating whether
   // this registration has been removed from the database or not.
-  Status status() { return status_; }
+  Status status() const {
+    MutexLock lock(status_mutex_);
+    return status_;
+  }
 
   // Set the status of this EventRegistration. When an EventRegistration is
-  // marked as kRemoved, it will no longer fire events.
-  void set_status(Status status) { status_ = status; }
+  // marked as kRemoved, it will no longer fire events. Holding status_mutex_
+  // guarantees that any in-flight callback finishes before set_status(kRemoved)
+  // returns and no callback starts afterward.
+  void set_status(Status status) {
+    MutexLock lock(status_mutex_);
+    status_ = status;
+  }
 
  protected:
   virtual void FireEvent(const Event& event) = 0;
@@ -88,15 +101,14 @@ class EventRegistration {
   virtual void FireCancelEvent(Error error) = 0;
 
  private:
+  mutable Mutex status_mutex_;
   Status status_;
 
   QuerySpec query_spec_;
 
-  bool is_user_initiated_;
+  std::atomic<bool> is_user_initiated_;
 };
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal
 
 #endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_EVENT_REGISTRATION_H_

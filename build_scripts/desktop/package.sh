@@ -39,8 +39,23 @@ tools_path=~/bin
 built_sdk_tarfile=
 binutils_format=
 temp_dir=
+cache_file=
+merge_libraries_tmp=
 run_in_parallel=0
 use_llvm_binutils=0
+
+cleanup() {
+    if [[ -n "${temp_dir}" ]]; then
+        rm -rf "${temp_dir}"
+    fi
+    if [[ -n "${cache_file}" ]]; then
+        rm -f "${cache_file}"
+    fi
+    if [[ -n "${merge_libraries_tmp}" ]]; then
+        rm -rf "${merge_libraries_tmp}"
+    fi
+}
+trap cleanup SIGINT SIGTERM SIGQUIT EXIT
 
 . "${root_dir}/build_scripts/packaging.conf"
 
@@ -159,7 +174,6 @@ fi
 if [[ ! -d "${built_sdk_path}" && -f "${built_sdk_path}" ]]; then
     # tarball was specified, uncompress it
     temp_dir=$(mktemp -d)
-    trap "rm -rf \"\${temp_dir}\"" SIGKILL SIGTERM SIGQUIT EXIT
     echo "Uncompressing tarfile into temporary directory..."
     tar -xf "${built_sdk_path}" -C "${temp_dir}"
     if [[ ${delete_files_after_using} -eq 1 ]]; then
@@ -229,7 +243,11 @@ readonly deps_hidden_firebase_firestore="
 */firestore-build/*/grpc-build/third_party/re2/*${subdir}${prefix}re2.${ext}
 "
 
-readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
+if [[ -x "${tools_path}/demumble" ]]; then
+    readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
+else
+    readonly demangle_cmds=${tools_path}/c++filt
+fi
 if [[ ${use_llvm_binutils} -eq 1 ]]; then
     readonly binutils_objcopy=${tools_path}/llvm-objcopy
     readonly binutils_nm=${tools_path}/llvm-nm
@@ -245,8 +263,6 @@ else
 fi
 
 cache_file=/tmp/merge_libraries_cache.$$
-# Clean up cache file after script is finished.
-trap "rm -f \"\${cache_file}\"" SIGKILL SIGTERM SIGQUIT EXIT
 
 declare -a merge_libraries_params
 merge_libraries_params=(
@@ -291,7 +307,8 @@ for lib in $(find . -name "*.${ext}"); do
 done
 
 merge_libraries_tmp=$(mktemp -d)
-trap "rm -rf \"\${merge_libraries_tmp}\"" SIGKILL SIGTERM SIGQUIT EXIT
+declare -a files_to_delete
+files_to_delete=()
 
 if [[ ${run_in_parallel} -ne 0 ]]; then
   echo "Queueing jobs..."
@@ -333,11 +350,14 @@ for product in ${product_list[*]}; do
         # For any library other than app, also rename some symbols that were already renamed in app
         # that are used by other libraries (e.g. zlib is used in Firestore).
         for dep in ${deps_hidden_firebase_app}; do
-            for found in $(find . -path ${dep}); do
+            for found in $(find . -path "${dep}"); do
                 if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
                 deps_hidden+="${found}"
             done
         done
+    fi
+    if [[ ${delete_files_after_using} -eq 1 && ${#deps[@]} -gt 0 ]]; then
+        files_to_delete+=("${deps[@]}")
     fi
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
@@ -369,9 +389,6 @@ for product in ${product_list[*]}; do
       --scan_libs=\"${allfiles}\" \\
       --hide_c_symbols=\"${deps_hidden}\" \\
       \"${libfile_src}\" ${deps[*]}" >> "${merge_libraries_tmp}/merge_${product}.sh"
-    if [[ ${delete_files_after_using} -eq 1 ]]; then
-	echo "rm -f ${deps[*]}" >>  "${merge_libraries_tmp}/merge_${product}.sh"
-    fi
     chmod u+x "${merge_libraries_tmp}/merge_${product}.sh"
     if [[ ${run_in_parallel} -eq 0 ]]; then
       # Run immediately if not set to run in parallel.
@@ -382,40 +399,58 @@ for product in ${product_list[*]}; do
 done
 
 if [[ ${run_in_parallel} -ne 0 ]]; then
-  # Analytics is the smallest SDK, so it should be the shortest job.
-  shortest=analytics
-  echo "There are ${#product_list[@]} jobs to run."
-  echo "Running shortest job to populate cache, then remaining jobs in parallel..."
-  "${merge_libraries_tmp}/merge_${shortest}.sh"
-  # Zero out the job that we already did.
-  echo "#!/bin/bash" > "${merge_libraries_tmp}/merge_${shortest}.sh"
-  if [[ ${use_gnu_parallel} -eq 1 ]]; then
-    # ls -S sorts by size, largest first. Use script file size as a proxy for
-    # job length in order to queue up the longest jobs first.
-    # In GNU parallel, --lb means to not buffer the output, so we can see the
-    # jobs run and finish in realtime.
-    "${parallel_command}" --lb ::: $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
-  else
-    # Default version of parallel has a slightly different syntax.
-    "${parallel_command}" -- $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
+  shopt -s nullglob
+  merge_scripts=("${merge_libraries_tmp}"/merge_*.sh)
+  shopt -u nullglob
+  if [[ ${#merge_scripts[@]} -gt 0 ]]; then
+    # Analytics is the smallest SDK, so it should be the shortest job if present.
+    shortest_script="${merge_libraries_tmp}/merge_analytics.sh"
+    if [[ ! -f "${shortest_script}" ]]; then
+      shortest_script=$(ls -Sr "${merge_libraries_tmp}"/merge_*.sh | head -n 1)
+    fi
+    echo "There are ${#merge_scripts[@]} jobs to run."
+    echo "Running shortest job to populate cache, then remaining jobs in parallel..."
+    "${shortest_script}"
+    # Zero out the job that we already did.
+    echo "#!/bin/bash" > "${shortest_script}"
+    if [[ ${use_gnu_parallel} -eq 1 ]]; then
+      # ls -S sorts by size, largest first. Use script file size as a proxy for
+      # job length in order to queue up the longest jobs first.
+      # In GNU parallel, --lb means to not buffer the output, so we can see the
+      # jobs run and finish in realtime.
+      "${parallel_command}" --lb ::: $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
+    else
+      # Default version of parallel has a slightly different syntax.
+      "${parallel_command}" -- $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
+    fi
+    echo "All jobs finished!"
   fi
-  echo "All jobs finished!"
+fi
+
+if [[ ${delete_files_after_using} -eq 1 && ${#files_to_delete[@]} -gt 0 ]]; then
+  rm -f "${files_to_delete[@]}"
 fi
 cd "${run_path}"
 
 echo "Copying extra header files..."
 # Copy generated headers for app and analytics into the package's include directory.
-mkdir -p "${output_package_path}/include/firebase"
-cp -av \
-   "${built_sdk_path}/generated/app/src/include/firebase/version.h" \
-   "${output_package_path}/include/firebase"
-mkdir -p "${output_package_path}/include/firebase/analytics"
-cp -av \
-   "${built_sdk_path}/generated/analytics/src/include/firebase/analytics/"* \
-   "${output_package_path}/include/firebase/analytics"
+if [[ -f "${built_sdk_path}/generated/app/src/include/firebase/version.h" ]]; then
+    mkdir -p "${output_package_path}/include/firebase"
+    cp -av \
+       "${built_sdk_path}/generated/app/src/include/firebase/version.h" \
+       "${output_package_path}/include/firebase"
+fi
+if [[ -d "${built_sdk_path}/generated/analytics/src/include/firebase/analytics" ]]; then
+    mkdir -p "${output_package_path}/include/firebase/analytics"
+    cp -av \
+       "${built_sdk_path}/generated/analytics/src/include/firebase/analytics/"* \
+       "${output_package_path}/include/firebase/analytics"
+fi
 
 # Copy Firestore core headers into the package's include directory.
-mkdir -p "${output_package_path}/include/firebase/firestore"
-cp -av \
-   "${built_sdk_path}/external/src/firestore/Firestore/core/include/firebase/firestore/"* \
-   "${output_package_path}/include/firebase/firestore"
+if [[ -d "${built_sdk_path}/external/src/firestore/Firestore/core/include/firebase/firestore" ]]; then
+    mkdir -p "${output_package_path}/include/firebase/firestore"
+    cp -av \
+       "${built_sdk_path}/external/src/firestore/Firestore/core/include/firebase/firestore/"* \
+       "${output_package_path}/include/firebase/firestore"
+fi

@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -46,6 +47,10 @@ class FieldValueInternal {
   static FieldValue Create(jni::Env& env, Type type, const jni::Object& object);
 
   FieldValueInternal();
+  FieldValueInternal(const FieldValueInternal& other);
+  FieldValueInternal(FieldValueInternal&& other) noexcept;
+  FieldValueInternal& operator=(const FieldValueInternal& other);
+  FieldValueInternal& operator=(FieldValueInternal&& other) noexcept;
 
   explicit FieldValueInternal(const jni::Object& object);
   FieldValueInternal(Type type, const jni::Object& object);
@@ -99,6 +104,8 @@ class FieldValueInternal {
   static FieldValue DoubleIncrement(double by_value);
 
   static jni::Local<jni::Object> ToJava(const FieldValue& value);
+  static jni::Local<jni::Array<jni::Object>> MakeArray(
+      jni::Env& env, const std::vector<FieldValue>& elements);
 
  private:
   friend class FirestoreInternal;
@@ -111,12 +118,6 @@ class FieldValueInternal {
   template <typename T>
   jni::Local<T> Cast(jni::Env& env, Type type) const;
 
-  template <>
-  jni::Local<jni::String> Cast<jni::String>(jni::Env& env, Type type) const;
-
-  static jni::Local<jni::Array<jni::Object>> MakeArray(
-      jni::Env& env, const std::vector<FieldValue>& elements);
-
   void EnsureCachedBlob(jni::Env& env) const;
 
   static jni::Env GetEnv();
@@ -125,9 +126,13 @@ class FieldValueInternal {
 
   // Below are cached type information. It is costly to get type info from
   // jobject of Object type. So we cache it if we have already known.
-  mutable Type cached_type_ = Type::kNull;
+  mutable std::mutex mutex_;
+  mutable Type cached_type_ = Type::kInvalid;
   mutable std::shared_ptr<std::vector<uint8_t>> cached_blob_;
 };
+
+template <>
+jni::Local<jni::String> FieldValueInternal::Cast<jni::String>(jni::Env& env, Type type) const;
 
 }  // namespace firestore
 }  // namespace firebase

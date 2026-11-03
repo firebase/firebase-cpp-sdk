@@ -37,6 +37,14 @@ void Listener::Detach() {
 
 // Non-inline implementation of Listener's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
+//
+// Detach() never invokes OnProgress()/OnPaused(), so calling it here (after
+// the derived class has been destroyed) cannot cause a pure-virtual call. On
+// every platform it only unbinds this Listener from in-flight operations and
+// waits for user callbacks already running on *other* threads to return; a
+// callback that destroys its own Listener does not wait for itself. Derived
+// classes whose callbacks touch derived state should call Detach() at the
+// start of their own destructor (see listener.h).
 Listener::~Listener() {
   Detach();
   delete impl_;

@@ -14,6 +14,7 @@
 
 #include "app/src/secure/user_secure_manager.h"
 
+#include <cctype>
 #include <cstdint>
 #include <utility>
 
@@ -72,10 +73,11 @@ UserSecureManager::UserSecureManager(
 }
 
 UserSecureManager::~UserSecureManager() {
-  CancelScheduledTasks();
-  // Clear safe reference immediately so that scheduled callback can skip
-  // executing code which requires reference to this.
+  // Clear safe reference first so any already-dequeued callback that has not
+  // yet acquired ThisRefLock will observe nullptr and allow
+  // CancelScheduledTasks() to complete its Future with kErrorCancelled.
   safe_this_.ClearReference();
+  CancelScheduledTasks();
   DestroyScheduler();
 }
 
@@ -91,9 +93,19 @@ Future<std::string> UserSecureManager::LoadUserData(
       [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<std::string>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
-        ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
+        {
+          ThisRefLock lock(&ref);
+          UserSecureManager* manager = lock.GetReference();
+          if (manager == nullptr) {
+            return;
+          }
           std::string result = internal->LoadUserData(handle->app_name);
+          manager->CompleteOperationRegistration(
+              kLoadUserData, handle->future_handle.get().id());
+          auto* api = handle->future_api;
+          firebase::FutureHandle raw_handle = handle->future_handle.get();
+          handle->future_handle = firebase::SafeFutureHandle<std::string>();
+          handle->future_api = nullptr;
           std::string empty_str("");
           if (result.empty()) {
             std::string message(
@@ -101,18 +113,15 @@ Future<std::string> UserSecureManager::LoadUserData(
                 ").  This could happen if the current user doesn't have access "
                 "to the keystore, the keystore has been corrupted or the app "
                 "intentionally deleted the stored data.");
-            handle->future_api->CompleteWithResult(
-                handle->future_handle, kNoEntry, message.c_str(), empty_str);
+            api->CompleteWithResult(raw_handle, kNoEntry, message.c_str(), empty_str);
           } else {
-            handle->future_api->CompleteWithResult(handle->future_handle,
-                                                   kSuccess, "", result);
+            api->CompleteWithResult(raw_handle, kSuccess, "", result);
           }
         }
       },
       safe_this_, data_handle, user_secure_.get());
 
-  CancelOperation(kLoadUserData);
-  operation_handles_[kLoadUserData] = s_scheduler_->Schedule(callback);
+  ScheduleOperation(kLoadUserData, future_handle, callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -127,16 +136,21 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
       [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
-        ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
+        {
+          ThisRefLock lock(&ref);
+          UserSecureManager* manager = lock.GetReference();
+          if (manager == nullptr) {
+            return;
+          }
           internal->SaveUserData(handle->app_name, handle->user_data);
+          manager->CompleteOperationRegistration(
+              kSaveUserData, handle->future_handle.get().id());
           handle->future_api->Complete(handle->future_handle, kSuccess);
         }
       },
       safe_this_, data_handle, user_secure_.get());
 
-  CancelOperation(kSaveUserData);
-  operation_handles_[kSaveUserData] = s_scheduler_->Schedule(callback);
+  ScheduleOperation(kSaveUserData, future_handle, callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -150,16 +164,21 @@ Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
       [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
-        ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
+        {
+          ThisRefLock lock(&ref);
+          UserSecureManager* manager = lock.GetReference();
+          if (manager == nullptr) {
+            return;
+          }
           internal->DeleteUserData(handle->app_name);
+          manager->CompleteOperationRegistration(
+              kDeleteUserData, handle->future_handle.get().id());
           handle->future_api->Complete(handle->future_handle, kSuccess);
         }
       },
       safe_this_, data_handle, user_secure_.get());
 
-  CancelOperation(kDeleteUserData);
-  operation_handles_[kDeleteUserData] = s_scheduler_->Schedule(callback);
+  ScheduleOperation(kDeleteUserData, future_handle, callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -173,16 +192,21 @@ Future<void> UserSecureManager::DeleteAllData() {
       [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
-        ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
+        {
+          ThisRefLock lock(&ref);
+          UserSecureManager* manager = lock.GetReference();
+          if (manager == nullptr) {
+            return;
+          }
           internal->DeleteAllData();
+          manager->CompleteOperationRegistration(
+              kDeleteAllData, handle->future_handle.get().id());
           handle->future_api->Complete(handle->future_handle, kSuccess);
         }
       },
       safe_this_, data_handle, user_secure_.get());
 
-  CancelOperation(kDeleteAllData);
-  operation_handles_[kDeleteAllData] = s_scheduler_->Schedule(callback);
+  ScheduleOperation(kDeleteAllData, future_handle, callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -197,19 +221,23 @@ void UserSecureManager::CreateScheduler() {
 }
 
 void UserSecureManager::DestroyScheduler() {
-  MutexLock lock(*s_scheduler_mutex_);
-  if (s_scheduler_ == nullptr) {
-    // reset count
-    s_scheduler_ref_count_ = 0;
-    return;
+  scheduler::Scheduler* scheduler_to_delete = nullptr;
+  {
+    MutexLock lock(*s_scheduler_mutex_);
+    if (s_scheduler_ == nullptr) {
+      // reset count
+      s_scheduler_ref_count_ = 0;
+      return;
+    }
+    s_scheduler_ref_count_--;
+    if (s_scheduler_ref_count_ <= 0) {
+      scheduler_to_delete = s_scheduler_;
+      s_scheduler_ = nullptr;
+      // reset count
+      s_scheduler_ref_count_ = 0;
+    }
   }
-  s_scheduler_ref_count_--;
-  if (s_scheduler_ref_count_ <= 0) {
-    delete s_scheduler_;
-    s_scheduler_ = nullptr;
-    // reset count
-    s_scheduler_ref_count_ = 0;
-  }
+  delete scheduler_to_delete;
 }
 
 static bool IsHexDigit(char c) {
@@ -249,14 +277,17 @@ bool UserSecureManager::AsciiToBinary(const std::string& encoded,
       return false;
     }
     decoded->resize((encoded.length() - 1) / 2);
-    for (int e = 1, d = 0; e < encoded.length(); ++d, e += 2) {
-      char hi = toupper(encoded[e + 0]);
-      char lo = toupper(encoded[e + 1]);
+    for (size_t e = 1, d = 0; e < encoded.length(); ++d, e += 2) {
+      char hi = static_cast<char>(
+          std::toupper(static_cast<unsigned char>(encoded[e + 0])));
+      char lo = static_cast<char>(
+          std::toupper(static_cast<unsigned char>(encoded[e + 1])));
       if (!IsHexDigit(hi) || !IsHexDigit(lo)) {
         *decoded = std::string();
         return false;
       }
-      (*decoded)[d] = (HexToValue(hi) << 4) | HexToValue(lo);
+      (*decoded)[d] =
+          static_cast<char>((HexToValue(hi) << 4) | HexToValue(lo));
     }
     return true;
   } else if (encoded[0] == kHeaderBase64Encoded) {
@@ -281,20 +312,92 @@ void UserSecureManager::BinaryToAscii(const std::string& original,
   }
 }
 
-void UserSecureManager::CancelScheduledTasks() {
-  for (auto it = operation_handles_.begin(); it != operation_handles_.end();
-       ++it) {
-    it->second.Cancel();
+void UserSecureManager::CompleteOperationRegistration(
+    SecureOperationType operation_type, FutureHandleId future_id) {
+  MutexLock lock(operation_mutex_);
+  operation_cancel_callbacks_.erase(future_id);
+  auto id_it = operation_future_ids_.find(operation_type);
+  if (id_it != operation_future_ids_.end() && id_it->second == future_id) {
+    operation_future_ids_.erase(id_it);
+    operation_handles_.erase(operation_type);
   }
-  operation_handles_.clear();
+}
+
+void UserSecureManager::CancelScheduledTasks() {
+  std::map<SecureOperationType, scheduler::RequestHandle> handles;
+  std::map<FutureHandleId, std::function<void()>> cancel_callbacks;
+  {
+    MutexLock lock(operation_mutex_);
+    handles = std::move(operation_handles_);
+    operation_handles_.clear();
+    cancel_callbacks = std::move(operation_cancel_callbacks_);
+    operation_cancel_callbacks_.clear();
+    operation_future_ids_.clear();
+  }
+  for (auto& entry : handles) {
+    entry.second.Cancel();
+  }
+  for (auto& cancel_entry : cancel_callbacks) {
+    if (cancel_entry.second) {
+      cancel_entry.second();
+    }
+  }
 }
 
 void UserSecureManager::CancelOperation(SecureOperationType operation_type) {
-  // Cancel and remove existing handle.
-  auto it = operation_handles_.find(operation_type);
-  if (it != operation_handles_.end()) {
-    it->second.Cancel();
-    operation_handles_.erase(it);
+  scheduler::RequestHandle handle_to_cancel;
+  FutureHandleId future_id = 0;
+  bool found = false;
+  {
+    MutexLock lock(operation_mutex_);
+    auto it = operation_handles_.find(operation_type);
+    if (it != operation_handles_.end()) {
+      handle_to_cancel = it->second;
+      operation_handles_.erase(it);
+      found = true;
+    }
+    auto id_it = operation_future_ids_.find(operation_type);
+    if (id_it != operation_future_ids_.end()) {
+      future_id = id_it->second;
+      operation_future_ids_.erase(id_it);
+    }
+  }
+  if (found && handle_to_cancel.Cancel()) {
+    std::function<void()> cancel_cb;
+    {
+      MutexLock lock(operation_mutex_);
+      auto cancel_it = operation_cancel_callbacks_.find(future_id);
+      if (cancel_it != operation_cancel_callbacks_.end()) {
+        cancel_cb = std::move(cancel_it->second);
+        operation_cancel_callbacks_.erase(cancel_it);
+      }
+    }
+    if (cancel_cb) {
+      cancel_cb();
+    }
+  }
+}
+
+template <typename T>
+void UserSecureManager::ScheduleOperation(SecureOperationType operation_type,
+                                          SafeFutureHandle<T> handle,
+                                          callback::Callback* callback) {
+  while (true) {
+    CancelOperation(operation_type);
+    MutexLock lock(operation_mutex_);
+    if (operation_handles_.find(operation_type) != operation_handles_.end()) {
+      continue;
+    }
+    const FutureHandleId future_id = handle.get().id();
+    operation_future_ids_[operation_type] = future_id;
+    operation_cancel_callbacks_[future_id] = [this, handle]() {
+      if (future_api_.GetFutureStatus(handle.get()) == kFutureStatusPending) {
+        future_api_.Complete(handle, kErrorCancelled,
+                             "Operation was cancelled.");
+      }
+    };
+    operation_handles_[operation_type] = s_scheduler_->Schedule(callback);
+    break;
   }
 }
 

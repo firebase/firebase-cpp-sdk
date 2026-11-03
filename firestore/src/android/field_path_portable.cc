@@ -36,12 +36,14 @@ bool IsValidFieldPathSegment(const std::string& segment) {
   }
 
   auto iter = segment.begin();
-  if (*iter != '_' && !std::isalpha(*iter)) {
+  unsigned char first = static_cast<unsigned char>(*iter);
+  if (first != '_' && !std::isalpha(first)) {
     return false;
   }
   ++iter;
   while (iter != segment.end()) {
-    if (*iter != '_' && !std::isalnum(*iter)) {
+    unsigned char ch = static_cast<unsigned char>(*iter);
+    if (ch != '_' && !std::isalnum(ch)) {
       return false;
     }
     ++iter;
@@ -89,6 +91,7 @@ std::vector<std::string> SplitOnDots(const std::string& input) {
   // validation in the body of the loop below and have to be checked beforehand.
   if (input.empty() || input[0] == '.' || input[input.size() - 1] == '.') {
     fail_validation();
+    return {};
   }
 
   std::vector<std::string> result;
@@ -98,6 +101,7 @@ std::vector<std::string> SplitOnDots(const std::string& input) {
   while (std::getline(stream, current_segment, '.')) {
     if (current_segment.empty()) {
       fail_validation();
+      return {};
     }
 
     result.push_back(std::move(current_segment));
@@ -106,10 +110,11 @@ std::vector<std::string> SplitOnDots(const std::string& input) {
   return result;
 }
 
-void ValidateSegments(const std::vector<std::string>& segments) {
+bool ValidateSegments(const std::vector<std::string>& segments) {
   if (segments.empty()) {
     SimpleThrowInvalidArgument(
         "Invalid field path. Provided names must not be empty.");
+    return false;
   }
 
   for (size_t i = 0; i < segments.size(); ++i) {
@@ -118,31 +123,22 @@ void ValidateSegments(const std::vector<std::string>& segments) {
       message << "Invalid field name at index " << i
               << ". Field names must not be empty.";
       SimpleThrowInvalidArgument(message.str());
+      return false;
     }
   }
+  return true;
 }
 
 }  // anonymous namespace
 
 std::string FieldPathPortable::CanonicalString() const {
-  std::vector<std::string> escaped_segments;
-  escaped_segments.reserve(segments_.size());
-  std::size_t length = 0;
-  for (const std::string& segment : segments_) {
-    escaped_segments.push_back(Escape(segment));
-    length += escaped_segments.back().size() + 1;
-  }
-  if (length == 0) {
-    return "";
-  }
-
   std::string result;
-  result.reserve(length);
-  for (const std::string& segment : escaped_segments) {
-    result.append(segment);
-    result.push_back('.');
+  for (size_t i = 0; i < segments_.size(); ++i) {
+    if (i > 0) {
+      result.push_back('.');
+    }
+    result.append(Escape(segments_[i]));
   }
-  result.erase(result.end() - 1);
   return result;
 }
 
@@ -152,7 +148,9 @@ bool FieldPathPortable::IsKeyFieldPath() const {
 
 FieldPathPortable FieldPathPortable::FromSegments(
     std::vector<std::string> segments) {
-  ValidateSegments(segments);
+  if (!ValidateSegments(segments)) {
+    return FieldPathPortable(std::vector<std::string>{});
+  }
   return FieldPathPortable(std::move(segments));
 }
 
@@ -163,6 +161,7 @@ FieldPathPortable FieldPathPortable::FromDotSeparatedString(
         "Invalid field path (" + path +
         "). Paths must not contain '~', '*', '/', '[', or ']'";
     SimpleThrowInvalidArgument(message);
+    return FieldPathPortable(std::vector<std::string>{});
   }
 
   return FieldPathPortable(SplitOnDots(path));

@@ -15,9 +15,8 @@
  */
 
 #include "firestore/src/android/query_android.h"
-#include <cassert>
-#include <cstdint>
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -153,9 +152,8 @@ void QueryInternal::Initialize(jni::Loader& loader) {
       kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener, kHashCode, kWhere);
 }
 
-Firestore* QueryInternal::firestore() {
-  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
-  return firestore_->firestore_public();
+Firestore* QueryInternal::firestore() const {
+  return firestore_ != nullptr ? firestore_->firestore_public() : nullptr;
 }
 
 AggregateQuery QueryInternal::Count() const {
@@ -165,7 +163,13 @@ AggregateQuery QueryInternal::Count() const {
 }
 
 Query QueryInternal::Where(const firebase::firestore::Filter& filter) const {
+  if (filter.internal_ == nullptr) {
+    return {};
+  }
   Env env = GetEnv();
+  if (filter.IsEmpty()) {
+    return firestore_->NewQuery(env, obj_.get(env));
+  }
   Local<Object> query = env.Call(obj_, kWhere, filter.internal_->ToJava());
   return firestore_->NewQuery(env, query);
 }
@@ -225,8 +229,7 @@ Query QueryInternal::OrderBy(const FieldPath& field,
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> java_direction = DirectionInternal::Create(env, direction);
-  Local<Object> query =
-      env.Call(obj_, kOrderBy, java_field.get(), java_direction.get());
+  Local<Object> query = env.Call(obj_, kOrderBy, java_field, java_direction);
   return firestore_->NewQuery(env, query);
 }
 
@@ -303,6 +306,7 @@ Query QueryInternal::Where(const FieldPath& field,
                            const Method<Object>& method,
                            const std::vector<FieldValue>& values) const {
   Env env = GetEnv();
+  Local<Object> java_field = FieldPathConverter::Create(env, field);
 
   size_t size = values.size();
   Local<ArrayList> java_values = ArrayList::Create(env, size);
@@ -310,13 +314,15 @@ Query QueryInternal::Where(const FieldPath& field,
     java_values.Add(env, FieldValueInternal::ToJava(values[i]));
   }
 
-  Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> query = env.Call(obj_, method, java_field, java_values);
   return firestore_->NewQuery(env, query);
 }
 
 Query QueryInternal::WithBound(const Method<Object>& method,
                                const DocumentSnapshot& snapshot) const {
+  if (snapshot.internal_ == nullptr) {
+    return {};
+  }
   Env env = GetEnv();
   Local<Object> query = env.Call(obj_, method, snapshot.internal_->ToJava());
   return firestore_->NewQuery(env, query);
@@ -325,7 +331,8 @@ Query QueryInternal::WithBound(const Method<Object>& method,
 Query QueryInternal::WithBound(const Method<Object>& method,
                                const std::vector<FieldValue>& values) const {
   Env env = GetEnv();
-  Local<Array<Object>> java_values = ConvertFieldValues(env, values);
+  Local<Array<Object>> java_values =
+      FieldValueInternal::MakeArray(env, values);
   Local<Object> query = env.Call(obj_, method, java_values);
   return firestore_->NewQuery(env, query);
 }
@@ -334,15 +341,13 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  auto* listener = new LambdaEventListener<QuerySnapshot>(std::move(callback));
-  return AddSnapshotListener(metadata_changes, listener,
-                             /*passing_listener_ownership=*/true);
+  auto listener = std::make_unique<LambdaEventListener<QuerySnapshot>>(std::move(callback));
+  return AddSnapshotListener(metadata_changes, std::move(listener));
 }
 
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    EventListener<QuerySnapshot>* listener,
-    bool passing_listener_ownership) {
+    EventListener<QuerySnapshot>* listener) {
   Env env = GetEnv();
 
   Local<Object> java_listener =
@@ -354,24 +359,40 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
       env.Call(obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
                java_metadata, java_listener);
 
-  if (!env.ok()) return {};
+  if (!env.ok() || !java_registration) {
+    return {};
+  }
   return ListenerRegistration(new ListenerRegistrationInternal(
-      firestore_, listener, passing_listener_ownership, java_registration));
+      firestore_, listener, /*passing_listener_ownership=*/false, java_registration,
+      java_listener));
 }
 
-Local<Array<Object>> QueryInternal::ConvertFieldValues(
-    Env& env, const std::vector<FieldValue>& field_values) const {
-  size_t size = field_values.size();
-  Local<Array<Object>> result = env.NewArray(size, Object::GetClass());
-  for (size_t i = 0; i < size; ++i) {
-    result.Set(env, i, FieldValueInternal::ToJava(field_values[i]));
+ListenerRegistration QueryInternal::AddSnapshotListener(
+    MetadataChanges metadata_changes,
+    std::unique_ptr<EventListener<QuerySnapshot>> listener) {
+  Env env = GetEnv();
+
+  EventListener<QuerySnapshot>* raw_listener = listener.get();
+  Local<Object> java_listener =
+      EventListenerInternal::Create(env, firestore_, raw_listener);
+  Local<Object> java_metadata =
+      MetadataChangesInternal::Create(env, metadata_changes);
+
+  Local<Object> java_registration =
+      env.Call(obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
+               java_metadata, java_listener);
+
+  if (!env.ok() || !java_registration) {
+    return {};
   }
-  return result;
+  return ListenerRegistration(new ListenerRegistrationInternal(
+      firestore_, listener.release(), /*passing_listener_ownership=*/true, java_registration,
+      java_listener));
 }
 
 size_t QueryInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return static_cast<uint32_t>(env.Call(obj_, kHashCode));
 }
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {

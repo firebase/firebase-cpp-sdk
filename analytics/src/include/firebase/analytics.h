@@ -19,9 +19,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <string>
+#if !defined(SWIG)
+#include <string_view>
+#include <utility>
+#endif  // !defined(SWIG)
 #include <vector>
 
 #include "firebase/app.h"
@@ -42,6 +47,26 @@ namespace firebase {
 /// See <a href="/docs/analytics">the developer guides</a> for general
 /// information on using Firebase Analytics in your apps.
 namespace analytics {
+
+/// @brief Error codes returned by Firebase Analytics asynchronous operations.
+enum Error {
+  ///The operation succeeded.
+  kErrorNone = 0,
+  /// The Analytics module has not been initialized.
+  kErrorNotInitialized = 1,
+  /// Analytics collection is disabled or the current session has expired.
+  kErrorCollectionDisabledOrSessionExpired = 2,
+  /// An invalid argument was supplied to the operation.
+  kErrorInvalidArgument = 3,
+  /// The requested StoreKit 2 transaction could not be found.
+  kErrorTransactionNotFound = 4,
+  /// The requested StoreKit 2 transaction failed JWS verification.
+  kErrorTransactionUnverified = 5,
+  /// The operation is not supported on this platform.
+  kErrorUnsupportedPlatform = 6,
+  /// An internal error occurred.
+  kErrorInternal = 7,
+};
 
 /// @brief Event parameter.
 ///
@@ -132,7 +157,7 @@ struct Parameter {
   /// Construct an empty parameter.
   ///
   /// This is provided to allow initialization after construction.
-  Parameter() : name(nullptr) {}
+  Parameter() : name(nullptr), value(Variant::Null()) {}
 #endif  // !SWIG
 
 // <SWIG>
@@ -145,9 +170,7 @@ struct Parameter {
   /// @param parameter_value Value for the parameter. Variants can
   /// hold numbers and strings.
   Parameter(const char* parameter_name, Variant parameter_value)
-      : name(parameter_name) {
-    value = parameter_value;
-  }
+      : name(parameter_name), value(std::move(parameter_value)) {}
 #endif  // !SWIG
 
   /// Construct a 64-bit integer parameter.
@@ -165,10 +188,10 @@ struct Parameter {
   /// </SWIG>
   /// @param parameter_value Integer value for the parameter.
   Parameter(const char* parameter_name, int parameter_value)
-      : name(parameter_name) {
-    value = parameter_value;
-  }
+      : name(parameter_name),
+        value(Variant::FromInt64(static_cast<int64_t>(parameter_value))) {}
 
+#if defined(SWIG)
   /// Construct a 64-bit integer parameter.
   ///
   /// @param parameter_name Name of the parameter.
@@ -187,6 +210,39 @@ struct Parameter {
       : name(parameter_name) {
     value = parameter_value;
   }
+#else
+  /// Construct a 64-bit integer parameter from `long`.
+  Parameter(const char* parameter_name, long parameter_value)  // NOLINT
+      : name(parameter_name),
+        value(Variant::FromInt64(static_cast<int64_t>(parameter_value))) {}
+
+  /// Construct a 64-bit integer parameter from `long long`.
+  Parameter(const char* parameter_name, long long parameter_value)  // NOLINT
+      : name(parameter_name),
+        value(Variant::FromInt64(static_cast<int64_t>(parameter_value))) {}
+
+  /// Construct a 64-bit integer parameter from `unsigned int`.
+  Parameter(const char* parameter_name, unsigned int parameter_value)
+      : name(parameter_name),
+        value(Variant::FromInt64(static_cast<int64_t>(parameter_value))) {}
+
+  /// Construct a 64-bit integer parameter from `unsigned long`.
+  Parameter(const char* parameter_name,
+            unsigned long parameter_value)  // NOLINT
+      : name(parameter_name),
+        value(Variant::FromInt64(static_cast<int64_t>(parameter_value))) {}
+
+  /// Construct a 64-bit integer parameter from `unsigned long long`.
+  Parameter(const char* parameter_name,
+            unsigned long long parameter_value)  // NOLINT
+      : name(parameter_name),
+        value(Variant::FromInt64(static_cast<int64_t>(parameter_value))) {}
+
+  /// Construct an integer parameter (0 or 1) from `bool`.
+  Parameter(const char* parameter_name, bool parameter_value)
+      : name(parameter_name),
+        value(Variant::FromInt64(parameter_value ? 1 : 0)) {}
+#endif  // defined(SWIG)
 
   /// Construct a floating point parameter.
   ///
@@ -203,9 +259,7 @@ struct Parameter {
   /// </SWIG>
   /// @param parameter_value Floating point value for the parameter.
   Parameter(const char* parameter_name, double parameter_value)
-      : name(parameter_name) {
-    value = parameter_value;
-  }
+      : name(parameter_name), value(Variant::FromDouble(parameter_value)) {}
 
   /// Construct a string parameter.
   ///
@@ -223,9 +277,34 @@ struct Parameter {
   /// @param parameter_value String value for the parameter, can be up to 100
   /// characters long.
   Parameter(const char* parameter_name, const char* parameter_value)
-      : name(parameter_name) {
-    value = parameter_value;
+      : name(parameter_name),
+        value(parameter_value ? Variant::FromMutableString(parameter_value)
+                              : Variant::Null()) {}
+
+#if !defined(SWIG)
+  /// Construct a string parameter from `const std::string&`.
+  Parameter(const char* parameter_name, const std::string& parameter_value)
+      : name(parameter_name),
+        value(Variant::FromMutableString(parameter_value)) {}
+
+  /// Construct a string parameter from `std::string_view`.
+  Parameter(const char* parameter_name, std::string_view parameter_value)
+      : name(parameter_name),
+        value(Variant::FromMutableString(std::string(parameter_value))) {}
+
+  /// Equality comparison operator.
+  bool operator==(const Parameter& rhs) const noexcept {
+    if ((name == nullptr) != (rhs.name == nullptr)) return false;
+    const bool same_name =
+        (name == rhs.name) || (std::strcmp(name, rhs.name) == 0);
+    return same_name && value == rhs.value;
   }
+
+  /// Inequality comparison operator.
+  bool operator!=(const Parameter& rhs) const noexcept {
+    return !(*this == rhs);
+  }
+#endif  // !defined(SWIG)
 
 #ifndef SWIG
   // <SWIG>

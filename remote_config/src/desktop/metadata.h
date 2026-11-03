@@ -30,10 +30,8 @@ typedef std::map<std::string, std::string> MetaDigestMap;
 typedef std::map<ConfigSetting, std::string> MetaSettingsMap;
 typedef std::map<std::string, Variant> MetaCustomSignalsMap;
 
-// Contains different data about Remote Config Client.
+// Contains metadata about Remote Config Client.
 //
-// `RemoteConfigMetadata` has `proto::Metadata` analogue to keep data in file.
-// Has convertors on both sides.
 // Receives data from the response via:
 //  * ConfigInfo: Public struct with information about the result itself, like
 //                timestamp, status, and potentially error info.
@@ -46,7 +44,7 @@ class RemoteConfigMetadata {
   RemoteConfigMetadata();
 
   std::string Serialize() const;
-  void Deserialize(const std::string& buffer);
+  bool Deserialize(const std::string& buffer);
 
   const ConfigInfo& info() const { return info_; }
   void set_info(const ConfigInfo& info) { info_ = info; }
@@ -74,8 +72,8 @@ class RemoteConfigMetadata {
   bool operator==(const RemoteConfigMetadata& right) const;
 
  private:
-  // Informatio about last fetch: time, status. See more detail about ConfigInfo
-  // in `remote_config.h` header.
+  // Information about last fetch: time, status. See more detail about
+  // ConfigInfo in `remote_config.h` header.
   ConfigInfo info_;
 
   // HTTP response for fetching contains field digest for each namespace. Digest
@@ -98,8 +96,12 @@ class RemoteConfigMetadata {
 // of strings to strings.
 template <typename T>
 inline void DeserializeMap(T* map, const flexbuffers::Map& map_ref) {
-  for (int i = 0, n = map_ref.size(); i < n; ++i) {
-    (*map)[map_ref.Keys()[i].AsKey()] = map_ref.Values()[i].AsString().c_str();
+  if (!map) return;
+  for (size_t i = 0, n = map_ref.size(); i < n; ++i) {
+    const char* key = map_ref.Keys()[i].AsKey();
+    if (!key) continue;
+    flexbuffers::String val = map_ref.Values()[i].AsString();
+    (*map)[key] = std::string(val.c_str(), val.length());
   }
 }
 

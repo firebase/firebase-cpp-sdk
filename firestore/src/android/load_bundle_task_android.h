@@ -17,7 +17,6 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
 
-#include "firestore/src/android/wrapper.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"

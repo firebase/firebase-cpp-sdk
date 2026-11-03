@@ -130,14 +130,19 @@ public class CppByteUploader extends InputStream {
     return read(bytes, 0, bytes.length);
   }
 
+  /** Mark/reset is not supported (see {@link #markSupported()}). */
   @Override
-  public void reset() {
-    // Mark is not supported.
+  public void reset() throws IOException {
+    throw new IOException("CppByteUploader does not support mark/reset.");
   }
 
+  /**
+   * Skips by reading and discarding bytes (the default {@link InputStream#skip} behavior), since
+   * the underlying C++ source only supports sequential reads.
+   */
   @Override
   public long skip(long bytesToSkip) throws IOException {
-    throw new IOException("CppByteUploader does not support seek.");
+    return super.skip(bytesToSkip);
   }
 
   /**
@@ -156,4 +161,4 @@ public class CppByteUploader extends InputStream {
    */
   private static native int readBytes(long cppBufferPointer, long cppBufferSize,
       long cppBufferOffset, byte[] bytes, int bytesOffset, int numBytesToRead);
-};
+}

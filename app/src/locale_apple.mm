@@ -17,8 +17,8 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/locale.h"
 
-#if !FIREBASE_PLATFORM_OSX && !FIREBASE_PLATFORM_IOS
-#error "This file only supports iOS and OS X, use locale.cc for other platforms."
+#if !FIREBASE_PLATFORM_OSX && !FIREBASE_PLATFORM_IOS && !FIREBASE_PLATFORM_TVOS
+#error "This file only supports Apple platforms, use locale.cc for other platforms."
 #endif
 
 #import <Foundation/Foundation.h>
@@ -26,9 +26,15 @@
 namespace firebase {
 namespace internal {
 
-std::string GetTimezone() { return NSTimeZone.localTimeZone.name.UTF8String; }
+std::string GetTimezone() {
+  const char* tz = NSTimeZone.localTimeZone.name.UTF8String;
+  return tz ? tz : "";
+}
 
-std::string GetLocale() { return [NSLocale currentLocale].localeIdentifier.UTF8String; }
+std::string GetLocale() {
+  const char* loc = [NSLocale currentLocale].localeIdentifier.UTF8String;
+  return loc ? loc : "";
+}
 
 }  // namespace internal
 }  // namespace firebase

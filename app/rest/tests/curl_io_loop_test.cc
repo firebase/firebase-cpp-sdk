@@ -65,12 +65,12 @@ class TestTransfer : public Transfer {
   CURL* easy() override { return easy_.get(); }
 
   void OnDone(CURLcode result) override {
-    done_called_ = true;
     result_ = result;
     long status = 0;  // NOLINT
     curl_easy_getinfo(easy_.get(), CURLINFO_RESPONSE_CODE, &status);
     http_status_ = static_cast<int>(status);
     on_done_thread_was_io_thread_ = CurlIoLoop::Get().IsOnIoThread();
+    done_called_ = true;
     done_.Post();
   }
 
@@ -260,8 +260,8 @@ TEST_F(CurlIoLoopTest, ManyConcurrentTransfersComplete) {
   const int kCount = 16;
   std::vector<std::unique_ptr<TestTransfer>> transfers;
   for (int i = 0; i < kCount; ++i) {
-    transfers.emplace_back(
-        new TestTransfer(server_->BaseUrl() + "/slow?ms=200"));
+    transfers.push_back(
+        std::make_unique<TestTransfer>(server_->BaseUrl() + "/slow?ms=200"));
   }
   auto start = std::chrono::steady_clock::now();
   loop.Post([&]() {
@@ -375,6 +375,80 @@ TEST_F(CurlIoLoopTest, PostedWorkDuringShutdownStillRuns) {
   EXPECT_TRUE(transfer.done_called());
   EXPECT_TRUE(transfer.follow_up_ran.load());
   CurlIoLoop::Acquire();
+}
+
+TEST_F(CurlIoLoopTest, PostIfRunningReturnsFalseWhenStoppedAndTrueWhenRunning) {
+  std::atomic<bool> ran_while_running{false};
+  Semaphore done(0);
+  EXPECT_TRUE(CurlIoLoop::PostIfRunning([&]() {
+    ran_while_running = true;
+    done.Post();
+  }));
+  ASSERT_TRUE(done.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(ran_while_running.load());
+
+  // Drop the fixture's reference so the loop is stopped.
+  CurlIoLoop::Release();
+  EXPECT_FALSE(CurlIoLoop::IsRunning());
+  std::atomic<bool> ran_after_release{false};
+  EXPECT_FALSE(CurlIoLoop::PostIfRunning([&]() { ran_after_release = true; }));
+  EXPECT_FALSE(ran_after_release.load());
+
+  // Re-acquire so TearDown's Release() balances.
+  CurlIoLoop::Acquire();
+}
+
+TEST_F(CurlIoLoopTest, ExtraFdGenerationPreventsStaleCallbackWhenReplacedInBatch) {
+  CurlIoLoop& loop = CurlIoLoop::Get();
+  test::TcpSocketPair pair1;
+  test::TcpSocketPair pair2;
+  ASSERT_TRUE(pair1.valid());
+  ASSERT_TRUE(pair2.valid());
+
+  std::atomic<int> first_cb_count{0};
+  std::atomic<int> replaced_cb_count{0};
+  std::atomic<int> original_second_cb_count{0};
+  Semaphore batch_done(0);
+
+  const auto fd1 = static_cast<curl_socket_t>(pair1.b());
+  const auto fd2 = static_cast<curl_socket_t>(pair2.b());
+
+  // Make both sockets readable BEFORE registering them on the loop so
+  // curl_multi_poll deterministically returns both fd1 and fd2 ready in the
+  // same poll batch.
+  ASSERT_TRUE(test::SendAll(pair1.a(), "a", 1));
+  ASSERT_TRUE(test::SendAll(pair2.a(), "b", 1));
+
+  loop.Post([&]() {
+    // Register fd1 and fd2 in the same posted task so both are polled together.
+    // When fd1's callback runs first in the batch, it drains pair2.b() and
+    // replaces fd2's registration via AddExtraFd(fd2, ...), bumping fd2's
+    // generation counter while keeping fd2 in extra_fds_. The stale revents
+    // for fd2 in the current batch must not fire the replacement callback.
+    loop.AddExtraFd(fd1, CURL_WAIT_POLLIN, [&](short) {
+      first_cb_count++;
+      char byte;
+      recv(pair1.b(), &byte, 1, 0);
+      recv(pair2.b(), &byte, 1, 0);
+      loop.RemoveExtraFd(fd1);
+      loop.AddExtraFd(fd2, CURL_WAIT_POLLIN, [&](short) {
+        replaced_cb_count++;
+      });
+      batch_done.Post();
+    });
+    loop.AddExtraFd(fd2, CURL_WAIT_POLLIN, [&](short) {
+      original_second_cb_count++;
+    });
+  });
+
+  ASSERT_TRUE(batch_done.TimedWait(kWaitTimeoutMs));
+  Drain(loop);
+  loop.Post([&]() { loop.RemoveExtraFd(fd2); });
+  Drain(loop);
+
+  EXPECT_EQ(1, first_cb_count.load());
+  EXPECT_EQ(0, original_second_cb_count.load());
+  EXPECT_EQ(0, replaced_cb_count.load());
 }
 
 }  // namespace

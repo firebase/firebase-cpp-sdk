@@ -44,10 +44,15 @@ DocumentSnapshot::DocumentSnapshot(const DocumentSnapshot& snapshot) {
   if (snapshot.internal_) {
     internal_ = new DocumentSnapshotInternal(*snapshot.internal_);
   }
-  CleanupFnDocumentSnapshot::Register(this, internal_);
+  try {
+    CleanupFnDocumentSnapshot::Register(this, internal_);
+  } catch (...) {
+    delete internal_;
+    throw;
+  }
 }
 
-DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) {
+DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) noexcept {
   CleanupFnDocumentSnapshot::Unregister(&snapshot, snapshot.internal_);
   std::swap(internal_, snapshot.internal_);
   CleanupFnDocumentSnapshot::Register(this, internal_);
@@ -72,17 +77,17 @@ DocumentSnapshot& DocumentSnapshot::operator=(
   }
 
   CleanupFnDocumentSnapshot::Unregister(this, internal_);
-  delete internal_;
+  DocumentSnapshotInternal* new_internal = nullptr;
   if (snapshot.internal_) {
-    internal_ = new DocumentSnapshotInternal(*snapshot.internal_);
-  } else {
-    internal_ = nullptr;
+    new_internal = new DocumentSnapshotInternal(*snapshot.internal_);
   }
+  delete internal_;
+  internal_ = new_internal;
   CleanupFnDocumentSnapshot::Register(this, internal_);
   return *this;
 }
 
-DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) {
+DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) noexcept {
   if (this == &snapshot) {
     return *this;
   }
@@ -125,6 +130,7 @@ FieldValue DocumentSnapshot::Get(const char* field,
                                  ServerTimestampBehavior stb) const {
   if (!field) {
     SimpleThrowInvalidArgument("Field name cannot be null.");
+    return {};
   }
 
   if (!internal_) return {};
@@ -139,6 +145,10 @@ FieldValue DocumentSnapshot::Get(const std::string& field,
 
 FieldValue DocumentSnapshot::Get(const FieldPath& field,
                                  ServerTimestampBehavior stb) const {
+  if (!field.is_valid()) {
+    SimpleThrowInvalidArgument("Field path cannot be invalid.");
+    return {};
+  }
   if (!internal_) return {};
   return internal_->Get(field, stb);
 }
@@ -147,11 +157,11 @@ std::string DocumentSnapshot::ToString() const {
   if (!internal_) return "DocumentSnapshot(invalid)";
 
   return std::string("DocumentSnapshot(id=") + id() +
-         ", metadata=" + metadata().ToString() +
-         ", doc=" + ::firebase::firestore::ToString(GetData()) + ')';
+         ", metadata=" + metadata().ToString() + ", doc=" +
+         (exists() ? ::firebase::firestore::ToString(GetData()) : "none") + ')';
 }
 
-size_t DocumentSnapshot::Hash() const {
+std::size_t DocumentSnapshot::Hash() const {
   if (!internal_) return {};
   return internal_->Hash();
 }

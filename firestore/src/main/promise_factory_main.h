@@ -45,8 +45,9 @@ class PromiseFactory {
   // convention that the object has `firestore_internal` member function.
   template <typename T>
   static PromiseFactory Create(T* object) {
-    return PromiseFactory(&object->firestore_internal()->cleanup(),
-                          &object->firestore_internal()->future_manager());
+    auto* object_ptr = NOT_NULL(object);
+    auto* firestore = NOT_NULL(object_ptr->firestore_internal());
+    return PromiseFactory(&firestore->cleanup(), &firestore->future_manager());
   }
 
   PromiseFactory(CleanupNotifier* cleanup, FutureManager* future_manager)
@@ -54,16 +55,25 @@ class PromiseFactory {
     future_manager_->AllocFutureApi(this, ApisCount());
   }
 
-  ~PromiseFactory() { future_manager_->ReleaseFutureApi(this); }
+  ~PromiseFactory() {
+    if (future_manager_) {
+      future_manager_->ReleaseFutureApi(this);
+    }
+  }
 
   PromiseFactory(const PromiseFactory& rhs)
       : cleanup_{rhs.cleanup_}, future_manager_{rhs.future_manager_} {
-    future_manager_->AllocFutureApi(this, ApisCount());
+    if (future_manager_) {
+      future_manager_->AllocFutureApi(this, ApisCount());
+    }
   }
 
-  PromiseFactory(PromiseFactory&& rhs)
-      : cleanup_{rhs.cleanup_}, future_manager_{rhs.future_manager_} {
-    future_manager_->MoveFutureApi(&rhs, this);
+  PromiseFactory(PromiseFactory&& rhs) noexcept
+      : cleanup_{std::exchange(rhs.cleanup_, nullptr)},
+        future_manager_{std::exchange(rhs.future_manager_, nullptr)} {
+    if (future_manager_) {
+      future_manager_->MoveFutureApi(&rhs, this);
+    }
   }
 
   PromiseFactory& operator=(const PromiseFactory&) = delete;

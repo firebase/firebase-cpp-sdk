@@ -20,6 +20,7 @@
 
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/field_path.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/document_reference_main.h"
 #include "firestore/src/main/field_value_main.h"
@@ -36,7 +37,7 @@ using core::ParsedUpdateData;
 WriteBatchInternal::WriteBatchInternal(api::WriteBatch&& batch)
     : batch_{std::move(batch)},
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)},
-      user_data_converter_{&firestore_internal()->database_id()} {}
+      user_data_converter_{&batch_.firestore()->database_id()} {}
 
 Firestore* WriteBatchInternal::firestore() { return GetFirestore(&batch_); }
 
@@ -47,23 +48,39 @@ FirestoreInternal* WriteBatchInternal::firestore_internal() {
 void WriteBatchInternal::Set(const DocumentReference& document,
                              const MapFieldValue& data,
                              const SetOptions& options) {
+  if (!document.is_valid()) {
+    SimpleThrowInvalidArgument("Invalid document reference provided.");
+    return;
+  }
   ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
   batch_.SetData(GetCoreApi(document), std::move(parsed));
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
                                 const MapFieldValue& data) {
+  if (!document.is_valid()) {
+    SimpleThrowInvalidArgument("Invalid document reference provided.");
+    return;
+  }
   batch_.UpdateData(GetCoreApi(document),
                     user_data_converter_.ParseUpdateData(data));
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
                                 const MapFieldPathValue& data) {
+  if (!document.is_valid()) {
+    SimpleThrowInvalidArgument("Invalid document reference provided.");
+    return;
+  }
   batch_.UpdateData(GetCoreApi(document),
                     user_data_converter_.ParseUpdateData(data));
 }
 
 void WriteBatchInternal::Delete(const DocumentReference& document) {
+  if (!document.is_valid()) {
+    SimpleThrowInvalidArgument("Invalid document reference provided.");
+    return;
+  }
   batch_.DeleteData(GetCoreApi(document));
 }
 

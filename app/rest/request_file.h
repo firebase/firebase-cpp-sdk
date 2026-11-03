@@ -32,12 +32,15 @@ class RequestFile : public Request {
   RequestFile(const char* filename, size_t offset);
   ~RequestFile() override { CloseFile(); }
 
+  RequestFile(const RequestFile&) = delete;
+  RequestFile& operator=(const RequestFile&) = delete;
+
   // This object will assert if post fields are set.
   void set_post_fields(const char* data, size_t size) override;
   void set_post_fields(const char* data) override;
 
-  // Get the size of the POST fields.
-  size_t GetPostFieldsSize() const override { return file_size(); }
+  // Get the size of the POST fields (remaining bytes from the requested offset).
+  size_t GetPostFieldsSize() const override { return post_fields_size_; }
 
   // Read from the file.
   size_t ReadBody(char* buffer, size_t length, bool* abort) override;
@@ -56,6 +59,7 @@ class RequestFile : public Request {
  private:
   FILE* file_;
   size_t file_size_;
+  size_t post_fields_size_;
 };
 
 }  // namespace rest

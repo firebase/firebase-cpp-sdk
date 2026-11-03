@@ -35,9 +35,17 @@ class CacheNode {
   CacheNode()
       : indexed_variant_(), fully_initialized_(false), filtered_(false) {}
 
+  CacheNode(const Variant& variant, bool fully_initialized, bool filtered)
+      : CacheNode(IndexedVariant(variant), fully_initialized, filtered) {}
   CacheNode(const IndexedVariant& indexed_variant, bool fully_initialized,
             bool filtered)
       : indexed_variant_(indexed_variant),
+        fully_initialized_(fully_initialized),
+        filtered_(filtered) {}
+
+  CacheNode(IndexedVariant&& indexed_variant, bool fully_initialized,
+            bool filtered)
+      : indexed_variant_(std::move(indexed_variant)),
         fully_initialized_(fully_initialized),
         filtered_(filtered) {}
 

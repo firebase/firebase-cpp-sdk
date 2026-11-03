@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
+#include "firestore/src/main/create_credentials_provider.h"
+
 #include <memory>
 
-#include "auth/src/include/firebase/auth.h"
-#include "firestore/src/main/create_credentials_provider.h"
 #include "firestore/src/main/credentials_provider_desktop.h"
 
 namespace firebase {
 namespace firestore {
 
 using credentials::AuthCredentialsProvider;
-using firebase::auth::Auth;
 
 std::shared_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
   return std::make_shared<FirebaseCppCredentialsProvider>(app);

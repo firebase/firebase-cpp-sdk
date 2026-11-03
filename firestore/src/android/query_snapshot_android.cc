@@ -15,14 +15,12 @@
  */
 
 #include "firestore/src/android/query_snapshot_android.h"
-#include <cassert>
+
 #include <cstdint>
 
-#include "app/src/assert.h"
 #include "firestore/src/android/document_change_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/metadata_changes_android.h"
-#include "firestore/src/android/query_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/compare.h"
@@ -49,7 +47,7 @@ Method<List> kGetDocumentChanges(
     "getDocumentChanges",
     "(Lcom/google/firebase/firestore/MetadataChanges;)Ljava/util/List;");
 Method<List> kGetDocuments("getDocuments", "()Ljava/util/List;");
-Method<size_t> kSize("size", "()I");
+Method<int32_t> kSize("size", "()I");
 Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
@@ -67,7 +65,11 @@ Query QuerySnapshotInternal::query() const {
 
 SnapshotMetadata QuerySnapshotInternal::metadata() const {
   Env env = GetEnv();
-  return env.Call(obj_, kGetMetadata).ToPublic(env);
+  Local<SnapshotMetadataInternal> metadata = env.Call(obj_, kGetMetadata);
+  if (!env.ok() || !metadata) {
+    return SnapshotMetadata(false, false);
+  }
+  return metadata.ToPublic(env);
 }
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
@@ -76,23 +78,33 @@ std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
   auto java_metadata = MetadataChangesInternal::Create(env, metadata_changes);
 
   Local<List> change_list = env.Call(obj_, kGetDocumentChanges, java_metadata);
+  if (!env.ok() || !change_list) {
+    return {};
+  }
   return MakePublicVector<DocumentChange>(env, firestore_, change_list);
 }
 
 std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
   Env env = GetEnv();
   Local<List> document_list = env.Call(obj_, kGetDocuments);
+  if (!env.ok() || !document_list) {
+    return {};
+  }
   return MakePublicVector<DocumentSnapshot>(env, firestore_, document_list);
 }
 
 std::size_t QuerySnapshotInternal::size() const {
   Env env = GetEnv();
-  return env.Call(obj_, kSize);
+  int32_t result = env.Call(obj_, kSize);
+  if (!env.ok() || result < 0) {
+    return 0;
+  }
+  return static_cast<std::size_t>(result);
 }
 
 std::size_t QuerySnapshotInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return static_cast<uint32_t>(env.Call(obj_, kHashCode));
 }
 
 bool operator==(const QuerySnapshotInternal& lhs,

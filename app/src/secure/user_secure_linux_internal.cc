@@ -14,12 +14,7 @@
 
 #include "app/src/secure/user_secure_linux_internal.h"
 
-#include <dlfcn.h>
-
-#include <iostream>
-
 #include "app/src/log.h"
-#include "app/src/secure/user_secure_data_handle.h"
 
 namespace firebase {
 namespace app {
@@ -47,7 +42,9 @@ SecretSchema BuildSchema(const char key_namespace[]) {
 
 UserSecureLinuxInternal::UserSecureLinuxInternal(const char* domain,
                                                  const char* key_namespace)
-    : domain_(domain), key_namespace_(key_namespace), known_error_code_(0) {
+    : domain_(domain ? domain : ""),
+      key_namespace_(key_namespace ? key_namespace : ""),
+      known_error_code_(0) {
   storage_schema_ = BuildSchema(key_namespace_.c_str());
 }
 
@@ -69,7 +66,13 @@ std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
       /* value1= */ app_name.c_str(), /* key2= */ kStorageDomainKey,
       /* value2= */ domain_.c_str(), nullptr);
 
-  if (CheckForError(&error, "lookup") || result == nullptr) {
+  if (CheckForError(&error, "lookup")) {
+    if (result != nullptr) {
+      secret_password_free(result);
+    }
+    return empty_str;
+  }
+  if (result == nullptr) {
     return empty_str;
   }
   std::string str_result(result);
@@ -123,10 +126,13 @@ void UserSecureLinuxInternal::DeleteAllData() {
 
 bool UserSecureLinuxInternal::CheckForError(GError** error,
                                             const char* function_name) {
-  if (error == nullptr || *error == nullptr) return false;
+  if (error == nullptr || *error == nullptr) {
+    known_error_code_ = 0;
+    return false;
+  }
   if ((*error)->code != known_error_code_) {
     LogWarning("Secret %s failed. Error %d: %s", function_name, (*error)->code,
-               (*error)->message);
+               (*error)->message ? (*error)->message : "(null)");
     known_error_code_ = (*error)->code;
   }
   g_error_free(*error);

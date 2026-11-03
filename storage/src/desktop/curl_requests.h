@@ -104,16 +104,34 @@ class NotifyingRequest : public Base {
 
   Notifier* notifier() { return &notifier_; }
 
+  // Ordering invariant (deliberately Base first, notifications last):
+  //  * Base::MarkCompleted()/MarkFailed() (rest::Request) only set the
+  //    `completed_` flag; they signal no future, condition or callback, so
+  //    nothing can delete this request while they run. Calling them first
+  //    means `completed()` is already accurate when the notifications fire.
+  //  * Per the Notifier contract, NotifyComplete()/NotifyFailed() must be the
+  //    last thing done: after they return this object may have been deleted,
+  //    so no member may be touched afterwards (which is what the original
+  //    macro's "notify, then Base::Mark*()" order violated in principle).
+  //  * Ownership: the request is owned by RestOperation::request_ and is only
+  //    deleted with its RestOperation. RestOperation ignores Complete/Failed
+  //    from the request's notifier (it reacts only to progress); the
+  //    operation becomes deletable only once the *response's*
+  //    MarkCompleted()/MarkFailed() notifies completion, which
+  //    RestTransfer::CompleteOperation() calls strictly after this method has
+  //    returned, on the same curl I/O thread. Hence neither the Base call nor
+  //    the notifications below can race with destruction of this request.
   void MarkCompleted() override {
     Base::MarkCompleted();
     notifier_.NotifyProgress();
-    notifier_.NotifyComplete();
+    notifier_.NotifyComplete();  // Must be last; see above.
   }
 
+  // See MarkCompleted() for the ordering/ownership invariant.
   void MarkFailed() override {
     Base::MarkFailed();
     notifier_.NotifyProgress();
-    notifier_.NotifyFailed();
+    notifier_.NotifyFailed();  // Must be last; see MarkCompleted().
   }
 
   size_t ReadBody(char* buffer, size_t length, bool* abort) override {

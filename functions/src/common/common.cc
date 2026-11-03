@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 
 #include "functions/src/include/firebase/functions/common.h"
 
-#include <ctime>
-
 namespace firebase {
 namespace functions {
 namespace internal {
@@ -25,41 +23,44 @@ const char* GetErrorMessage(Error error) {
     case kErrorNone:
       return "OK";
     case kErrorCancelled:
-      return "Cancelled";
+      return "The operation was cancelled";
     case kErrorUnknown:
-      return "Unknown";
+      return "Unknown error or an error from a different error domain";
     case kErrorInvalidArgument:
-      return "Invalid Argument";
+      return "Client specified an invalid argument";
     case kErrorDeadlineExceeded:
-      return "Deadline Exceeded";
+      return "Deadline expired before operation could complete";
     case kErrorNotFound:
-      return "Not Found";
+      return "Requested entity was not found";
     case kErrorAlreadyExists:
-      return "Already Exists";
+      return "Entity that we attempted to create already exists";
     case kErrorPermissionDenied:
-      return "Permission Denied";
+      return "The caller does not have permission to execute the specified "
+             "operation";
     case kErrorUnauthenticated:
-      return "Unauthenticated";
+      return "The request does not have valid authentication credentials for "
+             "the operation";
     case kErrorResourceExhausted:
-      return "Resource Exhausted";
+      return "Some resource has been exhausted, perhaps a per-user quota, or "
+             "perhaps the entire file system is out of space";
     case kErrorFailedPrecondition:
-      return "Failed Precondition";
+      return "Operation was rejected because the system is not in a state "
+             "required for the operation's execution";
     case kErrorAborted:
-      return "Aborted";
+      return "The operation was aborted, typically due to a concurrency issue "
+             "like transaction aborts, etc.";
     case kErrorOutOfRange:
-      return "Out of Range";
+      return "Operation was attempted past the valid range";
     case kErrorUnimplemented:
-      return "Unimplemented";
+      return "Operation is not implemented or not supported/enabled";
     case kErrorInternal:
-      return "Internal";
+      return "Internal errors";
     case kErrorUnavailable:
-      return "Unavailable";
+      return "The service is currently unavailable";
     case kErrorDataLoss:
-      return "Data Loss";
-    // This shouldn't happen, but the iOS and Android SDKs default to INTERNAL.
-    default:
-      return "Internal";
+      return "Unrecoverable data loss or corruption";
   }
+  return "Unknown error";
 }
 
 }  // namespace internal

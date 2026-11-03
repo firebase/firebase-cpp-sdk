@@ -50,12 +50,20 @@ static Mutex g_log_mutex;  // NOLINT
 void LogInitialize() {}
 
 // Set the platform specific SDK log level.
-void LogSetPlatformLevel(LogLevel level) {}
+void LogSetPlatformLevel(LogLevel /*level*/) {}
 
 // Log a firebase message.
 void LogMessageV(LogLevel log_level, const char* format, va_list args) {
-  assert(log_level < FIREBASE_ARRAYSIZE(kLogLevelPrefix));
-  const char* prefix = kLogLevelPrefix[log_level];
+  if (!format) return;
+  const char* prefix =
+      (log_level >= kLogLevelVerbose &&
+       static_cast<size_t>(log_level) < FIREBASE_ARRAYSIZE(kLogLevelPrefix))
+          ? kLogLevelPrefix[log_level]
+          : "";
+#if FIREBASE_PLATFORM_WINDOWS
+  va_list win_args;
+  va_copy(win_args, args);
+#endif  // FIREBASE_PLATFORM_WINDOWS
   printf("%s", prefix);
   vprintf(format, args);
   printf("\n");
@@ -65,12 +73,14 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
     MutexLock lock(g_log_mutex);
     static char log_buffer[1024];
     size_t prefix_length = strlen(prefix);
-    strcpy(log_buffer, prefix);  // // NOLINT
+    strcpy(log_buffer, prefix);  // NOLINT
     vsnprintf(log_buffer + prefix_length,
-              sizeof(log_buffer) - 1 - prefix_length, format, args);  // NOLINT
+              sizeof(log_buffer) - 1 - prefix_length, format,
+              win_args);  // NOLINT
     log_buffer[sizeof(log_buffer) - 1] = '\0';
-    OutputDebugString(log_buffer);
+    OutputDebugStringA(log_buffer);
   }
+  va_end(win_args);
 #endif  // FIREBASE_PLATFORM_WINDOWS
 }
 

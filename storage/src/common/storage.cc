@@ -184,12 +184,13 @@ Storage::Storage(::firebase::App* app, const char* url) {
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app);
     assert(app_notifier);
-    app_notifier->RegisterObject(this, [app](void* object) {
+    app_notifier->RegisterObject(this, [](void* object) {
       Storage* storage = reinterpret_cast<Storage*>(object);
       LogWarning(
           "Storage object %p should be deleted before the App %p "
           "it depends upon.",
-          static_cast<const void*>(storage), static_cast<const void*>(app));
+          static_cast<const void*>(storage),
+          static_cast<const void*>(storage->app()));
       storage->DeleteInternal();
     });
   }
@@ -230,8 +231,11 @@ void Storage::DeleteInternal() {
     app_notifier->UnregisterObject(this);
   }
 
-  // Force cleanup of dependent objects before deleting internal.
-  internal->cleanup().CleanupAll();
+  // ~StorageInternal() marks its lifetime token dead and then runs
+  // cleanup().CleanupAll() itself, on every platform. Do not call CleanupAll()
+  // here first: running cleanup callbacks while the StorageInternal still
+  // reports itself alive would let them race with (and deadlock against)
+  // owners that unregister under the lifetime token.
   delete internal;
 }
 
@@ -344,6 +348,7 @@ LogLevel Storage::log_level() const {
   return g_storage_log_level.load(std::memory_order_relaxed);
 }
 
+#if defined(FIREBASE_STORAGE_BUILDING_SDK)
 // ABI-compatibility non-const overloads (see storage.h).
 ::firebase::App* Storage::app() {
   return static_cast<const Storage*>(this)->app();
@@ -358,6 +363,7 @@ double Storage::max_upload_retry_time() {
 double Storage::max_operation_retry_time() {
   return static_cast<const Storage*>(this)->max_operation_retry_time();
 }
+#endif  // defined(FIREBASE_STORAGE_BUILDING_SDK)
 
 }  // namespace storage
 }  // namespace firebase

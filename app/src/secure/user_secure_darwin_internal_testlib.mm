@@ -13,44 +13,102 @@
 // limitations under the License.
 
 #include "app/src/secure/user_secure_darwin_internal_testlib.h"
-#include <cstring>
-
-#include "app/src/log.h"
 
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
+#include <unistd.h>
+
+#include <cstring>
+#include <map>
+#include <mutex>
+#include <string>
+
+#include "app/src/log.h"
 
 namespace firebase {
 namespace app {
 namespace secure {
 
-static const char kTestKeychainPassword[] = "password";
+namespace {
 
-UserSecureDarwinTestHelper::UserSecureDarwinTestHelper() {
-  SecKeychainRef keychain;
-  char temp_file[] = "test_keychain_XXXXXX";
-  std::string filename = mktemp(temp_file);
-  if (filename.empty()) {
+constexpr char kTestKeychainPassword[] = "password";
+
+std::mutex& GetPreviousKeychainsMutex() {
+  static auto* mutex = new std::mutex();
+  return *mutex;
+}
+
+std::map<const UserSecureDarwinTestHelper*, SecKeychainRef>&
+GetPreviousKeychains() {
+  static auto* map =
+      new std::map<const UserSecureDarwinTestHelper*, SecKeychainRef>();
+  return *map;
+}
+
+std::string GetSecurityErrorMessage(OSStatus status) {
+  CFStringRef cf_error = SecCopyErrorMessageString(status, nullptr);
+  if (cf_error == nullptr) {
+    return "Unknown error";
+  }
+  const char* utf8 = [(__bridge NSString*)cf_error UTF8String];
+  std::string message = utf8 ? utf8 : "Unknown error";
+  CFRelease(cf_error);
+  return message;
+}
+
+}  // namespace
+
+UserSecureDarwinTestHelper::UserSecureDarwinTestHelper()
+    : previous_interaction_mode_(true) {
+  SecKeychainRef keychain = nullptr;
+  char temp_file[] = "/tmp/test_keychain_XXXXXX";
+  int fd = mkstemp(temp_file);
+  if (fd == -1) {
     LogError("UserSecureDarwinTestHelper: Couldn't create temporary file");
     return;
   }
-  OSStatus status = SecKeychainCreate(filename.c_str(), strlen(kTestKeychainPassword),
-                                      kTestKeychainPassword, FALSE, NULL, &keychain);
+  close(fd);
+  unlink(temp_file);
+  std::string filename = temp_file;
+  OSStatus status = SecKeychainCreate(
+      filename.c_str(), static_cast<UInt32>( std::strlen(kTestKeychainPassword)),
+      kTestKeychainPassword, FALSE, nullptr, &keychain);
   if (status != noErr) {
-    NSString* error_string = (__bridge_transfer NSString*)SecCopyErrorMessageString(status, NULL);
-    LogError("UserSecureDarwinTestHelper: Error %d creating %s: %s", status, filename.c_str(),
-             error_string.UTF8String);
+    std::string error_message = GetSecurityErrorMessage(status);
+    LogError("UserSecureDarwinTestHelper: Error %d creating %s: %s",
+             static_cast<int>(status), filename.c_str(), error_message.c_str());
     return;
   }
+
+  SecKeychainRef previous_keychain = nullptr;
+  if (SecKeychainCopyDefault(&previous_keychain) != noErr) {
+    previous_keychain = nullptr;
+  }
+
   status = SecKeychainSetDefault(keychain);
-  CFRelease(keychain);
   if (status != noErr) {
-    NSString* error_string = (__bridge_transfer NSString*)SecCopyErrorMessageString(status, NULL);
-    LogError("UserSecureDarwinTestHelper: Error %d setting default keychain to %s: %s", status,
-             filename.c_str(), error_string.UTF8String);
+    std::string error_message = GetSecurityErrorMessage(status);
+    LogError(
+        "UserSecureDarwinTestHelper: Error %d setting default keychain to %s: "
+        "%s",
+        static_cast<int>(status), filename.c_str(), error_message.c_str());
+    SecKeychainDelete(keychain);
+    CFRelease(keychain);
+    unlink(filename.c_str());
+    if (previous_keychain != nullptr) {
+      CFRelease(previous_keychain);
+    }
     return;
   }
-  LogInfo("UserSecureDarwinTestHelper: Using test keychain: %s", filename.c_str());
+  CFRelease(keychain);
+
+  if (previous_keychain != nullptr) {
+    std::lock_guard<std::mutex> lock(GetPreviousKeychainsMutex());
+    GetPreviousKeychains()[this] = previous_keychain;
+  }
+
+  LogInfo("UserSecureDarwinTestHelper: Using test keychain: %s",
+          filename.c_str());
   test_keychain_file_ = filename;
   Boolean prev_interaction = YES;
   SecKeychainGetUserInteractionAllowed(&prev_interaction);
@@ -60,8 +118,30 @@ UserSecureDarwinTestHelper::UserSecureDarwinTestHelper() {
 
 UserSecureDarwinTestHelper::~UserSecureDarwinTestHelper() {
   if (!test_keychain_file_.empty()) {
+    SecKeychainRef keychain = nullptr;
+    if (SecKeychainOpen(test_keychain_file_.c_str(), &keychain) == noErr &&
+        keychain != nullptr) {
+      SecKeychainDelete(keychain);
+      CFRelease(keychain);
+    }
     unlink(test_keychain_file_.c_str());
     test_keychain_file_ = "";
+
+    SecKeychainRef previous_keychain = nullptr;
+    {
+      std::lock_guard<std::mutex> lock(GetPreviousKeychainsMutex());
+      auto& map = GetPreviousKeychains();
+      auto it = map.find(this);
+      if (it != map.end()) {
+        previous_keychain = it->second;
+        map.erase(it);
+      }
+    }
+    if (previous_keychain != nullptr) {
+      SecKeychainSetDefault(previous_keychain);
+      CFRelease(previous_keychain);
+    }
+
     SecKeychainSetUserInteractionAllowed(previous_interaction_mode_ ? YES : NO);
   }
 }

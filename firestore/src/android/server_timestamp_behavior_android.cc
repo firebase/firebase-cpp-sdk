@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 
+#include "app/src/assert.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -59,6 +60,9 @@ Local<Object> ServerTimestampBehaviorInternal::Create(
     case ServerTimestampBehavior::kPrevious:
       return env.Get(kPrevious);
   }
+  FIREBASE_ASSERT_MESSAGE(false, "Unknown ServerTimestampBehavior value: %d",
+                          static_cast<int>(stb));
+  return {};
 }
 
 void ServerTimestampBehaviorInternal::Initialize(jni::Loader& loader) {

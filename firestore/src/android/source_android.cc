@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/source_android.h"
 
+#include "app/src/assert.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -25,10 +26,8 @@ namespace {
 
 using jni::Env;
 using jni::Local;
-using jni::Method;
 using jni::Object;
 using jni::StaticField;
-using jni::String;
 
 constexpr char kClass[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Source";
@@ -52,6 +51,9 @@ Local<Object> SourceInternal::Create(Env& env, Source source) {
     case Source::kCache:
       return env.Get(kCache);
   }
+  FIREBASE_ASSERT_MESSAGE(false, "Unknown Source value: %d",
+                          static_cast<int>(source));
+  return {};
 }
 
 }  // namespace firestore

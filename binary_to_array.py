@@ -1,4 +1,4 @@
-#!/usr/grte/v4/bin/python2.7
+#!/usr/bin/env python3
 
 # Copyright 2016 Google LLC
 #
@@ -188,6 +188,7 @@ def source(namespaces, array_name, array_size_name, fileid, filename,
   data.append(line)
   data.append("  0x00  // Extra \\0 to make it a C string")
 
+  escaped_filename = filename.replace("\\", "\\\\").replace("\"", "\\\"")
   data.extend([
       "};",
       "",
@@ -195,7 +196,7 @@ def source(namespaces, array_name, array_size_name, fileid, filename,
       "  sizeof(%s) - 1;" % array_name,
       "",
       "const char %s[] =" % fileid,
-      "  \"%s\";" % filename,
+      "  \"%s\";" % escaped_filename,
       "",
   ])
 

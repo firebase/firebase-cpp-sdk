@@ -53,16 +53,17 @@ class FunctionRegistry {
   typedef bool (*RegisteredFunction)(::firebase::App* app, void* args,
                                      void* out);
 
-  // Add a function to the registry, bound to a unique identifier.  Asserts
-  // if a function is already bound to that identifier.
+  // Add a function to the registry, bound to a unique identifier.  Returns
+  // false if a function is already bound to that identifier or if
+  // registered_function is null.
   bool RegisterFunction(FunctionId id, RegisteredFunction registered_function);
-  // Remove a function from the registry, or asserts if nothing is bound to that
-  // identifier.
+  // Remove a function from the registry.  Returns false if nothing is bound to
+  // that identifier.
   bool UnregisterFunction(FunctionId id);
   // Checks if an identifier has a function bound to it.
   bool FunctionExists(FunctionId id);
   // Executes a function if possible.  Returns false if the identifier is
-  // is unbound, or if the function fails.  Results are returned via the "out"
+  // unbound, or if the function fails.  Results are returned via the "out"
   // pointer.
   bool CallFunction(FunctionId id, App* app, void* args, void* out);
 

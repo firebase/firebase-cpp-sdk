@@ -17,6 +17,7 @@
 #include "ump/src/android/consent_info_internal_android.h"
 
 #include <jni.h>
+#include <strings.h>
 
 #include <cassert>
 #include <string>
@@ -68,7 +69,7 @@ std::vector<::firebase::internal::EmbeddedFile>* g_cached_ump_embedded_files =
   X(PrivacyOptionsRequirementNotRequired,                                       \
     "PRIVACY_OPTIONS_REQUIREMENT_NOT_REQUIRED", "I", util::kFieldTypeStatic),   \
   X(FunctionRequestConsentInfoUpdate,                                           \
-    "FUNCTION_REQUEST_CONSENT_INFO_UPDATE", "I", util::kFieldTypeStatic),       \
+     "FUNCTION_REQUEST_CONSENT_INFO_UPDATE", "I", util::kFieldTypeStatic),       \
   X(FunctionLoadConsentForm,                                                    \
     "FUNCTION_LOAD_CONSENT_FORM", "I", util::kFieldTypeStatic),                 \
   X(FunctionShowConsentForm,                                                    \
@@ -136,10 +137,11 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/android/ump/ConsentDebugSettings$DebugGeography",
     METHOD_LOOKUP_NONE, CONSENTDEBUGSETTINGS_DEBUGGEOGRAPHY_FIELDS);
 
-// This explicitly implements the constructor for the outer class,
-// ConsentInfoInternal.
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance(JNIEnv* jni_env,
                                                          jobject activity) {
+  if (!jni_env || !activity) {
+    return nullptr;
+  }
   ConsentInfoInternalAndroid* ptr =
       new ConsentInfoInternalAndroid(jni_env, activity);
   if (!ptr->valid()) {
@@ -157,128 +159,162 @@ static void ReleaseClasses(JNIEnv* env) {
 }
 
 ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
+  if (!java_vm_) {
+    return;
+  }
   JNIEnv* env = GetJNIEnv();
-  env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
-                                   consent_info_helper::kDisconnect));
+  if (env && helper_) {
+    env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
+                                     consent_info_helper::kDisconnect));
+    util::CheckAndClearJniExceptions(env);
+  }
 
-  MutexLock lock(s_instance_mutex);
-  s_instance = nullptr;
+  {
+    MutexLock lock(s_instance_mutex);
+    if (s_instance == this) {
+      s_instance = nullptr;
+    }
+  }
 
-  env->DeleteGlobalRef(helper_);
-  helper_ = nullptr;
-
-  ReleaseClasses(env);
-  util::Terminate(env);
-
-  env->DeleteGlobalRef(activity_);
-  activity_ = nullptr;
+  if (env) {
+    if (helper_) {
+      env->DeleteGlobalRef(helper_);
+      helper_ = nullptr;
+    }
+    if (consent_info_helper::GetClass() != nullptr) {
+      env->UnregisterNatives(consent_info_helper::GetClass());
+      util::CheckAndClearJniExceptions(env);
+    }
+    ReleaseClasses(env);
+    util::Terminate(env);
+  }
   java_vm_ = nullptr;
 }
 
-// clang-format off
-#define ENUM_VALUE(class_namespace, field_name)           \
-   env->GetStaticIntField(class_namespace::GetClass(),    \
-                          class_namespace::GetFieldId(class_namespace::k##field_name))
-// clang-format on
+namespace {
+bool ReadStaticIntField(JNIEnv* env, jclass clazz, jfieldID field_id,
+                        jint* out_value) {
+  if (!env || !clazz || !field_id || !out_value) {
+    return false;
+  }
+  *out_value = env->GetStaticIntField(clazz, field_id);
+  return !util::CheckAndClearJniExceptions(env);
+}
+}  // namespace
 
-void ConsentInfoInternalAndroid::CacheEnumValues(JNIEnv* env) {
-  // Cache enum values when the class loads, to avoid JNI lookups during
-  // callbacks later on when converting enums between Android and C++ values.
-  enums_.consentstatus_unknown =
-      ENUM_VALUE(consentinformation_consentstatus, Unknown);
-  enums_.consentstatus_required =
-      ENUM_VALUE(consentinformation_consentstatus, Required);
-  enums_.consentstatus_not_required =
-      ENUM_VALUE(consentinformation_consentstatus, NotRequired);
-  enums_.consentstatus_obtained =
-      ENUM_VALUE(consentinformation_consentstatus, Obtained);
+#define READ_ENUM_VALUE(class_namespace, field_name, target)               \
+  do {                                                                     \
+    if (!ReadStaticIntField(                                               \
+            env, class_namespace::GetClass(),                              \
+            class_namespace::GetFieldId(class_namespace::k##field_name),   \
+            &(target))) {                                                  \
+      return false;                                                        \
+    }                                                                      \
+  } while (0)
 
-  enums_.debug_geography_disabled =
-      ENUM_VALUE(consentdebugsettings_debuggeography, Disabled);
-  enums_.debug_geography_eea =
-      ENUM_VALUE(consentdebugsettings_debuggeography, EEA);
-  enums_.debug_geography_not_eea =
-      ENUM_VALUE(consentdebugsettings_debuggeography, NotEEA);
+bool ConsentInfoInternalAndroid::CacheEnumValues(JNIEnv* env) {
+  READ_ENUM_VALUE(consentinformation_consentstatus, Unknown,
+                  enums_.consentstatus_unknown);
+  READ_ENUM_VALUE(consentinformation_consentstatus, Required,
+                  enums_.consentstatus_required);
+  READ_ENUM_VALUE(consentinformation_consentstatus, NotRequired,
+                  enums_.consentstatus_not_required);
+  READ_ENUM_VALUE(consentinformation_consentstatus, Obtained,
+                  enums_.consentstatus_obtained);
+
+  READ_ENUM_VALUE(consentdebugsettings_debuggeography, Disabled,
+                  enums_.debug_geography_disabled);
+  READ_ENUM_VALUE(consentdebugsettings_debuggeography, EEA,
+                  enums_.debug_geography_eea);
+  READ_ENUM_VALUE(consentdebugsettings_debuggeography, NotEEA,
+                  enums_.debug_geography_not_eea);
+  enums_.debug_geography_regulated_us_state = 3;
+  enums_.debug_geography_other = 4;
 
   enums_.formerror_success = 0;
-  enums_.formerror_internal = ENUM_VALUE(formerror_errorcode, InternalError);
-  enums_.formerror_network = ENUM_VALUE(formerror_errorcode, InternetError);
-  enums_.formerror_invalid_operation =
-      ENUM_VALUE(formerror_errorcode, InvalidOperation);
-  enums_.formerror_timeout = ENUM_VALUE(formerror_errorcode, TimeOut);
+  READ_ENUM_VALUE(formerror_errorcode, InternalError,
+                  enums_.formerror_internal);
+  READ_ENUM_VALUE(formerror_errorcode, InternetError, enums_.formerror_network);
+  READ_ENUM_VALUE(formerror_errorcode, InvalidOperation,
+                  enums_.formerror_invalid_operation);
+  READ_ENUM_VALUE(formerror_errorcode, TimeOut, enums_.formerror_timeout);
 
-  enums_.privacy_options_requirement_unknown =
-      ENUM_VALUE(consent_info_helper, PrivacyOptionsRequirementUnknown);
-  enums_.privacy_options_requirement_required =
-      ENUM_VALUE(consent_info_helper, PrivacyOptionsRequirementRequired);
-  enums_.privacy_options_requirement_not_required =
-      ENUM_VALUE(consent_info_helper, PrivacyOptionsRequirementNotRequired);
+  READ_ENUM_VALUE(consent_info_helper, PrivacyOptionsRequirementUnknown,
+                  enums_.privacy_options_requirement_unknown);
+  READ_ENUM_VALUE(consent_info_helper, PrivacyOptionsRequirementRequired,
+                  enums_.privacy_options_requirement_required);
+  READ_ENUM_VALUE(consent_info_helper, PrivacyOptionsRequirementNotRequired,
+                  enums_.privacy_options_requirement_not_required);
 
-  enums_.function_request_consent_info_update =
-      ENUM_VALUE(consent_info_helper, FunctionRequestConsentInfoUpdate);
-  enums_.function_load_consent_form =
-      ENUM_VALUE(consent_info_helper, FunctionLoadConsentForm);
-  enums_.function_show_consent_form =
-      ENUM_VALUE(consent_info_helper, FunctionShowConsentForm);
-  enums_.function_load_and_show_consent_form_if_required =
-      ENUM_VALUE(consent_info_helper, FunctionLoadAndShowConsentFormIfRequired);
-  enums_.function_show_privacy_options_form =
-      ENUM_VALUE(consent_info_helper, FunctionShowPrivacyOptionsForm);
-  enums_.function_count = ENUM_VALUE(consent_info_helper, FunctionCount);
+  READ_ENUM_VALUE(consent_info_helper, FunctionRequestConsentInfoUpdate,
+                  enums_.function_request_consent_info_update);
+  READ_ENUM_VALUE(consent_info_helper, FunctionLoadConsentForm,
+                  enums_.function_load_consent_form);
+  READ_ENUM_VALUE(consent_info_helper, FunctionShowConsentForm,
+                  enums_.function_show_consent_form);
+  READ_ENUM_VALUE(consent_info_helper,
+                  FunctionLoadAndShowConsentFormIfRequired,
+                  enums_.function_load_and_show_consent_form_if_required);
+  READ_ENUM_VALUE(consent_info_helper, FunctionShowPrivacyOptionsForm,
+                  enums_.function_show_privacy_options_form);
+  READ_ENUM_VALUE(consent_info_helper, FunctionCount, enums_.function_count);
+  return true;
 }
+
+#undef READ_ENUM_VALUE
 
 void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(
     JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_internal_ptr,
     jlong future_handle, jint error_code, jobject error_message_obj) {
+  (void)clazz;
   MutexLock lock(s_instance_mutex);
   if (consent_info_internal_ptr == 0 || s_instance == nullptr) {
-    // Calling this with a null pointer, or if there is no active
-    // instance, is a no-op, so just return.
     return;
   }
   ConsentInfoInternalAndroid* instance =
       reinterpret_cast<ConsentInfoInternalAndroid*>(consent_info_internal_ptr);
   if (s_instance != instance) {
-    // If the instance we were called with does not match the current
-    // instance, a bad race condition has occurred (whereby while waiting for
-    // the operation to complete, ConsentInfo was deleted and then recreated).
-    // In that case, fully ignore this callback.
     return;
   }
   std::string error_message =
-      error_message_obj ? util::JniStringToString(env, error_message_obj) : "";
+      error_message_obj
+          ? util::JStringToString(env, static_cast<jstring>(error_message_obj))
+          : "";
   instance->CompleteFutureFromJniCallback(
       env, future_fn, static_cast<FutureHandleId>(future_handle),
       static_cast<int>(error_code),
-      error_message.length() > 0 ? error_message.c_str() : nullptr);
+      !error_message.empty() ? error_message.c_str() : nullptr);
 }
 
 ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
                                                        jobject activity)
     : java_vm_(nullptr),
-      activity_(nullptr),
       helper_(nullptr),
+      set_activity_method_id_(nullptr),
       has_requested_consent_info_update_(false) {
+  if (!env || !activity) {
+    return;
+  }
   MutexLock lock(s_instance_mutex);
   FIREBASE_ASSERT(s_instance == nullptr);
-  s_instance = this;
 
-  util::Initialize(env, activity);
+  if (!util::Initialize(env, activity)) {
+    return;
+  }
   env->GetJavaVM(&java_vm_);
 
-  // Ensure we only load these files once.
   {
-    MutexLock lock(
+    MutexLock files_lock(
         ::firebase::ump::internal::g_cached_ump_embedded_files_mutex);
     if (::firebase::ump::internal::g_cached_ump_embedded_files == nullptr) {
       ::firebase::ump::internal::g_cached_ump_embedded_files =
-          new std::vector<firebase::internal::EmbeddedFile>();
-      *::firebase::ump::internal::g_cached_ump_embedded_files =
-          util::CacheEmbeddedFiles(env, activity,
-                                   firebase::internal::EmbeddedFile::ToVector(
-                                       firebase_ump::ump_resources_filename,
-                                       firebase_ump::ump_resources_data,
-                                       firebase_ump::ump_resources_size));
+          new std::vector<firebase::internal::EmbeddedFile>(
+              util::CacheEmbeddedFiles(
+                  env, activity,
+                  firebase::internal::EmbeddedFile::ToVector(
+                      firebase_ump::ump_resources_filename,
+                      firebase_ump::ump_resources_data,
+                      firebase_ump::ump_resources_size)));
     }
   }
   const std::vector<firebase::internal::EmbeddedFile>& embedded_files =
@@ -293,8 +329,10 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
         consentdebugsettings_debuggeography::CacheFieldIds(env, activity))) {
     ReleaseClasses(env);
     util::Terminate(env);
+    java_vm_ = nullptr;
     return;
   }
+
   static const JNINativeMethod kConsentInfoHelperNativeMethods[] = {
       {"completeFuture", "(IJJILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_ConsentInfoHelper_completeFuture)}};
@@ -304,48 +342,88 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
     util::CheckAndClearJniExceptions(env);
     ReleaseClasses(env);
     util::Terminate(env);
+    java_vm_ = nullptr;
     return;
   }
   util::CheckAndClearJniExceptions(env);
+
+  if (!CacheEnumValues(env)) {
+    env->UnregisterNatives(consent_info_helper::GetClass());
+    util::CheckAndClearJniExceptions(env);
+    ReleaseClasses(env);
+    util::Terminate(env);
+    java_vm_ = nullptr;
+    return;
+  }
+
+  // Optional lookup of setActivity(Activity) if present in the embedded DEX.
+  set_activity_method_id_ = env->GetMethodID(
+      consent_info_helper::GetClass(), "setActivity",
+      "(Landroid/app/Activity;)V");
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    set_activity_method_id_ = nullptr;
+  }
+
+  // Publish s_instance before constructing ConsentInfoHelper in case an older
+  // embedded DEX invokes completeFuture(-1, ...) inside its constructor.
+  s_instance = this;
+
   jobject helper_ref = env->NewObject(
       consent_info_helper::GetClass(),
       consent_info_helper::GetMethodId(consent_info_helper::kConstructor),
       reinterpret_cast<jlong>(this), activity);
-  util::CheckAndClearJniExceptions(env);
-  if (!helper_ref) {
+  if (util::CheckAndClearJniExceptions(env) || !helper_ref) {
+    s_instance = nullptr;
+    env->UnregisterNatives(consent_info_helper::GetClass());
+    util::CheckAndClearJniExceptions(env);
     ReleaseClasses(env);
     util::Terminate(env);
+    java_vm_ = nullptr;
     return;
   }
 
   helper_ = env->NewGlobalRef(helper_ref);
-  FIREBASE_ASSERT(helper_);
   env->DeleteLocalRef(helper_ref);
+  if (util::CheckAndClearJniExceptions(env) || !helper_) {
+    s_instance = nullptr;
+    env->UnregisterNatives(consent_info_helper::GetClass());
+    util::CheckAndClearJniExceptions(env);
+    ReleaseClasses(env);
+    util::Terminate(env);
+    java_vm_ = nullptr;
+    return;
+  }
+}
 
-  activity_ = env->NewGlobalRef(activity);
-
-  util::CheckAndClearJniExceptions(env);
-
-  CacheEnumValues(env);
-
+void ConsentInfoInternalAndroid::SetActivity(JNIEnv* jni_env,
+                                             jobject activity) {
+  if (!valid() || !activity || !set_activity_method_id_) {
+    return;
+  }
+  JNIEnv* env = jni_env ? jni_env : GetJNIEnv();
+  if (!env) {
+    return;
+  }
+  env->CallVoidMethod(helper_, set_activity_method_id_, activity);
   util::CheckAndClearJniExceptions(env);
 }
 
 ConsentStatus ConsentInfoInternalAndroid::CppConsentStatusFromAndroid(
-    jint status) {
+    jint status) const {
   if (status == enums().consentstatus_unknown) return kConsentStatusUnknown;
   if (status == enums().consentstatus_required) return kConsentStatusRequired;
   if (status == enums().consentstatus_not_required)
     return kConsentStatusNotRequired;
   if (status == enums().consentstatus_obtained) return kConsentStatusObtained;
   LogWarning("UMP: Unknown ConsentStatus returned by UMP Android SDK: %d",
-             (int)status);
+             static_cast<int>(status));
   return kConsentStatusUnknown;
 }
 
 PrivacyOptionsRequirementStatus
 ConsentInfoInternalAndroid::CppPrivacyOptionsRequirementStatusFromAndroid(
-    jint status) {
+    jint status) const {
   if (status == enums().privacy_options_requirement_unknown)
     return kPrivacyOptionsRequirementStatusUnknown;
   if (status == enums().privacy_options_requirement_required)
@@ -355,12 +433,12 @@ ConsentInfoInternalAndroid::CppPrivacyOptionsRequirementStatusFromAndroid(
   LogWarning(
       "UMP: Unknown PrivacyOptionsRequirementStatus returned by UMP Android "
       "SDK: %d",
-      (int)status);
+      static_cast<int>(status));
   return kPrivacyOptionsRequirementStatusUnknown;
 }
 
 jint ConsentInfoInternalAndroid::AndroidDebugGeographyFromCppDebugGeography(
-    ConsentDebugGeography geo) {
+    ConsentDebugGeography geo) const {
   switch (geo) {
     case kConsentDebugGeographyDisabled:
       return enums().debug_geography_disabled;
@@ -368,6 +446,10 @@ jint ConsentInfoInternalAndroid::AndroidDebugGeographyFromCppDebugGeography(
       return enums().debug_geography_eea;
     case kConsentDebugGeographyNonEEA:
       return enums().debug_geography_not_eea;
+    case kConsentDebugGeographyRegulatedUSState:
+      return enums().debug_geography_regulated_us_state;
+    case kConsentDebugGeographyOther:
+      return enums().debug_geography_other;
     default:
       return enums().debug_geography_disabled;
   }
@@ -376,62 +458,58 @@ jint ConsentInfoInternalAndroid::AndroidDebugGeographyFromCppDebugGeography(
 // Android uses FormError to report request errors as well.
 ConsentRequestError
 ConsentInfoInternalAndroid::CppConsentRequestErrorFromAndroidFormError(
-    jint error, const char* message) {
+    jint error, const char* message) const {
   if (error == enums().formerror_success) return kConsentRequestSuccess;
   if (error == enums().formerror_internal) return kConsentRequestErrorInternal;
   if (error == enums().formerror_network) return kConsentRequestErrorNetwork;
+  if (error == enums().formerror_timeout) return kConsentRequestErrorTimeout;
   if (error == enums().formerror_invalid_operation) {
-    // Error strings taken directly from the UMP Android SDK.
     if (message && strcasestr(message, "misconfiguration") != nullptr)
       return kConsentRequestErrorMisconfiguration;
-    else if (message &&
-             strcasestr(message, "requires a valid application ID") != nullptr)
+    if (message &&
+        strcasestr(message, "requires a valid application ID") != nullptr)
       return kConsentRequestErrorInvalidAppId;
-    else
-      return kConsentRequestErrorInvalidOperation;
+    return kConsentRequestErrorInvalidOperation;
   }
   LogWarning("UMP: Unknown RequestError returned by UMP Android SDK: %d (%s)",
-             (int)error, message ? message : "");
+             static_cast<int>(error), message ? message : "");
   return kConsentRequestErrorUnknown;
 }
 
 ConsentFormError
 ConsentInfoInternalAndroid::CppConsentFormErrorFromAndroidFormError(
-    jint error, const char* message) {
+    jint error, const char* message) const {
   if (error == enums().formerror_success) return kConsentFormSuccess;
   if (error == enums().formerror_internal) return kConsentFormErrorInternal;
+  if (error == enums().formerror_network) return kConsentFormErrorNetwork;
   if (error == enums().formerror_timeout) return kConsentFormErrorTimeout;
   if (error == enums().formerror_invalid_operation) {
-    // Error strings taken directly from the UMP Android SDK.
     if (message && strcasestr(message, "no available form") != nullptr)
       return kConsentFormErrorUnavailable;
-    else if (message && strcasestr(message, "form is not required") != nullptr)
+    if (message && strcasestr(message, "form is not required") != nullptr)
       return kConsentFormErrorUnavailable;
-    else if (message &&
-             strcasestr(message, "can only be invoked once") != nullptr)
+    if (message && strcasestr(message, "can only be invoked once") != nullptr)
       return kConsentFormErrorAlreadyUsed;
-    else
-      return kConsentFormErrorInvalidOperation;
+    return kConsentFormErrorInvalidOperation;
   }
-  LogWarning("UMP: Unknown RequestError returned by UMP Android SDK: %d (%s)",
-             (int)error, message ? message : "");
+  LogWarning("UMP: Unknown FormError returned by UMP Android SDK: %d (%s)",
+             static_cast<int>(error), message ? message : "");
   return kConsentFormErrorUnknown;
 }
 
 Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
-  if (RequestConsentInfoUpdateLastResult().status() == kFutureStatusPending) {
-    // This operation is already in progress.
-    // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
-    CompleteFuture(error_handle, kConsentRequestErrorOperationInProgress);
-    return MakeFuture<void>(futures(), error_handle);
+  if (!valid()) return Future<void>();
+
+  SafeFutureHandle<void> handle;
+  Future<void> in_progress;
+  if (!BeginSingleFlightOperation(kConsentInfoFnRequestConsentInfoUpdate,
+                                  kConsentRequestErrorOperationInProgress,
+                                  &handle, &in_progress)) {
+    return in_progress;
   }
 
-  SafeFutureHandle<void> handle =
-      CreateFuture(kConsentInfoFnRequestConsentInfoUpdate);
   JNIEnv* env = GetJNIEnv();
-
   jlong future_handle = static_cast<jlong>(handle.get().id());
   jboolean tag_for_under_age_of_consent =
       params.tag_for_under_age_of_consent ? JNI_TRUE : JNI_FALSE;
@@ -449,10 +527,10 @@ Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
     std::string exception_message = util::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentRequestErrorInternal,
                    exception_message.c_str());
-  } else {
-    has_requested_consent_info_update_ = true;
   }
-  env->DeleteLocalRef(debug_device_ids_list);
+  if (debug_device_ids_list) {
+    env->DeleteLocalRef(debug_device_ids_list);
+  }
 
   return MakeFuture<void>(futures(), handle);
 }
@@ -465,23 +543,21 @@ ConsentStatus ConsentInfoInternalAndroid::GetConsentStatus() {
   jint result = env->CallIntMethod(
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kGetConsentStatus));
-  if (env->ExceptionCheck()) {
-    util::CheckAndClearJniExceptions(env);
+  if (util::CheckAndClearJniExceptions(env)) {
     return kConsentStatusUnknown;
   }
   return CppConsentStatusFromAndroid(result);
 }
 
 ConsentFormStatus ConsentInfoInternalAndroid::GetConsentFormStatus() {
-  if (!valid() || !has_requested_consent_info_update_) {
+  if (!valid() || !has_requested_consent_info_update_.load()) {
     return kConsentFormStatusUnknown;
   }
   JNIEnv* env = GetJNIEnv();
   jboolean is_available = env->CallBooleanMethod(
       helper_, consent_info_helper::GetMethodId(
                    consent_info_helper::kIsConsentFormAvailable));
-  if (env->ExceptionCheck()) {
-    util::CheckAndClearJniExceptions(env);
+  if (util::CheckAndClearJniExceptions(env)) {
     return kConsentFormStatusUnknown;
   }
   return (is_available == JNI_FALSE) ? kConsentFormStatusUnavailable
@@ -489,15 +565,16 @@ ConsentFormStatus ConsentInfoInternalAndroid::GetConsentFormStatus() {
 }
 
 Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
-  if (LoadConsentFormLastResult().status() == kFutureStatusPending) {
-    // This operation is already in progress.
-    // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
-    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
-    return MakeFuture<void>(futures(), error_handle);
+  if (!valid()) return Future<void>();
+
+  SafeFutureHandle<void> handle;
+  Future<void> in_progress;
+  if (!BeginSingleFlightOperation(kConsentInfoFnLoadConsentForm,
+                                  kConsentFormErrorOperationInProgress, &handle,
+                                  &in_progress)) {
+    return in_progress;
   }
 
-  SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
   JNIEnv* env = GetJNIEnv();
   jlong future_handle = static_cast<jlong>(handle.get().id());
 
@@ -514,17 +591,17 @@ Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
 }
 
 Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
-  if (ShowConsentFormLastResult().status() == kFutureStatusPending) {
-    // This operation is already in progress.
-    // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
-    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
-    return MakeFuture<void>(futures(), error_handle);
+  if (!valid()) return Future<void>();
+
+  SafeFutureHandle<void> handle;
+  Future<void> in_progress;
+  if (!BeginSingleFlightOperation(kConsentInfoFnShowConsentForm,
+                                  kConsentFormErrorOperationInProgress, &handle,
+                                  &in_progress)) {
+    return in_progress;
   }
 
-  SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
   JNIEnv* env = GetJNIEnv();
-
   jlong future_handle = static_cast<jlong>(handle.get().id());
   jboolean success = env->CallBooleanMethod(
       helper_,
@@ -545,17 +622,15 @@ Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
 
 Future<void> ConsentInfoInternalAndroid::LoadAndShowConsentFormIfRequired(
     FormParent parent) {
-  if (LoadAndShowConsentFormIfRequiredLastResult().status() ==
-      kFutureStatusPending) {
-    // This operation is already in progress.
-    // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
-    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
-    return MakeFuture<void>(futures(), error_handle);
-  }
+  if (!valid()) return Future<void>();
 
-  SafeFutureHandle<void> handle =
-      CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
+  SafeFutureHandle<void> handle;
+  Future<void> in_progress;
+  if (!BeginSingleFlightOperation(
+          kConsentInfoFnLoadAndShowConsentFormIfRequired,
+          kConsentFormErrorOperationInProgress, &handle, &in_progress)) {
+    return in_progress;
+  }
 
   JNIEnv* env = GetJNIEnv();
   jlong future_handle = static_cast<jlong>(handle.get().id());
@@ -583,21 +658,23 @@ ConsentInfoInternalAndroid::GetPrivacyOptionsRequirementStatus() {
   jint result = env->CallIntMethod(
       helper_, consent_info_helper::GetMethodId(
                    consent_info_helper::kGetPrivacyOptionsRequirementStatus));
+  if (util::CheckAndClearJniExceptions(env)) {
+    return kPrivacyOptionsRequirementStatusUnknown;
+  }
   return CppPrivacyOptionsRequirementStatusFromAndroid(result);
 }
 
 Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
     FormParent parent) {
-  if (ShowPrivacyOptionsFormLastResult().status() == kFutureStatusPending) {
-    // This operation is already in progress.
-    // Return a future with an error - this will not override the Fn entry.
-    SafeFutureHandle<void> error_handle = CreateFuture();
-    CompleteFuture(error_handle, kConsentFormErrorOperationInProgress);
-    return MakeFuture<void>(futures(), error_handle);
-  }
+  if (!valid()) return Future<void>();
 
-  SafeFutureHandle<void> handle =
-      CreateFuture(kConsentInfoFnShowPrivacyOptionsForm);
+  SafeFutureHandle<void> handle;
+  Future<void> in_progress;
+  if (!BeginSingleFlightOperation(kConsentInfoFnShowPrivacyOptionsForm,
+                                  kConsentFormErrorOperationInProgress, &handle,
+                                  &in_progress)) {
+    return in_progress;
+  }
 
   JNIEnv* env = GetJNIEnv();
   jlong future_handle = static_cast<jlong>(handle.get().id());
@@ -616,18 +693,24 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
 }
 
 bool ConsentInfoInternalAndroid::CanRequestAds() {
+  if (!valid()) {
+    return false;
+  }
   JNIEnv* env = GetJNIEnv();
   jboolean can_request = env->CallBooleanMethod(
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kCanRequestAds));
-  if (env->ExceptionCheck()) {
-    util::CheckAndClearJniExceptions(env);
+  if (util::CheckAndClearJniExceptions(env)) {
     return false;
   }
-  return (can_request == JNI_FALSE) ? false : true;
+  return (can_request != JNI_FALSE);
 }
 
 void ConsentInfoInternalAndroid::Reset() {
+  has_requested_consent_info_update_.store(false);
+  if (!valid()) {
+    return;
+  }
   JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(
       helper_, consent_info_helper::GetMethodId(consent_info_helper::kReset));
@@ -637,28 +720,30 @@ void ConsentInfoInternalAndroid::Reset() {
 JNIEnv* ConsentInfoInternalAndroid::GetJNIEnv() {
   return firebase::util::GetThreadsafeJNIEnv(java_vm_);
 }
-jobject ConsentInfoInternalAndroid::activity() { return activity_; }
 
 void ConsentInfoInternalAndroid::CompleteFutureFromJniCallback(
     JNIEnv* env, jint future_fn, FutureHandleId handle_id, int java_error_code,
     const char* error_message) {
-  if (!futures()->ValidFuture(handle_id)) {
-    // This future is no longer valid, so no need to complete it.
+  (void)env;
+  if (future_fn < 0 || future_fn >= enums().function_count) {
     return;
   }
-  if (future_fn < 0 || future_fn >= enums().function_count) {
-    // Called with an invalid function ID, ignore this callback.
-    return;
+  {
+    MutexLock lock(futures_mutex());
+    if (!futures()->ValidFuture(handle_id)) {
+      return;
+    }
   }
   FutureHandle raw_handle(handle_id);
   SafeFutureHandle<void> handle(raw_handle);
   if (future_fn == enums().function_request_consent_info_update) {
-    // RequestConsentInfoUpdate uses the ConsentRequestError enum.
     ConsentRequestError error_code = CppConsentRequestErrorFromAndroidFormError(
         java_error_code, error_message);
+    if (error_code == kConsentRequestSuccess) {
+      has_requested_consent_info_update_.store(true);
+    }
     CompleteFuture(handle, error_code, error_message);
   } else {
-    // All other methods use the ConsentFormError enum.
     ConsentFormError error_code =
         CppConsentFormErrorFromAndroidFormError(java_error_code, error_message);
     CompleteFuture(handle, error_code, error_message);

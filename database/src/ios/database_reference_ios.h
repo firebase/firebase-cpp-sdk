@@ -15,7 +15,6 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_DATABASE_REFERENCE_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_DATABASE_REFERENCE_IOS_H_
 
-#include <map>
 #include <memory>
 #include <string>
 
@@ -40,8 +39,6 @@ namespace internal {
 // wrapper around the FIRDatabaseReference Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRDatabaseReference);
 
-#pragma clang assume_nonnull begin
-
 // The iOS implementation of the DatabaseReference class, which represents a
 // particular location in your Database and can be used for reading or writing
 // data to that Database location.
@@ -51,27 +48,26 @@ class DatabaseReferenceInternal : public QueryInternal {
       DatabaseInternal* database,
       std::unique_ptr<FIRDatabaseReferencePointer> impl);
 
-  virtual ~DatabaseReferenceInternal();
+  ~DatabaseReferenceInternal() override;
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
 
   DatabaseReferenceInternal& operator=(
       const DatabaseReferenceInternal& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  DatabaseReferenceInternal(DatabaseReferenceInternal&& reference);
+  DatabaseReferenceInternal(DatabaseReferenceInternal&& reference) noexcept;
 
-  DatabaseReferenceInternal& operator=(DatabaseReferenceInternal&& reference);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  DatabaseReferenceInternal& operator=(
+      DatabaseReferenceInternal&& reference) noexcept;
 
   // Gets the database to which we refer.
   Database* GetDatabase() const;
 
-  // Gets the string key of this database location.
-  const char* GetKey() const;
-
   // Gets the string key of this database location. The pointer is only valid
   // while the DatabaseReference is in scope.
+  const char* GetKey() const;
+
+  // Gets the string key of this database location.
   std::string GetKeyString() const;
 
   // Returns true if we are the root of the database.
@@ -111,10 +107,8 @@ class DatabaseReferenceInternal : public QueryInternal {
   // Run a user-supplied callback function, possibly multiple times, to perform
   // an atomic transaction on the database.
   Future<DataSnapshot> RunTransaction(
-      DoTransactionWithContext transaction_function,
-      void* _Nullable context,
-      void (* _Nullable delete_context)(void* _Nullable),
-      bool trigger_local_events = true);
+      DoTransactionWithContext transaction_function, void* context,
+      void (*delete_context)(void*), bool trigger_local_events = true);
 
   // Get the result of the most recent call to RunTransaction().
   Future<DataSnapshot> RunTransactionLastResult();
@@ -152,7 +146,7 @@ class DatabaseReferenceInternal : public QueryInternal {
 
   // Get the disconnect handler, which controls what actions the server will
   // perform to this location's data when this client disconnects.
-  DisconnectionHandler* _Nullable OnDisconnect();
+  DisconnectionHandler* OnDisconnect();
 
   // Manually disconnect Firebase Realtime Database from the server, and disable
   // automatic reconnection.
@@ -164,7 +158,7 @@ class DatabaseReferenceInternal : public QueryInternal {
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseReference* impl() const { return impl_->get(); }
+  FIRDatabaseReference* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
 
  private:
@@ -174,17 +168,16 @@ class DatabaseReferenceInternal : public QueryInternal {
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRDatabaseReferencePointer> impl_;
 
-  DisconnectionHandler* _Nullable cached_disconnection_handler_;
+  DisconnectionHandler* cached_disconnection_handler_ = nullptr;
+  std::string cached_key_;
 
   // The memory location of this member variable is used to look up our
   // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and
   // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
   // instances, but have the same "this" pointer as one is a subclass of the
   // other.
-  int future_api_id_;
+  int future_api_id_ = 0;
 };
-
-#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace database

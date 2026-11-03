@@ -75,7 +75,8 @@ class Request : public Transfer {
   virtual size_t ReadBody(char* buffer, size_t length, bool* abort);
 
   // Read data from a request into a string.
-  // Returns false if the request was aborted, true otherwise.
+  // Returns false if no body data is set or if the request was aborted, true
+  // otherwise.
   bool ReadBodyIntoString(std::string* destination_string);
 
   // Mark the transfer completed.
@@ -92,7 +93,9 @@ class Request : public Transfer {
 
   // Get a pointer to the buffer at the current read offset.
   const char* GetBufferAtOffset() const {
-    return read_buffer_ + read_buffer_offset_;
+    const char* base =
+        read_buffer_ ? read_buffer_ : options_.post_fields.data();
+    return base ? base + read_buffer_offset_ : nullptr;
   }
 
   // Move the buffer read offset up to max_bytes_to_read returning the amount

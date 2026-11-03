@@ -17,9 +17,12 @@
 package com.google.firebase.firestore.internal.cpp;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Simple {@code Executor} implementation wraps around a single threaded
@@ -36,11 +39,32 @@ import java.util.concurrent.RejectedExecutionException;
  * gap between C++ expectations and the Java implementation.
  */
 public final class SilentRejectionSingleThreadExecutor implements Executor {
-  private final ExecutorService internalExecutor =
-      Executors.newSingleThreadExecutor();
+  private volatile Thread executorThread;
+  private final ThreadPoolExecutor internalExecutor =
+      new ThreadPoolExecutor(
+          1,
+          1,
+          0L,
+          TimeUnit.MILLISECONDS,
+          new LinkedBlockingQueue<Runnable>(),
+          new ThreadFactory() {
+            private final ThreadFactory defaultFactory =
+                Executors.defaultThreadFactory();
+
+            @Override
+            public Thread newThread(Runnable r) {
+              Thread thread = defaultFactory.newThread(r);
+              thread.setDaemon(true);
+              executorThread = thread;
+              return thread;
+            }
+          });
 
   @Override
-  public void execute(Runnable command) {
+  public synchronized void execute(Runnable command) {
+    if (command == null) {
+      return;
+    }
     try {
       internalExecutor.execute(command);
     } catch (RejectedExecutionException e) {
@@ -49,7 +73,25 @@ public final class SilentRejectionSingleThreadExecutor implements Executor {
   }
 
   public void shutdown() {
-    // Do not run any tasks that are already awaiting.
-    internalExecutor.shutdownNow();
+    synchronized (this) {
+      // Do not run any tasks that are already awaiting, but do not interrupt
+      // an in-flight task that may be executing JNI or user code.
+      internalExecutor.getQueue().clear();
+      internalExecutor.shutdown();
+    }
+    if (Thread.currentThread() != executorThread) {
+      boolean interrupted = false;
+      try {
+        while (!internalExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
+          // Wait for the in-flight task (if any) to complete.
+        }
+      } catch (InterruptedException e) {
+        interrupted = true;
+      } finally {
+        if (interrupted) {
+          Thread.currentThread().interrupt();
+        }
+      }
+    }
   }
 }

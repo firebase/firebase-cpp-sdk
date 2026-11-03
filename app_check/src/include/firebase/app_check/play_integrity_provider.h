@@ -47,7 +47,7 @@ class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
   PlayIntegrityProviderFactory();
   ~PlayIntegrityProviderFactory() override;
 
-  internal::PlayIntegrityProviderFactoryInternal* internal_;
+  internal::PlayIntegrityProviderFactoryInternal* internal_{nullptr};
 };
 
 }  // namespace app_check

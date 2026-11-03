@@ -15,26 +15,26 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_CHILD_EVENT_REGISTRATION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_CHILD_EVENT_REGISTRATION_H_
 
-#include "app/src/path.h"
+#include "app/src/safe_reference.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/view/event.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/src/include/firebase/database/listener.h"
 
-namespace firebase {
-namespace database {
-namespace internal {
+namespace firebase::database::internal {
 
 class DatabaseInternal;
 
 class ChildEventRegistration : public EventRegistration {
  public:
   ChildEventRegistration(DatabaseInternal* database, ChildListener* listener,
-                         const QuerySpec& query_spec)
-      : EventRegistration(query_spec),
-        database_(database),
-        listener_(listener) {}
+                         const QuerySpec& query_spec);
+
+  ChildEventRegistration(const ChildEventRegistration&) = delete;
+  ChildEventRegistration& operator=(const ChildEventRegistration&) = delete;
+  ChildEventRegistration(ChildEventRegistration&&) = delete;
+  ChildEventRegistration& operator=(ChildEventRegistration&&) = delete;
 
   ~ChildEventRegistration() override;
 
@@ -50,12 +50,10 @@ class ChildEventRegistration : public EventRegistration {
   bool MatchesListener(const void* listener_ptr) const override;
 
  private:
-  DatabaseInternal* database_;
-  ChildListener* listener_;
+  firebase::internal::SafeReference<DatabaseInternal> database_ref_;
+  ChildListener* listener_ = nullptr;
 };
 
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
+}  // namespace firebase::database::internal
 
 #endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_CHILD_EVENT_REGISTRATION_H_

@@ -36,11 +36,11 @@ class Map : public Object {
   static Class GetClass();
 
   size_t Size(Env& env) const;
-  Local<Object> Get(Env& env, const Object& key);
+  Local<Object> Get(Env& env, const Object& key) const;
   Local<Object> Put(Env& env, const Object& key, const Object& value);
   Local<Object> Remove(Env& env, const Object& key);
 
-  Local<Set> KeySet(Env& env);
+  Local<Set> KeySet(Env& env) const;
 };
 
 }  // namespace jni

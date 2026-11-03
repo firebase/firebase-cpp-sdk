@@ -39,7 +39,8 @@ FieldPath::FieldPath(const std::vector<std::string>& field_names)
     : internal_(InternalFromSegments(field_names)) {}
 
 FieldPath::FieldPath(const FieldPath& path)
-    : internal_(new FieldPathInternal{*path.internal_}) {}
+    : internal_(path.internal_ ? new FieldPathInternal{*path.internal_}
+                               : nullptr) {}
 
 FieldPath::FieldPath(FieldPath&& path) noexcept : internal_(path.internal_) {
   path.internal_ = nullptr;
@@ -57,13 +58,21 @@ FieldPath& FieldPath::operator=(const FieldPath& path) {
     return *this;
   }
 
+  FieldPathInternal* new_internal =
+      path.internal_ ? new FieldPathInternal{*path.internal_} : nullptr;
   delete internal_;
-  internal_ = new FieldPathInternal{*path.internal_};
+  internal_ = new_internal;
   return *this;
 }
 
 FieldPath& FieldPath::operator=(FieldPath&& path) noexcept {
-  std::swap(internal_, path.internal_);
+  if (this == &path) {
+    return *this;
+  }
+
+  delete internal_;
+  internal_ = path.internal_;
+  path.internal_ = nullptr;
   return *this;
 }
 
@@ -112,6 +121,7 @@ namespace std {
 #if defined(__ANDROID__)
 size_t hash<firebase::firestore::FieldPath>::operator()(
     const firebase::firestore::FieldPath& field_path) const {
+  if (!field_path.internal_) return 0;
   size_t hash = 1;
   for (const auto& segment : *field_path.internal_) {
     hash = 31 * hash + std::hash<std::string>{}(segment);
@@ -121,6 +131,7 @@ size_t hash<firebase::firestore::FieldPath>::operator()(
 #else
 size_t hash<firebase::firestore::FieldPath>::operator()(
     const firebase::firestore::FieldPath& field_path) const {
+  if (!field_path.internal_) return 0;
   return firebase::firestore::util::Hash(*field_path.internal_);
 }
 #endif  // defined(__ANDROID__)

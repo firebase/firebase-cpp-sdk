@@ -18,6 +18,8 @@
 #define FIREBASE_FIRESTORE_SRC_MAIN_QUERY_MAIN_H_
 
 #include <cstdint>
+#include <functional>
+#include <string>
 #include <vector>
 
 #include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
@@ -27,6 +29,7 @@
 #include "Firestore/core/src/core/order_by.h"
 #include "Firestore/core/src/core/query.h"
 #include "Firestore/core/src/nanopb/message.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/filter.h"
 #include "firestore/src/include/firebase/firestore/query.h"
@@ -58,7 +61,7 @@ class QueryInternal {
 
   virtual Future<QuerySnapshot> Get(Source source);
 
-  AggregateQuery Count();
+  AggregateQuery Count() const;
 
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener);
@@ -171,7 +174,7 @@ class QueryInternal {
     // `CollectionReference` part, and destroyed after the `CollectionReference`
     // part; therefore, the `PromiseFactory` is guaranteed to be alive as long
     // as a `CollectionReference` is alive.
-    kCollectionReferenceAdd,
+    kDocumentAdd,
     kCount,
   };
 

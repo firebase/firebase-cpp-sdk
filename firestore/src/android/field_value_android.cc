@@ -15,13 +15,16 @@
  */
 
 #include "firestore/src/android/field_value_android.h"
-#include <cstdint>
 
+#include <cmath>
+#include <cstdint>
 #include <utility>
+
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/geo_point_android.h"
 #include "firestore/src/android/timestamp_android.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
@@ -87,7 +90,10 @@ void FieldValueInternal::Initialize(jni::Loader& loader) {
 FieldValue FieldValueInternal::Create(Env& env, const Object& object) {
   // Treat a null object as a null FieldValue.
   if (!env.ok()) return {};
-  return FieldValue(new FieldValueInternal(Type::kNull, object));
+  if (!object) {
+    return FieldValue(new FieldValueInternal());
+  }
+  return FieldValue(new FieldValueInternal(object));
 }
 
 FieldValue FieldValueInternal::Create(Env& env,
@@ -99,8 +105,50 @@ FieldValue FieldValueInternal::Create(Env& env,
 
 FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {}
 
+FieldValueInternal::FieldValueInternal(const FieldValueInternal& other)
+    : object_(other.object_) {
+  std::lock_guard<std::mutex> lock(other.mutex_);
+  cached_type_ = other.cached_type_;
+  cached_blob_ = other.cached_blob_;
+}
+
+FieldValueInternal::FieldValueInternal(FieldValueInternal&& other) noexcept
+    : object_(std::move(other.object_)) {
+  std::lock_guard<std::mutex> lock(other.mutex_);
+  cached_type_ = other.cached_type_;
+  cached_blob_ = std::move(other.cached_blob_);
+}
+
+FieldValueInternal& FieldValueInternal::operator=(
+    const FieldValueInternal& other) {
+  if (this == &other) {
+    return *this;
+  }
+  std::lock(mutex_, other.mutex_);
+  std::lock_guard<std::mutex> lhs_lock(mutex_, std::adopt_lock);
+  std::lock_guard<std::mutex> rhs_lock(other.mutex_, std::adopt_lock);
+  object_ = other.object_;
+  cached_type_ = other.cached_type_;
+  cached_blob_ = other.cached_blob_;
+  return *this;
+}
+
+FieldValueInternal& FieldValueInternal::operator=(
+    FieldValueInternal&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+  std::lock(mutex_, other.mutex_);
+  std::lock_guard<std::mutex> lhs_lock(mutex_, std::adopt_lock);
+  std::lock_guard<std::mutex> rhs_lock(other.mutex_, std::adopt_lock);
+  object_ = std::move(other.object_);
+  cached_type_ = other.cached_type_;
+  cached_blob_ = std::move(other.cached_blob_);
+  return *this;
+}
+
 FieldValueInternal::FieldValueInternal(const Object& object)
-    : cached_type_(Type::kNull) {
+    : cached_type_(object ? Type::kInvalid : Type::kNull) {
   Env env = GetEnv();
   object_.reset(env, object);
 }
@@ -153,7 +201,7 @@ FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
     : cached_type_{Type::kReference} {
-  if (value.internal_ != nullptr) {
+  if (value.is_valid() && value.internal_ != nullptr) {
     Env env = GetEnv();
     object_.reset(env, value.internal_->ToJava());
   }
@@ -189,61 +237,49 @@ FieldValueInternal::FieldValueInternal(const MapFieldValue& value)
 }
 
 Type FieldValueInternal::type() const {
-  if (cached_type_ != Type::kNull) {
-    return cached_type_;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (cached_type_ != Type::kInvalid) {
+      return cached_type_;
+    }
   }
 
   // We do not have any knowledge on the type yet. Check the runtime type with
   // each known type.
   Env env = GetEnv();
   Local<Object> object = object_.get(env);
+  Type resolved_type = Type::kInvalid;
   if (!object) {
+    resolved_type = Type::kNull;
+  } else if (env.IsInstanceOf(object, Boolean::GetClass())) {
+    resolved_type = Type::kBoolean;
+  } else if (env.IsInstanceOf(object, Long::GetClass())) {
+    resolved_type = Type::kInteger;
+  } else if (env.IsInstanceOf(object, Double::GetClass())) {
+    resolved_type = Type::kDouble;
+  } else if (env.IsInstanceOf(object, TimestampInternal::GetClass())) {
+    resolved_type = Type::kTimestamp;
+  } else if (env.IsInstanceOf(object, String::GetClass())) {
+    resolved_type = Type::kString;
+  } else if (env.IsInstanceOf(object, BlobInternal::GetClass())) {
+    resolved_type = Type::kBlob;
+  } else if (env.IsInstanceOf(object, DocumentReferenceInternal::GetClass())) {
+    resolved_type = Type::kReference;
+  } else if (env.IsInstanceOf(object, GeoPointInternal::GetClass())) {
+    resolved_type = Type::kGeoPoint;
+  } else if (env.IsInstanceOf(object, List::GetClass())) {
+    resolved_type = Type::kArray;
+  } else if (env.IsInstanceOf(object, Map::GetClass())) {
+    resolved_type = Type::kMap;
+  } else {
+    FIREBASE_ASSERT_MESSAGE(false, "Unsupported FieldValue type: %s",
+                            Class::GetClassName(env, object).c_str());
     return Type::kNull;
   }
-  if (env.IsInstanceOf(object, Boolean::GetClass())) {
-    cached_type_ = Type::kBoolean;
-    return Type::kBoolean;
-  }
-  if (env.IsInstanceOf(object, Long::GetClass())) {
-    cached_type_ = Type::kInteger;
-    return Type::kInteger;
-  }
-  if (env.IsInstanceOf(object, Double::GetClass())) {
-    cached_type_ = Type::kDouble;
-    return Type::kDouble;
-  }
-  if (env.IsInstanceOf(object, TimestampInternal::GetClass())) {
-    cached_type_ = Type::kTimestamp;
-    return Type::kTimestamp;
-  }
-  if (env.IsInstanceOf(object, String::GetClass())) {
-    cached_type_ = Type::kString;
-    return Type::kString;
-  }
-  if (env.IsInstanceOf(object, BlobInternal::GetClass())) {
-    cached_type_ = Type::kBlob;
-    return Type::kBlob;
-  }
-  if (env.IsInstanceOf(object, DocumentReferenceInternal::GetClass())) {
-    cached_type_ = Type::kReference;
-    return Type::kReference;
-  }
-  if (env.IsInstanceOf(object, GeoPointInternal::GetClass())) {
-    cached_type_ = Type::kGeoPoint;
-    return Type::kGeoPoint;
-  }
-  if (env.IsInstanceOf(object, List::GetClass())) {
-    cached_type_ = Type::kArray;
-    return Type::kArray;
-  }
-  if (env.IsInstanceOf(object, Map::GetClass())) {
-    cached_type_ = Type::kMap;
-    return Type::kMap;
-  }
 
-  FIREBASE_ASSERT_MESSAGE(false, "Unsupported FieldValue type: %s",
-                          Class::GetClassName(env, object_.get(env)).c_str());
-  return Type::kNull;
+  std::lock_guard<std::mutex> lock(mutex_);
+  cached_type_ = resolved_type;
+  return resolved_type;
 }
 
 bool FieldValueInternal::boolean_value() const {
@@ -277,7 +313,8 @@ const uint8_t* FieldValueInternal::blob_value() const {
 
   Env env = GetEnv();
   EnsureCachedBlob(env);
-  if (!env.ok() || cached_blob_.get() == nullptr) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!env.ok() || cached_blob_ == nullptr) {
     return nullptr;
   }
 
@@ -287,7 +324,8 @@ const uint8_t* FieldValueInternal::blob_value() const {
 size_t FieldValueInternal::blob_size() const {
   Env env = GetEnv();
   EnsureCachedBlob(env);
-  if (!env.ok() || cached_blob_.get() == nullptr) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!env.ok() || cached_blob_ == nullptr) {
     return 0;
   }
 
@@ -296,7 +334,8 @@ size_t FieldValueInternal::blob_size() const {
 
 void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   auto blob = Cast<BlobInternal>(env, Type::kBlob);
-  if (cached_blob_.get() != nullptr) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (cached_blob_ != nullptr) {
     return;
   }
 
@@ -304,7 +343,9 @@ void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   size_t size = bytes.Size(env);
 
   auto result = std::make_shared<std::vector<uint8_t>>(size);
-  env.GetArrayRegion(bytes, 0, size, &(result->front()));
+  if (size > 0) {
+    env.GetArrayRegion(bytes, 0, size, result->data());
+  }
 
   if (env.ok()) {
     cached_blob_ = std::move(result);
@@ -314,6 +355,9 @@ void FieldValueInternal::EnsureCachedBlob(Env& env) const {
 DocumentReference FieldValueInternal::reference_value() const {
   Env env = GetEnv();
   auto reference = Cast<Object>(env, Type::kReference);
+  if (!env.ok() || !reference) {
+    return DocumentReference{};
+  }
   return DocumentReferenceInternal::Create(env, reference);
 }
 
@@ -370,13 +414,15 @@ FieldValue FieldValueInternal::ServerTimestamp() {
   return Create(env, Type::kServerTimestamp, env.Call(kServerTimestamp));
 }
 
-FieldValue FieldValueInternal::ArrayUnion(std::vector<FieldValue> elements) {
+FieldValue FieldValueInternal::ArrayUnion(
+    const std::vector<FieldValue>& elements) {
   Env env = GetEnv();
   auto array = MakeArray(env, elements);
   return Create(env, Type::kArrayUnion, env.Call(kArrayUnion, array));
 }
 
-FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
+FieldValue FieldValueInternal::ArrayRemove(
+    const std::vector<FieldValue>& elements) {
   Env env = GetEnv();
   auto array = MakeArray(env, elements);
   return Create(env, Type::kArrayRemove, env.Call(kArrayRemove, array));
@@ -395,35 +441,42 @@ FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
 }
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
+  if (lhs.type() != rhs.type()) {
+    return false;
+  }
   return jni::EqualityCompareJni(lhs, rhs);
 }
 
 template <typename T>
 Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
-  if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env.IsInstanceOf(object_.get(env), T::GetClass()));
+  Local<Object> obj = object_.get(env);
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (cached_type_ == Type::kInvalid) {
+    FIREBASE_ASSERT(env.IsInstanceOf(obj, T::GetClass()));
     cached_type_ = type;
   } else {
     FIREBASE_ASSERT(cached_type_ == type);
   }
-  return object_.get(env).CastTo<T>();
+  return std::move(obj).CastTo<T>();
 }
 
 template <>
 Local<String> FieldValueInternal::Cast<String>(jni::Env& env, Type type) const {
-  if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env.IsInstanceOf(object_.get(env), String::GetClass()));
+  Local<Object> obj = object_.get(env);
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (cached_type_ == Type::kInvalid) {
+    FIREBASE_ASSERT(env.IsInstanceOf(obj, String::GetClass()));
     cached_type_ = type;
   } else {
     FIREBASE_ASSERT(cached_type_ == type);
   }
-  return env.NewStringUtf(object_.get(env).ToString(env));
+  return std::move(obj).CastTo<String>();
 }
 
 Local<Array<Object>> FieldValueInternal::MakeArray(
     Env& env, const std::vector<FieldValue>& elements) {
   auto result = env.NewArray(elements.size(), Object::GetClass());
-  for (int i = 0; i < elements.size(); ++i) {
+  for (size_t i = 0; i < elements.size(); ++i) {
     result.Set(env, i, ToJava(elements[i]));
   }
   return result;
@@ -437,8 +490,12 @@ Local<Object> FieldValueInternal::ToJava() const {
 }
 
 Local<Object> FieldValueInternal::ToJava(const FieldValue& value) {
+  if (!value.is_valid() || value.internal_ == nullptr) {
+    SimpleThrowInvalidArgument("Invalid FieldValue provided.");
+    return Local<Object>();
+  }
   Env env = GetEnv();
-  return value.internal_ ? value.internal_->object_.get(env) : Local<Object>();
+  return value.internal_->object_.get(env);
 }
 
 }  // namespace firestore

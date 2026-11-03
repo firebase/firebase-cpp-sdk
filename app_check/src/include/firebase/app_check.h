@@ -16,6 +16,7 @@
 #define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 #include "firebase/app.h"
@@ -43,6 +44,8 @@ enum AppCheckError {
   kAppCheckErrorUnsupportedProvider = 4,
   /// An unknown error occurred.
   kAppCheckErrorUnknown = 5,
+  /// Too many requests were made to the server.
+  kAppCheckErrorTooManyRequests = 6,
 };
 
 /// Struct to hold tokens emitted by the Firebase App Check service which are
@@ -51,10 +54,35 @@ enum AppCheckError {
 /// independent of the mechanism by which the application was verified.
 struct AppCheckToken {
   /// A Firebase App Check token.
-  std::string token;
+  std::string token{};
 
   /// The time at which the token will expire in milliseconds since epoch.
-  int64_t expire_time_millis;
+  int64_t expire_time_millis{0};
+
+#if !defined(SWIG)
+  /// Returns true if the token is non-empty and has a positive expiration time.
+  [[nodiscard]] bool is_valid() const noexcept {
+    return !token.empty() && expire_time_millis > 0;
+  }
+
+  /// Returns true if the token is non-empty and does not expire within
+  /// `buffer_millis` of `now_millis`.
+  [[nodiscard]] bool is_valid(int64_t now_millis,
+                              int64_t buffer_millis = 300000) const noexcept {
+    return !token.empty() && (expire_time_millis - buffer_millis > now_millis);
+  }
+
+  friend bool operator==(const AppCheckToken& lhs,
+                         const AppCheckToken& rhs) noexcept {
+    return lhs.token == rhs.token &&
+           lhs.expire_time_millis == rhs.expire_time_millis;
+  }
+
+  friend bool operator!=(const AppCheckToken& lhs,
+                         const AppCheckToken& rhs) noexcept {
+    return !(lhs == rhs);
+  }
+#endif  // !defined(SWIG)
 };
 
 /// @brief Base class used to receive messages when AppCheck token changes.
@@ -78,18 +106,7 @@ class AppCheckProvider {
   /// the token or with an error code and error message.
   virtual void GetToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) = 0;
-
-  /// Fetches an AppCheckToken suitable for consumption in limited-use scenarios
-  /// and then calls the provided callback function with the token or with an
-  /// error code and error message.
-  ///
-  /// If you do not implement this method, the default implementation invokes
-  /// the GetToken method whenever a limited-use token is requested.
-  virtual void GetLimitedUseToken(
-      std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback);
-};
+          completion_callback) = 0;};
 
 /// Interface for a factory that generates {@link AppCheckProvider}s.
 class AppCheckProviderFactory {
@@ -120,9 +137,21 @@ class AppCheck {
   /// you are finished using it to shut down the AppCheck library.
   ~AppCheck();
 
+#if !defined(DOXYGEN) && !defined(SWIG)
+  AppCheck(const AppCheck&) = delete;
+  AppCheck& operator=(const AppCheck&) = delete;
+#endif  // !defined(DOXYGEN) && !defined(SWIG)
+
   /// Gets the instance of AppCheck associated with the given
   /// {@link App} instance.
   static AppCheck* GetInstance(::firebase::App* app);
+
+#if !defined(SWIG)
+  /// Gets the instance of AppCheck associated with the given
+  /// {@link App} instance, populating `init_result_out` if provided.
+  static AppCheck* GetInstance(::firebase::App* app,
+                               InitResult* init_result_out);
+#endif  // !defined(SWIG)
 
   /// Installs the given AppCheckProviderFactory, overwriting any that
   /// were previously associated with this AppCheck instance. Any
@@ -143,6 +172,11 @@ class AppCheck {
   /// @returns The firebase::App this AppCheck was created with.
   ::firebase::App* app();
 
+#if !defined(SWIG)
+  /// @brief Get the const firebase::App that this AppCheck was created with.
+  const ::firebase::App* app() const;
+#endif  // !defined(SWIG)
+
   /// Sets the isTokenAutoRefreshEnabled flag.
   void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
 
@@ -150,6 +184,12 @@ class AppCheck {
   /// you need to authorize requests to a non-Firebase backend. Requests to
   /// Firebase backends are authorized automatically if configured.
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
+
+#if !defined(SWIG)
+  /// Requests a cached or refreshed Firebase App Check token without forcing a
+  /// refresh.
+  Future<AppCheckToken> GetAppCheckToken() { return GetAppCheckToken(false); }
+#endif  // !defined(SWIG)
 
   /// Returns the result of the most recent call to GetAppCheckToken();
   Future<AppCheckToken> GetAppCheckTokenLastResult();
@@ -179,10 +219,15 @@ class AppCheck {
 
   // Make the Internal version a friend class, so that it can access itself.
   friend class internal::AppCheckInternal;
-  internal::AppCheckInternal* internal_;
+  internal::AppCheckInternal* internal_{nullptr};
 };
 
 }  // namespace app_check
 }  // namespace firebase
+
+#include "firebase/app_check/app_attest_provider.h"
+#include "firebase/app_check/debug_provider.h"
+#include "firebase/app_check/device_check_provider.h"
+#include "firebase/app_check/play_integrity_provider.h"
 
 #endif  // FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_

@@ -15,18 +15,22 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
+#include <dispatch/dispatch.h>
 #include <stdint.h>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "firebase/app.h"
 #include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"
 
+#include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef __OBJC__
@@ -42,12 +46,29 @@ namespace internal {
 // around the FIRRemoteConfig Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRRemoteConfig);
 
+struct RemoteConfigIosState {
+  RemoteConfigIosState()
+      : future_impl(kRemoteConfigFnCount),
+        serial_queue(dispatch_queue_create(
+            "com.google.firebase.remote_config.ios", DISPATCH_QUEUE_SERIAL)) {}
+
+  Mutex mutex;
+  bool alive = true;
+  ReferenceCountedFutureImpl future_impl;
+  dispatch_queue_t serial_queue;
+  std::vector<std::string> default_keys;
+  int64_t throttled_end_time_in_sec = 0;
+};
+
 // This class implements functions from `firebase/remote_config.h` header.
 // See `firebase/remote_config.h` for all public functions documentation.
 class RemoteConfigInternal {
  public:
   explicit RemoteConfigInternal(const firebase::App& app);
   ~RemoteConfigInternal();
+
+  RemoteConfigInternal(const RemoteConfigInternal&) = delete;
+  RemoteConfigInternal& operator=(const RemoteConfigInternal&) = delete;
 
   Future<ConfigInfo> EnsureInitialized();
   Future<ConfigInfo> EnsureInitializedLastResult();
@@ -92,11 +113,11 @@ class RemoteConfigInternal {
 
   std::map<std::string, Variant> GetAll();
 
-  const ConfigInfo GetInfo() const;
+  ConfigInfo GetInfo() const;
 
   ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
-    std::function<void(ConfigUpdate&&, RemoteConfigError)>
-        config_update_listener);
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener);
 
   bool Initialized() const;
 
@@ -107,22 +128,18 @@ class RemoteConfigInternal {
 
  private:
 #ifdef __OBJC__
-  FIRRemoteConfig* _Nullable impl() const { return impl_->get(); }
+  FIRRemoteConfig* _Nullable impl() const {
+    return impl_ ? impl_->get() : nil;
+  }
 #endif
   // app
   const firebase::App& app_;
 
   std::unique_ptr<FIRRemoteConfigPointer> impl_;
 
-  /// Handle calls from Futures that the API returns.
-  ReferenceCountedFutureImpl future_impl_;
-
   CleanupNotifier cleanup_;
 
-  // Saved default keys.
-  std::vector<std::string> default_keys_;
-
-  int64_t throttled_end_time_in_sec_;
+  std::shared_ptr<RemoteConfigIosState> state_;
 };
 }  // namespace internal
 }  // namespace remote_config

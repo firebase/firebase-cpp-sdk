@@ -15,7 +15,6 @@
  */
 
 #include "firestore/src/android/util_android.h"
-#include <cassert>
 
 #include <utility>
 

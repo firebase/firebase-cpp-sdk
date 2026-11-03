@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/metadata_changes_android.h"
 
+#include "app/src/assert.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -49,6 +50,9 @@ Local<Object> MetadataChangesInternal::Create(
     case MetadataChanges::kInclude:
       return env.Get(kInclude);
   }
+  FIREBASE_ASSERT_MESSAGE(false, "Unknown MetadataChanges value: %d",
+                          static_cast<int>(metadata_changes));
+  return {};
 }
 
 }  // namespace firestore

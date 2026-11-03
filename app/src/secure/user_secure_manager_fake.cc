@@ -31,19 +31,21 @@ static const char kDirectorySeparator[] = "/";
 
 // Get temp directory for fake secure storage.
 static std::string GetTestTmpDir(const char test_namespace[]) {
+  const char* ns = test_namespace ? test_namespace : "";
 #if FIREBASE_PLATFORM_WINDOWS
   char buf[MAX_PATH + 1];
-  if (GetEnvironmentVariable("TEST_TMPDIR", buf, sizeof(buf))) {
-    return std::string(buf) + kDirectorySeparator + test_namespace;
+  DWORD len = GetEnvironmentVariable("TEST_TMPDIR", buf, sizeof(buf));
+  if (len > 0 && len < sizeof(buf)) {
+    return std::string(buf, len) + kDirectorySeparator + ns;
   }
 #else
   // Linux and OS X should either have the TEST_TMPDIR environment variable set.
   if (const char* value = getenv("TEST_TMPDIR")) {
-    return std::string(value) + kDirectorySeparator + test_namespace;
+    return std::string(value) + kDirectorySeparator + ns;
   }
 #endif  // FIREBASE_PLATFORM_WINDOWS
   // If we weren't able to get TEST_TMPDIR, just use a subdirectory.
-  return test_namespace;
+  return ns;
 }
 
 UserSecureManagerFake::UserSecureManagerFake(const char* domain,

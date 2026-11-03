@@ -14,18 +14,19 @@
 
 #include "database/src/desktop/database_reference_desktop.h"
 
-#include <stdio.h>
-
+#include <chrono>
 #include <cstdint>
+#include <map>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
 
-#include "app/rest/util.h"
 #include "app/src/variant_util.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/desktop/database_desktop.h"
 #include "database/src/desktop/disconnection_desktop.h"
 #include "database/src/desktop/util_desktop.h"
-#include "flatbuffers/util.h"
 
 namespace firebase {
 
@@ -33,6 +34,60 @@ using callback::NewCallback;
 
 namespace database {
 namespace internal {
+
+namespace {
+
+// Keeps the FutureBackingData and ReferenceCountedFutureImpl alive while a
+// scheduled Repo callback is in flight, and completes the handle with an error
+// (plus frees transaction context if any) if the Repo or Scheduler shuts down
+// before the operation is handed off to Repo.
+template <typename T>
+struct AsyncOpState {
+  AsyncOpState(ReferenceCountedFutureImpl* api_in,
+               SafeFutureHandle<T> handle_in, Future<T> backing_future_in,
+               void* context_in = nullptr,
+               void (*delete_context_in)(void*) = nullptr)
+      : api(api_in),
+        handle(handle_in),
+        backing_future(std::move(backing_future_in)),
+        context(context_in),
+        delete_context(delete_context_in),
+        disarmed(false) {}
+
+  ~AsyncOpState() { FailIfNotDisarmed(); }
+
+  void Disarm() { disarmed = true; }
+
+  void FailIfNotDisarmed() {
+    if (disarmed) return;
+    disarmed = true;
+    if (delete_context != nullptr) {
+      delete_context(context);
+      delete_context = nullptr;
+    }
+    if (api != nullptr && backing_future.status() == kFutureStatusPending) {
+      api->Complete(handle, kErrorUnknownError,
+                    "The database is being destroyed.");
+    }
+  }
+
+  ReferenceCountedFutureImpl* api;
+  SafeFutureHandle<T> handle;
+  Future<T> backing_future;
+  void* context;
+  void (*delete_context)(void*);
+  bool disarmed;
+};
+
+SafeFutureHandle<void> AllocSlotOrTemp(ReferenceCountedFutureImpl* api,
+                                       int fn_idx) {
+  if (api->LastResult(fn_idx).status() == kFutureStatusPending) {
+    return api->SafeAlloc<void>();
+  }
+  return api->SafeAlloc<void>(fn_idx);
+}
+
+}  // namespace
 
 const char kVirtualChildKeyValue[] = ".value";
 const char kVirtualChildKeyPriority[] = ".priority";
@@ -43,6 +98,12 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
   if (database_) {
     database_->future_manager().AllocFutureApi(&future_api_id_,
                                                kDatabaseReferenceFnCount);
+  }
+}
+
+DatabaseReferenceInternal::~DatabaseReferenceInternal() {
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
   }
 }
 
@@ -57,36 +118,55 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     const DatabaseReferenceInternal& internal) {
+  if (&internal == this) return *this;
+  if (database_ != internal.database_) {
+    if (database_) {
+      database_->future_manager().ReleaseFutureApi(&future_api_id_);
+    }
+    if (internal.database_) {
+      internal.database_->future_manager().AllocFutureApi(
+          &future_api_id_, kDatabaseReferenceFnCount);
+    }
+  }
   QueryInternal::operator=(internal);
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(
-    DatabaseReferenceInternal&& internal) {
+    DatabaseReferenceInternal&& internal) noexcept
+    : QueryInternal(std::move(internal)) {
+  internal.database_ = nullptr;
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
                                               &future_api_id_);
   }
-  QueryInternal::operator=(std::move(internal));
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
-    DatabaseReferenceInternal&& internal) {
+    DatabaseReferenceInternal&& internal) noexcept {
+  if (&internal == this) return *this;
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+  QueryInternal::operator=(std::move(internal));
+  internal.database_ = nullptr;
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
                                               &future_api_id_);
   }
-  QueryInternal::operator=(std::move(internal));
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Database* DatabaseReferenceInternal::GetDatabase() const {
-  return database_ ? Database::GetInstance(database_->GetApp()) : nullptr;
+  if (!database_) return nullptr;
+  return database_->constructor_url().empty()
+             ? Database::GetInstance(database_->GetApp())
+             : Database::GetInstance(database_->GetApp(),
+                                     database_->constructor_url().c_str());
 }
 
 std::string DatabaseReferenceInternal::GetUrl() const {
+  if (!database_) return std::string();
   std::stringstream url;
   url << database_->database_url();
   if (!query_spec_.path.str().empty()) {
@@ -101,201 +181,321 @@ bool DatabaseReferenceInternal::IsRoot() const {
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::GetParent() {
+  if (!database_) return nullptr;
   return new DatabaseReferenceInternal(database_, query_spec_.path.GetParent());
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::GetRoot() {
+  if (!database_) return nullptr;
   return new DatabaseReferenceInternal(database_, Path());
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::Child(const char* path) {
+  if (!database_ || path == nullptr) return nullptr;
   return new DatabaseReferenceInternal(database_,
                                        query_spec_.path.GetChild(path));
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() {
-  auto now = static_cast<int64_t>(time(nullptr)) * 1000L;
+  if (!database_) return nullptr;
+  auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::system_clock::now().time_since_epoch())
+                 .count();
   std::string child = database_->name_generator().GeneratePushChildName(now);
   return new DatabaseReferenceInternal(database_,
                                        query_spec_.path.GetChild(child));
 }
 
 Future<void> DatabaseReferenceInternal::RemoveValue() {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return Future<void>();
   SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
+      api->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
+  Future<void> result = MakeFuture(api, handle);
+  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
 
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo* repo, Path path, ReferenceCountedFutureImpl* api,
-         SafeFutureHandle<void> handle) {
-        repo->SetValue(path, Variant::Null(), api, handle);
+      [](Repo::ThisRef ref, Path path,
+         std::shared_ptr<AsyncOpState<void>> op_state) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          op_state->Disarm();
+          lock.GetReference()->SetValue(path, Variant::Null(), op_state->api,
+                                        op_state->handle);
+        } else {
+          op_state->FailIfNotDisarmed();
+        }
       },
-      database_->repo(), query_spec_.path, ref_future(), handle));
-  return MakeFuture(ref_future(), handle);
+      database_->EnsureRepoRef(), query_spec_.path, state));
+  return result;
 }
 
 Future<void> DatabaseReferenceInternal::RemoveValueLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnRemoveValue));
+  ReferenceCountedFutureImpl* api = ref_future();
+  return api ? static_cast<const Future<void>&>(
+                   api->LastResult(kDatabaseReferenceFnRemoveValue))
+             : Future<void>();
 }
 
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
     DoTransactionWithContext transaction_function, void* context,
     void (*delete_context)(void*), bool trigger_local_events) {
-  SafeFutureHandle<DataSnapshot> handle = ref_future()->SafeAlloc<DataSnapshot>(
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) {
+    if (delete_context != nullptr) {
+      delete_context(context);
+    }
+    return Future<DataSnapshot>();
+  }
+  SafeFutureHandle<DataSnapshot> handle = api->SafeAlloc<DataSnapshot>(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
+  Future<DataSnapshot> result = MakeFuture(api, handle);
+  auto state = std::make_shared<AsyncOpState<DataSnapshot>>(
+      api, handle, result, context, delete_context);
 
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo* repo, Path path, DoTransactionWithContext transaction_function,
-         void* context, void (*delete_context)(void*),
-         bool trigger_local_events, ReferenceCountedFutureImpl* api,
-         SafeFutureHandle<DataSnapshot> handle) {
-        repo->StartTransaction(path, transaction_function, context,
-                               delete_context, trigger_local_events, api,
-                               handle);
+      [](Repo::ThisRef ref, Path path,
+         DoTransactionWithContext transaction_function,
+         bool trigger_local_events,
+         std::shared_ptr<AsyncOpState<DataSnapshot>> op_state) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          op_state->Disarm();
+          lock.GetReference()->StartTransaction(
+              path, transaction_function, op_state->context,
+              op_state->delete_context, trigger_local_events, op_state->api,
+              op_state->handle);
+        } else {
+          op_state->FailIfNotDisarmed();
+        }
       },
-      database_->repo(), query_spec_.path, transaction_function, context,
-      delete_context, trigger_local_events, ref_future(), handle));
+      database_->EnsureRepoRef(), query_spec_.path, transaction_function,
+      trigger_local_events, state));
 
-  return MakeFuture(ref_future(), handle);
+  return result;
 }
 
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransactionLastResult() {
-  return static_cast<const Future<DataSnapshot>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnRunTransaction));
+  ReferenceCountedFutureImpl* api = ref_future();
+  return api ? static_cast<const Future<DataSnapshot>&>(
+                   api->LastResult(kDatabaseReferenceFnRunTransaction))
+             : Future<DataSnapshot>();
 }
 
 Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetPriority);
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return Future<void>();
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetPriority);
-  } else if (!priority.is_fundamental_type()) {
-    ref_future()->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForPriority);
-  } else {
-    Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant priority,
-           ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&priority);
-          repo->SetValue(path, priority, api, handle);
-        },
-        database_->repo(), query_spec_.path.GetChild(kPriorityKey), priority,
-        ref_future(), handle));
+    SafeFutureHandle<void> handle =
+        AllocSlotOrTemp(api, kDatabaseReferenceFnSetPriority);
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetPriority);
+    return MakeFuture(api, handle);
   }
-  return MakeFuture(ref_future(), handle);
+  if (!priority.is_fundamental_type()) {
+    SafeFutureHandle<void> handle =
+        AllocSlotOrTemp(api, kDatabaseReferenceFnSetPriority);
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForPriority);
+    return MakeFuture(api, handle);
+  }
+  SafeFutureHandle<void> handle =
+      api->SafeAlloc<void>(kDatabaseReferenceFnSetPriority);
+  Future<void> result = MakeFuture(api, handle);
+  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+
+  Repo::scheduler().Schedule(NewCallback(
+      [](Repo::ThisRef ref, Path path, Variant priority,
+         std::shared_ptr<AsyncOpState<void>> op_state) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          op_state->Disarm();
+          ConvertVectorToMap(&priority);
+          lock.GetReference()->SetValue(path, priority, op_state->api,
+                                        op_state->handle);
+        } else {
+          op_state->FailIfNotDisarmed();
+        }
+      },
+      database_->EnsureRepoRef(), query_spec_.path.GetChild(kPriorityKey),
+      priority, state));
+  return result;
 }
 
 Future<void> DatabaseReferenceInternal::SetPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetPriority));
+  ReferenceCountedFutureImpl* api = ref_future();
+  return api ? static_cast<const Future<void>&>(
+                   api->LastResult(kDatabaseReferenceFnSetPriority))
+             : Future<void>();
 }
 
 Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValue);
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return Future<void>();
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetValue);
-  } else {
-    Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant value,
-           ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&value);
-          repo->SetValue(path, value, api, handle);
-        },
-        database_->repo(), query_spec_.path, value, ref_future(), handle));
+    SafeFutureHandle<void> handle =
+        AllocSlotOrTemp(api, kDatabaseReferenceFnSetValue);
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetValue);
+    return MakeFuture(api, handle);
   }
-  return MakeFuture(ref_future(), handle);
+  SafeFutureHandle<void> handle =
+      api->SafeAlloc<void>(kDatabaseReferenceFnSetValue);
+  Future<void> result = MakeFuture(api, handle);
+  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+
+  Repo::scheduler().Schedule(NewCallback(
+      [](Repo::ThisRef ref, Path path, Variant value,
+         std::shared_ptr<AsyncOpState<void>> op_state) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          op_state->Disarm();
+          ConvertVectorToMap(&value);
+          lock.GetReference()->SetValue(path, value, op_state->api,
+                                        op_state->handle);
+        } else {
+          op_state->FailIfNotDisarmed();
+        }
+      },
+      database_->EnsureRepoRef(), query_spec_.path, value, state));
+  return result;
 }
 
 Future<void> DatabaseReferenceInternal::SetValueLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetValue));
+  ReferenceCountedFutureImpl* api = ref_future();
+  return api ? static_cast<const Future<void>&>(
+                   api->LastResult(kDatabaseReferenceFnSetValue))
+             : Future<void>();
 }
 
 Future<void> DatabaseReferenceInternal::SetValueAndPriority(
     const Variant& value, const Variant& priority) {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValueAndPriority);
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return Future<void>();
   if (SetValueLastResult().status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetValue);
-  } else if (SetPriorityLastResult().status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetPriority);
-  } else if (!priority.is_fundamental_type()) {
-    ref_future()->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForPriority);
-  } else {
-    // https://firebase.google.com/docs/reference/rest/database/#section-priorities
-    //
-    // To write priority and data at the same time, you can add a .priority
-    // child to the JSON payload.
-    //
-    // To write priority and a primitive value (e.g. a string) at the same time,
-    // you can add a .priority child and put the primitive value in a .value
-    // child
-    Variant value_priority;
-    if (value.is_container_type()) {
-      value_priority = value;
-      value_priority.map()[kVirtualChildKeyPriority] = priority;
-    } else {
-      value_priority = std::map<Variant, Variant>{
-          std::make_pair(kVirtualChildKeyValue, value),
-          std::make_pair(kVirtualChildKeyPriority, priority)};
-    }
-    Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant value_priority,
-           ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&value_priority);
-          repo->SetValue(path, value_priority, api, handle);
-        },
-        database_->repo(), query_spec_.path, value_priority, ref_future(),
-        handle));
+    SafeFutureHandle<void> handle =
+        AllocSlotOrTemp(api, kDatabaseReferenceFnSetValueAndPriority);
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetValue);
+    return MakeFuture(api, handle);
   }
-  return MakeFuture(ref_future(), handle);
+  if (SetPriorityLastResult().status() == kFutureStatusPending) {
+    SafeFutureHandle<void> handle =
+        AllocSlotOrTemp(api, kDatabaseReferenceFnSetValueAndPriority);
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetPriority);
+    return MakeFuture(api, handle);
+  }
+  if (!priority.is_fundamental_type()) {
+    SafeFutureHandle<void> handle =
+        AllocSlotOrTemp(api, kDatabaseReferenceFnSetValueAndPriority);
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForPriority);
+    return MakeFuture(api, handle);
+  }
+  SafeFutureHandle<void> handle =
+      api->SafeAlloc<void>(kDatabaseReferenceFnSetValueAndPriority);
+  // https://firebase.google.com/docs/reference/rest/database/#section-priorities
+  //
+  // To write priority and data at the same time, you can add a .priority
+  // child to the JSON payload.
+  //
+  // To write priority and a primitive value (e.g. a string) at the same time,
+  // you can add a .priority child and put the primitive value in a .value
+  // child
+  Variant value_priority = value;
+  ConvertVectorToMap(&value_priority);
+  if (value_priority.is_container_type()) {
+    value_priority.map()[kVirtualChildKeyPriority] = priority;
+  } else {
+    value_priority = std::map<Variant, Variant>{
+        std::make_pair(kVirtualChildKeyValue, std::move(value_priority)),
+        std::make_pair(kVirtualChildKeyPriority, priority)};
+  }
+  Future<void> result = MakeFuture(api, handle);
+  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+
+  Repo::scheduler().Schedule(NewCallback(
+      [](Repo::ThisRef ref, Path path, Variant value_priority,
+         std::shared_ptr<AsyncOpState<void>> op_state) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          op_state->Disarm();
+          ConvertVectorToMap(&value_priority);
+          lock.GetReference()->SetValue(path, value_priority, op_state->api,
+                                        op_state->handle);
+        } else {
+          op_state->FailIfNotDisarmed();
+        }
+      },
+      database_->EnsureRepoRef(), query_spec_.path, std::move(value_priority),
+      state));
+  return result;
 }
 
 Future<void> DatabaseReferenceInternal::SetValueAndPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetValueAndPriority));
+  ReferenceCountedFutureImpl* api = ref_future();
+  return api ? static_cast<const Future<void>&>(
+                   api->LastResult(kDatabaseReferenceFnSetValueAndPriority))
+             : Future<void>();
 }
 
 Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnUpdateChildren);
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return Future<void>();
   if (!values.is_map()) {
-    ref_future()->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForUpdateChildren);
-  } else {
-    Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant values,
-           ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&values);
-          repo->UpdateChildren(path, values, api, handle);
-        },
-        database_->repo(), query_spec_.path, values, ref_future(), handle));
+    SafeFutureHandle<void> handle =
+        AllocSlotOrTemp(api, kDatabaseReferenceFnUpdateChildren);
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForUpdateChildren);
+    return MakeFuture(api, handle);
   }
-  return MakeFuture(ref_future(), handle);
+  SafeFutureHandle<void> handle =
+      api->SafeAlloc<void>(kDatabaseReferenceFnUpdateChildren);
+  Future<void> result = MakeFuture(api, handle);
+  auto state = std::make_shared<AsyncOpState<void>>(api, handle, result);
+
+  Repo::scheduler().Schedule(NewCallback(
+      [](Repo::ThisRef ref, Path path, Variant values,
+         std::shared_ptr<AsyncOpState<void>> op_state) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          op_state->Disarm();
+          ConvertVectorToMap(&values);
+          lock.GetReference()->UpdateChildren(path, values, op_state->api,
+                                              op_state->handle);
+        } else {
+          op_state->FailIfNotDisarmed();
+        }
+      },
+      database_->EnsureRepoRef(), query_spec_.path, values, state));
+  return result;
 }
 
 Future<void> DatabaseReferenceInternal::UpdateChildrenLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnUpdateChildren));
+  ReferenceCountedFutureImpl* api = ref_future();
+  return api ? static_cast<const Future<void>&>(
+                   api->LastResult(kDatabaseReferenceFnUpdateChildren))
+             : Future<void>();
 }
 
 DisconnectionHandler* DatabaseReferenceInternal::OnDisconnect() {
+  if (!database_) return nullptr;
   return new DisconnectionHandler(
       new DisconnectionHandlerInternal(database_, query_spec_.path));
 }
 
-void DatabaseReferenceInternal::GoOffline() { database_->GoOffline(); }
+void DatabaseReferenceInternal::GoOffline() {
+  if (database_) database_->GoOffline();
+}
 
-void DatabaseReferenceInternal::GoOnline() { database_->GoOnline(); }
+void DatabaseReferenceInternal::GoOnline() {
+  if (database_) database_->GoOnline();
+}
 
 ReferenceCountedFutureImpl* DatabaseReferenceInternal::ref_future() {
-  return database_->future_manager().GetFutureApi(&future_api_id_);
+  return database_ ? database_->future_manager().GetFutureApi(&future_api_id_)
+                   : nullptr;
 }
 
 }  // namespace internal

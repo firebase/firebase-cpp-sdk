@@ -56,15 +56,27 @@ class Local : public T {
    * of a local reference.
    */
   explicit Local(const Local& other) {  // NOLINT(google-explicit-constructor)
-    EnsureEnv(other.env());
-    T::object_ = env_->NewLocalRef(other.get());
+    if (other.get() != nullptr) {
+      EnsureEnv(other.env());
+      if (env_ != nullptr) {
+        T::object_ = env_->NewLocalRef(other.get());
+      }
+    } else if (other.env() != nullptr) {
+      env_ = other.env();
+    }
   }
 
   Local& operator=(const Local& other) {
-    if (T::object_ != other.get()) {
-      EnsureEnv(other.env());
-      env_->DeleteLocalRef(T::object_);
-      T::object_ = env_->NewLocalRef(other.get());
+    if (this != &other) {
+      clear();
+      if (other.get() != nullptr) {
+        EnsureEnv(other.env());
+        if (env_ != nullptr) {
+          T::object_ = env_->NewLocalRef(other.get());
+        }
+      } else if (env_ == nullptr && other.env() != nullptr) {
+        env_ = other.env();
+      }
     }
     return *this;
   }
@@ -72,37 +84,55 @@ class Local : public T {
   Local(Local&& other) noexcept : T(other.release()), env_(other.env_) {}
 
   Local& operator=(Local&& other) noexcept {
-    if (T::object_ != other.get()) {
-      EnsureEnv(other.env());
-      env_->DeleteLocalRef(T::object_);
+    if (this != &other) {
+      if (other.env_ != nullptr) {
+        EnsureEnv(other.env_);
+      }
+      clear();
       T::object_ = other.release();
     }
     return *this;
   }
 
   Local(const Global<T>& other) {
-    EnsureEnv();
-    T::object_ = env_->NewLocalRef(other.get());
+    if (other.get() != nullptr) {
+      EnsureEnv();
+      if (env_ != nullptr) {
+        T::object_ = env_->NewLocalRef(other.get());
+      }
+    }
   }
 
   Local& operator=(const Global<T>& other) {
-    EnsureEnv();
-    env_->DeleteLocalRef(T::object_);
-    T::object_ = env_->NewLocalRef(other.get());
+    clear();
+    if (other.get() != nullptr) {
+      EnsureEnv();
+      if (env_ != nullptr) {
+        T::object_ = env_->NewLocalRef(other.get());
+      }
+    }
     return *this;
   }
 
   Local(Global<T>&& other) noexcept {
-    EnsureEnv();
-    T::object_ = env_->NewLocalRef(other.get());
-    env_->DeleteGlobalRef(other.release());
+    if (other.get() != nullptr) {
+      EnsureEnv();
+      if (env_ != nullptr) {
+        T::object_ = env_->NewLocalRef(other.get());
+        env_->DeleteGlobalRef(other.release());
+      }
+    }
   }
 
   Local& operator=(Global<T>&& other) noexcept {
-    EnsureEnv();
-    env_->DeleteLocalRef(T::object_);
-    T::object_ = env_->NewLocalRef(other.get());
-    env_->DeleteGlobalRef(other.release());
+    clear();
+    if (other.get() != nullptr) {
+      EnsureEnv();
+      if (env_ != nullptr) {
+        T::object_ = env_->NewLocalRef(other.get());
+        env_->DeleteGlobalRef(other.release());
+      }
+    }
     return *this;
   }
 
@@ -115,7 +145,7 @@ class Local : public T {
   /** Returns a non-owning proxy of type `U` that points to this object. */
   template <typename U>
   U CastTo() const& {
-    return U(get());
+    return U(static_cast<JniType<U>>(get()));
   }
 
   /**
@@ -125,7 +155,7 @@ class Local : public T {
    */
   template <typename U>
   Local<U> CastTo() && {
-    return Local<U>(env_, release());
+    return Local<U>(env_, static_cast<JniType<U>>(release()));
   }
 
   jni_type get() const override { return static_cast<jni_type>(T::object_); }
@@ -185,27 +215,52 @@ class Global : public T {
   Global(jni_type object, AdoptExisting) : T(object) {}
 
   Global(const Local<T>& other) {
-    JNIEnv* env = EnsureEnv(other.env());
-    T::object_ = env->NewGlobalRef(other.get());
+    if (other.get() != nullptr) {
+      JNIEnv* env = EnsureEnv(other.env());
+      if (env != nullptr) {
+        T::object_ = env->NewGlobalRef(other.get());
+      }
+    }
   }
 
   Global& operator=(const Local<T>& other) {
-    JNIEnv* env = EnsureEnv(other.env());
-    env->DeleteGlobalRef(T::object_);
-    T::object_ = env->NewGlobalRef(other.get());
+    JNIEnv* env = nullptr;
+    if (T::object_ != nullptr || other.get() != nullptr) {
+      env = EnsureEnv(other.env());
+    }
+    if (T::object_ != nullptr && env != nullptr) {
+      env->DeleteGlobalRef(T::object_);
+      T::object_ = nullptr;
+    }
+    if (other.get() != nullptr && env != nullptr) {
+      T::object_ = env->NewGlobalRef(other.get());
+    }
     return *this;
   }
 
   Global(const T& other) {
-    JNIEnv* env = GetEnv();
-    T::object_ = env->NewGlobalRef(other.get());
+    if (other.get() != nullptr) {
+      JNIEnv* env = GetEnv();
+      if (env != nullptr) {
+        T::object_ = env->NewGlobalRef(other.get());
+      }
+    }
   }
 
   Global& operator=(const T& other) {
-    if (T::object_ != other.get()) {
-      JNIEnv* env = GetEnv();
-      env->DeleteGlobalRef(T::object_);
-      T::object_ = env->NewGlobalRef(other.get());
+    if (this != &other) {
+      JNIEnv* env = nullptr;
+      if (T::object_ != nullptr || other.get() != nullptr) {
+        env = GetEnv();
+      }
+      jobject new_ref = nullptr;
+      if (other.get() != nullptr && env != nullptr) {
+        new_ref = env->NewGlobalRef(other.get());
+      }
+      if (T::object_ != nullptr && env != nullptr) {
+        env->DeleteGlobalRef(T::object_);
+      }
+      T::object_ = new_ref;
     }
     return *this;
   }
@@ -226,36 +281,40 @@ class Global : public T {
   Global(Global&& other) noexcept : T(other.release()) {}
 
   Global& operator=(Global&& other) noexcept {
-    if (T::object_ != other.get()) {
-      if (T::object_) {
-        JNIEnv* env = GetEnv();
-        env->DeleteGlobalRef(T::object_);
-      }
+    if (this != &other) {
+      clear();
       T::object_ = other.release();
     }
     return *this;
   }
 
   Global(Local<T>&& other) noexcept {
-    JNIEnv* env = EnsureEnv(other.env());
-    T::object_ = env->NewGlobalRef(other.get());
-    env->DeleteLocalRef(other.release());
+    if (other.get() != nullptr) {
+      JNIEnv* env = EnsureEnv(other.env());
+      if (env != nullptr) {
+        T::object_ = env->NewGlobalRef(other.get());
+        env->DeleteLocalRef(other.release());
+      }
+    }
   }
 
   Global& operator=(Local<T>&& other) noexcept {
-    JNIEnv* env = EnsureEnv(other.env());
-    env->DeleteGlobalRef(T::object_);
-    T::object_ = env->NewGlobalRef(other.get());
-    env->DeleteLocalRef(other.release());
+    JNIEnv* env = nullptr;
+    if (T::object_ != nullptr || other.get() != nullptr) {
+      env = EnsureEnv(other.env());
+    }
+    if (T::object_ != nullptr && env != nullptr) {
+      env->DeleteGlobalRef(T::object_);
+      T::object_ = nullptr;
+    }
+    if (other.get() != nullptr && env != nullptr) {
+      T::object_ = env->NewGlobalRef(other.get());
+      env->DeleteLocalRef(other.release());
+    }
     return *this;
   }
 
-  ~Global() {
-    if (T::object_) {
-      JNIEnv* env = GetEnv();
-      env->DeleteGlobalRef(T::object_);
-    }
-  }
+  ~Global() { clear(); }
 
   jni_type get() const override { return static_cast<jni_type>(T::object_); }
 

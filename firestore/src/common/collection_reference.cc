@@ -18,6 +18,7 @@
 
 #include <utility>
 #include "app/src/include/firebase/future.h"
+#include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/util.h"
@@ -55,7 +56,18 @@ CollectionReference::CollectionReference(CollectionReferenceInternal* internal)
 
 CollectionReference& CollectionReference::operator=(
     const CollectionReference& reference) {
-  Query::operator=(reference);
+  if (this == &reference) {
+    return *this;
+  }
+
+  CleanupFn<Query>::Unregister(this, internal_);
+  delete internal_;
+  if (reference.internal()) {
+    internal_ = new CollectionReferenceInternal(*reference.internal());
+  } else {
+    internal_ = nullptr;
+  }
+  CleanupFn<Query>::Register(this, internal_);
   return *this;
 }
 
@@ -100,8 +112,10 @@ DocumentReference CollectionReference::Document(
 
 DocumentReference CollectionReference::Document(
     const std::string& document_path) const {
-  if (!internal()) return {};
-  return internal()->Document(document_path);
+  if (document_path.empty()) {
+    SimpleThrowInvalidArgument("Document path cannot be empty.");
+  }
+  return Document(document_path.c_str());
 }
 
 Future<DocumentReference> CollectionReference::Add(const MapFieldValue& data) {

@@ -358,6 +358,7 @@ bool StorageReference::operator==(const StorageReference& other) const {
              NormalizeStoragePath(other.full_path());
 }
 
+#if defined(FIREBASE_STORAGE_BUILDING_SDK)
 // ABI-compatibility non-const overloads (see storage_reference.h).
 Storage* StorageReference::storage() {
   return static_cast<const StorageReference*>(this)->storage();
@@ -401,6 +402,7 @@ Future<Metadata> StorageReference::PutBytesLastResult() {
 Future<Metadata> StorageReference::PutFileLastResult() {
   return static_cast<const StorageReference*>(this)->PutFileLastResult();
 }
+#endif  // defined(FIREBASE_STORAGE_BUILDING_SDK)
 
 }  // namespace storage
 }  // namespace firebase

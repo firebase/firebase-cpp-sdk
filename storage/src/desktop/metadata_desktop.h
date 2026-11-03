@@ -144,7 +144,12 @@ class MetadataInternal {
   // if there isn't one.)
   const char* name() const { return name_.c_str(); }
 
-  // Return the associated StorageReference for which this metadata belongs to.
+  // Returns a new copy of the StorageReferenceInternal this metadata belongs
+  // to, or null if there is none. Ownership is transferred to the caller:
+  // Metadata::GetReference() (storage/src/common/metadata.cc) adopts it into a
+  // StorageReference, which deletes it. A raw pointer is returned because that
+  // platform-independent caller is shared with the Android and iOS
+  // implementations, whose GetReference() has the same signature.
   StorageReferenceInternal* GetReference() const;
 
   // Return the stored Size in bytes of the StorageReference object.
@@ -178,6 +183,10 @@ class MetadataInternal {
   // Convenience functions for populating metadata from json.
   static std::string LookUpString(const Variant& root, const char* key,
                                   const char* default_value = nullptr);
+  // Sets *value to the string stored under `key` and returns true if present;
+  // otherwise clears *value and returns false.
+  static bool LookUpOptionalString(const Variant& root, const char* key,
+                                   std::string* value);
   static int64_t LookUpInt64(const Variant& root, const char* key);
 
   // The storage reference this metadata belongs to.

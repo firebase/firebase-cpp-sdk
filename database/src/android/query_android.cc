@@ -114,7 +114,17 @@ QueryInternal::QueryInternal(const QueryInternal& src)
 }
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& src) {
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_);
+  if (&src == this) return *this;
+  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  if (obj_ != nullptr) {
+    env->DeleteGlobalRef(obj_);
+  }
+  if (db_ != src.db_) {
+    db_->future_manager().ReleaseFutureApi(&future_api_id_);
+    db_ = src.db_;
+    db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
+  }
+  obj_ = src.obj_ ? env->NewGlobalRef(src.obj_) : nullptr;
   query_spec_ = src.query_spec_;
   return *this;
 }
@@ -124,14 +134,22 @@ QueryInternal::QueryInternal(QueryInternal&& src) : db_(src.db_) {
   obj_ = src.obj_;
   src.obj_ = nullptr;
   db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
-  query_spec_ = src.query_spec_;
+  query_spec_ = std::move(src.query_spec_);
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& src) {
+  if (&src == this) return *this;
+  if (obj_ != nullptr) {
+    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
+  }
+  if (db_ != src.db_) {
+    db_->future_manager().ReleaseFutureApi(&future_api_id_);
+    db_ = src.db_;
+  }
   obj_ = src.obj_;
   src.obj_ = nullptr;
   db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
-  query_spec_ = src.query_spec_;
+  query_spec_ = std::move(src.query_spec_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
@@ -515,8 +533,12 @@ void SingleValueListener::SetJavaListener(jobject obj) {
 }
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
-  db_->ClearJavaEventListener(java_listener_);
-  db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
+  if (java_listener_ != nullptr) {
+    db_->RemoveSingleValueListener(java_listener_);
+    db_->ClearJavaEventListener(java_listener_);
+    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
+    java_listener_ = nullptr;
+  }
   future_->Complete<DataSnapshot>(
       handle_, kErrorNone, "",
       [&snapshot](DataSnapshot* data) { *data = snapshot; });
@@ -525,8 +547,12 @@ void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
 
 void SingleValueListener::OnCancelled(const Error& error_code,
                                       const char* error_message) {
-  db_->ClearJavaEventListener(java_listener_);
-  db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
+  if (java_listener_ != nullptr) {
+    db_->RemoveSingleValueListener(java_listener_);
+    db_->ClearJavaEventListener(java_listener_);
+    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
+    java_listener_ = nullptr;
+  }
   future_->Complete(handle_, error_code, error_message);
   delete this;
 }
@@ -552,8 +578,10 @@ Future<DataSnapshot> QueryInternal::GetValue() {
       obj_, query::GetMethodId(query::kAddListenerForSingleValueEvent),
       listener);
   if (util::LogException(env, kLogLevelError,
-                         "Query::GetValue (URL = %s) failed")) {
+                         "Query::GetValue (URL = %s) failed",
+                         query_spec_.path.c_str())) {
     // The query failed, so it needs to clean itself up.
+    db_->RemoveSingleValueListener(listener);
     db_->ClearJavaEventListener(listener);
     env->DeleteGlobalRef(listener);
     delete single_listener;
@@ -609,10 +637,11 @@ void QueryInternal::RemoveAllValueListeners() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   std::vector<jobject> listeners =
       db_->UnregisterAllValueEventListeners(query_spec_);
-  for (int i = 0; i < listeners.size(); i++) {
+  for (size_t i = 0; i < listeners.size(); i++) {
     env->CallVoidMethod(obj_,
                         query::GetMethodId(query::kRemoveValueEventListener),
                         listeners[i]);
+    util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(listeners[i]);
   }
 }
@@ -662,10 +691,11 @@ void QueryInternal::RemoveAllChildListeners() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   std::vector<jobject> listeners =
       db_->UnregisterAllChildEventListeners(query_spec_);
-  for (int i = 0; i < listeners.size(); i++) {
+  for (size_t i = 0; i < listeners.size(); i++) {
     env->CallVoidMethod(obj_,
                         query::GetMethodId(query::kRemoveChildEventListener),
                         listeners[i]);
+    util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(listeners[i]);
   }
 }

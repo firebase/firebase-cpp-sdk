@@ -9,28 +9,24 @@
 #include "testing/run_all_tests.h"
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
+#include <initializer_list>
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "performance/src/include/firebase/performance.h"
-#include "performance/src/include/firebase/performance/http_metric.h"
 #include "performance/src/include/firebase/performance/trace.h"
-#include "performance/src/performance_common.h"
-
-#ifdef __ANDROID__
-#include "app/src/util_android.h"
-#endif  // __ANDROID__
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #undef __ANDROID__
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
-#include "absl/memory/memory.h"
-#include "app/src/util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/reporter.h"
-#include "testing/ticker.h"
 
 namespace firebase {
 namespace performance {
@@ -107,22 +103,63 @@ TEST_F(TraceTest, TestTraceCreateButNotStart) {
   trace.Create("my_codepath");
 }
 
-TEST_F(TraceTest, TesteTraceStartAfterCreate) {
+TEST_F(TraceTest, TestTraceStartAfterCreate) {
   AddExpectationApple("-[FIRTrace initTraceWithName:]", {"my_codepath"});
   AddExpectationApple("-[FIRTrace start]", {});
-  // Stop isn't called as expected.
+  // Create() + StartCreatedTrace() is the Unity two-phase API where Unity owns
+  // the trace lifecycle (stop_on_destroy is false), so ~Trace() cancels rather
+  // than stops the underlying native trace.
 
   AddExpectationAndroid("new Trace", {"my_codepath"});
   AddExpectationAndroid("Trace.start", {});
-  // Stop isn't called as expected.
 
   Trace trace;
   trace.Create("my_codepath");
   trace.StartCreatedTrace();
 }
 
+TEST_F(TraceTest, TestMoveConstructor) {
+  AddExpectationApple("-[FIRTrace initTraceWithName:]", {"my_codepath"});
+  AddExpectationApple("-[FIRTrace start]", {});
+  AddExpectationApple("-[FIRTrace stop]", {});
+
+  AddExpectationAndroid("new Trace", {"my_codepath"});
+  AddExpectationAndroid("Trace.start", {});
+  AddExpectationAndroid("Trace.stop", {});
+
+  Trace trace("my_codepath");
+  EXPECT_TRUE(trace.is_started());
+
+  Trace moved_trace(std::move(trace));
+  EXPECT_FALSE(trace.is_started());
+  EXPECT_TRUE(moved_trace.is_started());
+}
+
+TEST_F(TraceTest, TestMoveAssignment) {
+  AddExpectationApple("-[FIRTrace initTraceWithName:]", {"trace_1"});
+  AddExpectationApple("-[FIRTrace start]", {});
+  AddExpectationApple("-[FIRTrace initTraceWithName:]", {"trace_2"});
+  AddExpectationApple("-[FIRTrace start]", {});
+  AddExpectationApple("-[FIRTrace stop]", {});
+  AddExpectationApple("-[FIRTrace stop]", {});
+
+  AddExpectationAndroid("new Trace", {"trace_1"});
+  AddExpectationAndroid("Trace.start", {});
+  AddExpectationAndroid("new Trace", {"trace_2"});
+  AddExpectationAndroid("Trace.start", {});
+  AddExpectationAndroid("Trace.stop", {});
+  AddExpectationAndroid("Trace.stop", {});
+
+  Trace trace1("trace_1");
+  Trace trace2("trace_2");
+  trace1 = std::move(trace2);
+  EXPECT_TRUE(trace1.is_started());
+  EXPECT_FALSE(trace2.is_started());
+}
+
 TEST_F(TraceTest, TestCreateTraceWithNullName) {
-  EXPECT_NO_THROW(Trace trace(nullptr));
+  Trace trace(nullptr);
+  EXPECT_FALSE(trace.is_started());
 }
 
 TEST_F(TraceTest, TestIsStarted) {
@@ -177,13 +214,20 @@ TEST_F(TraceTest, TestSetAttributeNotStarted) {
 TEST_F(TraceTest, TestGetAttribute) {
   Trace trace("my_codepath");
   reporter_.reset();
+
+  // FIRTrace (iOS fake), Trace.java (Android fake), and trace_stub.cc (desktop
+  // stub) all persist attributes in-memory on the trace instance.
+  AddExpectationApple("-[FIRTrace setValue:forAttribute:]",
+                      {"my_value", "my_attribute"});
   AddExpectationApple("-[FIRTrace valueForAttribute:]", {"my_attribute"});
   AddExpectationApple("-[FIRTrace stop]", {});
 
+  AddExpectationAndroid("Trace.putAttribute", {"my_attribute", "my_value"});
   AddExpectationAndroid("Trace.getAttribute", {"my_attribute"});
   AddExpectationAndroid("Trace.stop", {});
 
-  trace.GetAttribute("my_attribute"), ::testing::Eq("my_value");
+  trace.SetAttribute("my_attribute", "my_value");
+  EXPECT_THAT(trace.GetAttribute("my_attribute"), ::testing::Eq("my_value"));
 }
 
 TEST_F(TraceTest, TestGetAttributeNullName) {
@@ -193,7 +237,7 @@ TEST_F(TraceTest, TestGetAttributeNullName) {
   AddExpectationApple("-[FIRTrace stop]", {});
   AddExpectationAndroid("Trace.stop", {});
 
-  EXPECT_NO_THROW(trace.GetAttribute(nullptr));
+  EXPECT_THAT(trace.GetAttribute(nullptr), ::testing::Eq(""));
 }
 
 TEST_F(TraceTest, TestGetAttributeNotStarted) {
@@ -201,7 +245,7 @@ TEST_F(TraceTest, TestGetAttributeNotStarted) {
   trace.Stop();
   reporter_.reset();
 
-  EXPECT_NO_THROW(trace.GetAttribute("my_attribute"));
+  EXPECT_THAT(trace.GetAttribute("my_attribute"), ::testing::Eq(""));
 }
 
 TEST_F(TraceTest, TestRemoveAttribute) {
@@ -231,7 +275,8 @@ TEST_F(TraceTest, TestRemoveAttributeNotStarted) {
   trace.Stop();
   reporter_.reset();
 
-  EXPECT_NO_THROW(trace.SetAttribute(nullptr, nullptr));
+  EXPECT_NO_THROW(trace.SetAttribute("my_attribute", nullptr));
+  EXPECT_THAT(trace.GetAttribute("my_attribute"), ::testing::Eq(""));
 }
 
 TEST_F(TraceTest, TestSetMetric) {
@@ -267,16 +312,21 @@ TEST_F(TraceTest, TestSetMetricNotStarted) {
 
 TEST_F(TraceTest, TestGetLongMetric) {
   Trace trace("my_codepath");
-  trace.SetMetric("my_metric", 2000);
-
   reporter_.reset();
+
+  // FIRTrace (iOS fake), Trace.java (Android fake), and trace_stub.cc (desktop
+  // stub) all persist metrics in-memory on the trace instance.
+  AddExpectationApple("-[FIRTrace setIntValue:forMetric:]",
+                      {"my_metric", "2000"});
   AddExpectationApple("-[FIRTrace valueForIntMetric:]", {"my_metric"});
   AddExpectationApple("-[FIRTrace stop]", {});
 
+  AddExpectationAndroid("Trace.putMetric", {"my_metric", "2000"});
   AddExpectationAndroid("Trace.getLongMetric", {"my_metric"});
   AddExpectationAndroid("Trace.stop", {});
 
-  trace.GetLongMetric("my_metric");
+  trace.SetMetric("my_metric", 2000);
+  EXPECT_EQ(trace.GetLongMetric("my_metric"), 2000);
 }
 
 TEST_F(TraceTest, TestGetLongMetricNullName) {
@@ -286,7 +336,7 @@ TEST_F(TraceTest, TestGetLongMetricNullName) {
   AddExpectationApple("-[FIRTrace stop]", {});
   AddExpectationAndroid("Trace.stop", {});
 
-  EXPECT_NO_THROW(trace.GetLongMetric(nullptr));
+  EXPECT_EQ(trace.GetLongMetric(nullptr), 0);
 }
 
 TEST_F(TraceTest, TestGetLongMetricNotStarted) {
@@ -294,7 +344,7 @@ TEST_F(TraceTest, TestGetLongMetricNotStarted) {
   trace.Stop();
   reporter_.reset();
 
-  EXPECT_NO_THROW(trace.GetLongMetric("my_metric"));
+  EXPECT_EQ(trace.GetLongMetric("my_metric"), 0);
 }
 
 TEST_F(TraceTest, TestIncrementMetric) {

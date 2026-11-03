@@ -48,30 +48,43 @@ InitResult Initialize(const ::firebase::App& app) {
 
   // Cache method pointers on HttpMetric.
   if (!internal::http_metric_jni::CacheMethodIds(env, app.activity())) {
+    internal::performance_jni::ReleaseClass(env);
     util::Terminate(env);
     return kInitResultFailedMissingDependency;
   }
 
   // Cache method pointers on Trace.
   if (!internal::trace_jni::CacheMethodIds(env, app.activity())) {
+    internal::http_metric_jni::ReleaseClass(env);
+    internal::performance_jni::ReleaseClass(env);
     util::Terminate(env);
     return kInitResultFailedMissingDependency;
   }
 
-  g_app = &app;
   // Get / create the Performance singleton.
   jobject performance_class_instance_local =
       env->CallStaticObjectMethod(internal::performance_jni::GetClass(),
                                   internal::performance_jni::GetMethodId(
                                       internal::performance_jni::kGetInstance));
-  util::CheckAndClearJniExceptions(env);
+  if (util::CheckAndClearJniExceptions(env) ||
+      performance_class_instance_local == nullptr) {
+    if (performance_class_instance_local != nullptr) {
+      env->DeleteLocalRef(performance_class_instance_local);
+    }
+    internal::trace_jni::ReleaseClass(env);
+    internal::http_metric_jni::ReleaseClass(env);
+    internal::performance_jni::ReleaseClass(env);
+    util::Terminate(env);
+    return kInitResultFailedMissingDependency;
+  }
+  g_app = &app;
   // Keep a reference to the Performance singleton.
   g_performance_class_instance =
       env->NewGlobalRef(performance_class_instance_local);
   FIREBASE_ASSERT(g_performance_class_instance);
 
   env->DeleteLocalRef(performance_class_instance_local);
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnDefaultAppDestroy(&app);
   LogInfo("%s API Initialized", internal::kPerformanceModuleName);
   return kInitResultSuccess;
 }
@@ -111,10 +124,14 @@ void Terminate() {
   }
   JNIEnv* env = g_app->GetJNIEnv();
   util::CancelCallbacks(env, internal::kPerformanceModuleName);
-  internal::UnregisterTerminateOnDefaultAppDestroy();
+  internal::UnregisterTerminateOnDefaultAppDestroy(g_app);
   g_app = nullptr;
-  env->DeleteGlobalRef(g_performance_class_instance);
-  g_performance_class_instance = nullptr;
+  if (g_performance_class_instance) {
+    env->DeleteGlobalRef(g_performance_class_instance);
+    g_performance_class_instance = nullptr;
+  }
+  internal::trace_jni::ReleaseClass(env);
+  internal::http_metric_jni::ReleaseClass(env);
   internal::performance_jni::ReleaseClass(env);
   util::Terminate(env);
 }

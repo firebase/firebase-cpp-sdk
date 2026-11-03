@@ -16,9 +16,9 @@
 
 #include "app/src/thread.h"
 
-#include <cassert>
-
 #if defined(_STLPORT_VERSION)
+
+#include <memory>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -26,44 +26,56 @@
 
 namespace firebase {
 
-// Helper POD that holds data needed for the pthread start_routine. See
-// InitializeAndRun() for details on how it is used.
+namespace {
+
+// Heap-allocated synchronization state shared between the parent constructor
+// and the newly spawned pthread so the parent never destroys a stack-allocated
+// Mutex/ConditionVariable while the child is still unlocking it.
 struct ContextHolder {
-  firebase::Thread::UnsafeRoutine routine;
-  firebase::Thread::AdapterRoutine adapter_routine;
+  ContextHolder(Thread::UnsafeRoutine in_routine,
+                Thread::AdapterRoutine in_adapter_routine, void* in_context)
+      : routine(in_routine),
+        adapter_routine(in_adapter_routine),
+        user_context(in_context),
+        started(false),
+        mutex(Mutex::kModeNonRecursive) {}
+
+  Thread::UnsafeRoutine routine;
+  Thread::AdapterRoutine adapter_routine;
   void* user_context;
-  bool* is_joinable;
-  firebase::Mutex* mutex;
-  firebase::internal::ConditionVariable* cond_var;
+  bool started;
+  Mutex mutex;
+  internal::ConditionVariable cond_var;
 };
 
-// pthread start_routine. Accomplishes 2 things:
-//
-// * Adapts the pthread's signature void* (*)(void*) to void (*)(void*) that's
-//   passed into the Thread object.
-// * Synchronizes the end of Thread's constructor with the beginning of Routine
-//   invocation.
 void* InitializeAndRun(void* data) {
-  auto* holder = static_cast<ContextHolder*>(data);
+  std::unique_ptr<std::shared_ptr<ContextHolder>> holder_ptr(
+      static_cast<std::shared_ptr<ContextHolder>*>(data));
+  std::shared_ptr<ContextHolder> holder = *holder_ptr;
+  holder_ptr.reset();
+
   auto routine = holder->routine;
   auto adapter_routine = holder->adapter_routine;
   void* ctx = holder->user_context;
 
   {
-    firebase::MutexLock lock(*holder->mutex);
-    *holder->is_joinable = true;
-    holder->cond_var->NotifyOne();
+    MutexLock lock(holder->mutex);
+    holder->started = true;
+    holder->cond_var.NotifyOne();
   }
+  holder.reset();
 
   adapter_routine(routine, ctx);
   return nullptr;
 }
-// NOLINTNEXTLINE - allow namespace overridden
-}  // namespace firebase
 
-namespace firebase {
+struct NoArgContext {
+  Thread::NoArgRoutine routine;
+};
 
-Thread::Thread() : is_joinable_(false) {}
+}  // namespace
+
+Thread::Thread() : thread_{}, is_joinable_(false) {}
 
 Thread::~Thread() {
   FIREBASE_ASSERT_MESSAGE(!is_joinable_,
@@ -72,45 +84,53 @@ Thread::~Thread() {
                           "thread can be destructed.");
 }
 
-Thread::Thread(Thread&& other) {
-  thread_ = other.thread_;
-  is_joinable_ = other.is_joinable_;
+Thread::Thread(Thread&& other) noexcept
+    : thread_(other.thread_), is_joinable_(other.is_joinable_) {
+  other.thread_ = {};
   other.is_joinable_ = false;
 }
 
 Thread::Thread(Thread::UnsafeRoutine start_routine, void* arg)
     : Thread(start_routine, arg,
-             [](Thread::UnsafeRoutine start_routine, void* arg) {
-               start_routine(arg);
+             [](Thread::UnsafeRoutine routine, void* context) {
+               routine(context);
              }) {}
 
 Thread::Thread(Thread::NoArgRoutine start_routine)
-    : Thread(reinterpret_cast<Thread::UnsafeRoutine>(start_routine), nullptr,
-             [](Thread::UnsafeRoutine start_routine, void* arg) {
-               reinterpret_cast<Thread::NoArgRoutine>(start_routine)();
-             }) {}
+    : Thread(
+          nullptr, new NoArgContext{start_routine},
+          [](Thread::UnsafeRoutine, void* context) {
+            std::unique_ptr<NoArgContext> holder(
+                static_cast<NoArgContext*>(context));
+            if (holder->routine) {
+              holder->routine();
+            }
+          }) {}
 
 Thread::Thread(Thread::UnsafeRoutine start_routine, void* arg,
                Thread::AdapterRoutine adapter_routine)
-    : is_joinable_(false) {
-  Mutex mutex;
-  firebase::internal::ConditionVariable cond_var;
-
-  ContextHolder context_holder{start_routine, adapter_routine, arg,
-                               &is_joinable_, &mutex,          &cond_var};
+    : thread_{}, is_joinable_(false) {
+  auto holder =
+      std::make_shared<ContextHolder>(start_routine, adapter_routine, arg);
+  auto* child_holder = new std::shared_ptr<ContextHolder>(holder);
 
   int creation_result =
-      pthread_create(&thread_, nullptr, &InitializeAndRun, &context_holder);
+      pthread_create(&thread_, nullptr, &InitializeAndRun, child_holder);
+  if (creation_result != 0) {
+    delete child_holder;
+  }
   FIREBASE_ASSERT_MESSAGE(creation_result == 0, "Could not start thread");
 
   // Wait for the thread to initialize and start executing start_routine.
   {
-    MutexLock lock(mutex);
-    cond_var.Wait(mutex.native_handle(), [this] { return is_joinable_; });
+    MutexLock lock(holder->mutex);
+    holder->cond_var.Wait(holder->mutex.native_handle(),
+                          [&holder] { return holder->started; });
   }
+  is_joinable_ = true;
 }
 
-Thread& Thread::operator=(Thread&& other) {
+Thread& Thread::operator=(Thread&& other) noexcept {
   if (this == &other) {
     return *this;
   }
@@ -120,6 +140,7 @@ Thread& Thread::operator=(Thread&& other) {
 
   thread_ = other.thread_;
   is_joinable_ = other.is_joinable_;
+  other.thread_ = {};
   other.is_joinable_ = false;
   return *this;
 }
@@ -130,16 +151,16 @@ void Thread::Join() {
   FIREBASE_ASSERT_MESSAGE(is_joinable_,
                           "Not allowed to join a non-joinable thread");
   is_joinable_ = false;
-  FIREBASE_ASSERT_MESSAGE(pthread_join(thread_, nullptr) == 0,
-                          "Could not join thread");
+  int join_err = pthread_join(thread_, nullptr);
+  FIREBASE_ASSERT_MESSAGE(join_err == 0, "Could not join thread");
 }
 
 void Thread::Detach() {
   FIREBASE_ASSERT_MESSAGE(is_joinable_,
-                          "Not allowed to join a non-joinable thread");
+                          "Not allowed to detach a non-joinable thread");
   is_joinable_ = false;
-  FIREBASE_ASSERT_MESSAGE(pthread_detach(thread_) == 0,
-                          "Could not detach thread");
+  int detach_err = pthread_detach(thread_);
+  FIREBASE_ASSERT_MESSAGE(detach_err == 0, "Could not detach thread");
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

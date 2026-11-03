@@ -16,6 +16,9 @@
 
 #include "app/src/include/firebase/variant.h"
 
+#include <cmath>
+#include <limits>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -746,9 +749,15 @@ TEST_F(VariantTest, TestDefaults) {
   EXPECT_THAT(Variant::Zero(),
               AllOf(Property(&Variant::type, Eq(Variant::kTypeInt64)),
                     Property(&Variant::int64_value, Eq(0))));
+  EXPECT_THAT(Variant::One(),
+              AllOf(Property(&Variant::type, Eq(Variant::kTypeInt64)),
+                    Property(&Variant::int64_value, Eq(1))));
   EXPECT_THAT(Variant::ZeroPointZero(),
               AllOf(Property(&Variant::type, Eq(Variant::kTypeDouble)),
                     Property(&Variant::double_value, Eq(0.0))));
+  EXPECT_THAT(Variant::OnePointZero(),
+              AllOf(Property(&Variant::type, Eq(Variant::kTypeDouble)),
+                    Property(&Variant::double_value, Eq(1.0))));
   EXPECT_THAT(Variant::False(),
               AllOf(Property(&Variant::type, Eq(Variant::kTypeBool)),
                     Property(&Variant::bool_value, Eq(false))));
@@ -898,7 +907,7 @@ TEST_F(VariantTest, TestConversionFunctions) {
     EXPECT_THAT(vdouble.type(), Eq(Variant::kTypeDouble));
     vstring = vdouble.AsString();
     EXPECT_TRUE(vstring.is_string());
-    EXPECT_THAT(vstring.string_value(), StrEq("34491282.2909820005297661"));
+    EXPECT_THAT(vstring.string_value(), StrEq("34491282.290982"));
 
     EXPECT_THAT(Variant::True().AsString(), Eq(Variant("true")));
     EXPECT_THAT(Variant::False().AsString(), Eq(Variant("false")));
@@ -1168,6 +1177,306 @@ TEST_F(VariantTest, TestMoveConstructorOnAllTypes) {
     EXPECT_THAT(v.vector()[2].type(), Eq(Variant::kTypeMap));
     EXPECT_THAT(v.vector()[2], Eq(g_test_complex_map));
   }
+}
+
+TEST_F(VariantTest, TestArrayConstructor) {
+  const int ints[] = {10, 20, 30, 40};
+  Variant v_ints(ints, 4);
+  EXPECT_TRUE(v_ints.is_vector());
+  ASSERT_EQ(v_ints.vector().size(), 4u);
+  EXPECT_EQ(v_ints.vector()[0], Variant(10));
+  EXPECT_EQ(v_ints.vector()[1], Variant(20));
+  EXPECT_EQ(v_ints.vector()[2], Variant(30));
+  EXPECT_EQ(v_ints.vector()[3], Variant(40));
+
+  Variant v_empty(ints, 0);
+  EXPECT_TRUE(v_empty.is_vector());
+  EXPECT_TRUE(v_empty.vector().empty());
+
+  const int* null_ints = nullptr;
+  Variant v_null(null_ints, 5);
+  EXPECT_TRUE(v_null.is_vector());
+  EXPECT_TRUE(v_null.vector().empty());
+}
+
+TEST_F(VariantTest, TestSelfAssignmentAndAliasing) {
+  {
+    Variant v(kTestMutableString);
+    v.set_mutable_string(v.mutable_string());
+    EXPECT_EQ(v.mutable_string(), kTestMutableString);
+    v.set_mutable_string(v.string_value());
+    EXPECT_EQ(v.mutable_string(), kTestMutableString);
+    v.set_string_value(v.mutable_string());
+    EXPECT_EQ(v.mutable_string(), kTestMutableString);
+  }
+  {
+    Variant v(kTestSmallString);
+    v.set_mutable_string(v.string_value());
+    EXPECT_EQ(v.string_value(), kTestSmallString);
+  }
+  {
+    Variant v(kTestVector);
+    v.set_vector(v.vector());
+    EXPECT_EQ(v.vector(), kTestVector);
+  }
+  {
+    Variant v(g_test_map);
+    v.set_map(v.map());
+    EXPECT_EQ(v.map(), g_test_map);
+  }
+  {
+    Variant v = Variant::FromMutableBlob(kTestBlobData, kTestBlobSize);
+    v.set_mutable_blob(v.blob_data(), v.blob_size());
+    EXPECT_EQ(AsVector(v.blob_data(), v.blob_size()),
+              AsVector(kTestBlobData, kTestBlobSize));
+  }
+  {
+    Variant v(kTestComplexVector);
+    v = v.vector()[2];
+    EXPECT_EQ(v.vector(), kTestVector);
+  }
+}
+
+TEST_F(VariantTest, TestNullPointerSafety) {
+  {
+    Variant v;
+    v.set_string_value(static_cast<const char*>(nullptr));
+    EXPECT_TRUE(v.is_static_string());
+    EXPECT_THAT(v.string_value(), StrEq(""));
+    EXPECT_EQ(v, Variant(""));
+  }
+  {
+    Variant v;
+    v.set_string_value(static_cast<char*>(nullptr));
+    EXPECT_TRUE(v.is_mutable_string());
+    EXPECT_THAT(v.string_value(), StrEq(""));
+  }
+  {
+    char* null_char_ptr = nullptr;
+    Variant v(null_char_ptr);
+    EXPECT_TRUE(v.is_mutable_string());
+    EXPECT_THAT(v.string_value(), StrEq(""));
+  }
+  {
+    Variant v = Variant::MutableStringFromStaticString(nullptr);
+    EXPECT_TRUE(v.is_mutable_string());
+    EXPECT_THAT(v.string_value(), StrEq(""));
+  }
+  {
+    Variant v = Variant::FromStaticBlob(nullptr, 10);
+    EXPECT_TRUE(v.is_static_blob());
+    EXPECT_EQ(v.blob_size(), 0u);
+    EXPECT_NE(v.blob_data(), nullptr);
+    EXPECT_EQ(v, Variant::FromStaticBlob(nullptr, 0));
+    EXPECT_FALSE(v < Variant::FromStaticBlob(nullptr, 0));
+  }
+  {
+    Variant v;
+    v.AssignMutableString(nullptr);
+    EXPECT_TRUE(v.is_mutable_string());
+    EXPECT_EQ(v.mutable_string(), "");
+
+    std::string* null_str = nullptr;
+    v.AssignMutableString(&null_str);
+    EXPECT_TRUE(v.is_mutable_string());
+    EXPECT_EQ(v.mutable_string(), "");
+
+    v.AssignVector(nullptr);
+    EXPECT_TRUE(v.is_vector());
+    EXPECT_TRUE(v.vector().empty());
+
+    std::vector<Variant>* null_vec = nullptr;
+    v.AssignVector(&null_vec);
+    EXPECT_TRUE(v.is_vector());
+    EXPECT_TRUE(v.vector().empty());
+
+    v.AssignMap(nullptr);
+    EXPECT_TRUE(v.is_map());
+    EXPECT_TRUE(v.map().empty());
+
+    std::map<Variant, Variant>* null_map = nullptr;
+    v.AssignMap(&null_map);
+    EXPECT_TRUE(v.is_map());
+    EXPECT_TRUE(v.map().empty());
+  }
+}
+
+TEST_F(VariantTest, TestAssignPointerTransfer) {
+  auto* str = new std::string("assigned string");
+  Variant v;
+  v.AssignMutableString(&str);
+  EXPECT_EQ(str, nullptr);
+  EXPECT_TRUE(v.is_mutable_string());
+  EXPECT_EQ(v.mutable_string(), "assigned string");
+
+  auto* vec = new std::vector<Variant>{1, 2, 3};
+  v.AssignVector(&vec);
+  EXPECT_EQ(vec, nullptr);
+  EXPECT_TRUE(v.is_vector());
+  EXPECT_THAT(v.vector(), ElementsAre(1, 2, 3));
+
+  auto* mp = new std::map<Variant, Variant>{{"k", 42}};
+  v.AssignMap(&mp);
+  EXPECT_EQ(mp, nullptr);
+  EXPECT_TRUE(v.is_map());
+  EXPECT_EQ(v.map()["k"], Variant(42));
+}
+
+TEST_F(VariantTest, TestZeroInitializedAndEmptyBlobs) {
+  Variant v_empty = Variant::EmptyMutableBlob(0);
+  EXPECT_TRUE(v_empty.is_mutable_blob());
+  EXPECT_TRUE(v_empty.is_blob());
+  EXPECT_EQ(v_empty.blob_size(), 0u);
+  EXPECT_NE(v_empty.blob_data(), nullptr);
+  EXPECT_NE(v_empty.mutable_blob_data(), nullptr);
+
+  Variant v_zeroed = Variant::EmptyMutableBlob(32);
+  EXPECT_TRUE(v_zeroed.is_mutable_blob());
+  EXPECT_EQ(v_zeroed.blob_size(), 32u);
+  for (size_t i = 0; i < 32; ++i) {
+    EXPECT_EQ(v_zeroed.blob_data()[i], 0u);
+  }
+
+  Variant v_set_null;
+  v_set_null.set_mutable_blob(nullptr, 16);
+  EXPECT_EQ(v_set_null.blob_size(), 16u);
+  for (size_t i = 0; i < 16; ++i) {
+    EXPECT_EQ(v_set_null.blob_data()[i], 0u);
+  }
+
+  std::vector<uint8_t> byte_vec = {1, 2, 3, 4, 5};
+  Variant v_from_vec = Variant::FromMutableBlob(byte_vec);
+  EXPECT_TRUE(v_from_vec.is_mutable_blob());
+  EXPECT_EQ(v_from_vec.blob_size(), 5u);
+  EXPECT_EQ(AsVector(v_from_vec.blob_data(), v_from_vec.blob_size()), byte_vec);
+}
+
+TEST_F(VariantTest, TestEmbeddedNullStrings) {
+  std::string s1("ab\0cd", 5);
+  std::string s2("ab\0ef", 5);
+  Variant v1(s1);
+  Variant v2(s2);
+  const Variant& cv1 = v1;
+
+  EXPECT_EQ(cv1.mutable_string().size(), 5u);
+  EXPECT_EQ(cv1.mutable_string(), s1);
+  EXPECT_EQ(v1.mutable_string(), s1);
+  EXPECT_NE(v1, v2);
+  EXPECT_LT(v1, v2);
+  EXPECT_GT(v2, v1);
+}
+
+TEST_F(VariantTest, TestNaNOrderingAndConversions) {
+  const double nan_val = std::numeric_limits<double>::quiet_NaN();
+  Variant v_nan1(nan_val);
+  Variant v_nan2(nan_val);
+  Variant v_one(1.0);
+
+  EXPECT_EQ(v_nan1, v_nan2);
+  EXPECT_FALSE(v_nan1 < v_nan2);
+  EXPECT_TRUE(v_one < v_nan1);
+  EXPECT_FALSE(v_nan1 < v_one);
+
+  std::map<Variant, Variant> m;
+  m[v_nan1] = "nan_entry";
+  m[v_one] = "one_entry";
+  m[Variant(-1.0)] = "neg_one_entry";
+  EXPECT_EQ(m.size(), 3u);
+  EXPECT_EQ(m[v_nan2], Variant("nan_entry"));
+  EXPECT_EQ(m[v_one], Variant("one_entry"));
+
+  // AsDouble filters NaN/Inf.
+  EXPECT_EQ(Variant("nan").AsDouble(), Variant(0.0));
+  EXPECT_EQ(Variant("inf").AsDouble(), Variant(0.0));
+  EXPECT_EQ(v_nan1.AsDouble(), Variant(0.0));
+
+  // AsInt64 clamps out-of-range doubles and parses 64-bit strings via strtoll.
+  EXPECT_EQ(v_nan1.AsInt64(), Variant(int64_t(0)));
+  EXPECT_EQ(Variant(1e30).AsInt64(), Variant(INT64_MAX));
+  EXPECT_EQ(Variant(-1e30).AsInt64(), Variant(INT64_MIN));
+  EXPECT_EQ(Variant("9223372036854775807").AsInt64(), Variant(INT64_MAX));
+
+  // AsBool treats NaN, "0", and case-insensitive "false" as false.
+  EXPECT_EQ(v_nan1.AsBool(), Variant::False());
+  EXPECT_EQ(Variant("0").AsBool(), Variant::False());
+  EXPECT_EQ(Variant("FALSE").AsBool(), Variant::False());
+  EXPECT_EQ(Variant("False").AsBool(), Variant::False());
+
+  // AsString returns MutableString consistently and formats small/large doubles
+  EXPECT_EQ(Variant::True().AsString().type(), Variant::kTypeMutableString);
+  EXPECT_EQ(Variant("static").AsString().type(), Variant::kTypeMutableString);
+  EXPECT_EQ(Variant::Null().AsString().type(), Variant::kTypeMutableString);
+  EXPECT_THAT(Variant(1e-20).AsString().AsDouble().double_value(), Eq(1e-20));
+}
+
+TEST_F(VariantTest, TestPredicatesTypeNameAndRelationalOperators) {
+  Variant v_static_str("hello");
+  EXPECT_TRUE(v_static_str.is_static_string());
+  EXPECT_FALSE(v_static_str.is_mutable_string());
+
+  Variant v_mut_str(std::string("hello"));
+  EXPECT_TRUE(v_mut_str.is_mutable_string());
+  EXPECT_FALSE(v_mut_str.is_static_string());
+
+  Variant v_int(42);
+  EXPECT_TRUE(v_int.is_numeric());
+  Variant v_dbl(3.14);
+  EXPECT_TRUE(v_dbl.is_numeric());
+  EXPECT_FALSE(v_static_str.is_numeric());
+
+  v_int.set_null();
+  EXPECT_TRUE(v_int.is_null());
+
+  char buf[] = "mutable_cstr";
+  v_int.set_string_value(buf);
+  EXPECT_TRUE(v_int.is_mutable_string());
+  EXPECT_THAT(v_int.string_value(), StrEq("mutable_cstr"));
+
+  v_int.set_string_value(std::string("from_std_string"));
+  EXPECT_TRUE(v_int.is_mutable_string());
+  EXPECT_THAT(v_int.string_value(), StrEq("from_std_string"));
+
+  // Relational operators >, >=, <=
+  EXPECT_TRUE(Variant(2) > Variant(1));
+  EXPECT_TRUE(Variant(2) >= Variant(2));
+  EXPECT_TRUE(Variant(2) >= Variant(1));
+  EXPECT_TRUE(Variant(1) <= Variant(1));
+  EXPECT_TRUE(Variant(1) <= Variant(2));
+
+  // TypeName
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeNull), StrEq("Null"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeInt64), StrEq("Int64"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeDouble), StrEq("Double"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeBool), StrEq("Bool"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeStaticString),
+              StrEq("StaticString"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeMutableString),
+              StrEq("MutableString"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeVector), StrEq("Vector"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeMap), StrEq("Map"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeStaticBlob), StrEq("StaticBlob"));
+  EXPECT_THAT(Variant::TypeName(Variant::kTypeMutableBlob),
+              StrEq("MutableBlob"));
+  EXPECT_DEATH(Variant::TypeName(static_cast<Variant::Type>(10)),
+               DEATHTEST_SIGABRT);
+}
+
+TEST_F(VariantTest, TestRvalueOverloadsAndFactories) {
+  std::string s = "moved string that exceeds small string size limit";
+  Variant v_str = Variant::FromMutableString(std::move(s));
+  EXPECT_TRUE(v_str.is_mutable_string());
+  EXPECT_EQ(v_str.mutable_string(),
+            "moved string that exceeds small string size limit");
+
+  std::vector<Variant> vec = {1, 2, 3};
+  Variant v_vec = Variant::FromVector(std::move(vec));
+  EXPECT_TRUE(v_vec.is_vector());
+  EXPECT_THAT(v_vec.vector(), ElementsAre(1, 2, 3));
+
+  std::map<Variant, Variant> mp = {{"a", 1}, {"b", 2}};
+  Variant v_map = Variant::FromMap(std::move(mp));
+  EXPECT_TRUE(v_map.is_map());
+  EXPECT_EQ(v_map.map().size(), 2u);
 }
 
 }  // namespace testing

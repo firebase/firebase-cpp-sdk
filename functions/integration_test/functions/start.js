@@ -1,4 +1,5 @@
-// Copyright 2026 Google LLC
+#!/usr/bin/env node
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,131 +13,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { spawn } = require('child_process');
-const fs = require('fs');
+const {spawn, spawnSync} = require('child_process');
+const http = require('http');
 const os = require('os');
 const path = require('path');
-const net = require('net');
-const readline = require('readline');
 
-const scriptDir = __dirname;
-const isSynchronous = process.argv[2] === 'synchronous';
+const functionsDir = path.resolve(__dirname, 'functions');
+const npmBin = os.platform() === 'win32' ? 'npm.cmd' : 'npm';
+const npmInstall = spawnSync(npmBin, ['install'], {
+  cwd: functionsDir,
+  stdio: 'inherit',
+});
+if (npmInstall.error || npmInstall.status !== 0) {
+  console.error('Failed to install functions npm dependencies.');
+  process.exit(npmInstall.status || 1);
+}
 
-async function main() {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'firebase-functions-'));
-  console.log(`Creating functions in ${tempDir}`);
+const firebaseBin = path.resolve(
+    functionsDir,
+    'node_modules/.bin',
+    os.platform() === 'win32' ? 'firebase.cmd' : 'firebase'
+);
 
-  // Create functions subdirectory
-  fs.mkdirSync(path.join(tempDir, 'functions'), { recursive: true });
-
-  // Copy files
-  fs.copyFileSync(path.join(scriptDir, 'functions', 'index.js'), path.join(tempDir, 'functions', 'index.js'));
-  fs.copyFileSync(path.join(scriptDir, 'functions', 'package.json'), path.join(tempDir, 'functions', 'package.json'));
-  fs.copyFileSync(path.join(scriptDir, 'firebase.json'), path.join(tempDir, 'firebase.json'));
-
-  // npm install in functions directory
-  console.log('Installing dependencies...');
-  await runCommand(os.platform() === 'win32' ? 'npm.cmd' : 'npm', ['install'], { cwd: path.join(tempDir, 'functions') });
-
-  // Start the server
-  console.log('Starting the emulator...');
-  const logFile = path.join(tempDir, 'firebase-emulator.log');
-  const out = fs.openSync(logFile, 'a');
-  const err = fs.openSync(logFile, 'a');
-
-  const child = spawn(
-    os.platform() === 'win32' ? 'npx.cmd' : 'npx',
-    ['firebase', 'emulators:start', '--only', 'functions', '--project', 'functions-integration-test'],
+const emulator = spawn(
+    firebaseBin,
+    ['emulators:start', '--only', 'functions', '--project', 'functions-integration-test'],
     {
-      cwd: tempDir,
-      detached: isSynchronous,
-      stdio: isSynchronous ? ['ignore', out, err] : 'inherit'
+      cwd: __dirname,
+      stdio: 'inherit',
     }
-  );
+);
 
-  if (isSynchronous) {
-    child.unref();
-  }
-
-  // Wait for the emulator to be ready
-  console.log('Waiting for emulator to start...');
-  const ready = await waitForPort(5005, '127.0.0.1', 30, child);
-  if (!ready) {
-    console.error('Emulator failed to start within 30 seconds.');
-    if (fs.existsSync(logFile)) {
-      console.error(fs.readFileSync(logFile, 'utf8'));
-    }
-    process.exit(1);
-  }
-  console.log('Emulator is ready!');
-
-  if (!isSynchronous) {
-    console.log(`Functions emulator now running in ${tempDir}.`);
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    
-    rl.question('*** Press Enter to stop the server. ***\n', () => {
-      rl.close();
-      child.kill();
-      process.exit(0);
-    });
-
-    // Handle termination signals
-    const cleanup = () => {
-      child.kill();
-      process.exit(0);
-    };
-    process.on('SIGINT', cleanup);
-    process.on('SIGTERM', cleanup);
-  } else {
-    // Exit parent process, leaving the detached child running
-    process.exit(0);
+function shutdown(signal) {
+  if (!emulator.killed) {
+    emulator.kill(signal || 'SIGTERM');
   }
 }
 
-function runCommand(command, args, options) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit', ...options });
-    child.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${command} failed with code ${code}`));
-    });
-  });
-}
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('exit', () => shutdown('SIGTERM'));
 
-function waitForPort(port, host, retries, child) {
-  const check = () => new Promise((resolve) => {
-    const s = new net.Socket();
-    s.setTimeout(1000);
-    s.on('connect', () => { s.destroy(); resolve(true); });
-    s.on('error', () => resolve(false));
-    s.on('timeout', () => { s.destroy(); resolve(false); });
-    s.connect(port, host);
-  });
-
-  return new Promise(async (resolve) => {
-    for (let i = 0; i < retries; i++) {
-      if (child && child.exitCode !== null) {
-        resolve(false);
-        return;
-      }
-      if (await check()) {
-        if (child && child.exitCode !== null) {
-          resolve(false);
-          return;
-        }
-        resolve(true);
-        return;
-      }
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    resolve(false);
-  });
-}
-
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
+emulator.on('exit', (code) => {
+  process.exit(code || 0);
 });

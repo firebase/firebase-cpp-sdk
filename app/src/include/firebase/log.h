@@ -37,7 +37,7 @@ enum LogLevel {
 };
 
 /// @brief Sets the logging verbosity.
-/// All log messages at or above the specific log level.
+/// All log messages at or above the specified log level are displayed.
 ///
 /// @param[in] level Log level to display, by default this is set to
 /// kLogLevelInfo.

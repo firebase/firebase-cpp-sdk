@@ -120,7 +120,7 @@ class StaticFieldBase {
   constexpr StaticFieldBase(const char* name, const char* sig)
       : name_(name), sig_(sig) {}
 
-  explicit StaticFieldBase(jfieldID id) : id_(id) {}
+  StaticFieldBase(jclass clazz, jfieldID id) : clazz_(clazz), id_(id) {}
 
   jclass clazz() const { return clazz_; }
 

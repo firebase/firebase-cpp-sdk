@@ -14,6 +14,8 @@
 
 #include "storage/src/common/storage_uri_parser.h"
 
+#include <algorithm>
+#include <cctype>
 #include <string>
 
 #include "app/src/include/firebase/internal/common.h"
@@ -109,6 +111,11 @@ bool UriToComponents(const std::string& url, const char* object_type,
   if (scheme_separator_index != std::string::npos) {
     scheme_separator_index += sizeof(kSchemeSeparator) - 1;
     scheme = url.substr(0, scheme_separator_index);
+    // URI schemes are case-insensitive (RFC 3986, section 3.1).
+    std::transform(scheme.begin(), scheme.end(), scheme.begin(),
+                   [](unsigned char c) {
+                     return static_cast<char>(std::tolower(c));
+                   });
   }
 
   size_t number_of_valid_schemes = FIREBASE_ARRAYSIZE(kValidSchemes);

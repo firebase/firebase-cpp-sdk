@@ -321,7 +321,8 @@ TEST_F(StorageDesktopUtilsTests, testPublicApiValueSemanticsAndValidation) {
   EXPECT_FALSE(c1.Cancel());
   Controller c2(c1);
   EXPECT_EQ(c1, c2);
-  c1 = c1;
+  Controller& c1_alias = c1;  // Self-assignment without -Wself-assign.
+  c1 = c1_alias;
   Controller c3(std::move(c2));
   EXPECT_FALSE(c3.is_valid());
 
@@ -334,7 +335,8 @@ TEST_F(StorageDesktopUtilsTests, testPublicApiValueSemanticsAndValidation) {
   EXPECT_EQ(m1, m2);
   m2.set_content_type("text/html");
   EXPECT_NE(m1, m2);
-  m1 = m1;
+  Metadata& m1_alias = m1;  // Self-assignment without -Wself-assign.
+  m1 = m1_alias;
   EXPECT_STREQ(m1.content_type(), "application/json");
   Metadata m3(std::move(m2));
   EXPECT_TRUE(m3.is_valid());

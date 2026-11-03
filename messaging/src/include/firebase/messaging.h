@@ -19,6 +19,7 @@
 
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "firebase/app.h"
@@ -49,6 +50,17 @@ struct MessagingOptions {
   /// Default constructor.
   MessagingOptions() : suppress_notification_permission_prompt(false) {}
 
+#ifndef SWIG
+  bool operator==(const MessagingOptions& other) const {
+    return suppress_notification_permission_prompt ==
+           other.suppress_notification_permission_prompt;
+  }
+
+  bool operator!=(const MessagingOptions& other) const {
+    return !(*this == other);
+  }
+#endif  // !SWIG
+
   /// If true, do not display the prompt to the user requesting permission to
   /// allow notifications to this app. If the prompt is suppressed in this way,
   /// the developer must manually prompt the user for permission at some point
@@ -64,6 +76,16 @@ struct MessagingOptions {
 /// @brief Data structure for parameters that are unique to the Android
 /// implementation.
 struct AndroidNotificationParams {
+#ifndef SWIG
+  bool operator==(const AndroidNotificationParams& other) const {
+    return channel_id == other.channel_id;
+  }
+
+  bool operator!=(const AndroidNotificationParams& other) const {
+    return !(*this == other);
+  }
+#endif  // !SWIG
+
   /// The channel id that was provided when the message was sent.
   std::string channel_id;
 };
@@ -73,20 +95,41 @@ struct AndroidNotificationParams {
 /// On android, this requires that the app is using the Play Services client
 /// library.
 struct Notification {
+  /// Default constructor.
   Notification() : android(nullptr) {}
 
 #ifndef SWIG
-  /// Copy constructor. Makes a deep copy of this Message.
+  /// Copy constructor. Makes a deep copy of this Notification.
   Notification(const Notification& other) : android(nullptr) { *this = other; }
+
+  /// Move constructor.
+  Notification(Notification&& other) noexcept
+      : title(std::move(other.title)),
+        body(std::move(other.body)),
+        icon(std::move(other.icon)),
+        sound(std::move(other.sound)),
+        badge(std::move(other.badge)),
+        tag(std::move(other.tag)),
+        color(std::move(other.color)),
+        click_action(std::move(other.click_action)),
+        body_loc_key(std::move(other.body_loc_key)),
+        body_loc_args(std::move(other.body_loc_args)),
+        title_loc_key(std::move(other.title_loc_key)),
+        title_loc_args(std::move(other.title_loc_args)),
+        android(other.android) {
+    other.android = nullptr;
+  }
 #endif  // !SWIG
 
 #ifndef SWIG
-  /// Copy assignment operator. Makes a deep copy of this Message.
+  /// Copy assignment operator. Makes a deep copy of this Notification.
   Notification& operator=(const Notification& other) {
+    if (this == &other) return *this;
     this->title = other.title;
     this->body = other.body;
     this->icon = other.icon;
     this->sound = other.sound;
+    this->badge = other.badge;
     this->tag = other.tag;
     this->color = other.color;
     this->click_action = other.click_action;
@@ -94,21 +137,55 @@ struct Notification {
     this->body_loc_args = other.body_loc_args;
     this->title_loc_key = other.title_loc_key;
     this->title_loc_args = other.title_loc_args;
+    AndroidNotificationParams* new_android =
+        other.android ? new AndroidNotificationParams(*other.android) : nullptr;
     delete this->android;
-    if (other.android) {
-      this->android = new AndroidNotificationParams(*other.android);
-    } else {
-      this->android = nullptr;
-    }
+    this->android = new_android;
     return *this;
   }
+
+  /// Move assignment operator.
+  Notification& operator=(Notification&& other) noexcept {
+    if (this == &other) return *this;
+    this->title = std::move(other.title);
+    this->body = std::move(other.body);
+    this->icon = std::move(other.icon);
+    this->sound = std::move(other.sound);
+    this->badge = std::move(other.badge);
+    this->tag = std::move(other.tag);
+    this->color = std::move(other.color);
+    this->click_action = std::move(other.click_action);
+    this->body_loc_key = std::move(other.body_loc_key);
+    this->body_loc_args = std::move(other.body_loc_args);
+    this->title_loc_key = std::move(other.title_loc_key);
+    this->title_loc_args = std::move(other.title_loc_args);
+    delete this->android;
+    this->android = other.android;
+    other.android = nullptr;
+    return *this;
+  }
+
+  bool operator==(const Notification& other) const {
+    const bool android_equal =
+        (android == other.android) ||
+        (android != nullptr && other.android != nullptr &&
+         *android == *other.android);
+    return title == other.title && body == other.body && icon == other.icon &&
+           sound == other.sound && badge == other.badge && tag == other.tag &&
+           color == other.color && click_action == other.click_action &&
+           body_loc_key == other.body_loc_key &&
+           body_loc_args == other.body_loc_args &&
+           title_loc_key == other.title_loc_key &&
+           title_loc_args == other.title_loc_args && android_equal;
+  }
+
+  bool operator!=(const Notification& other) const { return !(*this == other); }
 #endif  // !SWIG
 
   /// Destructor.
   ~Notification() { delete android; }
 
-  /// Indicates notification title. This field is not visible on tvOS, iOS
-  /// phones and tablets.
+  /// Indicates notification title.
   std::string title;
 
   /// Indicates notification body text.
@@ -207,11 +284,36 @@ struct Message {
 #ifndef SWIG
   /// Copy constructor. Makes a deep copy of this Message.
   Message(const Message& other) : notification(nullptr) { *this = other; }
+
+  /// Move constructor.
+  Message(Message&& other) noexcept
+      : from(std::move(other.from)),
+        to(std::move(other.to)),
+        collapse_key(std::move(other.collapse_key)),
+        data(std::move(other.data)),
+        raw_data(std::move(other.raw_data)),
+        message_id(std::move(other.message_id)),
+        message_type(std::move(other.message_type)),
+        priority(std::move(other.priority)),
+        time_to_live(other.time_to_live),
+        error(std::move(other.error)),
+        error_description(std::move(other.error_description)),
+        notification(other.notification),
+        notification_opened(other.notification_opened),
+        link(std::move(other.link)),
+        original_priority(std::move(other.original_priority)),
+        sent_time(other.sent_time) {
+    other.time_to_live = 0;
+    other.notification = nullptr;
+    other.notification_opened = false;
+    other.sent_time = 0;
+  }
 #endif  // !SWIG
 
 #ifndef SWIG
   /// Copy assignment operator. Makes a deep copy of this Message.
   Message& operator=(const Message& other) {
+    if (this == &other) return *this;
     this->from = other.from;
     this->to = other.to;
     this->collapse_key = other.collapse_key;
@@ -225,16 +327,59 @@ struct Message {
     this->time_to_live = other.time_to_live;
     this->error = other.error;
     this->error_description = other.error_description;
+    Notification* new_notification =
+        other.notification ? new Notification(*other.notification) : nullptr;
     delete this->notification;
-    if (other.notification) {
-      this->notification = new Notification(*other.notification);
-    } else {
-      this->notification = nullptr;
-    }
+    this->notification = new_notification;
     this->notification_opened = other.notification_opened;
     this->link = other.link;
     return *this;
   }
+
+  /// Move assignment operator.
+  Message& operator=(Message&& other) noexcept {
+    if (this == &other) return *this;
+    this->from = std::move(other.from);
+    this->to = std::move(other.to);
+    this->collapse_key = std::move(other.collapse_key);
+    this->data = std::move(other.data);
+    this->raw_data = std::move(other.raw_data);
+    this->message_id = std::move(other.message_id);
+    this->message_type = std::move(other.message_type);
+    this->priority = std::move(other.priority);
+    this->original_priority = std::move(other.original_priority);
+    this->sent_time = other.sent_time;
+    this->time_to_live = other.time_to_live;
+    this->error = std::move(other.error);
+    this->error_description = std::move(other.error_description);
+    delete this->notification;
+    this->notification = other.notification;
+    this->notification_opened = other.notification_opened;
+    this->link = std::move(other.link);
+    other.time_to_live = 0;
+    other.notification = nullptr;
+    other.notification_opened = false;
+    other.sent_time = 0;
+    return *this;
+  }
+
+  bool operator==(const Message& other) const {
+    const bool notification_equal =
+        (notification == other.notification) ||
+        (notification != nullptr && other.notification != nullptr &&
+         *notification == *other.notification);
+    return from == other.from && to == other.to &&
+           collapse_key == other.collapse_key && data == other.data &&
+           raw_data == other.raw_data && message_id == other.message_id &&
+           message_type == other.message_type && priority == other.priority &&
+           time_to_live == other.time_to_live && error == other.error &&
+           error_description == other.error_description && notification_equal &&
+           notification_opened == other.notification_opened &&
+           link == other.link && original_priority == other.original_priority &&
+           sent_time == other.sent_time;
+  }
+
+  bool operator!=(const Message& other) const { return !(*this == other); }
 #endif  // !SWIG
 
   /// Authenticated ID of the sender. This is a project number in most cases.
@@ -244,10 +389,10 @@ struct Message {
 
   /// This parameter specifies the recipient of a message.
   ///
-  /// For example it can be a registration token, a topic name, an Instance ID
-  /// or project ID.
+  /// For example it can be a registration token, a topic name, a Firebase
+  /// Installation ID or project ID.
   ///
-  /// PROJECT_ID@gcm.googleapis.com or Instance ID are accepted.
+  /// PROJECT_ID@gcm.googleapis.com or Firebase Installation ID are accepted.
   std::string to;
 
   /// This parameter identifies a group of messages (e.g., with collapse_key:
@@ -329,7 +474,7 @@ struct Message {
   /// Human readable details about the error.
   std::string error_description;
 
-  /// Optional notification to show. This only set if a notification was
+  /// Optional notification to show. This is only set if a notification was
   /// received with this message, otherwise it is null.
   ///
   /// The notification is only guaranteed to be valid during the call to
@@ -420,7 +565,7 @@ InitResult Initialize(const App& app, Listener* listener);
 /// @param[in] listener A Listener object that listens for events from the
 ///            Firebase Cloud Messaging servers.
 /// @param[in] options A set of options that configure the
-///            initialzation behavior of Firebase Cloud Messaging.
+///            initialization behavior of Firebase Cloud Messaging.
 ///
 /// @return kInitResultSuccess if initialization succeeded, or
 /// kInitResultFailedMissingDependency on Android if Google Play services is
@@ -453,7 +598,7 @@ bool IsRegistrationOnInitEnabled();
 /// setting "firebase_messaging_auto_init_enabled" specified in your Android
 /// manifest (on Android) or Info.plist (on iOS and tvOS).
 ///
-/// <p>By default, registration during initialization is enabled.
+/// By default, registration during initialization is enabled.
 ///
 /// The registration happens before you can programmatically disable it, so
 /// if you need to change the default, (for example, because you want to prompt
@@ -486,14 +631,15 @@ bool IsRegistrationOnInitEnabled();
 /// initialization.
 void SetRegistrationOnInitEnabled(bool enable);
 
-/// Determines if automatic token registration during initalization is enabled.
+/// @brief Determines if automatic token registration during initialization is
+/// enabled.
 ///
 /// @return true if auto token registration is enabled and false if disabled.
 /// @deprecated Use IsRegistrationOnInitEnabled() instead.
 FIREBASE_DEPRECATED bool IsTokenRegistrationOnInitEnabled();
 
-/// Enable or disable token registration during initialization of Firebase Cloud
-/// Messaging.
+/// @brief Enable or disable token registration during initialization of
+/// Firebase Cloud Messaging.
 ///
 /// This token is what identifies the user to Firebase, so disabling this avoids
 /// creating any new identity and automatically sending it to Firebase, unless
@@ -504,7 +650,7 @@ FIREBASE_DEPRECATED bool IsTokenRegistrationOnInitEnabled();
 /// setting "firebase_messaging_auto_init_enabled" specified in your Android
 /// manifest (on Android) or Info.plist (on iOS and tvOS).
 ///
-/// <p>By default, token registration during initialization is enabled.
+/// By default, token registration during initialization is enabled.
 ///
 /// The registration happens before you can programmatically disable it, so
 /// if you need to change the default, (for example, because you want to prompt
@@ -579,7 +725,7 @@ enum Error {
 ///         dismissed.
 Future<void> RequestPermission();
 
-/// @brief Gets the result of the most recent call to RequestPermission();
+/// @brief Gets the result of the most recent call to RequestPermission().
 ///
 /// @return Result of the most recent call to RequestPermission().
 Future<void> RequestPermissionLastResult();
@@ -589,15 +735,30 @@ Future<void> RequestPermissionLastResult();
 /// Subscribes an app instance to a topic, enabling it to receive messages
 /// sent to that topic.
 ///
-/// Call this function from the main thread. FCM is not thread safe.
+/// @param[in] topic The name of the topic to subscribe. Must match the
+///            following regular expression: `[a-zA-Z0-9-_.~%]{1,900}`.
+///
+/// @return A future that completes when the subscription is completed.
+Future<void> Subscribe(const char* topic);
+
+#ifndef SWIG
+/// @brief Subscribe to receive all messages to the specified topic.
+///
+/// Subscribes an app instance to a topic, enabling it to receive messages
+/// sent to that topic.
 ///
 /// @param[in] topic The name of the topic to subscribe. Must match the
 ///            following regular expression: `[a-zA-Z0-9-_.~%]{1,900}`.
-Future<void> Subscribe(const char* topic);
-
-/// @brief Gets the result of the most recent call to Unsubscribe();
 ///
-/// @return Result of the most recent call to Unsubscribe().
+/// @return A future that completes when the subscription is completed.
+inline Future<void> Subscribe(const std::string& topic) {
+  return Subscribe(topic.c_str());
+}
+#endif  // !SWIG
+
+/// @brief Gets the result of the most recent call to Subscribe().
+///
+/// @return Result of the most recent call to Subscribe().
 Future<void> SubscribeLastResult();
 
 /// @brief Unsubscribe from a topic.
@@ -605,19 +766,34 @@ Future<void> SubscribeLastResult();
 /// Unsubscribes an app instance from a topic, stopping it from receiving
 /// any further messages sent to that topic.
 ///
-/// Call this function from the main thread. FCM is not thread safe.
+/// @param[in] topic The name of the topic to unsubscribe from. Must match the
+///            following regular expression: `[a-zA-Z0-9-_.~%]{1,900}`.
+///
+/// @return A future that completes when the unsubscription is completed.
+Future<void> Unsubscribe(const char* topic);
+
+#ifndef SWIG
+/// @brief Unsubscribe from a topic.
+///
+/// Unsubscribes an app instance from a topic, stopping it from receiving
+/// any further messages sent to that topic.
 ///
 /// @param[in] topic The name of the topic to unsubscribe from. Must match the
 ///            following regular expression: `[a-zA-Z0-9-_.~%]{1,900}`.
-Future<void> Unsubscribe(const char* topic);
+///
+/// @return A future that completes when the unsubscription is completed.
+inline Future<void> Unsubscribe(const std::string& topic) {
+  return Unsubscribe(topic.c_str());
+}
+#endif  // !SWIG
 
-/// @brief Gets the result of the most recent call to Unsubscribe();
+/// @brief Gets the result of the most recent call to Unsubscribe().
 ///
 /// @return Result of the most recent call to Unsubscribe().
 Future<void> UnsubscribeLastResult();
 
-/// Determines whether Firebase Cloud Messaging exports message delivery metrics
-/// to BigQuery.
+/// @brief Determines whether Firebase Cloud Messaging exports message delivery
+/// metrics to BigQuery.
 ///
 /// This function is currently only implemented on Android, and returns false
 /// with no other behavior on other platforms.
@@ -626,16 +802,24 @@ Future<void> UnsubscribeLastResult();
 /// BigQuery.
 bool DeliveryMetricsExportToBigQueryEnabled();
 
-/// Enables or disables Firebase Cloud Messaging message delivery metrics export
-/// to BigQuery.
+/// @brief Enables or disables Firebase Cloud Messaging message delivery metrics
+/// export to BigQuery.
 ///
 /// By default, message delivery metrics are not exported to BigQuery. Use this
 /// method to enable or disable the export at runtime. In addition, you can
 /// enable the export by adding to your manifest. Note that the run-time method
 /// call will override the manifest value.
 ///
-/// <meta-data android:name= "delivery_metrics_exported_to_big_query_enabled"
-///            android:value="true"/>
+/// @if NOT_DOXYGEN
+///   <meta-data android:name="delivery_metrics_exported_to_big_query_enabled"
+///              android:value="true"/>
+/// @else
+/// @code
+///   &lt;meta-data
+///   android:name="delivery_metrics_exported_to_big_query_enabled"
+///   android:value="true"/&gt;
+/// @endcode
+/// @endif
 ///
 /// This function is currently only implemented on Android, and has no behavior
 /// on other platforms.
@@ -666,8 +850,8 @@ Future<void> RegisterLastResult();
 /// @brief Unregisters the current app instance with FCM.
 ///
 /// Note that this does not delete the Firebase Installations ID that may have
-/// been created during registration. See Installations.Delete() for
-/// deleting that.
+/// been created during registration. See
+/// `firebase::installations::Installations::Delete()` for deleting that.
 ///
 /// @return A future that completes when the unregistration is completed.
 Future<void> Unregister();
@@ -685,7 +869,7 @@ Future<void> UnregisterLastResult();
 /// @deprecated Use Register() instead.
 FIREBASE_DEPRECATED Future<std::string> GetToken();
 
-/// @brief Gets the result of the most recent call to GetToken();
+/// @brief Gets the result of the most recent call to GetToken().
 ///
 /// @return Result of the most recent call to GetToken().
 /// @deprecated Use RegisterLastResult() instead.
@@ -694,14 +878,14 @@ FIREBASE_DEPRECATED Future<std::string> GetTokenLastResult();
 /// @brief Deletes the default token for this Firebase project.
 ///
 /// Note that this does not delete the Firebase Installations ID that may have
-/// been created when generating the token. See Installations.Delete() for
-/// deleting that.
+/// been created when generating the token. See
+/// `firebase::installations::Installations::Delete()` for deleting that.
 ///
 /// @return A future that completes when the token is deleted.
 /// @deprecated Use Unregister() instead.
 FIREBASE_DEPRECATED Future<void> DeleteToken();
 
-/// @brief Gets the result of the most recent call to DeleteToken();
+/// @brief Gets the result of the most recent call to DeleteToken().
 ///
 /// @return Result of the most recent call to DeleteToken().
 /// @deprecated Use UnregisterLastResult() instead.
@@ -725,26 +909,47 @@ class PollableListener : public Listener {
   /// @brief The default constructor.
   PollableListener();
 
+#ifndef SWIG
+  PollableListener(const PollableListener&) = delete;
+  PollableListener& operator=(const PollableListener&) = delete;
+
+  /// @brief Move constructor.
+  PollableListener(PollableListener&& other) noexcept;
+
+  /// @brief Move assignment operator.
+  PollableListener& operator=(PollableListener&& other) noexcept;
+#endif  // !SWIG
+
   /// @brief The required virtual destructor.
   virtual ~PollableListener();
 
   /// @brief An implementation of `OnMessage` which adds incoming messages
   /// to a queue, which can be consumed by calling `PollMessage`.
+  ///
+  /// @param[in] message The data describing this message.
   void OnMessage(const Message& message) override;
 
   /// @brief An implementation of `OnTokenReceived` which stores the incoming
   /// token so that it can be consumed by calling `PollRegistrationToken`.
+  ///
+  /// @param[in] token The registration token.
   /// @deprecated Use OnRegistrationReceived(const char*) instead.
   FIREBASE_DEPRECATED void OnTokenReceived(const char* token) override;
 
   /// @brief An implementation of `OnRegistrationReceived` which stores the
   /// incoming installation ID so that it can be consumed by calling
   /// `PollRegistration`.
+  ///
+  /// @param[in] installationId The Firebase Installation ID used for sending
+  /// messages to the current app instance.
   void OnRegistrationReceived(const char* installationId) override;
 
   /// @brief An implementation of `OnUnregistrationReceived` which stores the
   /// incoming installation ID so that it can be consumed by calling
   /// `PollUnregistration`.
+  ///
+  /// @param[in] installationId The Firebase Installation ID of the current app
+  /// instance that was unregistered with FCM.
   void OnUnregistrationReceived(const char* installationId) override;
 
   /// @brief Returns the first message queued up, if any.
@@ -762,12 +967,18 @@ class PollableListener : public Listener {
   bool PollMessage(Message* message);
 
   /// @brief Returns the registration key, if a new one has been received.
+  ///
+  /// @param[out] token A string to be populated with the new registration
+  /// token.
+  /// @return Returns `true` if there was a new registration token, `false`
+  /// otherwise.
   /// @deprecated Use PollRegistration(std::string*) instead.
   FIREBASE_DEPRECATED bool PollRegistrationToken(std::string* token) {
-    bool got_token;
+    if (!token) return false;
+    bool got_token = false;
     std::string token_received = PollRegistrationToken(&got_token);
     if (got_token) {
-      *token = token_received;
+      *token = std::move(token_received);
     }
     return got_token;
   }
@@ -787,10 +998,11 @@ class PollableListener : public Listener {
   /// @return Returns `true` if there was a new installation ID, `false`
   /// otherwise.
   bool PollRegistration(std::string* installation_id) {
-    bool got_registration;
+    if (!installation_id) return false;
+    bool got_registration = false;
     std::string id_received = PollRegistration(&got_registration);
     if (got_registration) {
-      *installation_id = id_received;
+      *installation_id = std::move(id_received);
     }
     return got_registration;
   }
@@ -810,10 +1022,11 @@ class PollableListener : public Listener {
   /// @return Returns `true` if there was an unregistration event, `false`
   /// otherwise.
   bool PollUnregistration(std::string* installation_id) {
-    bool got_unregistration;
+    if (!installation_id) return false;
+    bool got_unregistration = false;
     std::string id_received = PollUnregistration(&got_unregistration);
     if (got_unregistration) {
-      *installation_id = id_received;
+      *installation_id = std::move(id_received);
     }
     return got_unregistration;
   }

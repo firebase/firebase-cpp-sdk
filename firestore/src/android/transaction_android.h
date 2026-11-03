@@ -21,7 +21,6 @@
 #include <string>
 #include <utility>
 
-#include "app/src/embedded_file.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/common/transaction_function.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -41,12 +40,12 @@ class TransactionInternal : public Wrapper {
 
   TransactionInternal(FirestoreInternal* firestore, const jni::Object& obj)
       : Wrapper(firestore, obj),
-        first_exception_(std::make_shared<jni::Local<jni::Throwable>>()) {}
+        first_exception_(std::make_shared<jni::Global<jni::Throwable>>()) {}
 
   TransactionInternal(const TransactionInternal& rhs)
       : Wrapper(rhs), first_exception_(rhs.first_exception_) {}
 
-  TransactionInternal(TransactionInternal&& rhs)
+  TransactionInternal(TransactionInternal&& rhs) noexcept
       : Wrapper(std::move(rhs)),
         first_exception_(std::move(rhs.first_exception_)) {}
 
@@ -77,6 +76,10 @@ class TransactionInternal : public Wrapper {
  private:
   jni::Env GetEnv();
 
+  bool ValidateReference(const DocumentReference& document,
+                         Error* error_code = nullptr,
+                         std::string* error_message = nullptr);
+
   static void ExceptionHandler(jni::Env& env,
                                jni::Local<jni::Throwable>&& exception,
                                void* context);
@@ -93,7 +96,7 @@ class TransactionInternal : public Wrapper {
   // mechanism to properly handle native calls via JNI. The first exception is
   // shared by a transaction and its copies. User is allowed to make copy and
   // call transaction operation on the copy.
-  std::shared_ptr<jni::Local<jni::Throwable>> first_exception_;
+  std::shared_ptr<jni::Global<jni::Throwable>> first_exception_;
 };
 
 }  // namespace firestore

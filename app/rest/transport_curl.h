@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_REST_TRANSPORT_CURL_H_
 #define FIREBASE_APP_REST_TRANSPORT_CURL_H_
 
+#include <atomic>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -45,8 +47,8 @@ class TransportCurl : public Transport {
   TransportCurl();
   ~TransportCurl() override;
 
-  TransportCurl(const TransportCurl& transport);
-  TransportCurl& operator=(const TransportCurl& transport);
+  TransportCurl(const TransportCurl& transport) = delete;
+  TransportCurl& operator=(const TransportCurl& transport) = delete;
 
   // Sets whether this transport operation will be performed asynchronously.
   // This should only be modified when an operation on this transport is not
@@ -55,8 +57,8 @@ class TransportCurl : public Transport {
   // TODO(b/67899466): This is just a stop-gap until we can make all operations
   // async all the time. Since some code currently relies on operations being
   // synchronous this defaults to false and must be manually turned on.
-  void set_is_async(bool is_async) { is_async_ = is_async; }
-  bool is_async() { return is_async_; }
+  void set_is_async(bool is_async) { is_async_.store(is_async); }
+  bool is_async() const { return is_async_.load(); }
 
   // Perform a HTTP request and put result in response.
   // This function does not actually perform the transfer, but rather informs
@@ -66,10 +68,11 @@ class TransportCurl : public Transport {
   // caller owns the returned controller.
   // NOTE: The controller should *not* be destroyed while a transfer is active.
   //
-  // When the transfer is complete Response::MarkComplete will be called, and if
-  // there was an error the error code on the response will be populated. This
-  // call does not take ownership of any arguments passed in. The request and
-  // response and must both live until Response::MarkComplete is called.
+  // When the transfer is complete Response::MarkCompleted or
+  // Response::MarkFailed will be called, and if there was an error the error
+  // code on the response will be populated. This call does not take ownership
+  // of any arguments passed in. The request and response must both live until
+  // Response::MarkCompleted or Response::MarkFailed is called.
   void PerformInternal(
       Request* request, Response* response,
       flatbuffers::unique_ptr<Controller>* controller_out) override;
@@ -79,22 +82,22 @@ class TransportCurl : public Transport {
   friend class RestTransfer;
 
   // Used by the ControllerCurl to cancel a running transfer.
-  void CancelRequest(Response* response);
+  static void CancelRequestById(TransportCurl* transport, uint64_t transfer_id);
+  void CancelRequest(uint64_t transfer_id);
   // Used by the ControllerCurl to pause a running transfer.
-  void PauseRequest(Response* response);
-  // Used by the ControllerCurl to resumt a running transfer.
-  void ResumeRequest(Response* response);
+  static void PauseRequestById(TransportCurl* transport, uint64_t transfer_id);
+  void PauseRequest(uint64_t transfer_id);
+  // Used by the ControllerCurl to resume a running transfer.
+  static void ResumeRequestById(TransportCurl* transport, uint64_t transfer_id);
+  void ResumeRequest(uint64_t transfer_id);
 
   // Signal that a scheduled transfer is complete or canceled.
   void SignalTransferComplete();
   // Wait for all requests associated with this transport to complete.
   void WaitForAllTransfersToComplete();
 
-  // The Curl handle. This class owns the handle.
-  void* curl_;
-
   // Whether this request should be made asynchronously.
-  bool is_async_;
+  std::atomic<bool> is_async_;
 
   // Guards running_transfers.
   Mutex running_transfers_mutex_;

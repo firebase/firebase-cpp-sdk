@@ -31,7 +31,7 @@ class ArrayList : public List {
   static void Initialize(Loader& loader);
 
   static Local<ArrayList> Create(Env& env);
-  static Local<ArrayList> Create(Env& env, size_t size);
+  static Local<ArrayList> Create(Env& env, size_t initial_capacity);
 };
 
 }  // namespace jni

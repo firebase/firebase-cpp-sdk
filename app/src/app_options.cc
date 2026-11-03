@@ -34,6 +34,12 @@ namespace firebase {
 // static
 AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
                                            AppOptions* options) {
+  if (!config) {
+    LogError("Config string passed to AppOptions::LoadFromJsonConfig() cannot "
+             "be null.");
+    return nullptr;
+  }
+
   // Initialize flatbuffer parser.
   flatbuffers::IDLOptions fbs_options;
   // Skip irrelevant and unsupported fields.
@@ -53,7 +59,7 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
   if (!parser.Parse(config)) {
     LogError(
         "Failed to parse Firebase config: %s. Check the config string "
-        "passed to App::CreateFromJsonConfig()",
+        "passed to AppOptions::LoadFromJsonConfig()",
         parser.error_.c_str());
     return nullptr;
   }
@@ -62,14 +68,13 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
   if (!firebase::fbs::VerifyGoogleServicesBuffer(verifier)) {
     LogError(
         "Failed to parse Firebase config: integrity check failed. Check "
-        "the config string passed to App::CreateFromJsonConfig()");
+        "the config string passed to AppOptions::LoadFromJsonConfig()");
     return nullptr;
   }
 
-  AppOptions* new_options = nullptr;
-  if (options == nullptr) {
-    new_options = new AppOptions();
-    options = new_options;
+  AppOptions temp_options;
+  if (options != nullptr) {
+    temp_options = *options;
   }
 
   // Read project information.
@@ -80,46 +85,69 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
   bool parse_failed = false;
   if (project_info) {
     if (project_info->firebase_url()) {
-      options->set_database_url(project_info->firebase_url()->c_str());
+      temp_options.set_database_url(project_info->firebase_url()->c_str());
     }
     if (project_info->project_number()) {
-      options->set_messaging_sender_id(project_info->project_number()->c_str());
+      temp_options.set_messaging_sender_id(
+          project_info->project_number()->c_str());
     }
     if (project_info->storage_bucket()) {
-      options->set_storage_bucket(project_info->storage_bucket()->c_str());
+      temp_options.set_storage_bucket(project_info->storage_bucket()->c_str());
     }
     if (project_info->project_id()) {
-      options->set_project_id(project_info->project_id()->c_str());
+      temp_options.set_project_id(project_info->project_id()->c_str());
     }
 
     // Read client information.
     const firebase::fbs::Client* selected_client = nullptr;
-    for (const firebase::fbs::Client* client : *google_services->client()) {
-      if (client->client_info() &&
-          client->client_info()->android_client_info() &&
-          client->client_info()->android_client_info()->package_name()) {
-        selected_client = client;
-        break;
-      }
-    }
-    if (selected_client) {
-      options->set_package_name(selected_client->client_info()
-                                    ->android_client_info()
-                                    ->package_name()
-                                    ->c_str());
-      bool set_api_key = false;
-      if (selected_client->api_key()) {
-        for (const firebase::fbs::ApiKey* api_key :
-             *selected_client->api_key()) {
-          if (api_key->current_key()) {
-            options->set_api_key(api_key->current_key()->c_str());
-            set_api_key = true;
+    const char* requested_package =
+        (options && strlen(options->package_name()) > 0)
+            ? options->package_name()
+            : nullptr;
+    if (google_services->client()) {
+      if (requested_package) {
+        for (const firebase::fbs::Client* client : *google_services->client()) {
+          if (client && client->client_info() &&
+              client->client_info()->android_client_info() &&
+              client->client_info()->android_client_info()->package_name() &&
+              strcmp(client->client_info()
+                         ->android_client_info()
+                         ->package_name()
+                         ->c_str(),
+                     requested_package) == 0) {
+            selected_client = client;
             break;
           }
         }
       }
-      if (selected_client->client_info()) {
-        options->set_app_id(
+      if (!selected_client) {
+        for (const firebase::fbs::Client* client : *google_services->client()) {
+          if (client && client->client_info() &&
+              client->client_info()->android_client_info() &&
+              client->client_info()->android_client_info()->package_name()) {
+            selected_client = client;
+            break;
+          }
+        }
+      }
+    }
+    if (selected_client) {
+      temp_options.set_package_name(selected_client->client_info()
+                                        ->android_client_info()
+                                        ->package_name()
+                                        ->c_str());
+      if (selected_client->api_key()) {
+        for (const firebase::fbs::ApiKey* api_key :
+             *selected_client->api_key()) {
+          if (api_key && api_key->current_key()) {
+            temp_options.set_api_key(api_key->current_key()->c_str());
+            break;
+          }
+        }
+      }
+      if (selected_client->client_info() &&
+          selected_client->client_info()->mobilesdk_app_id()) {
+        temp_options.set_app_id(
             selected_client->client_info()->mobilesdk_app_id()->c_str());
       }
       if (selected_client->services()) {
@@ -129,10 +157,10 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
             services->analytics_service()
                 ->analytics_property()
                 ->tracking_id()) {
-          options->set_ga_tracking_id(services->analytics_service()
-                                          ->analytics_property()
-                                          ->tracking_id()
-                                          ->c_str());
+          temp_options.set_ga_tracking_id(services->analytics_service()
+                                              ->analytics_property()
+                                              ->tracking_id()
+                                              ->c_str());
         }
       }
     } else {
@@ -146,18 +174,20 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
     parse_failed = true;
   }
 
+  if (parse_failed) {
+    return nullptr;
+  }
+
   // Make sure required options were read.
   struct ValidateOption {
     const char* option_value;
     const char* option_name;
   } options_to_validate[] = {
-      {options->database_url(), "Database URL"},
-      {options->storage_bucket(), "Storage bucket"},
-      {options->project_id(), "Project ID"},
-      {options->api_key(), "API key"},
-      {options->app_id(), "App ID"},
-      // We explicitly ignore the value of GA tracking ID and Messaging Sender
-      // ID as we don't support analytics on desktop at the moment.
+      {temp_options.database_url(), "Database URL"},
+      {temp_options.storage_bucket(), "Storage bucket"},
+      {temp_options.project_id(), "Project ID"},
+      {temp_options.api_key(), "API key"},
+      {temp_options.app_id(), "App ID"},
   };
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(options_to_validate); ++i) {
     const auto& validate_option = options_to_validate[i];
@@ -166,11 +196,10 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
                  validate_option.option_name);
     }
   }
-  if (parse_failed) {
-    delete new_options;
-    return nullptr;
-  }
-  return options;
+
+  AppOptions* return_options = options ? options : new AppOptions();
+  *return_options = temp_options;
+  return return_options;
 }
 
 // Attempt to populate required options with default values if not specified.

@@ -16,7 +16,9 @@
 
 #include "app/src/variant_util.h"
 
+#include <cmath>
 #include <cstring>
+#include <limits>
 #include <vector>
 
 #include "app/src/include/firebase/variant.h"
@@ -29,11 +31,19 @@ namespace {
 
 using ::firebase::Variant;
 using ::firebase::testing::cppsdk::EqualsJson;
+using ::firebase::util::FlexbufferMapToVariant;
+using ::firebase::util::FlexbufferToVariant;
+using ::firebase::util::FlexbufferVectorToVariant;
 using ::firebase::util::JsonToVariant;
+using ::firebase::util::StdMapToJson;
+using ::firebase::util::StdVectorToJson;
+using ::firebase::util::VariantMapToFlexbuffer;
 using ::firebase::util::VariantToFlexbuffer;
 using ::firebase::util::VariantToJson;
+using ::firebase::util::VariantVectorToFlexbuffer;
 using ::flexbuffers::GetRoot;
 using ::testing::Eq;
+using ::testing::IsEmpty;
 using ::testing::Not;
 using ::testing::StrEq;
 
@@ -304,7 +314,7 @@ TEST(UtilDesktopTest, VariantToJsonMapLegalNonStringKeys) {
   EXPECT_THAT(VariantToJson(mixed_key_map),
               EqualsJson("{"
                          "  \"100\": \"int_value\","
-                         "  \"3.5000000000000000\": \"double_value\","
+                         "  \"3.5\": \"double_value\","
                          "  \"true\": \"boolean_value\","
                          "  \"Good-bye, World!\": \"string_value\""
                          "}"));
@@ -544,6 +554,75 @@ TEST(UtilDesktopTest, VariantToFlexbufferMapWithStringKeys) {
   EXPECT_THAT(VariantToFlexbuffer(nested_map),
               EqualsFlexbuffer(fbb.GetBuffer()));
   fbb.Clear();
+}
+
+TEST(UtilDesktopTest, VariantMapToFlexbufferWithInvalidValueDoesNotAbort) {
+  const uint8_t blob_bytes[] = {1, 2, 3, 4};
+  std::map<Variant, Variant> bad_map{
+      std::make_pair("valid_key", Variant::FromStaticBlob(blob_bytes, 4)),
+  };
+  EXPECT_THAT(VariantMapToFlexbuffer(bad_map), IsEmpty());
+  EXPECT_THAT(VariantToFlexbuffer(Variant(bad_map)), IsEmpty());
+}
+
+TEST(UtilDesktopTest, VariantToJsonNonFiniteAndNegativeZeroDoubles) {
+  EXPECT_THAT(VariantToJson(Variant(std::numeric_limits<double>::quiet_NaN())),
+              StrEq("null"));
+  EXPECT_THAT(VariantToJson(Variant(std::numeric_limits<double>::infinity())),
+              StrEq("null"));
+  EXPECT_THAT(VariantToJson(Variant(-std::numeric_limits<double>::infinity())),
+              StrEq("null"));
+  EXPECT_THAT(VariantToJson(Variant(-0.0)), StrEq("0"));
+}
+
+TEST(UtilDesktopTest, FlexbufferToVariantEmbeddedNullAndUint64) {
+  std::string embedded_null("hello\0world", 11);
+  Variant v_str(embedded_null);
+  std::vector<uint8_t> buf = VariantToFlexbuffer(v_str);
+  ASSERT_FALSE(buf.empty());
+  Variant roundtrip = FlexbufferToVariant(GetRoot(buf));
+  EXPECT_TRUE(roundtrip.is_mutable_string());
+  EXPECT_EQ(roundtrip.mutable_string().size(), 11u);
+  EXPECT_EQ(roundtrip.mutable_string(), embedded_null);
+
+  // Test FBT_UINT above INT64_MAX.
+  flexbuffers::Builder fbb;
+  uint64_t large_uint = static_cast<uint64_t>(INT64_MAX) + 1024ULL;
+  fbb.UInt(large_uint);
+  fbb.Finish();
+  Variant v_uint = FlexbufferToVariant(GetRoot(fbb.GetBuffer()));
+  EXPECT_TRUE(v_uint.is_double());
+  EXPECT_GT(v_uint.double_value(), 0.0);
+}
+
+TEST(UtilDesktopTest, FlexbufferMapAndVectorRoundTripAndMalformedJson) {
+  std::vector<Variant> vec = {1, "two", 3.5, true};
+  EXPECT_THAT(StdVectorToJson(vec), StrEq("[1,\"two\",3.5,true]"));
+  std::vector<uint8_t> vec_buf = VariantVectorToFlexbuffer(vec);
+  ASSERT_FALSE(vec_buf.empty());
+  EXPECT_EQ(FlexbufferVectorToVariant(GetRoot(vec_buf).AsVector()),
+            Variant(vec));
+
+  std::map<Variant, Variant> mp = {{"a", 1}, {"b", "two"}};
+  EXPECT_THAT(StdMapToJson(mp), EqualsJson("{\"a\": 1, \"b\": \"two\"}"));
+  std::vector<uint8_t> map_buf = VariantMapToFlexbuffer(mp);
+  ASSERT_FALSE(map_buf.empty());
+  EXPECT_EQ(FlexbufferMapToVariant(GetRoot(map_buf).AsMap()), Variant(mp));
+
+  // Malformed JSON and nullptr return Variant::Null().
+  EXPECT_EQ(JsonToVariant(nullptr), Variant::Null());
+  EXPECT_EQ(JsonToVariant("{unterminated"), Variant::Null());
+}
+
+TEST(UtilDesktopTest, DeepNestingDepthLimit) {
+  Variant deep = Variant(1);
+  for (int i = 0; i < 140; ++i) {
+    std::vector<Variant> next;
+    next.push_back(std::move(deep));
+    deep = Variant(std::move(next));
+  }
+  EXPECT_THAT(VariantToJson(deep), StrEq(""));
+  EXPECT_THAT(VariantToFlexbuffer(deep), IsEmpty());
 }
 
 }  // namespace

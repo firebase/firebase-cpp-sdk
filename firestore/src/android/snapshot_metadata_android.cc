@@ -24,9 +24,7 @@ namespace firestore {
 namespace {
 
 using jni::Env;
-using jni::Local;
 using jni::Method;
-using jni::Object;
 
 constexpr char kClass[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/SnapshotMetadata";
@@ -40,8 +38,13 @@ void SnapshotMetadataInternal::Initialize(jni::Loader& loader) {
 }
 
 SnapshotMetadata SnapshotMetadataInternal::ToPublic(Env& env) const {
+  if (!*this) return SnapshotMetadata();
   bool has_pending_writes = env.Call(*this, kHasPendingWrites);
   bool is_from_cache = env.Call(*this, kIsFromCache);
+  if (!env.ok()) {
+    env.ExceptionClear();
+    return SnapshotMetadata();
+  }
   return SnapshotMetadata(has_pending_writes, is_from_cache);
 }
 

@@ -20,7 +20,7 @@
 #include <utility>
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
-#include "firestore/src/common/event_listener.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/util.h"
@@ -74,13 +74,14 @@ Query& Query::operator=(const Query& query) {
     return *this;
   }
 
+  QueryInternal* new_internal = nullptr;
+  if (query.internal_) {
+    new_internal = new QueryInternal(*query.internal_);
+  }
+
   CleanupFnQuery::Unregister(this, internal_);
   delete internal_;
-  if (query.internal_) {
-    internal_ = new QueryInternal(*query.internal_);
-  } else {
-    internal_ = nullptr;
-  }
+  internal_ = new_internal;
   CleanupFnQuery::Register(this, internal_);
   return *this;
 }
@@ -124,41 +125,81 @@ Query Query::Where(const Filter& filter) const {
   return internal_->Where(filter);
 }
 
+namespace {
+
+void ValidateFieldAndValue(const FieldPath& field, const FieldValue& value) {
+  if (!field.is_valid()) {
+    SimpleThrowInvalidArgument("Field path cannot be invalid.");
+  }
+  if (!value.is_valid()) {
+    SimpleThrowInvalidArgument("Field value cannot be invalid.");
+  }
+}
+
+void ValidateFieldAndValues(const FieldPath& field,
+                            const std::vector<FieldValue>& values) {
+  if (!field.is_valid()) {
+    SimpleThrowInvalidArgument("Field path cannot be invalid.");
+  }
+  for (const auto& value : values) {
+    if (!value.is_valid()) {
+      SimpleThrowInvalidArgument("Field value cannot be invalid.");
+    }
+  }
+}
+
+void ValidateValues(const std::vector<FieldValue>& values) {
+  for (const auto& value : values) {
+    if (!value.is_valid()) {
+      SimpleThrowInvalidArgument("Field value cannot be invalid.");
+    }
+  }
+}
+
+}  // namespace
+
 Query Query::WhereEqualTo(const std::string& field,
                           const FieldValue& value) const {
+  if (!internal_) return {};
   return WhereEqualTo(FieldPath::FromDotSeparatedString(field), value);
 }
 
 Query Query::WhereEqualTo(const FieldPath& field,
                           const FieldValue& value) const {
   if (!internal_) return {};
+  ValidateFieldAndValue(field, value);
   return internal_->WhereEqualTo(field, value);
 }
 
 Query Query::WhereNotEqualTo(const std::string& field,
                              const FieldValue& value) const {
+  if (!internal_) return {};
   return WhereNotEqualTo(FieldPath::FromDotSeparatedString(field), value);
 }
 
 Query Query::WhereNotEqualTo(const FieldPath& field,
                              const FieldValue& value) const {
   if (!internal_) return {};
+  ValidateFieldAndValue(field, value);
   return internal_->WhereNotEqualTo(field, value);
 }
 
 Query Query::WhereLessThan(const std::string& field,
                            const FieldValue& value) const {
+  if (!internal_) return {};
   return WhereLessThan(FieldPath::FromDotSeparatedString(field), value);
 }
 
 Query Query::WhereLessThan(const FieldPath& field,
                            const FieldValue& value) const {
   if (!internal_) return {};
+  ValidateFieldAndValue(field, value);
   return internal_->WhereLessThan(field, value);
 }
 
 Query Query::WhereLessThanOrEqualTo(const std::string& field,
                                     const FieldValue& value) const {
+  if (!internal_) return {};
   return WhereLessThanOrEqualTo(FieldPath::FromDotSeparatedString(field),
                                 value);
 }
@@ -166,22 +207,26 @@ Query Query::WhereLessThanOrEqualTo(const std::string& field,
 Query Query::WhereLessThanOrEqualTo(const FieldPath& field,
                                     const FieldValue& value) const {
   if (!internal_) return {};
+  ValidateFieldAndValue(field, value);
   return internal_->WhereLessThanOrEqualTo(field, value);
 }
 
 Query Query::WhereGreaterThan(const std::string& field,
                               const FieldValue& value) const {
+  if (!internal_) return {};
   return WhereGreaterThan(FieldPath::FromDotSeparatedString(field), value);
 }
 
 Query Query::WhereGreaterThan(const FieldPath& field,
                               const FieldValue& value) const {
   if (!internal_) return {};
+  ValidateFieldAndValue(field, value);
   return internal_->WhereGreaterThan(field, value);
 }
 
 Query Query::WhereGreaterThanOrEqualTo(const std::string& field,
                                        const FieldValue& value) const {
+  if (!internal_) return {};
   return WhereGreaterThanOrEqualTo(FieldPath::FromDotSeparatedString(field),
                                    value);
 }
@@ -189,22 +234,26 @@ Query Query::WhereGreaterThanOrEqualTo(const std::string& field,
 Query Query::WhereGreaterThanOrEqualTo(const FieldPath& field,
                                        const FieldValue& value) const {
   if (!internal_) return {};
+  ValidateFieldAndValue(field, value);
   return internal_->WhereGreaterThanOrEqualTo(field, value);
 }
 
 Query Query::WhereArrayContains(const std::string& field,
                                 const FieldValue& value) const {
+  if (!internal_) return {};
   return WhereArrayContains(FieldPath::FromDotSeparatedString(field), value);
 }
 
 Query Query::WhereArrayContains(const FieldPath& field,
                                 const FieldValue& value) const {
   if (!internal_) return {};
+  ValidateFieldAndValue(field, value);
   return internal_->WhereArrayContains(field, value);
 }
 
 Query Query::WhereArrayContainsAny(
     const std::string& field, const std::vector<FieldValue>& values) const {
+  if (!internal_) return {};
   return WhereArrayContainsAny(FieldPath::FromDotSeparatedString(field),
                                values);
 }
@@ -212,37 +261,47 @@ Query Query::WhereArrayContainsAny(
 Query Query::WhereArrayContainsAny(
     const FieldPath& field, const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
+  ValidateFieldAndValues(field, values);
   return internal_->WhereArrayContainsAny(field, values);
 }
 
 Query Query::WhereIn(const std::string& field,
                      const std::vector<FieldValue>& values) const {
+  if (!internal_) return {};
   return WhereIn(FieldPath::FromDotSeparatedString(field), values);
 }
 
 Query Query::WhereIn(const FieldPath& field,
                      const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
+  ValidateFieldAndValues(field, values);
   return internal_->WhereIn(field, values);
 }
 
 Query Query::WhereNotIn(const std::string& field,
                         const std::vector<FieldValue>& values) const {
+  if (!internal_) return {};
   return WhereNotIn(FieldPath::FromDotSeparatedString(field), values);
 }
 
 Query Query::WhereNotIn(const FieldPath& field,
                         const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
+  ValidateFieldAndValues(field, values);
   return internal_->WhereNotIn(field, values);
 }
 
 Query Query::OrderBy(const std::string& field, Direction direction) const {
+  if (!internal_) return {};
   return OrderBy(FieldPath::FromDotSeparatedString(field), direction);
 }
 
 Query Query::OrderBy(const FieldPath& field, Direction direction) const {
   if (!internal_) return {};
+  if (!field.is_valid()) {
+    SimpleThrowInvalidArgument("Field path cannot be invalid.");
+    return {};
+  }
   return internal_->OrderBy(field, direction);
 }
 
@@ -258,41 +317,61 @@ Query Query::LimitToLast(int32_t limit) const {
 
 Query Query::StartAt(const DocumentSnapshot& snapshot) const {
   if (!internal_) return {};
+  if (!snapshot.is_valid()) {
+    SimpleThrowInvalidArgument("Document snapshot cannot be invalid.");
+    return {};
+  }
   return internal_->StartAt(snapshot);
 }
 
 Query Query::StartAt(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
+  ValidateValues(values);
   return internal_->StartAt(values);
 }
 
 Query Query::StartAfter(const DocumentSnapshot& snapshot) const {
   if (!internal_) return {};
+  if (!snapshot.is_valid()) {
+    SimpleThrowInvalidArgument("Document snapshot cannot be invalid.");
+    return {};
+  }
   return internal_->StartAfter(snapshot);
 }
 
 Query Query::StartAfter(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
+  ValidateValues(values);
   return internal_->StartAfter(values);
 }
 
 Query Query::EndBefore(const DocumentSnapshot& snapshot) const {
   if (!internal_) return {};
+  if (!snapshot.is_valid()) {
+    SimpleThrowInvalidArgument("Document snapshot cannot be invalid.");
+    return {};
+  }
   return internal_->EndBefore(snapshot);
 }
 
 Query Query::EndBefore(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
+  ValidateValues(values);
   return internal_->EndBefore(values);
 }
 
 Query Query::EndAt(const DocumentSnapshot& snapshot) const {
   if (!internal_) return {};
+  if (!snapshot.is_valid()) {
+    SimpleThrowInvalidArgument("Document snapshot cannot be invalid.");
+    return {};
+  }
   return internal_->EndAt(snapshot);
 }
 
 Query Query::EndAt(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
+  ValidateValues(values);
   return internal_->EndAt(values);
 }
 
@@ -311,8 +390,11 @@ ListenerRegistration Query::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  SIMPLE_HARD_ASSERT(callback,
-                     "Snapshot listener callback cannot be an empty function.");
+  if (!callback) {
+    SimpleThrowInvalidArgument(
+        "Snapshot listener callback cannot be an empty function.");
+    return {};
+  }
 
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes, std::move(callback));

@@ -14,9 +14,8 @@
 
 #include "database/src/common/query.h"
 
-#include <cassert>
+#include <utility>
 
-#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/include/firebase/database.h"
 #include "database/src/include/firebase/database/query.h"
@@ -46,7 +45,7 @@ using internal::QueryInternal;
 
 static Query GetInvalidQuery() { return Query(); }
 
-typedef CleanupFn<Query, QueryInternal> CleanupFnQuery;
+using CleanupFnQuery = CleanupFn<Query, QueryInternal>;
 
 template <>
 CleanupFnQuery::CreateInvalidObjectFn CleanupFnQuery::create_invalid_object =
@@ -58,7 +57,7 @@ Query::Query(QueryInternal* internal) : internal_(internal) {
 
 void Query::SetInternal(QueryInternal* internal) {
   UnregisterCleanup();
-  if (internal_) delete internal_;
+  delete internal_;
   internal_ = internal;
   RegisterCleanup();
 }
@@ -77,11 +76,11 @@ Query::Query(const Query& src)
 }
 
 Query& Query::operator=(const Query& src) {
+  if (&src == this) return *this;
   SetInternal(src.internal_ ? new QueryInternal(*src.internal_) : nullptr);
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 Query::Query(Query&& query) : internal_(query.internal_) {
   query.UnregisterCleanup();
   query.internal_ = nullptr;
@@ -89,23 +88,25 @@ Query::Query(Query&& query) : internal_(query.internal_) {
 }
 
 Query& Query::operator=(Query&& query) {
+  if (&query == this) return *this;
   QueryInternal* internal = query.internal_;
   query.UnregisterCleanup();
   query.internal_ = nullptr;
   SetInternal(internal);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 bool operator==(const Query& lhs, const Query& rhs) {
   if (!lhs.is_valid() && !rhs.is_valid()) return true;   // both invalid
   if (!lhs.is_valid() || !rhs.is_valid()) return false;  // only one invalid
-  return lhs.internal_->query_spec() == rhs.internal_->query_spec();
+  return lhs.internal_->database_internal() ==
+             rhs.internal_->database_internal() &&
+         lhs.internal_->query_spec() == rhs.internal_->query_spec();
 }
 
 Query::~Query() {
   UnregisterCleanup();
-  if (internal_) delete internal_;
+  delete internal_;
 }
 
 Future<DataSnapshot> Query::GetValue() {
@@ -127,9 +128,7 @@ void Query::AddValueListener(ValueListener* listener) {
 }
 
 void Query::RemoveValueListener(ValueListener* listener) {
-  // listener is allowed to be a nullptr. nullptr represents removing all
-  // listeners at this location.
-  if (internal_) internal_->RemoveValueListener(listener);
+  if (internal_ && listener) internal_->RemoveValueListener(listener);
 }
 
 void Query::RemoveAllValueListeners() {
@@ -141,9 +140,7 @@ void Query::AddChildListener(ChildListener* listener) {
 }
 
 void Query::RemoveChildListener(ChildListener* listener) {
-  // listener is allowed to be a nullptr. nullptr represents removing all
-  // listeners at this location.
-  if (internal_) internal_->RemoveChildListener(listener);
+  if (internal_ && listener) internal_->RemoveChildListener(listener);
 }
 
 void Query::RemoveAllChildListeners() {
@@ -181,32 +178,35 @@ Query Query::OrderByValue() {
 }
 
 Query Query::StartAt(Variant order_value) {
-  return internal_ ? Query(internal_->StartAt(order_value)) : Query(nullptr);
+  return internal_ ? Query(internal_->StartAt(std::move(order_value)))
+                   : Query(nullptr);
 }
 
 Query Query::StartAt(Variant order_value, const char* child_key) {
   return internal_ && child_key
-             ? Query(internal_->StartAt(order_value, child_key))
+             ? Query(internal_->StartAt(std::move(order_value), child_key))
              : Query(nullptr);
 }
 
 Query Query::EndAt(Variant order_value) {
-  return internal_ ? Query(internal_->EndAt(order_value)) : Query(nullptr);
+  return internal_ ? Query(internal_->EndAt(std::move(order_value)))
+                   : Query(nullptr);
 }
 
 Query Query::EndAt(Variant order_value, const char* child_key) {
   return internal_ && child_key
-             ? Query(internal_->EndAt(order_value, child_key))
+             ? Query(internal_->EndAt(std::move(order_value), child_key))
              : Query(nullptr);
 }
 
 Query Query::EqualTo(Variant order_value) {
-  return internal_ ? Query(internal_->EqualTo(order_value)) : Query(nullptr);
+  return internal_ ? Query(internal_->EqualTo(std::move(order_value)))
+                   : Query(nullptr);
 }
 
 Query Query::EqualTo(Variant order_value, const char* child_key) {
   return internal_ && child_key
-             ? Query(internal_->EqualTo(order_value, child_key))
+             ? Query(internal_->EqualTo(std::move(order_value), child_key))
              : Query(nullptr);
 }
 

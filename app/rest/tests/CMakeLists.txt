@@ -157,14 +157,14 @@ firebase_cpp_cc_test(firebase_app_rest_tls_policy_test
     libcurl
 )
 
-if(MSVC)
+if(WIN32)
   foreach(rest_socket_test
           firebase_app_rest_curl_io_loop_test
           firebase_app_rest_transport_curl_test
           firebase_app_rest_tls_policy_test)
     target_compile_definitions(${rest_socket_test}
       PRIVATE
-        -DWIN32_LEAN_AND_MEAN
+        WIN32_LEAN_AND_MEAN
         CURL_STATICLIB=1
     )
     target_link_libraries(${rest_socket_test}
@@ -174,9 +174,6 @@ if(MSVC)
   endforeach()
 endif()
 
-#[[
-
-# google3 Dependency: FLAGS_test_tmpdir, CHECK(), CHECK_EQ
 firebase_cpp_cc_test(firebase_app_rest_request_file_test
   SOURCES
     request_file_test.cc
@@ -184,7 +181,6 @@ firebase_cpp_cc_test(firebase_app_rest_request_file_test
     firebase_rest_lib
 )
 
-# google3 Dependency: absl/strings/escaping (absl::CEscape)
 firebase_cpp_cc_test(firebase_app_rest_gzipheader_unittest
   SOURCES
     gzipheader_unittest.cc
@@ -192,12 +188,9 @@ firebase_cpp_cc_test(firebase_app_rest_gzipheader_unittest
     firebase_rest_lib
 )
 
-# google3 Dependency: absl/strings/escaping (absl::CEscape)
 firebase_cpp_cc_test(firebase_app_rest_zlibwrapper_unittest
   SOURCES
     zlibwrapper_unittest.cc
   DEPENDS
     firebase_rest_lib
 )
-
-]]

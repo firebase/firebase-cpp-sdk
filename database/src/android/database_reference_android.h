@@ -23,6 +23,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/android/query_android.h"
 #include "database/src/include/firebase/database/disconnection.h"
@@ -40,18 +41,17 @@ class DatabaseReferenceInternal : public QueryInternal {
   DatabaseReferenceInternal(DatabaseInternal* database,
                             jobject database_reference_obj);
 
-  virtual ~DatabaseReferenceInternal();
+  ~DatabaseReferenceInternal() override;
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
 
   DatabaseReferenceInternal& operator=(
       const DatabaseReferenceInternal& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  DatabaseReferenceInternal(DatabaseReferenceInternal&& reference);
+  DatabaseReferenceInternal(DatabaseReferenceInternal&& reference) noexcept;
 
-  DatabaseReferenceInternal& operator=(DatabaseReferenceInternal&& reference);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+  DatabaseReferenceInternal& operator=(
+      DatabaseReferenceInternal&& reference) noexcept;
 
   Database* GetDatabase() const;
 
@@ -88,19 +88,20 @@ class DatabaseReferenceInternal : public QueryInternal {
 
   Future<DataSnapshot> RunTransactionLastResult();
 
-  Future<void> SetPriority(Variant priority);
+  Future<void> SetPriority(const Variant& priority);
 
   Future<void> SetPriorityLastResult();
 
-  Future<void> SetValue(Variant value);
+  Future<void> SetValue(const Variant& value);
 
   Future<void> SetValueLastResult();
 
-  Future<void> SetValueAndPriority(Variant value, Variant priority);
+  Future<void> SetValueAndPriority(const Variant& value,
+                                   const Variant& priority);
 
   Future<void> SetValueAndPriorityLastResult();
 
-  Future<void> UpdateChildren(Variant values);
+  Future<void> UpdateChildren(const Variant& values);
 
   Future<void> UpdateChildrenLastResult();
 
@@ -126,6 +127,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   // instances, but have the same "this" pointer as one is a subclass of the
   // other.
   int future_api_id_;
+  mutable Mutex member_mutex_;
   Variant cached_key_;  // A Variant for the memory management convenience.
   DisconnectionHandler* cached_disconnection_handler_;
 };
@@ -138,6 +140,7 @@ struct TransactionData {
       : transaction(transaction_),
         future(future_),
         handle(handle_),
+        backing_future(MakeFuture(future_, handle_)),
         context(nullptr),
         delete_context(nullptr),
         java_handler(nullptr) {}
@@ -149,6 +152,7 @@ struct TransactionData {
   DoTransactionWithContext transaction;
   ReferenceCountedFutureImpl* future;
   SafeFutureHandle<DataSnapshot> handle;
+  Future<DataSnapshot> backing_future;
   void* context;
   void (*delete_context)(void*);
   jobject java_handler;

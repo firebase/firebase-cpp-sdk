@@ -36,7 +36,13 @@ vs=VS2019
 stl=c++
 linux_abi=legacy
 
-for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n"); do
+normalized_filename=$(echo "${filename}" | tr "[:upper:]" "[:lower:]" \
+  | sed -e 's/x86_64/x8664/g' \
+        -e 's/armeabi-v7a-hard/armeabiv7ahard/g' \
+        -e 's/armeabi-v7a/armeabiv7a/g' \
+        -e 's/arm64-v8a/arm64v8a/g')
+
+for c in $(echo "${normalized_filename}" | tr "_.-" "\n\n\n"); do
     case $c in
 	# Operating systems
 	ios)
@@ -67,7 +73,7 @@ for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n");
 	    arch=x86_64
 	    arch_win=x64
 	;;
-	x86_64)
+	x86_64|x8664)
 	    arch=x86_64
 	    arch_win=x64
 	;;
@@ -82,16 +88,16 @@ for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n");
 	    arch=universal
         ;;
 	# Additional Android CPU types
-	arm64-v8a)
+	arm64-v8a|arm64v8a)
 	    arch=arm64-v8a
 	;;
 	armeabi)
 	    arch=armeabi
 	;;
-	armeabi-v7a)
+	armeabi-v7a|armeabiv7a)
 	    arch=armeabi-v7a
 	;;
-	armeabi-v7a-hard)
+	armeabi-v7a-hard|armeabiv7ahard)
 	    arch=armeabi-v7a-hard
 	;;
 	mips)

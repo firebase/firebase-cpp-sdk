@@ -71,8 +71,7 @@ class Callbacks {
 
   static void ValueListenerNativeOnDataChange(JNIEnv* env, jclass clazz,
                                               jlong db_ptr, jlong listener_ptr,
-                                              jobject data_snapshot,
-                                              jobject previous_child_name);
+                                              jobject data_snapshot);
 };
 
 }  // namespace internal

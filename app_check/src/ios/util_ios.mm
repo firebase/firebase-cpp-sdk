@@ -41,6 +41,9 @@ AppCheckError AppCheckErrorFromNSError(NSError* _Nullable error) {
   if (!error) {
     return kAppCheckErrorNone;
   }
+  if (![error.domain isEqualToString:FIRAppCheckErrorDomain]) {
+    return kAppCheckErrorUnknown;
+  }
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
     if (error.code == kIosToCppErrorMap[i].ios_error) {
       return kIosToCppErrorMap[i].cpp_error;
@@ -60,10 +63,10 @@ NSError* AppCheckErrorToNSError(AppCheckError cpp_error, const std::string& erro
     }
   }
   NSString* errorMsg = firebase::util::StringToNSString(error_message);
-  // NOTE: this error domain is the same as ios sdk FIRAppCheckErrorDomain
-  return [[NSError alloc] initWithDomain:@"com.firebase.appCheck"
+  NSDictionary* userInfo = errorMsg ? @{NSLocalizedDescriptionKey : errorMsg} : nil;
+  return [[NSError alloc] initWithDomain:FIRAppCheckErrorDomain
                                     code:ios_error_code
-                                userInfo:@{NSLocalizedDescriptionKey : errorMsg}];
+                                userInfo:userInfo];
 }
 
 AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable token) {

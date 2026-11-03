@@ -23,14 +23,20 @@ project(Firebase-cpp-download C CXX)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 include(flatbuffers)
-include(firestore)
+if(FIREBASE_INCLUDE_FIRESTORE AND NOT "${FIREBASE_EXTERNAL_PLATFORM}" STREQUAL "IOS")
+  include(firestore)
+endif()
 
 
 # Some of the external dependencies are not needed for mobile.
 if (${FIREBASE_EXTERNAL_PLATFORM} STREQUAL "DESKTOP")
-  include(boringssl)
+  if(FIREBASE_USE_BORINGSSL)
+    include(boringssl)
+  endif()
   include(curl)
-  include(leveldb)
+  if(FIREBASE_INCLUDE_DATABASE OR FIREBASE_INCLUDE_FIRESTORE)
+    include(leveldb)
+  endif()
   include(zlib)
 endif()
 

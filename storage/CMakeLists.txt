@@ -115,6 +115,9 @@ endif()
 target_compile_definitions(firebase_storage
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
+    # Exposes the non-const ABI-compatibility overloads in the public headers
+    # only while building the SDK itself (see storage.h/storage_reference.h).
+    -DFIREBASE_STORAGE_BUILDING_SDK=1
     ${additional_DEFINES}
 )
 

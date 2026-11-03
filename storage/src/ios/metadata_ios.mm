@@ -35,23 +35,43 @@ static FIRStorageMetadata* _Nullable CopyObjCMetadataObject(
   return src ? [src copy] : nil;
 }
 
-// Convert a C-string to NSString, falling back to empty string if null or
-// invalid UTF-8.
-static NSString* _Nonnull SafeNSStringFromCString(
+// Convert a setter argument to the NSString to store, or nil to clear the
+// property. firebase/storage/metadata.h documents the string setters as
+// "nullptr/empty to clear", matching the Android and desktop implementations,
+// so nullptr and "" map to nil (the field is omitted from the uploaded
+// metadata) rather than to @"". A value that is not valid UTF-8 cannot be
+// represented and also clears the field.
+static NSString* _Nullable NSStringOrNilFromSetterValue(
     const char* _Nullable c_string) {
-  if (!c_string) {
-    return @"";
+  if (!c_string || c_string[0] == '\0') {
+    return nil;
   }
-  NSString* ns_str = [NSString stringWithUTF8String:c_string];
-  return ns_str ? ns_str : @"";
+  return [NSString stringWithUTF8String:c_string];
+}
+
+// Append a superseded string to `retired_strings`, bounding the cache to
+// MetadataInternal::kMaxRetiredStrings entries so repeated mutations on a
+// long-lived instance never cause unbounded memory growth.
+static void AppendRetiredString(
+    std::vector<std::unique_ptr<std::string>>* _Nonnull retired_strings,
+    std::unique_ptr<std::string> str, size_t max_entries) {
+  if (!str) {
+    return;
+  }
+  if (retired_strings->size() >= max_entries) {
+    retired_strings->erase(retired_strings->begin());
+  }
+  retired_strings->push_back(std::move(str));
 }
 
 // Convert an NSString to a stable UTF-8 C-string without mutating or
-// reallocating any buffer already handed out to callers.
+// reallocating any buffer already handed out to callers, while keeping the
+// retired cache bounded to MetadataInternal::kMaxRetiredStrings entries.
 static const char* _Nonnull NSStringToCString(
     NSString* _Nullable nsstring_value,
     std::unique_ptr<std::string>* _Nonnull string_slot,
-    std::vector<std::unique_ptr<std::string>>* _Nonnull retired_strings) {
+    std::vector<std::unique_ptr<std::string>>* _Nonnull retired_strings,
+    size_t max_retired_entries) {
   const char* utf8_string =
       (nsstring_value && nsstring_value.UTF8String) ? nsstring_value.UTF8String
                                                     : "";
@@ -59,21 +79,43 @@ static const char* _Nonnull NSStringToCString(
     return (*string_slot)->c_str();
   }
   if (*string_slot) {
-    retired_strings->push_back(std::move(*string_slot));
+    AppendRetiredString(retired_strings, std::move(*string_slot),
+                        max_retired_entries);
   }
   *string_slot = std::make_unique<std::string>(utf8_string);
   return (*string_slot)->c_str();
 }
 
-// Convert NSDate to milliseconds since the epoch, or 0 if nil.
+// Convert NSDate to milliseconds since the epoch, or -1 if nil.
+//
+// firebase/storage/metadata.h documents creation_time() and updated_time() as
+// returning "-1 if unset or invalid", which is also what the desktop and
+// Android implementations return, so an unset date maps to -1, not 0.
 static int64_t NSDateToMilliseconds(NSDate* _Nullable date) {
   if (!date) {
-    return 0;
+    return -1;
   }
   double seconds_since_the_epoch = date.timeIntervalSince1970;
   int64_t milliseconds_since_the_epoch =
       static_cast<int64_t>(seconds_since_the_epoch * 1000.0);
   return milliseconds_since_the_epoch;
+}
+
+// Replaces the contents of `out` with the custom metadata stored in `impl`.
+static void LoadCustomMetadata(FIRStorageMetadata* _Nullable impl,
+                               CustomMetadata* _Nonnull out) {
+  out->clear();
+  NSDictionary<NSString*, NSString*>* dictionary =
+      impl ? impl.customMetadata : nil;
+  for (NSString* key in dictionary) {
+    const char* key_cstr = key ? key.UTF8String : nullptr;
+    if (!key_cstr) continue;
+    NSString* value = [dictionary objectForKey:key];
+    const char* val_cstr = value ? value.UTF8String : nullptr;
+    out->insert(std::make_pair(
+        std::string(key_cstr),
+        val_cstr ? std::string(val_cstr) : std::string()));
+  }
 }
 
 MetadataInternal::MetadataInternal(StorageInternal* storage)
@@ -123,7 +165,8 @@ MetadataInternal& MetadataInternal::operator=(
   storage_ = other_storage;
   impl_ = copied_impl ? std::make_unique<FIRStorageMetadataPointer>(copied_impl)
                       : nullptr;
-  custom_metadata_ = std::move(copied_custom_metadata);
+  // After impl_ is updated: may reload the existing map from the new impl().
+  ReplaceCustomMetadataLocked(copied_custom_metadata.get());
   return *this;
 }
 
@@ -146,8 +189,7 @@ MetadataInternal::MetadataInternal(MetadataInternal&& other) noexcept
   custom_metadata_ = std::move(other.custom_metadata_);
 }
 
-MetadataInternal& MetadataInternal::operator=(
-    MetadataInternal&& other) noexcept {
+MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
   if (this == &other) {
     return *this;
   }
@@ -163,7 +205,11 @@ MetadataInternal& MetadataInternal::operator=(
   std::unique_ptr<std::string> other_path;
   std::unique_ptr<std::string> other_md5_hash;
   std::vector<std::unique_ptr<std::string>> other_retired_strings;
-  std::unique_ptr<CustomMetadata> other_custom_metadata;
+  // Contents of other's map, if it has one. The map object itself stays with
+  // `other`, so a pointer previously returned by other.custom_metadata() stays
+  // valid for other's lifetime.
+  CustomMetadata other_custom_metadata;
+  bool other_has_custom_metadata = false;
   {
     MutexLock other_lock(other.mutex_);
     other_storage = other.storage_;
@@ -179,7 +225,11 @@ MetadataInternal& MetadataInternal::operator=(
     other_path = std::move(other.path_);
     other_md5_hash = std::move(other.md5_hash_);
     other_retired_strings = std::move(other.retired_strings_);
-    other_custom_metadata = std::move(other.custom_metadata_);
+    if (other.custom_metadata_) {
+      other_custom_metadata = std::move(*other.custom_metadata_);
+      other.custom_metadata_->clear();
+      other_has_custom_metadata = true;
+    }
   }
 
   MutexLock lock(mutex_);
@@ -196,18 +246,25 @@ MetadataInternal& MetadataInternal::operator=(
   path_ = std::move(other_path);
   md5_hash_ = std::move(other_md5_hash);
   for (auto& s : other_retired_strings) {
-    retired_strings_.push_back(std::move(s));
+    RetireStringLocked(std::move(s));
   }
-  custom_metadata_ = std::move(other_custom_metadata);
+  // After impl_ is updated: may reload the existing map from the new impl().
+  ReplaceCustomMetadataLocked(
+      other_has_custom_metadata ? &other_custom_metadata : nullptr);
   return *this;
 }
 
 MetadataInternal::~MetadataInternal() = default;
 
+void MetadataInternal::RetireStringLocked(
+    std::unique_ptr<std::string> str) const {
+  AppendRetiredString(&retired_strings_, std::move(str), kMaxRetiredStrings);
+}
+
 void MetadataInternal::RetireCachedStringsLocked() const {
   auto retire = [this](std::unique_ptr<std::string>& slot) {
     if (slot) {
-      retired_strings_.push_back(std::move(slot));
+      RetireStringLocked(std::move(slot));
     }
   };
   retire(bucket_);
@@ -224,72 +281,75 @@ void MetadataInternal::RetireCachedStringsLocked() const {
 const char* MetadataInternal::bucket() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().bucket : nil, &bucket_,
-                           &retired_strings_);
+                           &retired_strings_, kMaxRetiredStrings);
 }
 
 void MetadataInternal::set_cache_control(const char* cache_control) {
   MutexLock lock(mutex_);
   if (impl()) {
-    impl().cacheControl = SafeNSStringFromCString(cache_control);
+    impl().cacheControl = NSStringOrNilFromSetterValue(cache_control);
   }
 }
 
 const char* MetadataInternal::cache_control() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().cacheControl : nil, &cache_control_,
-                           &retired_strings_);
+                           &retired_strings_, kMaxRetiredStrings);
 }
 
 void MetadataInternal::set_content_disposition(const char* disposition) {
   MutexLock lock(mutex_);
   if (impl()) {
-    impl().contentDisposition = SafeNSStringFromCString(disposition);
+    impl().contentDisposition = NSStringOrNilFromSetterValue(disposition);
   }
 }
 
 const char* MetadataInternal::content_disposition() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().contentDisposition : nil,
-                           &content_disposition_, &retired_strings_);
+                           &content_disposition_, &retired_strings_,
+                           kMaxRetiredStrings);
 }
 
 void MetadataInternal::set_content_encoding(const char* encoding) {
   MutexLock lock(mutex_);
   if (impl()) {
-    impl().contentEncoding = SafeNSStringFromCString(encoding);
+    impl().contentEncoding = NSStringOrNilFromSetterValue(encoding);
   }
 }
 
 const char* MetadataInternal::content_encoding() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().contentEncoding : nil,
-                           &content_encoding_, &retired_strings_);
+                           &content_encoding_, &retired_strings_,
+                           kMaxRetiredStrings);
 }
 
 void MetadataInternal::set_content_language(const char* language) {
   MutexLock lock(mutex_);
   if (impl()) {
-    impl().contentLanguage = SafeNSStringFromCString(language);
+    impl().contentLanguage = NSStringOrNilFromSetterValue(language);
   }
 }
 
 const char* MetadataInternal::content_language() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().contentLanguage : nil,
-                           &content_language_, &retired_strings_);
+                           &content_language_, &retired_strings_,
+                           kMaxRetiredStrings);
 }
 
 void MetadataInternal::set_content_type(const char* type) {
   MutexLock lock(mutex_);
   if (impl()) {
-    impl().contentType = SafeNSStringFromCString(type);
+    impl().contentType = NSStringOrNilFromSetterValue(type);
   }
 }
 
 const char* MetadataInternal::content_type() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().contentType : nil, &content_type_,
-                           &retired_strings_);
+                           &retired_strings_, kMaxRetiredStrings);
 }
 
 int64_t MetadataInternal::creation_time() const {
@@ -301,19 +361,27 @@ CustomMetadata* MetadataInternal::custom_metadata() const {
   MutexLock lock(mutex_);
   if (!custom_metadata_) {
     custom_metadata_ = std::make_unique<CustomMetadata>();
-    if (impl() && impl().customMetadata) {
-      for (NSString* key in impl().customMetadata) {
-        const char* key_cstr = key ? key.UTF8String : nullptr;
-        if (!key_cstr) continue;
-        NSString* value = [impl().customMetadata objectForKey:key];
-        const char* val_cstr = value ? value.UTF8String : nullptr;
-        custom_metadata_->insert(std::make_pair(
-            std::string(key_cstr),
-            val_cstr ? std::string(val_cstr) : std::string()));
-      }
-    }
+    LoadCustomMetadata(impl(), custom_metadata_.get());
   }
   return custom_metadata_.get();
+}
+
+void MetadataInternal::ReplaceCustomMetadataLocked(
+    CustomMetadata* _Nullable source) {
+  if (custom_metadata_) {
+    // A pointer to the existing map may have been handed out by
+    // custom_metadata(); keep the object and replace only its contents so that
+    // pointer stays valid for this object's whole lifetime.
+    if (source) {
+      *custom_metadata_ = std::move(*source);
+    } else {
+      LoadCustomMetadata(impl(), custom_metadata_.get());
+    }
+  } else if (source) {
+    custom_metadata_ = std::make_unique<CustomMetadata>(std::move(*source));
+  }
+  // Otherwise stay lazy: custom_metadata() loads the map from impl() on first
+  // use.
 }
 
 void MetadataInternal::CommitCustomMetadata() const {
@@ -346,13 +414,13 @@ int64_t MetadataInternal::metadata_generation() const {
 const char* MetadataInternal::name() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().name : nil, &name_,
-                           &retired_strings_);
+                           &retired_strings_, kMaxRetiredStrings);
 }
 
 const char* MetadataInternal::path() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().path : nil, &path_,
-                           &retired_strings_);
+                           &retired_strings_, kMaxRetiredStrings);
 }
 
 StorageReferenceInternal* MetadataInternal::GetReference() const {
@@ -387,7 +455,7 @@ int64_t MetadataInternal::updated_time() const {
 const char* MetadataInternal::md5_hash() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().md5Hash : nil, &md5_hash_,
-                           &retired_strings_);
+                           &retired_strings_, kMaxRetiredStrings);
 }
 
 }  // namespace internal

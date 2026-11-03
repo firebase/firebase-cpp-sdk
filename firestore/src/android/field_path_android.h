@@ -23,14 +23,13 @@
 namespace firebase {
 namespace firestore {
 
-// This helper class provides conversion between the C++ type and Java type. In
-// addition, we also need proper initializer and terminator for the Java class
-// cache/uncache.
+// This helper class provides conversion from the C++ FieldPath type to the
+// Java FieldPath type.
 class FieldPathConverter {
  public:
   static void Initialize(jni::Loader& loader);
 
-  /** Creates a Java FieldPath from  a C++ FieldPath. */
+  /** Creates a Java FieldPath from a C++ FieldPath. */
   static jni::Local<jni::Object> Create(jni::Env& env, const FieldPath& path);
 
   // We do not need to convert Java FieldPath back to C++ FieldPath since there

@@ -16,42 +16,44 @@
 
 package com.google.firebase.firestore.internal.cpp;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.FirebaseFirestoreException.Code;
 import com.google.firebase.firestore.Transaction;
 
 /**
- * Implements Firestore TransactionFunction by redirecting calls into C++. This
- * shares the same logic as a listener but there is difference. A listener
- * implements onEvent() while Transaction Function implements apply().
+ * Implements Firestore {@code Transaction.Function} by redirecting calls into the C++ equivalent.
  */
 public class TransactionFunction
     extends CppEventListener implements Transaction.Function<Object> {
-  /** Construct a TransactionFunction. Parameters are C++ pointers. */
-  public TransactionFunction(
-      long cppFirestoreObject, long cppTransactionFunctionObject) {
+  public TransactionFunction(long cppFirestoreObject, long cppTransactionFunctionObject) {
     super(cppFirestoreObject, cppTransactionFunctionObject);
   }
 
+  @Nullable
   @Override
-  public Object apply(Transaction transaction)
+  public Object apply(@NonNull Transaction transaction)
       throws FirebaseFirestoreException {
-    if (cppFirestoreObject != 0 && cppListenerObject != 0) {
+    long firestorePtr;
+    long listenerPtr;
+    synchronized (this) {
+      firestorePtr = cppFirestoreObject;
+      listenerPtr = cppListenerObject;
+    }
+    if (firestorePtr != 0 && listenerPtr != 0) {
       try {
-        Exception exception =
-            nativeApply(cppFirestoreObject, cppListenerObject, transaction);
-        if (exception != null) {
+        byte[] result = nativeApply(firestorePtr, listenerPtr, transaction);
+        if (result == null) {
+          FirebaseFirestoreException exception =
+              (FirebaseFirestoreException) nativeGetException(firestorePtr, listenerPtr);
           throw exception;
         }
       } catch (FirebaseFirestoreException e) {
-        e.printStackTrace();
         throw e;
       } catch (RuntimeException e) {
-        e.printStackTrace();
         throw e;
       } catch (Exception e) {
-        e.printStackTrace();
         throw new FirebaseFirestoreException(e.getMessage(), Code.UNKNOWN, e);
       }
     }
@@ -59,11 +61,16 @@ public class TransactionFunction
   }
 
   /**
-   * This native function is implemented in the Firestore C++ library
-   * (transaction_android.cc).
+   * Interprets the {@code transactionFunctionObject} as a {@code
+   * firebase::firestore::TransactionFunction} and invokes its {@code apply} method with the {@code
+   * transaction} created by interpreting the {@code firestoreObject} as a {@code
+   * firebase::firestore::Firestore}.
+   *
+   * @return A boolean value indicating whether the C++ transaction function succeeded.
    */
-  @Nullable
-  private static native Exception nativeApply(long firestoreObject,
-      long transactionFunctionObject,
-      Transaction transaction);
+  private static native byte[] nativeApply(
+      long firestoreObject, long transactionFunctionObject, Object transaction);
+
+  private static native Object nativeGetException(
+      long firestoreObject, long transactionFunctionObject);
 }

@@ -29,6 +29,7 @@ namespace internal {
 // load from file.
 class RemoteConfigFileManager {
  public:
+  explicit RemoteConfigFileManager(const std::string& file_path);
   RemoteConfigFileManager(const std::string& file_path,
                           const firebase::App& app);
 
