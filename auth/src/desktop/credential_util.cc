@@ -41,7 +41,7 @@ std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
                                                       GetApiKey(auth_data));
 }
 
-std::unique_ptr<rest::Request> CreateRequestFromCredential(
+std::unique_ptr<AuthRequest> CreateRequestFromCredential(
     AuthData* const auth_data, const std::string& provider,
     const void* const raw_credential) {
   FIREBASE_ASSERT_RETURN(nullptr,
@@ -54,10 +54,10 @@ std::unique_ptr<rest::Request> CreateRequestFromCredential(
     if (!email_credential) {
       return nullptr;
     }
-    return std::unique_ptr<rest::Request>(  // NOLINT
-        new VerifyPasswordRequest(*auth_data->app, GetApiKey(*auth_data),
-                                  email_credential->GetEmail().c_str(),
-                                  email_credential->GetPassword().c_str()));
+    return std::make_unique<VerifyPasswordRequest>(
+        *auth_data->app, GetApiKey(*auth_data),
+        email_credential->GetEmail().c_str(),
+        email_credential->GetPassword().c_str());
   }
 
   return CreateVerifyAssertionRequest(*auth_data, raw_credential);

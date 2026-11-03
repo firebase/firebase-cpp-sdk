@@ -18,10 +18,10 @@
 #include <memory>
 #include <string>
 
-#include "app/rest/request.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_providers/email_auth_credential.h"
+#include "auth/src/desktop/rpcs/auth_request.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
 
 namespace firebase {
@@ -43,7 +43,7 @@ std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
 // Creates either a VerifyPasswordRequest (if it's email credential) or
 // a VerifyAssertionRequest (if it's one of OAuth providers), assuming that the
 // given void pointer refers to a CredentialImpl*.
-std::unique_ptr<rest::Request> CreateRequestFromCredential(
+std::unique_ptr<AuthRequest> CreateRequestFromCredential(
     AuthData* const auth_data, const std::string& provider,
     const void* raw_credential);
 

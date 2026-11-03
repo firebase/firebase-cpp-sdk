@@ -68,23 +68,16 @@ Future<ResultT> CallAsync(
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback);
 
-// Sends the given request on the network and returns the response. The response
-// is cast to the specified T without any checks, so it's the caller's
-// responsibility to ensure the correct type is given.
+// Prepares the request's heartbeat/AppCheck headers, sends it on the network
+// and returns the response. The response is cast to the specified T without
+// any checks, so it's the caller's responsibility to ensure the correct type is
+// given. Only AuthRequests are accepted, so no request can be sent without
+// PrepareRequestHeaders().
 //
 // Note: this is a blocking call! Use in the callback given to CallAsync, or
 // otherwise on a separate thread.
 template <typename T>
 T GetResponse(AuthRequest& request);
-
-// AuthRequest headers must be prepared before sending, which mutates the
-// request; reject const AuthRequests instead of silently falling back to the
-// rest::Request overload and sending without heartbeat/AppCheck headers.
-template <typename T>
-T GetResponse(const AuthRequest& request) = delete;
-
-template <typename T>
-T GetResponse(const rest::Request& request);
 
 // Implementation
 
@@ -120,13 +113,6 @@ inline Future<ResultT> CallAsync(
 template <typename T>
 inline T GetResponse(AuthRequest& request) {
   request.PrepareRequestHeaders();
-  T response;
-  firebase::rest::CreateTransport()->Perform(request, &response);
-  return response;
-}
-
-template <typename T>
-inline T GetResponse(const rest::Request& request) {
   T response;
   firebase::rest::CreateTransport()->Perform(request, &response);
   return response;
