@@ -100,7 +100,11 @@ DocumentReference CollectionReference::Document(
 
 DocumentReference CollectionReference::Document(
     const std::string& document_path) const {
-  return Document(document_path.c_str());
+  if (document_path.empty()) {
+    SimpleThrowInvalidArgument("Document path cannot be empty.");
+  }
+  if (!internal()) return {};
+  return internal()->Document(document_path);
 }
 
 Future<DocumentReference> CollectionReference::Add(const MapFieldValue& data) {

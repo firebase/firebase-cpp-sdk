@@ -15,12 +15,6 @@
  */
 
 #include "firestore/src/main/firestore_main.h"
-#include <mutex>
-
-static std::mutex& GetIsAliveMutex() {
-  static std::mutex* m = new std::mutex();
-  return *m;
-}
 
 #include <cstring>
 #include <memory>
@@ -134,10 +128,7 @@ FirestoreInternal::FirestoreInternal(
 }
 
 FirestoreInternal::~FirestoreInternal() {
-  {
-    std::scoped_lock lock(GetIsAliveMutex());
-    *is_alive_ = false;
-  }
+  *is_alive_ = false;
   ClearListeners();
   firestore_core_->Dispose();
   transaction_executor_->Dispose();
@@ -242,12 +233,7 @@ Future<void> FirestoreInternal::RunTransaction(
         executor->Execute(
             [is_alive, weak_core, firestore_public, update, core_transaction = std::move(core_transaction),
              eventual_result_callback = std::move(eventual_result_callback)] {
-              bool alive = false;
-              {
-                std::scoped_lock lock(GetIsAliveMutex());
-                alive = *is_alive;
-              }
-              if (!alive) {
+              if (!*is_alive) {
                 eventual_result_callback(Status{Error::kErrorAborted, "Firestore instance has been destroyed"});
                 return;
               }
@@ -454,8 +440,14 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
         }
         if (progress.state() == api::LoadBundleTaskState::kSuccess) {
           promise.SetValue(api_progress);
+          if (auto t = weak_task.lock()) {
+            t->RemoveAllObservers();
+          }
         } else if (progress.state() == api::LoadBundleTaskState::kError) {
           promise.SetError(progress.error_status());
+          if (auto t = weak_task.lock()) {
+            t->RemoveAllObservers();
+          }
         }
       });
 

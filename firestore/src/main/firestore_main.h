@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -182,7 +183,7 @@ class FirestoreInternal {
   Settings settings_;
   std::shared_ptr<util::Executor> transaction_executor_;
   std::string database_name_;
-  std::shared_ptr<bool> is_alive_ = std::make_shared<bool>(true);
+  std::shared_ptr<std::atomic<bool>> is_alive_ = std::make_shared<std::atomic<bool>>(true);
 };
 
 }  // namespace firestore
