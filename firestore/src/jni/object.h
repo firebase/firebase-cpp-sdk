@@ -44,7 +44,7 @@ class Object {
  public:
   Object() = default;
   constexpr explicit Object(jobject object) : object_(object) {}
-  ~Object() = default;
+  virtual ~Object() = default;
   Object(const Object&) = default;
   Object& operator=(const Object&) = default;
 
