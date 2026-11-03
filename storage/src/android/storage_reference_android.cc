@@ -156,6 +156,7 @@ struct JniListenerToken {
   bool active_registered = false;
   bool cleanup_registered = false;
   bool listener_detach_registered = false;
+  std::weak_ptr<JniListenerToken>* cleanup_ctx = nullptr;
 
   JniListenerToken(StorageInternal* s, Listener* l, ListenerInternal* li,
                    jobject jl)

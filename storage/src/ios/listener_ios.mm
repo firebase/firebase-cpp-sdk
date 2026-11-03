@@ -201,9 +201,15 @@ namespace storage {
 namespace internal {
 
 struct ListenerInternal::SafeReferenceHolder {
+  struct CleanupContext {
+    firebase::util::SafeReference<ListenerInternal> weak_self;
+    uint64_t generation;
+  };
+
   explicit SafeReferenceHolder(ListenerInternal* _Nonnull owner)
       : ref(owner) {}
   firebase::util::SafeReference<ListenerInternal> ref;
+  CleanupContext* _Nullable cleanup_ctx = nullptr;
 };
 
 ListenerInternal::ListenerInternal(Listener* _Nonnull listener)
@@ -281,32 +287,35 @@ void ListenerInternal::AttachTask(
 
     storage_token_ = storage_token;
     const uint64_t generation = ++cleanup_generation_;
-    firebase::util::SafeReference<ListenerInternal> weak_self =
-        safe_reference_holder_->ref;
+    auto* ctx = new SafeReferenceHolder::CleanupContext{
+        safe_reference_holder_->ref, generation};
+    safe_reference_holder_->cleanup_ctx = ctx;
     // Cleanup callbacks only run from ~StorageInternal(), after its lifetime
     // token was marked dead; UnregisterObject() is only called under a live
     // token, so it never waits for this callback. Hence the callback may
     // simply block on the SafeReference lock and mutex_.
-    storage.cleanup().RegisterObject(
-        this, [weak_self, generation](void* /*obj*/) {
-          std::unique_ptr<FIRCPPStorageListenerHandlePointer> old_handle;
-          weak_self.Run([&old_handle, generation](ListenerInternal* self) {
-            std::lock_guard<std::recursive_mutex> self_lock(self->mutex_);
-            if (self->cleanup_generation_ != generation ||
-                !self->storage_token_) {
-              return;  // Superseded by a later attach, or already detached.
-            }
-            // The notifier has already dropped this registration, so there
-            // is nothing to unregister.
-            self->storage_token_.reset();
-            old_handle = std::move(self->DetachTaskLocked().handle);
-          });
-          // Wait outside the SafeReference scope so a Listener destroyed from
-          // inside its own in-flight callback cannot deadlock against us.
-          if (old_handle && old_handle->get()) {
-            [old_handle->get() waitForCallbacks];
-          }
-        });
+    storage.cleanup().RegisterObject(ctx, [](void* obj) {
+      std::unique_ptr<SafeReferenceHolder::CleanupContext> ctx_holder(
+          static_cast<SafeReferenceHolder::CleanupContext*>(obj));
+      std::unique_ptr<FIRCPPStorageListenerHandlePointer> old_handle;
+      const uint64_t gen = ctx_holder->generation;
+      ctx_holder->weak_self.Run([&old_handle, gen](ListenerInternal* self) {
+        std::lock_guard<std::recursive_mutex> self_lock(self->mutex_);
+        if (self->cleanup_generation_ != gen || !self->storage_token_) {
+          return;  // Superseded by a later attach, or already detached.
+        }
+        // The notifier has already dropped this registration, so there
+        // is nothing to unregister.
+        self->storage_token_.reset();
+        self->safe_reference_holder_->cleanup_ctx = nullptr;
+        old_handle = std::move(self->DetachTaskLocked().handle);
+      });
+      // Wait outside the SafeReference scope so a Listener destroyed from
+      // inside its own in-flight callback cannot deadlock against us.
+      if (old_handle && old_handle->get()) {
+        [old_handle->get() waitForCallbacks];
+      }
+    });
   });
   FinishDetach(raced);
 }
@@ -334,26 +343,20 @@ ListenerInternal::DetachedTask ListenerInternal::DetachTaskLocked() {
   task_.reset();
 
   detached.storage_token = std::move(storage_token_);
+  detached.cleanup_ctx = safe_reference_holder_->cleanup_ctx;
+  safe_reference_holder_->cleanup_ctx = nullptr;
   return detached;
 }
 
 void ListenerInternal::FinishDetach(DetachedTask& detached) {
-  if (detached.storage_token) {
-    const std::shared_ptr<StorageInternal::LifetimeToken>& token =
-        detached.storage_token;
-    token->RunWhileAlive([this, &token](StorageInternal& alive_storage) {
-      // Lock order: token mutex (held by RunWhileAlive), then mutex_. mutex_
-      // serializes this with registration in AttachTask(); UnregisterObject()
-      // does not block here (see RunWhileAlive()).
-      std::lock_guard<std::recursive_mutex> lock(mutex_);
-      // If this listener was re-attached to the same StorageInternal in the
-      // meantime, the registration keyed by `this` belongs to that new
-      // attachment: keep it. A callback of the dropped registration cannot
-      // run while the token is alive.
-      if (storage_token_ != token) {
-        alive_storage.cleanup().UnregisterObject(this);
-      }
-    });
+  if (detached.storage_token && detached.cleanup_ctx != nullptr) {
+    void* old_ctx = detached.cleanup_ctx;
+    detached.cleanup_ctx = nullptr;
+    detached.storage_token->RunWhileAlive(
+        [old_ctx](StorageInternal& alive_storage) {
+          alive_storage.cleanup().UnregisterObject(old_ctx);
+          delete static_cast<SafeReferenceHolder::CleanupContext*>(old_ctx);
+        });
     detached.storage_token.reset();
   }
   if (detached.handle && detached.handle->get()) {

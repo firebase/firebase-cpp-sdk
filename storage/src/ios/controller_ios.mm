@@ -41,18 +41,25 @@ ControllerInternal::LifetimeHandle::~LifetimeHandle() {
   // The last shared_ptr is gone, so no other thread can reach this handle: the
   // cleanup callback only holds a weak_ptr, whose lock() now fails. If that
   // callback is running right now, the StorageInternal is inside its
-  // destructor and has already marked storage_token dead, so
-  // UnregisterCleanupObject() is a no-op; otherwise it unregisters while the
-  // token mutex keeps the StorageInternal alive. Either way this never touches
-  // a freed StorageInternal.
+  // destructor and has already marked storage_token dead, so RunWhileAlive()
+  // is a no-op and the callback deletes `old_ctx`; otherwise RunWhileAlive()
+  // unregisters and deletes `old_ctx` while the token mutex keeps the
+  // StorageInternal alive. Either way this never touches a freed
+  // StorageInternal.
   std::shared_ptr<StorageInternal::LifetimeToken> token;
+  CleanupContext* old_ctx = nullptr;
   {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     token = std::move(storage_token);
+    old_ctx = cleanup_ctx;
+    cleanup_ctx = nullptr;
     storage = nullptr;
   }
-  if (token) {
-    token->UnregisterCleanupObject(this);
+  if (token && old_ctx != nullptr) {
+    token->RunWhileAlive([old_ctx](StorageInternal& alive_storage) {
+      alive_storage.cleanup().UnregisterObject(old_ctx);
+      delete old_ctx;
+    });
   }
   task_impl.reset();
 }
@@ -68,6 +75,7 @@ void ControllerInternal::LifetimeHandle::AssignTask(
   // unregistered only after self->mutex is released: the token mutex must not
   // be acquired under self->mutex (see the lock order in controller_ios.h).
   std::shared_ptr<StorageInternal::LifetimeToken> stale_token;
+  CleanupContext* stale_ctx = nullptr;
   {
     std::lock_guard<std::recursive_mutex> lock(self->mutex);
     // Register only when the binding actually changes: re-assigning a task
@@ -76,34 +84,40 @@ void ControllerInternal::LifetimeHandle::AssignTask(
     // cleanup callback already ran, it reset `storage`, so we re-register.)
     if (self->storage != new_storage) {
       stale_token = std::move(self->storage_token);
+      stale_ctx = self->cleanup_ctx;
+      self->cleanup_ctx = nullptr;
       self->storage = new_storage;
       if (new_storage != nullptr) {
         self->storage_token = new_storage->lifetime_token();
         const uint64_t generation = ++self->cleanup_generation;
-        std::weak_ptr<LifetimeHandle> weak_self(self);
+        CleanupContext* ctx =
+            new CleanupContext{std::weak_ptr<LifetimeHandle>(self), generation};
+        self->cleanup_ctx = ctx;
         // Cleanup callbacks only run from ~StorageInternal(), after the
         // lifetime token was marked dead; UnregisterObject() is only called
         // under a live token, so it never waits for this callback. Hence the
         // callback may simply block on `mutex`.
-        new_storage->cleanup().RegisterObject(
-            self.get(), [weak_self, generation](void* /*obj*/) {
-              std::shared_ptr<LifetimeHandle> locked = weak_self.lock();
-              if (!locked) {
-                return;  // The handle is gone or being destroyed.
-              }
-              std::lock_guard<std::recursive_mutex> state_lock(locked->mutex);
-              if (locked->cleanup_generation != generation) {
-                return;  // Superseded by a later AssignTask().
-              }
-              locked->storage = nullptr;
-              locked->storage_token.reset();
-              locked->task_impl.reset();
-              ++locked->action_generation;
-              locked->pending_valid = false;
-              locked->pending_cancel = false;
-              locked->pending_pause = false;
-              locked->pending_resume = false;
-            });
+        new_storage->cleanup().RegisterObject(ctx, [](void* obj) {
+          std::unique_ptr<CleanupContext> ctx_holder(
+              static_cast<CleanupContext*>(obj));
+          std::shared_ptr<LifetimeHandle> locked = ctx_holder->handle.lock();
+          if (!locked) {
+            return;  // The handle is gone or being destroyed.
+          }
+          std::lock_guard<std::recursive_mutex> state_lock(locked->mutex);
+          if (locked->cleanup_generation != ctx_holder->generation) {
+            return;  // Superseded by a later AssignTask().
+          }
+          locked->cleanup_ctx = nullptr;
+          locked->storage = nullptr;
+          locked->storage_token.reset();
+          locked->task_impl.reset();
+          ++locked->action_generation;
+          locked->pending_valid = false;
+          locked->pending_cancel = false;
+          locked->pending_pause = false;
+          locked->pending_resume = false;
+        });
       }
     }
     self->task_impl =
@@ -145,19 +159,10 @@ void ControllerInternal::LifetimeHandle::AssignTask(
       }
     }
   }
-  if (stale_token) {
-    stale_token->RunWhileAlive([&self, &stale_token](
-                                   StorageInternal& alive_storage) {
-      // Lock order: token mutex (held by RunWhileAlive), then self->mutex,
-      // which serializes this with the registration above.
-      // UnregisterObject() does not block here (see RunWhileAlive()).
-      std::lock_guard<std::recursive_mutex> lock(self->mutex);
-      // If the handle was re-bound to that same StorageInternal in the
-      // meantime, the registration keyed by self.get() is the new one: keep
-      // it.
-      if (self->storage_token != stale_token) {
-        alive_storage.cleanup().UnregisterObject(self.get());
-      }
+  if (stale_token && stale_ctx != nullptr) {
+    stale_token->RunWhileAlive([stale_ctx](StorageInternal& alive_storage) {
+      alive_storage.cleanup().UnregisterObject(stale_ctx);
+      delete stale_ctx;
     });
   }
 }

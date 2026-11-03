@@ -115,6 +115,8 @@ class ListenerInternal {
     // Token of the StorageInternal this listener was registered with, or null
     // if it was not registered.
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token;
+    // Opaque CleanupContext* registered with storage_token's CleanupNotifier.
+    void* _Nullable cleanup_ctx = nullptr;
   };
 
   // Detaches the current task (if any) under mutex_. Does not wait for
