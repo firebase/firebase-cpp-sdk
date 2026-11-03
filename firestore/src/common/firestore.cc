@@ -313,46 +313,46 @@ CollectionReference Firestore::Collection(const char* collection_path) const {
   if (!collection_path) {
     SimpleThrowInvalidArgument("Collection path cannot be null.");
   }
-  if (collection_path[0] == '\0') {
-    SimpleThrowInvalidArgument("Collection path cannot be empty.");
-  }
-  if (!internal_) return {};
-  return internal_->Collection(collection_path);
+  return Collection(std::string(collection_path));
 }
 
 CollectionReference Firestore::Collection(
     const std::string& collection_path) const {
-  return Collection(collection_path.c_str());
+  if (collection_path.empty()) {
+    SimpleThrowInvalidArgument("Collection path cannot be empty.");
+  }
+  if (!internal_) return {};
+  return internal_->Collection(collection_path.c_str());
 }
 
 DocumentReference Firestore::Document(const char* document_path) const {
   if (!document_path) {
     SimpleThrowInvalidArgument("Document path cannot be null.");
   }
-  if (document_path[0] == '\0') {
-    SimpleThrowInvalidArgument("Document path cannot be empty.");
-  }
-  if (!internal_) return {};
-  return internal_->Document(document_path);
+  return Document(std::string(document_path));
 }
 
 DocumentReference Firestore::Document(const std::string& document_path) const {
-  return Document(document_path.c_str());
+  if (document_path.empty()) {
+    SimpleThrowInvalidArgument("Document path cannot be empty.");
+  }
+  if (!internal_) return {};
+  return internal_->Document(document_path.c_str());
 }
 
 Query Firestore::CollectionGroup(const char* collection_id) const {
   if (!collection_id) {
     SimpleThrowInvalidArgument("Collection ID cannot be null.");
   }
-  if (collection_id[0] == '\0') {
-    SimpleThrowInvalidArgument("Collection ID cannot be empty.");
-  }
-  if (!internal_) return {};
-  return internal_->CollectionGroup(collection_id);
+  return CollectionGroup(std::string(collection_id));
 }
 
 Query Firestore::CollectionGroup(const std::string& collection_id) const {
-  return CollectionGroup(collection_id.c_str());
+  if (collection_id.empty()) {
+    SimpleThrowInvalidArgument("Collection ID cannot be empty.");
+  }
+  if (!internal_) return {};
+  return internal_->CollectionGroup(collection_id.c_str());
 }
 
 Settings Firestore::settings() const {

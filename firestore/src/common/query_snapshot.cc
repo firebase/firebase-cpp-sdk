@@ -43,7 +43,7 @@ QuerySnapshot::QuerySnapshot(const QuerySnapshot& snapshot) {
   CleanupFnQuerySnapshot::Register(this, internal_);
 }
 
-QuerySnapshot::QuerySnapshot(QuerySnapshot&& snapshot) {
+QuerySnapshot::QuerySnapshot(QuerySnapshot&& snapshot) noexcept {
   CleanupFnQuerySnapshot::Unregister(&snapshot, snapshot.internal_);
   std::swap(internal_, snapshot.internal_);
   CleanupFnQuerySnapshot::Register(this, internal_);
@@ -76,7 +76,7 @@ QuerySnapshot& QuerySnapshot::operator=(const QuerySnapshot& snapshot) {
   return *this;
 }
 
-QuerySnapshot& QuerySnapshot::operator=(QuerySnapshot&& snapshot) {
+QuerySnapshot& QuerySnapshot::operator=(QuerySnapshot&& snapshot) noexcept {
   if (this == &snapshot) {
     return *this;
   }

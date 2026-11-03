@@ -223,7 +223,7 @@ class Firestore {
    *
    * @return The CollectionReference instance.
    */
-  virtual CollectionReference Collection(const char* collection_path) const;
+  CollectionReference Collection(const char* collection_path) const;
 
   /**
    * @brief Returns a CollectionReference instance that refers to the
@@ -243,7 +243,7 @@ class Firestore {
    * @param[in] document_path A slash-separated path to a document.
    * @return The DocumentReference instance.
    */
-  virtual DocumentReference Document(const char* document_path) const;
+  DocumentReference Document(const char* document_path) const;
 
   /**
    * @brief Returns a DocumentReference instance that refers to the document at
@@ -266,7 +266,7 @@ class Firestore {
    *
    * @return The Query instance.
    */
-  virtual Query CollectionGroup(const char* collection_id) const;
+  Query CollectionGroup(const char* collection_id) const;
 
   /**
    * @brief Returns a Query instance that includes all documents in the

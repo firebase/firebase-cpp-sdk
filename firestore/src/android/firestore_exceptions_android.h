@@ -40,7 +40,7 @@ class FirestoreException : public std::runtime_error {
   FirestoreException(std::string message, Error code)
       : std::runtime_error(std::move(message)), code_(code) {}
 
-  Error code() const { return code_; }
+  Error code() const noexcept { return code_; }
 
  private:
   Error code_;

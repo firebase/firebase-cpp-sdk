@@ -16,8 +16,6 @@
 
 #include "firestore/src/main/firebase_metadata_provider_desktop.h"
 
-#include <utility>
-
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {

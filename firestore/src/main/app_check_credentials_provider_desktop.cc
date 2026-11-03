@@ -19,7 +19,8 @@
 #include <cstdint>
 #include <mutex>
 #include <string>
-#include <unordered_set>
+#include <atomic>
+#include <unordered_map>
 #include <utility>
 
 #include "Firestore/core/src/util/status.h"
@@ -42,28 +43,33 @@ std::recursive_mutex& ListenerMutex() {
   return mutex;
 }
 
-std::unordered_set<CppAppCheckCredentialsProvider*>& ValidProviders() {
-  static std::unordered_set<CppAppCheckCredentialsProvider*> providers;
+std::unordered_map<uint64_t, CppAppCheckCredentialsProvider*>& ValidProviders() {
+  static std::unordered_map<uint64_t, CppAppCheckCredentialsProvider*> providers;
   return providers;
+}
+
+uint64_t GetNextProviderId() {
+  static std::atomic<uint64_t> next_id{1};
+  return next_id.fetch_add(1);
 }
 
 }  // namespace
 
 CppAppCheckCredentialsProvider::CppAppCheckCredentialsProvider(App& app)
-    : app_(app) {
-  std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
-  ValidProviders().insert(this);
+    : app_(app), provider_id_(GetNextProviderId()) {
+  std::scoped_lock lock(ListenerMutex());
+  ValidProviders()[provider_id_] = this;
 }
 
 CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
   RemoveAppCheckStateListener();
-  std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
-  ValidProviders().erase(this);
+  std::scoped_lock lock(ListenerMutex());
+  ValidProviders().erase(provider_id_);
 }
 
 void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<std::string> listener) {
-  std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
+  std::scoped_lock lock(ListenerMutex());
   bool has_listener = static_cast<bool>(listener);
   if (!has_listener) {
     SIMPLE_HARD_ASSERT(change_listener_,
@@ -79,12 +85,7 @@ void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
 
 void CppAppCheckCredentialsProvider::GetToken(
     TokenListener<std::string> listener) {
-  bool force_refresh = false;
-  {
-    std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
-    force_refresh = force_refresh_;
-    force_refresh_ = false;
-  }
+    bool force_refresh = force_refresh_.exchange(false);
   // Get token, tell the listener
   Future<std::string> app_check_future;
   bool succeeded = app_.function_registry()->CallFunction(
@@ -95,10 +96,7 @@ void CppAppCheckCredentialsProvider::GetToken(
         [listener = std::move(listener)](
             const Future<std::string>& future_token) {
           if (future_token.error() != 0) {
-            const char* msg = future_token.error_message();
-            listener(util::Status(
-                Error::kErrorUnknown,
-                msg ? msg : "App Check token request failed."));
+            listener(std::string());
           } else if (future_token.result()) {
             listener(*future_token.result());
           } else {
@@ -115,25 +113,26 @@ void CppAppCheckCredentialsProvider::AddAppCheckStateListener() {
   auto callback = reinterpret_cast<void*>(
       reinterpret_cast<uintptr_t>(&OnAppCheckStateChanged));
   app_.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckAddListener, &app_, callback, this);
+      ::firebase::internal::FnAppCheckAddListener, &app_, callback, reinterpret_cast<void*>(static_cast<uintptr_t>(provider_id_)));
 }
 
 void CppAppCheckCredentialsProvider::RemoveAppCheckStateListener() {
   auto callback = reinterpret_cast<void*>(
       reinterpret_cast<uintptr_t>(&OnAppCheckStateChanged));
   app_.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckRemoveListener, &app_, callback, this);
+      ::firebase::internal::FnAppCheckRemoveListener, &app_, callback, reinterpret_cast<void*>(static_cast<uintptr_t>(provider_id_)));
 }
 
 void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(
     const std::string& token, void* context) {
-  auto provider = static_cast<CppAppCheckCredentialsProvider*>(context);
+  auto provider_id = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(context));
   
   CredentialChangeListener<std::string> listener;
   {
-    std::lock_guard<std::recursive_mutex> lock(ListenerMutex());
-    if (ValidProviders().find(provider) == ValidProviders().end()) return;
-    listener = provider->change_listener_;
+    std::scoped_lock lock(ListenerMutex());
+    auto it = ValidProviders().find(provider_id);
+    if (it == ValidProviders().end()) return;
+    listener = it->second->change_listener_;
   }
 
   if (listener) {

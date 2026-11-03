@@ -69,8 +69,8 @@ struct ConverterImpl {
   template <typename PublicT, typename ArgT>
   static PublicT MakePublicFromInternal(ArgT&& from) {
     using ConcreteInternalT = typename std::decay<ArgT>::type;
-    auto* internal = new ConcreteInternalT(std::forward<ArgT>(from));
-    return PublicT{internal};
+    auto internal = std::make_unique<ConcreteInternalT>(std::forward<ArgT>(from));
+    return PublicT{internal.release()};
   }
 
   template <typename PublicT,
@@ -78,9 +78,9 @@ struct ConverterImpl {
             typename InternalT = InternalType<PublicT>,
             typename... Args>
   static PublicT MakePublicFromCore(CoreT&& from, Args&&... args) {
-    auto* internal =
-        new InternalT(std::forward<CoreT>(from), std::forward<Args>(args)...);
-    return PublicT{internal};
+    auto internal = std::make_unique<InternalT>(
+        std::forward<CoreT>(from), std::forward<Args>(args)...);
+    return PublicT{internal.release()};
   }
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>

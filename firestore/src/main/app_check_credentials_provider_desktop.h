@@ -64,6 +64,7 @@ class CppAppCheckCredentialsProvider
   static void OnAppCheckStateChanged(const std::string& token, void* context);
 
   App& app_;
+  uint64_t provider_id_;
 };
 
 }  // namespace firestore

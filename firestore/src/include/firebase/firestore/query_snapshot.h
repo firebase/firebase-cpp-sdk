@@ -69,7 +69,7 @@ class QuerySnapshot {
    *
    * @param[in] other `QuerySnapshot` to move data from.
    */
-  QuerySnapshot(QuerySnapshot&& other);
+  QuerySnapshot(QuerySnapshot&& other) noexcept;
 
   virtual ~QuerySnapshot();
 
@@ -93,7 +93,7 @@ class QuerySnapshot {
    *
    * @return Reference to the destination `QuerySnapshot`.
    */
-  QuerySnapshot& operator=(QuerySnapshot&& other);
+  QuerySnapshot& operator=(QuerySnapshot&& other) noexcept;
 
   /**
    * @brief The query from which you got this QuerySnapshot.

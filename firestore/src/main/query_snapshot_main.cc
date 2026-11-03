@@ -30,19 +30,23 @@ namespace firestore {
 QuerySnapshotInternal::QuerySnapshotInternal(api::QuerySnapshot&& snapshot)
     : snapshot_{std::move(snapshot)} {}
 
-QuerySnapshotInternal::QuerySnapshotInternal(const QuerySnapshotInternal& other)
-    : snapshot_{other.snapshot_} {}
+QuerySnapshotInternal::QuerySnapshotInternal(const QuerySnapshotInternal& other) {
+  std::scoped_lock lock(other.mutex_);
+  snapshot_ = other.snapshot_;
+}
 
 QuerySnapshotInternal::~QuerySnapshotInternal() = default;
 
 QuerySnapshotInternal::QuerySnapshotInternal(
-    QuerySnapshotInternal&& other) noexcept
-    : snapshot_{std::move(other.snapshot_)} {}
+    QuerySnapshotInternal&& other) noexcept {
+  std::scoped_lock lock(other.mutex_);
+  snapshot_ = std::move(other.snapshot_);
+}
 
 QuerySnapshotInternal& QuerySnapshotInternal::operator=(
     const QuerySnapshotInternal& other) {
   if (this != &other) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_, other.mutex_);
     snapshot_ = other.snapshot_;
     document_changes_exclude_metadata_.reset();
     document_changes_include_metadata_.reset();
@@ -54,7 +58,7 @@ QuerySnapshotInternal& QuerySnapshotInternal::operator=(
 QuerySnapshotInternal& QuerySnapshotInternal::operator=(
     QuerySnapshotInternal&& other) noexcept {
   if (this != &other) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_, other.mutex_);
     snapshot_ = std::move(other.snapshot_);
     document_changes_exclude_metadata_.reset();
     document_changes_include_metadata_.reset();
@@ -64,28 +68,35 @@ QuerySnapshotInternal& QuerySnapshotInternal::operator=(
 }
 
 FirestoreInternal* QuerySnapshotInternal::firestore_internal() {
+  std::scoped_lock lock(mutex_);
   return GetFirestoreInternal(&snapshot_);
 }
 
 const FirestoreInternal* QuerySnapshotInternal::firestore_internal() const {
+  std::scoped_lock lock(mutex_);
   return GetFirestoreInternal(&snapshot_);
 }
 
 Query QuerySnapshotInternal::query() const {
+  std::scoped_lock lock(mutex_);
   return MakePublic(snapshot_.query());
 }
 
 SnapshotMetadata QuerySnapshotInternal::metadata() const {
+  std::scoped_lock lock(mutex_);
   const auto& result = snapshot_.metadata();
   return SnapshotMetadata{result.pending_writes(), result.from_cache()};
 }
 
-std::size_t QuerySnapshotInternal::size() const { return snapshot_.size(); }
+std::size_t QuerySnapshotInternal::size() const {
+  std::scoped_lock lock(mutex_);
+  return snapshot_.size();
+}
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
     MetadataChanges metadata_changes) const {
   bool include_metadata = metadata_changes == MetadataChanges::kInclude;
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::scoped_lock lock(mutex_);
   auto& cache_slot = include_metadata ? document_changes_include_metadata_
                                       : document_changes_exclude_metadata_;
 
@@ -103,7 +114,7 @@ std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
 }
 
 std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::scoped_lock lock(mutex_);
   if (!documents_) {
     std::vector<DocumentSnapshot> result;
     result.reserve(snapshot_.size());
