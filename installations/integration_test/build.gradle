@@ -83,6 +83,15 @@ firebaseCpp.dependencies {
   installations
 }
 
+configurations.all {
+  resolutionStrategy.dependencySubstitution {
+    substitute module('androidx.datastore:datastore-preferences') using module('androidx.datastore:datastore-preferences-android:1.1.7')
+    substitute module('androidx.datastore:datastore') using module('androidx.datastore:datastore-android:1.1.7')
+    substitute module('androidx.datastore:datastore-core') using module('androidx.datastore:datastore-core-android:1.1.7')
+    substitute module('androidx.datastore:datastore-preferences-core') using module('androidx.datastore:datastore-preferences-core-android:1.1.7')
+  }
+}
+
 apply plugin: 'com.google.gms.google-services'
 
 task copyIntegrationTestFiles(type:Exec) {
