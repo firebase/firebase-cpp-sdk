@@ -123,8 +123,10 @@ TEST(FunctionsErrorMappingTest, HttpAndGrpcStatusMappings) {
   EXPECT_EQ(ErrorFromStatus("DATA_LOSS"), kErrorDataLoss);
   EXPECT_EQ(ErrorFromStatus("BOGUS_STATUS"), kErrorInternal);
 
-  EXPECT_STREQ(internal::GetErrorMessage(kErrorUnauthenticated),
-               "UNAUTHENTICATED");
+  EXPECT_STREQ(
+      internal::GetErrorMessage(kErrorUnauthenticated),
+      "The request does not have valid authentication credentials for "
+      "the operation");
 }
 
 TEST(FunctionsResolveFutureTest, HandlesEdgeCaseEnvelopesCorrectly) {
