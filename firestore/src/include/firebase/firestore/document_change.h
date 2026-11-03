@@ -120,7 +120,11 @@ class DocumentChange {
   /**
    * Returns the type of change that occurred (added, modified, or removed).
    */
-  [[nodiscard]] virtual Type type() const;
+  
+#if !defined(SWIG)
+  [[nodiscard]]
+#endif
+  virtual Type type() const;
 
   /**
    * @brief The document affected by this change.
@@ -129,7 +133,11 @@ class DocumentChange {
    * an updated document. Returns the deleted document if this document change
    * represents a removal.
    */
-  [[nodiscard]] virtual DocumentSnapshot document() const;
+  
+#if !defined(SWIG)
+  [[nodiscard]]
+#endif
+  virtual DocumentSnapshot document() const;
 
   /**
    * The index of the changed document in the result set immediately prior to
@@ -137,7 +145,11 @@ class DocumentChange {
    * objects have been applied). Returns DocumentChange::npos for 'added'
    * events.
    */
-  [[nodiscard]] virtual std::size_t old_index() const;
+  
+#if !defined(SWIG)
+  [[nodiscard]]
+#endif
+  virtual std::size_t old_index() const;
 
   /**
    * The index of the changed document in the result set immediately after this
@@ -145,7 +157,11 @@ class DocumentChange {
    * and the current DocumentChange object have been applied). Returns
    * DocumentChange::npos for 'removed' events.
    */
-  [[nodiscard]] virtual std::size_t new_index() const;
+  
+#if !defined(SWIG)
+  [[nodiscard]]
+#endif
+  virtual std::size_t new_index() const;
 
   /**
    * @brief Returns true if this `DocumentChange` is valid, false if it is
@@ -158,7 +174,11 @@ class DocumentChange {
    * @return true if this `DocumentChange` is valid, false if this
    * `DocumentChange` is invalid.
    */
-  [[nodiscard]] bool is_valid() const { return internal_ != nullptr; }
+  
+#if !defined(SWIG)
+  [[nodiscard]]
+#endif
+  bool is_valid() const { return internal_ != nullptr; }
 
  private:
   std::size_t Hash() const;

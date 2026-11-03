@@ -65,6 +65,11 @@ namespace firestore {
 
 class FirestoreInternal;
 
+namespace csharp {
+class ApiHeaders;
+class TransactionManager;
+}  // namespace csharp
+
 /** The default name for "unset" database ID in resource names. */
 static const char* const kDefaultDatabase = "(default)";
 
@@ -218,7 +223,7 @@ class Firestore {
    *
    * @return The CollectionReference instance.
    */
-  CollectionReference Collection(const char* collection_path) const;
+  virtual CollectionReference Collection(const char* collection_path) const;
 
   /**
    * @brief Returns a CollectionReference instance that refers to the
@@ -238,7 +243,7 @@ class Firestore {
    * @param[in] document_path A slash-separated path to a document.
    * @return The DocumentReference instance.
    */
-  DocumentReference Document(const char* document_path) const;
+  virtual DocumentReference Document(const char* document_path) const;
 
   /**
    * @brief Returns a DocumentReference instance that refers to the document at
@@ -261,7 +266,7 @@ class Firestore {
    *
    * @return The Query instance.
    */
-  Query CollectionGroup(const char* collection_id) const;
+  virtual Query CollectionGroup(const char* collection_id) const;
 
   /**
    * @brief Returns a Query instance that includes all documents in the
@@ -482,6 +487,8 @@ class Firestore {
   friend struct ConverterImpl;
   friend class FirestoreIntegrationTest;
   friend class IncludesTest;
+  friend class csharp::ApiHeaders;
+  friend class csharp::TransactionManager;
   template <typename T, typename U, typename F>
   friend struct CleanupFn;
 

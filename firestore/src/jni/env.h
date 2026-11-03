@@ -447,7 +447,7 @@ class Env {
     if (!ok() || !array || len == 0) return;
     if (!buffer ||
         start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
-        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max()) - start) {
       return;
     }
 
@@ -463,7 +463,7 @@ class Env {
     if (!ok() || !array || len == 0) return;
     if (!buffer ||
         start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
-        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max()) - start) {
       return;
     }
 
@@ -496,7 +496,7 @@ class Env {
   GetArrayRegion(const Array<T>& array, size_t start, size_t len) {
     if (!ok() || !array || len == 0) return {};
     if (start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
-        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max()) - start) {
       return {};
     }
     std::vector<jboolean> temp(len);
@@ -523,7 +523,7 @@ class Env {
     if (!ok() || !array || len == 0) return;
     if (!buffer ||
         start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
-        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max()) - start) {
       return;
     }
 
@@ -539,7 +539,7 @@ class Env {
     if (!ok() || !array || len == 0) return;
     if (!buffer ||
         start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
-        len > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max()) - start) {
       return;
     }
 
@@ -656,6 +656,13 @@ class ExceptionClearGuard {
  private:
   Env& env_;
   Local<Throwable> exception_;
+};
+
+class GlobalRefReaper {
+ public:
+  static GlobalRefReaper& GetInstance();
+  void DeferDelete(jobject ref);
+  void Reap(JNIEnv* env);
 };
 
 }  // namespace jni

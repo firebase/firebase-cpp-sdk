@@ -28,6 +28,12 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+class GlobalRefReaper {
+ public:
+  static GlobalRefReaper& GetInstance();
+  void DeferDelete(jobject ref);
+};
+
 /**
  * An RAII wrapper for a local JNI reference that automatically deletes the JNI
  * local reference when it goes out of scope. Copies and moves are handled by
@@ -327,6 +333,8 @@ class Global : public T {
       JNIEnv* env = GetEnv();
       if (env) {
         env->DeleteGlobalRef(T::object_);
+      } else {
+        GlobalRefReaper::GetInstance().DeferDelete(T::object_);
       }
       T::object_ = nullptr;
     }

@@ -19,13 +19,53 @@
 #include <pthread.h>
 
 #include <atomic>
+#include <mutex>
+#include <vector>
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
 
+
+#include "firestore/src/jni/env.h"
+
 namespace firebase {
 namespace firestore {
 namespace jni {
+
+namespace {
+std::atomic<bool> g_reaper_has_refs{false};
+std::mutex g_reaper_mutex;
+std::vector<jobject>* g_reaper_refs = nullptr;
+}  // namespace
+
+GlobalRefReaper& GlobalRefReaper::GetInstance() {
+  static GlobalRefReaper instance;
+  return instance;
+}
+
+void GlobalRefReaper::DeferDelete(jobject ref) {
+  std::lock_guard<std::mutex> lock(g_reaper_mutex);
+  if (!g_reaper_refs) g_reaper_refs = new std::vector<jobject>();
+  g_reaper_refs->push_back(ref);
+  g_reaper_has_refs.store(true, std::memory_order_release);
+}
+
+void GlobalRefReaper::Reap(JNIEnv* env) {
+  if (!g_reaper_has_refs.load(std::memory_order_acquire)) return;
+  std::vector<jobject> to_delete;
+  {
+    std::lock_guard<std::mutex> lock(g_reaper_mutex);
+    if (g_reaper_refs) {
+      to_delete = std::move(*g_reaper_refs);
+      g_reaper_refs->clear();
+    }
+    g_reaper_has_refs.store(false, std::memory_order_release);
+  }
+  for (jobject ref : to_delete) {
+    env->DeleteGlobalRef(ref);
+  }
+}
+
 namespace {
 
 pthread_key_t jni_env_key;
@@ -111,6 +151,7 @@ JNIEnv* GetEnv() {
   if (result == JNI_OK) {
     // Called from a JVM-managed thread or from a thread that was previously
     // attached. In either case, there's no work to be done.
+    GlobalRefReaper::GetInstance().Reap(env);
     return env;
   }
 
@@ -130,6 +171,7 @@ JNIEnv* GetEnv() {
   result = pthread_setspecific(jni_env_key, env);
   FIREBASE_ASSERT_MESSAGE(result == 0,
                           "JNI pthread_setspecific failed (errno=%d)", result);
+  GlobalRefReaper::GetInstance().Reap(env);
   return env;
 }
 
