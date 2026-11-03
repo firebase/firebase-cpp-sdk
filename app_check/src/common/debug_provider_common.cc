@@ -53,8 +53,12 @@ AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
 
 void DebugAppCheckProviderFactory::SetDebugToken(const char* token) {
   if (internal_) {
-    return internal_->SetDebugToken(token);
+    return internal_->SetDebugToken(token ? token : "");
   }
+}
+
+void DebugAppCheckProviderFactory::SetDebugToken(const std::string& token) {
+  SetDebugToken(token.c_str());
 }
 
 }  // namespace app_check

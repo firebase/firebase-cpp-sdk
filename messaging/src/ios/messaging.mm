@@ -785,14 +785,13 @@ Future<void> Subscribe(const char *topic) {
   [[FIRMessaging messaging] subscribeToTopic:@(topic)
                                   completion:^void(NSError *error) {
         MutexLock completion_lock(g_future_data_mutex);
-        if (!FutureData::Get() || !FutureData::Get()->api()) return;
-        ReferenceCountedFutureImpl* completion_api = FutureData::Get()->api();
+        if (!FutureData::Get() || FutureData::Get()->api() != api) return;
         if (error) {
-          completion_api->Complete(
+          api->Complete(
               handle, kErrorUnknown,
               util::NSStringToString(error.localizedDescription).c_str());
         } else {
-          completion_api->Complete(handle, kErrorNone);
+          api->Complete(handle, kErrorNone);
         }
       }];
   return MakeFuture(api, handle);
@@ -839,14 +838,13 @@ Future<void> Unsubscribe(const char *topic) {
   [[FIRMessaging messaging] unsubscribeFromTopic:@(topic)
                                       completion:^void(NSError *error) {
         MutexLock completion_lock(g_future_data_mutex);
-        if (!FutureData::Get() || !FutureData::Get()->api()) return;
-        ReferenceCountedFutureImpl* completion_api = FutureData::Get()->api();
+        if (!FutureData::Get() || FutureData::Get()->api() != api) return;
         if (error) {
-          completion_api->Complete(
+          api->Complete(
               handle, kErrorUnknown,
               util::NSStringToString(error.localizedDescription).c_str());
         } else {
-          completion_api->Complete(handle, kErrorNone);
+          api->Complete(handle, kErrorNone);
         }
       }];
   return MakeFuture(api, handle);
@@ -904,8 +902,8 @@ Future<void> Register() {
 
   [[FIRMessaging messaging] registerWithCompletion:^(NSError *_Nullable error) {
     MutexLock completion_lock(g_future_data_mutex);
-    if (!FutureData::Get() || !FutureData::Get()->api()) return;
-    FutureData::Get()->api()->Complete(
+    if (!FutureData::Get() || FutureData::Get()->api() != api) return;
+    api->Complete(
         handle, error == nullptr ? kErrorNone : kErrorUnknown,
         util::NSStringToString(error.localizedDescription).c_str());
   }];
@@ -932,8 +930,8 @@ Future<void> Unregister() {
 
   [[FIRMessaging messaging] unregisterWithCompletion:^(NSError *_Nullable error) {
     MutexLock completion_lock(g_future_data_mutex);
-    if (!FutureData::Get() || !FutureData::Get()->api()) return;
-    FutureData::Get()->api()->Complete(
+    if (!FutureData::Get() || FutureData::Get()->api() != api) return;
+    api->Complete(
         handle, error == nullptr ? kErrorNone : kErrorUnknown,
         util::NSStringToString(error.localizedDescription).c_str());
   }];
@@ -999,8 +997,8 @@ Future<void> DeleteToken() {
 
   [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError *_Nullable error) {
     MutexLock completion_lock(g_future_data_mutex);
-    if (!FutureData::Get() || !FutureData::Get()->api()) return;
-    FutureData::Get()->api()->Complete(
+    if (!FutureData::Get() || FutureData::Get()->api() != api) return;
+    api->Complete(
         handle, error == nullptr ? kErrorNone : kErrorUnknown,
         util::NSStringToString(error.localizedDescription).c_str());
   }];

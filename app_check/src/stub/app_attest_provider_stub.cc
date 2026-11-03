@@ -25,10 +25,7 @@ AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
 
 AppAttestProviderFactory::AppAttestProviderFactory() : internal_(nullptr) {}
 
-AppAttestProviderFactory::~AppAttestProviderFactory() {
-  delete internal_;
-  internal_ = nullptr;
-}
+AppAttestProviderFactory::~AppAttestProviderFactory() {}
 
 AppCheckProvider* AppAttestProviderFactory::CreateProvider([[maybe_unused]] App* app) {
   return nullptr;

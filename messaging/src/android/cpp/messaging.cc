@@ -852,15 +852,22 @@ static void UpdateTopicSubscriptionInternal(
   jobject messaging_obj = nullptr;
   {
     MutexLock lock(g_app_mutex);
-    if (!g_app || !g_firebase_messaging) {
-      return;
+    if (g_app && g_firebase_messaging) {
+      env = g_app->GetJNIEnv();
+      if (env) {
+        messaging_obj = env->NewLocalRef(g_firebase_messaging);
+        if (util::CheckAndClearJniExceptions(env)) {
+          if (messaging_obj) env->DeleteLocalRef(messaging_obj);
+          messaging_obj = nullptr;
+        }
+      }
     }
-    env = g_app->GetJNIEnv();
-    if (!env) return;
-    messaging_obj = env->NewLocalRef(g_firebase_messaging);
-    if (util::CheckAndClearJniExceptions(env) || !messaging_obj) {
-      return;
+  }
+  if (!messaging_obj) {
+    if (FutureData* fd = FutureData::Get()) {
+      fd->api()->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
     }
+    return;
   }
   jstring java_topic = env->NewStringUTF(topic);
   jobject result = env->CallObjectMethod(
@@ -1147,20 +1154,33 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
                                        firebase_messaging::Method method) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
-  MutexLock app_lock(g_app_mutex);
-  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+  JNIEnv* env = nullptr;
+  jobject messaging_obj = nullptr;
+  {
+    MutexLock app_lock(g_app_mutex);
+    if (g_app && g_firebase_messaging) {
+      env = g_app->GetJNIEnv();
+      if (env) {
+        messaging_obj = env->NewLocalRef(g_firebase_messaging);
+      }
+    }
+  }
+
+  if (!messaging_obj || !g_registration_token_mutex) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
     api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
+    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
     return MakeFuture(api, handle);
   }
+
   MutexLock lock(*g_registration_token_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
 
-  JNIEnv* env = g_app->GetJNIEnv();
   jobject task = env->CallObjectMethod(
-      g_firebase_messaging, firebase_messaging::GetMethodId(method));
+      messaging_obj, firebase_messaging::GetMethodId(method));
+  env->DeleteLocalRef(messaging_obj);
 
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty() && task != nullptr) {
@@ -1212,22 +1232,35 @@ Future<std::string> GetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<std::string>(),
                                  internal::IsInitialized(),
                                  kMessagingNotInitializedError);
-  MutexLock app_lock(g_app_mutex);
-  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+  JNIEnv* env = nullptr;
+  jobject messaging_obj = nullptr;
+  {
+    MutexLock app_lock(g_app_mutex);
+    if (g_app && g_firebase_messaging) {
+      env = g_app->GetJNIEnv();
+      if (env) {
+        messaging_obj = env->NewLocalRef(g_firebase_messaging);
+      }
+    }
+  }
+
+  if (!messaging_obj || !g_registration_token_mutex) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<std::string> handle = api->SafeAlloc<std::string>(kMessagingFnGetToken);
     api->CompleteWithResult(handle, kErrorUnknown, "Messaging is uninitialized.", std::string());
+    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
     return MakeFuture(api, handle);
   }
+
   MutexLock lock(*g_registration_token_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<std::string> handle =
       api->SafeAlloc<std::string>(kMessagingFnGetToken);
 
-  JNIEnv* env = g_app->GetJNIEnv();
   jobject task = env->CallObjectMethod(
-      g_firebase_messaging,
+      messaging_obj,
       firebase_messaging::GetMethodId(firebase_messaging::kGetToken));
+  env->DeleteLocalRef(messaging_obj);
 
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty() && task != nullptr) {

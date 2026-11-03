@@ -119,8 +119,15 @@ AppCheckListener::~AppCheckListener() {
 
 AppCheckProvider::~AppCheckProvider() = default;
 
-
-
+void AppCheckProvider::GetLimitedUseToken(
+    std::function<void(AppCheckToken, int, const std::string&)>
+        completion_callback) {
+  LogWarning(
+      "A limited-use token was requested, but the custom provider did not "
+      "implement the GetLimitedUseToken method. The default implementation is "
+      "triggered as a result, and GetToken has been invoked instead.");
+  GetToken(completion_callback);
+}
 
 AppCheckProviderFactory::~AppCheckProviderFactory() = default;
 

@@ -108,6 +108,9 @@ class AppCheckProvider {
       std::function<void(AppCheckToken, int, const std::string&)>
           completion_callback) = 0;
 
+  virtual void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback);
 };
 
 /// Interface for a factory that generates {@link AppCheckProvider}s.
