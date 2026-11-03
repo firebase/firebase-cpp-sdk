@@ -457,6 +457,7 @@ void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallbacks(
       backing = BackingFromHandle(handle.id());
       if (backing != nullptr) {
         backing->ClearSingleCallbackData(&data);
+        CleanupBackingIfUnreferenced(handle.id());
       } else {
         if (data->callback_user_data_delete_fn != nullptr) {
           data->callback_user_data_delete_fn(data->callback_user_data);
@@ -475,6 +476,7 @@ void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallbacks(
       backing = BackingFromHandle(handle.id());
       if (backing != nullptr) {
         backing->ClearSingleCallbackData(&data);
+        CleanupBackingIfUnreferenced(handle.id());
       } else {
         if (data->callback_user_data_delete_fn != nullptr) {
           data->callback_user_data_delete_fn(data->callback_user_data);
@@ -482,6 +484,7 @@ void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallbacks(
         delete data;
       }
     }
+    CleanupBackingIfUnreferenced(handle.id());
   }
 
   if (!proxy_clients.empty()) {
