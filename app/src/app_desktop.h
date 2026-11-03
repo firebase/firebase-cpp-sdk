@@ -42,15 +42,10 @@ class AppInternal {
   // or implementation-specific code.  b/70229654
   FunctionRegistry function_registry;
 
-  // Has a method to get the current date. Used by heartbeat_controller.
-  firebase::heartbeat::DateProviderImpl date_provider_;
-
-  // Logger used by heartbeat_controller_ (declared before heartbeat_controller_
-  // so it outlives it during destruction).
-  SystemLogger system_logger_;
-  Logger logger_{&system_logger_, kLogLevelVerbose};
-
   // HeartbeatController provides methods to log heartbeats and fetch payloads.
+  // It shares ownership of the DateProvider and Logger it references (see
+  // CreateHeartbeatController() in app_desktop.cc), so copies handed out by
+  // App::GetHeartbeatController() stay valid after the App is destroyed.
   std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller_;
 
   // Per-app automatic data collection flag.

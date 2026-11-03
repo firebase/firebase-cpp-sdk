@@ -158,6 +158,11 @@ class CallbackDispatcher {
   // Remove the callback entry with the specified reference from the queue.
   // Returns true if the callback was still in the queue and removed, false
   // otherwise.
+  //
+  // Intentionally does not wait for a callback that is already executing:
+  // callers commonly hold a lock that the callback also takes (see
+  // CallbackTest.CallbackDeadlockTest), so they must synchronize with an
+  // executing callback through that lock instead.
   bool DisableCallback(void* callback_reference) {
     if (!callback_reference) {
       return false;
@@ -325,8 +330,10 @@ void Terminate(bool flush_all) {
   if (flush_all && dispatcher) {
     ref_count += dispatcher->FlushCallbacks(&flushed_entries);
   }
-  dispatcher.reset();
+  // ~CallbackEntry() locks the dispatcher's execution_mutex_, so destroy the
+  // flushed entries while the dispatcher is still alive.
   flushed_entries.clear();
+  dispatcher.reset();
   if (ref_count > 0) {
     Terminate(ref_count);
   }

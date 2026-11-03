@@ -43,7 +43,7 @@ class ModuleInitializer {
   typedef InitResult (*InitializerFn)(App* app, void* context);
 
   ModuleInitializer();
-  ~ModuleInitializer();
+  virtual ~ModuleInitializer();
 
 #if !defined(SWIG)
   ModuleInitializer(const ModuleInitializer&) = delete;

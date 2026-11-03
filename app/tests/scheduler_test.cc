@@ -322,13 +322,15 @@ TEST_F(SchedulerTest, CancelRepeatCallback) {
       EXPECT_TRUE(handler.IsCancelled());
       EXPECT_FALSE(handler.Cancel());
 
-      // Should have no more cb triggered after the cancellation
       saved_count = count.load();
     }
 
     internal::Sleep(1);
     scheduler.CancelAllAndShutdownWorkerThread();
-    EXPECT_THAT(count.load(), Eq(saved_count));
+    // Callbacks run outside the request lock (so they may cancel themselves),
+    // so a trigger that already passed its cancellation check may still
+    // finish; no new trigger may start after the cancellation.
+    EXPECT_LE(count.load(), saved_count + 1);
   };
 
   for (int i = 0; i < 1000; ++i) {
@@ -373,6 +375,15 @@ TEST_F(SchedulerTest, DefaultRequestHandleIsSafe) {
   EXPECT_FALSE(handle.Cancel());
   EXPECT_FALSE(handle.IsCancelled());
   EXPECT_FALSE(handle.IsTriggered());
+}
+
+TEST_F(SchedulerTest, DeleteSchedulerInsideCallbackDoesNotSelfJoin) {
+  Scheduler* scheduler = new Scheduler();
+  scheduler->Schedule([&]() {
+    delete scheduler;
+    callback_sem1_.Post();
+  });
+  EXPECT_TRUE(callback_sem1_.TimedWait(1000));
 }
 
 TEST_F(SchedulerTest, CancelInsideCallbackDoesNotDeadlock) {

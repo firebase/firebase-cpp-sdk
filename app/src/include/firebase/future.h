@@ -29,6 +29,7 @@ namespace firebase {
 
 // Predeclarations.
 /// @cond FIREBASE_APP_INTERNAL
+class ReferenceCountedFutureImpl;
 namespace detail {
 class FutureApiInterface;
 class CompletionCallbackHandle;
@@ -339,6 +340,19 @@ class FutureBase {
 
   /// API-specified handle type.
   FutureHandle handle_;
+
+#if !defined(SWIG)
+  // Calls `fn(api, handle)` while the issuing API is guaranteed to stay alive,
+  // returning `R()` if this future is invalid. Does not hold `mutex_` during
+  // the call, so `fn` may synchronously run user callbacks that use `*this`.
+  template <typename R, typename Fn>
+  R CallWithPinnedApi(Fn&& fn) const;
+
+ private:
+  // Needs `mutex_` to unregister a FutureBase without deadlocking against a
+  // concurrent CleanupAll() (see ReferenceCountedFutureImpl).
+  friend class ReferenceCountedFutureImpl;
+#endif  // !defined(SWIG)
 
   /// @endcond
 };

@@ -194,6 +194,10 @@ struct AppData {
   Logger logger;
   // Per-app function registry.
   std::unique_ptr<internal::FunctionRegistry> function_registry;
+  // Teardown bookkeeping used by RemoveApp() (see t_destroying_apps).
+  std::string name;
+  bool was_default = false;
+  AppData* next_destroying = nullptr;
 };
 
 // Tracks library registrations.
@@ -302,20 +306,68 @@ static std::map<const App*, std::unique_ptr<internal::FunctionRegistry>>*
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
 
+// Apps that RemoveApp() is tearing down on the current thread (a stack, so a
+// cleanup callback may delete another App). They are erased from g_apps before
+// teardown so that g_app_mutex is never held across CleanupAll() /
+// NotifyAllAppDestroyed(), yet must stay discoverable by name and as the
+// default app while their own teardown callbacks run (e.g. Analytics checks
+// `app == App::GetInstance()`). Only the destroying thread sees them, which
+// matches the previous behavior of holding g_app_mutex across teardown.
+static thread_local AppData* t_destroying_apps = nullptr;
+
+static AppData* FindDestroyingApp(const char* name) {
+  for (AppData* data = t_destroying_apps; data; data = data->next_destroying) {
+    if (data->name == name) return data;
+  }
+  return nullptr;
+}
+
+static App* FindDestroyingDefaultApp() {
+  for (AppData* data = t_destroying_apps; data; data = data->next_destroying) {
+    if (data->was_default) return data->app;
+  }
+  return nullptr;
+}
+
+// Publishes `data` in t_destroying_apps for the lifetime of this object.
+class ScopedDestroyingApp {
+ public:
+  explicit ScopedDestroyingApp(AppData* data) : data_(data) {
+    data_->next_destroying = t_destroying_apps;
+    t_destroying_apps = data_;
+  }
+  ~ScopedDestroyingApp() { t_destroying_apps = data_->next_destroying; }
+  ScopedDestroyingApp(const ScopedDestroyingApp&) = delete;
+  ScopedDestroyingApp& operator=(const ScopedDestroyingApp&) = delete;
+
+ private:
+  AppData* data_;
+};
+
 App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   FIREBASE_ASSERT_RETURN(nullptr, app != nullptr && app->name() != nullptr);
   const char* app_name = app->name();
   {
     MutexLock lock(*g_app_mutex);
-    if (g_apps && g_apps->find(app_name) != g_apps->end()) {
-      FIREBASE_ASSERT_RETURN(nullptr, false);
+    if (g_apps) {
+      auto existing = g_apps->find(app_name);
+      if (existing != g_apps->end()) {
+        // Another thread won a concurrent App::Create() race for this name;
+        // the caller deletes `app` and returns the winner.
+        LogWarning("App %s already exists; using the existing instance.",
+                   app_name);
+        return existing->second->app;
+      }
     }
-    if (IsDefaultAppName(app_name)) {
+    const bool is_default = IsDefaultAppName(app_name);
+    if (is_default) {
       assert(!g_default_app);
       g_default_app = app;
     }
     std::unique_ptr<AppData> app_data = std::make_unique<AppData>();
     app_data->app = app;
+    app_data->name = app_name;
+    app_data->was_default = is_default;
     app_data->cleanup_notifier.RegisterOwner(app);
     if (g_fallback_registries) {
       auto fallback_it = g_fallback_registries->find(app);
@@ -353,6 +405,7 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
 
 App* FindAppByName(const char* name) {
   if (!name) return nullptr;
+  if (AppData* destroying = FindDestroyingApp(name)) return destroying->app;
   MutexLock lock(*g_app_mutex);
   if (g_apps) {
     auto it = g_apps->find(name);
@@ -363,11 +416,13 @@ App* FindAppByName(const char* name) {
 }
 
 App* GetDefaultApp() {
+  if (App* destroying = FindDestroyingDefaultApp()) return destroying;
   MutexLock lock(*g_app_mutex);
   return g_default_app;
 }
 
 App* GetAnyApp() {
+  if (App* destroying = FindDestroyingDefaultApp()) return destroying;
   MutexLock lock(*g_app_mutex);
   if (g_default_app) {
     return g_default_app;
@@ -428,10 +483,13 @@ void RemoveApp(App* app) {
     }
   }
   if (removed_app_data) {
+    // Keep `app` resolvable (by name and as the default app) on this thread
+    // while its cleanup callbacks and destroyed hooks run.
+    ScopedDestroyingApp destroying(removed_app_data.get());
     removed_app_data->cleanup_notifier.CleanupAll();
     AppCallback::NotifyAllAppDestroyed(app);
-    removed_app_data.reset();
   }
+  removed_app_data.reset();
   {
     MutexLock lock(*g_app_mutex);
     if (g_fallback_registries) {
@@ -568,6 +626,9 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
 // Find a logger associated with an app by app name.
 Logger* FindAppLoggerByName(const char* name) {
   if (!name) return nullptr;
+  if (AppData* destroying = FindDestroyingApp(name)) {
+    return &destroying->logger;
+  }
   MutexLock lock(*g_app_mutex);
   if (g_apps) {
     auto it = g_apps->find(name);

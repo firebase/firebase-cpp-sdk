@@ -25,6 +25,7 @@
 
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
@@ -118,6 +119,30 @@ TEST(AppDesktopTest, TestSetStorageBucket) {
   AppOptions options;
   options.set_storage_bucket("abc-xyz-123.storage.firebase.com");
   EXPECT_STREQ("abc-xyz-123.storage.firebase.com", options.storage_bucket());
+}
+
+// Product teardown hooks rely on the App still being discoverable while its
+// CleanupNotifier runs (e.g. `app == App::GetInstance()`).
+TEST(AppDesktopTest, TestAppIsFindableDuringItsCleanup) {
+  AppOptions options;
+  options.set_app_id("1:123:desktop:abc");
+  options.set_api_key("key");
+  options.set_project_id("project");
+  App* app = App::Create(options);
+  ASSERT_NE(app, nullptr);
+  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+  ASSERT_NE(notifier, nullptr);
+
+  bool callback_ran = false;
+  notifier->RegisterObject(&callback_ran, [&](void*) {
+    callback_ran = true;
+    EXPECT_EQ(App::GetInstance(), app);
+    EXPECT_EQ(App::GetInstance(app->name()), app);
+    EXPECT_NE(app_common::FindAppLoggerByName(app->name()), nullptr);
+  });
+  delete app;
+  EXPECT_TRUE(callback_ran);
+  EXPECT_EQ(App::GetInstance(), nullptr);
 }
 
 TEST(AppDesktopTest, TestSetProjectId) {

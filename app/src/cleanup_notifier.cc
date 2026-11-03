@@ -56,6 +56,9 @@ CleanupNotifier::CleanupNotifier() = default;
 CleanupNotifier::~CleanupNotifier() {
   CleanupAll();
   UnregisterAllOwners();
+  // Let any UnregisterObject() woken by CleanupAll() finish touching mutex_.
+  std::unique_lock<std::mutex> lock(mutex_);
+  cv_.wait(lock, [this]() { return waiters_ == 0; });
 }
 
 void CleanupNotifier::RegisterObject(void *object, CleanupCallback callback) {
@@ -63,16 +66,26 @@ void CleanupNotifier::RegisterObject(void *object, CleanupCallback callback) {
   callbacks_[object] = std::move(callback);
 }
 
-void CleanupNotifier::UnregisterObject(void *object) {
+void CleanupNotifier::UnregisterObject(void *object,
+                                       Mutex *unlock_while_waiting) {
   std::unique_lock<std::mutex> lock(mutex_);
   callbacks_.erase(object);
-  if (!in_flight_objects_.empty() &&
-      in_flight_thread_ != std::this_thread::get_id()) {
-    cv_.wait(lock, [&]() {
-      return std::find(in_flight_objects_.begin(), in_flight_objects_.end(),
-                       object) == in_flight_objects_.end();
-    });
-  }
+  auto is_in_flight_elsewhere = [&]() {
+    return in_flight_thread_ != std::this_thread::get_id() &&
+           std::find(in_flight_objects_.begin(), in_flight_objects_.end(),
+                     object) != in_flight_objects_.end();
+  };
+  if (!is_in_flight_elsewhere()) return;
+
+  // The object's callback is running (or about to run) on another thread.
+  ++waiters_;
+  if (unlock_while_waiting) unlock_while_waiting->Release();
+  cv_.wait(lock, [&]() { return !is_in_flight_elsewhere(); });
+  --waiters_;
+  if (waiters_ == 0) cv_.notify_all();
+  lock.unlock();
+  // Re-acquire only after dropping mutex_ to keep the caller's lock order.
+  if (unlock_while_waiting) unlock_while_waiting->Acquire();
 }
 
 void CleanupNotifier::CleanupAll() {

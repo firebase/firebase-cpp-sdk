@@ -25,6 +25,8 @@
 #include <utility>
 #include <vector>
 
+#include "app/src/include/firebase/internal/mutex.h"
+
 namespace firebase {
 
 // If an object gives out other objects that refer back to it, the original
@@ -59,7 +61,13 @@ class CleanupNotifier {
 
   // Unregister an object. This will remove it from the cleanup list without
   // calling the cleanup callback.
-  void UnregisterObject(void *object);
+  //
+  // If CleanupAll() is running the object's callback on another thread, this
+  // blocks until that callback returns, so the caller may then safely destroy
+  // the object. Callers must therefore not hold any lock that the callback
+  // acquires, except `unlock_while_waiting`, which (if non-null and held by
+  // the caller) is released while blocked and re-acquired before returning.
+  void UnregisterObject(void *object, Mutex *unlock_while_waiting = nullptr);
 
   // Call all cleanup callbacks, clearing the list. You can call this manually
   // rather than using the destructor if you want more control over when it
@@ -92,12 +100,15 @@ class CleanupNotifier {
   static void UnregisterOwner(std::map<void *, CleanupNotifier *>::iterator it);
 
  private:
-  // Guards callbacks_, in_flight_objects_, and in_flight_thread_.
+  // Guards callbacks_, in_flight_objects_, in_flight_thread_, and waiters_.
   std::mutex mutex_;
   std::map<void *, CleanupCallback> callbacks_;
   std::condition_variable cv_;
   std::vector<void *> in_flight_objects_;
   std::thread::id in_flight_thread_;
+  // Number of UnregisterObject() calls blocked on cv_; the destructor waits
+  // for them to leave before destroying mutex_ and cv_.
+  int waiters_ = 0;
   // List of owner objects registered with this notifier.
   std::vector<void *> owners_;
 };
@@ -121,7 +132,9 @@ class TypedCleanupNotifier {
     });
   }
 
-  void UnregisterObject(T *object) { notifier_.UnregisterObject(object); }
+  void UnregisterObject(T *object, Mutex *unlock_while_waiting = nullptr) {
+    notifier_.UnregisterObject(object, unlock_while_waiting);
+  }
 
   void CleanupAll() { notifier_.CleanupAll(); }
 

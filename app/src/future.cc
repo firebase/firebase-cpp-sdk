@@ -62,8 +62,6 @@ void DeleteWaitState(void* user_data) {
 const int FutureBase::kWaitTimeoutInfinite = -1;
 
 bool FutureBase::Wait(int timeout_milliseconds) const {
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
   {
     MutexLock lock(mutex_);
     if (api_ == nullptr) {
@@ -76,15 +74,18 @@ bool FutureBase::Wait(int timeout_milliseconds) const {
     if (current_status == kFutureStatusComplete) {
       return true;
     }
-    api = api_;
-    handle = handle_;
   }
 
   auto state = std::make_shared<WaitState>();
   auto* user_data = new std::shared_ptr<WaitState>(state);
-  CompletionCallbackHandle callback_handle = api->AddCompletionCallback(
-      handle, WaitCallback, user_data, DeleteWaitState,
-      /*clear_existing_callbacks=*/false);
+  CompletionCallbackHandle callback_handle =
+      CallWithPinnedApi<CompletionCallbackHandle>(
+          [user_data](detail::FutureApiInterface* api,
+                      const FutureHandle& handle) {
+            return api->AddCompletionCallback(
+                handle, WaitCallback, user_data, DeleteWaitState,
+                /*clear_existing_callbacks=*/false);
+          });
 
   if (!callback_handle.is_valid()) {
     if (!state->cleaned_up.load(std::memory_order_acquire)) {

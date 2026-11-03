@@ -183,29 +183,37 @@ inline void DeleteTypedCompletionCallbackData(void* data_ptr) {
 
 }  // namespace detail
 
+template <typename R, typename Fn>
+inline R FutureBase::CallWithPinnedApi(Fn&& fn) const {
+  // `pinned` is registered with the API's CleanupNotifier, and the API's
+  // destructor must lock `pinned.mutex_` to release it, so holding that
+  // private mutex keeps the API alive. `mutex_` itself stays unlocked, since a
+  // completion callback run synchronously by `fn` may use `*this`.
+  FutureBase pinned(*this);
+  MutexLock lock(pinned.mutex_);
+  if (pinned.api_ == nullptr) {
+    return R();
+  }
+  return fn(pinned.api_, pinned.handle_);
+}
+
 template <class T>
 void Future<T>::OnCompletion(TypedCompletionCallback callback,
                              void* user_data) const {
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
-  {
-    MutexLock lock(mutex_);
-    api = api_;
-    handle = handle_;
-  }
-  if (api != nullptr) {
+  CallWithPinnedApi<void>([&](detail::FutureApiInterface* api,
+                              const FutureHandle& handle) {
     if (callback == nullptr) {
       api->AddCompletionCallback(handle, nullptr, nullptr, nullptr,
                                  /*clear_existing_callbacks=*/true);
-    } else {
-      auto data = std::make_unique<detail::TypedCompletionCallbackData<T>>(
-          detail::TypedCompletionCallbackData<T>{callback, user_data});
-      api->AddCompletionCallback(
-          handle, detail::TypedCompletionCallbackTrampoline<T>, data.release(),
-          detail::DeleteTypedCompletionCallbackData<T>,
-          /*clear_existing_callbacks=*/true);
+      return;
     }
-  }
+    auto data = std::make_unique<detail::TypedCompletionCallbackData<T>>(
+        detail::TypedCompletionCallbackData<T>{callback, user_data});
+    api->AddCompletionCallback(
+        handle, detail::TypedCompletionCallbackTrampoline<T>, data.release(),
+        detail::DeleteTypedCompletionCallbackData<T>,
+        /*clear_existing_callbacks=*/true);
+  });
 }
 
 template <class ResultType>
@@ -227,22 +235,15 @@ FutureBase::CompletionCallbackHandle Future<T>::AddOnCompletion(
   if (callback == nullptr) {
     return CompletionCallbackHandle();
   }
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
-  {
-    MutexLock lock(mutex_);
-    api = api_;
-    handle = handle_;
-  }
-  if (api != nullptr) {
-    auto data = std::make_unique<detail::TypedCompletionCallbackData<T>>(
-        detail::TypedCompletionCallbackData<T>{callback, user_data});
-    return api->AddCompletionCallback(
-        handle, detail::TypedCompletionCallbackTrampoline<T>, data.release(),
-        detail::DeleteTypedCompletionCallbackData<T>,
-        /*clear_existing_callbacks=*/false);
-  }
-  return CompletionCallbackHandle();
+  return CallWithPinnedApi<CompletionCallbackHandle>(
+      [&](detail::FutureApiInterface* api, const FutureHandle& handle) {
+        auto data = std::make_unique<detail::TypedCompletionCallbackData<T>>(
+            detail::TypedCompletionCallbackData<T>{callback, user_data});
+        return api->AddCompletionCallback(
+            handle, detail::TypedCompletionCallbackTrampoline<T>,
+            data.release(), detail::DeleteTypedCompletionCallbackData<T>,
+            /*clear_existing_callbacks=*/false);
+      });
 }
 
 template <class ResultType>
@@ -276,78 +277,72 @@ inline FutureBase::FutureBase(detail::FutureApiInterface* api,
 
 inline FutureBase::~FutureBase() { Release(); }
 
+// Lock order: FutureBase::mutex_ -> CleanupNotifier -> API mutex. Only
+// Release() unregisters from the API's CleanupNotifier, since that may have to
+// wait for a concurrent CleanupAll() and must not hold any other FutureBase's
+// mutex while doing so.
+
 inline FutureBase::FutureBase(const FutureBase& rhs)
     : mutex_(Mutex::Mode::kModeNonRecursive), api_(nullptr), handle_(0) {
-  *this = rhs;
+  MutexLock lock(rhs.mutex_);
+  if (rhs.api_ != nullptr) {
+    api_ = rhs.api_;
+    handle_ = rhs.handle_;
+    api_->ReferenceFuture(handle_);
+    detail::RegisterForCleanup(api_, this);
+  }
 }
 
 inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
   if (this == &rhs) {
     return *this;
   }
-
-  Mutex& first_mutex =
-      std::less<const FutureBase*>()(this, &rhs) ? mutex_ : rhs.mutex_;
-  Mutex& second_mutex =
-      std::less<const FutureBase*>()(this, &rhs) ? rhs.mutex_ : mutex_;
-  MutexLock first_lock(first_mutex);
-  MutexLock second_lock(second_mutex);
-
-  if (api_ != nullptr) {
-    detail::UnregisterForCleanup(api_, this);
-    api_->ReleaseFuture(handle_);
+  while (true) {
+    Release();
+    Mutex& first_mutex =
+        std::less<const FutureBase*>()(this, &rhs) ? mutex_ : rhs.mutex_;
+    Mutex& second_mutex =
+        std::less<const FutureBase*>()(this, &rhs) ? rhs.mutex_ : mutex_;
+    MutexLock first_lock(first_mutex);
+    MutexLock second_lock(second_mutex);
+    if (api_ != nullptr) {
+      continue;  // A concurrent assignment to *this won; release it too.
+    }
+    if (rhs.api_ != nullptr) {
+      api_ = rhs.api_;
+      handle_ = rhs.handle_;
+      api_->ReferenceFuture(handle_);
+      detail::RegisterForCleanup(api_, this);
+    }
+    return *this;
   }
-
-  api_ = rhs.api_;
-  handle_ = rhs.handle_;
-  if (api_ != nullptr) {
-    api_->ReferenceFuture(handle_);
-    detail::RegisterForCleanup(api_, this);
-  }
-
-  return *this;
 }
 
 inline FutureBase::FutureBase(FutureBase&& rhs) noexcept
-    : mutex_(Mutex::Mode::kModeNonRecursive), api_(nullptr), handle_(0) {
-  *this = std::move(rhs);
+    : FutureBase(static_cast<const FutureBase&>(rhs)) {
+  rhs.Release();
 }
 
 inline FutureBase& FutureBase::operator=(FutureBase&& rhs) noexcept {
-  if (this == &rhs) {
-    return *this;
+  if (this != &rhs) {
+    *this = static_cast<const FutureBase&>(rhs);
+    rhs.Release();
   }
-
-  Mutex& first_mutex =
-      std::less<const FutureBase*>()(this, &rhs) ? mutex_ : rhs.mutex_;
-  Mutex& second_mutex =
-      std::less<const FutureBase*>()(this, &rhs) ? rhs.mutex_ : mutex_;
-  MutexLock first_lock(first_mutex);
-  MutexLock second_lock(second_mutex);
-
-  if (api_ != nullptr) {
-    detail::UnregisterForCleanup(api_, this);
-    api_->ReleaseFuture(handle_);
-  }
-
-  api_ = rhs.api_;
-  handle_ = rhs.handle_;
-  if (api_ != nullptr) {
-    detail::RegisterForCleanup(api_, this);
-    detail::UnregisterForCleanup(rhs.api_, &rhs);
-  }
-  rhs.api_ = nullptr;
-  rhs.handle_ = FutureHandle();
   return *this;
 }
 
 inline void FutureBase::Release() {
   MutexLock lock(mutex_);
   if (api_ != nullptr) {
+    // If a concurrent CleanupAll() is already cleaning up this future, this
+    // waits for it with `mutex_` temporarily released, and that cleanup
+    // releases the future on our behalf.
     detail::UnregisterForCleanup(api_, this);
-    api_->ReleaseFuture(handle_);
-    api_ = nullptr;
-    handle_ = FutureHandle();
+    if (api_ != nullptr) {
+      api_->ReleaseFuture(handle_);
+      api_ = nullptr;
+      handle_ = FutureHandle();
+    }
   }
 }
 
@@ -373,17 +368,11 @@ inline const void* FutureBase::result_void() const {
 
 inline void FutureBase::OnCompletion(CompletionCallback callback,
                                      void* user_data) const {
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
-  {
-    MutexLock lock(mutex_);
-    api = api_;
-    handle = handle_;
-  }
-  if (api != nullptr) {
-    api->AddCompletionCallback(handle, callback, user_data, nullptr,
-                               /*clear_existing_callbacks=*/true);
-  }
+  CallWithPinnedApi<void>(
+      [&](detail::FutureApiInterface* api, const FutureHandle& handle) {
+        api->AddCompletionCallback(handle, callback, user_data, nullptr,
+                                   /*clear_existing_callbacks=*/true);
+      });
 }
 
 inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
@@ -391,47 +380,28 @@ inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
   if (callback == nullptr) {
     return CompletionCallbackHandle();
   }
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
-  {
-    MutexLock lock(mutex_);
-    api = api_;
-    handle = handle_;
-  }
-  if (api != nullptr) {
-    return api->AddCompletionCallback(handle, callback, user_data, nullptr,
-                                      /*clear_existing_callbacks=*/false);
-  }
-  return CompletionCallbackHandle();
+  return CallWithPinnedApi<CompletionCallbackHandle>(
+      [&](detail::FutureApiInterface* api, const FutureHandle& handle) {
+        return api->AddCompletionCallback(handle, callback, user_data, nullptr,
+                                          /*clear_existing_callbacks=*/false);
+      });
 }
 
 inline void FutureBase::RemoveOnCompletion(
     CompletionCallbackHandle completion_handle) const {
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
-  {
-    MutexLock lock(mutex_);
-    api = api_;
-    handle = handle_;
-  }
-  if (api != nullptr) {
-    api->RemoveCompletionCallback(handle, completion_handle);
-  }
+  CallWithPinnedApi<void>(
+      [&](detail::FutureApiInterface* api, const FutureHandle& handle) {
+        api->RemoveCompletionCallback(handle, completion_handle);
+      });
 }
 
 inline void FutureBase::OnCompletion(
     std::function<void(const FutureBase&)> callback) const {
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
-  {
-    MutexLock lock(mutex_);
-    api = api_;
-    handle = handle_;
-  }
-  if (api != nullptr) {
-    api->AddCompletionCallbackLambda(handle, std::move(callback),
-                                     /*clear_existing_callbacks=*/true);
-  }
+  CallWithPinnedApi<void>(
+      [&](detail::FutureApiInterface* api, const FutureHandle& handle) {
+        api->AddCompletionCallbackLambda(handle, std::move(callback),
+                                         /*clear_existing_callbacks=*/true);
+      });
 }
 
 inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
@@ -439,19 +409,12 @@ inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
   if (!callback) {
     return CompletionCallbackHandle();
   }
-  detail::FutureApiInterface* api = nullptr;
-  FutureHandle handle;
-  {
-    MutexLock lock(mutex_);
-    api = api_;
-    handle = handle_;
-  }
-  if (api != nullptr) {
-    return api->AddCompletionCallbackLambda(
-        handle, std::move(callback),
-        /*clear_existing_callbacks=*/false);
-  }
-  return CompletionCallbackHandle();
+  return CallWithPinnedApi<CompletionCallbackHandle>(
+      [&](detail::FutureApiInterface* api, const FutureHandle& handle) {
+        return api->AddCompletionCallbackLambda(
+            handle, std::move(callback),
+            /*clear_existing_callbacks=*/false);
+      });
 }
 
 }  // namespace firebase

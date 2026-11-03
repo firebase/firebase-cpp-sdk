@@ -124,10 +124,9 @@ void FutureManager::CleanupOrphanedFutureApis(bool force_delete_all) {
         // Deleting an API while it's running a callback (which could have
         // triggered the current call to `CleanupOrphanedFutureApis`) will lead
         // to a use-after-free. Instead, mark the API to be deleted once the
-        // callback finishes.
-        if (api->IsRunningCallback()) {
-          api->MarkOrphaned();
-        } else {
+        // callback finishes. Check-and-mark is atomic so the callback cannot
+        // finish in between and leak the API.
+        if (!api->MarkOrphanedIfRunningCallback()) {
           to_delete.push_back(api);
         }
       }

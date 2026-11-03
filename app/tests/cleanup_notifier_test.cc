@@ -16,6 +16,9 @@
 
 #include "app/src/cleanup_notifier.h"
 
+#include <thread>
+
+#include "app/src/semaphore.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -436,6 +439,31 @@ TEST_F(CleanupNotifierOwnerRegistryTest,
   }
   notifier1.RegisterOwner(&owner);
   EXPECT_EQ(&notifier1, CleanupNotifier::FindByOwner(&owner));
+}
+
+// The owner of an object being cleaned up on another thread holds the lock
+// that the cleanup callback needs; UnregisterObject() must release it while
+// waiting instead of deadlocking.
+TEST_F(CleanupNotifierTest, TestUnregisterReleasesLockWhileWaiting) {
+  Mutex object_mutex(Mutex::kModeNonRecursive);
+  Semaphore callback_started(0);
+  int callback_runs = 0;
+  CleanupNotifier* cleanup = new CleanupNotifier();
+  cleanup->RegisterObject(&callback_runs, [&](void*) {
+    callback_started.Post();
+    MutexLock lock(object_mutex);
+    ++callback_runs;
+  });
+
+  object_mutex.Acquire();
+  std::thread cleanup_thread([&]() { cleanup->CleanupAll(); });
+  callback_started.Wait();
+  cleanup->UnregisterObject(&callback_runs, &object_mutex);
+  // The callback ran while we waited, and we hold the lock again.
+  EXPECT_EQ(callback_runs, 1);
+  object_mutex.Release();
+  cleanup_thread.join();
+  delete cleanup;
 }
 
 }  // namespace testing

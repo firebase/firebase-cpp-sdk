@@ -389,8 +389,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// The Future for `LastResult(fn_idx)` will return kFutureStatusInvalid.
   void InvalidateLastResult(int fn_idx) {
-    MutexLock lock(mutex_);
     if (0 <= fn_idx && static_cast<size_t>(fn_idx) < last_results_.size()) {
+      MutexLock lock(last_results_mutex_);
       last_results_[fn_idx] = FutureBase();
     }
   }
@@ -436,6 +436,12 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// been destroyed. An orphaned API should delete itself at the first
   /// opportunity.
   void MarkOrphaned();
+
+  /// Atomically marks this API as orphaned if it is running a callback, in
+  /// which case the callback deletes it once it finishes, and returns true.
+  /// Returns false (and leaves this API untouched) otherwise, in which case
+  /// the caller is responsible for deleting it.
+  bool MarkOrphanedIfRunningCallback();
 
  private:
   template <typename T>
@@ -558,7 +564,15 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// Mutex protecting all asynchronous data operations.
   /// Marked as `mutable` so that const functions can still be protected.
+  ///
+  /// Lock order: last_results_mutex_ -> FutureBase::mutex_ -> mutex_. Never
+  /// lock (or destroy) a FutureBase that is visible to other threads while
+  /// holding mutex_.
   mutable Mutex mutex_;
+
+  /// Serializes updates to `last_results_`, so they are applied in allocation
+  /// order without holding `mutex_`.
+  mutable Mutex last_results_mutex_;
 
   /// Hold backing data for all Futures.
   /// Indexed by the FutureHandle, which is a unique integer used by the

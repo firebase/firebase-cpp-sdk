@@ -143,6 +143,30 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   return nullptr;
 }
 
+namespace {
+
+// A HeartbeatController together with the DateProvider and Logger it holds
+// references to, so they share one lifetime.
+struct HeartbeatControllerBundle {
+  explicit HeartbeatControllerBundle(const std::string& app_id)
+      : controller(app_id, logger, date_provider) {}
+
+  heartbeat::DateProviderImpl date_provider;
+  SystemLogger system_logger;
+  Logger logger{&system_logger, kLogLevelVerbose};
+  heartbeat::HeartbeatController controller;  // Must be declared last.
+};
+
+std::shared_ptr<heartbeat::HeartbeatController> CreateHeartbeatController(
+    const std::string& app_id) {
+  auto bundle = std::make_shared<HeartbeatControllerBundle>(app_id);
+  // Aliasing constructor: the returned pointer keeps the whole bundle alive.
+  return std::shared_ptr<heartbeat::HeartbeatController>(bundle,
+                                                         &bundle->controller);
+}
+
+}  // namespace
+
 void App::Initialize() { internal_ = new internal::AppInternal(); }
 
 App::~App() {
@@ -185,21 +209,19 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     app = new App();
     app->name_ = name;
     app->options_ = options_with_defaults;
+    // Fully initialize the App before AddApp() publishes it to other threads
+    // and to AppCallback::NotifyAllAppCreated().
+    const char* package_name = app->options_.package_name();
+    app->internal_->heartbeat_controller_ = CreateHeartbeatController(
+        (package_name && package_name[0] != '\0')
+            ? (std::string(package_name) + "." + app->name_)
+            : app->name_);
     App* added_app = app_common::AddApp(app, &app->init_results_);
     if (added_app != app) {
       app->name_.clear();
       delete app;
       return added_app ? added_app : GetInstance(name);
     }
-    const char* package_name = app->options_.package_name();
-    std::string unique_name =
-        (package_name && package_name[0] != '\0')
-            ? (std::string(package_name) + "." + app->name_)
-            : app->name_;
-    app->internal_->heartbeat_controller_ =
-        std::make_shared<heartbeat::HeartbeatController>(
-            unique_name, app->internal_->logger_,
-            app->internal_->date_provider_);
 #ifndef SWIG
     // Log a heartbeat after creating an App. In the Unity SDK this will happen
     // at a later time, after additional user agents have been registered.

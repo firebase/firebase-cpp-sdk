@@ -26,6 +26,13 @@
 namespace firebase {
 namespace scheduler {
 
+namespace {
+// The Scheduler whose worker routine runs on the current thread, or null. A
+// Scheduler destroyed from one of its own callbacks clears this, telling the
+// worker routine to exit without touching the freed Scheduler.
+thread_local Scheduler* t_worker_scheduler = nullptr;
+}  // namespace
+
 bool RequestHandle::Cancel() {
   if (!IsValid()) {
     return false;
@@ -98,7 +105,14 @@ void Scheduler::CancelAllAndShutdownWorkerThread() {
   sleep_sem_.Post();
 
   if (thread_to_join) {
-    thread_to_join->Join();
+    if (t_worker_scheduler == this) {
+      // Called from one of our own callbacks: joining would deadlock, so let
+      // the worker routine exit on its own once the callback returns.
+      t_worker_scheduler = nullptr;
+      thread_to_join->Detach();
+    } else {
+      thread_to_join->Join();
+    }
     delete thread_to_join;
   }
 }
@@ -147,6 +161,7 @@ RequestHandle Scheduler::Schedule(const std::function<void(void)>& callback,
 void Scheduler::WorkerThreadRoutine(void* data) {
   Scheduler* scheduler = static_cast<Scheduler*>(data);
   assert(scheduler);
+  t_worker_scheduler = scheduler;
 
   while (true) {
     uint64_t current = internal::GetTimestamp();
@@ -205,7 +220,11 @@ void Scheduler::WorkerThreadRoutine(void* data) {
 
     // If the top request is due, trigger the callback.  If the repeat interval
     // is non-zero, move it back to queue.
-    if (request && scheduler->TriggerCallback(request)) {
+    const bool repeat = request && scheduler->TriggerCallback(request);
+    if (t_worker_scheduler != scheduler) {
+      return;  // The callback destroyed the scheduler.
+    }
+    if (repeat) {
       MutexLock lock(scheduler->request_mutex_);
       if (!scheduler->terminating_) {
         ScheduleTimeMs repeat = request->repeat_ms;
