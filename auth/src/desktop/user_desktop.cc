@@ -18,6 +18,7 @@
 #include <cstring>
 #include <fstream>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "app/rest/transport_builder.h"
@@ -223,6 +224,9 @@ Future<ResultT> CallAsyncWithFreshToken(
           return;
         }
         handle->request->SetIdToken(get_token_result.token().c_str());
+        if constexpr (std::is_base_of_v<AuthRequest, RequestT>) {
+          handle->request->PrepareRequestHeaders();
+        }
 
         handle->callback(handle.get());
       },

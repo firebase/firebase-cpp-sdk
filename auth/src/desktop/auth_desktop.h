@@ -171,6 +171,11 @@ struct AuthImpl {
   std::string language_code;
 
   std::string assigned_emulator_url;
+
+  std::string GetAssignedEmulatorUrl() {
+    MutexLock lock(provider_mutex);
+    return assigned_emulator_url;
+  }
 };
 
 // Constant, describing how often we automatically fetch a new auth token.

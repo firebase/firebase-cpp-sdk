@@ -40,17 +40,29 @@ const char* const kHeaderFirebaseLocale = "X-Firebase-Locale";
 
 AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
                          bool deliver_heartbeat)
-    : RequestJson(schema), app(app) {
-  if (deliver_heartbeat) {
+    : RequestJson(schema),
+      app(app),
+      deliver_heartbeat_(deliver_heartbeat),
+      headers_prepared_(false) {}
+
+void AuthRequest::PrepareRequestHeaders() const {
+  if (headers_prepared_) {
+    return;
+  }
+  headers_prepared_ = true;
+  auto* mutable_this = const_cast<AuthRequest*>(this);
+
+  if (deliver_heartbeat_) {
     std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller =
         app.GetHeartbeatController();
     if (heartbeat_controller) {
       std::string payload = heartbeat_controller->GetAndResetStoredHeartbeats();
       const char* gmp_app_id = app.options().app_id();
       if (!payload.empty()) {
-        add_header(app_common::kApiClientHeader, payload.c_str());
+        mutable_this->add_header(app_common::kApiClientHeader, payload.c_str());
         if (gmp_app_id && *gmp_app_id != '\0') {
-          add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id);
+          mutable_this->add_header(app_common::kXFirebaseGmpIdHeader,
+                                   gmp_app_id);
         }
       }
     }
@@ -68,7 +80,7 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
       const std::string* token =
           app_check_future.Await(kAppCheckTokenTimeoutMs);
       if (token && app_check_future.error() == 0 && !token->empty()) {
-        add_header("X-Firebase-AppCheck", token->c_str());
+        mutable_this->add_header("X-Firebase-AppCheck", token->c_str());
       }
     }
   }
@@ -84,7 +96,7 @@ std::string AuthRequest::GetUrl(const char* server_url) {
       auth_ptr->auth_data_->auth_impl != nullptr) {
     assigned_emulator_url =
         static_cast<AuthImpl*>(auth_ptr->auth_data_->auth_impl)
-            ->assigned_emulator_url;
+            ->GetAssignedEmulatorUrl();
   }
 
   if (assigned_emulator_url.empty()) {

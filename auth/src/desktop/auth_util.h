@@ -17,6 +17,7 @@
 
 #include <cassert>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 #include "app/rest/request.h"
@@ -33,6 +34,7 @@
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/desktop/authentication_result.h"
 #include "auth/src/desktop/promise.h"
+#include "auth/src/desktop/rpcs/auth_request.h"
 #include "auth/src/desktop/rpcs/error_codes.h"
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
 #include "auth/src/desktop/user_desktop.h"
@@ -73,6 +75,9 @@ Future<ResultT> CallAsync(
 // Note: this is a blocking call! Use in the callback given to CallAsync, or
 // otherwise on a separate thread.
 template <typename T>
+T GetResponse(const AuthRequest& request);
+
+template <typename T>
 T GetResponse(const rest::Request& request);
 
 // Implementation
@@ -92,6 +97,11 @@ inline Future<ResultT> CallAsync(
   auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
         std::unique_ptr<HandleT> handle(raw_auth_data_handle);
+        if constexpr (std::is_base_of_v<AuthRequest, RequestT>) {
+          if (handle->request) {
+            handle->request->PrepareRequestHeaders();
+          }
+        }
         handle->callback(handle.get());
       },
       new HandleT(auth_data, promise, std::move(request), callback));
@@ -99,6 +109,14 @@ inline Future<ResultT> CallAsync(
   auth_impl->scheduler_.Schedule(scheduler_callback);
 
   return promise.future();
+}
+
+template <typename T>
+inline T GetResponse(const AuthRequest& request) {
+  request.PrepareRequestHeaders();
+  T response;
+  firebase::rest::CreateTransport()->Perform(request, &response);
+  return response;
 }
 
 template <typename T>
