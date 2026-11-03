@@ -107,11 +107,13 @@ Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
     app_notifier->RegisterObject(this, [](void* object) {
       Database* database = reinterpret_cast<Database*>(object);
       Logger* logger = app_common::FindAppLoggerByName(database->app()->name());
-      logger->LogWarning(
-          "Database object 0x%08x should be deleted before the App 0x%08x it "
-          "depends upon.",
-          static_cast<int>(reinterpret_cast<intptr_t>(database)),
-          static_cast<int>(reinterpret_cast<intptr_t>(database->app())));
+      if (logger) {
+        logger->LogWarning(
+            "Database object 0x%08x should be deleted before the App 0x%08x it "
+            "depends upon.",
+            static_cast<int>(reinterpret_cast<intptr_t>(database)),
+            static_cast<int>(reinterpret_cast<intptr_t>(database->app())));
+      }
       database->DeleteInternal();
     });
   }
