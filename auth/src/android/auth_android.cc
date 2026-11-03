@@ -177,10 +177,15 @@ void ReleaseAuthClasses(JNIEnv* env) {
 }
 
 void UpdateCurrentUser(AuthData* auth_data) {
+  // Hold future_impl.mutex() across both the FirebaseAuth.getCurrentUser() read
+  // and the auth_data->user_impl update so concurrent UpdateCurrentUser calls
+  // are serialized and a slower thread cannot overwrite auth_data->user_impl
+  // with a stale FirebaseUser reading. FirebaseAuth.getCurrentUser() is a
+  // non-blocking field getter that neither acquires Java listener locks nor
+  // invokes callbacks.
+  MutexLock lock(auth_data->future_impl.mutex());
   JNIEnv* env = Env(auth_data);
 
-  // Query the Android FirebaseUser outside the C++ mutex so we never hold
-  // future_impl.mutex() across a JNI call that could re-enter native listeners.
   jobject j_user = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kGetCurrentUser));
   if (firebase::util::CheckAndClearJniExceptions(env)) {
@@ -190,17 +195,16 @@ void UpdateCurrentUser(AuthData* auth_data) {
     j_user = nullptr;
   }
 
-  MutexLock lock(auth_data->future_impl.mutex());
   jobject original_user_impl = static_cast<jobject>(auth_data->user_impl);
   const bool user_changed = !env->IsSameObject(original_user_impl, j_user);
 
-  // Update our pointer to the Android FirebaseUser that we're wrapping.
-  SetImplFromLocalRef(env, j_user, &auth_data->user_impl);
-
-  // Log debug message when user sign-in status has changed.
   if (user_changed) {
+    // Update our pointer to the Android FirebaseUser that we're wrapping.
+    SetImplFromLocalRef(env, j_user, &auth_data->user_impl);
     LogDebug("CurrentUser changed from %p to %p", original_user_impl,
              auth_data->user_impl);
+  } else if (j_user != nullptr) {
+    env->DeleteLocalRef(j_user);
   }
 }
 

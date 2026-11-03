@@ -329,9 +329,12 @@ class GoogleAuthProvider {
 
 #if !defined(SWIG)
   /// Generate a credential from the given Google ID token and/or access token.
+  /// If `id_token` or `access_token` is empty, `nullptr` is passed for that
+  /// token to the underlying API.
   static Credential GetCredential(const std::string& id_token,
                                   const std::string& access_token) {
-    return GetCredential(id_token.c_str(), access_token.c_str());
+    return GetCredential(id_token.empty() ? nullptr : id_token.c_str(),
+                         access_token.empty() ? nullptr : access_token.c_str());
   }
 #endif  // !defined(SWIG)
 
@@ -382,11 +385,14 @@ class OAuthProvider {
 
 #if !defined(SWIG)
   /// Generate a credential for an OAuth2 provider.
+  /// If `id_token` or `access_token` is empty, `nullptr` is passed for that
+  /// token to the underlying API.
   static Credential GetCredential(const std::string& provider_id,
                                   const std::string& id_token,
                                   const std::string& access_token) {
-    return GetCredential(provider_id.c_str(), id_token.c_str(),
-                         access_token.c_str());
+    return GetCredential(provider_id.c_str(),
+                         id_token.empty() ? nullptr : id_token.c_str(),
+                         access_token.empty() ? nullptr : access_token.c_str());
   }
 
   /// Generate a credential for an OAuth2 provider with a nonce.
@@ -632,8 +638,10 @@ class PhoneAuthProvider {
   // The PhoneAuthProvider is owned by the Auth class.
   ~PhoneAuthProvider();
 
-  PhoneAuthProvider(const PhoneAuthProvider&);
-  PhoneAuthProvider& operator=(const PhoneAuthProvider&);
+#if !defined(SWIG)
+  PhoneAuthProvider(const PhoneAuthProvider&) = delete;
+  PhoneAuthProvider& operator=(const PhoneAuthProvider&) = delete;
+#endif  // !defined(SWIG)
 
   PhoneAuthProviderData* data_;
 };
