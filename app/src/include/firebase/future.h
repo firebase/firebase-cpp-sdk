@@ -407,6 +407,11 @@ class Future : public FutureBase {
   /// when you set up the callback.
   typedef void (*TypedCompletionCallback)(const Future<ResultType>& result_data,
                                           void* user_data);
+#if defined(__swift__)
+  // TODO(apple/swift#67662) indirect block parameters are unsupported
+  typedef void (*TypedCompletionCallback_SwiftWorkaround)(
+      const Future<ResultType>* result_data, void* user_data);
+#endif
 
   /// Construct a future.
   Future() {}
@@ -463,6 +468,16 @@ class Future : public FutureBase {
   /// registered one will run.
   inline void OnCompletion(TypedCompletionCallback callback,
                            void* user_data) const;
+
+#if defined(__swift__)
+  // TODO(apple/swift#67662) indirect block parameters are unsupported
+  inline void OnCompletion_SwiftWorkaround(
+      TypedCompletionCallback_SwiftWorkaround callback, void* user_data) const {
+    OnCompletion([callback, user_data](const Future<ResultType>& future) {
+      callback(&future, user_data);
+    });
+  }
+#endif
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Register a single callback that will be called at most once, when the
