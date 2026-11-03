@@ -62,7 +62,7 @@ class FakeProvider : public AppCheckProvider {
 
   void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback)  {
+          completion_callback) override {
     get_limited_use_token_calls.fetch_add(1);
     int err = error_code.load();
     if (err != kAppCheckErrorNone) {
@@ -222,8 +222,8 @@ TEST_F(AppCheckTest, GetAppCheckTokenCachingForceRefreshAndLimitedUseToken) {
   ASSERT_TRUE(WaitForFuture(lim));
   EXPECT_EQ(lim.error(), kAppCheckErrorNone);
   ASSERT_NE(lim.result(), nullptr);
-  // EXPECT_EQ(lim.result()->token, "limited_token_456");
-  // EXPECT_EQ(factory_.provider().get_limited_use_token_calls.load(), 1);
+  EXPECT_EQ(lim.result()->token, "limited_token_456");
+  EXPECT_EQ(factory_.provider().get_limited_use_token_calls.load(), 1);
 }
 
 TEST_F(AppCheckTest, ProviderErrorPropagatesToFuture) {

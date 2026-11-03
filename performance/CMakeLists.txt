@@ -63,7 +63,7 @@ target_include_directories(firebase_performance
 )
 
 target_compile_definitions(firebase_performance
-  PUBLIC
+  PRIVATE
     INTERNAL_EXPERIMENTAL=1
 )
 
