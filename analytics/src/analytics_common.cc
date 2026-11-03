@@ -50,6 +50,12 @@ const char* const kAnalyticsModuleName = "analytics";
 
 static App* s_registered_app = nullptr;
 
+static std::recursive_mutex& RegisteredAppMutex() {
+  static std::recursive_mutex s_mutex;
+  return s_mutex;
+}
+
+
 std::shared_ptr<FutureData>& FutureData::FutureDataPtr() {
   static std::shared_ptr<FutureData> s_future_data;
   return s_future_data;
@@ -76,6 +82,7 @@ void FutureData::Destroy() {
 
 // Get the Future data singleton.
 FutureData* FutureData::Get() {
+  std::lock_guard<std::recursive_mutex> lock(mutex());
   return FutureDataPtr().get();
 }
 
@@ -89,7 +96,7 @@ void RegisterTerminateOnAppDestroy(const App* app) {
   CleanupNotifier* old_notifier = nullptr;
   CleanupNotifier* target_notifier = nullptr;
   {
-    std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+    std::lock_guard<std::recursive_mutex> lock(RegisteredAppMutex());
     if (s_registered_app && s_registered_app != target_app) {
       old_notifier = CleanupNotifier::FindByOwner(s_registered_app);
       s_registered_app = nullptr;
@@ -108,7 +115,7 @@ void RegisterTerminateOnAppDestroy(const App* app) {
     target_notifier->RegisterObject(
         const_cast<char*>(kAnalyticsModuleName), [](void*) {
           {
-            std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+            std::lock_guard<std::recursive_mutex> lock(RegisteredAppMutex());
             s_registered_app = nullptr;
           }
           if (firebase::analytics::internal::IsInitialized()) {
@@ -129,7 +136,7 @@ void UnregisterTerminateOnAppDestroy() {
   App* target_app = nullptr;
   CleanupNotifier* cleanup_notifier = nullptr;
   {
-    std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+    std::lock_guard<std::recursive_mutex> lock(RegisteredAppMutex());
     target_app = s_registered_app;
     s_registered_app = nullptr;
     if (target_app) {

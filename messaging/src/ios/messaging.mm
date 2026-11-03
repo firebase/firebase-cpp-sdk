@@ -171,17 +171,23 @@ InitResult Initialize(
     [FIRMessaging messaging].delegate = g_delegate;
   }
 
+  bool already_initialized = false;
   {
     MutexLock lock(g_delegate_mutex);
     if (!g_app) {
       assert(!g_delegate.isListenerSet);
       g_app = &app;
     } else {
-      SetListenerIfNotNull(listener);
-      LogError("Messaging already initialized.");
-      return kInitResultSuccess;
+      already_initialized = true;
     }
   }
+  
+  if (already_initialized) {
+    SetListenerIfNotNull(listener);
+    LogError("Messaging already initialized.");
+    return kInitResultSuccess;
+  }
+
   {
     MutexLock lock(g_future_data_mutex);
     FutureData::Create();
@@ -336,22 +342,17 @@ void Terminate() {
       LogError("Messaging already shut down.");
       return;
     }
+    g_app = nullptr;
+    g_delegate.isListenerSet = NO;
+    g_delegate.cachedMessaging = nil;
+    g_delegate.cachedFCMToken = nil;
+    g_delegate.cachedRegistrationId = nil;
   }
   internal::UnregisterTerminateOnDefaultAppDestroy();
   {
     MutexLock lock(g_future_data_mutex);
     FutureData::Destroy();
     g_permission_prompt_future_handle = SafeFutureHandle<void>();
-  }
-  // Ensure g_delegate still exists (it cannot be unallocated in case a token is received via a
-  // different Firebase library e.g. Invites while Messaging is not enabled).
-  {
-    MutexLock lock(g_delegate_mutex);
-    g_delegate.isListenerSet = NO;
-    g_delegate.cachedMessaging = nil;
-    g_delegate.cachedFCMToken = nil;
-    g_delegate.cachedRegistrationId = nil;
-    g_app = nullptr;
   }
   SetListener(nullptr);
   g_messaging_options = MessagingOptions();
@@ -756,6 +757,7 @@ Future<void> Subscribe(const char *topic) {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
 
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   // Create the future.
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
@@ -799,6 +801,7 @@ Future<void> Subscribe(const char *topic) {
 Future<void> SubscribeLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnSubscribe));
@@ -808,6 +811,7 @@ Future<void> Unsubscribe(const char *topic) {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
 
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   // Create the future.
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
@@ -851,6 +855,7 @@ Future<void> Unsubscribe(const char *topic) {
 Future<void> UnsubscribeLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnUnsubscribe));
@@ -893,6 +898,7 @@ Future<void> Register() {
   FIREBASE_ASSERT_RETURN(RegisterLastResult(), internal::IsInitialized());
 
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnRegister);
 
@@ -910,6 +916,7 @@ Future<void> Register() {
 Future<void> RegisterLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnRegister));
@@ -919,6 +926,7 @@ Future<void> Unregister() {
   FIREBASE_ASSERT_RETURN(UnregisterLastResult(), internal::IsInitialized());
 
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnregister);
 
@@ -936,6 +944,7 @@ Future<void> Unregister() {
 Future<void> UnregisterLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnUnregister));
@@ -945,6 +954,7 @@ Future<std::string> GetToken() {
   FIREBASE_ASSERT_RETURN(GetTokenLastResult(), internal::IsInitialized());
 
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<std::string>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<std::string> handle =
       api->SafeAlloc<std::string>(kMessagingFnGetToken);
@@ -983,6 +993,7 @@ Future<void> DeleteToken() {
   FIREBASE_ASSERT_RETURN(DeleteTokenLastResult(), internal::IsInitialized());
 
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
 
@@ -1000,6 +1011,7 @@ Future<void> DeleteToken() {
 Future<void> DeleteTokenLastResult() {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   MutexLock lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnDeleteToken));

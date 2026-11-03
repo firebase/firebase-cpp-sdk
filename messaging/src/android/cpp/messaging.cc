@@ -110,7 +110,7 @@ static bool g_registration_token_received = false;
 // Recursive mutex which controls access of:
 // * g_registration_token_received
 // * g_pending_topic_ops
-static Mutex* g_registration_token_mutex = nullptr;
+static std::unique_ptr<Mutex> g_registration_token_mutex;
 
 // Calls to Subscribe/Unsubscribe can happen before the registration token
 // has been received, and thus can't be handled immediately. Queue them in
@@ -129,12 +129,12 @@ struct PendingTopicOp {
   SafeFutureHandle<void> handle;
 };
 
-static std::vector<PendingTopicOp>* g_pending_topic_ops = nullptr;
+static std::unique_ptr<std::vector<PendingTopicOp>> g_pending_topic_ops;
 
-static std::string* g_local_storage_file_path = nullptr;
-static std::string* g_lockfile_path = nullptr;
+static std::unique_ptr<std::string> g_local_storage_file_path;
+static std::unique_ptr<std::string> g_lockfile_path;
 
-static Mutex* g_file_locker_mutex = nullptr;
+static std::unique_ptr<Mutex> g_file_locker_mutex;
 
 // Mutex for managing if FutureData is safe to use, or if it has been deleted.
 static Mutex g_future_data_mutex;
@@ -241,7 +241,7 @@ void FileLocker::ReleaseLock(const char* lock_filename, int fd) {
 // Lock the file referenced by g_lockfile_path.
 class MessageLockFileLocker : private FileLocker {
  public:
-  MessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {}
+  MessageLockFileLocker(const char* lockfile_path = g_lockfile_path->c_str()) : FileLocker(lockfile_path) {}
   ~MessageLockFileLocker() {}
 };
 
@@ -342,13 +342,17 @@ static bool TerminateRequested() {
 // Wake up the message processing thread.
 void NotifyListenerSet(Listener* listener) {
   if (!listener) return;
+  std::string local_storage;
+  std::string lockfile;
   {
     MutexLock lock(g_app_mutex);
     if (!g_app || !g_local_storage_file_path || !g_lockfile_path) return;
+    local_storage = *g_local_storage_file_path;
+    lockfile = *g_lockfile_path;
   }
   {
-    MessageLockFileLocker file_lock;
-    FILE* storage_file = fopen(g_local_storage_file_path->c_str(), "a");
+    MessageLockFileLocker file_lock(lockfile.c_str());
+    FILE* storage_file = fopen(local_storage.c_str(), "a");
     if (storage_file != nullptr) {
       fclose(storage_file);
     }
@@ -679,11 +683,11 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
     return kInitResultFailedMissingDependency;
   }
 
-  g_registration_token_mutex = new Mutex();
-  g_file_locker_mutex = new Mutex();
-  g_pending_topic_ops = new std::vector<PendingTopicOp>();
+  g_registration_token_mutex = std::make_unique<Mutex>();
+  g_file_locker_mutex = std::make_unique<Mutex>();
+  g_pending_topic_ops = std::make_unique<std::vector<PendingTopicOp>>();
   g_intent_message_fired = false;
-  g_lockfile_path = new std::string(local_storage_dir + "/" + kLockfile);
+  g_lockfile_path = std::make_unique<std::string>(local_storage_dir + "/" + kLockfile);
   g_local_storage_file_path =
       new std::string(local_storage_dir + "/" + kStorageFile);
 
@@ -762,16 +766,11 @@ void Terminate() {
   }
   TerminateMessageProcessingThread();
 
-  delete g_registration_token_mutex;
-  g_registration_token_mutex = nullptr;
-  delete g_file_locker_mutex;
-  g_file_locker_mutex = nullptr;
-  delete g_pending_topic_ops;
-  g_pending_topic_ops = nullptr;
-  delete g_local_storage_file_path;
-  g_local_storage_file_path = nullptr;
-  delete g_lockfile_path;
-  g_lockfile_path = nullptr;
+  g_registration_token_mutex.reset();
+  g_file_locker_mutex.reset();
+  g_pending_topic_ops.reset();
+  g_local_storage_file_path.reset();
+  g_lockfile_path.reset();
 
   g_registration_token_received = false;
   g_registration_token_request_state = kRegistrationTokenRequestStateNone;
@@ -802,7 +801,8 @@ static void InstallationsGetToken() {
         (void)voidptr;
         if (result.error() == kErrorNone && result.result() != nullptr &&
             !result.result()->empty()) {
-          if (g_registration_token_mutex) {
+          MutexLock app_lock(g_app_mutex);
+          if (g_app && g_registration_token_mutex) {
             MutexLock lock(*g_registration_token_mutex);
             g_registration_token_received = true;
             HandlePendingSubscriptions();
@@ -952,7 +952,8 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
   std::string result_value;
   if (success && result) {
     result_value = util::JniStringToString(env, result);
-  } else if (result) {
+  }
+  if (result) {
     env->DeleteLocalRef(result);
   }
   SafeFutureHandle<std::string>* handle =
@@ -971,6 +972,13 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
 Future<void> Subscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock app_lock(g_app_mutex);
+  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
+    api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
+    return MakeFuture(api, handle);
+  }
   MutexLock lock(*g_registration_token_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
@@ -984,8 +992,7 @@ Future<void> Subscribe(const char* topic) {
     api->Complete(handle, kErrorNoRegistrationToken,
                   kErrorMessageNoRegistrationToken);
   } else if (g_pending_topic_ops) {
-    g_pending_topic_ops->push_back(
-        PendingTopicOp(kPendingTopicSubscribe, topic, handle));
+    g_pending_topic_ops->emplace_back(kPendingTopicSubscribe, topic, handle);
   } else {
     api->Complete(handle, kErrorUnknown, kErrorMessageSubscriptionUnknown);
   }
@@ -1006,6 +1013,13 @@ Future<void> SubscribeLastResult() {
 Future<void> Unsubscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock app_lock(g_app_mutex);
+  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
+    api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
+    return MakeFuture(api, handle);
+  }
   MutexLock lock(*g_registration_token_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
@@ -1019,8 +1033,7 @@ Future<void> Unsubscribe(const char* topic) {
     api->Complete(handle, kErrorNoRegistrationToken,
                   kErrorMessageNoRegistrationToken);
   } else if (g_pending_topic_ops) {
-    g_pending_topic_ops->push_back(
-        PendingTopicOp(kPendingTopicUnsubscribe, topic, handle));
+    g_pending_topic_ops->emplace_back(kPendingTopicUnsubscribe, topic, handle);
   } else {
     api->Complete(handle, kErrorUnknown, kErrorMessageSubscriptionUnknown);
   }
@@ -1134,6 +1147,13 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
                                        firebase_messaging::Method method) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock app_lock(g_app_mutex);
+  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
+    api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
+    return MakeFuture(api, handle);
+  }
   MutexLock lock(*g_registration_token_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
@@ -1192,6 +1212,13 @@ Future<std::string> GetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<std::string>(),
                                  internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock app_lock(g_app_mutex);
+  if (!g_app || !g_registration_token_mutex || !g_firebase_messaging) {
+    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+    SafeFutureHandle<std::string> handle = api->SafeAlloc<std::string>(kMessagingFnGetToken);
+    api->CompleteWithResult(handle, kErrorUnknown, "Messaging is uninitialized.", std::string());
+    return MakeFuture(api, handle);
+  }
   MutexLock lock(*g_registration_token_mutex);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<std::string> handle =

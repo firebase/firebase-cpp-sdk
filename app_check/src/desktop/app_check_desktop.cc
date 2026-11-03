@@ -357,7 +357,7 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
                                              error_message.c_str());
           }
         }};
-    provider->GetLimitedUseToken(token_callback);
+    provider->GetToken(token_callback);
   } else {
     future()->Complete(handle,
                        firebase::app_check::kAppCheckErrorInvalidConfiguration,
@@ -447,7 +447,7 @@ AppCheckInternal::GetLimitedUseAppCheckTokenStringInternal() {
                                              error_message.c_str());
           }
         }};
-    provider->GetLimitedUseToken(token_callback);
+    provider->GetToken(token_callback);
   } else {
     future()->Complete(handle,
                        firebase::app_check::kAppCheckErrorInvalidConfiguration,

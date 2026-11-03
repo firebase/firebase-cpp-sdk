@@ -956,7 +956,7 @@ Future<std::string> GetAnalyticsInstanceId() {
                 result_code == util::kFutureResultSuccess && result != nullptr;
             FutureHandleId future_id =
                 reinterpret_cast<FutureHandleId>(callback_data);
-            SafeFutureHandle<std::string> handle(FutureHandle(future_id));
+            auto handle = SafeFutureHandle<std::string>(FutureHandle(future_id));
             if (success) {
               future_data->api()->CompleteWithResult(
                   handle, kErrorNone, "", util::JStringToString(env, result));
@@ -1031,7 +1031,7 @@ Future<int64_t> GetSessionId() {
           if (future_data) {
             FutureHandleId future_id =
                 reinterpret_cast<FutureHandleId>(callback_data);
-            SafeFutureHandle<int64_t> handle(FutureHandle(future_id));
+            auto handle = SafeFutureHandle<int64_t>(FutureHandle(future_id));
 
             if (result_code == util::kFutureResultSuccess) {
               if (result != nullptr) {

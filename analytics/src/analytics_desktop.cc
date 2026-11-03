@@ -57,24 +57,24 @@ static bool g_analytics_collection_enabled = true;
 namespace {
 
 LogCallback& GetLogCallback() {
-  static auto* s_log_callback = new LogCallback();
-  return *s_log_callback;
+  static LogCallback s_log_callback;
+  return s_log_callback;
 }
 
 std::mutex& GetLogCallbackMutex() {
-  static auto* s_log_callback_mutex = new std::mutex();
-  return *s_log_callback_mutex;
+  static std::mutex s_log_callback_mutex;
+  return s_log_callback_mutex;
 }
 
 #if defined(_WIN32)
 std::string& GetAppId() {
-  static auto* s_app_id = new std::string();
-  return *s_app_id;
+  static std::string s_app_id;
+  return s_app_id;
 }
 
 std::string& GetPackageName() {
-  static auto* s_package_name = new std::string();
-  return *s_package_name;
+  static std::string s_package_name;
+  return s_package_name;
 }
 #endif  // defined(_WIN32)
 
@@ -100,7 +100,7 @@ void GoogleAnalyticsWrapperLogCallback(int32_t log_level, const char* message) {
   LogCallback callback_to_call;
 
   {
-    std::lock_guard<std::mutex> lock(GetLogCallbackMutex());
+    std::lock_guard lock(GetLogCallbackMutex());
     callback_to_call = GetLogCallback();
   }
 
@@ -115,7 +115,7 @@ void GoogleAnalyticsWrapperLogCallback(int32_t log_level, const char* message) {
 // This function must be called before any other Analytics methods.
 void Initialize(const App& app) {
   {
-    std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+    std::lock_guard lock(internal::FutureData::mutex());
     if (g_initialized) {
       LogWarning("Analytics already initialized.");
       return;
@@ -126,7 +126,7 @@ void Initialize(const App& app) {
 
     bool has_log_callback = false;
     {
-      std::lock_guard<std::mutex> callback_lock(GetLogCallbackMutex());
+      std::lock_guard callback_lock(GetLogCallbackMutex());
       has_log_callback = static_cast<bool>(GetLogCallback());
     }
 
@@ -212,7 +212,7 @@ namespace internal {
 
 // Determine whether the analytics module is initialized.
 bool IsInitialized() {
-  std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+  std::lock_guard lock(FutureData::mutex());
   return g_initialized;
 }
 
@@ -222,7 +222,7 @@ bool IsInitialized() {
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
   {
-    std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+    std::lock_guard lock(internal::FutureData::mutex());
     if (!g_initialized) {
       return;
     }
@@ -241,7 +241,7 @@ void Terminate() {
 
     GoogleAnalytics_SetLogCallback(nullptr);
     {
-      std::lock_guard<std::mutex> callback_lock(GetLogCallbackMutex());
+      std::lock_guard callback_lock(GetLogCallbackMutex());
       GetLogCallback() = nullptr;
     }
 
@@ -347,8 +347,8 @@ static void ConvertParametersToGAParams(
         }
 
         bool item_populated = false;
-        for (const auto& entry : item_map) {
-          const firebase::Variant& key_variant = entry.first;
+        for (const auto& [key_variant, value_variant] : item_map) {
+          
           if (!key_variant.is_string()) {
             LogError("Analytics: Non-string map key found. Skipping.");
             continue;
@@ -358,7 +358,7 @@ static void ConvertParametersToGAParams(
             LogError("Analytics: Map key cannot be null or empty. Skipping.");
             continue;
           }
-          if (InsertVariantIntoGAItem(c_item, key_from_map, entry.second,
+          if (InsertVariantIntoGAItem(c_item, key_from_map, value_variant,
                                       param.name, "vector item")) {
             item_populated = true;
           }
@@ -404,8 +404,8 @@ static void ConvertParametersToGAParams(
       }
 
       bool item_vector_populated = false;
-      for (const auto& entry : user_map) {
-        const firebase::Variant& key_variant = entry.first;
+      for (const auto& [key_variant, value_variant] : user_map) {
+        
         if (!key_variant.is_string()) {
           LogError("Analytics: Non-string map key found. Skipping.");
           continue;
@@ -425,7 +425,7 @@ static void ConvertParametersToGAParams(
           continue;  // Skip this key-value pair, try next one in map
         }
 
-        if (InsertVariantIntoGAItem(c_item, key_from_map, entry.second,
+        if (InsertVariantIntoGAItem(c_item, key_from_map, value_variant,
                                     param.name, "map")) {
           GoogleAnalytics_ItemVector_InsertItem(c_item_vector, c_item);
           // c_item is now owned by c_item_vector
@@ -461,7 +461,7 @@ static void ConvertParametersToGAParams(
 // Logs an event with the given name and parameters.
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 
   if (name == nullptr || name[0] == '\0') {
@@ -511,7 +511,7 @@ void LogEvent(const char* name, const std::vector<Parameter>& parameters) {
 // characters long. Setting the value to `nullptr` or an empty string will
 // clear the user property. Must be UTF-8 encoded if not nullptr.
 void SetUserProperty(const char* name, const char* property) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 
   if (name == nullptr || name[0] == '\0') {
@@ -534,7 +534,7 @@ void SetUserProperty(const char* name, const char* property) {
 // characters long, and UTF-8 encoded. Setting user_id to `nullptr` removes
 // the user ID.
 void SetUserId(const char* user_id) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   GoogleAnalytics_SetUserId(user_id);
 }
@@ -544,7 +544,7 @@ void SetUserId(const char* user_id) {
 //
 // @param[in] enabled A flag that enables or disables Analytics collection.
 void SetAnalyticsCollectionEnabled(bool enabled) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   g_analytics_collection_enabled = enabled;
 
   if (g_initialized) {
@@ -555,7 +555,7 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
 // Clears all analytics data for this app from the device and resets the app
 // instance ID.
 void ResetAnalyticsData() {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 
   GoogleAnalytics_ResetAnalyticsData();
@@ -565,10 +565,10 @@ void ResetAnalyticsData() {
 // Allows the passing of a callback to be used when the SDK logs any
 // messages regarding its behavior. The callback must be thread-safe.
 void SetLogCallback(const LogCallback& callback) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   // The C API does not support user data, so we must use a global variable.
   {
-    std::lock_guard<std::mutex> callback_lock(GetLogCallbackMutex());
+    std::lock_guard callback_lock(GetLogCallbackMutex());
     GetLogCallback() = callback;
   }
   if (g_initialized) {
@@ -582,7 +582,7 @@ void SetLogCallback(const LogCallback& callback) {
 
 // Notify the Analytics SDK about the current state of the app's lifecycle.
 void NotifyAppLifecycleChange(AppLifecycleState state) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   GoogleAnalytics_NotifyAppLifecycleChange(
       static_cast<GoogleAnalytics_AppLifecycleState>(state));
@@ -590,14 +590,14 @@ void NotifyAppLifecycleChange(AppLifecycleState state) {
 
 // Returns true if the desktop Analytics dll is initialized.
 bool IsDesktopInitialized() {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
   return GoogleAnalytics_IsInitialized();
 }
 
 // Sends the enabled Flag to the desktop Analytics dll.
 void SetDesktopDebugMode(bool enabled) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   GoogleAnalytics_SetDebugMode(enabled);
 }
@@ -612,7 +612,7 @@ void LogEvent(const char* name) {
 /// success.
 Future<void> LogAppleTransaction(const char* transaction_id) {
   (void)transaction_id;
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   std::shared_ptr<internal::FutureData> future_data =
       internal::FutureData::GetShared();
@@ -627,7 +627,7 @@ Future<void> LogAppleTransaction(const char* transaction_id) {
 }
 
 Future<void> LogAppleTransactionLastResult() {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
   std::shared_ptr<internal::FutureData> future_data =
       internal::FutureData::GetShared();
@@ -682,7 +682,7 @@ void LogEvent(const char* name, const char* parameter_name,
 
 void SetDefaultEventParameters(const Parameter* parameters,
                                size_t number_of_parameters) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   if (parameters == nullptr && number_of_parameters > 0) {
     LogError(
@@ -705,7 +705,7 @@ void SetDefaultEventParameters(const std::vector<Parameter>& parameters) {
 }
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 
   // Not supported by the Windows C API.
@@ -722,7 +722,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
 
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)email_address;
 #if defined(_WIN32)
@@ -737,7 +737,7 @@ void InitiateOnDeviceConversionMeasurementWithEmailAddress(
 
 void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
     const char* phone_number) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)phone_number;
 #if defined(_WIN32)
@@ -752,7 +752,7 @@ void InitiateOnDeviceConversionMeasurementWithPhoneNumber(
 
 void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
     std::vector<unsigned char> hashed_email_address) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_email_address;
 #if defined(_WIN32)
@@ -768,7 +768,7 @@ void InitiateOnDeviceConversionMeasurementWithHashedEmailAddress(
 
 void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
     std::vector<unsigned char> hashed_phone_number) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   (void)hashed_phone_number;
 #if defined(_WIN32)
@@ -783,7 +783,7 @@ void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
 }
 
 void SetSessionTimeoutDuration(int64_t milliseconds) {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   if (milliseconds < 0) {
     GoogleAnalytics_SetSessionTimeoutInterval(-1);
@@ -797,7 +797,7 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   std::shared_ptr<internal::FutureData> future_data =
       internal::FutureData::GetShared();
@@ -822,7 +822,7 @@ Future<std::string> GetAnalyticsInstanceId() {
 }
 
 Future<std::string> GetAnalyticsInstanceIdLastResult() {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   std::shared_ptr<internal::FutureData> future_data =
       internal::FutureData::GetShared();
@@ -843,7 +843,7 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
 }
 
 Future<int64_t> GetSessionId() {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   std::shared_ptr<internal::FutureData> future_data =
       internal::FutureData::GetShared();
@@ -865,7 +865,7 @@ Future<int64_t> GetSessionId() {
 }
 
 Future<int64_t> GetSessionIdLastResult() {
-  std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
+  std::lock_guard lock(internal::FutureData::mutex());
   FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   std::shared_ptr<internal::FutureData> future_data =
       internal::FutureData::GetShared();

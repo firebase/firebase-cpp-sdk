@@ -272,46 +272,41 @@ class Analytics {
       return;
     }
     for (const auto& [name, value] : parameters.value()) {
-      if (auto* int_value = std::get_if<int64_t>(&value)) {
-        GoogleAnalytics_EventParameters_InsertInt(map, name.c_str(),
-                                                  *int_value);
-      } else if (auto* double_value = std::get_if<double>(&value)) {
-        GoogleAnalytics_EventParameters_InsertDouble(map, name.c_str(),
-                                                     *double_value);
-      } else if (auto* string_value = std::get_if<std::string>(&value)) {
-        GoogleAnalytics_EventParameters_InsertString(map, name.c_str(),
-                                                     string_value->c_str());
-      } else if (auto* items = std::get_if<ItemVector>(&value)) {
-        GoogleAnalytics_ItemVector* item_vector =
-            GoogleAnalytics_ItemVector_Create();
-        if (!item_vector) {
-          continue;
-        }
-        for (const auto& item : *items) {
-          GoogleAnalytics_Item* nested_item = GoogleAnalytics_Item_Create();
-          if (!nested_item) {
-            continue;
-          }
-          for (const auto& [nested_name, nested_value] : item) {
-            if (auto* nested_int_value = std::get_if<int64_t>(&nested_value)) {
-              GoogleAnalytics_Item_InsertInt(nested_item, nested_name.c_str(),
-                                             *nested_int_value);
-            } else if (auto* nested_double_value =
-                           std::get_if<double>(&nested_value)) {
-              GoogleAnalytics_Item_InsertDouble(
-                  nested_item, nested_name.c_str(), *nested_double_value);
-            } else if (auto* nested_string_value =
-                           std::get_if<std::string>(&nested_value)) {
-              GoogleAnalytics_Item_InsertString(nested_item,
-                                                nested_name.c_str(),
-                                                nested_string_value->c_str());
+      std::visit([&map, &name](auto&& arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, int64_t>) {
+          GoogleAnalytics_EventParameters_InsertInt(map, name.c_str(), arg);
+        } else if constexpr (std::is_same_v<T, double>) {
+          GoogleAnalytics_EventParameters_InsertDouble(map, name.c_str(), arg);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          GoogleAnalytics_EventParameters_InsertString(map, name.c_str(), arg.c_str());
+        } else if constexpr (std::is_same_v<T, ItemVector>) {
+          GoogleAnalytics_ItemVector* item_vector = GoogleAnalytics_ItemVector_Create();
+          if (!item_vector) return;
+          for (const auto& item : arg) {
+            GoogleAnalytics_Item* nested_item = GoogleAnalytics_Item_Create();
+            if (!nested_item) continue;
+            for (const auto& [nested_name, nested_value] : item) {
+              std::visit([&nested_item, &nested_name](auto&& nested_arg) {
+                using NT = std::decay_t<decltype(nested_arg)>;
+                if constexpr (std::is_same_v<NT, int64_t>) {
+                  GoogleAnalytics_Item_InsertInt(nested_item, nested_name.c_str(), nested_arg);
+                } else if constexpr (std::is_same_v<NT, double>) {
+                  GoogleAnalytics_Item_InsertDouble(nested_item, nested_name.c_str(), nested_arg);
+                } else if constexpr (std::is_same_v<NT, std::string>) {
+                  GoogleAnalytics_Item_InsertString(nested_item, nested_name.c_str(), nested_arg.c_str());
+                }
+              }, nested_value);
+            }
+            if (!GoogleAnalytics_ItemVector_InsertItem(item_vector, nested_item)) {
+              GoogleAnalytics_Item_Destroy(nested_item);
             }
           }
-          GoogleAnalytics_ItemVector_InsertItem(item_vector, nested_item);
+          if (!GoogleAnalytics_EventParameters_InsertItemVector(map, name.c_str(), item_vector)) {
+            GoogleAnalytics_ItemVector_Destroy(item_vector);
+          }
         }
-        GoogleAnalytics_EventParameters_InsertItemVector(map, name.c_str(),
-                                                         item_vector);
-      }
+      }, value);
     }
     GoogleAnalytics_LogEvent(event_name.c_str(), map);
   }
@@ -388,10 +383,13 @@ class Analytics {
    * @param[in] callback The callback to use. Must be thread-safe.
    */
   void SetLogCallback(LogCallback callback) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    current_callback_ = std::move(callback);
+    bool has_callback = static_cast<bool>(callback);
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      current_callback_ = std::move(callback);
+    }
 
-    if (!current_callback_) {
+    if (!has_callback) {
       GoogleAnalytics_SetLogCallback(nullptr);
       return;
     }

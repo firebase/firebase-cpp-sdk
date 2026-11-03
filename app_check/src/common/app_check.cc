@@ -70,8 +70,8 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAppCheck);
 namespace {
 
 Mutex& GetAppCheckLock() {
-  static auto* lock = new Mutex();
-  return *lock;
+  static Mutex lock;
+  return lock;
 }
 
 std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
@@ -86,8 +86,10 @@ std::shared_ptr<internal::AppCheckInternal> LockInternal(
     const AppCheck* app_check) {
   MutexLock lock(GetAppCheckLock());
   if (!app_check || !g_internal_map) return nullptr;
-  auto it = g_internal_map->find(app_check);
-  return (it != g_internal_map->end()) ? it->second : nullptr;
+  if (auto it = g_internal_map->find(app_check); it != g_internal_map->end()) {
+    return it->second;
+  }
+  return nullptr;
 }
 
 }  // namespace
@@ -100,7 +102,7 @@ AppCheckListener::~AppCheckListener() {
     if (g_internal_map) {
       internals.reserve(g_internal_map->size());
       for (const auto& [owner, internal_ptr] : *g_internal_map) {
-        (void)owner;
+        [[maybe_unused]] const auto& used_owner = owner;
         if (internal_ptr) {
           internals.push_back(internal_ptr);
         }
@@ -117,17 +119,6 @@ AppCheckListener::~AppCheckListener() {
 
 AppCheckProvider::~AppCheckProvider() = default;
 
-// Default implementation. Can be overridden by App check providers that support
-// limited use tokens
-void AppCheckProvider::GetLimitedUseToken(
-    std::function<void(AppCheckToken, int, const std::string&)>
-        completion_callback) {
-  LogWarning(
-      "A limited-use token was requested, but the custom provider did not "
-      "implement the GetLimitedUseToken method. The default implementation is "
-      "triggered as a result, and GetToken has been invoked instead.");
-  GetToken(std::move(completion_callback));
-}
 
 
 
@@ -140,8 +131,7 @@ AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
 
   MutexLock lock(GetAppCheckLock());
   if (g_app_check_map) {
-    auto it = g_app_check_map->find(app);
-    if (it != g_app_check_map->end()) {
+    if (auto it = g_app_check_map->find(app); it != g_app_check_map->end()) {
       return it->second;
     }
   }
@@ -168,8 +158,7 @@ AppCheck* AppCheck::GetInstance(::firebase::App* app,
     g_app_check_map = new std::map<::firebase::App*, AppCheck*>();
   }
 
-  auto it = g_app_check_map->find(app);
-  if (it != g_app_check_map->end()) {
+  if (auto it = g_app_check_map->find(app); it != g_app_check_map->end()) {
     if (init_result_out) {
       *init_result_out = kInitResultSuccess;
     }
@@ -177,7 +166,7 @@ AppCheck* AppCheck::GetInstance(::firebase::App* app,
   }
 
   AppCheck* app_check = new AppCheck(app);
-  g_app_check_map->insert(std::make_pair(app, app_check));
+  g_app_check_map->emplace(app, app_check);
   if (init_result_out) {
     *init_result_out = kInitResultSuccess;
   }

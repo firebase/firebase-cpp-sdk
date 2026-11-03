@@ -55,7 +55,14 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
   /// App.
   void SetDebugToken(const char* token);
 
- public:
+  /// Sets the Debug Token to use when communicating with the backend.
+  /// This should match a debug token set in the Firebase console for your
+  /// App.
+  void SetDebugToken(const std::string& token) {
+    SetDebugToken(token.c_str());
+  }
+
+ private:
   DebugAppCheckProviderFactory();
   ~DebugAppCheckProviderFactory() override;
 
