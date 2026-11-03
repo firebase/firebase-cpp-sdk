@@ -25,14 +25,17 @@ namespace firebase::storage::internal {
 
 void ControllerBinding::Bind(
     std::shared_ptr<RestOperation::OperationHandle> handle) {
+  std::shared_ptr<RestOperation::OperationHandle> old_handle;
   bool cancelled = false;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_);
+    old_handle = std::move(current_);
     current_ = handle;
     cancelled = cancelled_;
   }
+  old_handle.reset();
   if (cancelled && handle) {
-    std::lock_guard<std::recursive_mutex> op_lock(handle->mutex);
+    std::scoped_lock op_lock(handle->mutex);
     if (handle->op != nullptr) {
       handle->op->Cancel();
     }
@@ -40,7 +43,7 @@ void ControllerBinding::Bind(
 }
 
 void ControllerBinding::MarkFinished() {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::scoped_lock lock(mutex_);
   finished_ = true;
 }
 
@@ -48,30 +51,35 @@ bool ControllerBinding::Cancel() {
   std::shared_ptr<RestOperation::OperationHandle> handle;
   bool prevented_retry = false;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_);
     prevented_retry = !finished_ && !cancelled_;
     cancelled_ = true;
     handle = current_;
   }
   bool op_cancelled = false;
   if (handle) {
-    std::lock_guard<std::recursive_mutex> op_lock(handle->mutex);
+    std::scoped_lock op_lock(handle->mutex);
     op_cancelled = handle->op != nullptr && handle->op->Cancel();
   }
   return op_cancelled || prevented_retry;
 }
 
 bool ControllerBinding::is_cancelled() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::scoped_lock lock(mutex_);
   return cancelled_;
 }
 
 std::shared_ptr<RestOperation::OperationHandle> ControllerBinding::current()
     const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::scoped_lock lock(mutex_);
   return current_;
 }
 
+// Note: ControllerInternal is a private Pimpl implementation class owned by
+// firebase::storage::Controller via a heap-allocated pointer
+// (Controller::internal_). Its size and member layout are internal to
+// libfirebase_storage and never part of the public SDK ABI.
+//
 // ControllerInternal deliberately does not register with
 // RestOperation::cleanup(): every access to the operation goes through the
 // shared OperationHandle (whose `op` is cleared under its mutex when the
@@ -122,7 +130,7 @@ ControllerInternal& ControllerInternal::operator=(
 ControllerInternal::State ControllerInternal::Snapshot() const {
   State state;
   {
-    MutexLock lock(mutex_);
+    std::scoped_lock lock(mutex_);
     state.binding = binding_;
     state.reference = reference_;
     state.op_handle = op_handle_;
@@ -156,7 +164,7 @@ ControllerInternal::State ControllerInternal::Snapshot() const {
 
 ControllerInternal::State ControllerInternal::TakeState() noexcept {
   State state;
-  MutexLock lock(mutex_);
+  std::scoped_lock lock(mutex_);
   state.binding = std::move(binding_);
   state.reference = std::move(reference_);
   state.op_handle = std::move(op_handle_);
@@ -176,21 +184,31 @@ ControllerInternal::State ControllerInternal::TakeState() noexcept {
 }
 
 void ControllerInternal::Assign(State&& state) noexcept {
-  MutexLock lock(mutex_);
-  binding_ = std::move(state.binding);
-  reference_ = std::move(state.reference);
-  op_handle_ = std::move(state.op_handle);
-  cached_handle_ = std::move(state.cached_handle);
-  bytes_transferred_ = state.bytes_transferred;
-  total_byte_count_ = state.total_byte_count;
-  is_valid_ = state.is_valid;
+  // Move overwritten members into `retired` under mutex_ and destroy them
+  // after releasing mutex_ to prevent any lock-order inversion during
+  // destruction of StorageReference or shared_ptrs.
+  State retired;
+  {
+    std::scoped_lock lock(mutex_);
+    retired.binding = std::move(binding_);
+    retired.reference = std::move(reference_);
+    retired.op_handle = std::move(op_handle_);
+    retired.cached_handle = std::move(cached_handle_);
+    binding_ = std::move(state.binding);
+    reference_ = std::move(state.reference);
+    op_handle_ = std::move(state.op_handle);
+    cached_handle_ = std::move(state.cached_handle);
+    bytes_transferred_ = state.bytes_transferred;
+    total_byte_count_ = state.total_byte_count;
+    is_valid_ = state.is_valid;
+  }
 }
 
 std::shared_ptr<RestOperation::OperationHandle>
 ControllerInternal::CurrentHandle() const {
   std::shared_ptr<ControllerBinding> binding;
   {
-    MutexLock lock(mutex_);
+    std::scoped_lock lock(mutex_);
     if (!binding_) {
       return op_handle_;
     }
@@ -204,7 +222,7 @@ bool ControllerInternal::Pause() {
   if (!handle) {
     return false;
   }
-  std::lock_guard<std::recursive_mutex> op_lock(handle->mutex);
+  std::scoped_lock op_lock(handle->mutex);
   return handle->op != nullptr && handle->op->Pause();
 }
 
@@ -213,7 +231,7 @@ bool ControllerInternal::Resume() {
   if (!handle) {
     return false;
   }
-  std::lock_guard<std::recursive_mutex> op_lock(handle->mutex);
+  std::scoped_lock op_lock(handle->mutex);
   return handle->op != nullptr && handle->op->Resume();
 }
 
@@ -221,7 +239,7 @@ bool ControllerInternal::Cancel() {
   std::shared_ptr<ControllerBinding> binding;
   std::shared_ptr<RestOperation::OperationHandle> handle;
   {
-    MutexLock lock(mutex_);
+    std::scoped_lock lock(mutex_);
     binding = binding_;
     handle = op_handle_;
   }
@@ -231,7 +249,7 @@ bool ControllerInternal::Cancel() {
   if (!handle) {
     return false;
   }
-  std::lock_guard<std::recursive_mutex> op_lock(handle->mutex);
+  std::scoped_lock op_lock(handle->mutex);
   return handle->op != nullptr && handle->op->Cancel();
 }
 
@@ -240,7 +258,7 @@ bool ControllerInternal::is_paused() const {
   if (!handle) {
     return false;
   }
-  std::lock_guard<std::recursive_mutex> op_lock(handle->mutex);
+  std::scoped_lock op_lock(handle->mutex);
   return handle->op != nullptr && handle->op->is_paused();
 }
 
@@ -259,26 +277,36 @@ int64_t ControllerInternal::total_byte_count() const {
 StorageReferenceInternal* ControllerInternal::GetReference() const {
   StorageReference ref_copy;
   {
-    MutexLock lock(mutex_);
+    std::scoped_lock lock(mutex_);
     ref_copy = reference_;
   }
-  return ref_copy.is_valid() ? new StorageReferenceInternal(*ref_copy.internal_)
-                             : nullptr;
+  // Ownership is transferred to Controller::GetReference() in
+  // storage/src/common/controller.cc, which immediately wraps the raw pointer
+  // in a StorageReference (required by the cross-platform ControllerInternal
+  // interface).
+  return ref_copy.is_valid()
+             ? std::make_unique<StorageReferenceInternal>(*ref_copy.internal_)
+                   .release()
+             : nullptr;
 }
 
 bool ControllerInternal::is_valid() const {
-  MutexLock lock(mutex_);
+  std::scoped_lock lock(mutex_);
   return is_valid_ || binding_ != nullptr;
 }
 
 void ControllerInternal::SetBinding(std::shared_ptr<ControllerBinding> binding) {
-  MutexLock lock(mutex_);
-  binding_ = std::move(binding);
+  std::shared_ptr<ControllerBinding> old_binding;
+  {
+    std::scoped_lock lock(mutex_);
+    old_binding = std::move(binding_);
+    binding_ = std::move(binding);
+  }
 }
 
 std::shared_ptr<RestOperation::OperationHandle>
 ControllerInternal::operation_handle() const {
-  MutexLock lock(mutex_);
+  std::scoped_lock lock(mutex_);
   return op_handle_;
 }
 
@@ -290,20 +318,18 @@ bool ControllerInternal::operator==(const ControllerInternal& other) const {
   std::shared_ptr<RestOperation::OperationHandle> this_handle;
   std::shared_ptr<ControllerBinding> this_binding;
   bool this_valid = false;
-  {
-    MutexLock lock(mutex_);
-    this_ref = reference_;
-    this_handle = op_handle_;
-    this_binding = binding_;
-    this_valid = is_valid_ || (binding_ != nullptr);
-  }
-
   StorageReference other_ref;
   std::shared_ptr<RestOperation::OperationHandle> other_handle;
   std::shared_ptr<ControllerBinding> other_binding;
   bool other_valid = false;
   {
-    MutexLock lock(other.mutex_);
+    // Lock both mutexes simultaneously using C++17 deadlock-avoiding
+    // std::scoped_lock so the two states cannot diverge between reads.
+    std::scoped_lock lock(mutex_, other.mutex_);
+    this_ref = reference_;
+    this_handle = op_handle_;
+    this_binding = binding_;
+    this_valid = is_valid_ || (binding_ != nullptr);
     other_ref = other.reference_;
     other_handle = other.op_handle_;
     other_binding = other.binding_;
@@ -333,19 +359,29 @@ void ControllerInternal::Initialize(const StorageReference& reference,
   if (new_handle) {
     ReadHandle(*new_handle, &op_transferred, &op_total);
   }
-  MutexLock lock(mutex_);
-  reference_ = reference;
-  binding_.reset();
-  cached_handle_ = new_handle;
-  op_handle_ = std::move(new_handle);
-  bytes_transferred_ = (op_transferred >= 0) ? op_transferred : 0;
-  total_byte_count_ = (op_total >= 0) ? op_total : -1;
-  is_valid_ = (op_handle_ != nullptr);
+  StorageReference new_ref_copy(reference);
+  StorageReference old_ref;
+  std::shared_ptr<ControllerBinding> old_binding;
+  std::shared_ptr<RestOperation::OperationHandle> old_op_handle;
+  std::shared_ptr<RestOperation::OperationHandle> old_cached_handle;
+  {
+    std::scoped_lock lock(mutex_);
+    old_ref = std::move(reference_);
+    old_binding = std::move(binding_);
+    old_op_handle = std::move(op_handle_);
+    old_cached_handle = std::move(cached_handle_);
+    reference_ = std::move(new_ref_copy);
+    cached_handle_ = new_handle;
+    op_handle_ = std::move(new_handle);
+    bytes_transferred_ = (op_transferred >= 0) ? op_transferred : 0;
+    total_byte_count_ = (op_total >= 0) ? op_total : -1;
+    is_valid_ = (op_handle_ != nullptr);
+  }
 }
 
 void ControllerInternal::ReadHandle(RestOperation::OperationHandle& handle,
                                     int64_t* transferred, int64_t* total) {
-  std::lock_guard<std::recursive_mutex> op_lock(handle.mutex);
+  std::scoped_lock op_lock(handle.mutex);
   if (handle.op != nullptr) {
     *transferred = handle.op->bytes_transferred();
     *total = handle.op->total_byte_count();
@@ -360,7 +396,7 @@ void ControllerInternal::UpdateFromOperation(int64_t* transferred,
   std::shared_ptr<ControllerBinding> binding;
   std::shared_ptr<RestOperation::OperationHandle> handle;
   {
-    MutexLock lock(mutex_);
+    std::scoped_lock lock(mutex_);
     binding = binding_;
     handle = op_handle_;
   }
@@ -371,7 +407,7 @@ void ControllerInternal::UpdateFromOperation(int64_t* transferred,
     }
   }
   if (!handle) {
-    MutexLock lock(mutex_);
+    std::scoped_lock lock(mutex_);
     if (transferred) *transferred = bytes_transferred_;
     if (total) *total = total_byte_count_;
     return;
@@ -386,7 +422,7 @@ void ControllerInternal::UpdateFromOperation(int64_t* transferred,
   const std::shared_ptr<RestOperation::OperationHandle> current_bound =
       binding ? binding->current() : nullptr;
 
-  MutexLock lock(mutex_);
+  std::scoped_lock lock(mutex_);
   const bool still_bound =
       binding ? (binding_ == binding &&
                  (current_bound ? current_bound == handle

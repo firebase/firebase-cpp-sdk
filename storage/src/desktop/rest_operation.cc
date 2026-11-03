@@ -33,20 +33,20 @@
 
 namespace firebase::storage::internal {
 
+// Note: RestOperation is an internal desktop-only implementation class within
+// libfirebase_storage and is never exposed in the public SDK ABI.
+
 namespace {
 
 // Rejects a Start() call that has no StorageInternal to own the operation.
-// Takes ownership of request and response and releases them; destroying an
-// uncompleted BlockingResponse fails its future with kErrorCancelled.
+// Ownership of request and response is already held by the caller's
+// std::unique_ptrs, which destroy them automatically on return (destroying an
+// uncompleted BlockingResponse fails its future with kErrorCancelled).
 bool RejectStartWithoutStorage(StorageInternal* storage_internal,
-                               rest::Request* request,
-                               BlockingResponse* response,
                                Controller* controller_out) {
   if (storage_internal != nullptr) {
     return false;
   }
-  delete request;
-  delete response;
   if (controller_out) {
     *controller_out = Controller();
   }
@@ -98,16 +98,18 @@ void RestOperation::Start(StorageInternal* storage_internal,
                           rest::Request* request, Notifier* request_notifier,
                           BlockingResponse* response, Listener* listener,
                           FutureHandle handle, Controller* controller_out) {
-  if (RejectStartWithoutStorage(storage_internal, request, response,
-                                controller_out)) {
+  std::unique_ptr<rest::Request> request_holder(request);
+  std::unique_ptr<BlockingResponse> response_holder(response);
+  if (RejectStartWithoutStorage(storage_internal, controller_out)) {
     return;
   }
   std::shared_ptr<ListenerSharedState> listener_state =
       (listener && listener->impl_) ? listener->impl_->shared_state() : nullptr;
   // Ownership is transferred to storage_internal (operations list + cleanup
   // notifier), which deletes the operation once it completes or on shutdown.
-  new RestOperation(storage_internal, storage_reference, request,
-                    request_notifier, response, listener, listener_state,
+  new RestOperation(storage_internal, storage_reference,
+                    std::move(request_holder), request_notifier,
+                    std::move(response_holder), listener, listener_state,
                     handle, controller_out);
 }
 
@@ -117,26 +119,29 @@ void RestOperation::Start(
     Notifier* request_notifier, BlockingResponse* response,
     const std::shared_ptr<ListenerSharedState>& listener_state,
     FutureHandle handle, Controller* controller_out) {
-  if (RejectStartWithoutStorage(storage_internal, request, response,
-                                controller_out)) {
+  std::unique_ptr<rest::Request> request_holder(request);
+  std::unique_ptr<BlockingResponse> response_holder(response);
+  if (RejectStartWithoutStorage(storage_internal, controller_out)) {
     return;
   }
   // Ownership is transferred to storage_internal (see above).
-  new RestOperation(storage_internal, storage_reference, request,
-                    request_notifier, response, nullptr, listener_state,
+  new RestOperation(storage_internal, storage_reference,
+                    std::move(request_holder), request_notifier,
+                    std::move(response_holder), nullptr, listener_state,
                     handle, controller_out);
 }
 
 RestOperation::RestOperation(
     StorageInternal* storage_internal,
-    const StorageReference& storage_reference, rest::Request* request,
-    Notifier* request_notifier, BlockingResponse* response, Listener* listener,
+    const StorageReference& storage_reference,
+    std::unique_ptr<rest::Request> request, Notifier* request_notifier,
+    std::unique_ptr<BlockingResponse> response, Listener* listener,
     const std::shared_ptr<ListenerSharedState>& listener_state,
     FutureHandle handle, Controller* controller_out)
     : storage_internal_(storage_internal),
-      request_(request),
+      request_(std::move(request)),
       request_notifier_(request_notifier),
-      response_(response),
+      response_(std::move(response)),
       handle_(handle) {
   op_handle_->op = this;
   transport_.set_is_async(true);
@@ -279,7 +284,7 @@ RestOperation::~RestOperation() {
     notify_state->cv.wait(lock, [&notify_state, self_id]() {
       return std::all_of(
           notify_state->threads.begin(), notify_state->threads.end(),
-          [self_id](const std::thread::id& id) { return id == self_id; });
+          [self_id](const auto& id) { return id == self_id; });
     });
   }
 

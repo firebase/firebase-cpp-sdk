@@ -126,8 +126,9 @@ class RestOperation {
   // See Start().
   RestOperation(StorageInternal* storage_internal,
                 const StorageReference& storage_reference,
-                rest::Request* request, Notifier* request_notifier,
-                BlockingResponse* response, Listener* listener,
+                std::unique_ptr<rest::Request> request,
+                Notifier* request_notifier,
+                std::unique_ptr<BlockingResponse> response, Listener* listener,
                 const std::shared_ptr<ListenerSharedState>& listener_state,
                 FutureHandle handle, Controller* controller_out);
 

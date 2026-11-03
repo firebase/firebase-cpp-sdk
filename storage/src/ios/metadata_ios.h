@@ -19,7 +19,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
@@ -42,6 +41,9 @@ using CustomMetadata = std::map<std::string, std::string>;
 
 #pragma clang assume_nonnull begin
 
+// Private Pimpl implementation class owned by firebase::storage::Metadata via
+// a heap-allocated pointer (Metadata::internal_). Its size and member layout
+// are internal to libfirebase_storage and never part of the public SDK ABI.
 class MetadataInternal {
  public:
   // Construct a MetadataInternal with an empty FIRStorageMetadata.
@@ -56,7 +58,7 @@ class MetadataInternal {
 
   MetadataInternal(MetadataInternal&& other) noexcept;
 
-  MetadataInternal& operator=(MetadataInternal&& other);
+  MetadataInternal& operator=(MetadataInternal&& other) noexcept;
 
   ~MetadataInternal();
 
@@ -154,13 +156,6 @@ class MetadataInternal {
   }
 #endif  // __OBJC__
 
-  // Maximum number of superseded getter strings retained per instance so
-  // memory growth is strictly O(1) bounded even under repeated mutations.
-  static constexpr size_t kMaxRetiredStrings = 18;
-
-  void RetireStringLocked(std::unique_ptr<std::string> str) const;
-  void RetireCachedStringsLocked() const;
-
   // Makes the custom metadata reflect an assignment, after impl_ has been
   // replaced: moves `source`'s contents in (if non-null) or reloads them from
   // impl(), reusing the existing map object so pointers returned by
@@ -176,21 +171,21 @@ class MetadataInternal {
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStorageMetadataPointer> impl_;
 
-  // Heap-backed string caches so returned const char* pointers remain stable
-  // across concurrent const getter calls and setters.
-  mutable std::unique_ptr<std::string> bucket_;
-  mutable std::unique_ptr<std::string> cache_control_;
-  mutable std::unique_ptr<std::string> content_disposition_;
-  mutable std::unique_ptr<std::string> content_encoding_;
-  mutable std::unique_ptr<std::string> content_language_;
-  mutable std::unique_ptr<std::string> content_type_;
-  mutable std::unique_ptr<std::string> name_;
-  mutable std::unique_ptr<std::string> path_;
-  mutable std::unique_ptr<std::string> md5_hash_;
-  // Bounded cache (at most kMaxRetiredStrings entries) of superseded getter
-  // strings so recently returned const char* pointers remain valid across
-  // property updates or assignment without unbounded memory growth.
-  mutable std::vector<std::unique_ptr<std::string>> retired_strings_;
+  // Backing store for string properties. Updated under mutex_ only when the
+  // underlying Objective-C string value has changed, so concurrent const
+  // getter calls never reallocate an unchanged buffer. Per
+  // firebase/storage/metadata.h, returned const char* pointers remain valid
+  // until the corresponding property or Metadata object is modified or
+  // destroyed.
+  mutable std::string bucket_;
+  mutable std::string cache_control_;
+  mutable std::string content_disposition_;
+  mutable std::string content_encoding_;
+  mutable std::string content_language_;
+  mutable std::string content_type_;
+  mutable std::string name_;
+  mutable std::string path_;
+  mutable std::string md5_hash_;
 
   mutable std::unique_ptr<CustomMetadata> custom_metadata_;
 };

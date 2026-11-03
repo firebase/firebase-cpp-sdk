@@ -19,7 +19,6 @@
 #include <memory>
 #include <mutex>
 
-#include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
@@ -47,10 +46,10 @@ class ControllerBinding {
   bool Cancel();
 
   // Whether Cancel() has been called.
-  bool is_cancelled() const;
+  [[nodiscard]] bool is_cancelled() const;
 
   // Handle of the current attempt, or null if no attempt has been bound.
-  std::shared_ptr<RestOperation::OperationHandle> current() const;
+  [[nodiscard]] std::shared_ptr<RestOperation::OperationHandle> current() const;
 
  private:
   mutable std::mutex mutex_;
@@ -59,6 +58,9 @@ class ControllerBinding {
   bool finished_ = false;
 };
 
+// Private Pimpl implementation class owned by firebase::storage::Controller
+// via a heap-allocated pointer (Controller::internal_). Not part of the
+// public SDK ABI or stack-allocated by user code.
 class ControllerInternal {
  public:
   ControllerInternal();
@@ -83,21 +85,23 @@ class ControllerInternal {
   bool Cancel();
 
   // Returns true if the operation is paused.
-  bool is_paused() const;
+  [[nodiscard]] bool is_paused() const;
 
   // Returns the number of bytes transferred so far.
-  int64_t bytes_transferred() const;
+  [[nodiscard]] int64_t bytes_transferred() const;
 
   // Returns the total bytes to be transferred.
-  int64_t total_byte_count() const;
+  [[nodiscard]] int64_t total_byte_count() const;
 
   // Returns a new StorageReferenceInternal for the reference associated with
   // this Controller, or null if there is none. Ownership is transferred to
-  // the caller (Controller::GetReference() wraps it in a StorageReference).
-  StorageReferenceInternal* GetReference() const;
+  // the caller (Controller::GetReference() in storage/src/common/controller.cc
+  // immediately wraps it in a StorageReference, as required by the
+  // cross-platform ControllerInternal interface).
+  [[nodiscard]] StorageReferenceInternal* GetReference() const;
 
   // Returns if a ControllerInternal is valid and ready to be used.
-  bool is_valid() const;
+  [[nodiscard]] bool is_valid() const;
 
   bool operator==(const ControllerInternal& other) const;
   bool operator!=(const ControllerInternal& other) const {
@@ -119,7 +123,8 @@ class ControllerInternal {
   void SetBinding(std::shared_ptr<ControllerBinding> binding);
 
   // Handle of the RestOperation this controller was initialized with.
-  std::shared_ptr<RestOperation::OperationHandle> operation_handle() const;
+  [[nodiscard]] std::shared_ptr<RestOperation::OperationHandle>
+  operation_handle() const;
 
  private:
   // Value snapshot of the guarded members, used to implement copy/move
@@ -163,7 +168,7 @@ class ControllerInternal {
 
   // Guards reference_, op_handle_, cached_handle_, binding_,
   // bytes_transferred_, total_byte_count_, and is_valid_.
-  mutable Mutex mutex_;
+  mutable std::mutex mutex_;
   std::shared_ptr<ControllerBinding> binding_;
   StorageReference reference_;
   std::shared_ptr<RestOperation::OperationHandle> op_handle_;

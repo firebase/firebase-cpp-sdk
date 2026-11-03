@@ -20,7 +20,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #import "FirebaseStorage-Swift.h"
 #include "storage/src/ios/storage_ios.h"
@@ -49,41 +48,17 @@ static NSString* _Nullable NSStringOrNilFromSetterValue(
   return [NSString stringWithUTF8String:c_string];
 }
 
-// Append a superseded string to `retired_strings`, bounding the cache to
-// MetadataInternal::kMaxRetiredStrings entries so repeated mutations on a
-// long-lived instance never cause unbounded memory growth.
-static void AppendRetiredString(
-    std::vector<std::unique_ptr<std::string>>* _Nonnull retired_strings,
-    std::unique_ptr<std::string> str, size_t max_entries) {
-  if (!str) {
-    return;
-  }
-  if (retired_strings->size() >= max_entries) {
-    retired_strings->erase(retired_strings->begin());
-  }
-  retired_strings->push_back(std::move(str));
-}
-
-// Convert an NSString to a stable UTF-8 C-string without mutating or
-// reallocating any buffer already handed out to callers, while keeping the
-// retired cache bounded to MetadataInternal::kMaxRetiredStrings entries.
+// Convert an NSString to a cached UTF-8 C-string without mutating or
+// reallocating the backing std::string when its value is unchanged.
 static const char* _Nonnull NSStringToCString(
-    NSString* _Nullable nsstring_value,
-    std::unique_ptr<std::string>* _Nonnull string_slot,
-    std::vector<std::unique_ptr<std::string>>* _Nonnull retired_strings,
-    size_t max_retired_entries) {
+    NSString* _Nullable nsstring_value, std::string* _Nonnull string_slot) {
   const char* utf8_string =
       (nsstring_value && nsstring_value.UTF8String) ? nsstring_value.UTF8String
                                                     : "";
-  if (*string_slot && **string_slot == utf8_string) {
-    return (*string_slot)->c_str();
+  if (*string_slot != utf8_string) {
+    *string_slot = utf8_string;
   }
-  if (*string_slot) {
-    AppendRetiredString(retired_strings, std::move(*string_slot),
-                        max_retired_entries);
-  }
-  *string_slot = std::make_unique<std::string>(utf8_string);
-  return (*string_slot)->c_str();
+  return string_slot->c_str();
 }
 
 // Convert NSDate to milliseconds since the epoch, or -1 if nil.
@@ -161,7 +136,6 @@ MetadataInternal& MetadataInternal::operator=(
   }
 
   MutexLock lock(mutex_);
-  RetireCachedStringsLocked();
   storage_ = other_storage;
   impl_ = copied_impl ? std::make_unique<FIRStorageMetadataPointer>(copied_impl)
                       : nullptr;
@@ -185,31 +159,26 @@ MetadataInternal::MetadataInternal(MetadataInternal&& other) noexcept
   name_ = std::move(other.name_);
   path_ = std::move(other.path_);
   md5_hash_ = std::move(other.md5_hash_);
-  retired_strings_ = std::move(other.retired_strings_);
   custom_metadata_ = std::move(other.custom_metadata_);
 }
 
-MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
+MetadataInternal& MetadataInternal::operator=(
+    MetadataInternal&& other) noexcept {
   if (this == &other) {
     return *this;
   }
   StorageInternal* other_storage = nullptr;
   std::unique_ptr<FIRStorageMetadataPointer> other_impl;
-  std::unique_ptr<std::string> other_bucket;
-  std::unique_ptr<std::string> other_cache_control;
-  std::unique_ptr<std::string> other_content_disposition;
-  std::unique_ptr<std::string> other_content_encoding;
-  std::unique_ptr<std::string> other_content_language;
-  std::unique_ptr<std::string> other_content_type;
-  std::unique_ptr<std::string> other_name;
-  std::unique_ptr<std::string> other_path;
-  std::unique_ptr<std::string> other_md5_hash;
-  std::vector<std::unique_ptr<std::string>> other_retired_strings;
-  // Contents of other's map, if it has one. The map object itself stays with
-  // `other`, so a pointer previously returned by other.custom_metadata() stays
-  // valid for other's lifetime.
-  CustomMetadata other_custom_metadata;
-  bool other_has_custom_metadata = false;
+  std::string other_bucket;
+  std::string other_cache_control;
+  std::string other_content_disposition;
+  std::string other_content_encoding;
+  std::string other_content_language;
+  std::string other_content_type;
+  std::string other_name;
+  std::string other_path;
+  std::string other_md5_hash;
+  std::unique_ptr<CustomMetadata> other_custom_metadata;
   {
     MutexLock other_lock(other.mutex_);
     other_storage = other.storage_;
@@ -224,64 +193,40 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
     other_name = std::move(other.name_);
     other_path = std::move(other.path_);
     other_md5_hash = std::move(other.md5_hash_);
-    other_retired_strings = std::move(other.retired_strings_);
-    if (other.custom_metadata_) {
-      other_custom_metadata = std::move(*other.custom_metadata_);
-      other.custom_metadata_->clear();
-      other_has_custom_metadata = true;
-    }
+    other_custom_metadata = std::move(other.custom_metadata_);
   }
 
-  MutexLock lock(mutex_);
-  RetireCachedStringsLocked();
-  storage_ = other_storage;
-  impl_ = std::move(other_impl);
-  bucket_ = std::move(other_bucket);
-  cache_control_ = std::move(other_cache_control);
-  content_disposition_ = std::move(other_content_disposition);
-  content_encoding_ = std::move(other_content_encoding);
-  content_language_ = std::move(other_content_language);
-  content_type_ = std::move(other_content_type);
-  name_ = std::move(other_name);
-  path_ = std::move(other_path);
-  md5_hash_ = std::move(other_md5_hash);
-  for (auto& s : other_retired_strings) {
-    RetireStringLocked(std::move(s));
+  {
+    MutexLock lock(mutex_);
+    storage_ = other_storage;
+    impl_ = std::move(other_impl);
+    bucket_ = std::move(other_bucket);
+    cache_control_ = std::move(other_cache_control);
+    content_disposition_ = std::move(other_content_disposition);
+    content_encoding_ = std::move(other_content_encoding);
+    content_language_ = std::move(other_content_language);
+    content_type_ = std::move(other_content_type);
+    name_ = std::move(other_name);
+    path_ = std::move(other_path);
+    md5_hash_ = std::move(other_md5_hash);
+    if (other_custom_metadata) {
+      if (custom_metadata_) {
+        *custom_metadata_ = std::move(*other_custom_metadata);
+      } else {
+        custom_metadata_ = std::move(other_custom_metadata);
+      }
+    } else if (custom_metadata_) {
+      custom_metadata_->clear();
+    }
   }
-  // After impl_ is updated: may reload the existing map from the new impl().
-  ReplaceCustomMetadataLocked(
-      other_has_custom_metadata ? &other_custom_metadata : nullptr);
   return *this;
 }
 
 MetadataInternal::~MetadataInternal() = default;
 
-void MetadataInternal::RetireStringLocked(
-    std::unique_ptr<std::string> str) const {
-  AppendRetiredString(&retired_strings_, std::move(str), kMaxRetiredStrings);
-}
-
-void MetadataInternal::RetireCachedStringsLocked() const {
-  auto retire = [this](std::unique_ptr<std::string>& slot) {
-    if (slot) {
-      RetireStringLocked(std::move(slot));
-    }
-  };
-  retire(bucket_);
-  retire(cache_control_);
-  retire(content_disposition_);
-  retire(content_encoding_);
-  retire(content_language_);
-  retire(content_type_);
-  retire(name_);
-  retire(path_);
-  retire(md5_hash_);
-}
-
 const char* MetadataInternal::bucket() const {
   MutexLock lock(mutex_);
-  return NSStringToCString(impl() ? impl().bucket : nil, &bucket_,
-                           &retired_strings_, kMaxRetiredStrings);
+  return NSStringToCString(impl() ? impl().bucket : nil, &bucket_);
 }
 
 void MetadataInternal::set_cache_control(const char* cache_control) {
@@ -293,8 +238,7 @@ void MetadataInternal::set_cache_control(const char* cache_control) {
 
 const char* MetadataInternal::cache_control() const {
   MutexLock lock(mutex_);
-  return NSStringToCString(impl() ? impl().cacheControl : nil, &cache_control_,
-                           &retired_strings_, kMaxRetiredStrings);
+  return NSStringToCString(impl() ? impl().cacheControl : nil, &cache_control_);
 }
 
 void MetadataInternal::set_content_disposition(const char* disposition) {
@@ -307,8 +251,7 @@ void MetadataInternal::set_content_disposition(const char* disposition) {
 const char* MetadataInternal::content_disposition() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().contentDisposition : nil,
-                           &content_disposition_, &retired_strings_,
-                           kMaxRetiredStrings);
+                           &content_disposition_);
 }
 
 void MetadataInternal::set_content_encoding(const char* encoding) {
@@ -321,8 +264,7 @@ void MetadataInternal::set_content_encoding(const char* encoding) {
 const char* MetadataInternal::content_encoding() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().contentEncoding : nil,
-                           &content_encoding_, &retired_strings_,
-                           kMaxRetiredStrings);
+                           &content_encoding_);
 }
 
 void MetadataInternal::set_content_language(const char* language) {
@@ -335,8 +277,7 @@ void MetadataInternal::set_content_language(const char* language) {
 const char* MetadataInternal::content_language() const {
   MutexLock lock(mutex_);
   return NSStringToCString(impl() ? impl().contentLanguage : nil,
-                           &content_language_, &retired_strings_,
-                           kMaxRetiredStrings);
+                           &content_language_);
 }
 
 void MetadataInternal::set_content_type(const char* type) {
@@ -348,8 +289,7 @@ void MetadataInternal::set_content_type(const char* type) {
 
 const char* MetadataInternal::content_type() const {
   MutexLock lock(mutex_);
-  return NSStringToCString(impl() ? impl().contentType : nil, &content_type_,
-                           &retired_strings_, kMaxRetiredStrings);
+  return NSStringToCString(impl() ? impl().contentType : nil, &content_type_);
 }
 
 int64_t MetadataInternal::creation_time() const {
@@ -413,14 +353,12 @@ int64_t MetadataInternal::metadata_generation() const {
 
 const char* MetadataInternal::name() const {
   MutexLock lock(mutex_);
-  return NSStringToCString(impl() ? impl().name : nil, &name_,
-                           &retired_strings_, kMaxRetiredStrings);
+  return NSStringToCString(impl() ? impl().name : nil, &name_);
 }
 
 const char* MetadataInternal::path() const {
   MutexLock lock(mutex_);
-  return NSStringToCString(impl() ? impl().path : nil, &path_,
-                           &retired_strings_, kMaxRetiredStrings);
+  return NSStringToCString(impl() ? impl().path : nil, &path_);
 }
 
 StorageReferenceInternal* MetadataInternal::GetReference() const {
@@ -454,8 +392,7 @@ int64_t MetadataInternal::updated_time() const {
 
 const char* MetadataInternal::md5_hash() const {
   MutexLock lock(mutex_);
-  return NSStringToCString(impl() ? impl().md5Hash : nil, &md5_hash_,
-                           &retired_strings_, kMaxRetiredStrings);
+  return NSStringToCString(impl() ? impl().md5Hash : nil, &md5_hash_);
 }
 
 }  // namespace internal

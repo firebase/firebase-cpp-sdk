@@ -66,8 +66,8 @@ ControllerInternal::LifetimeHandle::~LifetimeHandle() {
 
 void ControllerInternal::LifetimeHandle::AssignTask(
     const std::shared_ptr<LifetimeHandle>& self,
-    StorageInternal* _Nonnull new_storage,
-    FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull new_task) {
+    StorageInternal* _Nullable new_storage,
+    FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable new_task) {
   if (!self) {
     return;
   }
@@ -375,9 +375,12 @@ StorageReferenceInternal* ControllerInternal::GetReference() const {
 }
 
 void ControllerInternal::AssignTask(
-    StorageInternal* storage,
-    FIRStorageObservableTask<FIRStorageTaskManagement>* task_impl) {
-  LifetimeHandle::AssignTask(lifetime_handle(), storage, task_impl);
+    StorageInternal* _Nullable storage,
+    FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable task_impl) {
+  if (!state_) {
+    state_ = std::make_shared<LifetimeHandle>();
+  }
+  LifetimeHandle::AssignTask(state_, storage, task_impl);
 }
 
 bool ControllerInternal::is_valid() const {
@@ -405,9 +408,9 @@ void ControllerInternal::set_pending_valid(bool pending_valid) {
       }
     }
     if (needs_fresh_state) {
-      state_ = std::make_shared<LifetimeHandle>();
-      std::lock_guard<std::recursive_mutex> lock(state_->mutex);
-      state_->pending_valid = true;
+      auto fresh = std::make_shared<LifetimeHandle>();
+      fresh->pending_valid = true;
+      state_ = std::move(fresh);
     }
   } else if (state_) {
     std::lock_guard<std::recursive_mutex> lock(state_->mutex);
@@ -417,14 +420,6 @@ void ControllerInternal::set_pending_valid(bool pending_valid) {
     state_->pending_pause = false;
     state_->pending_resume = false;
   }
-}
-
-std::shared_ptr<ControllerInternal::LifetimeHandle>
-ControllerInternal::lifetime_handle() const {
-  if (!state_) {
-    state_ = std::make_shared<LifetimeHandle>();
-  }
-  return state_;
 }
 
 bool ControllerInternal::operator==(const ControllerInternal& other) const {

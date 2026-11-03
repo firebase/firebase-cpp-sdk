@@ -84,8 +84,8 @@ class ControllerInternal {
 
     static void AssignTask(
         const std::shared_ptr<LifetimeHandle>& self,
-        StorageInternal* _Nonnull new_storage,
-        FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull new_task);
+        StorageInternal* _Nullable new_storage,
+        FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable new_task);
 #endif  // __OBJC__
   };
 
@@ -125,15 +125,17 @@ class ControllerInternal {
   // constructed by the user of the library, and those controllers are not
   // associated with a specific operation until passed to a Read or Write call.
   void AssignTask(
-      StorageInternal* _Nonnull storage,
-      FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task_impl);
+      StorageInternal* _Nullable storage,
+      FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable task_impl);
 #endif  // __OBJC__
 
   bool is_valid() const;
 
   void set_pending_valid(bool pending_valid);
 
-  std::shared_ptr<LifetimeHandle> lifetime_handle() const;
+  std::shared_ptr<LifetimeHandle> lifetime_handle() const noexcept {
+    return state_;
+  }
 
   bool operator==(const ControllerInternal& other) const;
   bool operator!=(const ControllerInternal& other) const {
@@ -141,7 +143,7 @@ class ControllerInternal {
   }
 
  private:
-  mutable std::shared_ptr<LifetimeHandle> state_;
+  std::shared_ptr<LifetimeHandle> state_;
 };
 
 }  // namespace internal
