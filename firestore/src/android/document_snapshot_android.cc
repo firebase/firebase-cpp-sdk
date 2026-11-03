@@ -96,7 +96,6 @@ const std::string& DocumentSnapshotInternal::id() const {
   }
   return cached_id_;
 }
-}
 
 DocumentReference DocumentSnapshotInternal::reference() const {
   Env env = GetEnv();
