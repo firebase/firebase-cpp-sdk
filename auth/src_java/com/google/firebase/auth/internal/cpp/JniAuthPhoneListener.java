@@ -17,9 +17,11 @@
 package com.google.firebase.auth.internal.cpp;
 
 import com.google.firebase.FirebaseException;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider.ForceResendingToken;
 import com.google.firebase.auth.PhoneAuthProvider.OnVerificationStateChangedCallbacks;
+import java.util.ArrayList;
 
 /**
  * Redirect PhoneAuthProvider callbacks into C++.
@@ -28,77 +30,127 @@ public class JniAuthPhoneListener extends OnVerificationStateChangedCallbacks {
   // C++ nullptr for use with the callbacks.
   private static final long CPP_NULLPTR = 0;
 
-  // Synchronization object. Every function is synchronized so the class is effectively a monitor.
-  private final Object lock;
-
-  // C++ pointer to the user-owned PhoneAuthProvider::Listener.
-  // When this object is destroyed, PhoneAuthProvider::Listener::~Listener() will call into
-  // this class and reset this variable to nullptr.
+  // Native callback context handle cleared by disconnect().
+  // Synchronized on `this` along with activeCallbackThreads.
   private long cListener;
+  private final ArrayList<Thread> activeCallbackThreads = new ArrayList<>();
 
   public JniAuthPhoneListener(long cListener) {
-    lock = new Object();
     this.cListener = cListener;
   }
 
-  public void disconnect() {
-    synchronized (lock) {
-      cListener = CPP_NULLPTR;
+  private boolean hasOtherActiveThreads(Thread currentThread) {
+    for (int i = 0; i < activeCallbackThreads.size(); i++) {
+      if (activeCallbackThreads.get(i) != currentThread) {
+        return true;
+      }
     }
+    return false;
+  }
+
+  public synchronized void disconnect() {
+    cListener = CPP_NULLPTR;
+    Thread currentThread = Thread.currentThread();
+    while (hasOtherActiveThreads(currentThread)) {
+      try {
+        wait();
+      } catch (InterruptedException e) {
+        currentThread.interrupt();
+        break;
+      }
+    }
+  }
+
+  private synchronized long beginCallback() {
+    if (cListener == CPP_NULLPTR) {
+      return CPP_NULLPTR;
+    }
+    activeCallbackThreads.add(Thread.currentThread());
+    return cListener;
+  }
+
+  private synchronized void endCallback() {
+    activeCallbackThreads.remove(Thread.currentThread());
+    notifyAll();
   }
 
   @Override
   public void onVerificationCompleted(final PhoneAuthCredential credential) {
-    synchronized (lock) {
-      if (cListener != CPP_NULLPTR) {
+    final long listenerPtr = beginCallback();
+    if (listenerPtr != CPP_NULLPTR) {
+      try {
         AuthCommon.safeRunNativeMethod(new Runnable() {
           @Override
           public void run() {
-            nativeOnVerificationCompleted(cListener, credential);
+            nativeOnVerificationCompleted(listenerPtr, credential);
           }
         });
+      } finally {
+        endCallback();
       }
     }
   }
 
   @Override
   public void onVerificationFailed(final FirebaseException exception) {
-    synchronized (lock) {
-      if (cListener != CPP_NULLPTR) {
+    final long listenerPtr = beginCallback();
+    if (listenerPtr != CPP_NULLPTR) {
+      try {
+        String message = (exception != null) ? exception.getMessage() : null;
+        if (exception instanceof FirebaseAuthException) {
+          String errorCode = ((FirebaseAuthException) exception).getErrorCode();
+          if (errorCode != null && !errorCode.isEmpty()) {
+            message = (message != null && !message.isEmpty())
+                ? (errorCode + ": " + message)
+                : errorCode;
+          }
+        }
+        final String safeMessage =
+            (message != null) ? message : "Phone verification failed.";
         AuthCommon.safeRunNativeMethod(new Runnable() {
           @Override
           public void run() {
-            nativeOnVerificationFailed(cListener, exception.getMessage());
+            nativeOnVerificationFailed(listenerPtr, safeMessage);
           }
         });
+      } finally {
+        endCallback();
       }
     }
   }
 
   @Override
   public void onCodeSent(final String verificationId, final ForceResendingToken token) {
-    synchronized (lock) {
-      if (cListener != CPP_NULLPTR) {
+    final long listenerPtr = beginCallback();
+    if (listenerPtr != CPP_NULLPTR) {
+      try {
+        final String safeVerificationId = (verificationId != null) ? verificationId : "";
         AuthCommon.safeRunNativeMethod(new Runnable() {
           @Override
           public void run() {
-            nativeOnCodeSent(cListener, verificationId, token);
+            nativeOnCodeSent(listenerPtr, safeVerificationId, token);
           }
         });
+      } finally {
+        endCallback();
       }
     }
   }
 
   @Override
   public void onCodeAutoRetrievalTimeOut(final String verificationId) {
-    synchronized (lock) {
-      if (cListener != CPP_NULLPTR) {
+    final long listenerPtr = beginCallback();
+    if (listenerPtr != CPP_NULLPTR) {
+      try {
+        final String safeVerificationId = (verificationId != null) ? verificationId : "";
         AuthCommon.safeRunNativeMethod(new Runnable() {
           @Override
           public void run() {
-            nativeOnCodeAutoRetrievalTimeOut(cListener, verificationId);
+            nativeOnCodeAutoRetrievalTimeOut(listenerPtr, safeVerificationId);
           }
         });
+      } finally {
+        endCallback();
       }
     }
   }

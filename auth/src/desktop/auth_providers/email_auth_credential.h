@@ -31,6 +31,18 @@ class EmailAuthCredential : public AuthCredential {
     return kEmailPasswordAuthProviderId;
   }
 
+  CredentialType GetType() const override { return CredentialType::kEmail; }
+
+  bool IsValid() const override {
+    return !email_.empty() && !password_.empty();
+  }
+
+  bool Equals(const AuthCredential& other) const override {
+    if (other.GetType() != GetType()) return false;
+    const auto& rhs = static_cast<const EmailAuthCredential&>(other);
+    return email_ == rhs.email_ && password_ == rhs.password_;
+  }
+
   std::string GetEmail() const { return email_; }
   std::string GetPassword() const { return password_; }
 

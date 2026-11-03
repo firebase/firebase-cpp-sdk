@@ -16,6 +16,8 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTHENTICATION_RESULT_H_
 
 #include <cstddef>
+#include <ctime>
+#include <limits>
 #include <string>
 
 #include "app/rest/util.h"
@@ -156,18 +158,38 @@ inline AuthenticationResult AuthenticationResult::FromResponse(
 
 inline AuthenticationResult AuthenticationResult::FromAuthenticatedUserData(
     const FederatedAuthProvider::AuthenticatedUserData& user_data) {
+  if (!user_data.uid || user_data.uid[0] == '\0' || !user_data.provider_id ||
+      user_data.provider_id[0] == '\0' || !user_data.access_token ||
+      user_data.access_token[0] == '\0' || !user_data.refresh_token ||
+      user_data.refresh_token[0] == '\0') {
+    return AuthenticationResult(kAuthErrorInvalidAuthenticatedUserData);
+  }
   AuthenticationResult result;
 
   result.user_impl_.is_anonymous = false;
   result.user_impl_.uid = user_data.uid;
+  if (user_data.email) result.user_impl_.email = user_data.email;
+  if (user_data.display_name)
+    result.user_impl_.display_name = user_data.display_name;
+  if (user_data.photo_url) result.user_impl_.photo_url = user_data.photo_url;
+  result.user_impl_.is_email_verified = user_data.is_email_verified;
   result.user_impl_.id_token = user_data.access_token;
   result.user_impl_.refresh_token = user_data.refresh_token;
   result.user_impl_.provider_id = user_data.provider_id;
   result.user_impl_.access_token = user_data.access_token;
+  const std::time_t now = std::time(nullptr);
+  const uint64_t max_add = static_cast<uint64_t>(
+      std::numeric_limits<std::time_t>::max() - (now > 0 ? now : 0));
   result.user_impl_.access_token_expiration_date =
-      std::time(nullptr) + user_data.token_expires_in_seconds;
+      now + static_cast<std::time_t>(
+                user_data.token_expires_in_seconds > max_add
+                    ? max_add
+                    : user_data.token_expires_in_seconds);
 
   result.info_ = GetAdditionalUserInfo(user_data);
+  if (user_data.user_name && result.info_.user_name.empty()) {
+    result.info_.user_name = user_data.user_name;
+  }
 
   return result;
 }

@@ -27,6 +27,9 @@ namespace auth {
 // static
 Credential FacebookAuthProvider::GetCredential(const char* const access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), access_token);
+  if (access_token[0] == '\0') {
+    return Credential();
+  }
   return Credential{
       new CredentialImpl{new FacebookAuthCredential(access_token)}};
 }

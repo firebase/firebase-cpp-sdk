@@ -17,8 +17,8 @@
 
 #include "app/src/include/firebase/internal/platform.h"
 
-// InstallationsInternal is defined in these 2 files, one implementation for
-// each OS.
+// InstallationsInternal is defined in these 3 files, one implementation for
+// each platform (Android, Apple iOS/tvOS, and Desktop).
 #if FIREBASE_PLATFORM_ANDROID || FIREBASE_ANDROID_FOR_DESKTOP
 #include "installations/src/android/installations_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS

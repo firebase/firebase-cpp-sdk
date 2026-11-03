@@ -47,6 +47,29 @@ class UserView {
   // mutex lock is associated with an invalid Reader.
   class Reader {
    public:
+    Reader(const Reader&) = delete;
+    Reader& operator=(const Reader&) = delete;
+
+    Reader(Reader&& rhs) noexcept
+        : user_data_(rhs.user_data_),
+          auth_data_(rhs.auth_data_),
+          mutex_(rhs.mutex_) {
+      rhs.mutex_ = nullptr;
+    }
+
+    Reader& operator=(Reader&& rhs) noexcept {
+      if (this != &rhs) {
+        if (mutex_) {
+          mutex_->Release();
+        }
+        user_data_ = rhs.user_data_;
+        auth_data_ = rhs.auth_data_;
+        mutex_ = rhs.mutex_;
+        rhs.mutex_ = nullptr;
+      }
+      return *this;
+    }
+
     bool IsValid() const { return user_data_ != nullptr; }
     const UserData* operator->() const { return user_data_; }
     const std::vector<UserInfoInterface*>& GetUserInfos() const;
@@ -67,8 +90,8 @@ class UserView {
       FIREBASE_ASSERT(mutex);
     }
 
-    const UserData* const user_data_;
-    const AuthData* const auth_data_;
+    const UserData* user_data_;
+    const AuthData* auth_data_;
     Mutex* mutex_;
   };
 
@@ -79,11 +102,33 @@ class UserView {
   // reset or clear UserInfos associated with the current user.
   class Writer {
    public:
+    Writer(const Writer&) = delete;
+    Writer& operator=(const Writer&) = delete;
+
+    Writer(Writer&& rhs) noexcept
+        : user_data_(rhs.user_data_),
+          auth_data_(rhs.auth_data_),
+          mutex_(rhs.mutex_) {
+      rhs.mutex_ = nullptr;
+    }
+
+    Writer& operator=(Writer&& rhs) noexcept {
+      if (this != &rhs) {
+        if (mutex_) {
+          mutex_->Release();
+        }
+        user_data_ = rhs.user_data_;
+        auth_data_ = rhs.auth_data_;
+        mutex_ = rhs.mutex_;
+        rhs.mutex_ = nullptr;
+      }
+      return *this;
+    }
+
     bool IsValid() const { return user_data_ != nullptr; }
     UserData* operator->() { return user_data_; }
 
     void ResetUserInfos(const std::vector<UserInfoImpl>& provider_data);
-    void ClearUserInfos();
 
     ~Writer() {
       if (mutex_) {
@@ -100,8 +145,8 @@ class UserView {
       FIREBASE_ASSERT(mutex);
     }
 
-    UserData* const user_data_;
-    AuthData* const auth_data_;
+    UserData* user_data_;
+    AuthData* auth_data_;
     Mutex* mutex_;
   };
 
@@ -144,10 +189,11 @@ class UserView {
   //
   // @code{.cpp}
   // std::string uid, token;
-  // const bool is_user_signed_in = [&](const UserView::Reader& user) {
-  //   uid = user->uid;
-  //   token = user->id_token;
-  // });
+  // const bool is_user_signed_in = UserView::TryRead(
+  //     auth_data, [&](const UserView::Reader& user) {
+  //       uid = user->uid;
+  //       token = user->id_token;
+  //     });
   // if (!is_user_signed_in) {
   //   // Handle failure; uid and token haven't been touched
   // } else {

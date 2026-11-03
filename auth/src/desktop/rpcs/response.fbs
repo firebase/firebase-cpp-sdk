@@ -40,8 +40,8 @@ table User {
   phoneNumber:string;
   passwordUpdatedAt:double;
   validSince:long; // Note: the format here is seconds.
-  lastLoginAt:long;
-  createdAt:long;
+  lastLoginAt:ulong;
+  createdAt:ulong;
   providerUserInfo:[ProviderUserInfo];
 }
 
@@ -63,6 +63,7 @@ table Response {
   localId:string;
 
   allProviders:[string];
+  signinMethods:[string];
   registered:bool;
 
   users:[User];
@@ -72,6 +73,7 @@ table Response {
   displayName:string;
   email:string;
   photoUrl:string;
+  emailVerified:bool;
 
   access_token:string;
   refresh_token:string;
@@ -84,6 +86,11 @@ table Response {
 
   providerId:string;
   rawUserInfo:string;
+
+  oauthIdToken:string;
+  oauthAccessToken:string;
+  oauthTokenSecret:string;
+  pendingToken:string;
 
   providerUserInfo:[ProviderUserInfo];
 

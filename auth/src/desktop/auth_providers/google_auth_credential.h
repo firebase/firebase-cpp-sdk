@@ -33,6 +33,18 @@ class GoogleAuthCredential : public IdentityProviderCredential {
  public:
   std::string GetProvider() const override { return kGoogleAuthProviderId; }
 
+  CredentialType GetType() const override { return CredentialType::kGoogle; }
+
+  bool IsValid() const override {
+    return !id_token_.empty() || !access_token_.empty();
+  }
+
+  bool Equals(const AuthCredential& other) const override {
+    if (other.GetType() != GetType()) return false;
+    const auto& rhs = static_cast<const GoogleAuthCredential&>(other);
+    return id_token_ == rhs.id_token_ && access_token_ == rhs.access_token_;
+  }
+
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       ::firebase::App& app, const char* const api_key) const override {
     if (!id_token_.empty()) {

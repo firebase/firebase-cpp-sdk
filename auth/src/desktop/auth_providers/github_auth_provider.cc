@@ -27,6 +27,9 @@ namespace auth {
 // static
 Credential GitHubAuthProvider::GetCredential(const char* const token) {
   FIREBASE_ASSERT_RETURN(Credential(), token);
+  if (token[0] == '\0') {
+    return Credential();
+  }
   return Credential{new CredentialImpl{new GitHubAuthCredential(token)}};
 }
 

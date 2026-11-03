@@ -97,20 +97,34 @@ class Credential {
  private:
   /// Should only be created by `Provider` classes.
   ///
-  /// @see EmailAuthProvider::GetCredential()
-  /// @see FacebookAuthProvider::GetCredential()
-  /// @see GoogleAuthProvider::GetCredential()
+  /// @see EmailAuthProvider::GetCredential
+  /// @see FacebookAuthProvider::GetCredential
+  /// @see GoogleAuthProvider::GetCredential
   explicit Credential(void* impl) : impl_(impl), error_code_(kAuthErrorNone) {}
 
  public:
   Credential() : impl_(nullptr), error_code_(kAuthErrorNone) {}
-  ~Credential();
+  virtual ~Credential();
 
   /// Copy constructor.
   Credential(const Credential& rhs);
 
   /// Copy a Credential.
   Credential& operator=(const Credential& rhs);
+
+#if !defined(SWIG)
+  /// Move constructor.
+  Credential(Credential&& rhs) noexcept;
+
+  /// Move assignment operator.
+  Credential& operator=(Credential&& rhs) noexcept;
+
+  /// Equality operator.
+  bool operator==(const Credential& rhs) const;
+
+  /// Inequality operator.
+  bool operator!=(const Credential& rhs) const { return !(*this == rhs); }
+#endif  // !defined(SWIG)
 
   /// Gets the name of the Identification Provider (IDP) for the credential.
   ///
@@ -149,7 +163,7 @@ class Credential {
 /// Wraps phone number and verification information for authentication purposes.
 class PhoneAuthCredential : public Credential {
  public:
-  // Default constructor.
+  /// Default constructor.
   PhoneAuthCredential();
 
   /// Copy constructor.
@@ -157,6 +171,25 @@ class PhoneAuthCredential : public Credential {
 
   /// Copy a Credential.
   PhoneAuthCredential& operator=(const PhoneAuthCredential& rhs);
+
+#if !defined(SWIG)
+  /// Move constructor.
+  PhoneAuthCredential(PhoneAuthCredential&& rhs) noexcept;
+
+  /// Move assignment operator.
+  PhoneAuthCredential& operator=(PhoneAuthCredential&& rhs) noexcept;
+
+  using Credential::operator==;
+  using Credential::operator!=;
+
+  /// Equality operator.
+  bool operator==(const PhoneAuthCredential& credential) const;
+
+  /// Inequality operator.
+  bool operator!=(const PhoneAuthCredential& credential) const {
+    return !(*this == credential);
+  }
+#endif  // !defined(SWIG)
 
   /// Gets the automatically retrieved SMS verification code if applicable.
   /// This method is only supported on Android.
@@ -185,14 +218,25 @@ class EmailAuthProvider {
  public:
   /// Generate a credential from the given email and password.
   ///
-  /// @param email E-mail to generate the credential from.
-  /// @param password Password to use for the new credential.
+  /// @param[in] email E-mail to generate the credential from.
+  /// @param[in] password Password to use for the new credential.
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* email, const char* password);
 
+#if !defined(SWIG)
+  /// Generate a credential from the given email and password.
+  static Credential GetCredential(const std::string& email,
+                                  const std::string& password) {
+    return GetCredential(email.c_str(), password.c_str());
+  }
+#endif  // !defined(SWIG)
+
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  EmailAuthProvider() = delete;
 };
 
 /// @brief Use an access token provided by Facebook to authenticate.
@@ -200,16 +244,26 @@ class FacebookAuthProvider {
  public:
   /// Generate a credential from the given Facebook token.
   ///
-  /// @param access_token Facebook token to generate the credential from.
+  /// @param[in] access_token Facebook token to generate the credential from.
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* access_token);
 
+#if !defined(SWIG)
+  /// Generate a credential from the given Facebook token.
+  static Credential GetCredential(const std::string& access_token) {
+    return GetCredential(access_token.c_str());
+  }
+#endif  // !defined(SWIG)
+
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  FacebookAuthProvider() = delete;
 };
 
-/// @brief GameCenter (Apple) auth provider
+/// @brief GameCenter (Apple) auth provider.
 class GameCenterAuthProvider {
  public:
   /// Generate a credential from GameCenter for the current user.
@@ -229,6 +283,9 @@ class GameCenterAuthProvider {
 
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  GameCenterAuthProvider() = delete;
 };
 
 /// @brief Use an access token provided by GitHub to authenticate.
@@ -236,13 +293,23 @@ class GitHubAuthProvider {
  public:
   /// Generate a credential from the given GitHub token.
   ///
-  /// @param token The GitHub OAuth access token.
+  /// @param[in] token The GitHub OAuth access token.
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* token);
 
+#if !defined(SWIG)
+  /// Generate a credential from the given GitHub token.
+  static Credential GetCredential(const std::string& token) {
+    return GetCredential(token.c_str());
+  }
+#endif  // !defined(SWIG)
+
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  GitHubAuthProvider() = delete;
 };
 
 /// @brief Use an ID token and access token provided by Google to authenticate.
@@ -250,15 +317,26 @@ class GoogleAuthProvider {
  public:
   /// Generate a credential from the given Google ID token and/or access token.
   ///
-  /// @param id_token Google Sign-In ID token.
-  /// @param access_token Google Sign-In access token.
+  /// @param[in] id_token Google Sign-In ID token.
+  /// @param[in] access_token Google Sign-In access token.
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* id_token,
                                   const char* access_token);
 
+#if !defined(SWIG)
+  /// Generate a credential from the given Google ID token and/or access token.
+  static Credential GetCredential(const std::string& id_token,
+                                  const std::string& access_token) {
+    return GetCredential(id_token.c_str(), access_token.c_str());
+  }
+#endif  // !defined(SWIG)
+
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  GoogleAuthProvider() = delete;
 };
 
 /// @brief Use an access token provided by Microsoft to authenticate.
@@ -266,6 +344,9 @@ class MicrosoftAuthProvider {
  public:
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  MicrosoftAuthProvider() = delete;
 };
 
 /// @brief OAuth2.0+UserInfo auth provider (OIDC compliant and non-compliant).
@@ -273,25 +354,50 @@ class OAuthProvider {
  public:
   /// Generate a credential for an OAuth2 provider.
   ///
-  /// @param provider_id Name of the OAuth2 provider
-  ///    TODO(jsanmiya) add examples.
-  /// @param id_token The authentication token (OIDC only).
-  /// @param access_token TODO(jsanmiya) add explanation (currently missing
-  ///    from Android and iOS implementations).
+  /// @param[in] provider_id Name of the OAuth2 provider (e.g., "apple.com").
+  /// @param[in] id_token The authentication token (OIDC only).
+  /// @param[in] access_token The access token associated with the Auth
+  /// credential to be created, if available.
+  ///
+  /// @returns New Credential.
   static Credential GetCredential(const char* provider_id, const char* id_token,
                                   const char* access_token);
 
   /// Generate a credential for an OAuth2 provider.
   ///
-  /// @param provider_id Name of the OAuth2 provider.
-  /// @param id_token The authentication token (OIDC only).
-  /// @param raw_nonce The raw nonce associated with the Auth credential being
-  /// created.
-  /// @param access_token The access token associated with the Auth credential
-  /// to be created, if available.  This value may be null.
+  /// @param[in] provider_id Name of the OAuth2 provider.
+  /// @param[in] id_token The authentication token (OIDC only).
+  /// @param[in] raw_nonce The raw nonce associated with the Auth credential
+  /// being created.
+  /// @param[in] access_token The access token associated with the Auth
+  /// credential to be created, if available. This value may be null.
+  ///
+  /// @returns New Credential.
   static Credential GetCredential(const char* provider_id, const char* id_token,
                                   const char* raw_nonce,
                                   const char* access_token);
+
+#if !defined(SWIG)
+  /// Generate a credential for an OAuth2 provider.
+  static Credential GetCredential(const std::string& provider_id,
+                                  const std::string& id_token,
+                                  const std::string& access_token) {
+    return GetCredential(provider_id.c_str(), id_token.c_str(),
+                         access_token.c_str());
+  }
+
+  /// Generate a credential for an OAuth2 provider with a nonce.
+  static Credential GetCredential(const std::string& provider_id,
+                                  const std::string& id_token,
+                                  const std::string& raw_nonce,
+                                  const std::string& access_token) {
+    return GetCredential(provider_id.c_str(), id_token.c_str(),
+                         raw_nonce.c_str(), access_token.c_str());
+  }
+#endif  // !defined(SWIG)
+
+ private:
+  OAuthProvider() = delete;
 };
 
 /// @brief Use phone number text messages to authenticate.
@@ -336,7 +442,8 @@ class OAuthProvider {
 /// </SWIG>
 ///
 /// (2) SMS is automatically retrieved (Android only).
-///     - App calls @ref VerifyPhoneNumber with `timeout_ms` > 0.
+///     - App calls @ref VerifyPhoneNumber with
+///       `PhoneAuthOptions::timeout_milliseconds` > 0.
 ///     - Auth server sends the verification code via SMS to the provided
 ///       phone number.
 ///     - SMS arrives and is automatically retrieved by the operating system.
@@ -363,119 +470,6 @@ class OAuthProvider {
 ///       @ref VerificationCompleted.
 ///       @endif
 ///       </SWIG>
-///
-/// @if cpp_examples
-/// All three flows can be handled with the example code below.
-/// The flow is complete when PhoneVerifier::credential() returns non-NULL.
-///
-/// @code{.cpp}
-/// class PhoneVerifier : public PhoneAuthProvider::Listener {
-///  public:
-///   PhoneVerifier(const char* phone_number,
-///                 PhoneAuthProvider* phone_auth_provider)
-///     : display_message_("Sending SMS with verification code"),
-///       display_verification_code_input_box_(false),
-///       display_resend_sms_button_(false),
-///       phone_auth_provider_(phone_auth_provider),
-///       phone_number_(phone_number) {
-///     SendSms();
-///   }
-///
-///   ~PhoneVerifier() override {}
-///
-///   void OnVerificationCompleted(Credential credential) override {
-///     // Grab `mutex_` for the scope of `lock`. Callbacks can be called on
-///     // other threads, so this mutex ensures data access is atomic.
-///     MutexLock lock(mutex_);
-///     credential_ = credential;
-///   }
-///
-///   void OnVerificationFailed(const std::string& error) override {
-///     MutexLock lock(mutex_);
-///     display_message_ = "Verification failed with error: " + error;
-///   }
-///
-///   void OnCodeSent(const std::string& verification_id,
-///                   const PhoneAuthProvider::ForceResendingToken&
-///                       force_resending_token) override {
-///     MutexLock lock(mutex_);
-///     verification_id_ = verification_id;
-///     force_resending_token_ = force_resending_token;
-///
-///     display_verification_code_input_box_ = true;
-///     display_message_ = "Waiting for SMS";
-///   }
-///
-///   void OnCodeAutoRetrievalTimeOut(
-///       const std::string& verification_id) override {
-///     MutexLock lock(mutex_);
-///     display_resend_sms_button_ = true;
-///   }
-///
-///   // Draw the verification GUI on screen and process input events.
-///   void Draw() {
-///     MutexLock lock(mutex_);
-///
-///     // Draw an informative message describing what's currently happening.
-///     ShowTextBox(display_message_.c_str());
-///
-///     // Once the time out expires, display a button to resend the SMS.
-///     // If the button is pressed, call VerifyPhoneNumber again using the
-///     // force_resending_token_.
-///     if (display_resend_sms_button_ && !verification_id_.empty()) {
-///       const bool resend_sms = ShowTextButton("Resend SMS");
-///       if (resend_sms) {
-///         SendSms();
-///       }
-///     }
-///
-///     // Once the SMS has been sent, allow the user to enter the SMS
-///     // verification code into a text box. When the user has completed
-///     // entering it, call GetCredential() to complete the flow.
-///     if (display_verification_code_input_box_) {
-///       const std::string verification_code =
-///         ShowInputBox("Verification code");
-///       if (!verification_code.empty()) {
-///         credential_ = phone_auth_provider_->GetCredential(
-///             verification_id_.c_str(), verification_code.c_str());
-///       }
-///     }
-///   }
-///
-///   // The phone number verification flow is complete when this returns
-///   // non-NULL.
-///   Credential* credential() {
-///     MutexLock lock(mutex_);
-///     return credential_.is_valid() ? &credential_ : nullptr;
-///   }
-///
-///  private:
-///   void SendSms() {
-///     static const uint32_t kAutoVerifyTimeOut = 2000;
-///     MutexLock lock(mutex_);
-///     phone_auth_provider_->VerifyPhoneNumber(
-///         phone_number_.c_str(), kAutoVerifyTimeOut, &force_resending_token_,
-///         this);
-///     display_resend_sms_button_ = false;
-///   }
-///
-///   // GUI-related variables.
-///   std::string display_message_;
-///   bool display_verification_code_input_box_;
-///   bool display_resend_sms_button_;
-///
-///   // Phone flow related variables.
-///   PhoneAuthProvider* phone_auth_provider_;
-///   std::string phone_number_;
-///   std::string verification_id_;
-///   PhoneAuthProvider::ForceResendingToken force_resending_token_;
-///   Credential credential_;
-///
-///   // Callbacks can be called on other threads, so guard them with a mutex.
-///   Mutex mutex_;
-/// };
-/// @endcode
-/// @endif
 class PhoneAuthProvider {
  public:
   /// @brief Token to maintain current phone number verification session.
@@ -496,13 +490,16 @@ class PhoneAuthProvider {
     /// Make `this` token refer to the same phone session as `rhs`.
     ForceResendingToken& operator=(const ForceResendingToken& rhs);
 
-    /// Return true if `rhs` is refers to the same phone number session as
-    /// `this`.
+    /// Return true if `rhs` refers to the same phone number session as `this`.
     bool operator==(const ForceResendingToken& rhs) const;
 
-    /// Return true if `rhs` is refers to a different phone number session as
+    /// Return true if `rhs` refers to a different phone number session as
     /// `this`.
     bool operator!=(const ForceResendingToken& rhs) const;
+
+    /// Returns true if this token is associated with an active verification
+    /// session.
+    bool is_valid() const { return data_ != nullptr; }
 
    private:
     friend class JniAuthPhoneListener;
@@ -518,6 +515,11 @@ class PhoneAuthProvider {
     Listener();
     virtual ~Listener();
 
+#if !defined(SWIG)
+    Listener(const Listener&) = delete;
+    Listener& operator=(const Listener&) = delete;
+#endif  // !defined(SWIG)
+
     /// @brief Phone number auto-verification succeeded.
     ///
     /// Called when,
@@ -525,8 +527,7 @@ class PhoneAuthProvider {
     ///  - instant validation has succeeded--flow (3) in @ref PhoneAuthProvider
     ///
     /// @note This callback is never called on iOS, since iOS does not have
-    ///    auto-validation. It is always called immediately in the stub desktop
-    ///    implementation, however, since it fakes immediate success.
+    ///    auto-validation.
     ///
     /// @param[in] credential The completed credential from the phone number
     ///    verification flow.
@@ -534,7 +535,7 @@ class PhoneAuthProvider {
 
     /// @brief Phone number verification failed with an error.
     ///
-    /// Called when and error occurred doing phone number authentication.
+    /// Called when an error occurred doing phone number authentication.
     /// For example,
     ///  - quota exceeded
     ///  - unknown phone number format
@@ -560,7 +561,7 @@ class PhoneAuthProvider {
 
     /// @brief The timeout specified in @ref VerifyPhoneNumber has expired.
     ///
-    /// Called once `auto_verify_time_out_ms` has passed.
+    /// Called once `timeout_milliseconds` has passed.
     /// If using auto SMS retrieval, you can choose to block the UI (do not
     /// allow manual input of the verification code) until timeout is hit.
     ///
@@ -587,7 +588,7 @@ class PhoneAuthProvider {
   void VerifyPhoneNumber(const PhoneAuthOptions& options,
                          PhoneAuthProvider::Listener* listener);
 
-  /// Generate a credential for the given phone number.
+  /// Generate a credential for the given verification ID and verification code.
   ///
   /// @param[in] verification_id The id returned when sending the verification
   ///    code. Sent to the caller via @ref Listener::OnCodeSent.
@@ -598,6 +599,14 @@ class PhoneAuthProvider {
   /// @returns New Credential.
   PhoneAuthCredential GetCredential(const char* verification_id,
                                     const char* verification_code);
+
+#if !defined(SWIG)
+  /// Generate a credential for the given verification ID and verification code.
+  PhoneAuthCredential GetCredential(const std::string& verification_id,
+                                    const std::string& verification_code) {
+    return GetCredential(verification_id.c_str(), verification_code.c_str());
+  }
+#endif  // !defined(SWIG)
 
   /// Return the PhoneAuthProvider for the specified `auth`.
   ///
@@ -618,19 +627,22 @@ class PhoneAuthProvider {
   // The PhoneAuthProvider is owned by the Auth class.
   ~PhoneAuthProvider();
 
+  PhoneAuthProvider(const PhoneAuthProvider&) = delete;
+  PhoneAuthProvider& operator=(const PhoneAuthProvider&) = delete;
+
   PhoneAuthProviderData* data_;
 };
 
 /// Options object for configuring phone validation flows in @ref
 /// PhoneAuthProvider.
 struct PhoneAuthOptions {
-  // Constructor
+  /// Constructor.
   PhoneAuthOptions();
 
   /// @brief Sets the @ref PhoneAuthProvider::ForceResendingToken to force
   /// another verification SMS to be sent before the auto-retrieval timeout.
   ///
-  /// If nullptr, assume this is a new phone number to verify. If not-NULL,
+  /// If nullptr, assume this is a new phone number to verify. If non-nullptr,
   /// bypass the verification session deduping and force resending a new SMS.
   /// This token is received in @ref PhoneAuthProvider::Listener::OnCodeSent.
   /// This should only be used when the user presses a Resend SMS button.
@@ -650,7 +662,7 @@ struct PhoneAuthOptions {
   /// seconds will result in an IllegalArgumentException being thrown.
   ///
   /// Use 0 to disable SMS-auto-retrieval. This will also cause
-  /// @ref PhoneAuthProvider.Listener.OnCodeAutoRetrievalTimeOut to be called
+  /// @ref PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut to be called
   /// immediately.
   uint32_t timeout_milliseconds;
 
@@ -671,28 +683,49 @@ class PlayGamesAuthProvider {
  public:
   /// Generate a credential from the given Server Auth Code.
   ///
-  /// @param server_auth_code Play Games Sign in Server Auth Code.
+  /// @param[in] server_auth_code Play Games Sign in Server Auth Code.
   ///
   /// @return New Credential.
   static Credential GetCredential(const char* server_auth_code);
 
+#if !defined(SWIG)
+  /// Generate a credential from the given Server Auth Code.
+  static Credential GetCredential(const std::string& server_auth_code) {
+    return GetCredential(server_auth_code.c_str());
+  }
+#endif  // !defined(SWIG)
+
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  PlayGamesAuthProvider() = delete;
 };
 
 /// @brief Use a token and secret provided by Twitter to authenticate.
 class TwitterAuthProvider {
  public:
-  /// Generate a credential from the given Twitter token and password.
+  /// Generate a credential from the given Twitter token and secret.
   ///
-  /// @param token The Twitter OAuth token.
-  /// @param secret The Twitter OAuth secret.
+  /// @param[in] token The Twitter OAuth token.
+  /// @param[in] secret The Twitter OAuth secret.
   ///
   /// @return New Credential.
   static Credential GetCredential(const char* token, const char* secret);
 
+#if !defined(SWIG)
+  /// Generate a credential from the given Twitter token and secret.
+  static Credential GetCredential(const std::string& token,
+                                  const std::string& secret) {
+    return GetCredential(token.c_str(), secret.c_str());
+  }
+#endif  // !defined(SWIG)
+
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  TwitterAuthProvider() = delete;
 };
 
 /// @brief Use an access token provided by Yahoo to authenticate.
@@ -700,6 +733,9 @@ class YahooAuthProvider {
  public:
   /// The string used to identify this provider.
   static const char* const kProviderId;
+
+ private:
+  YahooAuthProvider() = delete;
 };
 
 }  // namespace auth

@@ -45,8 +45,7 @@ using firebase::callback::NewCallback;
 
 const char* GetApiKey(const AuthData& auth_data);
 
-// Same as the version for Promise<User*>, but additionally extracts
-// AdditionalUserInfo from AuthenticationResult if it was successful.
+// Completes the given Promise<AuthResult> with the provided AuthResult.
 void CompletePromise(Promise<AuthResult>* promise,
                      const AuthResult& auth_result);
 

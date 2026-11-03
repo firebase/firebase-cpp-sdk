@@ -34,23 +34,12 @@ namespace auth {
 class SignUpRequest : public AuthRequest {
  private:
   explicit SignUpRequest(::firebase::App& app, const char* api_key);
-  static std::unique_ptr<SignUpRequest> CreateRequest(::firebase::App& app,
-                                                      const char* api_key);
 
  public:
   // Initializer for linking an email and password to an account.
   static std::unique_ptr<SignUpRequest> CreateLinkWithEmailAndPasswordRequest(
       ::firebase::App& app, const char* api_key, const char* email,
       const char* password);
-
-  void SetIdToken(const char* id_token) {
-    if (id_token) {
-      application_data_->idToken = id_token;
-      UpdatePostFields();
-    } else {
-      LogError("No id token given.");
-    }
-  }
 };
 
 }  // namespace auth

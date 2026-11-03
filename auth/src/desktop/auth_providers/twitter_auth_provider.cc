@@ -28,6 +28,9 @@ namespace auth {
 Credential TwitterAuthProvider::GetCredential(const char* const token,
                                               const char* const secret) {
   FIREBASE_ASSERT_RETURN(Credential(), token && secret);
+  if (token[0] == '\0' || secret[0] == '\0') {
+    return Credential();
+  }
   return Credential{
       new CredentialImpl{new TwitterAuthCredential(token, secret)}};
 }

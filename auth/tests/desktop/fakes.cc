@@ -14,6 +14,8 @@
 
 #include "auth/tests/desktop/fakes.h"
 
+#include <iterator>
+
 #include "testing/config.h"
 
 namespace firebase {
@@ -27,8 +29,8 @@ std::string CreateRawJson(const FakeSetT& fakes) {
       "    [";
 
   for (auto i = fakes.begin(); i != fakes.end(); ++i) {
-    const std::string url = i->first;
-    const std::string response = i->second;
+    const std::string& url = i->first;
+    const std::string& response = i->second;
     raw_json +=
         "      {"
         "        fake: '" +
@@ -36,9 +38,7 @@ std::string CreateRawJson(const FakeSetT& fakes) {
         "',"
         "        httpresponse: " +
         response + "      }";
-    auto check_end = i;
-    ++check_end;
-    if (check_end != fakes.end()) {
+    if (std::next(i) != fakes.end()) {
       raw_json += ',';
     }
   }
@@ -111,6 +111,44 @@ std::string CreateErrorHttpResponse(const std::string& error) {
 
   const std::string tail = "}";
   return head + body + tail;
+}
+
+std::string GetSingleFakeProvider(const std::string& provider_id) {
+  // clang-format off
+  return std::string(
+      "  {"
+      "    \"federatedId\": \"fake_uid\","
+      "    \"email\": \"fake_email@example.com\","
+      "    \"displayName\": \"fake_display_name\","
+      "    \"photoUrl\": \"fake_photo_url\","
+      "    \"providerId\": \"") + provider_id + "\","
+      "    \"phoneNumber\": \"123123\""
+      "  }";
+  // clang-format on
+}
+
+std::string GetFakeProviderInfo(const std::string& provider_id) {
+  return std::string("\"providerUserInfo\": [") +
+         GetSingleFakeProvider(provider_id) + "]";
+}
+
+std::string CreateGetAccountInfoFake() {
+  return FakeSuccessfulResponse(
+      "GetAccountInfoResponse",
+      std::string("\"users\":"
+                  "  ["
+                  "    {"
+                  "       \"localId\": \"localid123\","
+                  "       \"email\": \"testsignin@example.com\","
+                  "       \"emailVerified\": false,"
+                  "       \"passwordHash\": \"abcdefg\","
+                  "       \"passwordUpdatedAt\": 31415926,"
+                  "       \"validSince\": \"123\","
+                  "       \"lastLoginAt\": \"123\","
+                  "       \"createdAt\": \"123\",") +
+          GetFakeProviderInfo() +
+          "    }"
+          " ]");
 }
 
 }  // namespace test

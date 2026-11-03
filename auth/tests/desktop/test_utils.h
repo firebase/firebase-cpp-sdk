@@ -15,6 +15,8 @@
 #ifndef FIREBASE_AUTH_TESTS_DESKTOP_TEST_UTILS_H_
 #define FIREBASE_AUTH_TESTS_DESKTOP_TEST_UTILS_H_
 
+#include <atomic>
+
 #include "app/src/include/firebase/future.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/include/firebase/auth.h"
@@ -42,12 +44,12 @@ class ListenerChangeCounter {
   void VerifyAndReset();
 
  protected:
-  int actual_changes_;
+  std::atomic<int> actual_changes_;
 
  private:
   void Verify();
 
-  int expected_changes_;
+  std::atomic<int> expected_changes_;
 };
 }  // namespace detail
 
@@ -81,7 +83,6 @@ inline void VerifyAuthResult(const Future<AuthResult>& future,
                              AuthError auth_error) {
   VerifyAuthResult(future, auth_error,
                    /*error_message=*/nullptr);
-  EXPECT_EQ(future.error(), auth_error);
 }
 
 inline FederatedOAuthProviderData GetFakeOAuthProviderData() {
@@ -116,6 +117,27 @@ class OAuthProviderTestHandler
     extra_integrity_checks_ = extra_integrity_checks;
     authenticated_user_data_ = authenticated_user_data;
     sign_in_auth_completion_handle_ = nullptr;
+    link_auth_completion_handle_ = nullptr;
+    reauthenticate_auth_completion_handle_ = nullptr;
+  }
+
+  void OnSignIn(const FederatedOAuthProviderData& provider_data,
+                AuthResultCompletionHandle* completion_handle) override {
+    sign_in_auth_completion_handle_ = completion_handle;
+    PerformIntegrityChecks(provider_data, completion_handle);
+  }
+
+  void OnLink(const FederatedOAuthProviderData& provider_data,
+              AuthResultCompletionHandle* completion_handle) override {
+    link_auth_completion_handle_ = completion_handle;
+    PerformIntegrityChecks(provider_data, completion_handle);
+  }
+
+  void OnReauthenticate(
+      const FederatedOAuthProviderData& provider_data,
+      AuthResultCompletionHandle* completion_handle) override {
+    reauthenticate_auth_completion_handle_ = completion_handle;
+    PerformIntegrityChecks(provider_data, completion_handle);
   }
 
   void SetAuthenticatedUserData(
@@ -230,12 +252,15 @@ class AuthStateChangesCounter : public detail::ListenerChangeCounter,
   void OnAuthStateChanged(Auth* /*unused*/) override;
 };
 
-// Class that when destroyed will momentarly sleep.  Used to ensure that
-// listener callbacks have time to be invoked before they're verified.
-class SleepUponDestruction {
- public:
-  ~SleepUponDestruction() { firebase::internal::Sleep(200); }
-};
+// Verifies the default fake providerUserInfo entry on the given user.
+void VerifyProviderData(const User& user);
+
+// Verifies the default fake user properties and provider data on the given
+// user.
+void VerifyUser(const User& user);
+
+// Waits for the persistent user cache load on auth_data to finish.
+bool WaitOnLoadPersistence(AuthData* auth_data);
 
 // Waits until the given future is complete and asserts that it completed with
 // the given error (no error by default). Returns the future's result.
@@ -244,18 +269,20 @@ T WaitForFuture(const firebase::Future<T>& future,
                 const firebase::auth::AuthError expected_error =
                     firebase::auth::kAuthErrorNone) {
   while (future.status() == firebase::kFutureStatusPending) {
+    firebase::internal::Sleep(1);
   }
   // This is wrapped in a lambda to work around the assertion macro expecting
   // the function to return void.
   [&] {
     ASSERT_EQ(firebase::kFutureStatusComplete, future.status());
+    ASSERT_NE(nullptr, future.result());
     EXPECT_EQ(expected_error, future.error());
     if (expected_error != kAuthErrorNone) {
       EXPECT_THAT(future.error_message(), ::testing::NotNull());
       EXPECT_THAT(future.error_message(), ::testing::StrNe(""));
     }
   }();
-  return *future.result();
+  return future.result() != nullptr ? *future.result() : T();
 }
 
 // Waits until the given future is complete and asserts that it completed with

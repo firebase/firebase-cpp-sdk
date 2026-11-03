@@ -28,6 +28,9 @@ namespace auth {
 Credential PlayGamesAuthProvider::GetCredential(
     const char* const server_auth_code) {
   FIREBASE_ASSERT_RETURN(Credential(), server_auth_code);
+  if (server_auth_code[0] == '\0') {
+    return Credential();
+  }
   return Credential{
       new CredentialImpl{new PlayGamesAuthCredential(server_auth_code)}};
 }

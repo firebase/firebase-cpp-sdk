@@ -28,17 +28,17 @@ namespace firebase {
 namespace auth {
 
 // Key name for header when sending language code data.
-extern const char* kHeaderFirebaseLocale;
+extern const char* const kHeaderFirebaseLocale;
 
-const char* const kHttps = "https://";
+constexpr const char* kHttps = "https://";
 
-const char* const kHttp = "http://";
+constexpr const char* kHttp = "http://";
 
-const char* const kServerURL =
+constexpr const char* kServerURL =
     "www.googleapis.com/identitytoolkit/v3/relyingparty/";
 
-const char* const kEmulatorLocalHost = "localhost";
-const char* const kEmulatorPort = "9099";
+constexpr const char* kEmulatorLocalHost = "localhost";
+constexpr const char* kEmulatorPort = "9099";
 
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
@@ -52,7 +52,24 @@ class AuthRequest
       : AuthRequest(app, reinterpret_cast<const char*>(schema),
                     deliver_heartbeat) {}
 
+  AuthRequest(::firebase::App& app, const unsigned char* schema,
+              bool deliver_heartbeat, const char* api_host,
+              const char* api_key)
+      : AuthRequest(app, reinterpret_cast<const char*>(schema),
+                    deliver_heartbeat) {
+    SetUrl(api_host, api_key);
+  }
+
   std::string GetUrl(const char* server_url = kServerURL);
+
+  void SetUrl(const char* api_host, const char* api_key,
+              const char* server_url = kServerURL);
+
+  void SetIdToken(const char* id_token);
+
+  void SetLocaleHeader(const char* language_code);
+
+  static std::string UrlEncode(const char* str);
 
  private:
   ::firebase::App& app;

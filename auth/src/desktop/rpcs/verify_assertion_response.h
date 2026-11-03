@@ -29,26 +29,56 @@ class VerifyAssertionResponse : public AuthResponse {
  public:
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(VerifyAssertionResponse, AuthResponse)
 
-  std::string local_id() const { return application_data_->localId; }
+  std::string local_id() const {
+    return application_data_ ? application_data_->localId : std::string();
+  }
 
-  std::string id_token() const { return application_data_->idToken; }
+  std::string id_token() const {
+    return application_data_ ? application_data_->idToken : std::string();
+  }
 
-  std::string refresh_token() const { return application_data_->refreshToken; }
+  std::string refresh_token() const {
+    return application_data_ ? application_data_->refreshToken : std::string();
+  }
 
   // The number of seconds until the ID token expires.
   int expires_in() const {
-    if (application_data_->expiresIn.empty()) {
-      return 0;
-    } else {
-      return std::stoi(application_data_->expiresIn);
-    }
+    return application_data_ ? ParseExpiresIn(application_data_->expiresIn) : 0;
   }
 
-  std::string provider_id() const { return application_data_->providerId; }
+  std::string provider_id() const {
+    return application_data_ ? application_data_->providerId : std::string();
+  }
 
-  std::string raw_user_info() const { return application_data_->rawUserInfo; }
+  std::string raw_user_info() const {
+    return application_data_ ? application_data_->rawUserInfo : std::string();
+  }
 
-  bool need_confirmation() const { return application_data_->needConfirmation; }
+  std::string oauth_id_token() const {
+    return application_data_ ? application_data_->oauthIdToken : std::string();
+  }
+
+  std::string oauth_access_token() const {
+    return application_data_ ? application_data_->oauthAccessToken
+                             : std::string();
+  }
+
+  std::string oauth_token_secret() const {
+    return application_data_ ? application_data_->oauthTokenSecret
+                             : std::string();
+  }
+
+  std::string pending_token() const {
+    return application_data_ ? application_data_->pendingToken : std::string();
+  }
+
+  bool need_confirmation() const {
+    return application_data_ ? application_data_->needConfirmation : false;
+  }
+
+  bool is_new_user() const {
+    return application_data_ ? application_data_->isNewUser : false;
+  }
 };
 
 }  // namespace auth

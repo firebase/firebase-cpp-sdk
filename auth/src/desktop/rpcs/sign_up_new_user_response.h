@@ -31,30 +31,34 @@ class SignUpNewUserResponse : public AuthResponse {
  public:
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(SignUpNewUserResponse, AuthResponse)
 
-  // Either an authorization code suitable for performing an STS token exchange,
-  // or the access token from Secure Token Service
-  std::string id_token() const { return application_data_->idToken; }
+  // The ID token from Secure Token Service.
+  std::string id_token() const {
+    return application_data_ ? application_data_->idToken : std::string();
+  }
 
   // The refresh token from Secure Token Service.
-  std::string refresh_token() const { return application_data_->refreshToken; }
+  std::string refresh_token() const {
+    return application_data_ ? application_data_->refreshToken : std::string();
+  }
 
   // The local id of the new user.
-  std::string local_id() const { return application_data_->localId; }
+  std::string local_id() const {
+    return application_data_ ? application_data_->localId : std::string();
+  }
 
   // The email of the new user; empty if the user is anonymous.
-  std::string email() const { return application_data_->email; }
+  std::string email() const {
+    return application_data_ ? application_data_->email : std::string();
+  }
 
-  // Whether the newly created user is anonymous. If false, then the user was
-  // created with an email and password.
-  bool IsAnonymousUser() const { return email().empty(); }
+  // Whether the newly created user is anonymous.
+  bool IsAnonymousUser() const {
+    return application_data_ ? application_data_->email.empty() : false;
+  }
 
-  // The number of seconds til the access token expires.
+  // The number of seconds until the ID token expires.
   int expires_in() const {
-    if (application_data_->expiresIn.empty()) {
-      return 0;
-    } else {
-      return std::stoi(application_data_->expiresIn);
-    }
+    return application_data_ ? ParseExpiresIn(application_data_->expiresIn) : 0;
   }
 };
 

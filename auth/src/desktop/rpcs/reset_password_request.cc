@@ -14,9 +14,6 @@
 
 #include "auth/src/desktop/rpcs/reset_password_request.h"
 
-#include <cassert>
-#include <string>
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
@@ -28,21 +25,16 @@ ResetPasswordRequest::ResetPasswordRequest(::firebase::App& app,
                                            const char* api_key,
                                            const char* oob_code,
                                            const char* new_password)
-    : AuthRequest(app, request_resource_data, true) {
+    : AuthRequest(app, request_resource_data, true, "resetPassword?key=",
+                  api_key) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] = "resetPassword?key=";
-  std::string url = GetUrl();
-  url.append(api_host);
-  url.append(api_key);
-  set_url(url.c_str());
-
-  if (oob_code) {
+  if (oob_code && *oob_code != '\0') {
     application_data_->oobCode = oob_code;
   } else {
     LogError("No oob code given.");
   }
-  if (new_password) {
+  if (new_password && *new_password != '\0') {
     application_data_->newPassword = new_password;
   } else {
     LogError("No new password given.");

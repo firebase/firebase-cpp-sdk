@@ -19,6 +19,7 @@
 
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace firebase {
@@ -27,7 +28,7 @@ namespace auth {
 /// All possible error codes from asynchronous calls.
 /// For error details,
 /// @if cpp_examples
-/// call Future::ErrorMessage().
+/// call Future::error_message().
 /// @endif
 /// <SWIG>
 /// @if swig_examples
@@ -136,7 +137,6 @@ enum AuthError {
 
   /// Indicates the App is not authorized to use Firebase Authentication with
   /// the provided API Key.
-  /// Common error code for all API Methods.
   /// On Android this error should no longer occur (as of 2016 v3).
   /// Common error code for all API Methods.
   kAuthErrorAppNotAuthorized,
@@ -389,11 +389,10 @@ enum AuthError {
   /// in that is not supported for 2FA users.
   kAuthErrorUnsupportedFirstFactor,
 
-  /// Indicates that a second factor users attempted to change their email with
+  /// Indicates that a second factor user attempted to change their email with
   /// updateEmail instead of verifyBeforeUpdateEmail.
   kAuthErrorEmailChangeNeedsVerification,
 
-#ifdef INTERNAL_EXPERIMENTAL
   /// Indicates that the provided event handler is null or invalid.
   kAuthErrorInvalidEventHandler,
 
@@ -426,22 +425,30 @@ enum AuthError {
   /// Indicates that a token refresh was requested, but neither a refresh token
   /// nor a custom token provider is available.
   kAuthErrorTokenRefreshUnavailable,
-
-#endif  // INTERNAL_EXPERIMENTAL
 };
 
 /// @brief Contains information required to authenticate with a third party
 /// provider.
 struct FederatedProviderData {
-  /// @brief contains the id of the provider to be used during sign-in, link, or
+  /// @brief Contains the id of the provider to be used during sign-in, link, or
   /// reauthentication requests.
   std::string provider_id;
+
+#if !defined(SWIG)
+  bool operator==(const FederatedProviderData& other) const {
+    return provider_id == other.provider_id;
+  }
+
+  bool operator!=(const FederatedProviderData& other) const {
+    return !(*this == other);
+  }
+#endif  // !defined(SWIG)
 };
 
 /// @brief Contains information to identify an OAuth provider.
 struct FederatedOAuthProviderData : FederatedProviderData {
   /// Initializes an empty provider data structure.
-  FederatedOAuthProviderData() {}
+  FederatedOAuthProviderData() = default;
 
   /// Initializes the provider data structure with a provider id.
   explicit FederatedOAuthProviderData(const std::string& provider) {
@@ -452,11 +459,19 @@ struct FederatedOAuthProviderData : FederatedProviderData {
   /// @brief Initializes the provider data structure with the specified provider
   /// id, scopes and custom parameters.
   FederatedOAuthProviderData(
-      const std::string& provider, std::vector<std::string> scopes,
-      std::map<std::string, std::string> custom_parameters) {
+      const std::string& provider, const std::vector<std::string>& scopes_in,
+      const std::map<std::string, std::string>& custom_parameters_in)
+      : scopes(scopes_in), custom_parameters(custom_parameters_in) {
     this->provider_id = provider;
-    this->scopes = scopes;
-    this->custom_parameters = custom_parameters;
+  }
+
+  bool operator==(const FederatedOAuthProviderData& other) const {
+    return provider_id == other.provider_id && scopes == other.scopes &&
+           custom_parameters == other.custom_parameters;
+  }
+
+  bool operator!=(const FederatedOAuthProviderData& other) const {
+    return !(*this == other);
   }
 #endif
 

@@ -14,9 +14,6 @@
 
 #include "auth/src/desktop/rpcs/secure_token_request.h"
 
-#include <cassert>
-#include <string>
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
@@ -30,13 +27,10 @@ SecureTokenRequest::SecureTokenRequest(::firebase::App& app,
     : AuthRequest(app, request_resource_data, false) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] = "securetoken.googleapis.com/v1/token?key=";
-  std::string url = GetUrl(api_host);
-  url.append(api_key);
-  set_url(url.c_str());
+  SetUrl(nullptr, api_key, "securetoken.googleapis.com/v1/token?key=");
 
   application_data_->grantType = "refresh_token";
-  if (refresh_token) {
+  if (refresh_token && *refresh_token != '\0') {
     application_data_->refreshToken = refresh_token;
   } else {
     LogError("No refresh token given");

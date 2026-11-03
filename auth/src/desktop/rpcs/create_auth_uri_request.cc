@@ -14,9 +14,6 @@
 
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"
 
-#include <cassert>
-#include <string>
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
@@ -27,16 +24,11 @@ namespace auth {
 CreateAuthUriRequest::CreateAuthUriRequest(::firebase::App& app,
                                            const char* api_key,
                                            const char* identifier)
-    : AuthRequest(app, request_resource_data, true) {
+    : AuthRequest(app, request_resource_data, true, "createAuthUri?key=",
+                  api_key) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] = "createAuthUri?key=";
-  std::string url = GetUrl();
-  url.append(api_host);
-  url.append(api_key);
-  set_url(url.c_str());
-
-  if (identifier) {
+  if (identifier && *identifier != '\0') {
     application_data_->identifier = identifier;
   } else {
     LogError("No identifier given.");

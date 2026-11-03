@@ -14,39 +14,41 @@
 
 # CMake file for the firebase_auth library
 
-# Generate the resource files from the flatbuffer schema files.
-binary_to_array("request_resource"
-    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs"
-    "firebase::auth"
-    "${FIREBASE_GEN_FILE_DIR}/auth")
-binary_to_array("response_resource"
-    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/response.fbs"
-    "firebase::auth"
-    "${FIREBASE_GEN_FILE_DIR}/auth")
-binary_to_array("user_data_resource"
-    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/user_data.fbs"
-    "firebase::auth"
-    "${FIREBASE_GEN_FILE_DIR}/auth")
+if(NOT ANDROID AND NOT IOS)
+  # Generate the resource files from the flatbuffer schema files.
+  binary_to_array("request_resource"
+      "${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs"
+      "firebase::auth"
+      "${FIREBASE_GEN_FILE_DIR}/auth")
+  binary_to_array("response_resource"
+      "${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/response.fbs"
+      "firebase::auth"
+      "${FIREBASE_GEN_FILE_DIR}/auth")
+  binary_to_array("user_data_resource"
+      "${CMAKE_CURRENT_LIST_DIR}/src/desktop/user_data.fbs"
+      "firebase::auth"
+      "${FIREBASE_GEN_FILE_DIR}/auth")
 
-# Build the generated header from the flatbuffer schema files.
-set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
-    "--no-union-value-namespacing"
-    "--gen-object-api"
-    "--cpp-ptr-type" "std::unique_ptr")
-set(flatbuffer_schemas
-    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs
-    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/response.fbs
-    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/user_data.fbs)
-# Because of a bug in the version of Flatbuffers we are pinned to,
-# additional flags need to be set.
-set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
-build_flatbuffers("${flatbuffer_schemas}"
-                  ""
-                  "generate_request_fbs"
-                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
-                  "${FIREBASE_GEN_FILE_DIR}/auth"
-                  ""
-                  "")
+  # Build the generated header from the flatbuffer schema files.
+  set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+      "--no-union-value-namespacing"
+      "--gen-object-api"
+      "--cpp-ptr-type" "std::unique_ptr")
+  set(flatbuffer_schemas
+      ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs
+      ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/response.fbs
+      ${CMAKE_CURRENT_LIST_DIR}/src/desktop/user_data.fbs)
+  # Because of a bug in the version of Flatbuffers we are pinned to,
+  # additional flags need to be set.
+  set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+  build_flatbuffers("${flatbuffer_schemas}"
+                    ""
+                    "generate_request_fbs"
+                    "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                    "${FIREBASE_GEN_FILE_DIR}/auth"
+                    ""
+                    "")
+endif()
 
 # Common source files used by all platforms
 set(common_SRCS
@@ -55,6 +57,8 @@ set(common_SRCS
     src/common.cc
     src/common.h
     src/data.h
+    src/id_token_util.cc
+    src/id_token_util.h
     src/user.cc)
 
 # Define the resource build needed for Android
@@ -116,8 +120,6 @@ set(desktop_SRCS
     src/desktop/sign_in_flow.cc
     src/desktop/user_desktop.cc
     src/desktop/user_view.cc
-    src/id_token_util.cc
-    src/id_token_util.h
     src/desktop/rpcs/auth_request.cc
     src/desktop/rpcs/auth_response.cc
     src/desktop/rpcs/create_auth_uri_request.cc
@@ -148,7 +150,6 @@ endif()
 if(ANDROID OR IOS)
   set(additional_include_DIR)
   set(additional_link_LIB)
-  set(additional_target_definitions)
 else()
   set(additional_include_DIR
       ${FLATBUFFERS_SOURCE_DIR}/include)
@@ -187,11 +188,9 @@ target_compile_definitions(firebase_auth
 if(ANDROID)
   firebase_cpp_proguard_file(auth)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  # Enable Automatic Reference Counting (ARC).
   target_compile_options(firebase_auth
-                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
-  target_link_libraries(firebase_auth
-                        PUBLIC "-fembed-bitcode")
+                         PRIVATE "-fobjc-arc")
 
   setup_spm_headers(
     firebase_auth

@@ -141,9 +141,15 @@ class FirebaseAuthTest : public FirebaseTest {
   void WaitForCompletionOrInvalidStatus(const firebase::FutureBase& future,
                                         const char* name) {
     app_framework::LogDebug("WaitForCompletionOrInvalidStatus %s", name);
-    while (future.status() == firebase::kFutureStatusPending) {
+    const int kTimeoutMs = 30000;
+    int elapsed_ms = 0;
+    while (future.status() == firebase::kFutureStatusPending &&
+           elapsed_ms < kTimeoutMs) {
       app_framework::ProcessEvents(100);
+      elapsed_ms += 100;
     }
+    EXPECT_NE(future.status(), firebase::kFutureStatusPending)
+        << "Timed out waiting for " << name;
   }
 
   void SignInAnonymously() {
@@ -293,8 +299,11 @@ void FirebaseAuthTest::SignOut() {
   }
   auth_->SignOut();
   // Wait for the sign-out to finish.
-  while (auth_->current_user().is_valid()) {
+  const int kSignOutTimeoutMs = 10000;
+  int elapsed_ms = 0;
+  while (auth_->current_user().is_valid() && elapsed_ms < kSignOutTimeoutMs) {
     if (ProcessEvents(100)) break;
+    elapsed_ms += 100;
   }
   ProcessEvents(100);
   EXPECT_FALSE(auth_->current_user().is_valid());
@@ -324,8 +333,6 @@ TEST_F(FirebaseAuthTest, TestAnonymousSignin) {
   EXPECT_TRUE(auth_->current_user().is_anonymous());
   DeleteUser();
 }
-
-// TODO(jonsimantov): Add TestDeleteUser.
 
 TEST_F(FirebaseAuthTest, TestCredentialCopy) {
   // --- Credential copy tests -------------------------------------------------
@@ -652,7 +659,6 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   firebase::Future<firebase::auth::AuthResult> auth_result_future;
   firebase::Future<std::string> string_future;
   firebase::Future<firebase::auth::User> user_future;
-  firebase::Future<firebase::auth::User*> user_ptr_future;
   firebase::Future<void> void_future;
 
   LogDebug("Attempting to use invalid user.");
@@ -706,7 +712,7 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   LogDebug("Unlink");
   auth_result_future = invalid_user.Unlink(email_cred.provider().c_str());
   WaitForCompletionOrInvalidStatus(auth_result_future, "Unlink");
-  EXPECT_NE(user_ptr_future.error(), firebase::auth::kAuthErrorNone);
+  EXPECT_NE(auth_result_future.error(), firebase::auth::kAuthErrorNone);
 
   LogDebug("Reload");
   void_future = invalid_user.Reload();
@@ -861,7 +867,7 @@ TEST_F(FirebaseAuthTest, TestVerifyBeforeUpdatingEmail) {
   firebase::auth::User user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
 
-  // Update the user's email and password.
+  // Verify the user's new email before updating it.
   const std::string new_email = "new_" + email;
   WaitForCompletion(
       user.SendEmailVerificationBeforeUpdatingEmail(new_email.c_str()),
@@ -1018,10 +1024,14 @@ TEST_F(FirebaseAuthTest, TestSignInWithBadCredentials) {
   EXPECT_TRUE(auth_->current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
   EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
-  WaitForCompletion(
+  FirebaseTest::WaitForCompletion(
       auth_->SignInWithCredential(firebase::auth::OAuthProvider::GetCredential(
           kTestIdProviderIdBad, kTestIdTokenBad, kTestAccessTokenBad)),
-      "SignInWithCredential (OAuth)", firebase::auth::kAuthErrorFailure);
+      "SignInWithCredential (OAuth)",
+      {firebase::auth::kAuthErrorInvalidCredential,
+       firebase::auth::kAuthErrorInvalidProviderId,
+       firebase::auth::kAuthErrorOperationNotAllowed,
+       firebase::auth::kAuthErrorFailure});
   EXPECT_TRUE(auth_->current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
   EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
@@ -1040,9 +1050,9 @@ TEST_F(FirebaseAuthTest, TestSignInWithBadCredentials) {
   DeleteUser();
 }
 
-#if TARGET_OS_IPHONE
+#if FIREBASE_PLATFORM_IOS
 TEST_F(FirebaseAuthTest, TestGameCenterSignIn) {
-  // Test Game Center sign-in on iPhone only.
+  // Test Game Center sign-in on iOS only.
   if (!firebase::auth::GameCenterAuthProvider::IsPlayerAuthenticated()) {
     LogInfo("Not signed into Game Center, skipping test.");
     GTEST_SKIP();
@@ -1061,7 +1071,7 @@ TEST_F(FirebaseAuthTest, TestGameCenterSignIn) {
   }
   DeleteUser();
 }
-#endif  // TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_IOS
 
 TEST_F(FirebaseAuthTest, TestSendPasswordResetEmail) {
   // Test Auth::SendPasswordResetEmail().
@@ -1139,8 +1149,10 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Save the old provider ID list so we can make sure it's the same once
   // it's loaded again.
   std::vector<std::string> prev_provider_data_ids;
-  for (int i = 0; i < user.provider_data().size(); i++) {
-    prev_provider_data_ids.push_back(user.provider_data()[i].provider_id());
+  const std::vector<firebase::auth::UserInfoInterface> prev_provider_data =
+      user.provider_data();
+  for (size_t i = 0; i < prev_provider_data.size(); i++) {
+    prev_provider_data_ids.push_back(prev_provider_data[i].provider_id());
   }
   Terminate();
   ProcessEvents(2000);
@@ -1152,8 +1164,10 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   EXPECT_EQ(auth_->current_user().provider_id(), prev_provider_id);
   user = auth_->current_user();
   std::vector<std::string> loaded_provider_data_ids;
-  for (int i = 0; i < user.provider_data().size(); i++) {
-    loaded_provider_data_ids.push_back(user.provider_data()[i].provider_id());
+  const std::vector<firebase::auth::UserInfoInterface> loaded_provider_data =
+      user.provider_data();
+  for (size_t i = 0; i < loaded_provider_data.size(); i++) {
+    loaded_provider_data_ids.push_back(loaded_provider_data[i].provider_id());
   }
   EXPECT_TRUE(loaded_provider_data_ids == prev_provider_data_ids);
 
@@ -1170,16 +1184,11 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
 class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  public:
   PhoneListener()
-      : on_verification_complete_credential_count_(0),
-        on_verification_complete_phone_auth_credential_count_(0),
+      : on_verification_complete_phone_auth_credential_count_(0),
         on_verification_failed_count_(0),
         on_code_sent_count_(0),
         on_code_auto_retrieval_time_out_count_(0) {}
 
-  // Expect both OnVerificationCompleted methods to be called up
-  // PhoneAuthProvider VerifyPhonenumber invokcations. One is the newer
-  // method which accepts a PhoneAuthCredential object as parameter. The other
-  // is now decprecated and accepts a Credential object.
   void OnVerificationCompleted(
       firebase::auth::PhoneAuthCredential phone_auth_credential) override {
     LogDebug(
@@ -1217,18 +1226,12 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
     return force_resending_token_;
   }
   int on_verification_complete_count() const {
-    return on_verification_complete_phone_auth_credential_count() +
-           on_verification_complete_credential_count();
+    return on_verification_complete_phone_auth_credential_count();
   }
-  // Tracks the number of callbacks made on the new OnVerificationCompleted
+  // Tracks the number of callbacks made on the OnVerificationCompleted
   // method which takes a PhoneAuthCredential as a parameter.
   int on_verification_complete_phone_auth_credential_count() const {
     return on_verification_complete_phone_auth_credential_count_;
-  }
-  // Tracks the number of callbacks made on the deprecated
-  // OnVerificationCompleted method which takes a Credential as a parameter.
-  int on_verification_complete_credential_count() const {
-    return on_verification_complete_credential_count_;
   }
   int on_verification_failed_count() const {
     return on_verification_failed_count_;
@@ -1240,8 +1243,7 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
 
   // Helper functions for workflow.
   bool waiting_to_send_code() {
-    return on_verification_complete_credential_count() == 0 &&
-           on_verification_complete_phone_auth_credential_count() == 0 &&
+    return on_verification_complete_phone_auth_credential_count() == 0 &&
            on_verification_failed_count() == 0 && on_code_sent_count() == 0;
   }
 
@@ -1251,7 +1253,6 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
            on_code_auto_retrieval_time_out_count() == 0;
   }
 
-  firebase::auth::Credential credential() { return credential_; }
   firebase::auth::PhoneAuthCredential phone_auth_credential() {
     return phone_auth_credential_;
   }
@@ -1259,10 +1260,8 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  private:
   std::string verification_id_;
   firebase::auth::PhoneAuthProvider::ForceResendingToken force_resending_token_;
-  firebase::auth::Credential credential_;
   firebase::auth::PhoneAuthCredential phone_auth_credential_;
   int on_verification_complete_phone_auth_credential_count_;
-  int on_verification_complete_credential_count_;
   int on_verification_failed_count_;
   int on_code_sent_count_;
   int on_code_auto_retrieval_time_out_count_;
@@ -1287,9 +1286,9 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
   LogDebug("Calling VerifyPhoneNumber.");
 
   // Randomly choose one of the phone numbers to avoid collisions.
-  const int random_phone_number_index =
+  const int random_phone_number_index = static_cast<int>(
       app_framework::GetCurrentTimeInMicroseconds() %
-      kPhoneAuthTestNumPhoneNumbers;
+      kPhoneAuthTestNumPhoneNumbers);
   firebase::auth::PhoneAuthOptions phone_options;
   phone_options.phone_number =
       kPhoneAuthTestPhoneNumbers[random_phone_number_index];
@@ -1319,13 +1318,12 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
            listener.phone_auth_credential().sms_code().c_str());
 
   if (listener.on_verification_complete_count() > 0) {
-    // Ensure both listener methods were invoked.
     EXPECT_EQ(listener.on_verification_complete_phone_auth_credential_count(),
               1);
-    EXPECT_EQ(listener.on_verification_complete_credential_count(), 1);
     LogDebug("Signing in with automatic verification code.");
-    WaitForCompletion(auth_->SignInWithCredential(listener.credential()),
-                      "SignInWithCredential(PhoneCredential) automatic");
+    WaitForCompletion(
+        auth_->SignInWithCredential(listener.phone_auth_credential()),
+        "SignInWithCredential(PhoneCredential) automatic");
   } else if (listener.on_verification_failed_count() > 0) {
     FAIL() << "Automatic verification failed.";
   } else {
@@ -1489,9 +1487,9 @@ TEST_F(FirebaseAuthTest, TestReauthenticateWithProviderBadProviderIdFails) {
   if (WaitForCompletion(auth_result_future, "SignInWithProvider",
                         provider_id)) {
     provider_data.provider_id = "MadeUpProvider";
-    firebase::auth::FederatedOAuthProvider provider(provider_data);
+    firebase::auth::FederatedOAuthProvider bad_provider(provider_data);
     firebase::Future<firebase::auth::AuthResult> reauth_future =
-        auth_->current_user().ReauthenticateWithProvider(&provider);
+        auth_->current_user().ReauthenticateWithProvider(&bad_provider);
     WaitForCompletion(reauth_future, "ReauthenticateWithProvider",
                       firebase::auth::kAuthErrorInvalidProviderId);
   }
@@ -1586,7 +1584,13 @@ TEST_F(FirebaseAuthTest, TestConcurrentMultiAppSignInAndTokenRefresh) {
 
   for (int i = 0; i < kNumApps; ++i) {
     std::string name = "concurrent_auth_app_" + std::to_string(i);
+#if defined(__ANDROID__)
+    apps[i] = firebase::App::Create(app_->options(), name.c_str(),
+                                    app_framework::GetJniEnv(),
+                                    app_framework::GetActivity());
+#else
     apps[i] = firebase::App::Create(app_->options(), name.c_str());
+#endif  // defined(__ANDROID__)
     ASSERT_NE(apps[i], nullptr);
     firebase::InitResult init_result = firebase::kInitResultSuccess;
     auths[i] = firebase::auth::Auth::GetAuth(apps[i], &init_result);

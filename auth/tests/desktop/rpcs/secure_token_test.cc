@@ -20,14 +20,13 @@
 #include "auth/src/desktop/rpcs/secure_token_request.h"
 #include "auth/src/desktop/rpcs/secure_token_response.h"
 #include "auth/src/include/firebase/auth.h"
-#include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
 namespace auth {
 
-// Test SignUpNewUserRequest using refresh token
+// Test SecureTokenRequest using refresh token
 TEST(SecureTokenTest, TestSetRefreshRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
   SecureTokenRequest request(*app, "APIKEY", "token123");
@@ -43,7 +42,7 @@ TEST(SecureTokenTest, TestSetRefreshRequest) {
 
 TEST(SecureTokenTest, TestSetRefreshRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth* auth = Auth::GetAuth(app.get());
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
   auth->UseEmulator("localhost", 9099);
   SecureTokenRequest request(*app, "APIKEY", "token123");
   EXPECT_EQ(
@@ -53,7 +52,6 @@ TEST(SecureTokenTest, TestSetRefreshRequestWithEmulator) {
 
 // Test SecureTokenResponse
 TEST(SecureTokenTest, TestSecureTokenResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   SecureTokenResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -73,6 +71,33 @@ TEST(SecureTokenTest, TestSecureTokenResponse) {
   EXPECT_EQ("refreshtoken123", response.refresh_token());
   EXPECT_EQ("idtoken123", response.id_token());
   EXPECT_EQ(3600, response.expires_in());
+}
+
+TEST(SecureTokenTest, TestSecureTokenResponseInvalidExpiresInAndError) {
+  SecureTokenResponse negative_exp;
+  const char neg_body[] = "{\"expires_in\": \"-5\"}";
+  negative_exp.ProcessBody(neg_body, sizeof(neg_body));
+  negative_exp.MarkCompleted();
+  EXPECT_EQ(0, negative_exp.expires_in());
+
+  SecureTokenResponse huge_exp;
+  const char huge_body[] = "{\"expires_in\": \"1e309\"}";
+  huge_exp.ProcessBody(huge_body, sizeof(huge_body));
+  huge_exp.MarkCompleted();
+  EXPECT_EQ(0, huge_exp.expires_in());
+
+  SecureTokenResponse error_response;
+  const char error_body[] =
+      "{\n"
+      "  \"error\": {\n"
+      "    \"code\": 400,\n"
+      "    \"message\": \"TOKEN_EXPIRED\"\n"
+      "  }\n"
+      "}";
+  error_response.ProcessBody(error_body, sizeof(error_body));
+  error_response.MarkCompleted();
+  EXPECT_FALSE(error_response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorUserTokenExpired, error_response.error_code());
 }
 
 }  // namespace auth

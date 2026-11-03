@@ -13,11 +13,8 @@
 // limitations under the License.
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-#include <unistd.h>
 #define __ANDROID__
 #include <jni.h>
-
-#include <functional>
 
 #include "testing/run_all_tests.h"
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
@@ -39,6 +36,8 @@
 #undef __ANDROID__
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
+#include <string>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "testing/config.h"
@@ -59,7 +58,15 @@ class InstallationsTest : public ::testing::Test {
     reporter_.reset();
 
     firebase_app_ = testing::CreateApp();
-    EXPECT_NE(firebase_app_, nullptr) << "Init app failed";
+    ASSERT_NE(firebase_app_, nullptr) << "Init app failed";
+
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP)
+    reporter_.addExpectation("FirebaseInstallations.construct", "");
+    reporter_.addExpectation("FirebaseInstallations.construct", "");
+#elif defined(__APPLE__) && TARGET_OS_IPHONE
+    reporter_.addExpectation("FirebaseInstallations.initialize", "");
+    reporter_.addExpectation("FirebaseInstallations.initialize", "");
+#endif
   }
 
   void TearDown() override {
@@ -78,6 +85,7 @@ class InstallationsTest : public ::testing::Test {
       FutureStatus expected_status = kFutureStatusComplete) {
     while (future.status() != expected_status && timeout_milliseconds-- > 0) {
       ::firebase::internal::Sleep(1);
+      firebase::testing::cppsdk::TickerElapse();
     }
   }
 
@@ -86,14 +94,17 @@ class InstallationsTest : public ::testing::Test {
   template <typename T>
   static void CheckSuccessWithValue(const Future<T>& future, const T& result) {
     WaitForFutureWithTimeout<T>(future);
-    EXPECT_THAT(future.status(), Eq(kFutureStatusComplete));
+    ASSERT_THAT(future.status(), Eq(kFutureStatusComplete));
+    EXPECT_THAT(future.error(), Eq(kInstallationsErrorNone));
+    ASSERT_THAT(future.result(), NotNull());
     EXPECT_THAT(*future.result(), Eq(result));
   }
 
   // Validate that a future completed successfully.
   static void CheckSuccess(const Future<void>& future) {
     WaitForFutureWithTimeout<void>(future);
-    EXPECT_THAT(future.status(), Eq(kFutureStatusComplete));
+    ASSERT_THAT(future.status(), Eq(kFutureStatusComplete));
+    EXPECT_THAT(future.error(), Eq(kInstallationsErrorNone));
   }
 
   App* firebase_app_ = nullptr;
@@ -104,17 +115,33 @@ class InstallationsTest : public ::testing::Test {
 
 // Check SetUp and TearDown working well.
 TEST_F(InstallationsTest, InitializeAndTerminate) {
-  auto* installations = Installations::GetInstance(firebase_app_);
-  EXPECT_THAT(installations, NotNull());
+  InitResult init_result = kInitResultFailedMissingDependency;
+  auto* installations =
+      Installations::GetInstance(firebase_app_, &init_result);
+  ASSERT_THAT(installations, NotNull());
+  EXPECT_EQ(init_result, kInitResultSuccess);
+  EXPECT_TRUE(installations->is_valid());
+  EXPECT_EQ(installations->app(), firebase_app_);
   delete installations;
+}
+
+TEST_F(InstallationsTest, InitializeNullAppReturnsNull) {
+  // Override SetUp expectations since GetInstance(nullptr) does not initialize.
+  reporter_.reset();
+  InitResult init_result = kInitResultSuccess;
+  EXPECT_EQ(Installations::GetInstance(nullptr, &init_result), nullptr);
+  EXPECT_EQ(init_result, kInitResultFailedMissingDependency);
 }
 
 TEST_F(InstallationsTest, InitializeTwice) {
   auto* installations1 = Installations::GetInstance(firebase_app_);
-  EXPECT_THAT(installations1, NotNull());
+  ASSERT_THAT(installations1, NotNull());
 
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+  reporter_.addExpectation("FirebaseInstallations.initialize", "");
+#endif
   auto* installations2 = Installations::GetInstance(firebase_app_);
-  EXPECT_THAT(installations2, NotNull());
+  ASSERT_THAT(installations2, NotNull());
 
   EXPECT_EQ(installations1, installations2);
   delete installations1;
@@ -122,6 +149,11 @@ TEST_F(InstallationsTest, InitializeTwice) {
 
 TEST_F(InstallationsTest, GetId) {
   auto* installations = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations, NotNull());
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || \
+    (defined(__APPLE__) && TARGET_OS_IPHONE)
+  reporter_.addExpectation("FirebaseInstallations.getId", "");
+#endif
   const std::string expected_value("FakeId");
   CheckSuccessWithValue(installations->GetId(), expected_value);
   CheckSuccessWithValue(installations->GetIdLastResult(), expected_value);
@@ -130,6 +162,11 @@ TEST_F(InstallationsTest, GetId) {
 
 TEST_F(InstallationsTest, GetToken) {
   auto* installations = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations, NotNull());
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || \
+    (defined(__APPLE__) && TARGET_OS_IPHONE)
+  reporter_.addExpectation("FirebaseInstallations.getToken", "");
+#endif
   const std::string expected_value("FakeToken");
   CheckSuccessWithValue(installations->GetToken(false), expected_value);
   CheckSuccessWithValue(installations->GetTokenLastResult(), expected_value);
@@ -138,10 +175,67 @@ TEST_F(InstallationsTest, GetToken) {
 
 TEST_F(InstallationsTest, GetTokenForceRefresh) {
   auto* installations = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations, NotNull());
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || \
+    (defined(__APPLE__) && TARGET_OS_IPHONE)
+  reporter_.addExpectation("FirebaseInstallations.getToken", "");
+#endif
   const std::string expected_value("FakeTokenForceRefresh");
   CheckSuccessWithValue(installations->GetToken(true), expected_value);
   CheckSuccessWithValue(installations->GetTokenLastResult(), expected_value);
   delete installations;
+}
+
+TEST_F(InstallationsTest, GetTokenResult) {
+  auto* installations = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations, NotNull());
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || \
+    (defined(__APPLE__) && TARGET_OS_IPHONE)
+  reporter_.addExpectation("FirebaseInstallations.getToken", "");
+#endif
+  Future<InstallationTokenResult> future = installations->GetTokenResult(false);
+  WaitForFutureWithTimeout(future);
+  ASSERT_EQ(future.status(), kFutureStatusComplete);
+  EXPECT_EQ(future.error(), kInstallationsErrorNone);
+  ASSERT_NE(future.result(), nullptr);
+  EXPECT_EQ(future.result()->token, "FakeToken");
+  EXPECT_EQ(installations->GetTokenResultLastResult().result()->token,
+            "FakeToken");
+  delete installations;
+}
+
+TEST_F(InstallationsTest, Delete) {
+  auto* installations = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations, NotNull());
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || \
+    (defined(__APPLE__) && TARGET_OS_IPHONE)
+  reporter_.addExpectation("FirebaseInstallations.getId", "");
+  reporter_.addExpectation("FirebaseInstallations.delete", "");
+  reporter_.addExpectation("FirebaseInstallations.getId", "");
+#endif
+  CheckSuccessWithValue(installations->GetId(), std::string("FakeId"));
+  CheckSuccess(installations->Delete());
+  CheckSuccess(installations->DeleteLastResult());
+  // Verify Delete() did not overwrite GetIdLastResult().
+  CheckSuccessWithValue(installations->GetIdLastResult(),
+                        std::string("FakeId"));
+#if !defined(FIREBASE_ANDROID_FOR_DESKTOP) && \
+    !(defined(__APPLE__) && TARGET_OS_IPHONE)
+  // Desktop stub rotates ID after Delete().
+  CheckSuccessWithValue(installations->GetId(), std::string("FakeId_1"));
+#else
+  CheckSuccessWithValue(installations->GetId(), std::string("FakeId"));
+#endif
+  delete installations;
+}
+
+TEST_F(InstallationsTest, ErrorMessages) {
+  reporter_.reset();
+  EXPECT_STREQ(GetErrorMessage(kErrorNone), "");
+  EXPECT_NE(std::string(GetErrorMessage(kErrorFailure)), "");
+  EXPECT_NE(std::string(GetErrorMessage(kErrorInvalidConfiguration)), "");
+  EXPECT_NE(std::string(GetErrorMessage(kErrorUnableToLoad)), "");
+  EXPECT_NE(std::string(GetErrorMessage(kErrorNoAccess)), "");
 }
 
 }  // namespace installations

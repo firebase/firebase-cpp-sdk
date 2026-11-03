@@ -14,6 +14,12 @@
 
 #include "auth/src/desktop/rpcs/auth_response.h"
 
+#include <cerrno>
+#include <climits>
+#include <cmath>
+#include <cstdlib>
+#include <string>
+
 #include "app/rest/util.h"
 
 namespace firebase {
@@ -23,18 +29,33 @@ AuthError AuthResponse::error_code() const {
   if (IsSuccessful()) {
     return kAuthErrorNone;
   }
-  if (!application_data_->error) {
+  if (!application_data_ || !application_data_->error) {
     return kAuthErrorFailure;
   }
 
   const auto& errors = application_data_->error->errors;
   const std::string error_reason =
-      !errors.empty() ? errors[0]->reason : std::string();
+      (!errors.empty() && errors[0]) ? errors[0]->reason : std::string();
   return GetAuthErrorCode(application_data_->error->message, error_reason);
 }
 
 bool AuthResponse::IsSuccessful() const {
-  return status() == rest::util::HttpSuccess;
+  return status() == rest::util::HttpSuccess &&
+         (!application_data_ || !application_data_->error);
+}
+
+int AuthResponse::ParseExpiresIn(const std::string& expires_in) {
+  if (expires_in.empty()) {
+    return 0;
+  }
+  errno = 0;
+  char* end = nullptr;
+  const double val = std::strtod(expires_in.c_str(), &end);
+  if (end == expires_in.c_str() || errno == ERANGE || std::isnan(val) ||
+      val < 0.0 || val > static_cast<double>(INT_MAX)) {
+    return 0;
+  }
+  return static_cast<int>(val);
 }
 
 }  // namespace auth

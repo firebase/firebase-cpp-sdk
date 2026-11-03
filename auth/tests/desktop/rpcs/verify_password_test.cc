@@ -17,6 +17,7 @@
 #include "app/rest/transport_builder.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
+#include "auth/src/desktop/rpcs/error_codes.h"
 #include "auth/src/desktop/rpcs/verify_password_request.h"
 #include "auth/src/desktop/rpcs/verify_password_response.h"
 #include "auth/src/include/firebase/auth.h"
@@ -45,7 +46,8 @@ TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
 
 TEST(VerifyPasswordTest, TestVerifyPasswordRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -55,7 +57,6 @@ TEST(VerifyPasswordTest, TestVerifyPasswordRequestWithEmulator) {
 
 // Test VerifyPasswordResponse
 TEST(VerifyPasswordTest, TestVerifyPasswordResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   VerifyPasswordResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -83,7 +84,6 @@ TEST(VerifyPasswordTest, TestVerifyPasswordResponse) {
 }
 
 TEST(VerifyPasswordTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   VerifyPasswordResponse response;
   const char body[] =
       "{\n"
@@ -110,6 +110,39 @@ TEST(VerifyPasswordTest, TestErrorResponse) {
   EXPECT_EQ("", response.refresh_token());
   EXPECT_EQ("", response.photo_url());
   EXPECT_EQ(0, response.expires_in());
+}
+
+TEST(VerifyPasswordTest, TestErrorCodesAndAuthResponseEdgeCases) {
+  EXPECT_EQ(kAuthErrorWeakPassword,
+            GetAuthErrorCode("WEAK_PASSWORD : Password should be at least 6",
+                             "invalid"));
+  EXPECT_EQ(kAuthErrorTooManyRequests,
+            GetAuthErrorCode(
+                "TOO_MANY_ATTEMPTS_TRY_LATER : Too many unsuccessful login",
+                "invalid"));
+  EXPECT_EQ(kAuthErrorInvalidCredential,
+            GetAuthErrorCode("INVALID_LOGIN_CREDENTIALS", "invalid"));
+  EXPECT_EQ(kAuthErrorInvalidUserToken,
+            GetAuthErrorCode("INVALID_REFRESH_TOKEN", "invalid"));
+  EXPECT_EQ(kAuthErrorInvalidUserToken,
+            GetAuthErrorCode("MISSING_REFRESH_TOKEN", "invalid"));
+  EXPECT_EQ(kAuthErrorInvalidUserToken,
+            GetAuthErrorCode("INVALID_GRANT_TYPE", "invalid"));
+  EXPECT_EQ(kAuthErrorInvalidApiKey,
+            GetAuthErrorCode("API key not valid. Please pass a valid API key.",
+                             "keyInvalid"));
+  EXPECT_STREQ(
+      "The user's credential has expired. The user must sign in again.",
+      GetAuthErrorMessage(kAuthErrorUserTokenExpired));
+  EXPECT_STREQ(
+      "The user's credential is no longer valid. The user must sign in again.",
+      GetAuthErrorMessage(kAuthErrorInvalidUserToken));
+
+  // Unparsed / default-constructed AuthResponse should not crash on accessors.
+  VerifyPasswordResponse unparsed_response;
+  EXPECT_FALSE(unparsed_response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorFailure, unparsed_response.error_code());
+  EXPECT_EQ("", unparsed_response.error_message());
 }
 
 }  // namespace auth

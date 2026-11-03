@@ -28,8 +28,13 @@ namespace auth {
 
 std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
     const AuthData& auth_data, const void* const raw_credential_impl) {
+  FIREBASE_ASSERT_RETURN(nullptr, raw_credential_impl && auth_data.app);
   const auto* credential_impl =
       static_cast<const CredentialImpl*>(raw_credential_impl);
+  if (!credential_impl->auth_credential ||
+      !credential_impl->auth_credential->IsIdentityProvider()) {
+    return nullptr;
+  }
   const auto* idp_credential = static_cast<const IdentityProviderCredential*>(
       credential_impl->auth_credential.get());
   return idp_credential->CreateVerifyAssertionRequest(*auth_data.app,
@@ -39,7 +44,9 @@ std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
 std::unique_ptr<rest::Request> CreateRequestFromCredential(
     AuthData* const auth_data, const std::string& provider,
     const void* const raw_credential) {
-  FIREBASE_ASSERT_RETURN(nullptr, provider != kPhoneAuthProdiverId);
+  FIREBASE_ASSERT_RETURN(nullptr,
+                         auth_data && auth_data->app &&
+                             provider != kPhoneAuthProviderId);
 
   if (provider == kEmailPasswordAuthProviderId) {
     const EmailAuthCredential* email_credential =
@@ -58,10 +65,17 @@ std::unique_ptr<rest::Request> CreateRequestFromCredential(
 
 const EmailAuthCredential* GetEmailCredential(
     const void* const raw_credential_impl) {
-  FIREBASE_ASSERT_RETURN(nullptr, raw_credential_impl);
+  if (!raw_credential_impl) {
+    return nullptr;
+  }
 
   const auto* credential_impl =
       static_cast<const CredentialImpl*>(raw_credential_impl);
+  if (!credential_impl->auth_credential ||
+      credential_impl->auth_credential->GetType() !=
+          AuthCredential::CredentialType::kEmail) {
+    return nullptr;
+  }
   return static_cast<const EmailAuthCredential*>(
       credential_impl->auth_credential.get());
 }

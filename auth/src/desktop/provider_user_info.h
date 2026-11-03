@@ -50,6 +50,9 @@ template <class ResponseT>
 std::vector<UserInfoImpl> ParseProviderUserInfo(const ResponseT& response) {
   std::vector<UserInfoImpl> result;
   for (const auto& providerInfo : response.providerUserInfos()) {
+    if (!providerInfo) {
+      continue;
+    }
     UserInfoImpl user_info;
     user_info.provider_id = providerInfo->providerId;
     user_info.photo_url = providerInfo->photoUrl;

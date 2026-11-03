@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-#include <string.h>
+#include <array>
+#include <memory>
+#include <string>
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #define __ANDROID__
@@ -25,6 +27,7 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/time.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/include/firebase/auth.h"
 
@@ -47,19 +50,12 @@ namespace auth {
 
 namespace {
 
-// Wait for the Future completed when necessary. We do not do so for Android nor
-// iOS since their test is based on Ticker-based fake. We do not do so for
-// desktop stub since its Future completes immediately.
+// Wait for the Future to complete when running asynchronous desktop REST calls.
 template <typename T>
 inline void MaybeWaitForFuture(const Future<T>& future) {
-// Desktop developer sdk has a small delay due to async calls.
 #if defined(FIREBASE_WAIT_ASYNC_IN_TEST)
-  // Once REST implementation is in, we should be able to check this. Almost
-  // always the return of last-result is ahead of the future completion. But
-  // right now, the return of last-result actually happens after future is
-  // completed.
-  // EXPECT_EQ(firebase::kFutureStatusPending, future.status());
   while (firebase::kFutureStatusPending == future.status()) {
+    firebase::internal::Sleep(1);
   }
 #endif  // defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 }
@@ -68,7 +64,6 @@ inline void MaybeWaitForFuture(const Future<T>& future) {
 template <typename T>
 void Verify(const AuthError error, const Future<T>& result,
             bool check_result_not_null) {
-// Desktop stub returns result immediately and thus we skip the ticker elapse.
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
     FIREBASE_PLATFORM_TVOS
   EXPECT_EQ(firebase::kFutureStatusPending, result.status());
@@ -85,7 +80,7 @@ void Verify(const AuthError error, const Future<T>& result,
 
 template <typename T>
 void Verify(const AuthError error, const Future<T>& result) {
-  Verify(error, result, true /* check_result_not_null */);
+  Verify(error, result, error == kAuthErrorNone /* check_result_not_null */);
 }
 
 template <>
@@ -152,35 +147,30 @@ TEST_F(AuthTest, TestAuthCreation) {
 // Creates and destroys multiple auth objects to ensure destruction doesn't
 // result in data races due to callbacks from the Java layer.
 TEST_F(AuthTest, TestAuthCreateDestroy) {
-  static int kTestIterations = 100;
+  static constexpr size_t kTestIterations = 100;
   // Pipeline of app and auth objects that are all active at once.
-  struct {
-    App* app;
-    Auth* auth;
-  } created_queue[10];
-  memset(created_queue, 0, sizeof(created_queue));
-  size_t created_queue_items = sizeof(created_queue) / sizeof(created_queue[0]);
+  struct AppAndAuth {
+    std::unique_ptr<Auth> auth;
+    std::unique_ptr<App> app;
+  };
+  std::array<AppAndAuth, 10> created_queue;
 
-  // Create and destroy app and auth objects keeping up to created_queue_items
+  // Create and destroy app and auth objects keeping up to created_queue.size()
   // alive at a time.
   for (size_t i = 0; i < kTestIterations; ++i) {
-    auto* queue_entry = &created_queue[i % created_queue_items];
-    delete queue_entry->auth;
-    delete queue_entry->app;
-    queue_entry->app =
+    auto& queue_entry = created_queue[i % created_queue.size()];
+    queue_entry.auth.reset();
+    queue_entry.app.reset(
         testing::CreateApp(testing::MockAppOptions(),
-                           (std::string("app") + std::to_string(i)).c_str());
-    queue_entry->auth = Auth::GetAuth(queue_entry->app);
-    EXPECT_NE(nullptr, queue_entry->auth);
+                           (std::string("app") + std::to_string(i)).c_str()));
+    queue_entry.auth.reset(Auth::GetAuth(queue_entry.app.get()));
+    EXPECT_NE(nullptr, queue_entry.auth);
   }
 
-  // Clean up the queue.
-  for (size_t i = 0; i < created_queue_items; ++i) {
-    auto* queue_entry = &created_queue[i % created_queue_items];
-    delete queue_entry->auth;
-    queue_entry->auth = nullptr;
-    delete queue_entry->app;
-    queue_entry->app = nullptr;
+  // Clean up the queue (auth before app).
+  for (auto& queue_entry : created_queue) {
+    queue_entry.auth.reset();
+    queue_entry.app.reset();
   }
 }
 
@@ -351,12 +341,6 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordSucceeded) {
   Verify(kAuthErrorNone, result);
 }
 
-// Right now the desktop stub always succeeded. We could potentially test it by
-// adding a desktop fake, which does not provide much value for the specific
-// case of Auth since the C++ code is only a thin wraper.
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
-    FIREBASE_PLATFORM_TVOS
-
 TEST_F(AuthTest, TestSignInWithCustomTokenFailed) {
   firebase::testing::cppsdk::ConfigSet(
       "{"
@@ -372,7 +356,14 @@ TEST_F(AuthTest, TestSignInWithCustomTokenFailed) {
       "                    "
       "exceptionmsg:'[FirebaseAuthInvalidCredentialsException:ERROR_INVALID_"
       "CUSTOM_TOKEN] sign-in with custom token failed',"
-      "                    ticker:1}}"
+      "                    ticker:1}},"
+      "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "verifyCustomToken?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 400 Bad Request','Server:mock server 101'],"
+      "       body: ['{\"error\": {\"message\": \"INVALID_CUSTOM_TOKEN\"}}']"
+      "     }"
+      "    }"
       "  ]"
       "}");
   MakeAuth();
@@ -396,7 +387,14 @@ TEST_F(AuthTest, TestSignInWithCredentialFailed) {
       "                    "
       "exceptionmsg:'[FirebaseAuthInvalidCredentialsException:ERROR_INVALID_"
       "EMAIL] sign-in with credential failed',"
-      "                    ticker:1}}"
+      "                    ticker:1}},"
+      "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "verifyPassword?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 400 Bad Request','Server:mock server 101'],"
+      "       body: ['{\"error\": {\"message\": \"INVALID_EMAIL\"}}']"
+      "     }"
+      "    }"
       "  ]"
       "}");
   MakeAuth();
@@ -420,7 +418,14 @@ TEST_F(AuthTest, TestSignInAnonymouslyFailed) {
       "                    "
       "exceptionmsg:'[FirebaseAuthException:ERROR_OPERATION_NOT_ALLOWED] "
       "sign-in anonymously failed',"
-      "                    ticker:1}}"
+      "                    ticker:1}},"
+      "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "signupNewUser?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 400 Bad Request','Server:mock server 101'],"
+      "       body: ['{\"error\": {\"message\": \"OPERATION_NOT_ALLOWED\"}}']"
+      "     }"
+      "    }"
       "  ]"
       "}");
   MakeAuth();
@@ -443,7 +448,14 @@ TEST_F(AuthTest, TestSignInWithEmailAndPasswordFailed) {
       "                    "
       "exceptionmsg:'[FirebaseAuthInvalidCredentialsException:ERROR_WRONG_"
       "PASSWORD] sign-in with email/password failed',"
-      "                    ticker:1}}"
+      "                    ticker:1}},"
+      "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "verifyPassword?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 400 Bad Request','Server:mock server 101'],"
+      "       body: ['{\"error\": {\"message\": \"INVALID_PASSWORD\"}}']"
+      "     }"
+      "    }"
       "  ]"
       "}");
   MakeAuth();
@@ -467,7 +479,14 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordFailed) {
       "                    "
       "exceptionmsg:'[FirebaseAuthUserCollisionException:ERROR_EMAIL_ALREADY_"
       "IN_USE] create user with email/pwd failed',"
-      "                    ticker:1}}"
+      "                    ticker:1}},"
+      "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "signupNewUser?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 400 Bad Request','Server:mock server 101'],"
+      "       body: ['{\"error\": {\"message\": \"EMAIL_EXISTS\"}}']"
+      "     }"
+      "    }"
       "  ]"
       "}");
   MakeAuth();
@@ -476,18 +495,14 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordFailed) {
   Verify(kAuthErrorEmailAlreadyInUse, result);
 }
 
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
-        // FIREBASE_PLATFORM_TVOS
-
 TEST_F(AuthTest, TestCurrentUserAndSignOut) {
-  // Here we let mock sign-in-anonymously succeed immediately (ticker = 0).
   firebase::testing::cppsdk::ConfigSet(
       "{"
       "  config:["
       "    {fake:'FirebaseAuth.signInAnonymously',"
-      "     futuregeneric:{ticker:0}},"
-      "    {fake:'FIRAuth.FIRAuth.signInAnonymouslyWithCompletion:',"
-      "     futuregeneric:{ticker:0}},"
+      "     futuregeneric:{ticker:1}},"
+      "    {fake:'FIRAuth.signInAnonymouslyWithCompletion:',"
+      "     futuregeneric:{ticker:1}},"
       "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "signupNewUser?key=not_a_real_api_key',"
       "     httpresponse: {"
@@ -510,7 +525,7 @@ TEST_F(AuthTest, TestCurrentUserAndSignOut) {
 
   // Now sign-in, say anonymously.
   Future<AuthResult> result = firebase_auth_->SignInAnonymously();
-  MaybeWaitForFuture(result);
+  Verify(kAuthErrorNone, result);
   EXPECT_TRUE(firebase_auth_->current_user().is_valid());
 
   // Now sign-out.
@@ -540,8 +555,6 @@ TEST_F(AuthTest, TestSendPasswordResetEmailSucceeded) {
   Verify(kAuthErrorNone, result);
 }
 
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
-    FIREBASE_PLATFORM_TVOS
 TEST_F(AuthTest, TestSendPasswordResetEmailFailed) {
   firebase::testing::cppsdk::ConfigSet(
       "{"
@@ -557,15 +570,20 @@ TEST_F(AuthTest, TestSendPasswordResetEmailFailed) {
       "                    "
       "exceptionmsg:'[FirebaseAuthEmailException:ERROR_INVALID_MESSAGE_PAYLOAD]"
       " failed to send password reset email',"
-      "                    ticker:1}}"
+      "                    ticker:1}},"
+      "    {fake:'https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "getOobConfirmationCode?key=not_a_real_api_key',"
+      "     httpresponse: {"
+      "       header: ['HTTP/1.1 400 Bad Request','Server:mock server 101'],"
+      "       body: ['{\"error\": {\"message\": \"INVALID_MESSAGE_PAYLOAD\"}}']"
+      "     }"
+      "    }"
       "  ]"
       "}");
   MakeAuth();
   Future<void> result = firebase_auth_->SendPasswordResetEmail("my@email.com");
   Verify(kAuthErrorInvalidMessagePayload, result);
 }
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
-        // FIREBASE_PLATFORM_TVOS
 
 }  // namespace auth
 }  // namespace firebase

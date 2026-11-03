@@ -32,11 +32,26 @@ class CreateAuthUriResponse : public AuthResponse {
 
   // A list of provider IDs to be used to sign in with.
   const std::vector<std::string>& providers() const {
-    return application_data_->allProviders;
+    if (application_data_) {
+      return application_data_->allProviders;
+    }
+    static const auto* const kFallback = new std::vector<std::string>();
+    return *kFallback;
+  }
+
+  // A list of sign-in methods to be used to sign in with.
+  const std::vector<std::string>& signin_methods() const {
+    if (application_data_) {
+      return application_data_->signinMethods;
+    }
+    static const auto* const kFallback = new std::vector<std::string>();
+    return *kFallback;
   }
 
   // Whether the user is registered if the identifier is an email.
-  bool registered() const { return application_data_->registered; }
+  bool registered() const {
+    return application_data_ ? application_data_->registered : false;
+  }
 };
 
 }  // namespace auth

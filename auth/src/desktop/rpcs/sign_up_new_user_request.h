@@ -27,19 +27,16 @@ namespace auth {
 
 // Represents the request payload for the signUpNewUser HTTP API. Use this to
 // sign up new users. The full specification of the HTTP API can be found at
-// https://developers.google.com/resources/api-libraries/documentation/identitytoolkit/v3/python/latest/identitytoolkit_v3.relyingparty.html#signupNewUser
+// https://cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/signUp
 class SignUpNewUserRequest : public AuthRequest {
  public:
-  // Initializer for anonymous sign-in.
+  // Initializer for anonymous sign-up.
   explicit SignUpNewUserRequest(::firebase::App& app, const char* api_key);
 
-  // initializer for sign-in with email and password.
+  // Initializer for sign-up with email and password.
   SignUpNewUserRequest(::firebase::App& app, const char* api_key,
                        const char* email, const char* password,
-                       const char* display_name);
-
- private:
-  void SetUrl(const char* api_key);
+                       const char* display_name = nullptr);
 };
 
 }  // namespace auth

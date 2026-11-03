@@ -33,6 +33,18 @@ class TwitterAuthCredential : public IdentityProviderCredential {
  public:
   std::string GetProvider() const override { return kTwitterAuthProviderId; }
 
+  CredentialType GetType() const override { return CredentialType::kTwitter; }
+
+  bool IsValid() const override {
+    return !token_.empty() && !secret_.empty();
+  }
+
+  bool Equals(const AuthCredential& other) const override {
+    if (other.GetType() != GetType()) return false;
+    const auto& rhs = static_cast<const TwitterAuthCredential&>(other);
+    return token_ == rhs.token_ && secret_ == rhs.secret_;
+  }
+
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       ::firebase::App& app, const char* const api_key) const override {
     return VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(

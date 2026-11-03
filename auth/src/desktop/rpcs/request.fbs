@@ -28,35 +28,24 @@ table Request {
   identifier:string;
   continueUri:string;
 
-  localId:string;
-  accessToken:string;
-
   idToken:string;
 
   requestUri:string;
   postBody:string;
-  providerId:string;
-  oAuthSecret:string;
 
   requestType:string;
 
   oobCode:string;
   newPassword:string;
 
-  appToken:string;
-  isSandbox:bool;
-
   token:string;
 
   grantType:string;
-  code:string;
   refreshToken:string;
 
   photoUrl:string;
   deleteAttribute:[string];
   deleteProvider:[string];
-
-  nonce:string;
 
   newEmail:string;
 }

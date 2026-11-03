@@ -72,12 +72,8 @@ class IdTokenRefreshThread {
 
   // Thread-safe getter, for checking if it's time to shut down.
   bool is_shutting_down() {
-    bool result;
-    {
-      MutexLock lock(ref_count_mutex_);
-      result = is_shutting_down_;
-    }
-    return result;
+    MutexLock lock(ref_count_mutex_);
+    return is_shutting_down_;
   }
 
   // Thread-safe setter.
@@ -137,6 +133,7 @@ class FunctionRegistryAuthStateListener : public AuthStateListener {
 
  private:
   using Entry = std::pair<FunctionRegistryCallback, void*>;
+  Mutex mutex_;
   std::vector<Entry> callbacks_;
 };
 
@@ -165,11 +162,12 @@ struct AuthImpl {
   // Serializes all REST call from this object.
   scheduler::Scheduler scheduler_;
 
-  // Synchronization primative for tracking sate of FederatedAuth futures.
+  // Synchronization primitive for tracking state of FederatedAuth futures and
+  // guarding mutable AuthImpl configuration fields.
   Mutex provider_mutex;
 
-  // The current user language code. This can be set to the app’s current
-  // language by calling SetLanguageCode.
+  // The current user language code. This can be set to the app's current
+  // language by calling set_language_code.
   std::string language_code;
 
   std::string assigned_emulator_url;

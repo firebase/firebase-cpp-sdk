@@ -16,9 +16,11 @@
 
 #include "auth/src/id_token_util.h"
 
+#include <cmath>
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "app/src/base64.h"
 #include "app/src/variant_util.h"
@@ -28,14 +30,19 @@ namespace auth {
 
 namespace {
 
+constexpr double kMaxUint64AsDouble = 18446744073709551616.0;  // 2^64
+
 uint64_t ExtractTimestamp(const std::map<Variant, Variant>& claims,
                           const char* key) {
   auto it = claims.find(Variant(key));
   if (it != claims.end()) {
     if (it->second.is_int64() && it->second.int64_value() > 0) {
       return static_cast<uint64_t>(it->second.int64_value());
-    } else if (it->second.is_double() && it->second.double_value() > 0) {
-      return static_cast<uint64_t>(it->second.double_value());
+    } else if (it->second.is_double()) {
+      const double value = it->second.double_value();
+      if (std::isfinite(value) && value > 0.0 && value < kMaxUint64AsDouble) {
+        return static_cast<uint64_t>(value);
+      }
     }
   }
   return 0;
@@ -48,13 +55,7 @@ bool ParseIdToken(const std::string& token, IdTokenResult* out_result) {
     return false;
   }
 
-  out_result->token = token;
-  out_result->claims.clear();
-  out_result->auth_timestamp = 0;
-  out_result->issued_at_timestamp = 0;
-  out_result->expiration_timestamp = 0;
-  out_result->sign_in_provider.clear();
-  out_result->sign_in_second_factor.clear();
+  *out_result = IdTokenResult();
 
   if (token.empty()) {
     return false;
@@ -90,30 +91,29 @@ bool ParseIdToken(const std::string& token, IdTokenResult* out_result) {
     return false;
   }
 
-  out_result->claims = payload_variant.map();
+  IdTokenResult parsed;
+  parsed.token = token;
+  parsed.claims = payload_variant.map();
+  parsed.auth_timestamp = ExtractTimestamp(parsed.claims, "auth_time");
+  parsed.issued_at_timestamp = ExtractTimestamp(parsed.claims, "iat");
+  parsed.expiration_timestamp = ExtractTimestamp(parsed.claims, "exp");
 
-  out_result->auth_timestamp =
-      ExtractTimestamp(out_result->claims, "auth_time");
-  out_result->issued_at_timestamp = ExtractTimestamp(out_result->claims, "iat");
-  out_result->expiration_timestamp =
-      ExtractTimestamp(out_result->claims, "exp");
-
-  const auto firebase_it = out_result->claims.find(Variant("firebase"));
-  if (firebase_it != out_result->claims.end() && firebase_it->second.is_map()) {
+  const auto firebase_it = parsed.claims.find(Variant("firebase"));
+  if (firebase_it != parsed.claims.end() && firebase_it->second.is_map()) {
     const auto& firebase_map = firebase_it->second.map();
     const auto provider_it = firebase_map.find(Variant("sign_in_provider"));
     if (provider_it != firebase_map.end() && provider_it->second.is_string()) {
-      out_result->sign_in_provider = provider_it->second.string_value();
+      parsed.sign_in_provider = provider_it->second.string_value();
     }
     const auto second_factor_it =
         firebase_map.find(Variant("sign_in_second_factor"));
     if (second_factor_it != firebase_map.end() &&
         second_factor_it->second.is_string()) {
-      out_result->sign_in_second_factor =
-          second_factor_it->second.string_value();
+      parsed.sign_in_second_factor = second_factor_it->second.string_value();
     }
   }
 
+  *out_result = std::move(parsed);
   return true;
 }
 

@@ -31,19 +31,6 @@ class GetAccountInfoRequest : public AuthRequest {
   explicit GetAccountInfoRequest(::firebase::App& app, const char* api_key);
   GetAccountInfoRequest(::firebase::App& app, const char* api_key,
                         const char* id_token);
-
-  void SetIdToken(const char* const id_token) {
-    // This is actually access token, named ID token for backward compatibility.
-    if (id_token) {
-      application_data_->idToken = id_token;
-      UpdatePostFields();
-    } else {
-      LogError("No id token given.");
-    }
-  }
-
- private:
-  void SetUrl(const char* api_key);
 };
 
 }  // namespace auth

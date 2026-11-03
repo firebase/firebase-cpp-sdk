@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_GET_OOB_CONFIRMATION_CODE_RESPONSE_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_GET_OOB_CONFIRMATION_CODE_RESPONSE_H_
 
+#include <string>
+
 #include "auth/src/desktop/rpcs/auth_response.h"
 #include "auth/src/desktop/visual_studio_compatibility.h"
 
@@ -27,6 +29,10 @@ class GetOobConfirmationCodeResponse : public AuthResponse {
  public:
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(GetOobConfirmationCodeResponse,
                                          AuthResponse)
+
+  std::string email() const {
+    return application_data_ ? application_data_->email : std::string();
+  }
 };
 
 }  // namespace auth

@@ -48,8 +48,9 @@ inline AdditionalUserInfo GetAdditionalUserInfo(const ResponseT& /*unused*/) {
 inline std::string ParseFieldFromRawUserInfo(AdditionalUserInfo* info,
                                              const std::string& key) {
   assert(info);
-  if (info->profile.count(key) > 0 && info->profile[key].is_string()) {
-    return info->profile[key].string_value();
+  const auto it = info->profile.find(key);
+  if (it != info->profile.end() && it->second.is_string()) {
+    return it->second.string_value();
   }
   return "";
 }

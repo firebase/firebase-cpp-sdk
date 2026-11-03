@@ -22,7 +22,7 @@ import com.google.firebase.testing.cppsdk.TickerAndroid;
 /** Mock FirebaseInstallations. */
 public class FirebaseInstallations {
   private static final String FN_GET_ID = "FirebaseInstallations.getId";
-  private static final String FN_GEI_TOKEN = "FirebaseInstallations.getToken";
+  private static final String FN_GET_TOKEN = "FirebaseInstallations.getToken";
   private static final String FN_DELETE = "FirebaseInstallations.delete";
 
   private FirebaseInstallations() {
@@ -34,17 +34,17 @@ public class FirebaseInstallations {
   }
 
   public Task<String> getId() {
-    FakeReporter.addReport("FirebaseInstallations.getId");
+    FakeReporter.addReport(FN_GET_ID);
     return stringHelper(FN_GET_ID);
   }
 
   public Task<InstallationTokenResult> getToken(boolean forceRefresh) {
-    FakeReporter.addReport("FirebaseInstallations.getToken");
-    return tokenHelper(FN_GEI_TOKEN);
+    FakeReporter.addReport(FN_GET_TOKEN);
+    return tokenHelper(FN_GET_TOKEN, forceRefresh);
   }
 
   public Task<Void> delete() {
-    FakeReporter.addReport("FirebaseInstallations.delete");
+    FakeReporter.addReport(FN_DELETE);
     return voidHelper(FN_DELETE);
   }
 
@@ -60,9 +60,10 @@ public class FirebaseInstallations {
     return result;
   }
 
-  private static Task<InstallationTokenResult> tokenHelper(String configKey) {
+  private static Task<InstallationTokenResult> tokenHelper(
+      String configKey, boolean forceRefresh) {
     Task<InstallationTokenResult> result =
-        Task.forResult(configKey, InstallationTokenResult.getInstance());
+        Task.forResult(configKey, InstallationTokenResult.getInstance(forceRefresh));
     TickerAndroid.register(result);
     return result;
   }

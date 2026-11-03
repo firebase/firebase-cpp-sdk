@@ -30,29 +30,30 @@ class VerifyCustomTokenResponse : public AuthResponse {
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(VerifyCustomTokenResponse,
                                          AuthResponse)
 
-  // Either an authorization code suitable for performing an STS token exchange,
-  // or the access token from Secure Token Service
-  std::string id_token() const { return application_data_->idToken; }
+  // The ID token from Secure Token Service.
+  std::string id_token() const {
+    return application_data_ ? application_data_->idToken : std::string();
+  }
 
   // The refresh token from Secure Token Service.
-  std::string refresh_token() const { return application_data_->refreshToken; }
+  std::string refresh_token() const {
+    return application_data_ ? application_data_->refreshToken : std::string();
+  }
 
-  // TODO(varconst): see if it needs implementing. Unlike other responses,
-  // VerifyCustomTokenResponse *doesn't* contain local_id as a field; instead,
-  // you're supposed to parse JWT, which needs base64-decoding and JSON parsing
-  // (see e.g. how it's done on Android: http://shortn/_EqJt1rsi2O).
-  // However, since the desktop implementation always calls GetAccountInfo
-  // before resolving the future, the result will be overridden anyway.
-  std::string local_id() const { return std::string(); }
+  // VerifyCustomTokenResponse does not always contain local_id as a field; the
+  // desktop implementation calls GetAccountInfo before resolving the future,
+  // which populates the user's local_id.
+  std::string local_id() const {
+    return application_data_ ? application_data_->localId : std::string();
+  }
 
-  bool is_new_user() const { return application_data_->isNewUser; }
+  bool is_new_user() const {
+    return application_data_ ? application_data_->isNewUser : false;
+  }
 
-  // The number of seconds till the access token expires.
+  // The number of seconds until the ID token expires.
   int expires_in() const {
-    if (application_data_->expiresIn.empty()) {
-      return 0;
-    }
-    return std::stoi(application_data_->expiresIn);
+    return application_data_ ? ParseExpiresIn(application_data_->expiresIn) : 0;
   }
 };
 

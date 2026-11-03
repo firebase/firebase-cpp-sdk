@@ -36,7 +36,7 @@ class GetAccountInfoResult {
   explicit GetAccountInfoResult(AuthError const error) : error_(error) {
     if (error_ == kAuthErrorNone) {
       LogDebug(
-          "When creating invalid SetAccountInfoResult, use error other than "
+          "When creating invalid GetAccountInfoResult, use error other than "
           "kAuthErrorNone");
     }
   }

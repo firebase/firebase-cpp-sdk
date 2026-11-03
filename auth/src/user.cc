@@ -19,12 +19,28 @@
 namespace firebase {
 namespace auth {
 
+#if !defined(SWIG)
+User::User(User&& rhs) noexcept : auth_data_(rhs.auth_data_) {
+  rhs.auth_data_ = nullptr;
+}
+
+User& User::operator=(User&& rhs) noexcept {
+  if (this != &rhs) {
+    auth_data_ = rhs.auth_data_;
+    rhs.auth_data_ = nullptr;
+  }
+  return *this;
+}
+#endif  // !defined(SWIG)
+
 AUTH_RESULT_FN(User, GetToken, std::string)
 AUTH_RESULT_FN(User, GetIdTokenResult, IdTokenResult)
 AUTH_RESULT_FN(User, UpdatePassword, void)
 AUTH_RESULT_FN(User, LinkWithCredential, AuthResult)
+AUTH_RESULT_FN(User, LinkWithProvider, AuthResult)
 AUTH_RESULT_FN(User, Reauthenticate, void)
 AUTH_RESULT_FN(User, ReauthenticateAndRetrieveData, AuthResult)
+AUTH_RESULT_FN(User, ReauthenticateWithProvider, AuthResult)
 AUTH_RESULT_FN(User, SendEmailVerification, void)
 AUTH_RESULT_FN(User, SendEmailVerificationBeforeUpdatingEmail, void)
 AUTH_RESULT_FN(User, Unlink, AuthResult)
@@ -33,40 +49,38 @@ AUTH_RESULT_FN(User, Reload, void)
 AUTH_RESULT_FN(User, Delete, void)
 AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
-#if defined(INTERNAL_EXPERIMENTAL)
-// I'd like to change all the above functions to use LastResultProxy, as it
-// makes multi-threaded situations more deterministic. However, LastResult
-// functions are public in the C++ SDK. And even while they are
-// non-deterministic in multi-threaded situations, someone might rely on their
-// current behavior. So for now, we only use it in Unity, and only for
-// GetToken where there is a real, reproductible issue.
 Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
+  if (!auth_data_) {
+    return Future<std::string>();
+  }
+  MutexLock lock(auth_data_->future_impl.mutex());
   Future<std::string> future = GetToken(force_refresh);
   if (future.status() != kFutureStatusPending) {
     return future;
-  } else {
-    FutureBase base = auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
-    const FutureBase& rFuture = base;
-    return static_cast<const Future<std::string>&>(rFuture);
   }
+  FutureBase base = auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
+  const FutureBase& r_future = base;
+  return static_cast<const Future<std::string>&>(r_future);
 }
 
 Future<IdTokenResult> User::GetIdTokenResultThreadSafe(bool force_refresh) {
+  if (!auth_data_) {
+    return Future<IdTokenResult>();
+  }
+  MutexLock lock(auth_data_->future_impl.mutex());
   Future<IdTokenResult> future = GetIdTokenResult(force_refresh);
   if (future.status() != kFutureStatusPending) {
     return future;
-  } else {
-    FutureBase base =
-        auth_data_->future_impl.LastResultProxy(kUserFn_GetIdTokenResult);
-    const FutureBase& rFuture = base;
-    return static_cast<const Future<IdTokenResult>&>(rFuture);
   }
+  FutureBase base =
+      auth_data_->future_impl.LastResultProxy(kUserFn_GetIdTokenResult);
+  const FutureBase& r_future = base;
+  return static_cast<const Future<IdTokenResult>&>(r_future);
 }
-#endif  // defined(INTERNAL_EXPERIMENTAL)
 
 // Non-inline implementation of UserInfoInterface's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-UserInfoInterface::~UserInfoInterface() {}
+UserInfoInterface::~UserInfoInterface() = default;
 
 std::string UserInfoInterface::uid() const { return uid_; }
 std::string UserInfoInterface::email() const { return email_; }

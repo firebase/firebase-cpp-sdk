@@ -14,64 +14,118 @@
 
 #include "installations/src/stub/installations_stub.h"
 
+#include <string>
+
 #include "installations/src/common.h"
 
 namespace firebase {
 namespace installations {
-
 namespace internal {
 
-InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {}
+namespace {
+constexpr int64_t kStubTokenExpirationTimestampMs = 3600000LL;
+}  // namespace
 
-InstallationsInternal::~InstallationsInternal() {}
+InstallationsInternal::InstallationsInternal(const firebase::App& app) {
+  (void)app;
+}
 
-void InstallationsInternal::LogHeartbeat(const firebase::App& app) {}
+InstallationsInternal::~InstallationsInternal() = default;
+
+void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
+  (void)app;
+}
 
 bool InstallationsInternal::Initialized() const { return true; }
 
 void InstallationsInternal::Cleanup() {}
 
 Future<std::string> InstallationsInternal::GetId() {
-  const auto handle =
-      future_impl_.SafeAlloc<std::string>(kInstallationsFnGetId);
-  future_impl_.CompleteWithResult(handle, kInstallationsErrorNone, "",
-                                  std::string("FakeId"));
-
-  return MakeFuture<std::string>(&future_impl_, handle);
+  std::string id;
+  {
+    MutexLock lock(mutex_);
+    if (cached_id_.empty()) {
+      cached_id_ = (generation_ == 0)
+                       ? std::string("FakeId")
+                       : (std::string("FakeId_") + std::to_string(generation_));
+    }
+    id = cached_id_;
+  }
+  const auto handle = futures_.SafeAlloc<kInstallationsFnGetId>();
+  futures_.CompleteWithResult<kInstallationsFnGetId>(
+      handle, kInstallationsErrorNone, "", id);
+  return futures_.MakeFuture<kInstallationsFnGetId>(handle);
 }
 
-Future<std::string> InstallationsInternal::GetIdLastResult() {
-  return static_cast<const Future<std::string>&>(
-      future_impl_.LastResult(kInstallationsFnGetId));
+Future<std::string> InstallationsInternal::GetIdLastResult() const {
+  return futures_.LastResult<kInstallationsFnGetId>();
 }
 
-Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
-  const auto handle =
-      future_impl_.SafeAlloc<std::string>(kInstallationsFnGetToken);
-
-  future_impl_.CompleteWithResult(handle, kInstallationsErrorNone, "",
-                                  forceRefresh
-                                      ? std::string("FakeTokenForceRefresh")
-                                      : std::string("FakeToken"));
-
-  return MakeFuture<std::string>(&future_impl_, handle);
+std::string InstallationsInternal::ResolveTokenLocked(bool force_refresh) {
+  if (force_refresh) {
+    cached_token_ = (generation_ == 0)
+                        ? std::string("FakeTokenForceRefresh")
+                        : (std::string("FakeTokenForceRefresh_") +
+                           std::to_string(generation_));
+  } else if (cached_token_.empty()) {
+    cached_token_ =
+        (generation_ == 0)
+            ? std::string("FakeToken")
+            : (std::string("FakeToken_") + std::to_string(generation_));
+  }
+  return cached_token_;
 }
 
-Future<std::string> InstallationsInternal::GetTokenLastResult() {
-  return static_cast<const Future<std::string>&>(
-      future_impl_.LastResult(kInstallationsFnGetToken));
+Future<std::string> InstallationsInternal::GetToken(bool force_refresh) {
+  std::string token;
+  {
+    MutexLock lock(mutex_);
+    token = ResolveTokenLocked(force_refresh);
+  }
+  const auto handle = futures_.SafeAlloc<kInstallationsFnGetToken>();
+  futures_.CompleteWithResult<kInstallationsFnGetToken>(
+      handle, kInstallationsErrorNone, "", token);
+  return futures_.MakeFuture<kInstallationsFnGetToken>(handle);
+}
+
+Future<std::string> InstallationsInternal::GetTokenLastResult() const {
+  return futures_.LastResult<kInstallationsFnGetToken>();
+}
+
+Future<InstallationTokenResult> InstallationsInternal::GetTokenResult(
+    bool force_refresh) {
+  InstallationTokenResult token_result;
+  {
+    MutexLock lock(mutex_);
+    token_result.token = ResolveTokenLocked(force_refresh);
+    token_result.expiration_timestamp = kStubTokenExpirationTimestampMs;
+  }
+  const auto handle = futures_.SafeAlloc<kInstallationsFnGetTokenResult>();
+  futures_.CompleteWithResult<kInstallationsFnGetTokenResult>(
+      handle, kInstallationsErrorNone, "", token_result);
+  return futures_.MakeFuture<kInstallationsFnGetTokenResult>(handle);
+}
+
+Future<InstallationTokenResult>
+InstallationsInternal::GetTokenResultLastResult() const {
+  return futures_.LastResult<kInstallationsFnGetTokenResult>();
 }
 
 Future<void> InstallationsInternal::Delete() {
-  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
-  future_impl_.Complete(handle, kInstallationsErrorNone);
-  return MakeFuture<void>(&future_impl_, handle);
+  {
+    MutexLock lock(mutex_);
+    ++generation_;
+    cached_id_.clear();
+    cached_token_.clear();
+  }
+  const auto handle = futures_.SafeAlloc<kInstallationsFnDelete>();
+  futures_.Complete<kInstallationsFnDelete>(handle, kInstallationsErrorNone,
+                                            "");
+  return futures_.MakeFuture<kInstallationsFnDelete>(handle);
 }
 
-Future<void> InstallationsInternal::DeleteLastResult() {
-  return static_cast<const Future<void>&>(
-      future_impl_.LastResult(kInstallationsFnDelete));
+Future<void> InstallationsInternal::DeleteLastResult() const {
+  return futures_.LastResult<kInstallationsFnDelete>();
 }
 
 }  // namespace internal

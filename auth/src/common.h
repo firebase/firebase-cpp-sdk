@@ -47,16 +47,18 @@ void LogHeartbeat(Auth* auth);
 // Just return the local Future, cast to the proper result type.
 #define AUTH_RESULT_FN(class_name, fn_name, result_type)                  \
   Future<result_type> class_name::fn_name##LastResult() const {           \
+    if (!auth_data_) return Future<result_type>();                        \
     return static_cast<const Future<result_type>&>(                       \
         auth_data_->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
   }
 
 // Returns true if `auth_data` has a user that's currently active.
 inline bool ValidUser(const AuthData* auth_data) {
-  if (auth_data == nullptr || auth_data->user_impl == nullptr) {
+  if (auth_data == nullptr) {
     return false;
   }
-  return true;
+  MutexLock lock(*const_cast<Mutex*>(&auth_data->future_impl.mutex()));
+  return auth_data->user_impl != nullptr;
 }
 
 // Notify all the listeners of the state change.

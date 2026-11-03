@@ -51,7 +51,8 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
 
 TEST(SetAccountInfoTest, TestSetAccountInfoRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   auto request =
       RequestT::CreateUpdateEmailRequest(*app, "APIKEY", "fakeemail");
   EXPECT_EQ(
@@ -181,6 +182,55 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_Unlink) {
       "  ]\n"
       "}\n",
       request->options().post_fields);
+}
+
+TEST(SetAccountInfoTest, TestSetAccountInfoResponse) {
+  ResponseT response;
+  const char body[] =
+      "{\n"
+      "  \"kind\": \"identitytoolkit#SetAccountInfoResponse\",\n"
+      "  \"localId\": \"localid123\",\n"
+      "  \"email\": \"new@email.com\",\n"
+      "  \"displayName\": \"New Name\",\n"
+      "  \"photoUrl\": \"https://photo.url\",\n"
+      "  \"idToken\": \"idtoken123\",\n"
+      "  \"refreshToken\": \"refreshtoken123\",\n"
+      "  \"expiresIn\": \"3600\",\n"
+      "  \"passwordHash\": \"hash123\",\n"
+      "  \"emailVerified\": true,\n"
+      "  \"providerUserInfo\": [\n"
+      "    {\n"
+      "      \"providerId\": \"google.com\"\n"
+      "    }\n"
+      "  ]\n"
+      "}";
+  response.set_status(rest::util::HttpSuccess);
+  response.ProcessBody(body, sizeof(body));
+  response.MarkCompleted();
+  EXPECT_TRUE(response.IsSuccessful());
+  EXPECT_EQ("localid123", response.local_id());
+  EXPECT_EQ("new@email.com", response.email());
+  EXPECT_EQ("New Name", response.display_name());
+  EXPECT_EQ("https://photo.url", response.photo_url());
+  EXPECT_EQ("idtoken123", response.id_token());
+  EXPECT_EQ("refreshtoken123", response.refresh_token());
+  EXPECT_EQ(3600, response.expires_in());
+  EXPECT_EQ("hash123", response.password_hash());
+  EXPECT_TRUE(response.email_verified());
+  EXPECT_EQ(1u, response.providerUserInfos().size());
+
+  ResponseT error_response;
+  const char error_body[] =
+      "{\n"
+      "  \"error\": {\n"
+      "    \"code\": 400,\n"
+      "    \"message\": \"EMAIL_EXISTS\"\n"
+      "  }\n"
+      "}";
+  error_response.ProcessBody(error_body, sizeof(error_body));
+  error_response.MarkCompleted();
+  EXPECT_FALSE(error_response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorEmailAlreadyInUse, error_response.error_code());
 }
 
 }  // namespace auth

@@ -43,7 +43,8 @@ METHOD_LOOKUP_DECLARATION(authresult, AUTH_RESULT_METHODS)
 #define ADDITIONAL_USER_INFO_METHODS(X)                                        \
   X(GetProviderId, "getProviderId", "()Ljava/lang/String;"),                   \
   X(GetProfile, "getProfile", "()Ljava/util/Map;"),                            \
-  X(GetUsername, "getUsername", "()Ljava/lang/String;")
+  X(GetUsername, "getUsername", "()Ljava/lang/String;"),                       \
+  X(IsNewUser, "isNewUser", "()Z")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(additional_user_info, ADDITIONAL_USER_INFO_METHODS)
 
@@ -116,15 +117,27 @@ inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kGetUsername));
   util::CheckAndClearJniExceptions(env);
+  const jboolean j_is_new_user = env->CallBooleanMethod(
+      j_additional_user_info,
+      additional_user_info::GetMethodId(additional_user_info::kIsNewUser));
+  util::CheckAndClearJniExceptions(env);
 
   // Convert Java references to C++ types.
   info->provider_id = util::JniStringToString(env, j_provider_id);
   info->user_name = util::JniStringToString(env, j_user_name);
+  info->is_new_user = (j_is_new_user != JNI_FALSE);
   if (j_profile) util::JavaMapToVariantMap(env, &info->profile, j_profile);
 
   // Release local references. Note that JniStringToString releases for us.
   env->DeleteLocalRef(j_profile);
 }
+
+// Tracks when ReadTokenResult/ReadIdTokenResult already notified
+// IdTokenListeners for a forced refresh before the Java JniIdTokenListener
+// callback arrived.
+void RecordPretriggeredIdTokenCallback(AuthData* auth_data);
+bool ConsumePretriggeredIdTokenCallback(AuthData* auth_data);
+void ClearPretriggeredIdTokenCallbacks(AuthData* auth_data);
 
 // Return the JNI environment.
 inline JNIEnv* Env(AuthData* auth_data) { return auth_data->app->GetJNIEnv(); }
@@ -231,9 +244,13 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
   AuthError error =
       MapFutureCallbackResultToAuthError(env, result, result_code, &success);
   // The Android SDK Web Activity returns Operation Not Allowed when the
-  // provider id is invalid or a federated auth operation is requested of a
-  // disabled provider.
-  if (error == kAuthErrorOperationNotAllowed) {
+  // provider id is invalid (e.g. "The identity provider configuration is not
+  // found"). Only remap when the message does not indicate a known provider
+  // that was disabled in the Firebase console.
+  if (error == kAuthErrorOperationNotAllowed &&
+      (status_message == nullptr ||
+       strstr(status_message, "is disabled for this Firebase project") ==
+           nullptr)) {
     error = kAuthErrorInvalidProviderId;
   }
   // Finish off the asynchronous call so that the caller can read it.

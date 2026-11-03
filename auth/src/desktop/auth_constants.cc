@@ -22,6 +22,7 @@ const char kGoogleAuthProviderId[] = "google.com";
 const char kFacebookAuthProviderId[] = "facebook.com";
 const char kTwitterAuthProviderId[] = "twitter.com";
 const char kGitHubAuthProviderId[] = "github.com";
+const char kPhoneAuthProviderId[] = "phone";
 const char kPhoneAuthProdiverId[] = "phone";
 const char kPlayGamesAuthProviderId[] = "playgames.google.com";
 const char kGameCenterAuthProviderId[] = "gc.apple.com";

@@ -89,6 +89,6 @@ table UserDataDesktop {
   // other providers for current user
   provider_data:[UserProviderData];
 }
-// LINT.ThenChange(//depot_firebase_cpp/auth/client/cpp/src/desktop/user_desktop.h)
+// LINT.ThenChange(auth/src/desktop/user_desktop.h)
 
 root_type UserDataDesktop;

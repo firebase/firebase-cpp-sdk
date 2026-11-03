@@ -25,12 +25,13 @@ bool UpdateUserTokensIfChanged(UserView::Writer& user,
                                const TokenUpdate& token_update) {
   bool has_token_changed = false;
 
-  // Update access token.
-  if (!token_update.id_token.empty() &&
-      token_update.id_token != user->id_token) {
-    user->id_token = user->access_token = token_update.id_token;
+  // Update access token and expiration timestamp.
+  if (!token_update.id_token.empty()) {
+    if (token_update.id_token != user->id_token) {
+      user->id_token = user->access_token = token_update.id_token;
+      has_token_changed = true;
+    }
     user->access_token_expiration_date = token_update.expiration_date;
-    has_token_changed = true;
   }
   // Update refresh token.
   if (!token_update.refresh_token.empty()) {
@@ -55,9 +56,8 @@ SetAccountInfoResult SetAccountInfoResult::FromResponse(
   result.user_impl_.has_email_password_credential =
       response.password_hash().length() > 0;
 
-  // No need to check whether response contains non-blank tokens in this case,
-  // because the user being updated was blank anyway, so there is no danger of
-  // overriding valid tokens with blanks.
+  // MergeToCurrentUser() uses UpdateUserTokensIfChanged() to only apply
+  // non-empty tokens from user_impl_ to the active user.
   result.user_impl_.id_token = result.user_impl_.access_token =
       response.id_token();
   result.user_impl_.access_token_expiration_date =

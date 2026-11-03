@@ -123,7 +123,7 @@ if(ANDROID)
     src/android/android_firebase_test_framework.cc
   )
 
-# Build native_app_glue as a static lib
+  # Build native_app_glue as a static lib
   add_library(native_app_glue STATIC
     ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
 
@@ -161,7 +161,6 @@ if(ANDROID)
   set(ADDITIONAL_LIBS log android atomic native_app_glue)
 else()
   # Build a desktop application.
-  add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 
   # Prevent overriding the parent project's compiler/linker
   # settings on Windows
@@ -172,19 +171,6 @@ else()
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/googletest/src
                    ${CMAKE_CURRENT_LIST_DIR}/external/googletest/build
                    EXCLUDE_FROM_ALL)
-
-  # The gtest/gtest_main targets carry header search path
-  # dependencies automatically when using CMake 2.8.11 or
-  # later. Otherwise we have to add them here ourselves.
-  if (CMAKE_VERSION VERSION_LESS 2.8.11)
-    include_directories("${gtest_SOURCE_DIR}/include")
-    include_directories("${gmock_SOURCE_DIR}/include")
-  endif()
-
-  # Windows runtime mode, either MD or MT depending on whether you are using
-  # /MD or /MT. For more information see:
-  # https://msdn.microsoft.com/en-us/library/2kzt1wy3.aspx
-  set(MSVC_RUNTIME_MODE MD)
 
   # Platform abstraction layer for the desktop integration test.
   set(FIREBASE_APP_FRAMEWORK_DESKTOP_SRCS

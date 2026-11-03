@@ -24,15 +24,33 @@ namespace auth {
 // authenticate a user.
 class AuthCredential {
  public:
+  enum class CredentialType {
+    kEmail,
+    kFacebook,
+    kGitHub,
+    kGoogle,
+    kOAuth,
+    kPlayGames,
+    kTwitter,
+  };
+
   virtual ~AuthCredential();
 
   // Returns the unique string identifier of the provider for the credential.
   virtual std::string GetProvider() const = 0;
 
+  virtual CredentialType GetType() const = 0;
+
+  virtual bool IsIdentityProvider() const { return false; }
+
+  virtual bool IsValid() const { return true; }
+
+  virtual bool Equals(const AuthCredential& other) const = 0;
+
  protected:
   // This is an abstract class. Concrete instances should be created via factory
-  // method getCredential() in each authentication provider class e.g.
-  // FacebookAuthProvider::getCredential().
+  // method GetCredential() in each authentication provider class e.g.
+  // FacebookAuthProvider::GetCredential().
   AuthCredential() {}
 };
 

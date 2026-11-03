@@ -14,9 +14,6 @@
 
 #include "auth/src/desktop/rpcs/delete_account_request.h"
 
-#include <cassert>
-#include <string>
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 
@@ -25,15 +22,9 @@ namespace auth {
 
 DeleteAccountRequest::DeleteAccountRequest(::firebase::App& app,
                                            const char* const api_key)
-    : AuthRequest(app, request_resource_data, true) {
+    : AuthRequest(app, request_resource_data, true, "deleteAccount?key=",
+                  api_key) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
-
-  const char api_host[] = "deleteAccount?key=";
-  std::string url = GetUrl();
-  url.append(api_host);
-  url.append(api_key);
-  set_url(url.c_str());
-
   UpdatePostFields();
 }
 

@@ -48,19 +48,12 @@ namespace auth {
 
 namespace {
 
-// Wait for the Future completed when necessary. We do not do so for Android nor
-// iOS since their test is based on Ticker-based fake. We do not do so for
-// desktop stub since its Future completes immediately.
+// Wait for the Future to complete when running asynchronous desktop REST calls.
 template <typename T>
 inline void MaybeWaitForFuture(const Future<T>& future) {
-// Desktop developer sdk has a small delay due to async calls.
 #if defined(FIREBASE_WAIT_ASYNC_IN_TEST)
-  // Once REST implementation is in, we should be able to check this. Almost
-  // always the return of last-result is ahead of the future completion. But
-  // right now, the return of last-result actually happens after future is
-  // completed.
-  // EXPECT_EQ(firebase::kFutureStatusPending, future.status());
   while (firebase::kFutureStatusPending == future.status()) {
+    firebase::internal::Sleep(1);
   }
 #endif  // defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 }
@@ -177,14 +170,13 @@ class UserTest : public ::testing::Test {
   void TearDown() override {
     firebase_auth_->SignOut();
 
+#if defined(FIREBASE_WAIT_ASYNC_IN_TEST)
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
-    // This is to avoid race conditions where the next test's SignIn
-    // doesn't cause a change in auth state or id tokens because persistent
-    // cache has valid user logged in, preventing listeners from firing.
-    firebase::internal::Sleep(200);
+    firebase::internal::Sleep(50);
+#endif  // defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 
-    // We do not own firebase_user_ object. So just assign it to nullptr here.
+    firebase_user_ = User();
     delete firebase_auth_;
     firebase_auth_ = nullptr;
     delete firebase_app_;
@@ -479,7 +471,6 @@ TEST_F(UserTest, TestReauthenticate) {
   Verify(reauthenticate_result);
 }
 
-#if !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 TEST_F(UserTest, TestReauthenticateAndRetrieveData) {
   // Test reauthenticate and retrieve data.
   const std::string config =
@@ -497,11 +488,15 @@ TEST_F(UserTest, TestReauthenticateAndRetrieveData) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<AuthResult> result = firebase_user_.ReauthenticateAndRetrieveData(
-      EmailAuthProvider::GetCredential("i@email.com", "pw"));
+  Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
+  Future<AuthResult> sign_in_result =
+      firebase_auth_->SignInAndRetrieveDataWithCredential(credential);
+  Verify(sign_in_result);
+
+  Future<AuthResult> result =
+      firebase_user_.ReauthenticateAndRetrieveData(credential);
   Verify(result);
 }
-#endif  // !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 
 TEST_F(UserTest, TestSendEmailVerification) {
   // Test send email verification.
@@ -534,7 +529,12 @@ TEST_F(UserTest, TestSendEmailVerificationBeforeUpdatingEmail) {
   firebase::testing::cppsdk::ConfigSet(
       "{"
       "  config:["
+      "    {fake:'FirebaseUser.verifyBeforeUpdateEmail',"
+      "     futuregeneric:{ticker:1}},"
       "    {fake:'FirebaseUser.sendEmailVerification',"
+      "     futuregeneric:{ticker:1}},"
+      "    {fake:'FIRUser."
+      "sendEmailVerificationBeforeUpdatingEmail:completion:',"
       "     futuregeneric:{ticker:1}},"
       "    {fake:'FIRUser.sendEmailVerificationWithCompletion:',"
       "     futuregeneric:{ticker:1}},"
@@ -699,6 +699,11 @@ TEST_F(UserTest, TestGetter) {
 
   EXPECT_FALSE(firebase_user_.uid().empty());
   EXPECT_TRUE(firebase_user_.photo_url().empty());
+  EXPECT_TRUE(firebase_user_.phone_number().empty());
+  EXPECT_FALSE(firebase_user_.is_email_verified());
+  const UserMetadata metadata = firebase_user_.metadata();
+  EXPECT_EQ(0ULL, metadata.last_sign_in_timestamp);
+  EXPECT_EQ(0ULL, metadata.creation_timestamp);
 }
 
 TEST_F(UserTest, TestComparisonOperator) {

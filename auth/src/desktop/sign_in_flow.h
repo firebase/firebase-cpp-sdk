@@ -60,12 +60,8 @@ AuthenticationResult CompleteSignInFlow(AuthData* auth_data,
 
 // Implementation
 
-template <typename ResponseT>
-inline AuthenticationResult CompleteSignInFlow(AuthData* const auth_data,
-                                               const ResponseT& response) {
-  FIREBASE_ASSERT_RETURN(AuthenticationResult(kAuthErrorFailure), auth_data);
-
-  auto auth_result = AuthenticationResult::FromResponse(response);
+inline AuthenticationResult CompleteSignInFlowWithAuthResult(
+    AuthData* const auth_data, AuthenticationResult auth_result) {
   if (!auth_result.IsValid()) {
     return auth_result;
   }
@@ -80,24 +76,26 @@ inline AuthenticationResult CompleteSignInFlow(AuthData* const auth_data,
   return auth_result;
 }
 
-inline AuthenticationResult CompleteAuthenticedUserSignInFlow(
+template <typename ResponseT>
+inline AuthenticationResult CompleteSignInFlow(AuthData* const auth_data,
+                                               const ResponseT& response) {
+  FIREBASE_ASSERT_RETURN(AuthenticationResult(kAuthErrorFailure), auth_data);
+  return CompleteSignInFlowWithAuthResult(
+      auth_data, AuthenticationResult::FromResponse(response));
+}
+
+inline AuthenticationResult CompleteAuthenticatedUserSignInFlow(
     AuthData* const auth_data,
     const FederatedAuthProvider::AuthenticatedUserData& user_data) {
   FIREBASE_ASSERT_RETURN(AuthenticationResult(kAuthErrorFailure), auth_data);
+  return CompleteSignInFlowWithAuthResult(
+      auth_data, AuthenticationResult::FromAuthenticatedUserData(user_data));
+}
 
-  auto auth_result = AuthenticationResult::FromAuthenticatedUserData(user_data);
-  if (!auth_result.IsValid()) {
-    return auth_result;
-  }
-
-  const GetAccountInfoResult user_account_info =
-      GetAccountInfo(*auth_data, auth_result.id_token());
-  if (!user_account_info.IsValid()) {
-    return AuthenticationResult(user_account_info.error());
-  }
-
-  auth_result.SetAccountInfo(user_account_info);
-  return auth_result;
+inline AuthenticationResult CompleteAuthenticedUserSignInFlow(
+    AuthData* const auth_data,
+    const FederatedAuthProvider::AuthenticatedUserData& user_data) {
+  return CompleteAuthenticatedUserSignInFlow(auth_data, user_data);
 }
 
 template <typename ResponseT, typename FutureResultT, typename RequestT>

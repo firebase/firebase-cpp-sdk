@@ -33,6 +33,21 @@ class OAuthCredential : public IdentityProviderCredential {
  public:
   std::string GetProvider() const override { return provider_id_; }
 
+  CredentialType GetType() const override { return CredentialType::kOAuth; }
+
+  bool IsValid() const override {
+    return !provider_id_.empty() &&
+           provider_id_ != kEmailPasswordAuthProviderId &&
+           (!id_token_.empty() || !access_token_.empty());
+  }
+
+  bool Equals(const AuthCredential& other) const override {
+    if (other.GetType() != GetType()) return false;
+    const auto& rhs = static_cast<const OAuthCredential&>(other);
+    return provider_id_ == rhs.provider_id_ && id_token_ == rhs.id_token_ &&
+           raw_nonce_ == rhs.raw_nonce_ && access_token_ == rhs.access_token_;
+  }
+
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       ::firebase::App& app, const char* const api_key) const override {
     const char* raw_nonce =

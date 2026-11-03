@@ -14,7 +14,6 @@
 
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
 
-#include <cassert>
 #include <string>
 
 #include "app/src/assert.h"
@@ -26,18 +25,14 @@ namespace auth {
 VerifyAssertionRequest::VerifyAssertionRequest(::firebase::App& app,
                                                const char* const api_key,
                                                const char* const provider_id)
-    : AuthRequest(app, request_resource_data, true) {
+    : AuthRequest(app, request_resource_data, true, "verifyAssertion?key=",
+                  api_key) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
+  application_data_->requestUri = "http://localhost";
 
-  const char api_host[] = "verifyAssertion?key=";
-  std::string url = GetUrl();
-  url.append(api_host);
-  url.append(api_key);
-  set_url(url.c_str());
-  application_data_->requestUri = url;
-
-  if (provider_id) {
-    post_body_ = std::string("providerId=") + provider_id;
+  if (provider_id && *provider_id != '\0') {
+    application_data_->postBody =
+        std::string("providerId=") + UrlEncode(provider_id);
   } else {
     LogError("No provider id given");
   }
@@ -57,17 +52,18 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
   auto request = std::unique_ptr<VerifyAssertionRequest>(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
-  if (id_token) {
-    request->post_body_ += std::string("&id_token=") + id_token;
+  if (id_token && *id_token != '\0') {
+    request->application_data_->postBody +=
+        std::string("&id_token=") + UrlEncode(id_token);
   } else {
     LogError("No id token given");
   }
 
-  if (nonce) {
-    request->post_body_ += std::string("&nonce=") + nonce;
+  if (nonce && *nonce != '\0') {
+    request->application_data_->postBody +=
+        std::string("&nonce=") + UrlEncode(nonce);
   }
 
-  request->application_data_->postBody = request->post_body_;
   request->UpdatePostFields();
   return request;
 }
@@ -86,17 +82,18 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
   auto request = std::unique_ptr<VerifyAssertionRequest>(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
-  if (access_token) {
-    request->post_body_ += std::string("&access_token=") + access_token;
+  if (access_token && *access_token != '\0') {
+    request->application_data_->postBody +=
+        std::string("&access_token=") + UrlEncode(access_token);
   } else {
     LogError("No access token given");
   }
 
-  if (nonce) {
-    request->post_body_ += std::string("&nonce=") + nonce;
+  if (nonce && *nonce != '\0') {
+    request->application_data_->postBody +=
+        std::string("&nonce=") + UrlEncode(nonce);
   }
 
-  request->application_data_->postBody = request->post_body_;
   request->UpdatePostFields();
   return request;
 }
@@ -109,25 +106,22 @@ VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
   auto request = std::unique_ptr<VerifyAssertionRequest>(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
-  if (access_token) {
-    request->post_body_ += std::string("&access_token=") + access_token;
+  if (access_token && *access_token != '\0') {
+    request->application_data_->postBody +=
+        std::string("&access_token=") + UrlEncode(access_token);
   } else {
     LogError("No access token given");
   }
-  if (oauth_secret) {
-    request->post_body_ += std::string("&oauth_token_secret=") + oauth_secret;
+  if (oauth_secret && *oauth_secret != '\0') {
+    request->application_data_->postBody +=
+        std::string("&oauth_token_secret=") + UrlEncode(oauth_secret);
   } else {
     LogError("No OAuth secret given");
   }
 
-  request->application_data_->postBody = request->post_body_;
   request->UpdatePostFields();
   return request;
 }
-
-static std::unique_ptr<VerifyAssertionRequest> FromAuthCode(
-    ::firebase::App& app, const char* api_key, const char* provider_id,
-    const char* auth_code);
 
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAuthCode(
     ::firebase::App& app, const char* const api_key,
@@ -135,13 +129,13 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAuthCode(
   auto request = std::unique_ptr<VerifyAssertionRequest>(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
-  if (auth_code) {
-    request->post_body_ += std::string("&code=") + auth_code;
+  if (auth_code && *auth_code != '\0') {
+    request->application_data_->postBody +=
+        std::string("&code=") + UrlEncode(auth_code);
   } else {
     LogError("No server auth code given");
   }
 
-  request->application_data_->postBody = request->post_body_;
   request->UpdatePostFields();
   return request;
 }

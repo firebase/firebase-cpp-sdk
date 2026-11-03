@@ -33,68 +33,62 @@ class GetAccountInfoResponse : public AuthResponse {
  public:
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(GetAccountInfoResponse, AuthResponse)
 
-  std::string local_id() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->localId
-               : std::string();
+  const std::string& local_id() const {
+    return user() ? user()->localId : EmptyString();
   }
 
-  std::string display_name() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->displayName
-               : std::string();
+  const std::string& display_name() const {
+    return user() ? user()->displayName : EmptyString();
   }
 
-  std::string email() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->email
-               : std::string();
+  const std::string& email() const {
+    return user() ? user()->email : EmptyString();
   }
 
-  std::string photo_url() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->photoUrl
-               : std::string();
+  const std::string& photo_url() const {
+    return user() ? user()->photoUrl : EmptyString();
   }
 
   bool email_verified() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->emailVerified
-               : false;
+    return user() ? user()->emailVerified : false;
   }
 
-  std::string password_hash() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->passwordHash
-               : std::string();
+  const std::string& password_hash() const {
+    return user() ? user()->passwordHash : EmptyString();
   }
 
-  std::string phone_number() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->phoneNumber
-               : std::string();
+  const std::string& phone_number() const {
+    return user() ? user()->phoneNumber : EmptyString();
   }
 
   uint64_t last_login_at() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->lastLoginAt
-               : 0;
+    return user() ? user()->lastLoginAt : 0;
   }
 
   uint64_t created_at() const {
-    return !application_data_->users.empty()
-               ? application_data_->users[0]->createdAt
-               : 0;
+    return user() ? user()->createdAt : 0;
   }
 
   const std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>&
-  providerUserInfos() const {
-    if (!application_data_->users.empty()) {
-      return application_data_->users[0]->providerUserInfo;
+   providerUserInfos() const {
+    if (const auto* u = user()) {
+      return u->providerUserInfo;
     }
-    static std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>
-        fallback;
-    return fallback;
+    static const auto* const kFallback =
+        new std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>();
+    return *kFallback;
+  }
+
+ private:
+  const fbs::UserT* user() const {
+    return (application_data_ && !application_data_->users.empty())
+               ? application_data_->users[0].get()
+               : nullptr;
+  }
+
+  static const std::string& EmptyString() {
+    static const std::string* const kEmpty = new std::string();
+    return *kEmpty;
   }
 };
 

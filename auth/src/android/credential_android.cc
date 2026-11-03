@@ -17,7 +17,7 @@
 #include <jni.h>
 
 #include <algorithm>
-#include <cassert>
+#include <atomic>
 #include <cstring>
 
 #include "app/src/app_common.h"
@@ -25,6 +25,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
 #include "auth/src/android/common_android.h"
 
@@ -138,16 +139,14 @@ METHOD_LOOKUP_DEFINITION(oauthprovider,
                          OAUTHPROVIDER_METHODS)
 
 // clang-format off
-#define TIME_UNIT_METHODS(X)                                                   \
-    X(ToMillis, "toMillis", "(J)J")
 #define TIME_UNIT_FIELDS(X)                                                    \
     X(Milliseconds, "MILLISECONDS", "Ljava/util/concurrent/TimeUnit;",         \
       util::kFieldTypeStatic)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(timeunit, TIME_UNIT_METHODS, TIME_UNIT_FIELDS)
+METHOD_LOOKUP_DECLARATION(timeunit, METHOD_LOOKUP_NONE, TIME_UNIT_FIELDS)
 METHOD_LOOKUP_DEFINITION(timeunit,
                          PROGUARD_KEEP_CLASS "java/util/concurrent/TimeUnit",
-                         TIME_UNIT_METHODS, TIME_UNIT_FIELDS)
+                         METHOD_LOOKUP_NONE, TIME_UNIT_FIELDS)
 
 // clang-format off
 #define PHONE_AUTH_OPTIONS_BUILDER_METHODS(X)                                  \
@@ -155,8 +154,6 @@ METHOD_LOOKUP_DEFINITION(timeunit,
     "(Lcom/google/firebase/auth/FirebaseAuth;)V"),                             \
   X(Build, "build",                                                            \
     "()Lcom/google/firebase/auth/PhoneAuthOptions;"),                          \
-  X(RequireSmsValidation, "requireSmsValidation", "(Z)"                        \
-    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
   X(SetActivity, "setActivity", "(Landroid/app/Activity;)"                     \
     "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
   X(SetCallbacks, "setCallbacks",                                              \
@@ -318,7 +315,8 @@ static const JNINativeMethod kNativeJniAuthPhoneListenerMethods[] = {
          JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut)},
 };
 
-static bool g_methods_cached = false;
+static std::atomic<bool> g_methods_cached{false};
+static Mutex g_credential_methods_mutex;
 
 const char kMethodsNotCachedError[] =
     "Firebase Auth was not initialized, unable to create a Credential. "
@@ -366,6 +364,10 @@ void ReleaseCredentialClasses(JNIEnv* env) {
   githubcred::ReleaseClass(env);
   googlecred::ReleaseClass(env);
   playgamescred::ReleaseClass(env);
+  if (jniphone::GetClass() != nullptr) {
+    env->UnregisterNatives(jniphone::GetClass());
+    util::CheckAndClearJniExceptions(env);
+  }
   jniphone::ReleaseClass(env);
   oauthprovider::ReleaseClass(env);
   oauthprovider_builder::ReleaseClass(env);
@@ -382,15 +384,46 @@ void ReleaseCredentialClasses(JNIEnv* env) {
 static JNIEnv* GetJniEnv() {
   // The JNI environment is the same regardless of App.
   App* app = app_common::GetAnyApp();
-  FIREBASE_ASSERT(app != nullptr);
-  return app->GetJNIEnv();
+  return app ? app->GetJNIEnv() : nullptr;
+}
+
+static bool EnsureCredentialMethodsCached() {
+  if (g_methods_cached.load(std::memory_order_acquire)) return true;
+  MutexLock lock(g_credential_methods_mutex);
+  if (g_methods_cached.load(std::memory_order_relaxed)) return true;
+  App* app = app_common::GetAnyApp();
+  if (!app) return false;
+  JNIEnv* env = app->GetJNIEnv();
+  jobject activity = app->activity();
+  if (!env) return false;
+  const bool cached =
+      credential::CacheMethodIds(env, activity) &&
+      emailcred::CacheMethodIds(env, activity) &&
+      facebookcred::CacheMethodIds(env, activity) &&
+      githubcred::CacheMethodIds(env, activity) &&
+      googlecred::CacheMethodIds(env, activity) &&
+      oauthprovider::CacheMethodIds(env, activity) &&
+      oauthprovider_builder::CacheMethodIds(env, activity) &&
+      oauthprovider_credentialbuilder::CacheMethodIds(env, activity) &&
+      auth_idp::CacheMethodIds(env, activity) &&
+      user_idp::CacheMethodIds(env, activity) &&
+      phone_auth_options_builder::CacheMethodIds(env, activity) &&
+      phoneauthprovider::CacheMethodIds(env, activity) &&
+      phonecredential::CacheMethodIds(env, activity) &&
+      timeunit::CacheFieldIds(env, activity) &&
+      playgamescred::CacheMethodIds(env, activity) &&
+      twittercred::CacheMethodIds(env, activity);
+  g_methods_cached.store(cached, std::memory_order_release);
+  return cached;
 }
 
 // Remove the reference on destruction.
 Credential::~Credential() {
   if (impl_ != nullptr) {
     JNIEnv* env = GetJniEnv();
-    env->DeleteGlobalRef(static_cast<jobject>(impl_));
+    if (env != nullptr) {
+      env->DeleteGlobalRef(static_cast<jobject>(impl_));
+    }
     impl_ = nullptr;
   }
 }
@@ -402,31 +435,51 @@ Credential::Credential(const Credential& rhs)
 
 // Increase the reference count when copying.
 Credential& Credential::operator=(const Credential& rhs) {
+  if (this == &rhs) return *this;
   if (impl_ != rhs.impl_) {
     JNIEnv* env = GetJniEnv();
-    if (impl_) {
+    if (impl_ && env) {
       env->DeleteGlobalRef(static_cast<jobject>(impl_));
     }
 
-    if (rhs.impl_) {
+    if (rhs.impl_ && env) {
       jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
       impl_ = static_cast<void*>(j_cred_ref);
     } else {
       impl_ = nullptr;
     }
-    error_code_ = rhs.error_code_;
-    error_message_ = rhs.error_message_;
   }
+  error_code_ = rhs.error_code_;
+  error_message_ = rhs.error_message_;
   return *this;
 }
 
-std::string Credential::provider() const {
+bool Credential::operator==(const Credential& credential) const {
+  if (impl_ == credential.impl_) {
+    return error_code_ == credential.error_code_ &&
+           error_message_ == credential.error_message_;
+  }
+  if (!impl_ || !credential.impl_) {
+    return false;
+  }
   JNIEnv* env = GetJniEnv();
+  return env != nullptr &&
+         env->IsSameObject(static_cast<jobject>(impl_),
+                           static_cast<jobject>(credential.impl_)) &&
+         error_code_ == credential.error_code_ &&
+         error_message_ == credential.error_message_;
+}
+
+std::string Credential::provider() const {
   if (!impl_) return std::string();
+  JNIEnv* env = GetJniEnv();
+  if (!env || !EnsureCredentialMethodsCached()) return std::string();
   jobject j_provider = env->CallObjectMethod(
       CredentialFromImpl(impl_),
       credential::GetMethodId(credential::kGetSignInMethod));
-  assert(env->ExceptionCheck() == false);
+  if (util::CheckAndClearJniExceptions(env) || !j_provider) {
+    return std::string();
+  }
   return JniStringToString(env, j_provider);
 }
 
@@ -435,6 +488,7 @@ bool Credential::is_valid() const { return impl_ != nullptr; }
 static void* CredentialLocalToGlobalRef(jobject j_cred) {
   if (!j_cred) return nullptr;
   JNIEnv* env = GetJniEnv();
+  if (!env) return nullptr;
 
   // Convert to global reference, so it stays around.
   jobject j_cred_ref = env->NewGlobalRef(j_cred);
@@ -446,10 +500,23 @@ static void* CredentialLocalToGlobalRef(jobject j_cred) {
 Credential EmailAuthProvider::GetCredential(const char* email,
                                             const char* password) {
   FIREBASE_ASSERT_RETURN(Credential(), email && password);
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  if (strlen(email) == 0) {
+    Credential cred;
+    cred.error_code_ = kAuthErrorMissingEmail;
+    cred.error_message_ = "An email address must be provided.";
+    return cred;
+  }
+  if (strlen(password) == 0) {
+    Credential cred;
+    cred.error_code_ = kAuthErrorMissingPassword;
+    cred.error_message_ = "A password must be provided.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
 
   jstring j_email = env->NewStringUTF(email);
   jstring j_password = env->NewStringUTF(password);
@@ -461,20 +528,12 @@ Credential EmailAuthProvider::GetCredential(const char* email,
   env->DeleteLocalRef(j_password);
   AuthError error_code = kAuthErrorNone;
   std::string error_message;
-  if (!j_cred) {
-    // Read error from exception, except give more specific errors for email and
-    // password being blank.
-    if (strlen(email) == 0) {
-      firebase::util::CheckAndClearJniExceptions(env);
-      error_code = kAuthErrorMissingEmail;
-      error_message = "An email address must be provided.";
-    } else if (strlen(password) == 0) {
-      firebase::util::CheckAndClearJniExceptions(env);
-      error_code = kAuthErrorMissingPassword;
-      error_message = "A password must be provided.";
-    } else {
-      error_code = CheckAndClearJniAuthExceptions(env, &error_message);
+  if (!j_cred || env->ExceptionCheck()) {
+    error_code = CheckAndClearJniAuthExceptions(env, &error_message);
+    if (error_code == kAuthErrorNone || error_code == kAuthErrorFailure) {
+      error_code = kAuthErrorInvalidCredential;
     }
+    j_cred = nullptr;
   }
 
   Credential cred = Credential(CredentialLocalToGlobalRef(j_cred));
@@ -491,21 +550,31 @@ Credential EmailAuthProvider::GetCredential(const char* email,
 //
 PhoneAuthCredential& PhoneAuthCredential::operator=(
     const PhoneAuthCredential& rhs) {
-  Credential::operator=(rhs);
-  sms_code_ = rhs.sms_code_;
+  if (this != &rhs) {
+    Credential::operator=(rhs);
+    sms_code_ = rhs.sms_code_;
+  }
   return *this;
 }
 
+bool PhoneAuthCredential::operator==(
+    const PhoneAuthCredential& credential) const {
+  return Credential::operator==(credential) &&
+         sms_code() == credential.sms_code();
+}
+
 // Gets the automatically retrieved SMS verification code if applicable.
-// This method is only supported on Android, so return the default constructed
-// string.
 std::string PhoneAuthCredential::sms_code() const {
+  if (!sms_code_.empty()) return sms_code_;
   if (!impl_) return std::string();
   JNIEnv* env = GetJniEnv();
+  if (!env || !EnsureCredentialMethodsCached()) return std::string();
   jobject j_sms_code = env->CallObjectMethod(
       CredentialFromImpl(impl_),
       phonecredential::GetMethodId(phonecredential::kGetSmsCode));
-  assert(env->ExceptionCheck() == false);
+  if (util::CheckAndClearJniExceptions(env) || !j_sms_code) {
+    return std::string();
+  }
   return JniStringToString(env, j_sms_code);
 }
 
@@ -519,48 +588,87 @@ Credential InternalAuthResultProvider::GetCredential(jobject credential) {
 // static
 Credential FacebookAuthProvider::GetCredential(const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), access_token);
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  if (access_token[0] == '\0') {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = "An access token must be provided.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
 
   jstring j_access_token = env->NewStringUTF(access_token);
 
   jobject j_cred = env->CallStaticObjectMethod(
       facebookcred::GetClass(),
       facebookcred::GetMethodId(facebookcred::kGetCredential), j_access_token);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    j_cred = nullptr;
+  }
   env->DeleteLocalRef(j_access_token);
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
 Credential GitHubAuthProvider::GetCredential(const char* token) {
   FIREBASE_ASSERT_RETURN(Credential(), token);
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  if (token[0] == '\0') {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = "A GitHub token must be provided.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
 
   jstring j_token = env->NewStringUTF(token);
 
   jobject j_cred = env->CallStaticObjectMethod(
       githubcred::GetClass(),
       githubcred::GetMethodId(githubcred::kGetCredential), j_token);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    j_cred = nullptr;
+  }
   env->DeleteLocalRef(j_token);
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
 Credential GoogleAuthProvider::GetCredential(const char* id_token,
                                              const char* access_token) {
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  if ((!id_token || id_token[0] == '\0') &&
+      (!access_token || access_token[0] == '\0')) {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ =
+        "Must specify an id_token or an access_token, or both.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
 
   // id_token and access_token are optional, hence the additional checks.
   jstring j_id_token =
@@ -573,44 +681,81 @@ Credential GoogleAuthProvider::GetCredential(const char* id_token,
       googlecred::GetClass(),
       googlecred::GetMethodId(googlecred::kGetCredential), j_id_token,
       j_access_token);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    j_cred = nullptr;
+  }
 
   if (j_id_token) env->DeleteLocalRef(j_id_token);
   if (j_access_token) env->DeleteLocalRef(j_access_token);
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
 Credential PlayGamesAuthProvider::GetCredential(const char* server_auth_code) {
   FIREBASE_ASSERT_RETURN(Credential(), server_auth_code);
+  if (server_auth_code[0] == '\0') {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = "A server auth code must be provided.";
+    return cred;
+  }
 
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
+
+  jmethodID get_cred_method =
+      playgamescred::GetMethodId(playgamescred::kGetCredential);
+  if (!playgamescred::GetClass() || !get_cred_method) {
+    Credential cred;
+    cred.error_code_ = kAuthErrorApiNotAvailable;
+    cred.error_message_ = "PlayGamesAuthProvider is not available.";
+    return cred;
+  }
 
   jstring j_server_auth_code = env->NewStringUTF(server_auth_code);
 
   jobject j_cred = env->CallStaticObjectMethod(
-      playgamescred::GetClass(),
-      playgamescred::GetMethodId(playgamescred::kGetCredential),
-      j_server_auth_code);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+      playgamescred::GetClass(), get_cred_method, j_server_auth_code);
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    j_cred = nullptr;
+  }
 
   env->DeleteLocalRef(j_server_auth_code);
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
 Credential TwitterAuthProvider::GetCredential(const char* token,
                                               const char* secret) {
   FIREBASE_ASSERT_RETURN(Credential(), token && secret);
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  if (token[0] == '\0' || secret[0] == '\0') {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = "A Twitter token and secret must be provided.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
 
   jstring j_token = env->NewStringUTF(token);
   jstring j_secret = env->NewStringUTF(secret);
@@ -618,12 +763,20 @@ Credential TwitterAuthProvider::GetCredential(const char* token,
   jobject j_cred = env->CallStaticObjectMethod(
       twittercred::GetClass(),
       twittercred::GetMethodId(twittercred::kGetCredential), j_token, j_secret);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    j_cred = nullptr;
+  }
 
   env->DeleteLocalRef(j_token);
   env->DeleteLocalRef(j_secret);
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
@@ -631,10 +784,23 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
                                         const char* id_token,
                                         const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && access_token);
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  if (provider_id[0] == '\0') {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidProviderId;
+    cred.error_message_ = "A provider ID must be provided.";
+    return cred;
+  }
+  if (id_token[0] == '\0' && access_token[0] == '\0') {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = "An ID token or access token must be provided.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
 
   jstring j_provider_id = env->NewStringUTF(provider_id);
   jstring j_id_token = env->NewStringUTF(id_token);
@@ -645,13 +811,21 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
       oauthprovider::GetMethodId(oauthprovider::kGetCredential), j_provider_id,
       j_id_token, j_access_token);
 
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    j_cred = nullptr;
+  }
 
   env->DeleteLocalRef(j_provider_id);
   env->DeleteLocalRef(j_id_token);
   env->DeleteLocalRef(j_access_token);
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
@@ -660,10 +834,17 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
                                         const char* raw_nonce,
                                         const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
+  if (provider_id[0] == '\0') {
+    Credential cred;
+    cred.error_code_ = kAuthErrorInvalidProviderId;
+    cred.error_message_ = "A provider ID must be provided.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
   JNIEnv* env = GetJniEnv();
+  if (!env) return Credential();
   jstring j_provider_id = env->NewStringUTF(provider_id);
   jstring j_id_token = env->NewStringUTF(id_token);
   jstring j_raw_nonce = env->NewStringUTF(raw_nonce);
@@ -674,15 +855,19 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
       j_provider_id);
 
   jobject j_cred = nullptr;
-  if (!firebase::util::CheckAndClearJniExceptions(env)) {
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) == kAuthErrorNone &&
+      j_cred_builder != nullptr) {
     jobject builder_return_ref = env->CallObjectMethod(
         j_cred_builder,
         oauthprovider_credentialbuilder::GetMethodId(
             oauthprovider_credentialbuilder::kSetIdTokenWithRawNonce),
         j_id_token, j_raw_nonce);
 
-    if (!firebase::util::CheckAndClearJniExceptions(env)) {
-      env->DeleteLocalRef(builder_return_ref);
+    if (CheckAndClearJniAuthExceptions(env, &error_message) == kAuthErrorNone) {
+      if (builder_return_ref != nullptr) {
+        env->DeleteLocalRef(builder_return_ref);
+      }
       // add the access token, if it exists.
       if (access_token != nullptr) {
         jobject j_access_token = env->NewStringUTF(access_token);
@@ -693,13 +878,25 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
             j_access_token);
 
         env->DeleteLocalRef(j_access_token);
-        if (!firebase::util::CheckAndClearJniExceptions(env)) {
-          env->DeleteLocalRef(builder_return_ref);
+        if (CheckAndClearJniAuthExceptions(env, &error_message) ==
+            kAuthErrorNone) {
+          if (builder_return_ref != nullptr) {
+            env->DeleteLocalRef(builder_return_ref);
+          }
         } else {
+          if (builder_return_ref != nullptr) {
+            env->DeleteLocalRef(builder_return_ref);
+          }
           env->DeleteLocalRef(j_cred_builder);
           j_cred_builder = nullptr;
         }
       }
+    } else {
+      if (builder_return_ref != nullptr) {
+        env->DeleteLocalRef(builder_return_ref);
+      }
+      env->DeleteLocalRef(j_cred_builder);
+      j_cred_builder = nullptr;
     }
 
     // If we have a valid credential builder, build a credential.
@@ -707,35 +904,39 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
       j_cred = env->CallObjectMethod(
           j_cred_builder, oauthprovider_credentialbuilder::GetMethodId(
                               oauthprovider_credentialbuilder::kBuild));
-      if (firebase::util::CheckAndClearJniExceptions(env)) {
+      if (CheckAndClearJniAuthExceptions(env, &error_message) !=
+          kAuthErrorNone) {
         j_cred = nullptr;
       }
 
       env->DeleteLocalRef(j_cred_builder);
     }
+  } else if (j_cred_builder != nullptr) {
+    env->DeleteLocalRef(j_cred_builder);
   }
 
   env->DeleteLocalRef(j_provider_id);
   env->DeleteLocalRef(j_raw_nonce);
   env->DeleteLocalRef(j_id_token);
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
 Future<Credential> GameCenterAuthProvider::GetCredential() {
   // Game Center is not available on Android
-  bool is_gamecenter_available_on_android = false;
-
   auto future_api = GetCredentialFutureImpl();
+  if (!future_api) return Future<Credential>();
   const auto handle =
       future_api->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
 
   future_api->Complete(handle, kAuthErrorInvalidCredential,
                        "GameCenter is not supported on Android.");
-
-  FIREBASE_ASSERT_RETURN(MakeFuture(future_api, handle),
-                         is_gamecenter_available_on_android);
 
   return MakeFuture(future_api, handle);
 }
@@ -743,6 +944,7 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
 // static
 Future<Credential> GameCenterAuthProvider::GetCredentialLastResult() {
   auto future_api = GetCredentialFutureImpl();
+  if (!future_api) return Future<Credential>();
   auto last_result =
       future_api->LastResult(kCredentialFn_GameCenterGetCredential);
   return static_cast<const Future<Credential>&>(last_result);
@@ -752,8 +954,6 @@ Future<Credential> GameCenterAuthProvider::GetCredentialLastResult() {
 bool GameCenterAuthProvider::IsPlayerAuthenticated() {
   // Game Center is not available on Android, thus the player can never be
   // authenticated.
-  bool is_gamecenter_available_on_android = false;
-  FIREBASE_ASSERT_RETURN(false, is_gamecenter_available_on_android);
   return false;
 }
 
@@ -761,20 +961,30 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
 class ForceResendingTokenData {
  public:
   ForceResendingTokenData() : token_global_ref_(nullptr) {}
+  explicit ForceResendingTokenData(jobject token_ref)
+      : token_global_ref_(nullptr) {
+    SetRef(token_ref);
+  }
   ~ForceResendingTokenData() { FreeRef(); }
 
   // token_ref can be a local or global reference.
   void SetRef(jobject token_ref) {
+    if (token_ref == token_global_ref_) return;
     FreeRef();
-    JNIEnv* env = GetJniEnv();
-    token_global_ref_ =
-        token_ref == nullptr ? nullptr : env->NewGlobalRef(token_ref);
+    if (token_ref != nullptr) {
+      JNIEnv* env = GetJniEnv();
+      if (env != nullptr) {
+        token_global_ref_ = env->NewGlobalRef(token_ref);
+      }
+    }
   }
 
   void FreeRef() {
     if (token_global_ref_ != nullptr) {
       JNIEnv* env = GetJniEnv();
-      env->DeleteGlobalRef(token_global_ref_);
+      if (env != nullptr) {
+        env->DeleteGlobalRef(token_global_ref_);
+      }
       token_global_ref_ = nullptr;
     }
   }
@@ -785,27 +995,40 @@ class ForceResendingTokenData {
 };
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
-    : data_(new ForceResendingTokenData) {}
+    : data_(nullptr) {}
 
 PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() { delete data_; }
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
     const ForceResendingToken& rhs)
-    : data_(new ForceResendingTokenData) {
-  data_->SetRef(rhs.data_->token_global_ref());
+    : data_(nullptr) {
+  *this = rhs;
 }
 
 PhoneAuthProvider::ForceResendingToken&
 PhoneAuthProvider::ForceResendingToken::operator=(
     const ForceResendingToken& rhs) {
-  data_->SetRef(rhs.data_->token_global_ref());
+  if (this == &rhs) return *this;
+  delete data_;
+  data_ = nullptr;
+  if (rhs.data_ != nullptr && rhs.data_->token_global_ref() != nullptr) {
+    data_ = new ForceResendingTokenData(rhs.data_->token_global_ref());
+  }
   return *this;
 }
 
 bool PhoneAuthProvider::ForceResendingToken::operator==(
     const ForceResendingToken& rhs) const {
+  if (data_ == nullptr && rhs.data_ == nullptr) return true;
+  if (data_ == nullptr || rhs.data_ == nullptr) return false;
+  if (data_->token_global_ref() == rhs.data_->token_global_ref()) return true;
+  if (data_->token_global_ref() == nullptr ||
+      rhs.data_->token_global_ref() == nullptr) {
+    return false;
+  }
   JNIEnv* env = GetJniEnv();
-  return env->IsSameObject(data_->token_global_ref(),
+  return env != nullptr &&
+         env->IsSameObject(data_->token_global_ref(),
                            rhs.data_->token_global_ref());
 }
 
@@ -832,9 +1055,15 @@ struct PhoneAuthProviderData {
 PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
 PhoneAuthProvider::~PhoneAuthProvider() {
   if (data_ != nullptr) {
-    JNIEnv* env = GetJniEnv();
-    env->DeleteGlobalRef(data_->j_phone_auth_provider);
+    if (data_->j_phone_auth_provider != nullptr) {
+      JNIEnv* env = GetJniEnv();
+      if (env != nullptr) {
+        env->DeleteGlobalRef(data_->j_phone_auth_provider);
+      }
+      data_->j_phone_auth_provider = nullptr;
+    }
     delete data_;
+    data_ = nullptr;
   }
 }
 
@@ -842,46 +1071,63 @@ PhoneAuthProvider::~PhoneAuthProvider() {
 struct PhoneListenerData {
   PhoneListenerData() : j_listener(nullptr) {}
 
-  // The JniAuthStateListener class that has the same lifespan as the C++ class.
+  // The JniAuthPhoneListener class that has the same lifespan as the C++ class.
   jobject j_listener;
 };
 
 PhoneAuthProvider::Listener::Listener() : data_(new PhoneListenerData) {
   JNIEnv* env = GetJniEnv();
+  if (!env || !jniphone::GetClass()) return;
 
-  // Create the JniAuthStateListener class to redirect the state-change
+  // Create the JniAuthPhoneListener class to redirect the callbacks
   // from Java to C++. Make it a global reference so it sticks around.
   jobject j_listener_local = env->NewObject(
       jniphone::GetClass(), jniphone::GetMethodId(jniphone::kConstructor),
       reinterpret_cast<jlong>(this));
-
-  // The C++ Listener keeps a global reference to the Java Listener,
-  // and the Java Listener keeps a pointer to the C++ Listener.
-  // Destruction of the C++ Listener triggers destruction of the Java
-  // Listener.
-  data_->j_listener = env->NewGlobalRef(j_listener_local);
+  if (!util::CheckAndClearJniExceptions(env) && j_listener_local != nullptr) {
+    // The C++ Listener keeps a global reference to the Java Listener,
+    // and the Java Listener keeps a pointer to the C++ Listener.
+    // Destruction of the C++ Listener triggers disconnection of the Java
+    // Listener.
+    data_->j_listener = env->NewGlobalRef(j_listener_local);
+  }
+  if (j_listener_local != nullptr) {
+    env->DeleteLocalRef(j_listener_local);
+  }
 }
 
 PhoneAuthProvider::Listener::~Listener() {
-  JNIEnv* env = GetJniEnv();
+  if (data_ != nullptr) {
+    JNIEnv* env = GetJniEnv();
+    if (env != nullptr && data_->j_listener != nullptr) {
+      if (jniphone::GetClass() != nullptr) {
+        // Disable the Java Listener by nulling its pointer to the C++ Listener
+        // (which is being destroyed).
+        env->CallVoidMethod(data_->j_listener,
+                            jniphone::GetMethodId(jniphone::kDisconnect));
+        util::CheckAndClearJniExceptions(env);
+      }
+      // Remove our reference to the Java Listener. Once Auth Java is done with
+      // it, it will be garbage collected.
+      env->DeleteGlobalRef(data_->j_listener);
+      data_->j_listener = nullptr;
+    }
 
-  // Disable the Java Listener by nulling its pointer to the C++ Listener
-  // (which is being destroyed).
-  env->CallVoidMethod(data_->j_listener,
-                      jniphone::GetMethodId(jniphone::kDisconnect));
-  assert(env->ExceptionCheck() == false);
-
-  // Remove our reference to the Java Listener. Once Auth Java is done with it,
-  // it will be garbage collected.
-  env->DeleteGlobalRef(data_->j_listener);
-
-  // Delete the Android-specific pimpl.
-  delete data_;
+    // Delete the Android-specific pimpl.
+    delete data_;
+    data_ = nullptr;
+  }
 }
 
 void PhoneAuthProvider::VerifyPhoneNumber(
     const PhoneAuthOptions& options, PhoneAuthProvider::Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+
+  if (!data_ || !data_->auth_data || !EnsureCredentialMethodsCached()) {
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: PhoneAuthProvider is not initialized.");
+    return;
+  }
 
   if (options.phone_number.empty()) {
     listener->OnVerificationFailed(
@@ -890,7 +1136,11 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   }
 
   JNIEnv* env = Env(data_->auth_data);
-  assert(env);
+  if (!env) {
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: unable to acquire JNIEnv.");
+    return;
+  }
 
   // phone auth builder
   jobject builder =
@@ -898,7 +1148,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
                      phone_auth_options_builder::GetMethodId(
                          phone_auth_options_builder::kConstructor),
                      AuthImpl(data_->auth_data));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || builder == nullptr) {
     listener->OnVerificationFailed(
         "VerifyPhoneNumber: unable to construct PhoneAuthOptions builder.");
     return;
@@ -915,6 +1165,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
                                 phone_auth_options_builder::kSetActivity),
                             activity);
   if (util::CheckAndClearJniExceptions(env)) {
+    if (chained_ref) env->DeleteLocalRef(chained_ref);
     env->DeleteLocalRef(builder);
     listener->OnVerificationFailed(
         "VerifyPhoneNumber: unable set PhoneAuthOptions activity.");
@@ -927,11 +1178,14 @@ void PhoneAuthProvider::VerifyPhoneNumber(
       env->CallObjectMethod(builder,
                             phone_auth_options_builder::GetMethodId(
                                 phone_auth_options_builder::kSetCallbacks),
-                            listener->data_->j_listener);
+                            listener->data_ ? listener->data_->j_listener
+                                            : nullptr);
   if (util::CheckAndClearJniExceptions(env)) {
+    if (chained_ref) env->DeleteLocalRef(chained_ref);
     env->DeleteLocalRef(builder);
     listener->OnVerificationFailed(
         "VerifyPhoneNumber: unable set PhoneAuthOptions listeners.");
+    return;
   }
   env->DeleteLocalRef(chained_ref);
 
@@ -943,6 +1197,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
                                 phone_auth_options_builder::kSetPhoneNumber),
                             phone_number);
   if (util::CheckAndClearJniExceptions(env)) {
+    if (chained_ref) env->DeleteLocalRef(chained_ref);
     env->DeleteLocalRef(phone_number);
     env->DeleteLocalRef(builder);
     listener->OnVerificationFailed(
@@ -952,29 +1207,63 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   env->DeleteLocalRef(phone_number);
   env->DeleteLocalRef(chained_ref);
 
+  // force resending token (if valid)
+  if (options.force_resending_token != nullptr &&
+      options.force_resending_token->is_valid() &&
+      options.force_resending_token->data_->token_global_ref() != nullptr) {
+    chained_ref = env->CallObjectMethod(
+        builder,
+        phone_auth_options_builder::GetMethodId(
+            phone_auth_options_builder::kSetForceResendingToken),
+        options.force_resending_token->data_->token_global_ref());
+    if (util::CheckAndClearJniExceptions(env)) {
+      if (chained_ref) env->DeleteLocalRef(chained_ref);
+      env->DeleteLocalRef(builder);
+      listener->OnVerificationFailed(
+          "VerifyPhoneNumber: unable to set force resending token.");
+      return;
+    }
+    env->DeleteLocalRef(chained_ref);
+  }
+
   // timeout
   jobject timeout = env->NewObject(
       util::long_class::GetClass(),
       util::long_class::GetMethodId(util::long_class::kConstructor),
       static_cast<jlong>(options.timeout_milliseconds));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || timeout == nullptr) {
+    if (timeout) env->DeleteLocalRef(timeout);
+    env->DeleteLocalRef(builder);
     listener->OnVerificationFailed(
         "VerifyPhoneNumber: couldn't convert timeout to java.lang.Long.");
     return;
   }
   jobject milliseconds_time_unit = env->GetStaticObjectField(
       timeunit::GetClass(), timeunit::GetFieldId(timeunit::kMilliseconds));
+  if (util::CheckAndClearJniExceptions(env) ||
+      milliseconds_time_unit == nullptr) {
+    env->DeleteLocalRef(timeout);
+    if (milliseconds_time_unit) env->DeleteLocalRef(milliseconds_time_unit);
+    env->DeleteLocalRef(builder);
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: couldn't retrieve TimeUnit.MILLISECONDS.");
+    return;
+  }
   chained_ref =
       env->CallObjectMethod(builder,
                             phone_auth_options_builder::GetMethodId(
                                 phone_auth_options_builder::kSetTimeout),
                             timeout, milliseconds_time_unit);
-  if (util::CheckAndClearJniExceptions(env)) {
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    if (chained_ref) env->DeleteLocalRef(chained_ref);
     env->DeleteLocalRef(timeout);
     env->DeleteLocalRef(milliseconds_time_unit);
     env->DeleteLocalRef(builder);
     listener->OnVerificationFailed(
-        "VerifyPhoneNumber: unable set PhoneAuthOptions timeout.");
+        !error_message.empty()
+            ? error_message
+            : "VerifyPhoneNumber: unable set PhoneAuthOptions timeout.");
     return;
   }
   env->DeleteLocalRef(timeout);
@@ -986,10 +1275,14 @@ void PhoneAuthProvider::VerifyPhoneNumber(
       env->CallObjectMethod(builder, phone_auth_options_builder::GetMethodId(
                                          phone_auth_options_builder::kBuild));
 
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone ||
+      phone_auth_options == nullptr) {
+    if (phone_auth_options) env->DeleteLocalRef(phone_auth_options);
     env->DeleteLocalRef(builder);
     listener->OnVerificationFailed(
-        "VerifyPhoneNumber: builder failed to create PhoneAuthOptions");
+        !error_message.empty()
+            ? error_message
+            : "VerifyPhoneNumber: builder failed to create PhoneAuthOptions");
     return;
   }
   env->DeleteLocalRef(builder);
@@ -1000,11 +1293,14 @@ void PhoneAuthProvider::VerifyPhoneNumber(
       phoneauthprovider::GetMethodId(phoneauthprovider::kVerifyPhoneNumber),
       phone_auth_options);
 
-  if (firebase::util::CheckAndClearJniExceptions(env)) {
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
     // If an error occurred with the call to verifyPhoneNumber, inform the
     // listener that it failed.
     listener->OnVerificationFailed(
-        "VerifyPhoneNumber: Android failed to verify the given phone number");
+        !error_message.empty()
+            ? error_message
+            : "VerifyPhoneNumber: Android failed to verify the given phone "
+              "number");
   }
 
   env->DeleteLocalRef(phone_auth_options);
@@ -1014,10 +1310,25 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
     const char* verification_id, const char* verification_code) {
   FIREBASE_ASSERT_RETURN(PhoneAuthCredential(),
                          verification_id && verification_code);
-  FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(), g_methods_cached,
+  if (strlen(verification_id) == 0) {
+    PhoneAuthCredential cred;
+    cred.error_code_ = kAuthErrorMissingVerificationId;
+    cred.error_message_ = "A verification ID must be provided.";
+    return cred;
+  }
+  if (strlen(verification_code) == 0) {
+    PhoneAuthCredential cred;
+    cred.error_code_ = kAuthErrorMissingVerificationCode;
+    cred.error_message_ = "A verification code must be provided.";
+    return cred;
+  }
+  FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(),
+                                 EnsureCredentialMethodsCached(),
                                  kMethodsNotCachedError);
 
-  JNIEnv* env = Env(data_->auth_data);
+  JNIEnv* env =
+      (data_ && data_->auth_data) ? Env(data_->auth_data) : GetJniEnv();
+  if (!env) return PhoneAuthCredential();
 
   jstring j_verification_id = env->NewStringUTF(verification_id);
   jstring j_verification_code = env->NewStringUTF(verification_code);
@@ -1026,16 +1337,28 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
       phoneauthprovider::GetClass(),
       phoneauthprovider::GetMethodId(phoneauthprovider::kGetCredential),
       j_verification_id, j_verification_code);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+  std::string error_message;
+  if (CheckAndClearJniAuthExceptions(env, &error_message) != kAuthErrorNone) {
+    j_cred = nullptr;
+  }
 
   env->DeleteLocalRef(j_verification_id);
   env->DeleteLocalRef(j_verification_code);
 
-  return PhoneAuthCredential(CredentialLocalToGlobalRef(j_cred));
+  PhoneAuthCredential cred(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = kAuthErrorInvalidCredential;
+    cred.error_message_ = error_message;
+  }
+  return cred;
 }
 
 // static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
+  static PhoneAuthProvider kInvalidPhoneAuthProvider;
+  FIREBASE_ASSERT_RETURN(kInvalidPhoneAuthProvider,
+                         auth != nullptr && auth->auth_data_ != nullptr);
+  MutexLock lock(auth->auth_data_->future_impl.mutex());
   PhoneAuthProvider& provider = auth->auth_data_->phone_auth_provider;
   if (provider.data_ == nullptr) {
     JNIEnv* env = Env(auth->auth_data_);
@@ -1045,13 +1368,19 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
         phoneauthprovider::GetClass(),
         phoneauthprovider::GetMethodId(phoneauthprovider::kGetInstance),
         AuthImpl(auth->auth_data_));
+    if (util::CheckAndClearJniExceptions(env)) {
+      j_phone_auth_provider_local = nullptr;
+    }
 
     // Create the implementation class that holds the global references.
     // The global references will be freed when provider is destroyed
     // (during the Auth destructor).
     provider.data_ = new PhoneAuthProviderData();
-    provider.data_->j_phone_auth_provider =
-        env->NewGlobalRef(j_phone_auth_provider_local);
+    if (j_phone_auth_provider_local != nullptr) {
+      provider.data_->j_phone_auth_provider =
+          env->NewGlobalRef(j_phone_auth_provider_local);
+      env->DeleteLocalRef(j_phone_auth_provider_local);
+    }
     provider.data_->auth_data = auth->auth_data_;
   }
   return provider;
@@ -1061,9 +1390,11 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
 // PhoneAuthProvider::Listener::OnVerificationCompleted().
 JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationCompleted(
     JNIEnv* env, jobject j_listener, jlong c_listener, jobject j_credential) {
+  if (!c_listener) return;
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
-  listener->OnVerificationCompleted(
-      PhoneAuthCredential(CredentialLocalToGlobalRef(j_credential)));
+  jobject global_cred =
+      (j_credential != nullptr) ? env->NewGlobalRef(j_credential) : nullptr;
+  listener->OnVerificationCompleted(PhoneAuthCredential(global_cred));
 }
 
 // Redirect JniAuthPhoneListener.java callback to C++
@@ -1071,8 +1402,13 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationCompleted(
 JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationFailed(
     JNIEnv* env, jobject j_listener, jlong c_listener,
     jstring exception_message) {
+  if (!c_listener) return;
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
-  listener->OnVerificationFailed(util::JStringToString(env, exception_message));
+  std::string message =
+      (exception_message != nullptr)
+          ? util::JStringToString(env, exception_message)
+          : "Phone verification failed.";
+  listener->OnVerificationFailed(message);
 }
 
 // Redirect JniAuthPhoneListener.java callback to C++
@@ -1080,13 +1416,20 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationFailed(
 JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeSent(
     JNIEnv* env, jobject j_listener, jlong c_listener,
     jstring j_verification_id, jobject j_force_resending_token) {
+  if (!c_listener) return;
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
 
-  // Change the passed-in local reference to a global reference that has the
+  // Change the passed-in reference to a global reference that has the
   // lifespan of the ForceResendingToken.
   PhoneAuthProvider::ForceResendingToken token;
-  token.data_->SetRef(j_force_resending_token);
-  listener->OnCodeSent(util::JniStringToString(env, j_verification_id), token);
+  if (j_force_resending_token != nullptr) {
+    token.data_ = new ForceResendingTokenData(j_force_resending_token);
+  }
+  std::string verification_id =
+      (j_verification_id != nullptr)
+          ? util::JStringToString(env, j_verification_id)
+          : std::string();
+  listener->OnCodeSent(verification_id, token);
 }
 
 // Redirect JniAuthPhoneListener.java callback to C++
@@ -1094,9 +1437,13 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeSent(
 JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut(
     JNIEnv* env, jobject j_listener, jlong c_listener,
     jstring j_verification_id) {
+  if (!c_listener) return;
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
-  listener->OnCodeAutoRetrievalTimeOut(
-      util::JniStringToString(env, j_verification_id));
+  std::string verification_id =
+      (j_verification_id != nullptr)
+          ? util::JStringToString(env, j_verification_id)
+          : std::string();
+  listener->OnCodeAutoRetrievalTimeOut(verification_id);
 }
 
 // FederatedAuthHandlers
@@ -1114,6 +1461,12 @@ void FederatedOAuthProvider::SetProviderData(
   provider_data_ = provider_data;
 }
 
+#ifdef INTERNAL_EXPERIMENTAL
+void FederatedOAuthProvider::SetAuthHandler(AuthHandler* handler) {
+  handler_ = handler;
+}
+#endif  // INTERNAL_EXPERIMENTAL
+
 namespace {
 // Pulls data out of the C++ FederatedOAuthProviderData structure and
 // constructs a com.google.firebase.OAuthProvider object.
@@ -1122,55 +1475,75 @@ namespace {
 jobject ConstructOAuthProvider(
     AuthData* auth_data, const FederatedOAuthProviderData& provider_data) {
   JNIEnv* env = Env(auth_data);
-  assert(env);
+  FIREBASE_ASSERT_RETURN(nullptr, env != nullptr);
   jstring provider_id = env->NewStringUTF(provider_data.provider_id.c_str());
   jobject oauthprovider_builder = env->CallStaticObjectMethod(
       oauthprovider::GetClass(),
       oauthprovider::GetMethodId(oauthprovider::kNewBuilder), provider_id,
       AuthImpl(auth_data));
   env->DeleteLocalRef(provider_id);
-  if (env->ExceptionCheck()) {
+  if (env->ExceptionCheck() || oauthprovider_builder == nullptr) {
+    if (oauthprovider_builder) env->DeleteLocalRef(oauthprovider_builder);
     return nullptr;
   }
 
-  jobject scopes_list = util::StdVectorToJavaList(env, provider_data.scopes);
-  if (env->ExceptionCheck()) {
-    return nullptr;
+  if (!provider_data.scopes.empty()) {
+    jobject scopes_list = util::StdVectorToJavaList(env, provider_data.scopes);
+    if (env->ExceptionCheck() || scopes_list == nullptr) {
+      if (scopes_list) env->DeleteLocalRef(scopes_list);
+      env->DeleteLocalRef(oauthprovider_builder);
+      return nullptr;
+    }
+
+    jobject builder_return_ref = env->CallObjectMethod(
+        oauthprovider_builder,
+        oauthprovider_builder::GetMethodId(oauthprovider_builder::kSetScopes),
+        scopes_list);
+    env->DeleteLocalRef(scopes_list);
+    if (env->ExceptionCheck()) {
+      if (builder_return_ref) env->DeleteLocalRef(builder_return_ref);
+      env->DeleteLocalRef(oauthprovider_builder);
+      return nullptr;
+    }
+    if (builder_return_ref) env->DeleteLocalRef(builder_return_ref);
   }
 
-  jobject builder_return_ref = env->CallObjectMethod(
-      oauthprovider_builder,
-      oauthprovider_builder::GetMethodId(oauthprovider_builder::kSetScopes),
-      scopes_list);
-  env->DeleteLocalRef(scopes_list);
-  if (env->ExceptionCheck()) {
-    env->DeleteLocalRef(oauthprovider_builder);
-    return nullptr;
+  if (!provider_data.custom_parameters.empty()) {
+    jobject custom_parameters_map = env->NewObject(
+        util::hash_map::GetClass(),
+        util::hash_map::GetMethodId(util::hash_map::kConstructor));
+    if (env->ExceptionCheck() || custom_parameters_map == nullptr) {
+      if (custom_parameters_map) env->DeleteLocalRef(custom_parameters_map);
+      env->DeleteLocalRef(oauthprovider_builder);
+      return nullptr;
+    }
+    util::StdMapToJavaMap(env, &custom_parameters_map,
+                          provider_data.custom_parameters);
+    if (env->ExceptionCheck()) {
+      env->DeleteLocalRef(custom_parameters_map);
+      env->DeleteLocalRef(oauthprovider_builder);
+      return nullptr;
+    }
+    jobject builder_return_ref =
+        env->CallObjectMethod(oauthprovider_builder,
+                              oauthprovider_builder::GetMethodId(
+                                  oauthprovider_builder::kAddCustomParameters),
+                              custom_parameters_map);
+    env->DeleteLocalRef(custom_parameters_map);
+    if (env->ExceptionCheck()) {
+      if (builder_return_ref) env->DeleteLocalRef(builder_return_ref);
+      env->DeleteLocalRef(oauthprovider_builder);
+      return nullptr;
+    }
+    if (builder_return_ref) env->DeleteLocalRef(builder_return_ref);
   }
-  env->DeleteLocalRef(builder_return_ref);
-
-  jobject custom_parameters_map =
-      env->NewObject(util::hash_map::GetClass(),
-                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
-  util::StdMapToJavaMap(env, &custom_parameters_map,
-                        provider_data.custom_parameters);
-  builder_return_ref =
-      env->CallObjectMethod(oauthprovider_builder,
-                            oauthprovider_builder::GetMethodId(
-                                oauthprovider_builder::kAddCustomParameters),
-                            custom_parameters_map);
-  env->DeleteLocalRef(custom_parameters_map);
-  if (env->ExceptionCheck()) {
-    env->DeleteLocalRef(oauthprovider_builder);
-    return nullptr;
-  }
-  env->DeleteLocalRef(builder_return_ref);
 
   jobject oauthprovider = env->CallObjectMethod(
       oauthprovider_builder,
       oauthprovider_builder::GetMethodId(oauthprovider_builder::kBuild));
   env->DeleteLocalRef(oauthprovider_builder);
   if (env->ExceptionCheck()) {
+    if (oauthprovider) env->DeleteLocalRef(oauthprovider);
     return nullptr;
   }
 
@@ -1179,76 +1552,158 @@ jobject ConstructOAuthProvider(
 }  // namespace
 
 Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
-  assert(auth_data);
+  if (!auth_data) return Future<AuthResult>();
   JNIEnv* env = Env(auth_data);
 
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
   const auto handle =
       futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithProvider, AuthResult());
 
-  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        AuthImpl(auth_data),
-        auth_idp::GetMethodId(auth_idp::kStartActivityForSignInWithProvider),
-        auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadAuthResult);
-    }
-    env->DeleteLocalRef(task);
+  if (provider_data_.provider_id.empty()) {
+    futures.Complete(handle, kAuthErrorInvalidProviderId,
+                     "Invalid provider ID.");
+    return MakeFuture(&futures, handle);
   }
 
-  env->DeleteLocalRef(oauthprovider);
+  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (oauthprovider == nullptr) {
+      futures.Complete(handle, kAuthErrorFailure,
+                       "Failed to construct OAuthProvider.");
+    } else {
+      jobject task = env->CallObjectMethod(
+          AuthImpl(auth_data),
+          auth_idp::GetMethodId(auth_idp::kStartActivityForSignInWithProvider),
+          auth_data->app->activity(), oauthprovider);
+      if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+        if (task != nullptr) {
+          RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                                ReadAuthResult);
+        } else {
+          futures.Complete(handle, kAuthErrorFailure,
+                           "Failed to start activity for OAuth sign-in.");
+        }
+      }
+      if (task != nullptr) {
+        env->DeleteLocalRef(task);
+      }
+    }
+  }
+
+  if (oauthprovider != nullptr) {
+    env->DeleteLocalRef(oauthprovider);
+  }
   return MakeFuture(&futures, handle);
 }
 
 Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
-  assert(auth_data);
+  if (!ValidUser(auth_data)) return Future<AuthResult>();
   JNIEnv* env = Env(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
   const auto handle =
       futures.SafeAlloc<AuthResult>(kUserFn_LinkWithProvider, AuthResult());
 
-  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        UserImpl(auth_data),
-        user_idp::GetMethodId(user_idp::kStartActivityForLinkWithProvider),
-        auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadAuthResult);
-    }
-    env->DeleteLocalRef(task);
+  if (provider_data_.provider_id.empty()) {
+    futures.Complete(handle, kAuthErrorInvalidProviderId,
+                     "Invalid provider ID.");
+    return MakeFuture(&futures, handle);
   }
 
-  env->DeleteLocalRef(oauthprovider);
+  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (oauthprovider == nullptr) {
+      futures.Complete(handle, kAuthErrorFailure,
+                       "Failed to construct OAuthProvider.");
+    } else {
+      jobject task = nullptr;
+      bool valid_user = false;
+      {
+        MutexLock lock(auth_data->future_impl.mutex());
+        if (UserImpl(auth_data) != nullptr) {
+          valid_user = true;
+          task = env->CallObjectMethod(
+              UserImpl(auth_data),
+              user_idp::GetMethodId(
+                  user_idp::kStartActivityForLinkWithProvider),
+              auth_data->app->activity(), oauthprovider);
+        }
+      }
+      if (!valid_user) {
+        futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+      } else if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+        if (task != nullptr) {
+          RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                                ReadAuthResult);
+        } else {
+          futures.Complete(handle, kAuthErrorFailure,
+                           "Failed to start activity for OAuth link.");
+        }
+      }
+      if (task != nullptr) {
+        env->DeleteLocalRef(task);
+      }
+    }
+  }
+
+  if (oauthprovider != nullptr) {
+    env->DeleteLocalRef(oauthprovider);
+  }
   return MakeFuture(&futures, handle);
 }
 
 Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
-  assert(auth_data);
+  if (!ValidUser(auth_data)) return Future<AuthResult>();
   JNIEnv* env = Env(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(
       kUserFn_ReauthenticateWithProvider, AuthResult());
 
-  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        UserImpl(auth_data),
-        user_idp::GetMethodId(
-            user_idp::kStartActivityForReauthenticateWithProvider),
-        auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadAuthResult);
-    }
-    env->DeleteLocalRef(task);
+  if (provider_data_.provider_id.empty()) {
+    futures.Complete(handle, kAuthErrorInvalidProviderId,
+                     "Invalid provider ID.");
+    return MakeFuture(&futures, handle);
   }
 
-  env->DeleteLocalRef(oauthprovider);
+  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (oauthprovider == nullptr) {
+      futures.Complete(handle, kAuthErrorFailure,
+                       "Failed to construct OAuthProvider.");
+    } else {
+      jobject task = nullptr;
+      bool valid_user = false;
+      {
+        MutexLock lock(auth_data->future_impl.mutex());
+        if (UserImpl(auth_data) != nullptr) {
+          valid_user = true;
+          task = env->CallObjectMethod(
+              UserImpl(auth_data),
+              user_idp::GetMethodId(
+                  user_idp::kStartActivityForReauthenticateWithProvider),
+              auth_data->app->activity(), oauthprovider);
+        }
+      }
+      if (!valid_user) {
+        futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+      } else if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+        if (task != nullptr) {
+          RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                                ReadAuthResult);
+        } else {
+          futures.Complete(
+              handle, kAuthErrorFailure,
+              "Failed to start activity for OAuth reauthentication.");
+        }
+      }
+      if (task != nullptr) {
+        env->DeleteLocalRef(task);
+      }
+    }
+  }
+
+  if (oauthprovider != nullptr) {
+    env->DeleteLocalRef(oauthprovider);
+  }
   return MakeFuture(&futures, handle);
 }
 

@@ -22,22 +22,20 @@
 #include "auth/src/desktop/credential_impl.h"
 #include "auth/src/include/firebase/auth/credential.h"
 
-bool is_gamecenter_available_on_desktop = false;
-
 namespace firebase {
 namespace auth {
 
 // static
 Future<Credential> GameCenterAuthProvider::GetCredential() {
   auto future_api = GetCredentialFutureImpl();
+  if (!future_api) {
+    return Future<Credential>();
+  }
   const auto handle =
       future_api->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
 
   future_api->Complete(handle, kAuthErrorInvalidCredential,
-                       "GameCenter is not supported on Android.");
-
-  FIREBASE_ASSERT_RETURN(MakeFuture(future_api, handle),
-                         is_gamecenter_available_on_desktop);
+                       "GameCenter is not supported on desktop.");
 
   return MakeFuture(future_api, handle);
 }
@@ -45,16 +43,16 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
 // static
 Future<Credential> GameCenterAuthProvider::GetCredentialLastResult() {
   auto future_api = GetCredentialFutureImpl();
+  if (!future_api) {
+    return Future<Credential>();
+  }
   auto last_result =
       future_api->LastResult(kCredentialFn_GameCenterGetCredential);
   return static_cast<const Future<Credential>&>(last_result);
 }
 
 // static
-bool GameCenterAuthProvider::IsPlayerAuthenticated() {
-  FIREBASE_ASSERT_RETURN(false, is_gamecenter_available_on_desktop);
-  return false;
-}
+bool GameCenterAuthProvider::IsPlayerAuthenticated() { return false; }
 
 }  // namespace auth
 }  // namespace firebase

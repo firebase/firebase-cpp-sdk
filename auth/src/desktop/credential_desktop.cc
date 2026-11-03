@@ -36,6 +36,9 @@ Credential::Credential(const Credential& rhs) : impl_(nullptr) {
 }
 
 Credential& Credential::operator=(const Credential& rhs) {
+  if (this == &rhs) {
+    return *this;
+  }
   delete static_cast<CredentialImpl*>(impl_);
   impl_ = nullptr;
 
@@ -49,17 +52,49 @@ Credential& Credential::operator=(const Credential& rhs) {
   return *this;
 }
 
-std::string Credential::provider() const {
-  FIREBASE_ASSERT_MESSAGE(is_valid(), "Credential doesn't have an valid impl");
-
-  if (impl_ == nullptr) {
-    return std::string();
-  } else {
-    return static_cast<CredentialImpl*>(impl_)->auth_credential->GetProvider();
+bool Credential::operator==(const Credential& credential) const {
+  if (impl_ == credential.impl_) {
+    return error_code_ == credential.error_code_ &&
+           error_message_ == credential.error_message_;
   }
+  if (!impl_ || !credential.impl_) {
+    return false;
+  }
+  const auto* lhs =
+      static_cast<const CredentialImpl*>(impl_)->auth_credential.get();
+  const auto* rhs = static_cast<const CredentialImpl*>(credential.impl_)
+                        ->auth_credential.get();
+  if (lhs == rhs) {
+    return error_code_ == credential.error_code_ &&
+           error_message_ == credential.error_message_;
+  }
+  if (!lhs || !rhs) {
+    return false;
+  }
+  return lhs->Equals(*rhs) && error_code_ == credential.error_code_ &&
+         error_message_ == credential.error_message_;
 }
 
-bool Credential::is_valid() const { return impl_ != nullptr; }
+std::string Credential::provider() const {
+  if (impl_ == nullptr) {
+    return std::string();
+  }
+  const auto* auth_credential =
+      static_cast<const CredentialImpl*>(impl_)->auth_credential.get();
+  if (auth_credential == nullptr) {
+    return std::string();
+  }
+  return auth_credential->GetProvider();
+}
+
+bool Credential::is_valid() const {
+  if (impl_ == nullptr) {
+    return false;
+  }
+  const auto* auth_credential =
+      static_cast<const CredentialImpl*>(impl_)->auth_credential.get();
+  return auth_credential != nullptr && auth_credential->IsValid();
+}
 
 }  // namespace auth
 }  // namespace firebase

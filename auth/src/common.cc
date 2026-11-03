@@ -24,8 +24,8 @@ namespace firebase {
 namespace auth {
 
 namespace {
-static const char kCredentialFutureIdentifier[17] = "Auth-Credentials";
-}
+const char kCredentialFutureIdentifier[17] = "Auth-Credentials";
+}  // namespace
 
 const char* const EmailAuthProvider::kProviderId = "password";
 const char* const FacebookAuthProvider::kProviderId = "facebook.com";
@@ -51,6 +51,7 @@ void CleanupCredentialFutureImpl() {
 }
 
 void ClearUserInfos(AuthData* auth_data) {
+  if (auth_data == nullptr) return;
   for (size_t i = 0; i < auth_data->user_infos.size(); ++i) {
     delete auth_data->user_infos[i];
     auth_data->user_infos[i] = nullptr;
@@ -61,32 +62,41 @@ void ClearUserInfos(AuthData* auth_data) {
 //
 // PhoneAuthOptions
 //
-PhoneAuthOptions::PhoneAuthOptions() {
-  force_resending_token = nullptr;
-  timeout_milliseconds = 0;
-  ui_parent = nullptr;
-}
+PhoneAuthOptions::PhoneAuthOptions()
+    : force_resending_token(nullptr),
+      timeout_milliseconds(0),
+      ui_parent(nullptr) {}
 
 //
 // PhoneAuthProvider
 //
 void PhoneAuthProvider::Listener::OnCodeSent(
     const std::string& verification_id,
-    const ForceResendingToken& force_resending_token) {}
+    const ForceResendingToken& force_resending_token) {
+  (void)verification_id;
+  (void)force_resending_token;
+}
 
 void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
-    const std::string& verification_id) {}
+    const std::string& verification_id) {
+  (void)verification_id;
+}
 
 ///
 /// User
 ///
-User::User() { auth_data_ = nullptr; }
+User::User() : auth_data_(nullptr) {}
 
 bool User::operator==(const User& user) const {
-  // This is based on the assumption that there is only one user before
-  // Auth rewrite.
-  // TODO(AuthRewrite): Must change during Auth Rewrite
-  return is_valid() == user.is_valid();
+  const bool lhs_valid = is_valid();
+  const bool rhs_valid = user.is_valid();
+  if (lhs_valid != rhs_valid) {
+    return false;
+  }
+  if (!lhs_valid) {
+    return true;
+  }
+  return auth_data_ == user.auth_data_ && uid() == user.uid();
 }
 
 bool User::operator!=(const User& user) const { return !(*this == user); }

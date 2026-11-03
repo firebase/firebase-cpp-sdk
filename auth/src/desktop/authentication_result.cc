@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "auth/src/desktop/auth_util.h"
+#include "auth/src/desktop/user_desktop.h"
 #include "auth/src/desktop/user_view.h"
 
 namespace firebase {
@@ -51,12 +52,29 @@ AuthResult AuthenticationResult::SetAsCurrentUser(
         UserView::ResetUser(auth_data, user_impl_, &previous_user);
     if (user_account_info_.IsValid()) {
       user_account_info_.MergeToUser(writer);
+      if (writer->email.empty() && !user_impl_.email.empty()) {
+        writer->email = user_impl_.email;
+      }
+      if (writer->display_name.empty() && !user_impl_.display_name.empty()) {
+        writer->display_name = user_impl_.display_name;
+      }
+      if (writer->photo_url.empty() && !user_impl_.photo_url.empty()) {
+        writer->photo_url = user_impl_.photo_url;
+      }
+      if (writer->phone_number.empty() && !user_impl_.phone_number.empty()) {
+        writer->phone_number = user_impl_.phone_number;
+      }
+      if (!writer->is_email_verified && user_impl_.is_email_verified) {
+        writer->is_email_verified = true;
+      }
     }
     api_user_to_return = &auth_data->current_user;
   }
 
   if (previous_user.uid != uid()) {
     NotifyAuthStateListeners(auth_data);
+  } else {
+    TriggerSaveUserFlow(auth_data);
   }
   if (previous_user.id_token != id_token()) {
     NotifyIdTokenListeners(auth_data);

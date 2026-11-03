@@ -115,7 +115,6 @@ static const ErrorCodeMapping kFirebaseAuthCodes[] = {
     {"ERROR_UNSUPPORTED_FIRST_FACTOR", kAuthErrorUnsupportedFirstFactor},
     {"ERROR_EMAIL_CHANGE_NEEDS_VERIFICATION",
      kAuthErrorEmailChangeNeedsVerification},
-    {"ERROR_MISSING_OR_INVALID_NONCE", kAuthErrorMissingOrInvalidNonce},
     {"ERROR_USER_CANCELLED", kAuthErrorUserCancelled},
     {"ERROR_UNSUPPORTED_PASSTHROUGH_OPERATION",
      kAuthErrorUnsupportedPassthroughOperation},
@@ -131,12 +130,6 @@ static const ErrorCodeMapping kFirebaseAuthCodes[] = {
 // "ERROR_NETWORK_REQUEST_FAILED"
 // This error string is not checked as we have a catch all for the entire
 // FirebaseNetworkException.
-
-// TODO(b/69859374): Add new error codes for v16.
-// New error codes:
-// ERROR_WEB_NETWORK_REQUEST_FAILED <- maps to a FirebaseNetworkException
-// ERROR_INVALID_CERT_HASH
-// Also, include mapping for kWebCodes when receiving a FirebaseAuthWebException
 
 // These have no error codes to test, so we have to rely on the message.
 static const ErrorCodeMapping kTooManyRequestsCodes[] = {
@@ -187,16 +180,12 @@ METHOD_LOOKUP_DEFINITION(email_exception,
                          "com/google/firebase/auth/FirebaseAuthEmailException",
                          METHOD_LOOKUP_NONE)
 
-// clang-format off
-#define WEAK_PASSWORD_METHODS(X)                                              \
-  X(GetReason, "getReason", "()Ljava/lang/String;")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(weak_password_exception, WEAK_PASSWORD_METHODS)
+METHOD_LOOKUP_DECLARATION(weak_password_exception, METHOD_LOOKUP_NONE)
 METHOD_LOOKUP_DEFINITION(
     weak_password_exception,
     PROGUARD_KEEP_CLASS
     "com/google/firebase/auth/FirebaseAuthWeakPasswordException",
-    WEAK_PASSWORD_METHODS)
+    METHOD_LOOKUP_NONE)
 
 METHOD_LOOKUP_DECLARATION(invalid_credentials_exception, METHOD_LOOKUP_NONE)
 METHOD_LOOKUP_DEFINITION(
@@ -219,12 +208,18 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/auth/FirebaseAuthRecentLoginRequiredException",
     METHOD_LOOKUP_NONE)
 
-METHOD_LOOKUP_DECLARATION(user_collision_exception, METHOD_LOOKUP_NONE)
+// clang-format off
+#define USER_COLLISION_METHODS(X)                                              \
+  X(GetUpdatedCredential, "getUpdatedCredential",                              \
+    "()Lcom/google/firebase/auth/AuthCredential;",                             \
+    util::kMethodTypeInstance, util::kMethodOptional)
+// clang-format on
+METHOD_LOOKUP_DECLARATION(user_collision_exception, USER_COLLISION_METHODS)
 METHOD_LOOKUP_DEFINITION(
     user_collision_exception,
     PROGUARD_KEEP_CLASS
     "com/google/firebase/auth/FirebaseAuthUserCollisionException",
-    METHOD_LOOKUP_NONE)
+    USER_COLLISION_METHODS)
 
 METHOD_LOOKUP_DECLARATION(android_web_exception, METHOD_LOOKUP_NONE)
 METHOD_LOOKUP_DEFINITION(android_web_exception,
@@ -298,10 +293,41 @@ void ReleaseCommonClasses(JNIEnv* env) {
   firebase_network_exception::ReleaseClass(env);
   too_many_requests_exception::ReleaseClass(env);
   firebase_exception::ReleaseClass(env);
-  // Class may not exist - not yet released on Android
+  // Class may not exist in older versions of the Firebase Auth Android SDK.
   if (android_web_exception::GetClass() != nullptr) {
     android_web_exception::ReleaseClass(env);
   }
+}
+
+namespace {
+Mutex g_pretriggered_id_token_mutex;
+std::map<AuthData*, int> g_pretriggered_id_token_counts;
+}  // namespace
+
+void RecordPretriggeredIdTokenCallback(AuthData* auth_data) {
+  if (!auth_data) return;
+  MutexLock lock(g_pretriggered_id_token_mutex);
+  ++g_pretriggered_id_token_counts[auth_data];
+}
+
+bool ConsumePretriggeredIdTokenCallback(AuthData* auth_data) {
+  if (!auth_data) return false;
+  MutexLock lock(g_pretriggered_id_token_mutex);
+  auto it = g_pretriggered_id_token_counts.find(auth_data);
+  if (it != g_pretriggered_id_token_counts.end() && it->second > 0) {
+    --it->second;
+    if (it->second == 0) {
+      g_pretriggered_id_token_counts.erase(it);
+    }
+    return true;
+  }
+  return false;
+}
+
+void ClearPretriggeredIdTokenCallbacks(AuthData* auth_data) {
+  if (!auth_data) return;
+  MutexLock lock(g_pretriggered_id_token_mutex);
+  g_pretriggered_id_token_counts.erase(auth_data);
 }
 
 static std::string GetFirebaseAuthExceptionErrorCode(JNIEnv* env,
@@ -341,57 +367,59 @@ AuthError ErrorCodeFromException(JNIEnv* env, jobject exception) {
     jclass exception_class;
     const ErrorCodeMapping* error_map;
     AuthError catch_all;
+    bool prefix_match;
   } exception_map[] = {
       // FirebaseApiNotAvailableException derives from FirebaseException,
       // so error codes are not available. This exception is currently mapped to
       // a single error in c++, so it's a catch all. The error code string would
       // be: "ERROR_API_NOT_AVAILABLE"
       {api_not_available_exception::GetClass(), nullptr,
-       kAuthErrorApiNotAvailable},
+       kAuthErrorApiNotAvailable, false},
 
       // FirebaseAuthActionCodeException
-      {action_code_exception::GetClass(), kActionCodes,
-       kAuthErrorUnimplemented},
+      {action_code_exception::GetClass(), kActionCodes, kAuthErrorFailure,
+       false},
 
       // FirebaseAuthEmailException
-      {email_exception::GetClass(), kEmailCodes, kAuthErrorUnimplemented},
+      {email_exception::GetClass(), kEmailCodes, kAuthErrorFailure, false},
 
       // FirebaseAuthWeakPasswordException
       {weak_password_exception::GetClass(), kWeakPasswordCodes,
-       kAuthErrorUnimplemented},
+       kAuthErrorWeakPassword, false},
 
       // FirebaseAuthInvalidCredentialsException
       {invalid_credentials_exception::GetClass(), kCredentialCodes,
-       kAuthErrorUnimplemented},
+       kAuthErrorInvalidCredential, false},
 
       // FirebaseAuthInvalidUserException
-      {invalid_user_exception::GetClass(), kUserCodes, kAuthErrorUnimplemented},
+      {invalid_user_exception::GetClass(), kUserCodes, kAuthErrorFailure, false},
 
       // FirebaseAuthRecentLoginRequiredException
       {recent_login_required_exception::GetClass(), kRecentLoginCodes,
-       kAuthErrorUnimplemented},
+       kAuthErrorRequiresRecentLogin, false},
 
       // FirebaseAuthUserCollisionException
       {user_collision_exception::GetClass(), kUserCollisionCodes,
-       kAuthErrorUnimplemented},
+       kAuthErrorFailure, false},
 
       // FirebaseAuthWebException
-      {android_web_exception::GetClass(), kWebCodes, kAuthErrorUnimplemented},
+      {android_web_exception::GetClass(), kWebCodes, kAuthErrorWebInternalError,
+       false},
 
       // FirebaseAuthException
       {firebase_auth_exception::GetClass(), kFirebaseAuthCodes,
-       kAuthErrorUnimplemented},
+       kAuthErrorFailure, false},
 
       // FirebaseNetworkException
       {firebase_network_exception::GetClass(), nullptr,
-       kAuthErrorNetworkRequestFailed},
+       kAuthErrorNetworkRequestFailed, false},
 
       // FirebaseTooManyRequestsException
       {too_many_requests_exception::GetClass(), kTooManyRequestsCodes,
-       kAuthErrorTooManyRequests},
+       kAuthErrorTooManyRequests, true},
 
       // FirebaseException
-      {firebase_exception::GetClass(), kFirebaseCodes, kAuthErrorUnimplemented},
+      {firebase_exception::GetClass(), kFirebaseCodes, kAuthErrorFailure, true},
   };
 
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(exception_map); i++) {
@@ -399,13 +427,40 @@ AuthError ErrorCodeFromException(JNIEnv* env, jobject exception) {
         env->IsInstanceOf(exception, exception_map[i].exception_class)) {
       const ErrorCodeMapping* error_map = exception_map[i].error_map;
       while (error_map != nullptr && error_map->error_str != nullptr) {
-        if (StringStartsWith(error, error_map->error_str)) {
-          // When signing in with an invalid email, the error is a generic
-          // message with a long json blob, with the error message contained
-          // within, so we need to check for that case.
-          if (error_map->result_error == kAuthErrorFailure &&
-              error.find("EMAIL_NOT_FOUND") != -1) {
-            return kAuthErrorUserNotFound;
+        const bool matched =
+            exception_map[i].prefix_match
+                ? StringStartsWith(error, error_map->error_str)
+                : (error == error_map->error_str);
+        if (matched) {
+          // When signing in fails with an internal backend response, the error
+          // is a generic message with a JSON blob containing the backend error
+          // token.
+          if (error_map->result_error == kAuthErrorFailure) {
+            if (error.find("EMAIL_NOT_FOUND") != std::string::npos ||
+                error.find("USER_NOT_FOUND") != std::string::npos) {
+              return kAuthErrorUserNotFound;
+            }
+            if (error.find("INVALID_PASSWORD") != std::string::npos ||
+                error.find("INVALID_LOGIN_CREDENTIALS") != std::string::npos) {
+              return kAuthErrorWrongPassword;
+            }
+            if (error.find("USER_DISABLED") != std::string::npos) {
+              return kAuthErrorUserDisabled;
+            }
+            if (error.find("EMAIL_EXISTS") != std::string::npos) {
+              return kAuthErrorEmailAlreadyInUse;
+            }
+            if (error.find("OPERATION_NOT_ALLOWED") != std::string::npos) {
+              return kAuthErrorOperationNotAllowed;
+            }
+            if (error.find("TOO_MANY_ATTEMPTS_TRY_LATER") !=
+                std::string::npos) {
+              return kAuthErrorTooManyRequests;
+            }
+            if (error.find("INVALID_IDP_RESPONSE") != std::string::npos ||
+                error.find("INVALID_CREDENTIAL") != std::string::npos) {
+              return kAuthErrorInvalidCredential;
+            }
           }
           return error_map->result_error;
         }
@@ -414,7 +469,7 @@ AuthError ErrorCodeFromException(JNIEnv* env, jobject exception) {
       return exception_map[i].catch_all;
     }
   }
-  return kAuthErrorUnimplemented;
+  return kAuthErrorFailure;
 }
 
 AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
@@ -423,7 +478,10 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
   if (exception != nullptr) {
     env->ExceptionClear();
     AuthError error_code = ErrorCodeFromException(env, exception);
-    *error_message = ::firebase::util::GetMessageFromException(env, exception);
+    if (error_message != nullptr) {
+      *error_message =
+          ::firebase::util::GetMessageFromException(env, exception);
+    }
     env->DeleteLocalRef(exception);
     return error_code;
   }
@@ -471,9 +529,10 @@ void SetImplFromLocalRef(JNIEnv* env, jobject j_local, void** impl) {
 void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
                     bool success, void* void_data) {
   JNIEnv* env = Env(d->auth_data);
+  AuthResult* auth_result = static_cast<AuthResult*>(void_data);
 
   // Update the currently signed-in user on success.
-  // Note: `result` is only valid when success is true.
+  // Note: `result` is AuthResult when success is true, or Exception on failure.
   if (success && result != nullptr) {
     // `result` is of type AuthResult.
     const jobject j_user = env->CallObjectMethod(
@@ -483,10 +542,11 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
     // Update our pointer to the Android FirebaseUser that we're wrapping.
     // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
     //       Auth class has not been updated at this point.
-    SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
-
-    AuthResult* auth_result = static_cast<AuthResult*>(void_data);
-    auth_result->user = d->auth_data->auth->current_user();
+    {
+      MutexLock lock(d->auth_data->future_impl.mutex());
+      SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+      auth_result->user = d->auth_data->auth->current_user();
+    }
 
     // Grab the additional user info too.
     // Additional user info is not guaranteed to exist, so could be nullptr.
@@ -507,12 +567,26 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
       auth_result->credential =
           InternalAuthResultProvider::GetCredential(j_credential);
     }
+  } else if (!success && result != nullptr &&
+             user_collision_exception::GetClass() != nullptr &&
+             env->IsInstanceOf(result, user_collision_exception::GetClass())) {
+    jmethodID get_updated_cred = user_collision_exception::GetMethodId(
+        user_collision_exception::kGetUpdatedCredential);
+    if (get_updated_cred != nullptr) {
+      jobject j_updated_cred = env->CallObjectMethod(result, get_updated_cred);
+      util::CheckAndClearJniExceptions(env);
+      if (j_updated_cred != nullptr) {
+        auth_result->additional_user_info.updated_credential =
+            InternalAuthResultProvider::GetCredential(j_updated_cred);
+      }
+    }
   }
 }
 
 void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
                             bool success, void* void_data) {
   JNIEnv* env = Env(d->auth_data);
+  User* user_ptr = static_cast<User*>(void_data);
 
   // Update the currently signed-in user on success.
   // Note: `result` is only valid when success is true.
@@ -525,11 +599,12 @@ void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
     // Update our pointer to the Android FirebaseUser that we're wrapping.
     // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
     //       Auth class has not been updated at this point.
+    MutexLock lock(d->auth_data->future_impl.mutex());
     SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+    *user_ptr = d->auth_data->auth->current_user();
+  } else {
+    *user_ptr = User();
   }
-
-  User* user_ptr = static_cast<User*>(void_data);
-  *user_ptr = d->auth_data->auth->current_user();
 }
 
 }  // namespace auth

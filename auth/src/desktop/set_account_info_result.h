@@ -88,8 +88,6 @@ class SetAccountInfoResult {
   User* MergeToCurrentUser(AuthData* auth_data) const;
 
  private:
-  friend class AuthenticationResult;
-
   SetAccountInfoResult() : error_(kAuthErrorNone) {}
 
   const AuthError error_;

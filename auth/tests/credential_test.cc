@@ -69,45 +69,89 @@ class CredentialTest : public ::testing::Test {
 TEST_F(CredentialTest, TestEmailAuthProvider) {
   // Test get credential from email and password.
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
-  Verify(credential, "password");
+  Verify(credential, EmailAuthProvider::kProviderId);
 }
 
 TEST_F(CredentialTest, TestFacebookAuthProvider) {
   // Test get credential via Facebook.
   Credential credential = FacebookAuthProvider::GetCredential("aFacebookToken");
-  Verify(credential, "facebook.com");
+  Verify(credential, FacebookAuthProvider::kProviderId);
 }
 
 TEST_F(CredentialTest, TestGithubAuthProvider) {
   // Test get credential via GitHub.
   Credential credential = GitHubAuthProvider::GetCredential("aGitHubToken");
-  Verify(credential, "github.com");
+  Verify(credential, GitHubAuthProvider::kProviderId);
 }
 
 TEST_F(CredentialTest, TestGoogleAuthProvider) {
   // Test get credential via Google.
   Credential credential = GoogleAuthProvider::GetCredential("red", "blue");
-  Verify(credential, "google.com");
+  Verify(credential, GoogleAuthProvider::kProviderId);
+
+  Credential id_only = GoogleAuthProvider::GetCredential("red", nullptr);
+  Verify(id_only, GoogleAuthProvider::kProviderId);
+
+  Credential access_only = GoogleAuthProvider::GetCredential(nullptr, "blue");
+  Verify(access_only, GoogleAuthProvider::kProviderId);
 }
 
-#if defined(__ANDROID__) || defined(FIREBASE_ANDROID_FOR_DESKTOP)
 TEST_F(CredentialTest, TestPlayGamesAuthProvider) {
   // Test get credential via PlayGames.
   Credential credential = PlayGamesAuthProvider::GetCredential("anAuthCode");
-  Verify(credential, "playgames.google.com");
+  Verify(credential, PlayGamesAuthProvider::kProviderId);
 }
-#endif  // defined(__ANDROID__) || defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
 TEST_F(CredentialTest, TestTwitterAuthProvider) {
   // Test get credential via Twitter.
   Credential credential = TwitterAuthProvider::GetCredential("token", "secret");
-  Verify(credential, "twitter.com");
+  Verify(credential, TwitterAuthProvider::kProviderId);
 }
 
 TEST_F(CredentialTest, TestOAuthProvider) {
   // Test get credential via OAuth.
   Credential credential = OAuthProvider::GetCredential("u.test", "id", "acc");
   Verify(credential, "u.test");
+
+  // Test 4-argument overload with raw_nonce.
+  Credential nonce_credential =
+      OAuthProvider::GetCredential("microsoft.com", "id", "raw_nonce", "acc");
+  Verify(nonce_credential, "microsoft.com");
+}
+
+TEST_F(CredentialTest, TestDefaultCredentialAndCopyMove) {
+  Credential invalid_cred;
+  EXPECT_FALSE(invalid_cred.is_valid());
+
+  Credential valid_cred = EmailAuthProvider::GetCredential("i@email.com", "pw");
+  Credential copied_cred(valid_cred);
+  Verify(copied_cred, EmailAuthProvider::kProviderId);
+
+  Credential assigned_cred;
+  assigned_cred = valid_cred;
+  Verify(assigned_cred, EmailAuthProvider::kProviderId);
+
+  Credential moved_cred(std::move(copied_cred));
+  Verify(moved_cred, EmailAuthProvider::kProviderId);
+}
+
+TEST_F(CredentialTest, TestFederatedOAuthProviderData) {
+  FederatedOAuthProviderData default_data;
+  EXPECT_TRUE(default_data.provider_id.empty());
+
+  FederatedOAuthProviderData provider_only("github.com");
+  EXPECT_EQ("github.com", provider_only.provider_id);
+
+  FederatedOAuthProviderData full_data(
+      "google.com", {"email", "profile"}, {{"prompt", "select_account"}});
+  EXPECT_EQ("google.com", full_data.provider_id);
+  EXPECT_EQ(2U, full_data.scopes.size());
+  EXPECT_EQ("select_account", full_data.custom_parameters["prompt"]);
+
+  FederatedOAuthProviderData copy_data = full_data;
+  EXPECT_EQ(full_data, copy_data);
+  EXPECT_FALSE(full_data != copy_data);
+  EXPECT_NE(full_data, provider_only);
 }
 
 }  // namespace auth

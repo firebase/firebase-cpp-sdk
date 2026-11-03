@@ -34,8 +34,8 @@ bool GetNewUserLocalIdAndIdToken(::firebase::App& app,
     return false;
   }
 
-  *local_id = response.local_id();
-  *id_token = response.id_token();
+  if (local_id != nullptr) *local_id = response.local_id();
+  if (id_token != nullptr) *id_token = response.id_token();
   return true;
 }
 
@@ -52,8 +52,8 @@ bool GetNewUserLocalIdAndRefreshToken(::firebase::App& app,
     return false;
   }
 
-  *local_id = response.local_id();
-  *refresh_token = response.refresh_token();
+  if (local_id != nullptr) *local_id = response.local_id();
+  if (refresh_token != nullptr) *refresh_token = response.refresh_token();
   return true;
 }
 

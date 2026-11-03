@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google
+ * Copyright 2020 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,70 +17,77 @@
 #import "installations/src_ios/fake/FIRInstallations.h"
 #import "installations/src_ios/fake/FIRInstallationsAuthTokenResult.h"
 
-#include <cstdint>
+#include "testing/config.h"
 #include "testing/reporter_impl.h"
 
-static dispatch_semaphore_t gThreadStarted;
-static dispatch_semaphore_t gThreadComplete;
+namespace {
 
-// Wait 1 second while trying to acquire a semaphore, returning false on timeout.
-static bool WaitForSemaphore(dispatch_semaphore_t semaphore) {
-  static const int64_t kSemaphoreWaitTimeoutNanoseconds = 1000000000 /* 1s */;
-  return dispatch_semaphore_wait(semaphore,
-                                 dispatch_time(DISPATCH_TIME_NOW,
-                                               kSemaphoreWaitTimeoutNanoseconds)) == 0;
+NSError* _Nullable FakeErrorForKey(const char* key) {
+  const auto* config_row = firebase::testing::cppsdk::ConfigGet(key);
+  if (config_row == nullptr || !config_row->future_generic_error()) {
+    return nil;
+  }
+  return [NSError errorWithDomain:@"com.firebase.installations"
+                             code:1
+                         userInfo:@{
+                           NSLocalizedDescriptionKey :
+                               @"Fake installations error"
+                         }];
 }
 
 // Run a block on a background thread.
-static void RunBlockOnBackgroundThread(void (^block)(NSError* _Nullable error)) {
-  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      dispatch_semaphore_signal(gThreadStarted);
-      NSError * _Nullable error = nil;
-      block(error);
-      dispatch_semaphore_signal(gThreadComplete);
-    });
+void RunBlockOnBackgroundThread(const char* config_key,
+                                void (^block)(NSError* _Nullable error)) {
+  NSError* _Nullable error = FakeErrorForKey(config_key);
+  dispatch_async(
+      dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        block(error);
+      });
 }
+
+}  // namespace
 
 @implementation FIRInstallations
 
-+ (FIRInstallations *)installationsWithApp:(FIRApp *)app {
++ (FIRInstallations*)installationsWithApp:(FIRApp*)app {
+  (void)app;
   FakeReporter->AddReport("FirebaseInstallations.initialize", {});
   return [[FIRInstallations alloc] init];
 }
 
 - (void)installationIDWithCompletion:(FIRInstallationsIDHandler)completion {
-  RunBlockOnBackgroundThread(^(NSError *_Nullable error) {
-      FakeReporter->AddReport("FirebaseInstallations.getId", {});
-      completion(error ? nil : @"FakeId", error);
-    });
+  RunBlockOnBackgroundThread(
+      "FirebaseInstallations.getId", ^(NSError* _Nullable error) {
+        FakeReporter->AddReport("FirebaseInstallations.getId", {});
+        completion(error ? nil : @"FakeId", error);
+      });
 }
 
 - (void)authTokenWithCompletion:(FIRInstallationsTokenHandler)completion {
-  RunBlockOnBackgroundThread(^(NSError *_Nullable error) {
-      FakeReporter->AddReport("FirebaseInstallations.getToken", {});
-      FIRInstallationsAuthTokenResult *result = [[FIRInstallationsAuthTokenResult alloc]
-             initWithToken:@"FakeToken"
-            expirationDate:[NSDate init]];
-      completion(error ? nil : result, error);
-    });
+  [self authTokenForcingRefresh:NO completion:completion];
 }
 
 - (void)authTokenForcingRefresh:(BOOL)forceRefresh
                      completion:(FIRInstallationsTokenHandler)completion {
-  RunBlockOnBackgroundThread(^(NSError *_Nullable error) {
-      FakeReporter->AddReport("FirebaseInstallations.getToken", {});
-      FIRInstallationsAuthTokenResult *result = [[FIRInstallationsAuthTokenResult alloc]
-             initWithToken:@"FakeTokenForceRefresh"
-            expirationDate:[NSDate init]];
-      completion(error ? nil : result, error);
-    });
+  RunBlockOnBackgroundThread(
+      "FirebaseInstallations.getToken", ^(NSError* _Nullable error) {
+        FakeReporter->AddReport("FirebaseInstallations.getToken", {});
+        NSString* token =
+            forceRefresh ? @"FakeTokenForceRefresh" : @"FakeToken";
+        FIRInstallationsAuthTokenResult* result =
+            [[FIRInstallationsAuthTokenResult alloc]
+                 initWithToken:token
+                expirationDate:[[NSDate alloc] init]];
+        completion(error ? nil : result, error);
+      });
 }
 
-- (void)deleteWithCompletion:(void (^)(NSError *__nullable error))completion {
-  RunBlockOnBackgroundThread(^(NSError *_Nullable error) {
-      if (!error) FakeReporter->AddReport("FirebaseInstallations.delete", {});
-      completion(error);
-    });
+- (void)deleteWithCompletion:(void (^)(NSError* __nullable error))completion {
+  RunBlockOnBackgroundThread(
+      "FirebaseInstallations.delete", ^(NSError* _Nullable error) {
+        FakeReporter->AddReport("FirebaseInstallations.delete", {});
+        completion(error);
+      });
 }
 
 @end

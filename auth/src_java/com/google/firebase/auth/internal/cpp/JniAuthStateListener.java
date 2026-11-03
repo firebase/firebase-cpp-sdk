@@ -17,13 +17,14 @@
 package com.google.firebase.auth.internal.cpp;
 
 import com.google.firebase.auth.FirebaseAuth;
+import java.util.ArrayList;
 
 /**
  * Implements AuthStateListener by redirecting calls into C++.
  */
 public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
   /**
-   * Lock that controls access to authData.
+   * Lock that controls access to cppAuthData and activeCallbackThreads.
    */
   private final Object lock = new Object();
 
@@ -31,6 +32,7 @@ public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
    * Pointer to an AuthData structure.
    */
   private long cppAuthData;
+  private final ArrayList<Thread> activeCallbackThreads = new ArrayList<>();
 
   /**
    * Constructor is called via JNI from C++.
@@ -41,27 +43,58 @@ public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
     this.cppAuthData = cppAuthData;
   }
 
+  private boolean hasOtherActiveThreads(Thread currentThread) {
+    for (int i = 0; i < activeCallbackThreads.size(); i++) {
+      if (activeCallbackThreads.get(i) != currentThread) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
-   * Remove the reference to the C++ AuthData object
+   * Remove the reference to the C++ AuthData object and wait for any in-flight callbacks on other
+   * threads to finish before returning.
    */
   public void disconnect() {
     synchronized (lock) {
       cppAuthData = 0;
+      Thread currentThread = Thread.currentThread();
+      while (hasOtherActiveThreads(currentThread)) {
+        try {
+          lock.wait();
+        } catch (InterruptedException e) {
+          currentThread.interrupt();
+          break;
+        }
+      }
     }
   }
 
   @Override
   public void onAuthStateChanged(FirebaseAuth auth) {
-    AuthCommon.safeRunNativeMethod(new Runnable() {
-      @Override
-      public void run() {
-        synchronized (lock) {
-          if (cppAuthData != 0) {
-            nativeOnAuthStateChanged(cppAuthData);
-          }
-        }
+    final long authData;
+    final Thread currentThread = Thread.currentThread();
+    synchronized (lock) {
+      if (cppAuthData == 0) {
+        return;
       }
-    });
+      authData = cppAuthData;
+      activeCallbackThreads.add(currentThread);
+    }
+    try {
+      AuthCommon.safeRunNativeMethod(new Runnable() {
+        @Override
+        public void run() {
+          nativeOnAuthStateChanged(authData);
+        }
+      });
+    } finally {
+      synchronized (lock) {
+        activeCallbackThreads.remove(currentThread);
+        lock.notifyAll();
+      }
+    }
   }
 
   /**

@@ -44,18 +44,12 @@ class GetOobConfirmationCodeRequest : public AuthRequest {
                                       const char* email,
                                       const char* language_code = nullptr);
 
-  void SetIdToken(const char* const id_token) {
-    if (id_token) {
-      application_data_->idToken = id_token;
-      UpdatePostFields();
-    } else {
-      LogError("No id token given.");
-    }
-  }
-
  private:
   explicit GetOobConfirmationCodeRequest(::firebase::App& app,
                                          const char* api_key);
+  static std::unique_ptr<GetOobConfirmationCodeRequest> CreateRequest(
+      ::firebase::App& app, const char* api_key, const char* request_type,
+      const char* language_code);
 };
 
 }  // namespace auth

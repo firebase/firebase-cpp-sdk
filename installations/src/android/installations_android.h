@@ -15,18 +15,23 @@
 #ifndef FIREBASE_INSTALLATIONS_SRC_ANDROID_INSTALLATIONS_ANDROID_H_
 #define FIREBASE_INSTALLATIONS_SRC_ANDROID_INSTALLATIONS_ANDROID_H_
 
+#include <jni.h>
+
+#include <memory>
 #include <string>
 
 #include "app/src/reference_count.h"
-#include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
-#include "firebase/internal/common.h"
+#include "installations/src/common.h"
 
 namespace firebase {
 namespace installations {
 namespace internal {
+
+struct PendingCallbacks;
+
 // Installations Client implementation for Android.
 //
 // This class implements functions from `firebase/installations.h` header.
@@ -36,18 +41,24 @@ class InstallationsInternal {
   explicit InstallationsInternal(const firebase::App& app);
   ~InstallationsInternal();
 
+  InstallationsInternal(const InstallationsInternal&) = delete;
+  InstallationsInternal& operator=(const InstallationsInternal&) = delete;
+
   // Platform-specific method that causes a heartbeat to be logged.
   // See go/firebase-platform-logging-design for more information.
   static void LogHeartbeat(const firebase::App& app);
 
   Future<std::string> GetId();
-  Future<std::string> GetIdLastResult();
+  Future<std::string> GetIdLastResult() const;
 
   Future<void> Delete();
-  Future<void> DeleteLastResult();
+  Future<void> DeleteLastResult() const;
 
-  Future<std::string> GetToken(bool forceRefresh);
-  Future<std::string> GetTokenLastResult();
+  Future<std::string> GetToken(bool force_refresh);
+  Future<std::string> GetTokenLastResult() const;
+
+  Future<InstallationTokenResult> GetTokenResult(bool force_refresh);
+  Future<InstallationTokenResult> GetTokenResultLastResult() const;
 
   bool Initialized() const;
 
@@ -59,9 +70,13 @@ class InstallationsInternal {
   const firebase::App& app_;
 
   /// Handle calls from Futures that the API returns.
-  ReferenceCountedFutureImpl future_impl_;
+  InstallationsFutures futures_;
 
-  jobject internal_obj_;
+  std::shared_ptr<PendingCallbacks> pending_callbacks_;
+
+  jobject internal_obj_ = nullptr;
+
+  bool has_initializer_ref_ = false;
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;

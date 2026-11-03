@@ -16,12 +16,12 @@
 #define FIREBASE_INSTALLATIONS_SRC_IOS_INSTALLATIONS_IOS_H_
 
 #include <memory>
+#include <string>
 
-#include "firebase/app.h"
-#include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
+#include "firebase/app.h"
 #include "firebase/future.h"
-#include "firebase/internal/common.h"
+#include "installations/src/common.h"
 
 #ifdef __OBJC__
 #import "FIRInstallations.h"
@@ -43,18 +43,24 @@ class InstallationsInternal {
   explicit InstallationsInternal(const firebase::App& app);
   ~InstallationsInternal();
 
+  InstallationsInternal(const InstallationsInternal&) = delete;
+  InstallationsInternal& operator=(const InstallationsInternal&) = delete;
+
   // Platform-specific method that causes a heartbeat to be logged.
   // See go/firebase-platform-logging-design for more information.
   static void LogHeartbeat(const firebase::App& app);
 
   Future<std::string> GetId();
-  Future<std::string> GetIdLastResult();
+  Future<std::string> GetIdLastResult() const;
 
   Future<void> Delete();
-  Future<void> DeleteLastResult();
+  Future<void> DeleteLastResult() const;
 
-  Future<std::string> GetToken(bool forceRefresh);
-  Future<std::string> GetTokenLastResult();
+  Future<std::string> GetToken(bool force_refresh);
+  Future<std::string> GetTokenLastResult() const;
+
+  Future<InstallationTokenResult> GetTokenResult(bool force_refresh);
+  Future<InstallationTokenResult> GetTokenResultLastResult() const;
 
   bool Initialized() const;
 
@@ -62,15 +68,15 @@ class InstallationsInternal {
 
  private:
 #ifdef __OBJC__
-  FIRInstallations* _Nullable impl() const { return impl_->get(); }
+  FIRInstallations* _Nullable impl() const {
+    return impl_ ? impl_->get() : nil;
+  }
 #endif
-  // app
-  const firebase::App& app_;
 
   std::unique_ptr<FIRInstallationsPointer> impl_;
 
   /// Handle calls from Futures that the API returns.
-  ReferenceCountedFutureImpl future_impl_;
+  InstallationsFutures futures_;
 };
 
 }  // namespace internal

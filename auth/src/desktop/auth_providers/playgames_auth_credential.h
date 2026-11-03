@@ -33,6 +33,18 @@ class PlayGamesAuthCredential : public IdentityProviderCredential {
  public:
   std::string GetProvider() const override { return kPlayGamesAuthProviderId; }
 
+  CredentialType GetType() const override {
+    return CredentialType::kPlayGames;
+  }
+
+  bool IsValid() const override { return !server_auth_code_.empty(); }
+
+  bool Equals(const AuthCredential& other) const override {
+    if (other.GetType() != GetType()) return false;
+    const auto& rhs = static_cast<const PlayGamesAuthCredential&>(other);
+    return server_auth_code_ == rhs.server_auth_code_;
+  }
+
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       ::firebase::App& app, const char* const api_key) const override {
     return VerifyAssertionRequest::FromAuthCode(

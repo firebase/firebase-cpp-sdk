@@ -27,16 +27,13 @@ namespace auth {
 // static
 Credential GoogleAuthProvider::GetCredential(const char* const id_token,
                                              const char* const access_token) {
-  if (id_token && id_token[0] != '\0') {
-    return Credential{
-        new CredentialImpl{new GoogleAuthCredential(id_token, std::string())}};
-  } else if (access_token) {
-    return Credential{new CredentialImpl{
-        new GoogleAuthCredential(std::string(), access_token)}};
-  } else {
-    return Credential{new CredentialImpl{
-        new GoogleAuthCredential(std::string(), std::string())}};
+  const char* const safe_id_token = id_token ? id_token : "";
+  const char* const safe_access_token = access_token ? access_token : "";
+  if (safe_id_token[0] == '\0' && safe_access_token[0] == '\0') {
+    return Credential();
   }
+  return Credential{new CredentialImpl{
+      new GoogleAuthCredential(safe_id_token, safe_access_token)}};
 }
 
 }  // namespace auth

@@ -14,6 +14,13 @@
 
 #include "installations/src/android/installations_android.h"
 
+#include <cstring>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_set>
+
+#include "app/src/log.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "installations/src/common.h"
@@ -28,6 +35,10 @@ namespace internal {
   X(GetId, "getId", "()Lcom/google/android/gms/tasks/Task;"),                  \
   X(Delete, "delete", "()Lcom/google/android/gms/tasks/Task;"),                \
   X(GetToken, "getToken", "(Z)Lcom/google/android/gms/tasks/Task;"),           \
+  X(AddIdListener, "addFidListener",                                           \
+    "(Lcom/google/firebase/installations/internal/FidListener;)"               \
+    "Lcom/google/firebase/installations/internal/FidListenerHandle;",          \
+    firebase::util::kMethodTypeInstance, firebase::util::kMethodOptional),     \
   X(GetInstance, "getInstance", "(Lcom/google/firebase/FirebaseApp;)"          \
     "Lcom/google/firebase/installations/FirebaseInstallations;",               \
     firebase::util::kMethodTypeStatic)
@@ -42,8 +53,12 @@ METHOD_LOOKUP_DEFINITION(
 
 // Methods of InstallationTokenResult
 // clang-format off
-#define TOKEN_RESULT_METHODS(X) \
-  X(GetToken, "getToken", "()Ljava/lang/String;")
+#define TOKEN_RESULT_METHODS(X)                                                \
+  X(GetToken, "getToken", "()Ljava/lang/String;"),                             \
+  X(GetTokenExpirationTimestamp, "getTokenExpirationTimestamp", "()J",         \
+    firebase::util::kMethodTypeInstance, firebase::util::kMethodOptional),     \
+  X(GetTokenCreationTimestamp, "getTokenCreationTimestamp", "()J",             \
+    firebase::util::kMethodTypeInstance, firebase::util::kMethodOptional)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(token_result, TOKEN_RESULT_METHODS)
 METHOD_LOOKUP_DEFINITION(
@@ -57,18 +72,63 @@ using firebase::internal::ReferenceCountLock;
 
 ReferenceCount internal::InstallationsInternal::initializer_;  // NOLINT
 
+struct FISCallbackData {
+  virtual ~FISCallbackData() = default;
+};
+
+struct PendingCallbacks {
+  std::mutex mutex;
+  std::unordered_set<FISCallbackData*> active;
+
+  void Register(FISCallbackData* data) {
+    std::lock_guard<std::mutex> lock(mutex);
+    active.insert(data);
+  }
+
+  bool Claim(FISCallbackData* data) {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto it = active.find(data);
+    if (it == active.end()) {
+      return false;
+    }
+    active.erase(it);
+    return true;
+  }
+
+  void CancelAll() {
+    std::unordered_set<FISCallbackData*> to_delete;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      to_delete.swap(active);
+    }
+    for (FISCallbackData* data : to_delete) {
+      delete data;
+    }
+  }
+};
+
 template <typename T>
-struct FISDataHandle {
-  FISDataHandle(ReferenceCountedFutureImpl* _future_api,
-                const SafeFutureHandle<T>& _future_handle)
-      : future_api(_future_api), future_handle(_future_handle) {}
-  ReferenceCountedFutureImpl* future_api;
+struct FISDataHandle : public FISCallbackData {
+  FISDataHandle(std::weak_ptr<ReferenceCountedFutureImpl> _future_api,
+                const SafeFutureHandle<T>& _future_handle,
+                std::shared_ptr<PendingCallbacks> _tracker)
+      : future_api(std::move(_future_api)),
+        future_handle(_future_handle),
+        tracker(std::move(_tracker)) {}
+  std::weak_ptr<ReferenceCountedFutureImpl> future_api;
   SafeFutureHandle<T> future_handle;
+  std::shared_ptr<PendingCallbacks> tracker;
 };
 
 static bool CacheJNIMethodIds(JNIEnv* env, jobject activity) {
-  return installations::CacheMethodIds(env, activity) &&
-         token_result::CacheMethodIds(env, activity);
+  if (!installations::CacheMethodIds(env, activity)) {
+    return false;
+  }
+  if (!token_result::CacheMethodIds(env, activity)) {
+    installations::ReleaseClass(env);
+    return false;
+  }
+  return true;
 }
 
 static void ReleaseClasses(JNIEnv* env) {
@@ -76,143 +136,303 @@ static void ReleaseClasses(JNIEnv* env) {
   token_result::ReleaseClass(env);
 }
 
-void CompleteVoidCallback(JNIEnv* env, jobject result,
-                          util::FutureResult result_code,
-                          const char* status_message, void* callback_data) {
+static Error MapAndroidError(util::FutureResult result_code,
+                             const char* status_message) {
+  if (result_code == util::kFutureResultSuccess) {
+    return kInstallationsErrorNone;
+  }
+  if (status_message != nullptr) {
+    if (std::strstr(status_message, "BAD_CONFIG") != nullptr) {
+      return kErrorInvalidConfiguration;
+    }
+    if (std::strstr(status_message, "UNAVAILABLE") != nullptr ||
+        std::strstr(status_message, "TOO_MANY_REQUESTS") != nullptr) {
+      return kErrorNoAccess;
+    }
+  }
+  return kInstallationsErrorFailure;
+}
+
+static void CompleteVoidCallback(JNIEnv* env, jobject result,
+                                 util::FutureResult result_code,
+                                 const char* status_message,
+                                 void* callback_data) {
+  if (result != nullptr) {
+    env->DeleteLocalRef(result);
+  }
   auto* data_handle = reinterpret_cast<FISDataHandle<void>*>(callback_data);
-  data_handle->future_api->Complete(data_handle->future_handle,
-                                    result_code == util::kFutureResultSuccess
-                                        ? kInstallationsErrorNone
-                                        : kInstallationsErrorFailure);
-  if (result) env->DeleteLocalRef(result);
+  if (data_handle == nullptr) {
+    return;
+  }
+  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
+  if (tracker && !tracker->Claim(data_handle)) {
+    return;
+  }
+  if (auto api = data_handle->future_api.lock()) {
+    api->Complete(data_handle->future_handle,
+                  MapAndroidError(result_code, status_message),
+                  status_message != nullptr ? status_message : "");
+  }
   delete data_handle;
 }
 
-void StringResultCallback(JNIEnv* env, jobject result,
-                          util::FutureResult result_code,
-                          const char* status_message, void* callback_data) {
+static void StringResultCallback(JNIEnv* env, jobject result,
+                                 util::FutureResult result_code,
+                                 const char* status_message,
+                                 void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
-  std::string result_value = "";
-  if (success && result) {
-    result_value = util::JniStringToString(env, result);
+  std::string result_value;
+  if (success && result != nullptr) {
+    result_value = util::JStringToString(env, result);
+  }
+  if (result != nullptr) {
+    env->DeleteLocalRef(result);
   }
   auto* data_handle =
       reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
-  data_handle->future_api->CompleteWithResult(
-      data_handle->future_handle,
-      success ? kInstallationsErrorNone : kInstallationsErrorFailure,
-      status_message, result_value);
+  if (data_handle == nullptr) {
+    return;
+  }
+  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
+  if (tracker && !tracker->Claim(data_handle)) {
+    return;
+  }
+  if (auto api = data_handle->future_api.lock()) {
+    api->CompleteWithResult(
+        data_handle->future_handle,
+        MapAndroidError(result_code, status_message),
+        status_message != nullptr ? status_message : "", result_value);
+  }
   delete data_handle;
 }
 
-static std::string JTokenResultToString(JNIEnv* env, jobject jtoken) {
+static InstallationTokenResult JTokenResultToStruct(JNIEnv* env,
+                                                    jobject jtoken,
+                                                    bool* out_valid) {
+  InstallationTokenResult token_result;
+  *out_valid = false;
+  if (jtoken == nullptr) {
+    return token_result;
+  }
   FIREBASE_DEV_ASSERT(env->IsInstanceOf(jtoken, token_result::GetClass()));
 
-  jobject jstring = env->CallObjectMethod(
+  jobject jstring_obj = env->CallObjectMethod(
       jtoken, token_result::GetMethodId(token_result::kGetToken));
-  std::string result_value = util::JStringToString(env, jstring);
-  env->DeleteLocalRef(jstring);
-  env->DeleteLocalRef(jtoken);
-  return result_value;
+  if (util::CheckAndClearJniExceptions(env)) {
+    if (jstring_obj != nullptr) {
+      env->DeleteLocalRef(jstring_obj);
+    }
+    return token_result;
+  }
+  if (jstring_obj != nullptr) {
+    token_result.token = util::JStringToString(env, jstring_obj);
+    env->DeleteLocalRef(jstring_obj);
+    *out_valid = true;
+  }
+
+  jmethodID get_expiration_id =
+      token_result::GetMethodId(token_result::kGetTokenExpirationTimestamp);
+  if (get_expiration_id != nullptr) {
+    jlong expiration = env->CallLongMethod(jtoken, get_expiration_id);
+    if (!util::CheckAndClearJniExceptions(env)) {
+      token_result.expiration_timestamp = static_cast<int64_t>(expiration);
+    }
+  }
+  return token_result;
 }
 
-void TokenResultCallback(JNIEnv* env, jobject result,
-                         util::FutureResult result_code,
-                         const char* status_message, void* callback_data) {
+static void TokenResultCallback(JNIEnv* env, jobject result,
+                                util::FutureResult result_code,
+                                const char* status_message,
+                                void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
-  std::string result_value = "";
-  if (success && result) {
-    result_value = JTokenResultToString(env, result);
+  InstallationTokenResult parsed;
+  bool valid_token = false;
+  if (success && result != nullptr) {
+    parsed = JTokenResultToStruct(env, result, &valid_token);
+  }
+  if (result != nullptr) {
+    env->DeleteLocalRef(result);
   }
   auto* data_handle =
       reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
-  data_handle->future_api->CompleteWithResult(
-      data_handle->future_handle,
-      success ? kInstallationsErrorNone : kInstallationsErrorFailure,
-      status_message, result_value);
+  if (data_handle == nullptr) {
+    return;
+  }
+  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
+  if (tracker && !tracker->Claim(data_handle)) {
+    return;
+  }
+  if (auto api = data_handle->future_api.lock()) {
+    Error error = (success && valid_token)
+                      ? kInstallationsErrorNone
+                      : MapAndroidError(result_code, status_message);
+    api->CompleteWithResult(
+        data_handle->future_handle, error,
+        status_message != nullptr ? status_message : "", parsed.token);
+  }
+  delete data_handle;
+}
+
+static void TokenResultStructCallback(JNIEnv* env, jobject result,
+                                      util::FutureResult result_code,
+                                      const char* status_message,
+                                      void* callback_data) {
+  bool success = (result_code == util::kFutureResultSuccess);
+  InstallationTokenResult parsed;
+  bool valid_token = false;
+  if (success && result != nullptr) {
+    parsed = JTokenResultToStruct(env, result, &valid_token);
+  }
+  if (result != nullptr) {
+    env->DeleteLocalRef(result);
+  }
+  auto* data_handle =
+      reinterpret_cast<FISDataHandle<InstallationTokenResult>*>(callback_data);
+  if (data_handle == nullptr) {
+    return;
+  }
+  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
+  if (tracker && !tracker->Claim(data_handle)) {
+    return;
+  }
+  if (auto api = data_handle->future_api.lock()) {
+    Error error = (success && valid_token)
+                      ? kInstallationsErrorNone
+                      : MapAndroidError(result_code, status_message);
+    api->CompleteWithResult(
+        data_handle->future_handle, error,
+        status_message != nullptr ? status_message : "", parsed);
+  }
   delete data_handle;
 }
 
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {
+    : app_(app),
+      pending_callbacks_(std::make_shared<PendingCallbacks>()) {
   ReferenceCountLock<ReferenceCount> lock(&initializer_);
   static const char* kApiIdentifier = "Installations";
   LogDebug("%s API Initializing", kApiIdentifier);
   JNIEnv* env = app_.GetJNIEnv();
 
   if (lock.AddReference() == 0) {
-    // Initialize
     jobject activity = app_.activity();
     if (!util::Initialize(env, activity)) {
       lock.RemoveReference();
       return;
     }
 
-    // Cache method pointers.
     if (!CacheJNIMethodIds(env, activity)) {
-      ReleaseClasses(env);
       util::Terminate(env);
       lock.RemoveReference();
       return;
     }
   }
+  has_initializer_ref_ = true;
 
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
-  // Create the underlying Installations java object.
   jobject platform_app = app_.GetPlatformApp();
-
   jclass installations_class = installations::GetClass();
   jobject installations_instance_local = env->CallStaticObjectMethod(
       installations_class,
       installations::GetMethodId(installations::kGetInstance), platform_app);
-  FIREBASE_ASSERT(installations_instance_local);
+  bool had_exception = util::CheckAndClearJniExceptions(env);
+  if (platform_app != nullptr) {
+    env->DeleteLocalRef(platform_app);
+  }
+  if (had_exception || installations_instance_local == nullptr) {
+    if (installations_instance_local != nullptr) {
+      env->DeleteLocalRef(installations_instance_local);
+    }
+    LogError("Failed to obtain FirebaseInstallations instance.");
+    return;
+  }
   internal_obj_ = env->NewGlobalRef(installations_instance_local);
   env->DeleteLocalRef(installations_instance_local);
-  env->DeleteLocalRef(platform_app);
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-InstallationsInternal::~InstallationsInternal() {
-  JNIEnv* env = app_.GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
-}
+InstallationsInternal::~InstallationsInternal() { Cleanup(); }
 
 bool InstallationsInternal::Initialized() const {
   return internal_obj_ != nullptr;
 }
 
 void InstallationsInternal::Cleanup() {
+  JNIEnv* env = app_.GetJNIEnv();
+  if (!jni_task_id_.empty()) {
+    if (env != nullptr) {
+      util::CancelCallbacks(env, jni_task_id_.c_str());
+    }
+    jni_task_id_.clear();
+  }
+  if (pending_callbacks_) {
+    pending_callbacks_->CancelAll();
+  }
+  if (internal_obj_ != nullptr) {
+    if (env != nullptr) {
+      env->DeleteGlobalRef(internal_obj_);
+    }
+    internal_obj_ = nullptr;
+  }
   ReferenceCountLock<ReferenceCount> lock(&initializer_);
-  if (lock.RemoveReference() == 1) {
-    JNIEnv* env = app_.GetJNIEnv();
-    ReleaseClasses(env);
-    util::Terminate(env);
+  if (has_initializer_ref_) {
+    has_initializer_ref_ = false;
+    if (lock.RemoveReference() == 1 && env != nullptr) {
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
   }
 }
 
 void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
-  // Calling the native getter is sufficient to cause a Heartbeat to be logged.
+  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+  if (initializer_.references() == 0) {
+    return;
+  }
+  jclass installations_class = installations::GetClass();
+  if (installations_class == nullptr) {
+    return;
+  }
   JNIEnv* env = app.GetJNIEnv();
   jobject platform_app = app.GetPlatformApp();
-  jclass installations_class = installations::GetClass();
   jobject installations_instance_local = env->CallStaticObjectMethod(
       installations_class,
       installations::GetMethodId(installations::kGetInstance), platform_app);
   firebase::util::CheckAndClearJniExceptions(env);
-  env->DeleteLocalRef(installations_instance_local);
-  env->DeleteLocalRef(platform_app);
+  if (installations_instance_local != nullptr) {
+    env->DeleteLocalRef(installations_instance_local);
+  }
+  if (platform_app != nullptr) {
+    env->DeleteLocalRef(platform_app);
+  }
 }
 
 Future<std::string> InstallationsInternal::GetId() {
-  const auto handle =
-      future_impl_.SafeAlloc<std::string>(kInstallationsFnGetId);
+  const auto handle = futures_.SafeAlloc<kInstallationsFnGetId>();
+  if (internal_obj_ == nullptr) {
+    futures_.Complete<kInstallationsFnGetId>(
+        handle, kErrorInvalidConfiguration,
+        "Installations is not initialized.");
+    return futures_.MakeFuture<kInstallationsFnGetId>(handle);
+  }
 
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetId));
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) {
+      env->DeleteLocalRef(task);
+    }
+    futures_.Complete<kInstallationsFnGetId>(handle, kInstallationsErrorFailure,
+                                             "Failed to invoke getId.");
+    return futures_.MakeFuture<kInstallationsFnGetId>(handle);
+  }
 
-  auto data_handle = new FISDataHandle<std::string>(&future_impl_, handle);
+  auto* data_handle = new FISDataHandle<std::string>(
+      futures_.weak(), handle, pending_callbacks_);
+  pending_callbacks_->Register(data_handle);
 
   util::RegisterCallbackOnTask(env, task, StringResultCallback,
                                reinterpret_cast<void*>(data_handle),
@@ -220,24 +440,38 @@ Future<std::string> InstallationsInternal::GetId() {
 
   env->DeleteLocalRef(task);
 
-  return MakeFuture<std::string>(&future_impl_, handle);
+  return futures_.MakeFuture<kInstallationsFnGetId>(handle);
 }
 
-Future<std::string> InstallationsInternal::GetIdLastResult() {
-  return static_cast<const Future<std::string>&>(
-      future_impl_.LastResult(kInstallationsFnGetId));
+Future<std::string> InstallationsInternal::GetIdLastResult() const {
+  return futures_.LastResult<kInstallationsFnGetId>();
 }
 
-Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
-  const auto handle =
-      future_impl_.SafeAlloc<std::string>(kInstallationsFnGetToken);
+Future<std::string> InstallationsInternal::GetToken(bool force_refresh) {
+  const auto handle = futures_.SafeAlloc<kInstallationsFnGetToken>();
+  if (internal_obj_ == nullptr) {
+    futures_.Complete<kInstallationsFnGetToken>(
+        handle, kErrorInvalidConfiguration,
+        "Installations is not initialized.");
+    return futures_.MakeFuture<kInstallationsFnGetToken>(handle);
+  }
 
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetToken),
-      static_cast<jboolean>(forceRefresh));
+      static_cast<jboolean>(force_refresh));
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) {
+      env->DeleteLocalRef(task);
+    }
+    futures_.Complete<kInstallationsFnGetToken>(
+        handle, kInstallationsErrorFailure, "Failed to invoke getToken.");
+    return futures_.MakeFuture<kInstallationsFnGetToken>(handle);
+  }
 
-  auto data_handle = new FISDataHandle<std::string>(&future_impl_, handle);
+  auto* data_handle = new FISDataHandle<std::string>(
+      futures_.weak(), handle, pending_callbacks_);
+  pending_callbacks_->Register(data_handle);
 
   util::RegisterCallbackOnTask(env, task, TokenResultCallback,
                                reinterpret_cast<void*>(data_handle),
@@ -245,21 +479,78 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
 
   env->DeleteLocalRef(task);
 
-  return MakeFuture<std::string>(&future_impl_, handle);
+  return futures_.MakeFuture<kInstallationsFnGetToken>(handle);
 }
 
-Future<std::string> InstallationsInternal::GetTokenLastResult() {
-  return static_cast<const Future<std::string>&>(
-      future_impl_.LastResult(kInstallationsFnGetToken));
+Future<std::string> InstallationsInternal::GetTokenLastResult() const {
+  return futures_.LastResult<kInstallationsFnGetToken>();
+}
+
+Future<InstallationTokenResult> InstallationsInternal::GetTokenResult(
+    bool force_refresh) {
+  const auto handle = futures_.SafeAlloc<kInstallationsFnGetTokenResult>();
+  if (internal_obj_ == nullptr) {
+    futures_.Complete<kInstallationsFnGetTokenResult>(
+        handle, kErrorInvalidConfiguration,
+        "Installations is not initialized.");
+    return futures_.MakeFuture<kInstallationsFnGetTokenResult>(handle);
+  }
+
+  JNIEnv* env = app_.GetJNIEnv();
+  jobject task = env->CallObjectMethod(
+      internal_obj_, installations::GetMethodId(installations::kGetToken),
+      static_cast<jboolean>(force_refresh));
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) {
+      env->DeleteLocalRef(task);
+    }
+    futures_.Complete<kInstallationsFnGetTokenResult>(
+        handle, kInstallationsErrorFailure, "Failed to invoke getToken.");
+    return futures_.MakeFuture<kInstallationsFnGetTokenResult>(handle);
+  }
+
+  auto* data_handle = new FISDataHandle<InstallationTokenResult>(
+      futures_.weak(), handle, pending_callbacks_);
+  pending_callbacks_->Register(data_handle);
+
+  util::RegisterCallbackOnTask(env, task, TokenResultStructCallback,
+                               reinterpret_cast<void*>(data_handle),
+                               jni_task_id_.c_str());
+
+  env->DeleteLocalRef(task);
+
+  return futures_.MakeFuture<kInstallationsFnGetTokenResult>(handle);
+}
+
+Future<InstallationTokenResult>
+InstallationsInternal::GetTokenResultLastResult() const {
+  return futures_.LastResult<kInstallationsFnGetTokenResult>();
 }
 
 Future<void> InstallationsInternal::Delete() {
-  const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
+  const auto handle = futures_.SafeAlloc<kInstallationsFnDelete>();
+  if (internal_obj_ == nullptr) {
+    futures_.Complete<kInstallationsFnDelete>(
+        handle, kErrorInvalidConfiguration,
+        "Installations is not initialized.");
+    return futures_.MakeFuture<kInstallationsFnDelete>(handle);
+  }
+
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kDelete));
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) {
+      env->DeleteLocalRef(task);
+    }
+    futures_.Complete<kInstallationsFnDelete>(
+        handle, kInstallationsErrorFailure, "Failed to invoke delete.");
+    return futures_.MakeFuture<kInstallationsFnDelete>(handle);
+  }
 
-  auto data_handle = new FISDataHandle<void>(&future_impl_, handle);
+  auto* data_handle = new FISDataHandle<void>(
+      futures_.weak(), handle, pending_callbacks_);
+  pending_callbacks_->Register(data_handle);
 
   util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                reinterpret_cast<void*>(data_handle),
@@ -267,12 +558,11 @@ Future<void> InstallationsInternal::Delete() {
 
   env->DeleteLocalRef(task);
 
-  return MakeFuture<void>(&future_impl_, handle);
+  return futures_.MakeFuture<kInstallationsFnDelete>(handle);
 }
 
-Future<void> InstallationsInternal::DeleteLastResult() {
-  return static_cast<const Future<void>&>(
-      future_impl_.LastResult(kInstallationsFnDelete));
+Future<void> InstallationsInternal::DeleteLastResult() const {
+  return futures_.LastResult<kInstallationsFnDelete>();
 }
 
 }  // namespace internal

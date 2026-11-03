@@ -46,29 +46,6 @@ target_compile_definitions(firebase_auth_desktop_test_util
         -DINTERNAL_EXPERIMENTAL=1
 )
 
-
-if (NOT ANDROID AND NOT IOS)
-  set(desktop_rpc_test_util_SRCS
-    desktop/rpcs/test_util.h
-    desktop/rpcs/test_util.cc)
-
-  add_library(firebase_auth_desktop_rpc_test_util STATIC
-      ${desktop_rpc_test_util_SRCS})
-
-  target_include_directories(firebase_auth_desktop_rpc_test_util
-      PRIVATE
-        ${FLATBUFFERS_SOURCE_DIR}/include
-        ${FIREBASE_CPP_SDK_ROOT_DIR}
-        ${FIREBASE_GEN_FILE_DIR}
-  )
-
-  target_link_libraries(firebase_auth_desktop_rpc_test_util
-      PRIVATE
-          firebase_auth
-  )
-endif()
-
-
 firebase_cpp_cc_test(
   firebase_auth_test
   SOURCES
@@ -87,7 +64,7 @@ firebase_cpp_cc_test_on_ios(
   HOST
     firebase_app_for_testing_ios
   SOURCES
-    credential_test.cc
+    auth_test.cc
   DEPENDS
     firebase_app_for_testing
     firebase_auth
@@ -114,6 +91,20 @@ firebase_cpp_cc_test(
     firebase_app_for_testing
     firebase_auth
     firebase_testing
+)
+
+firebase_cpp_cc_test_on_ios(
+  firebase_auth_id_token_result_test
+  HOST
+    firebase_app_for_testing_ios
+  SOURCES
+    id_token_result_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_auth
+    firebase_testing
+  CUSTOM_FRAMEWORKS
+    ${ios_frameworks}
 )
 
 firebase_cpp_cc_test_on_ios(
@@ -169,20 +160,18 @@ firebase_cpp_cc_test(
     firebase_testing
 )
 
-if (MSVC OR APPLE)
-  firebase_cpp_cc_test(
-    firebase_auth_user_desktop_test
-    SOURCES
-      desktop/user_desktop_test.cc
-    DEPENDS
-      firebase_app_for_testing
-      firebase_auth
-      firebase_auth_desktop_test_util
-      firebase_rest_lib
-      firebase_rest_mocks
-      firebase_testing
-  )
-endif()
+firebase_cpp_cc_test(
+  firebase_auth_user_desktop_test
+  SOURCES
+    desktop/user_desktop_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_auth
+    firebase_auth_desktop_test_util
+    firebase_rest_lib
+    firebase_rest_mocks
+    firebase_testing
+)
 
 firebase_cpp_cc_test(
   firebase_auth_request_heartbeat_test
@@ -203,7 +192,7 @@ firebase_cpp_cc_test(
 )
 
 firebase_cpp_cc_test(
-  firebase_auth_delete_account_test_test
+  firebase_auth_delete_account_test
   SOURCES
     desktop/rpcs/delete_account_test.cc
   DEPENDS

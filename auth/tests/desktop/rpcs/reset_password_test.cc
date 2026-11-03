@@ -44,7 +44,8 @@ TEST(ResetPasswordTest, TestResetPasswordRequest) {
 
 TEST(ResetPasswordTest, TestResetPasswordRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   ResetPasswordRequest request(*app, "APIKEY", "oob", "password");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -54,7 +55,6 @@ TEST(ResetPasswordTest, TestResetPasswordRequestWithEmulator) {
 
 // Test ResetPasswordResponse
 TEST(ResetPasswordTest, TestResetPasswordResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   ResetPasswordResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -64,8 +64,24 @@ TEST(ResetPasswordTest, TestResetPasswordResponse) {
       " \"email\": \"abc@email\",\n"
       " \"requestType\": \"PASSWORD_RESET\"\n"
       "}";
+  response.set_status(rest::util::HttpSuccess);
   response.ProcessBody(body, sizeof(body));
   response.MarkCompleted();
+  EXPECT_TRUE(response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorNone, response.error_code());
+
+  ResetPasswordResponse error_response;
+  const char error_body[] =
+      "{\n"
+      "  \"error\": {\n"
+      "    \"code\": 400,\n"
+      "    \"message\": \"EXPIRED_OOB_CODE\"\n"
+      "  }\n"
+      "}";
+  error_response.ProcessBody(error_body, sizeof(error_body));
+  error_response.MarkCompleted();
+  EXPECT_FALSE(error_response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorExpiredActionCode, error_response.error_code());
 }
 
 }  // namespace auth

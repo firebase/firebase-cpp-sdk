@@ -41,11 +41,19 @@ TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromIdToken) {
   auto request = VerifyAssertionRequest::FromIdToken(*app, "APIKEY", "provider",
                                                      "id_token");
   CheckUrl(*request);
+  EXPECT_EQ(
+      "{\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"requestUri\": \"http://localhost\",\n"
+      "  \"postBody\": \"providerId=provider&id_token=id_token\"\n"
+      "}\n",
+      request->options().post_fields);
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   auto request = VerifyAssertionRequest::FromIdToken(*app, "APIKEY", "provider",
                                                      "id_token");
   EXPECT_EQ(
@@ -59,6 +67,13 @@ TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessToken) {
   auto request = VerifyAssertionRequest::FromAccessToken(
       *app, "APIKEY", "provider", "access_token");
   CheckUrl(*request);
+  EXPECT_EQ(
+      "{\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"requestUri\": \"http://localhost\",\n"
+      "  \"postBody\": \"providerId=provider&access_token=access_token\"\n"
+      "}\n",
+      request->options().post_fields);
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessTokenAndSecret) {
@@ -66,10 +81,80 @@ TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessTokenAndSecret) {
   auto request = VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
       *app, "APIKEY", "provider", "access_token", "oauth_secret");
   CheckUrl(*request);
+  EXPECT_EQ(
+      "{\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"requestUri\": \"http://localhost\",\n"
+      "  \"postBody\": "
+      "\"providerId=provider&access_token=access_token&"
+      "oauth_token_secret=oauth_secret\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
+TEST(VerifyAssertionTest,
+     TestVerifyAssertionRequest_FromAuthCodeAndNonceAndUrlEncoding) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto auth_code_req = VerifyAssertionRequest::FromAuthCode(
+      *app, "APIKEY", "github.com", "code&1=2");
+  CheckUrl(*auth_code_req);
+  auth_code_req->SetIdToken("user_id_token");
+  EXPECT_EQ(
+      "{\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"idToken\": \"user_id_token\",\n"
+      "  \"requestUri\": \"http://localhost\",\n"
+      "  \"postBody\": \"providerId=github.com&code=code%261%3D2\"\n"
+      "}\n",
+      auth_code_req->options().post_fields);
+
+  auto nonce_req = VerifyAssertionRequest::FromIdToken(
+      *app, "APIKEY", "apple.com", "id_tok", "nonce+val");
+  EXPECT_EQ(
+      "{\n"
+      "  \"returnSecureToken\": true,\n"
+      "  \"requestUri\": \"http://localhost\",\n"
+      "  \"postBody\": "
+      "\"providerId=apple.com&id_token=id_tok&nonce=nonce%2Bval\"\n"
+      "}\n",
+      nonce_req->options().post_fields);
+}
+
+TEST(VerifyAssertionTest, TestVerifyAssertionResponseSuccess) {
+  VerifyAssertionResponse response;
+  const char body[] =
+      "{\n"
+      "  \"kind\": \"identitytoolkit#VerifyAssertionResponse\",\n"
+      "  \"localId\": \"localid123\",\n"
+      "  \"idToken\": \"idtoken123\",\n"
+      "  \"refreshToken\": \"refreshtoken123\",\n"
+      "  \"expiresIn\": \"3600\",\n"
+      "  \"providerId\": \"google.com\",\n"
+      "  \"oauthIdToken\": \"oauth_id_123\",\n"
+      "  \"oauthAccessToken\": \"oauth_access_123\",\n"
+      "  \"oauthTokenSecret\": \"oauth_secret_123\",\n"
+      "  \"pendingToken\": \"pending_123\",\n"
+      "  \"needConfirmation\": true,\n"
+      "  \"isNewUser\": true\n"
+      "}";
+  response.set_status(rest::util::HttpSuccess);
+  response.ProcessBody(body, sizeof(body));
+  response.MarkCompleted();
+  EXPECT_TRUE(response.IsSuccessful());
+  EXPECT_EQ("localid123", response.local_id());
+  EXPECT_EQ("idtoken123", response.id_token());
+  EXPECT_EQ("refreshtoken123", response.refresh_token());
+  EXPECT_EQ(3600, response.expires_in());
+  EXPECT_EQ("google.com", response.provider_id());
+  EXPECT_EQ("oauth_id_123", response.oauth_id_token());
+  EXPECT_EQ("oauth_access_123", response.oauth_access_token());
+  EXPECT_EQ("oauth_secret_123", response.oauth_token_secret());
+  EXPECT_EQ("pending_123", response.pending_token());
+  EXPECT_TRUE(response.need_confirmation());
+  EXPECT_TRUE(response.is_new_user());
 }
 
 TEST(VerifyAssertionTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   VerifyAssertionResponse response;
   const char body[] =
       "{\n"

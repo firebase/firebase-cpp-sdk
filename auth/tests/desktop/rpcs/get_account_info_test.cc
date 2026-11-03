@@ -20,7 +20,6 @@
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
 #include "auth/src/desktop/rpcs/get_account_info_response.h"
 #include "auth/src/include/firebase/auth.h"
-#include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -44,7 +43,8 @@ TEST(GetAccountInfoTest, TestGetAccountInfoRequest) {
 
 TEST(GetAccountInfoTest, TestGetAccountInfoRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   GetAccountInfoRequest request(*app, "APIKEY", "token");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -54,7 +54,6 @@ TEST(GetAccountInfoTest, TestGetAccountInfoRequestWithEmulator) {
 
 // Test GetAccountInfoResponse
 TEST(GetAccountInfoTest, TestGetAccountInfoResponse) {
-  std::unique_ptr<App> app(App::Create(AppOptions()));
   GetAccountInfoResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -72,13 +71,21 @@ TEST(GetAccountInfoTest, TestGetAccountInfoResponse) {
       "   \"phoneNumber\": \"519\",\n"
       "   \"passwordUpdatedAt\": 31415926,\n"
       "   \"validSince\": \"123\",\n"
-      "   \"lastLoginAt\": \"123\",\n"
-      "   \"createdAt\": \"123\"\n"
+      "   \"lastLoginAt\": \"1700000000123\",\n"
+      "   \"createdAt\": \"1600000000456\",\n"
+      "   \"providerUserInfo\": [\n"
+      "    {\n"
+      "     \"providerId\": \"google.com\",\n"
+      "     \"federatedId\": \"fed123\"\n"
+      "    }\n"
+      "   ]\n"
       "  }\n"
       " ]\n"
       "}";
+  response.set_status(rest::util::HttpSuccess);
   response.ProcessBody(body, sizeof(body));
   response.MarkCompleted();
+  EXPECT_TRUE(response.IsSuccessful());
   EXPECT_EQ("localid123", response.local_id());
   EXPECT_EQ("dp name", response.display_name());
   EXPECT_EQ("abc@efg", response.email());
@@ -86,6 +93,33 @@ TEST(GetAccountInfoTest, TestGetAccountInfoResponse) {
   EXPECT_FALSE(response.email_verified());
   EXPECT_EQ("abcdefg", response.password_hash());
   EXPECT_EQ("519", response.phone_number());
+  EXPECT_EQ(1700000000123ULL, response.last_login_at());
+  EXPECT_EQ(1600000000456ULL, response.created_at());
+  EXPECT_EQ(1u, response.providerUserInfos().size());
+}
+
+TEST(GetAccountInfoTest, TestGetAccountInfoEmptyAndErrorResponses) {
+  GetAccountInfoResponse empty_response;
+  const char empty_body[] = "{\"users\": []}";
+  empty_response.ProcessBody(empty_body, sizeof(empty_body));
+  empty_response.MarkCompleted();
+  EXPECT_EQ("", empty_response.local_id());
+  EXPECT_EQ(0u, empty_response.last_login_at());
+  EXPECT_EQ(0u, empty_response.created_at());
+  EXPECT_TRUE(empty_response.providerUserInfos().empty());
+
+  GetAccountInfoResponse error_response;
+  const char error_body[] =
+      "{\n"
+      "  \"error\": {\n"
+      "    \"code\": 400,\n"
+      "    \"message\": \"USER_NOT_FOUND\"\n"
+      "  }\n"
+      "}";
+  error_response.ProcessBody(error_body, sizeof(error_body));
+  error_response.MarkCompleted();
+  EXPECT_FALSE(error_response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorUserNotFound, error_response.error_code());
 }
 
 }  // namespace auth

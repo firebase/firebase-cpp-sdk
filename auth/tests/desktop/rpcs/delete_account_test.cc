@@ -20,7 +20,6 @@
 #include "auth/src/desktop/rpcs/delete_account_request.h"
 #include "auth/src/desktop/rpcs/delete_account_response.h"
 #include "auth/src/include/firebase/auth.h"
-#include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -45,7 +44,8 @@ TEST(DeleteAccountTest, TestDeleteAccountRequest) {
 
 TEST(DeleteAccountTest, TestDeleteAccountRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   DeleteAccountRequest request(*app, "APIKEY");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -55,13 +55,31 @@ TEST(DeleteAccountTest, TestDeleteAccountRequestWithEmulator) {
 
 // Test DeleteAccountResponse
 TEST(DeleteAccountTest, TestDeleteAccountResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   DeleteAccountResponse response;
   const char body[] =
       "{\n"
       "}";
+  response.set_status(rest::util::HttpSuccess);
   response.ProcessBody(body, sizeof(body));
   response.MarkCompleted();
+  EXPECT_TRUE(response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorNone, response.error_code());
+}
+
+TEST(DeleteAccountTest, TestDeleteAccountErrorResponse) {
+  DeleteAccountResponse response;
+  const char body[] =
+      "{\n"
+      "  \"error\": {\n"
+      "    \"code\": 400,\n"
+      "    \"message\": \"CREDENTIAL_TOO_OLD_LOGIN_AGAIN\"\n"
+      "  }\n"
+      "}";
+  response.set_status(rest::util::HttpSuccess);
+  response.ProcessBody(body, sizeof(body));
+  response.MarkCompleted();
+  EXPECT_FALSE(response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorRequiresRecentLogin, response.error_code());
 }
 
 }  // namespace auth

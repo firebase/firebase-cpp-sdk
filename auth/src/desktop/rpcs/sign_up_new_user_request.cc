@@ -14,9 +14,6 @@
 
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 
-#include <cassert>
-#include <string>
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 
@@ -25,8 +22,9 @@ namespace auth {
 
 SignUpNewUserRequest::SignUpNewUserRequest(::firebase::App& app,
                                            const char* api_key)
-    : AuthRequest(app, request_resource_data, true) {
-  SetUrl(api_key);
+    : AuthRequest(app, request_resource_data, true, "signupNewUser?key=",
+                  api_key) {
+  FIREBASE_ASSERT_RETURN_VOID(api_key);
   application_data_->returnSecureToken = true;
   UpdatePostFields();
 }
@@ -36,8 +34,9 @@ SignUpNewUserRequest::SignUpNewUserRequest(::firebase::App& app,
                                            const char* email,
                                            const char* password,
                                            const char* display_name)
-    : AuthRequest(app, request_resource_data, true) {
-  SetUrl(api_key);
+    : AuthRequest(app, request_resource_data, true, "signupNewUser?key=",
+                  api_key) {
+  FIREBASE_ASSERT_RETURN_VOID(api_key);
   // It's fine for any of the additional parameters to be null, in case it's an
   // anonymous sign up.
   if (email) {
@@ -51,16 +50,6 @@ SignUpNewUserRequest::SignUpNewUserRequest(::firebase::App& app,
   }
   application_data_->returnSecureToken = true;
   UpdatePostFields();
-}
-
-void SignUpNewUserRequest::SetUrl(const char* api_key) {
-  FIREBASE_ASSERT_RETURN_VOID(api_key);
-
-  const char api_host[] = "signupNewUser?key=";
-  std::string url = GetUrl();
-  url.append(api_host);
-  url.append(api_key);
-  set_url(url.c_str());
 }
 
 }  // namespace auth

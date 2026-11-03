@@ -67,7 +67,9 @@ struct UserData : public UserInfoImpl {
       : is_anonymous(false),
         is_email_verified(false),
         access_token_expiration_date(0),
-        has_email_password_credential(false) {}
+        has_email_password_credential(false),
+        last_sign_in_timestamp(0),
+        creation_timestamp(0) {}
 
   // Whether is anonymous.
   bool is_anonymous;
@@ -94,7 +96,9 @@ struct UserData : public UserInfoImpl {
   uint64_t creation_timestamp;
 };
 
-// LINT.ThenChange(//depot_firebase_cpp/auth/client/cpp/src/desktop/user_data.fbs)
+// LINT.ThenChange(auth/src/desktop/user_data.fbs)
+
+void TriggerSaveUserFlow(AuthData* auth_data);
 
 // Class to save/load UserData for desktop. UserData will be persisted in
 // os specific secret locations for security reason.

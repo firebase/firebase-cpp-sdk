@@ -16,12 +16,11 @@
 
 #include "auth/src/desktop/rpcs/sign_up_request.h"
 
-#include <cassert>
 #include <memory>
-#include <string>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/log.h"
 
 namespace firebase {
 namespace auth {
@@ -30,11 +29,8 @@ SignUpRequest::SignUpRequest(::firebase::App& app, const char* api_key)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
-  const char api_host[] =
-      "identitytoolkit.googleapis.com/v1/accounts:signUp?key=";
-  std::string url = GetUrl(api_host);
-  url.append(api_key);
-  set_url(url.c_str());
+  SetUrl(nullptr, api_key,
+         "identitytoolkit.googleapis.com/v1/accounts:signUp?key=");
 
   application_data_->returnSecureToken = true;
 }
@@ -47,12 +43,12 @@ SignUpRequest::CreateLinkWithEmailAndPasswordRequest(::firebase::App& app,
   auto request =
       std::unique_ptr<SignUpRequest>(new SignUpRequest(app, api_key));
 
-  if (email) {
+  if (email && *email != '\0') {
     request->application_data_->email = email;
   } else {
     LogError("No email given");
   }
-  if (password) {
+  if (password && *password != '\0') {
     request->application_data_->password = password;
   } else {
     LogError("No password given");

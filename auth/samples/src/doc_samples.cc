@@ -329,8 +329,9 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
     // [START auth_user_profile_data_check]
     firebase::auth::User user = auth->current_user();
     if (user.is_valid()) {
-      for (auto it = user.provider_data().begin();
-           it != user.provider_data().end(); ++it) {
+      const std::vector<firebase::auth::UserInfoInterface> provider_data =
+          user.provider_data();
+      for (auto it = provider_data.begin(); it != provider_data.end(); ++it) {
         firebase::auth::UserInfoInterface profile = *it;
         // Id of the provider (ex: google.com)
         std::string providerId = profile.provider_id();
@@ -356,7 +357,7 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
       user.UpdateUserProfile(profile).OnCompletion(
           [](const firebase::Future<void>& completed_future, void* user_data) {
             // We are probably in a different thread right now.
-            if (completed_future.error() == 0) {
+            if (completed_future.error() == firebase::auth::kAuthErrorNone) {
               printf("User profile updated.");
             }
           },
@@ -368,13 +369,14 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
     // [START auth_set_email_check]
     firebase::auth::User user = auth->current_user();
     if (user.is_valid()) {
-      user.UpdateEmail("user@example.com")
+      user.SendEmailVerificationBeforeUpdatingEmail("user@example.com")
           .OnCompletion(
               [](const firebase::Future<void>& completed_future,
                  void* user_data) {
                 // We are probably in a different thread right now.
-                if (completed_future.error() == 0) {
-                  printf("User email address updated.");
+                if (completed_future.error() ==
+                    firebase::auth::kAuthErrorNone) {
+                  printf("User email verification sent.");
                 }
               },
               nullptr);
@@ -388,7 +390,7 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
       user.SendEmailVerification().OnCompletion(
           [](const firebase::Future<void>& completed_future, void* user_data) {
             // We are probably in a different thread right now.
-            if (completed_future.error() == 0) {
+            if (completed_future.error() == firebase::auth::kAuthErrorNone) {
               printf("Email sent.");
             }
           },
@@ -407,7 +409,8 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
               [](const firebase::Future<void>& completed_future,
                  void* user_data) {
                 // We are probably in a different thread right now.
-                if (completed_future.error() == 0) {
+                if (completed_future.error() ==
+                    firebase::auth::kAuthErrorNone) {
                   printf("password updated.");
                 }
               },
@@ -424,7 +427,7 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
             [](const firebase::Future<void>& completed_future,
                void* user_data) {
               // We are probably in a different thread right now.
-              if (completed_future.error() == 0) {
+              if (completed_future.error() == firebase::auth::kAuthErrorNone) {
                 // Email sent.
               } else {
                 // An error happened.
@@ -441,7 +444,7 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
     if (user.is_valid()) {
       user.Delete().OnCompletion(
           [](const firebase::Future<void>& completed_future, void* user_data) {
-            if (completed_future.error() == 0) {
+            if (completed_future.error() == firebase::auth::kAuthErrorNone) {
               // User deleted.
             } else {
               // An error happened.
@@ -469,7 +472,8 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
           .OnCompletion(
               [](const firebase::Future<void>& completed_future,
                  void* user_data) {
-                if (completed_future.error() == 0) {
+                if (completed_future.error() ==
+                    firebase::auth::kAuthErrorNone) {
                   printf("User re-authenticated.");
                 }
               },
@@ -480,8 +484,9 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
 }
 
 // [START future_callback]
-void OnCreateCallback(const firebase::Future<firebase::auth::User*>& result,
-                      void* user_data) {
+void OnCreateCallback(
+    const firebase::Future<firebase::auth::AuthResult>& result,
+    void* user_data) {
   // The callback is called when the Future enters the `complete` state.
   assert(result.status() == firebase::kFutureStatusComplete);
 
@@ -490,13 +495,13 @@ void OnCreateCallback(const firebase::Future<firebase::auth::User*>& result,
 
   // Important to handle both success and failure situations.
   if (result.error() == firebase::auth::kAuthErrorNone) {
-    firebase::auth::User* user = *result.result();
-    printf("Create user succeeded for email %s\n", user->email().c_str());
+    firebase::auth::User user = result.result()->user;
+    printf("Create user succeeded for email %s\n", user.email().c_str());
 
     // Perform other actions on User, if you like.
     firebase::auth::User::UserProfile profile;
     profile.display_name = program_context->display_name;
-    user->UpdateUserProfile(profile);
+    user.UpdateUserProfile(profile);
 
   } else {
     printf("Created user failed with error '%s'\n", result.error_message());
@@ -521,15 +526,14 @@ void CreateUserUsingLambda(firebase::auth::Auth* auth) {
 
   // The lambda has the same signature as the callback function.
   result.OnCompletion(
-      [](const firebase::Future<firebase::auth::User*>& result,
+      [](const firebase::Future<firebase::auth::AuthResult>& result,
          void* user_data) {
         // `user_data` is the same as &my_program_context, below.
-        // Note that we can't capture this value in the [] because std::function
-        // is not supported by our minimum compiler spec (which is pre C++11).
         MyProgramContext* program_context =
             static_cast<MyProgramContext*>(user_data);
 
         // Process create user result...
+        (void)result;
         (void)program_context;
       },
       &my_program_context);
@@ -604,7 +608,7 @@ void MergeCredentials(const firebase::auth::Credential& credential,
 
   // The new User is now active.
   if (result.error() == firebase::auth::kAuthErrorNone) {
-    firebase::auth::User* new_user = *result.result();
+    firebase::auth::User new_user = result.result()->user;
 
     // Merge new_user with the user in details.
     // ...
@@ -704,7 +708,7 @@ firebase::auth::Auth* AuthOverview(firebase::App* app) {
 /// [Providers]
 // This function is called every frame to display the login screen.
 // Returns the identity provider name, or "" if none selected.
-const char* DisplayIdentityProviders(const char* email,
+std::string DisplayIdentityProviders(const char* email,
                                      firebase::auth::Auth* auth) {
   // Get results of most recently call to FetchProvidersForEmail().
   firebase::Future<firebase::auth::Auth::FetchProvidersResult> future =
@@ -715,8 +719,7 @@ const char* DisplayIdentityProviders(const char* email,
   ShowTextBox("Sign in %s", email);
 
   // Fetch providers from the server if we need to.
-  const bool refetch =
-      future.status() == firebase::kFutureStatusInvalid || result != nullptr;
+  const bool refetch = future.status() == firebase::kFutureStatusInvalid;
   if (refetch) {
     auth->FetchProvidersForEmail(email);
   }
@@ -731,13 +734,16 @@ const char* DisplayIdentityProviders(const char* email,
   // Show error code if the call failed.
   if (future.error() != firebase::auth::kAuthErrorNone) {
     ShowTextBox("Error fetching providers: %s", future.error_message());
+    return "";
   }
 
   // Show a button for each provider available to this email.
   // Return the provider for the button that's pressed.
-  for (size_t i = 0; i < result->providers.size(); ++i) {
-    const bool selected = ShowTextButton(result->providers[i].c_str());
-    if (selected) return result->providers[i].c_str();
+  if (result != nullptr) {
+    for (size_t i = 0; i < result->providers.size(); ++i) {
+      const bool selected = ShowTextButton(result->providers[i].c_str());
+      if (selected) return result->providers[i];
+    }
   }
   return "";
 }
@@ -807,6 +813,9 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
     SendSms();
   }
 
+  // Note: PhoneVerifier must outlive any in-progress verification, or wait for
+  // verification completion before being destroyed. The base
+  // PhoneAuthProvider::Listener destructor disconnects the platform listener.
   ~PhoneVerifier() override {}
 
   void OnVerificationCompleted(
@@ -840,48 +849,55 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
 
   // Draw the verification GUI on screen and process input events.
   void Draw() {
-    MutexLock lock(mutex_);
+    bool should_resend_sms = false;
+    {
+      MutexLock lock(mutex_);
 
-    // Draw an informative message describing what's currently happening.
-    ShowTextBox(display_message_.c_str());
+      // Draw an informative message describing what's currently happening.
+      ShowTextBox(display_message_.c_str());
 
-    // Once the time out expires, display a button to resend the SMS.
-    // If the button is pressed, call VerifyPhoneNumber again using the
-    // force_resending_token_.
-    if (display_resend_sms_button_ && !verification_id_.empty()) {
-      const bool resend_sms = ShowTextButton("Resend SMS");
-      if (resend_sms) {
-        SendSms();
+      // Once the time out expires, display a button to resend the SMS.
+      // If the button is pressed, call VerifyPhoneNumber again using the
+      // force_resending_token_.
+      if (display_resend_sms_button_ && !verification_id_.empty()) {
+        should_resend_sms = ShowTextButton("Resend SMS");
+      }
+
+      // Once the SMS has been sent, allow the user to enter the SMS
+      // verification code into a text box. When the user has completed
+      // entering it, call GetCredential() to complete the flow.
+      if (display_verification_code_input_box_) {
+        const std::string verification_code = ShowInputBox("Verification code");
+        if (!verification_code.empty()) {
+          credential_ = phone_auth_provider_->GetCredential(
+              verification_id_.c_str(), verification_code.c_str());
+        }
       }
     }
-
-    // Once the SMS has been sent, allow the user to enter the SMS
-    // verification code into a text box. When the user has completed
-    // entering it, call GetCredential() to complete the flow.
-    if (display_verification_code_input_box_) {
-      const std::string verification_code = ShowInputBox("Verification code");
-      if (!verification_code.empty()) {
-        credential_ = phone_auth_provider_->GetCredential(
-            verification_id_.c_str(), verification_code.c_str());
-      }
+    if (should_resend_sms) {
+      SendSms();
     }
   }
 
-  // The phone number verification flow is complete when this returns
-  // non-NULL.
-  firebase::auth::Credential* credential() {
+  // The phone number verification flow is complete when this returns a valid
+  // credential (`credential().is_valid()`).
+  firebase::auth::PhoneAuthCredential credential() {
     MutexLock lock(mutex_);
-    return credential_.is_valid() ? &credential_ : nullptr;
+    return credential_;
   }
 
  private:
   void SendSms() {
-    static const uint32_t kAutoVerifyTimeOut = 2000;
-    MutexLock lock(mutex_);
-    phone_auth_provider_->VerifyPhoneNumber(phone_number_.c_str(),
-                                            kAutoVerifyTimeOut,
-                                            &force_resending_token_, this);
-    display_resend_sms_button_ = false;
+    static const uint32_t kAutoVerifyTimeOut = 30000;
+    firebase::auth::PhoneAuthOptions options;
+    {
+      MutexLock lock(mutex_);
+      options.phone_number = phone_number_;
+      options.timeout_milliseconds = kAutoVerifyTimeOut;
+      options.force_resending_token = &force_resending_token_;
+      display_resend_sms_button_ = false;
+    }
+    phone_auth_provider_->VerifyPhoneNumber(options, this);
   }
 
   // GUI-related variables.

@@ -48,12 +48,12 @@ PhoneAuthProvider::ForceResendingToken::operator=(
 
 bool PhoneAuthProvider::ForceResendingToken::operator==(
     const ForceResendingToken& rhs) const {
-  return true;
+  return data_ == rhs.data_;
 }
 
 bool PhoneAuthProvider::ForceResendingToken::operator!=(
     const ForceResendingToken& rhs) const {
-  return true;
+  return !(*this == rhs);
 }
 
 PhoneAuthProvider::Listener::Listener() : data_(nullptr) {}
@@ -78,14 +78,17 @@ void PhoneAuthProvider::VerifyPhoneNumber(
 
 PhoneAuthCredential PhoneAuthProvider::GetCredential(
     const char* verification_id, const char* verification_code) {
-  FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(nullptr), false,
-                                 "Phone Auth is not supported on desktop");
-
+  (void)verification_id;
+  (void)verification_code;
+  LogError("Phone Auth is not supported on desktop");
   return PhoneAuthCredential(nullptr);
 }
 
 // static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
+  static PhoneAuthProvider kInvalidPhoneAuthProvider;
+  FIREBASE_ASSERT_RETURN(kInvalidPhoneAuthProvider,
+                         auth != nullptr && auth->auth_data_ != nullptr);
   return auth->auth_data_->phone_auth_provider;
 }
 
@@ -97,11 +100,21 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
 //
 PhoneAuthCredential& PhoneAuthCredential::operator=(
     const PhoneAuthCredential& rhs) {
+  if (this != &rhs) {
+    Credential::operator=(rhs);
+    sms_code_ = rhs.sms_code_;
+  }
   return *this;
 }
 
-/// Gets the automatically retrieved SMS verification code if applicable.
-std::string PhoneAuthCredential::sms_code() const { return std::string(); }
+bool PhoneAuthCredential::operator==(
+    const PhoneAuthCredential& credential) const {
+  return Credential::operator==(credential) &&
+         sms_code_ == credential.sms_code_;
+}
+
+// Gets the automatically retrieved SMS verification code if applicable.
+std::string PhoneAuthCredential::sms_code() const { return sms_code_; }
 
 }  // namespace auth
 }  // namespace firebase

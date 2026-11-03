@@ -50,20 +50,9 @@ class VerifyAssertionRequest : public AuthRequest {
       ::firebase::App& app, const char* api_key, const char* provider_id,
       const char* auth_code);
 
-  void SetIdToken(const char* const id_token) {
-    if (id_token) {
-      application_data_->idToken = id_token;
-      UpdatePostFields();
-    } else {
-      LogError("No id token given.");
-    }
-  }
-
  private:
   VerifyAssertionRequest(::firebase::App& app, const char* api_key,
                          const char* provider_id);
-
-  std::string post_body_;
 };
 
 }  // namespace auth

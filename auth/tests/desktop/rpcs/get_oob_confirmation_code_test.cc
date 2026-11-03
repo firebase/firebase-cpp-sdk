@@ -20,7 +20,6 @@
 #include "auth/src/desktop/rpcs/get_oob_confirmation_code_request.h"
 #include "auth/src/desktop/rpcs/get_oob_confirmation_code_response.h"
 #include "auth/src/include/firebase/auth.h"
-#include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -30,7 +29,7 @@ namespace auth {
 typedef GetOobConfirmationCodeRequest RequestT;
 typedef GetOobConfirmationCodeResponse ResponseT;
 
-// Test SetVerifyEmailRequest
+// Test GetOobConfirmationCodeRequest::CreateSendEmailVerificationRequest
 TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request = RequestT::CreateSendEmailVerificationRequest(*app, "APIKEY");
@@ -49,7 +48,8 @@ TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequest) {
 
 TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   auto request = RequestT::CreateSendEmailVerificationRequest(*app, "APIKEY");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -73,9 +73,26 @@ TEST(GetOobConfirmationCodeTest, SendPasswordResetEmailRequest) {
       request->options().post_fields);
 }
 
+TEST(GetOobConfirmationCodeTest,
+     SendEmailVerificationBeforeUpdatingEmailRequestAndLanguageCode) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  auto request =
+      RequestT::CreateSendEmailVerificationBeforeUpdatingEmailRequest(
+          *app, "APIKEY", "new@email", "fr\r\nX-Injected: bad");
+  request->SetIdToken("token");
+  EXPECT_EQ("frX-Injected: bad",
+            request->options().header[kHeaderFirebaseLocale]);
+  EXPECT_EQ(
+      "{\n"
+      "  \"idToken\": \"token\",\n"
+      "  \"requestType\": \"VERIFY_AND_CHANGE_EMAIL\",\n"
+      "  \"newEmail\": \"new@email\"\n"
+      "}\n",
+      request->options().post_fields);
+}
+
 // Test GetOobConfirmationCodeResponse
 TEST(GetOobConfirmationCodeTest, TestGetOobConfirmationCodeResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   ResponseT response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -84,8 +101,25 @@ TEST(GetOobConfirmationCodeTest, TestGetOobConfirmationCodeResponse) {
       " \"kind\": \"identitytoolkit#GetOobConfirmationCodeResponse\",\n"
       " \"email\": \"my@email\"\n"
       "}";
+  response.set_status(rest::util::HttpSuccess);
   response.ProcessBody(body, sizeof(body));
   response.MarkCompleted();
+  EXPECT_TRUE(response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorNone, response.error_code());
+  EXPECT_EQ("my@email", response.email());
+
+  ResponseT error_response;
+  const char error_body[] =
+      "{\n"
+      "  \"error\": {\n"
+      "    \"code\": 400,\n"
+      "    \"message\": \"EMAIL_NOT_FOUND\"\n"
+      "  }\n"
+      "}";
+  error_response.ProcessBody(error_body, sizeof(error_body));
+  error_response.MarkCompleted();
+  EXPECT_FALSE(error_response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorUserNotFound, error_response.error_code());
 }
 
 }  // namespace auth

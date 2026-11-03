@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_SRC_DATA_H_
 
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -43,13 +44,11 @@ enum AuthApiFunction {
 
   // External functions in the User API.
   kUserFn_GetToken,
-  kUserFn_UpdateEmail,
   kUserFn_UpdatePassword,
   kUserFn_Reauthenticate,
   kUserFn_ReauthenticateAndRetrieveData,
   kUserFn_SendEmailVerification,
   kUserFn_SendEmailVerificationBeforeUpdatingEmail,
-  kUserFn_ConfirmEmailVerification,
   kUserFn_UpdateUserProfile,
   kUserFn_LinkWithCredential,
   kUserFn_LinkWithProvider,
@@ -83,8 +82,8 @@ struct AuthData {
         user_impl(nullptr),
         listener_impl(nullptr),
         id_token_listener_impl(nullptr),
-        expect_id_token_listener_callback(false),
-        persistent_cache_load_pending(true),
+        expect_id_token_listener_callback_count(0),
+        persistent_cache_load_pending(false),
         destructing(false) {}
 
   ~AuthData() {
@@ -103,6 +102,7 @@ struct AuthData {
   }
 
   void ClearListeners() {
+    if (auth == nullptr) return;
     while (!listeners.empty()) {
       auth->RemoveAuthStateListener(listeners.back());
     }
@@ -139,10 +139,10 @@ struct AuthData {
   void* listener_impl;
 
   /// Platform-dependent implementation of IdTokenListener (that we're
-  /// wrapping). For example, on Android `jobject`
+  /// wrapping). For example, on Android `jobject`.
   void* id_token_listener_impl;
 
-  /// Backing data for the return value of User::ProviderData().
+  /// Backing data for the return value of User::provider_data().
   /// These point to WrappedUserInfos.
   std::vector<UserInfoInterface*> user_infos;
 
@@ -159,27 +159,25 @@ struct AuthData {
   PhoneAuthProvider phone_auth_provider;
 
   /// Mutex protecting the `listeners`, `id_token_listeners`, and
-  /// `phone_auth_provider.data_->listeners vectors`.
-  /// 'listeners' are added and removed and accessed on different threads.
-  /// This is also protecting persistent_cache_load_pending flag.
+  /// `phone_auth_provider.data_->listeners` vectors.
+  /// `listeners` are added and removed and accessed on different threads.
+  /// This also protects the `persistent_cache_load_pending` flag.
   Mutex listeners_mutex;
 
-  // Mutex for changes to the internal token listener state.
-  Mutex token_listener_mutex;
+  // Tracks pending forced ID token refresh callbacks so we don't drop
+  // notifications when multiple refreshes are in flight.
+  int expect_id_token_listener_callback_count;
 
-  // Tracks if the Id Token listener is expecting a callback to occur.
-  bool expect_id_token_listener_callback;
-
-  // Tracks if the persistent cache load is pending.
+  // Tracks if the persistent cache load is pending (Desktop only).
   bool persistent_cache_load_pending;
 
-  // Mutex protecting `expect_id_token_listener_callback`
+  // Mutex protecting `expect_id_token_listener_callback_count`.
   Mutex expect_id_token_mutex;
 
   // Tracks if auth is being destroyed.
   bool destructing;
 
-  // Mutex protecting destructing
+  // Mutex protecting `destructing`.
   Mutex destructing_mutex;
 
   // Sets if the Id Token Listener is expecting a callback.
@@ -187,16 +185,22 @@ struct AuthData {
   // and thus not triggered correctly.
   void SetExpectIdTokenListenerCallback(bool expect) {
     MutexLock lock(expect_id_token_mutex);
-    expect_id_token_listener_callback = expect;
+    if (expect) {
+      ++expect_id_token_listener_callback_count;
+    } else if (expect_id_token_listener_callback_count > 0) {
+      --expect_id_token_listener_callback_count;
+    }
   }
 
-  // Returns if the Id Token Listener is expecting a callback, and clears the
-  // flag.
+  // Returns if the Id Token Listener is expecting a callback, and decrements
+  // the pending count.
   bool ShouldTriggerIdTokenListenerCallback() {
     MutexLock lock(expect_id_token_mutex);
-    bool result = expect_id_token_listener_callback;
-    expect_id_token_listener_callback = false;
-    return result;
+    if (expect_id_token_listener_callback_count > 0) {
+      --expect_id_token_listener_callback_count;
+      return true;
+    }
+    return false;
   }
 };
 
@@ -204,10 +208,10 @@ struct AuthData {
 // (Only used by desktop builds at the moment.)
 void ResetTokenRefreshCounter(AuthData* auth_data);
 
-void EnableTokenAutoRefresh(AuthData* auth_data);
-void DisableTokenAutoRefresh(AuthData* auth_data);
 void InitializeTokenRefresher(AuthData* auth_data);
 void DestroyTokenRefresher(AuthData* auth_data);
+void EnableTokenAutoRefresh(AuthData* auth_data);
+void DisableTokenAutoRefresh(AuthData* auth_data);
 
 }  // namespace auth
 }  // namespace firebase

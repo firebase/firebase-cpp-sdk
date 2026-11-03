@@ -57,6 +57,16 @@ std::string FakeSuccessfulResponse(const std::string& kind,
 // Returns string representation of a 503 HTTP response.
 std::string CreateErrorHttpResponse(const std::string& error = "");
 
+// Returns JSON snippet for a single fake providerUserInfo entry.
+std::string GetSingleFakeProvider(const std::string& provider_id);
+
+// Returns JSON snippet for a single-element providerUserInfo array.
+std::string GetFakeProviderInfo(
+    const std::string& provider_id = "fake_provider_id");
+
+// Returns a fake GetAccountInfoResponse HTTP response for localid123.
+std::string CreateGetAccountInfoFake();
+
 }  // namespace test
 }  // namespace auth
 }  // namespace firebase

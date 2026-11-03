@@ -17,18 +17,12 @@
 
 #include <utility>
 
-// Visual Studio 2013 and below don't generate implicitly-defined move
-// constructors. Also, because they don't treat move constructor as a "special"
-// function (they see it as a user-provided constructor), they refuse to
-// generate a default constructor.
-// To reduce related boilerplate, provide a macro to generate the simplest
-// default and move constructors for a class with a base class and no data
-// members of its own
+// Convenience macro to generate default and move constructors for a derived
+// response class with no additional data members of its own.
 // clang-format off
 #define DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(ClassName, BaseClassName)       \
-  ClassName() {}                                                               \
-  ClassName(ClassName&& rhs)                                                   \
-      : BaseClassName(std::move(rhs)) {}
+  ClassName() = default;                                                       \
+  ClassName(ClassName&& rhs) noexcept = default;
 // clang-format on
 
 #endif  // FIREBASE_AUTH_SRC_DESKTOP_VISUAL_STUDIO_COMPATIBILITY_H_

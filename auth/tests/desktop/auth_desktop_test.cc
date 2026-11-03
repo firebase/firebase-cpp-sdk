@@ -15,6 +15,7 @@
 #include "auth/src/desktop/auth_desktop.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -42,81 +43,25 @@ namespace firebase {
 namespace auth {
 
 using test::CreateErrorHttpResponse;
+using test::CreateGetAccountInfoFake;
 using test::FakeSetT;
 using test::FakeSuccessfulResponse;
 using test::GetFakeOAuthProviderData;
+using test::GetFakeProviderInfo;
 using test::GetUrlForApi;
 using test::InitializeConfigWithAFake;
 using test::InitializeConfigWithFakes;
 using test::OAuthProviderTestHandler;
-using test::SleepUponDestruction;
 using test::VerifyAuthResult;
+using test::VerifyProviderData;
+using test::VerifyUser;
 using test::WaitForFuture;
+using test::WaitOnLoadPersistence;
 using ::testing::IsEmpty;
 
 namespace {
 
 const char* const API_KEY = "MY-FAKE-API-KEY";
-// Constant, describing how many times we would like to sleep 1ms to wait
-// for loading persistence cache.
-const int kWaitForLoadMaxTryout = 500;
-
-void VerifyProviderData(const User& user) {
-  const std::vector<UserInfoInterface>& provider_data = user.provider_data();
-  EXPECT_EQ(1, provider_data.size());
-  if (provider_data.empty()) {
-    return;  // Avoid crashing on vector out-of-bounds access below
-  }
-  EXPECT_EQ("fake_uid", provider_data[0].uid());
-  EXPECT_EQ("fake_email@example.com", provider_data[0].email());
-  EXPECT_EQ("fake_display_name", provider_data[0].display_name());
-  EXPECT_EQ("fake_photo_url", provider_data[0].photo_url());
-  EXPECT_EQ("fake_provider_id", provider_data[0].provider_id());
-  EXPECT_EQ("123123", provider_data[0].phone_number());
-}
-
-void VerifyUser(const User& user) {
-  EXPECT_EQ("localid123", user.uid());
-  EXPECT_EQ("testsignin@example.com", user.email());
-  EXPECT_EQ("", user.display_name());
-  EXPECT_EQ("", user.photo_url());
-  EXPECT_EQ("Firebase", user.provider_id());
-  EXPECT_EQ("", user.phone_number());
-  EXPECT_FALSE(user.is_email_verified());
-  VerifyProviderData(user);
-}
-
-std::string GetFakeProviderInfo() {
-  return "\"providerUserInfo\": ["
-         "  {"
-         "    \"federatedId\": \"fake_uid\","
-         "    \"email\": \"fake_email@example.com\","
-         "    \"displayName\": \"fake_display_name\","
-         "    \"photoUrl\": \"fake_photo_url\","
-         "    \"providerId\": \"fake_provider_id\","
-         "    \"phoneNumber\": \"123123\""
-         "  }"
-         "]";
-}
-
-std::string CreateGetAccountInfoFake() {
-  return FakeSuccessfulResponse(
-      "GetAccountInfoResponse",
-      std::string("\"users\":"
-                  "  ["
-                  "    {"
-                  "       \"localId\": \"localid123\","
-                  "       \"email\": \"testsignin@example.com\","
-                  "       \"emailVerified\": false,"
-                  "       \"passwordHash\": \"abcdefg\","
-                  "       \"passwordUpdatedAt\": 31415926,"
-                  "       \"validSince\": \"123\","
-                  "       \"lastLoginAt\": \"123\","
-                  "       \"createdAt\": \"123\",") +
-          GetFakeProviderInfo() +
-          "    }"
-          " ]");
-}
 
 std::string CreateVerifyAssertionResponse() {
   return FakeSuccessfulResponse("VerifyAssertionResponse",
@@ -183,45 +128,6 @@ void InitializeSuccessfulVerifyAssertionFlow() {
   InitializeSuccessfulVerifyAssertionFlow(CreateVerifyAssertionResponse());
 }
 
-void SetupAuthDataForPersist(AuthData* auth_data) {
-  UserData previous_user;
-  UserData mock_user;
-
-  mock_user.uid = "persist_id";
-  mock_user.email = "test@persist.com";
-  mock_user.display_name = "persist_name";
-  mock_user.photo_url = "persist_photo";
-  mock_user.provider_id = "persist_provider";
-  mock_user.phone_number = "persist_phone";
-  mock_user.is_anonymous = false;
-  mock_user.is_email_verified = true;
-  mock_user.id_token = "persist_token";
-  mock_user.refresh_token = "persist_refresh_token";
-  mock_user.access_token = "persist_access_token";
-  mock_user.access_token_expiration_date = 12345;
-  mock_user.has_email_password_credential = true;
-  mock_user.last_sign_in_timestamp = 67890;
-  mock_user.creation_timestamp = 98765;
-  UserView::ResetUser(auth_data, mock_user, &previous_user);
-}
-
-bool WaitOnLoadPersistence(AuthData* auth_data) {
-  bool load_finished = false;
-  int load_wait_counter = 0;
-  while (!load_finished) {
-    if (load_wait_counter >= kWaitForLoadMaxTryout) {
-      break;
-    }
-    load_wait_counter++;
-    firebase::internal::Sleep(1);
-    {
-      MutexLock lock(auth_data->listeners_mutex);
-      load_finished = !auth_data->persistent_cache_load_pending;
-    }
-  }
-  return load_finished;
-}
-
 }  // namespace
 
 class AuthDesktopTest : public ::testing::Test {
@@ -245,9 +151,13 @@ class AuthDesktopTest : public ::testing::Test {
   }
 
   void TearDown() override {
-    // Reset listeners before signing out.
+    // Wait for any pending persistence load notifications before verifying and
+    // unregistering listeners prior to SignOut.
+    WaitOnLoadPersistence(firebase_auth_->auth_data_);
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();
+    firebase_auth_->RemoveIdTokenListener(&id_token_listener);
+    firebase_auth_->RemoveAuthStateListener(&auth_state_listener);
     firebase_auth_->SignOut();
 
     // Wait for the app to finish any remaining tasks in queue,
@@ -255,7 +165,7 @@ class AuthDesktopTest : public ::testing::Test {
     // This is to avoid race conditions where the next test's SignIn
     // doesn't cause a change in auth state or id tokens because persistent
     // cache has valid user logged in, preventing listeners from firing.
-    { SleepUponDestruction sleep_for_listeners; }
+    firebase::internal::Sleep(200);
 
     firebase_auth_.reset(nullptr);
     firebase_app_.reset(nullptr);
@@ -287,6 +197,8 @@ class AuthDesktopTest : public ::testing::Test {
 TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
   Future<AuthResult> future = firebase_auth_->SignInWithProvider(&provider);
+  ASSERT_EQ(future.status(), kFutureStatusComplete);
+  ASSERT_NE(future.result(), nullptr);
   EXPECT_FALSE(future.result()->user.is_valid());
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
@@ -294,7 +206,7 @@ TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
 }
 
 TEST_F(AuthDesktopTest,
-       DISABLED_TestSignInWithProviderAndHandlerPassingIntegrityChecks) {
+       TestSignInWithProviderAndHandlerPassingIntegrityChecks) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler(/*extra_integrity_checks_=*/true);
 
@@ -305,7 +217,7 @@ TEST_F(AuthDesktopTest,
 }
 
 TEST_F(AuthDesktopTest,
-       DISABLED_TestPendingSignInWithProviderSecondConcurrentSignInFails) {
+       TestPendingSignInWithProviderSecondConcurrentSignInFails) {
   FederatedOAuthProvider provider1;
   OAuthProviderTestHandler handler1;
   InitializeSuccessfulSignInWithProviderFlow(&provider1, &handler1);
@@ -323,7 +235,7 @@ TEST_F(AuthDesktopTest,
   const AuthResult result = WaitForFuture(future1);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteSignInResultUserPasses) {
+TEST_F(AuthDesktopTest, TestSignInCompleteSignInResultUserPasses) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   FederatedAuthProvider::AuthenticatedUserData user_data =
@@ -342,7 +254,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteSignInResultUserPasses) {
   VerifyProviderData(result.user);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullUIDFails) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullUIDFails) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->uid = nullptr;
@@ -351,7 +263,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullUIDFails) {
   VerifyAuthResult(future, kAuthErrorInvalidAuthenticatedUserData);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullDisplayNamePasses) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullDisplayNamePasses) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->display_name = nullptr;
@@ -361,7 +273,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullDisplayNamePasses) {
   VerifyProviderData(result.user);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullUsernamePasses) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullUsernamePasses) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->user_name = nullptr;
@@ -371,7 +283,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullUsernamePasses) {
   VerifyProviderData(result.user);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullPhotoUrlPasses) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullPhotoUrlPasses) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->photo_url = nullptr;
@@ -381,7 +293,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullPhotoUrlPasses) {
   VerifyProviderData(result.user);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullProvderIdFails) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullProvderIdFails) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->provider_id = nullptr;
@@ -390,7 +302,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullProvderIdFails) {
   VerifyAuthResult(future, kAuthErrorInvalidAuthenticatedUserData);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullAccessTokenFails) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullAccessTokenFails) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->access_token = nullptr;
@@ -399,7 +311,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullAccessTokenFails) {
   VerifyAuthResult(future, kAuthErrorInvalidAuthenticatedUserData);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullRefreshTokenFails) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullRefreshTokenFails) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->refresh_token = nullptr;
@@ -408,17 +320,17 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullRefreshTokenFails) {
   VerifyAuthResult(future, kAuthErrorInvalidAuthenticatedUserData);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteExpiresInMaxUInt64Passes) {
+TEST_F(AuthDesktopTest, TestSignInCompleteExpiresInMaxUInt64Passes) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
-  handler.GetAuthenticatedUserData()->token_expires_in_seconds = ULONG_MAX;
+  handler.GetAuthenticatedUserData()->token_expires_in_seconds = UINT64_MAX;
   Future<AuthResult> future = ProcessSignInWithProviderFlow(
       &provider, &handler, /*trigger_sign_in=*/true);
   AuthResult result = WaitForFuture(future);
   VerifyProviderData(result.user);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteErrorMessagePasses) {
+TEST_F(AuthDesktopTest, TestSignInCompleteErrorMessagePasses) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   Future<AuthResult> future = ProcessSignInWithProviderFlow(
@@ -429,7 +341,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteErrorMessagePasses) {
   VerifyAuthResult(future, kAuthErrorApiNotAvailable, error_message);
 }
 
-TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullErrorMessageFails) {
+TEST_F(AuthDesktopTest, TestSignInCompleteNullErrorMessageFails) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   Future<AuthResult> future = ProcessSignInWithProviderFlow(
@@ -900,7 +812,7 @@ TEST(UserViewTest, TestMoveUserView) {
   view2 = std::move(view1);
   EXPECT_EQ("mrsspoon", view2.user_data().uid);
 }
-#endif  // defined(defined(FIREBASE_USE_MOVE_OPERATORS)
+#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 }  // namespace auth
 }  // namespace firebase

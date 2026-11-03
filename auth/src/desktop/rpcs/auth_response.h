@@ -32,17 +32,20 @@ class AuthResponse
  public:
   AuthResponse() : ResponseJson(response_resource_data) {}
 
-  // Visual Studio 2013 and below don't generate implicitly-defined move
-  // constructors.
-  AuthResponse(AuthResponse&& rhs) : ResponseJson(std::move(rhs)) {}
+  AuthResponse(AuthResponse&& rhs) noexcept = default;
+  AuthResponse& operator=(AuthResponse&& rhs) noexcept = default;
 
   AuthError error_code() const;
   bool IsSuccessful() const;
 
   std::string error_message() const {
-    return application_data_->error ? application_data_->error->message
-                                    : std::string();
+    return (application_data_ && application_data_->error)
+               ? application_data_->error->message
+               : std::string();
   }
+
+ protected:
+  static int ParseExpiresIn(const std::string& expires_in);
 };
 
 }  // namespace auth

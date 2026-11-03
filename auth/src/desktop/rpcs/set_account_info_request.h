@@ -32,7 +32,8 @@ namespace auth {
 class SetAccountInfoRequest : public AuthRequest {
  public:
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateEmailRequest(
-      ::firebase::App& app, const char* api_key, const char* email);
+      ::firebase::App& app, const char* api_key, const char* email,
+      const char* language_code = nullptr);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdatePasswordRequest(
       ::firebase::App& app, const char* api_key, const char* password,
       const char* language_code = nullptr);
@@ -45,15 +46,6 @@ class SetAccountInfoRequest : public AuthRequest {
       const char* set_photo_url);
   static std::unique_ptr<SetAccountInfoRequest> CreateUnlinkProviderRequest(
       ::firebase::App& app, const char* api_key, const char* provider);
-
-  void SetIdToken(const char* const id_token) {
-    if (id_token) {
-      application_data_->idToken = id_token;
-      UpdatePostFields();
-    } else {
-      LogError("No id token given.");
-    }
-  }
 
  private:
   explicit SetAccountInfoRequest(::firebase::App& app, const char* api_key);

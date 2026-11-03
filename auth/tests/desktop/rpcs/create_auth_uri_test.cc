@@ -45,7 +45,8 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
 
 TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   CreateAuthUriRequest request(*app, "APIKEY", "email");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -55,7 +56,6 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithEmulator) {
 
 // Test CreateAuthUriResponse
 TEST(CreateAuthUriTest, TestCreateAuthUriResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   CreateAuthUriResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -65,13 +65,54 @@ TEST(CreateAuthUriTest, TestCreateAuthUriResponse) {
       " \"allProviders\": [\n"
       "  \"password\"\n"
       " ],\n"
+      " \"signinMethods\": [\n"
+      "  \"password\",\n"
+      "  \"emailLink\"\n"
+      " ],\n"
       " \"registered\": true,\n"
       " \"sessionId\": \"cdefgab\"\n"
       "}";
+  response.set_status(rest::util::HttpSuccess);
   response.ProcessBody(body, sizeof(body));
   response.MarkCompleted();
+  EXPECT_TRUE(response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorNone, response.error_code());
   EXPECT_THAT(response.providers(), ::testing::ElementsAre("password"));
+  EXPECT_THAT(response.signin_methods(),
+              ::testing::ElementsAre("password", "emailLink"));
   EXPECT_TRUE(response.registered());
+}
+
+TEST(CreateAuthUriTest, TestCreateAuthUriResponse_UnregisteredAndError) {
+  CreateAuthUriResponse unregistered_response;
+  const char unregistered_body[] =
+      "{\n"
+      " \"kind\": \"identitytoolkit#CreateAuthUriResponse\",\n"
+      " \"registered\": false\n"
+      "}";
+  unregistered_response.set_status(rest::util::HttpSuccess);
+  unregistered_response.ProcessBody(unregistered_body,
+                                    sizeof(unregistered_body));
+  unregistered_response.MarkCompleted();
+  EXPECT_TRUE(unregistered_response.IsSuccessful());
+  EXPECT_FALSE(unregistered_response.registered());
+  EXPECT_TRUE(unregistered_response.providers().empty());
+  EXPECT_TRUE(unregistered_response.signin_methods().empty());
+
+  CreateAuthUriResponse error_response;
+  const char error_body[] =
+      "{\n"
+      "  \"error\": {\n"
+      "    \"code\": 400,\n"
+      "    \"message\": \"INVALID_EMAIL\"\n"
+      "  }\n"
+      "}";
+  error_response.ProcessBody(error_body, sizeof(error_body));
+  error_response.MarkCompleted();
+  EXPECT_FALSE(error_response.IsSuccessful());
+  EXPECT_EQ(kAuthErrorInvalidEmail, error_response.error_code());
+  EXPECT_TRUE(error_response.providers().empty());
+  EXPECT_FALSE(error_response.registered());
 }
 
 }  // namespace auth

@@ -53,7 +53,7 @@ class UserInfoInterface {
   /// @endif
   /// <SWIG>
   /// @if swig_examples
-  /// Use User.Token instead.
+  /// Use User.TokenAsync() instead.
   /// @endif
   /// @xmlonly
   /// <csproperty name="UserId">
@@ -61,7 +61,7 @@ class UserInfoInterface {
   ///
   /// @note The user's ID, unique to the Firebase project.
   /// Do NOT use this value to authenticate with your backend server, if you
-  /// have one. Use User.Token instead.
+  /// have one. Use User.TokenAsync() instead.
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
@@ -97,11 +97,11 @@ class UserInfoInterface {
   /// </SWIG>
   virtual std::string photo_url() const;
 
-  /// Gets the provider ID for the user (For example, "Facebook").
+  /// Gets the provider ID for the user (For example, "facebook.com").
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="ProviderId">
-  /// Gets the provider ID for the user (For example, \"Facebook\").
+  /// Gets the provider ID for the user (For example, \"facebook.com\").
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
@@ -109,6 +109,20 @@ class UserInfoInterface {
 
   /// Gets the phone number for the user, in E.164 format.
   virtual std::string phone_number() const;
+
+#if !defined(SWIG)
+  bool operator==(const UserInfoInterface& other) const {
+    return uid() == other.uid() && email() == other.email() &&
+           display_name() == other.display_name() &&
+           photo_url() == other.photo_url() &&
+           provider_id() == other.provider_id() &&
+           phone_number() == other.phone_number();
+  }
+
+  bool operator!=(const UserInfoInterface& other) const {
+    return !(*this == other);
+  }
+#endif  // !defined(SWIG)
 
  private:
   friend class User;
@@ -130,7 +144,6 @@ struct AdditionalUserInfo {
 
   /// Additional identity-provider specific information.
   /// Most likely a hierarchical key-value mapping, like a parsed JSON file.
-  /// Note we use map instead of unordered_map to support older compilers.
   std::map<Variant, Variant> profile;
 
   /// On a nonce-based credential link failure where the user has already linked
@@ -139,6 +152,22 @@ struct AdditionalUserInfo {
   /// passed to a new firebase::auth::Auth::SignInWithCredential request to sign
   /// the user in with the provider.
   Credential updated_credential;
+
+#if !defined(SWIG)
+  /// Whether the user was newly created by this authentication operation.
+  bool is_new_user = false;
+
+  bool operator==(const AdditionalUserInfo& other) const {
+    return provider_id == other.provider_id && user_name == other.user_name &&
+           profile == other.profile &&
+           updated_credential == other.updated_credential &&
+           is_new_user == other.is_new_user;
+  }
+
+  bool operator!=(const AdditionalUserInfo& other) const {
+    return !(*this == other);
+  }
+#endif  // !defined(SWIG)
 };
 
 /// @brief Metadata corresponding to a Firebase user.
@@ -151,6 +180,15 @@ struct UserMetadata {
 
   /// The Firebase user creation UTC timestamp in milliseconds.
   uint64_t creation_timestamp;
+
+#if !defined(SWIG)
+  bool operator==(const UserMetadata& other) const {
+    return last_sign_in_timestamp == other.last_sign_in_timestamp &&
+           creation_timestamp == other.creation_timestamp;
+  }
+
+  bool operator!=(const UserMetadata& other) const { return !(*this == other); }
+#endif  // !defined(SWIG)
 };
 
 /// @brief Result of a GetIdTokenResult call, containing the token string and
@@ -210,16 +248,21 @@ struct IdTokenResult {
 /// unlink from authentication providers, and refresh authentication tokens.
 class User : public UserInfoInterface {
  public:
-  // Default constructor - creates an invalid user.
+  /// Default constructor - creates an invalid user.
   User();
 
   /// Parameters to the UpdateUserProfile() function.
   ///
-  /// For fields you don't want to update, pass NULL.
+  /// For fields you don't want to update, pass nullptr.
   /// For fields you want to reset, pass "".
   struct UserProfile {
     /// Construct a UserProfile with no display name or photo URL.
-    UserProfile() : display_name(NULL), photo_url(NULL) {}
+    UserProfile() : display_name(nullptr), photo_url(nullptr) {}
+
+#if !defined(SWIG)
+    explicit UserProfile(const char* name, const char* url = nullptr)
+        : display_name(name), photo_url(url) {}
+#endif  // !defined(SWIG)
 
     /// User display name.
     const char* display_name;
@@ -234,16 +277,24 @@ class User : public UserInfoInterface {
   /// Assignment operator.
   User& operator=(const User&);
 
+#if !defined(SWIG)
+  /// Move constructor.
+  User(User&& rhs) noexcept;
+
+  /// Move assignment operator.
+  User& operator=(User&& rhs) noexcept;
+#endif  // !defined(SWIG)
+
   /// Equality operator.
   bool operator==(const User&) const;
 
   /// Inequality operator.
   bool operator!=(const User&) const;
 
-  ~User();
+  ~User() override;
 
   /// Returns whether this User object represents a valid user. Could be false
-  /// on Users contained with AuthResult structures from failed Auth
+  /// on Users contained within AuthResult structures from failed Auth
   /// operations.
   bool is_valid() const;
 
@@ -256,17 +307,23 @@ class User : public UserInfoInterface {
   /// whether or not the existing token has expired. For example, a developer
   /// may use this when they have discovered that the token is invalid for some
   /// other reason.
+#if defined(SWIG)
   Future<std::string> GetToken(bool force_refresh);
+#else
+  Future<std::string> GetToken(bool force_refresh = false);
+#endif
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /// A "thread safer" version of GetToken.
   /// If called by two threads simultaneously, GetToken can return the same
   /// pending Future twice. This creates problems if both threads try to set
   /// the OnCompletion callback, unaware that there's another copy.
   /// GetTokenThreadSafe returns a proxy to the Future if it's still pending,
   /// allowing each proxy to have their own callback.
+#if defined(SWIG)
   Future<std::string> GetTokenThreadSafe(bool force_refresh);
-#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+#else
+  Future<std::string> GetTokenThreadSafe(bool force_refresh = false);
+#endif
 
   /// Get results of the most recent call to GetToken.
   Future<std::string> GetTokenLastResult() const;
@@ -281,17 +338,23 @@ class User : public UserInfoInterface {
   ///
   /// The returned Future fails with kAuthErrorFailure if the ID token cannot
   /// be decoded.
+#if defined(SWIG)
   Future<IdTokenResult> GetIdTokenResult(bool force_refresh);
+#else
+  Future<IdTokenResult> GetIdTokenResult(bool force_refresh = false);
+#endif
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /// A "thread safer" version of GetIdTokenResult.
   /// If called by two threads simultaneously, GetIdTokenResult can return the
   /// same pending Future twice. This creates problems if both threads try to
   /// set the OnCompletion callback, unaware that there's another copy.
   /// GetIdTokenResultThreadSafe returns a proxy to the Future if it's still
   /// pending, allowing each proxy to have their own callback.
+#if defined(SWIG)
   Future<IdTokenResult> GetIdTokenResultThreadSafe(bool force_refresh);
-#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+#else
+  Future<IdTokenResult> GetIdTokenResultThreadSafe(bool force_refresh = false);
+#endif
 
   /// Get results of the most recent call to GetIdTokenResult.
   Future<IdTokenResult> GetIdTokenResultLastResult() const;
@@ -325,6 +388,13 @@ class User : public UserInfoInterface {
   /// @endif
   /// </SWIG>
   Future<void> UpdatePassword(const char* password);
+
+#if !defined(SWIG)
+  /// Attempts to change the password for the current user.
+  Future<void> UpdatePassword(const std::string& password) {
+    return UpdatePassword(password.c_str());
+  }
+#endif  // !defined(SWIG)
 
   /// Get results of the most recent call to UpdatePassword.
   Future<void> UpdatePasswordLastResult() const;
@@ -361,7 +431,7 @@ class User : public UserInfoInterface {
   /// Returns an error if the existing credential is not for this user
   /// or if sign-in with that credential failed.
   ///
-  /// @note: The current user may be signed out if this operation fails on
+  /// @note The current user may be signed out if this operation fails on
   /// Android and desktop platforms.
   Future<AuthResult> ReauthenticateAndRetrieveData(
       const Credential& credential);
@@ -375,11 +445,13 @@ class User : public UserInfoInterface {
   /// authenticate with.
   /// @return A Future<AuthResult> with the result of the re-authentication
   /// request.
-  /// @note: This operation is supported only on iOS, tvOS and Android
-  /// platforms. On other platforms this method will return a Future with a
-  /// preset error code: kAuthErrorUnimplemented.
   Future<AuthResult> ReauthenticateWithProvider(
       FederatedAuthProvider* provider) const;
+
+#if !defined(SWIG)
+  /// Get results of the most recent call to ReauthenticateWithProvider.
+  Future<AuthResult> ReauthenticateWithProviderLastResult() const;
+#endif  // !defined(SWIG)
 
   /// Initiates email verification for the user.
   Future<void> SendEmailVerification();
@@ -390,6 +462,15 @@ class User : public UserInfoInterface {
   /// Send an email to verify the ownership of the account, then update
   /// to the new email.
   Future<void> SendEmailVerificationBeforeUpdatingEmail(const char* email);
+
+#if !defined(SWIG)
+  /// Send an email to verify the ownership of the account, then update
+  /// to the new email.
+  Future<void> SendEmailVerificationBeforeUpdatingEmail(
+      const std::string& email) {
+    return SendEmailVerificationBeforeUpdatingEmail(email.c_str());
+  }
+#endif  // !defined(SWIG)
 
   /// Get results of the most recent call to
   /// SendEmailVerificationBeforeUpdatingEmail.
@@ -418,20 +499,29 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to LinkWithCredential.
   Future<AuthResult> LinkWithCredentialLastResult() const;
 
+  /// @brief Links the user with a federated auth provider.
   ///
   /// @param[in] provider Contains information on the auth provider to link
   /// with.
   /// @return A Future<AuthResult> with the user data result of the link
   /// request.
-  ///
-  /// @note: This operation is supported only on iOS, tvOS and Android
-  /// platforms. On other platforms this method will return a Future with a
-  /// preset error code: kAuthErrorUnimplemented.
   Future<AuthResult> LinkWithProvider(FederatedAuthProvider* provider) const;
+
+#if !defined(SWIG)
+  /// Get results of the most recent call to LinkWithProvider.
+  Future<AuthResult> LinkWithProviderLastResult() const;
+#endif  // !defined(SWIG)
 
   /// Unlinks the current user from the provider specified.
   /// Status will be an error if the user is not linked to the given provider.
   Future<AuthResult> Unlink(const char* provider);
+
+#if !defined(SWIG)
+  /// Unlinks the current user from the provider specified.
+  Future<AuthResult> Unlink(const std::string& provider) {
+    return Unlink(provider.c_str());
+  }
+#endif  // !defined(SWIG)
 
   /// Get results of the most recent call to Unlink.
   Future<AuthResult> UnlinkLastResult() const;
@@ -496,7 +586,7 @@ class User : public UserInfoInterface {
   /// @endif
   /// <SWIG>
   /// @if swig_examples
-  /// Use User.Token instead.
+  /// Use User.TokenAsync() instead.
   /// @endif
   /// @xmlonly
   /// <csproperty name="UserId">
@@ -504,11 +594,11 @@ class User : public UserInfoInterface {
   ///
   /// @note The user's ID, unique to the Firebase project.
   /// Do NOT use this value to authenticate with your backend server, if you
-  /// have one. Use User.Token instead.
+  /// have one. Use User.TokenAsync() instead.
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string uid() const;
+  std::string uid() const override;
 
   /// Gets email associated with the user, if any.
   /// <SWIG>
@@ -518,7 +608,7 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string email() const;
+  std::string email() const override;
 
   /// Gets the display name associated with the user, if any.
   /// <SWIG>
@@ -528,7 +618,7 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string display_name() const;
+  std::string display_name() const override;
 
   /// Gets the photo url associated with the user, if any.
   /// <SWIG>
@@ -538,27 +628,26 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string photo_url() const;
+  std::string photo_url() const override;
 
-  /// Gets the provider ID for the user (For example, "Facebook").
+  /// Gets the provider ID for the user (For example, "facebook.com").
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="ProviderId">
-  /// Gets the provider ID for the user (For example, \"Facebook\").
+  /// Gets the provider ID for the user (For example, \"facebook.com\").
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string provider_id() const;
+  std::string provider_id() const override;
 
   /// Gets the phone number for the user, in E.164 format.
-  virtual std::string phone_number() const;
+  std::string phone_number() const override;
 
  private:
   friend struct AuthData;
-  // Only exists in AuthData. Access via Auth::CurrentUser().
+  // Only exists in AuthData. Access via Auth::current_user().
   explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
 
-#if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.
   /// @cond FIREBASE_APP_INTERNAL
   friend class IdTokenRefreshThread;
@@ -567,7 +656,6 @@ class User : public UserInfoInterface {
   Future<std::string> GetTokenInternal(const bool force_refresh,
                                        const int future_identifier);
   /// @endcond
-#endif  // defined(INTERNAL_EXPERIMENTAL)
 
   // Use the pimpl mechanism to hide data details in the cpp files.
   AuthData* auth_data_;
@@ -586,6 +674,15 @@ struct AuthResult {
   /// The currently signed-in User, or an invalid User if there isn't
   /// one (i.e. if the user is signed-out then is_valid() will return false).
   User user;
+
+#if !defined(SWIG)
+  bool operator==(const AuthResult& other) const {
+    return additional_user_info == other.additional_user_info &&
+           credential == other.credential && user == other.user;
+  }
+
+  bool operator!=(const AuthResult& other) const { return !(*this == other); }
+#endif  // !defined(SWIG)
 };
 
 }  // namespace auth

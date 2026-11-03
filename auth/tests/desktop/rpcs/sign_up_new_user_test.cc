@@ -44,7 +44,8 @@ TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
 
 TEST(SignUpNewUserTest, TestAnonymousSignInRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   SignUpNewUserRequest request(*app, "APIKEY");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -88,7 +89,8 @@ TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPassword) {
 
 TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPasswordWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   auto request = SignUpRequest::CreateLinkWithEmailAndPasswordRequest(
       *app, "APIKEY", "e@mail", "pwd");
   EXPECT_EQ(
@@ -99,7 +101,6 @@ TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPasswordWithEmulator) {
 
 // Test SignUpNewUserResponse
 TEST(SignUpNewUserTest, TestSignUpNewUserResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   SignUpNewUserResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -116,10 +117,11 @@ TEST(SignUpNewUserTest, TestSignUpNewUserResponse) {
   EXPECT_EQ("idtoken123", response.id_token());
   EXPECT_EQ("refreshtoken123", response.refresh_token());
   EXPECT_EQ(3600, response.expires_in());
+  EXPECT_TRUE(response.IsAnonymousUser());
+  EXPECT_EQ("", response.email());
 }
 
 TEST(SignUpNewUserTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   SignUpNewUserResponse response;
   const char body[] =
       "{\n"

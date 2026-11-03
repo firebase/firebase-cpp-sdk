@@ -25,6 +25,7 @@ extern const char kGoogleAuthProviderId[];
 extern const char kFacebookAuthProviderId[];
 extern const char kTwitterAuthProviderId[];
 extern const char kGitHubAuthProviderId[];
+extern const char kPhoneAuthProviderId[];
 extern const char kPhoneAuthProdiverId[];
 extern const char kPlayGamesAuthProviderId[];
 extern const char kGameCenterAuthProviderId[];

@@ -36,16 +36,13 @@ void DoResetUserInfos(AuthData* const auth_data,
 }  // namespace
 
 const std::vector<UserInfoInterface*>& UserView::Reader::GetUserInfos() const {
-  return auth_data_->user_infos;
+  static const std::vector<UserInfoInterface*> kEmptyUserInfos;
+  return auth_data_ ? auth_data_->user_infos : kEmptyUserInfos;
 }
 
 void UserView::Writer::ResetUserInfos(
     const std::vector<UserInfoImpl>& provider_data) {
   DoResetUserInfos(auth_data_, provider_data);
-}
-
-void UserView::Writer::ClearUserInfos() {
-  DoResetUserInfos(auth_data_, std::vector<UserInfoImpl>());
 }
 
 UserView::Writer UserView::ResetUser(AuthData* const auth_data,

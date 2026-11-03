@@ -20,6 +20,7 @@
 
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/auth_providers/email_auth_credential.h"
+#include "auth/src/desktop/credential_impl.h"
 #include "auth/src/desktop/credential_util.h"
 #include "auth/src/desktop/promise.h"
 
@@ -90,16 +91,37 @@ inline bool ValidateCredential(Promise<FutureResultT>* const promise,
                                const void* const raw_credential) {
   FIREBASE_ASSERT_RETURN(false, promise);
 
-  if (provider == kEmailPasswordAuthProviderId) {
-    const EmailAuthCredential* email_credential =
-        GetEmailCredential(raw_credential);
-    return ValidateEmailAndPassword(promise,
-                                    email_credential->GetEmail().c_str(),
-                                    email_credential->GetPassword().c_str());
-  } else if (provider == kPhoneAuthProdiverId) {
+  if (provider == kPhoneAuthProviderId) {
     // TODO(varconst): for now phone auth is not supported on desktop.
     promise->Fail(kAuthErrorApiNotAvailable,
                   "Phone Auth is not supported on desktop");
+    return false;
+  }
+  if (raw_credential == nullptr) {
+    FailPromise(promise, kAuthErrorInvalidCredential);
+    return false;
+  }
+  const auto* credential_impl =
+      static_cast<const CredentialImpl*>(raw_credential);
+  if (credential_impl->auth_credential == nullptr) {
+    FailPromise(promise, kAuthErrorInvalidCredential);
+    return false;
+  }
+  if (provider == kEmailPasswordAuthProviderId &&
+      credential_impl->auth_credential->GetType() ==
+          AuthCredential::CredentialType::kEmail) {
+    const EmailAuthCredential* email_credential =
+        GetEmailCredential(raw_credential);
+    if (!email_credential) {
+      FailPromise(promise, kAuthErrorInvalidCredential);
+      return false;
+    }
+    return ValidateEmailAndPassword(promise,
+                                    email_credential->GetEmail().c_str(),
+                                    email_credential->GetPassword().c_str());
+  }
+  if (!credential_impl->auth_credential->IsValid()) {
+    FailPromise(promise, kAuthErrorInvalidCredential);
     return false;
   }
   return true;

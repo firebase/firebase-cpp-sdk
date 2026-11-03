@@ -12,13 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <inttypes.h>
-
-#include <algorithm>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
+#include <string>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -71,8 +65,8 @@ FirebaseInstallationsTest::FirebaseInstallationsTest()
 
 FirebaseInstallationsTest::~FirebaseInstallationsTest() {
   // Must be cleaned up on exit.
-  assert(app_ == nullptr);
-  assert(installations_ == nullptr);
+  EXPECT_EQ(app_, nullptr);
+  EXPECT_EQ(installations_, nullptr);
 }
 
 void FirebaseInstallationsTest::SetUp() {
@@ -101,9 +95,14 @@ void FirebaseInstallationsTest::Initialize() {
         LogDebug("Try to initialize Firebase Installations");
         firebase::installations::Installations** installations_ptr =
             reinterpret_cast<firebase::installations::Installations**>(target);
+        firebase::InitResult init_result = firebase::kInitResultSuccess;
         *installations_ptr =
-            firebase::installations::Installations::GetInstance(app);
-        return firebase::kInitResultSuccess;
+            firebase::installations::Installations::GetInstance(app,
+                                                                &init_result);
+        if (*installations_ptr == nullptr) {
+          return firebase::kInitResultFailedMissingDependency;
+        }
+        return init_result;
       });
 
   FirebaseTest::WaitForCompletion(initializer.InitializeLastResult(),
@@ -111,6 +110,7 @@ void FirebaseInstallationsTest::Initialize() {
 
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
+  ASSERT_NE(installations_, nullptr);
 
   LogDebug("Successfully initialized Firebase Installations.");
 
@@ -140,6 +140,7 @@ TEST_F(FirebaseInstallationsTest, TestInitializeAndTerminate) {
 TEST_F(FirebaseInstallationsTest, TestCanGetId) {
   firebase::Future<std::string> id = installations_->GetId();
   WaitForCompletion(id, "GetId");
+  ASSERT_NE(id.result(), nullptr);
   EXPECT_NE(*id.result(), "");
 }
 
@@ -148,10 +149,12 @@ TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
 
   firebase::Future<std::string> id = installations_->GetId();
   WaitForCompletion(id, "GetId");
+  ASSERT_NE(id.result(), nullptr);
   EXPECT_NE(*id.result(), "");  // ensure non-blank
   std::string first_id = *id.result();
   id = installations_->GetId();
   WaitForCompletion(id, "GetId 2");
+  ASSERT_NE(id.result(), nullptr);
   EXPECT_NE(*id.result(), "");  // ensure non-blank
 
   // Ensure the second ID returned is the same as the first.
@@ -165,22 +168,21 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
 
   firebase::Future<std::string> id = installations_->GetId();
   WaitForCompletion(id, "GetId");
+  ASSERT_NE(id.result(), nullptr);
   EXPECT_NE(*id.result(), "");  // ensure non-blank
   std::string first_id = *id.result();
 
   firebase::Future<void> del = installations_->Delete();
   WaitForCompletion(del, "Delete");
+  EXPECT_EQ(installations_->DeleteLastResult().error(),
+            firebase::installations::kInstallationsErrorNone);
 
   // Ensure that we now get a different installations id.
   id = installations_->GetId();
   WaitForCompletion(id, "GetId 2");
+  ASSERT_NE(id.result(), nullptr);
   EXPECT_NE(*id.result(), "");  // ensure non-blank
-#if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // Desktop is a stub and returns the same ID, but on mobile it
-  // should return a new ID.
   EXPECT_NE(*id.result(), first_id);
-#endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
-        // TARGET_OS_IPHONE)
 
   FLAKY_TEST_SECTION_END();
 }
@@ -188,6 +190,7 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
 TEST_F(FirebaseInstallationsTest, TestCanGetToken) {
   firebase::Future<std::string> token = installations_->GetToken(true);
   WaitForCompletion(token, "GetToken");
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*token.result(), "");
 }
 
@@ -196,10 +199,12 @@ TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
 
   firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*token.result(), "");  // ensure non-blank
   std::string first_token = *token.result();
   token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken 2");
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*token.result(), "");  // ensure non-blank
   EXPECT_EQ(*token.result(), first_token);
 
@@ -211,22 +216,21 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
 
   firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*token.result(), "");  // ensure non-blank
   std::string first_token = *token.result();
 
   firebase::Future<void> del = installations_->Delete();
   WaitForCompletion(del, "Delete");
+  EXPECT_EQ(installations_->DeleteLastResult().error(),
+            firebase::installations::kInstallationsErrorNone);
 
   // Ensure that we now get a different installations token.
   token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken 2");
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*token.result(), "");  // ensure non-blank
-#if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // Desktop is a stub and returns the same token, but on mobile it
-  // should return a new token.
   EXPECT_NE(*token.result(), first_token);
-#endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
-        // TARGET_OS_IPHONE)
 
   FLAKY_TEST_SECTION_END();
 }
@@ -236,6 +240,8 @@ TEST_F(FirebaseInstallationsTest, TestCanGetIdAndTokenTogether) {
   firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
   WaitForCompletion(id, "GetId");
+  ASSERT_NE(id.result(), nullptr);
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*id.result(), "");
   EXPECT_NE(*token.result(), "");
 }
@@ -243,10 +249,12 @@ TEST_F(FirebaseInstallationsTest, TestCanGetIdAndTokenTogether) {
 TEST_F(FirebaseInstallationsTest, TestGetTokenForceRefresh) {
   firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*token.result(), "");
   std::string first_token = *token.result();
   token = installations_->GetToken(true);
   WaitForCompletion(token, "GetToken 2");
+  ASSERT_NE(token.result(), nullptr);
   EXPECT_NE(*token.result(), first_token);
 }
 

@@ -16,9 +16,33 @@ package com.google.firebase.installations;
 
 /** Mock InstallationTokenResult */
 public class InstallationTokenResult {
-  private InstallationTokenResult() {}
+  private final String token;
+  private final long expirationTimestamp;
+  private final long creationTimestamp;
+
+  private InstallationTokenResult(String token) {
+    this.token = token;
+    this.expirationTimestamp = 3600000L;
+    this.creationTimestamp = 0L;
+  }
 
   public static synchronized InstallationTokenResult getInstance() {
-    return new InstallationTokenResult();
+    return new InstallationTokenResult("FakeToken");
+  }
+
+  public static synchronized InstallationTokenResult getInstance(boolean forceRefresh) {
+    return new InstallationTokenResult(forceRefresh ? "FakeTokenForceRefresh" : "FakeToken");
+  }
+
+  public String getToken() {
+    return token;
+  }
+
+  public long getTokenExpirationTimestamp() {
+    return expirationTimestamp;
+  }
+
+  public long getTokenCreationTimestamp() {
+    return creationTimestamp;
   }
 }

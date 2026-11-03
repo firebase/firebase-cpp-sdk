@@ -34,23 +34,11 @@ namespace auth {
 //
 // Promise guarantees that it refers to a valid future backed by last_results
 // array.
+namespace detail {
+
 template <typename ResultT>
-class Promise {
+class PromiseBase {
  public:
-  // Creates a future backed by LastResults cache.
-  Promise(ReferenceCountedFutureImpl* const future_manager,
-          const int identifier)
-      : future_manager_(*future_manager),
-        identifier_(identifier),
-        handle_(future_manager->SafeAlloc<ResultT>(identifier, ResultT())) {
-    FutureBase future_base(&future_manager_, handle_.get());
-    future_ = static_cast<firebase::Future<ResultT>&>(future_base);
-  }
-
-  void CompleteWithResult(const ResultT& result) {
-    future_manager_.CompleteWithResult(handle_, kAuthErrorNone, "", result);
-  }
-
   void Fail(AuthError error, const char* const message) {
     if (message) {
       future_manager_.Complete(handle_, error, message);
@@ -75,56 +63,50 @@ class Promise {
 
   Future<ResultT> future() { return future_; }
 
- private:
+ protected:
+  PromiseBase(ReferenceCountedFutureImpl* const future_manager,
+              const int identifier, const SafeFutureHandle<ResultT>& handle)
+      : future_manager_(*future_manager),
+        identifier_(identifier),
+        handle_(handle),
+        future_(MakeFuture(&future_manager_, handle_)) {}
+
   ReferenceCountedFutureImpl& future_manager_;
   const int identifier_;
   const SafeFutureHandle<ResultT> handle_;
   firebase::Future<ResultT> future_;
 };
 
+}  // namespace detail
+
+template <typename ResultT>
+class Promise : public detail::PromiseBase<ResultT> {
+ public:
+  // Creates a future backed by LastResults cache.
+  Promise(ReferenceCountedFutureImpl* const future_manager,
+          const int identifier)
+      : detail::PromiseBase<ResultT>(
+            future_manager, identifier,
+            future_manager->SafeAlloc<ResultT>(identifier, ResultT())) {}
+
+  void CompleteWithResult(const ResultT& result) {
+    this->future_manager_.CompleteWithResult(this->handle_, kAuthErrorNone, "",
+                                             result);
+  }
+};
+
 template <>
-class Promise<void> {
+class Promise<void> : public detail::PromiseBase<void> {
  public:
   Promise(ReferenceCountedFutureImpl* const future_manager,
           const int identifier)
-      : future_manager_(*future_manager),
-        identifier_(identifier),
-        handle_(future_manager->SafeAlloc<void>(identifier)) {
-    FutureBase future_base(&future_manager_, handle_.get());
-    future_ = static_cast<firebase::Future<void>&>(future_base);
+      : detail::PromiseBase<void>(
+            future_manager, identifier,
+            future_manager->SafeAlloc<void>(identifier)) {}
+
+  void Complete() {
+    this->future_manager_.Complete(this->handle_, kAuthErrorNone, "");
   }
-
-  void Complete() { future_manager_.Complete(handle_, kAuthErrorNone, ""); }
-
-  void Fail(AuthError error, const char* const message) {
-    if (message) {
-      future_manager_.Complete(handle_, error, message);
-    } else {
-      future_manager_.Complete(handle_, error);
-    }
-  }
-
-  void Fail(AuthError error, const std::string& message) {
-    Fail(error, message.c_str());
-  }
-
-  Future<void> InvalidateLastResult() {
-    future_manager_.InvalidateLastResult(identifier_);
-    return LastResult();
-  }
-
-  Future<void> LastResult() {
-    return static_cast<const firebase::Future<void>&>(
-        future_manager_.LastResult(identifier_));
-  }
-
-  Future<void> future() { return future_; }
-
- private:
-  ReferenceCountedFutureImpl& future_manager_;
-  const int identifier_;
-  const SafeFutureHandle<void> handle_;
-  firebase::Future<void> future_;
 };
 
 }  // namespace auth

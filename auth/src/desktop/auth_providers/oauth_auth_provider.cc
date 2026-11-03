@@ -28,9 +28,7 @@ namespace auth {
 Credential OAuthProvider::GetCredential(const char* const provider_id,
                                         const char* const id_token,
                                         const char* const access_token) {
-  FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && access_token);
-  return Credential{new CredentialImpl{new OAuthCredential{
-      provider_id, id_token, /*raw_nonce=*/"", access_token}}};
+  return GetCredential(provider_id, id_token, /*raw_nonce=*/"", access_token);
 }
 
 // static
@@ -38,12 +36,16 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
                                         const char* id_token,
                                         const char* raw_nonce,
                                         const char* access_token) {
-  FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
-  if (access_token == nullptr) {
-    access_token = "";
+  FIREBASE_ASSERT_RETURN(Credential(), provider_id != nullptr);
+  const char* const safe_id_token = id_token ? id_token : "";
+  const char* const safe_raw_nonce = raw_nonce ? raw_nonce : "";
+  const char* const safe_access_token = access_token ? access_token : "";
+  if (provider_id[0] == '\0' ||
+      (safe_id_token[0] == '\0' && safe_access_token[0] == '\0')) {
+    return Credential();
   }
-  return Credential{new CredentialImpl{
-      new OAuthCredential{provider_id, id_token, raw_nonce, access_token}}};
+  return Credential{new CredentialImpl{new OAuthCredential{
+      provider_id, safe_id_token, safe_raw_nonce, safe_access_token}}};
 }
 
 }  // namespace auth

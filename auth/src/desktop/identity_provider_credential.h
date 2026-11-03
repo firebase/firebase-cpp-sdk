@@ -40,6 +40,8 @@ namespace auth {
 // abstract class in the hierarchy.
 class IdentityProviderCredential : public AuthCredential {
  public:
+  bool IsIdentityProvider() const override { return true; }
+
   virtual std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       ::firebase::App& app, const char* api_key) const = 0;
 };

@@ -22,102 +22,192 @@
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
+#if !defined(DOXYGEN) && !defined(SWIG)
+FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(installations)
+#endif  // !defined(DOXYGEN) && !defined(SWIG)
+
 /// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {
 
+/// @brief Namespace for the Firebase Installations C++ SDK.
 namespace installations {
 
-/// Installations error codes.
+/// @brief Installations error codes returned by @ref Future::error().
 enum Error {
+  /// The operation succeeded.
   kErrorNone = 0,
-  /// An unknown error occurred.
-  kErrorUnknown,
-  /// Installations service cannot be accessed.
-  kErrorNoAccess,
-  /// Some of the parameters of the request were invalid.
-  kErrorInvalidConfiguration,
+  /// Compatibility alias for @ref kErrorNone.
+  kInstallationsErrorNone = kErrorNone,
+  /// An unknown or unmapped error occurred.
+  kErrorUnknown = 1,
+  /// Compatibility alias for @ref kErrorUnknown.
+  kErrorFailure = kErrorUnknown,
+  /// Compatibility alias for @ref kErrorUnknown.
+  kInstallationsErrorFailure = kErrorUnknown,
+  /// The Installations service could not be accessed (for example, network
+  /// unavailable, server unreachable, or rate-limited).
+  kErrorNoAccess = 2,
+  /// Some of the parameters of the request or the @ref App configuration were
+  /// invalid, or the owning @ref App has already been destroyed.
+  kErrorInvalidConfiguration = 3,
+  /// Local installation storage or Keychain could not be loaded or modified.
+  kErrorUnableToLoad = 4,
 };
 
+#if !defined(SWIG)
+/// @brief Returns a human-readable description for an Installations @ref Error.
+const char* GetErrorMessage(Error error) noexcept;
+
+/// @brief Authentication token and expiration metadata for a Firebase
+/// installation.
+struct InstallationTokenResult {
+  /// The authentication token string.
+  std::string token;
+  /// Token expiration timestamp in milliseconds since the Unix epoch (`0` if
+  /// unknown).
+  std::int64_t expiration_timestamp = 0;
+
+  bool operator==(const InstallationTokenResult& other) const noexcept {
+    return token == other.token &&
+           expiration_timestamp == other.expiration_timestamp;
+  }
+  bool operator!=(const InstallationTokenResult& other) const noexcept {
+    return !(*this == other);
+  }
+};
+#endif  // !defined(SWIG)
+
+#if !defined(DOXYGEN) && !defined(SWIG)
 namespace internal {
 // Implementation specific data for an Installation.
 class InstallationsInternal;
 }  // namespace internal
+#endif  // !defined(DOXYGEN) && !defined(SWIG)
 
-/// @brief Installations provides a unique identifier for each app instance and
-/// a mechanism to authenticate and authorize actions (for example, sending an
-/// FCM message).
-///
-/// Provides a unique identifier for a Firebase installation.
-/// Provides an auth token for a Firebase installation.
-/// Provides a API to perform data deletion for a Firebase
-/// installation.
+/// @brief Provides a unique identifier for each app installation and a
+/// mechanism to authenticate and authorize installation-scoped actions (for
+/// example, sending an FCM message).
 class Installations {
  public:
+  /// @brief Destroys this `Installations` instance, evicting it from the
+  /// per-@ref App cache and cancelling any pending platform callbacks.
   ~Installations();
 
-  /// @brief Get the App this object is connected to.
-  ///
-  /// @return App this object is connected to.
-  App* app() const { return app_; }
+  Installations(const Installations&) = delete;
+  Installations& operator=(const Installations&) = delete;
 
-  /// @brief Returns the Installations object for an App creating the
-  /// Installations if required.
+  /// @brief Returns the @ref App this object is connected to, or `nullptr` if
+  /// the owning @ref App has already been destroyed.
   ///
-  /// @param[in] app The App to create an Installations object from.
+  /// @return @ref App this object is connected to, or `nullptr`.
+  App* app() const noexcept { return app_; }
+
+#if !defined(SWIG)
+  /// @brief Returns `true` if this `Installations` instance is attached to a
+  /// live @ref App and initialized platform backend.
+  bool is_valid() const noexcept {
+    return app_ != nullptr && installations_internal_ != nullptr;
+  }
+
+  /// @brief Returns the `Installations` object for the default @ref App,
+  /// creating it if required, or `nullptr` if no default @ref App exists.
+  static Installations* GetInstance();
+#endif  // !defined(SWIG)
+
+  /// @brief Returns the `Installations` object for an @ref App, creating the
+  /// `Installations` instance if required.
   ///
-  /// @return Installations object if successful, nullptr otherwise.
+  /// Repeated calls with the same @ref App return the cached `Installations`
+  /// instance until it is deleted or the owning @ref App is destroyed.
+  ///
+  /// @param[in] app The @ref App to retrieve or create an `Installations`
+  /// object from. Passing `nullptr` logs an error and returns `nullptr`.
+  ///
+  /// @return `Installations` object if successful, `nullptr` otherwise.
   static Installations* GetInstance(App* app);
 
-  /// @brief Returns a stable identifier that uniquely identifies the app
-  /// installation.
+#if !defined(SWIG)
+  /// @brief Returns the `Installations` object for @p app and writes the
+  /// initialization result to @p init_result_out.
   ///
-  /// @return Unique identifier for the app installation.
+  /// @param[in] app The @ref App to retrieve or create an `Installations`
+  /// object from.
+  /// @param[out] init_result_out Optional pointer receiving the initialization
+  /// outcome (`kInitResultSuccess` or `kInitResultFailedMissingDependency`).
+  ///
+  /// @return `Installations` object if successful, `nullptr` otherwise.
+  static Installations* GetInstance(App* app, InitResult* init_result_out);
+#endif  // !defined(SWIG)
+
+  /// @brief Returns a stable identifier that uniquely identifies the app
+  /// installation, creating a new installation ID if none exists or after
+  /// @ref Delete is called.
+  ///
+  /// @return A @ref Future containing the unique identifier for the app
+  /// installation.
   Future<std::string> GetId();
 
   /// @brief Get the results of the most recent call to @ref GetId.
-  Future<std::string> GetIdLastResult();
+  Future<std::string> GetIdLastResult() const;
 
-  /// @brief Call to delete this Firebase app installation from the Firebase
-  /// backend.
+  /// @brief Deletes this Firebase app installation from both local storage and
+  /// the Firebase backend, revoking associated authentication tokens.
+  ///
+  /// On mobile platforms, an active network connection is required. Subsequent
+  /// calls to @ref GetId or @ref GetToken will generate a new installation ID.
+  ///
+  /// @return A @ref Future tracking completion of the deletion request.
   Future<void> Delete();
 
   /// @brief Get the results of the most recent call to @ref Delete.
-  Future<void> DeleteLastResult();
+  Future<void> DeleteLastResult() const;
 
-  /// @brief Returns a token that authorizes an Entity to perform an action on
-  /// behalf of the application identified by installations.
+  /// @brief Returns an authentication token that authorizes this installation
+  /// to perform actions on behalf of the application.
   ///
-  /// This is similar to an OAuth2 token except it applies to the
-  /// application instance instead of a user.
+  /// This is similar to an OAuth2 token except it applies to the application
+  /// installation instance instead of an individual user.
   ///
-  /// For example, to get a token that can be used to send messages to an
-  /// application via Firebase Cloud Messaging, set entity to the
-  /// sender ID, and set scope to "FCM".
+  /// @param[in] force_refresh If `true`, bypasses any locally cached token and
+  /// requests a fresh token from the Firebase backend.
   ///
-  /// @param forceRefresh If set true, will always return a new token.
-  ///
-  /// @return Returns a valid authentication token for the Firebase
-  /// installation.
-  Future<std::string> GetToken(bool forceRefresh);
+  /// @return A @ref Future containing a valid authentication token for the
+  /// Firebase installation.
+  Future<std::string> GetToken(bool force_refresh);
+
+#if !defined(SWIG)
+  /// @brief Convenience overload equivalent to `GetToken(false)`.
+  Future<std::string> GetToken() { return GetToken(false); }
+#endif  // !defined(SWIG)
 
   /// @brief Get the results of the most recent call to @ref GetToken.
-  Future<std::string> GetTokenLastResult();
+  Future<std::string> GetTokenLastResult() const;
+
+#if !defined(SWIG)
+  /// @brief Retrieves an @ref InstallationTokenResult containing both the
+  /// authentication token string and its expiration timestamp.
+  Future<InstallationTokenResult> GetTokenResult(bool force_refresh = false);
+
+  /// @brief Get the results of the most recent call to @ref GetTokenResult.
+  Future<InstallationTokenResult> GetTokenResultLastResult() const;
+#endif  // !defined(SWIG)
 
  private:
   explicit Installations(App* app);
 
+  static Installations* FindInstallationsLocked(App* app);
   static Installations* FindInstallations(App* app);
   // Installations internal initialize.
   bool InitInternal();
   // Clean up Installations instance.
   void DeleteInternal();
+  void DeleteInternalLocked();
 
-  App* app_;
-  internal::InstallationsInternal* installations_internal_;
+  App* app_ = nullptr;
+  internal::InstallationsInternal* installations_internal_ = nullptr;
 };
 
 }  // namespace installations
-
 }  // namespace firebase
 
 #endif  // FIREBASE_INSTALLATIONS_SRC_INCLUDE_FIREBASE_INSTALLATIONS_H_

@@ -33,6 +33,16 @@ class GitHubAuthCredential : public IdentityProviderCredential {
  public:
   std::string GetProvider() const override { return kGitHubAuthProviderId; }
 
+  CredentialType GetType() const override { return CredentialType::kGitHub; }
+
+  bool IsValid() const override { return !token_.empty(); }
+
+  bool Equals(const AuthCredential& other) const override {
+    if (other.GetType() != GetType()) return false;
+    const auto& rhs = static_cast<const GitHubAuthCredential&>(other);
+    return token_ == rhs.token_;
+  }
+
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       ::firebase::App& app, const char* const api_key) const override {
     return VerifyAssertionRequest::FromAccessToken(

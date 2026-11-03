@@ -20,7 +20,6 @@
 #include "auth/src/desktop/rpcs/verify_custom_token_request.h"
 #include "auth/src/desktop/rpcs/verify_custom_token_response.h"
 #include "auth/src/include/firebase/auth.h"
-#include "auth/tests/desktop/rpcs/test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -45,7 +44,8 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
 
 TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequestWithEmulator) {
   std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  std::unique_ptr<Auth> auth(Auth::GetAuth(app.get()));
+  auth->UseEmulator("localhost", 9099);
   VerifyCustomTokenRequest request(*app, "APIKEY", "token123");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -55,24 +55,27 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequestWithEmulator) {
 
 // Test VerifyCustomTokenResponse
 TEST(VerifyCustomTokenTest, TestVerifyCustomTokenResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   VerifyCustomTokenResponse response;
   // An example HTTP response JSON.
   const char body[] =
       "{\n"
       " \"kind\": \"identitytoolkit#VerifyCustomTokenResponse\",\n"
+      " \"localId\": \"localid123\",\n"
       " \"idToken\": \"idtoken123\",\n"
       " \"refreshToken\": \"refreshtoken123\",\n"
       " \"expiresIn\": \"3600\",\n"
+      " \"isNewUser\": true\n"
       "}";
   response.ProcessBody(body, sizeof(body));
   response.MarkCompleted();
+  EXPECT_EQ("localid123", response.local_id());
   EXPECT_EQ("idtoken123", response.id_token());
   EXPECT_EQ("refreshtoken123", response.refresh_token());
+  EXPECT_EQ(3600, response.expires_in());
+  EXPECT_TRUE(response.is_new_user());
 }
 
 TEST(VerifyCustomTokenTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
   VerifyCustomTokenResponse response;
   const char body[] =
       "{\n"

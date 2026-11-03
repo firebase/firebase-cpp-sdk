@@ -19,18 +19,21 @@
 
 #include <string>
 
+#include "app/src/include/firebase/app.h"
+
 namespace firebase {
 namespace auth {
 
 // Sign in a new user and return its local ID and ID token.
-bool GetNewUserLocalIdAndIdToken(const char* api_key, std::string* local_id,
-                                 std::string* id_token);
+bool GetNewUserLocalIdAndIdToken(::firebase::App& app, const char* api_key,
+                                 std::string* local_id, std::string* id_token);
 
 // Sign in a new user and return its local ID and refresh token.
-bool GetNewUserLocalIdAndRefreshToken(const char* api_key,
+bool GetNewUserLocalIdAndRefreshToken(::firebase::App& app, const char* api_key,
                                       std::string* local_id,
                                       std::string* refresh_token);
-std::string SignUpNewUserAndGetIdToken(const char* api_key, const char* email);
+std::string SignUpNewUserAndGetIdToken(::firebase::App& app,
+                                       const char* api_key, const char* email);
 
 }  // namespace auth
 }  // namespace firebase

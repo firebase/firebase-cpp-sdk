@@ -24,12 +24,11 @@
 namespace firebase {
 namespace auth {
 
-#ifdef INTERNAL_EXPERIMENTAL
-
-FederatedOAuthProvider::FederatedOAuthProvider() {}
+FederatedOAuthProvider::FederatedOAuthProvider() : handler_(nullptr) {}
 
 FederatedOAuthProvider::FederatedOAuthProvider(
-    const FederatedOAuthProviderData& provider_data) {
+    const FederatedOAuthProviderData& provider_data)
+    : handler_(nullptr) {
   provider_data_ = provider_data;
 }
 
@@ -56,84 +55,96 @@ Future<AuthResult> CreateAuthFuture(AuthData* auth_data,
   auto future_base = auth_data->future_impl.LastResult(api_function);
   if (future_base.status() == kFutureStatusPending) {
     // There's an operation in progress. Create and return a new failed
-    // future.
+    // future without overwriting the pending LastResult slot.
     SafeFutureHandle<AuthResult> handle =
-        auth_data->future_impl.SafeAlloc<AuthResult>(api_function);
+        auth_data->future_impl.SafeAlloc<AuthResult>();
     auth_data->future_impl.CompleteWithResult(
         handle, kAuthErrorFederatedProviderAlreadyInUse,
         "Provider operation already in progress.",
         /*result=*/{});
     return MakeFuture(&auth_data->future_impl, handle);
-  } else if (future_base.status() == kFutureStatusInvalid) {
-    // initialize the future.
-    SafeFutureHandle<AuthResult> handle =
-        auth_data->future_impl.SafeAlloc<AuthResult>(api_function);
-    Future<AuthResult> result = MakeFuture(
-        &auth_data->future_impl, SafeFutureHandle<AuthResult>(handle));
-    auto future_base = auth_data->future_impl.LastResult(api_function);
-    return result;
-  } else {
-    // Construct future.
-    return MakeFuture(&auth_data->future_impl,
-                      SafeFutureHandle<AuthResult>(future_base.GetHandle()));
   }
+  SafeFutureHandle<AuthResult> handle =
+      auth_data->future_impl.SafeAlloc<AuthResult>(api_function);
+  return MakeFuture(&auth_data->future_impl, handle);
 }
 
 Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
-  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), handler_);
-  assert(auth_data);
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), auth_data);
   Future<AuthResult> future =
       CreateAuthFuture(auth_data, kAuthFn_SignInWithProvider);
   if (future.status() == kFutureStatusPending) {
-    AuthResultCompletionHandle* auth_completion_handle =
-        new AuthResultCompletionHandle(
-            SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
-    handler_->OnSignIn(provider_data_, auth_completion_handle);
+    if (handler_ != nullptr) {
+      AuthResultCompletionHandle* auth_completion_handle =
+          new AuthResultCompletionHandle(
+              SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
+      handler_->OnSignIn(provider_data_, auth_completion_handle);
+    } else {
+      auth_data->future_impl.CompleteWithResult(
+          SafeFutureHandle<AuthResult>(future.GetHandle()),
+          kAuthErrorUnimplemented,
+          "Operation is not supported on non-mobile systems.", AuthResult());
+    }
   }
   return future;
 }
 
 Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
-  assert(auth_data);
-  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), handler_);
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), auth_data);
   Future<AuthResult> future =
       CreateAuthFuture(auth_data, kUserFn_LinkWithProvider);
   if (future.status() == kFutureStatusPending) {
-    AuthResultCompletionHandle* auth_completion_handle =
-        new AuthResultCompletionHandle(
-            SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
-    handler_->OnLink(provider_data_, auth_completion_handle);
+    if (handler_ != nullptr) {
+      AuthResultCompletionHandle* auth_completion_handle =
+          new AuthResultCompletionHandle(
+              SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
+      handler_->OnLink(provider_data_, auth_completion_handle);
+    } else {
+      auth_data->future_impl.CompleteWithResult(
+          SafeFutureHandle<AuthResult>(future.GetHandle()),
+          kAuthErrorUnimplemented,
+          "Operation is not supported on non-mobile systems.", AuthResult());
+    }
   }
   return future;
 }
 
 Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
-  assert(auth_data);
-  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), handler_);
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), auth_data);
   Future<AuthResult> future =
       CreateAuthFuture(auth_data, kUserFn_ReauthenticateWithProvider);
   if (future.status() == kFutureStatusPending) {
-    AuthResultCompletionHandle* auth_completion_handle =
-        new AuthResultCompletionHandle(
-            SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
-    handler_->OnReauthenticate(provider_data_, auth_completion_handle);
+    if (handler_ != nullptr) {
+      AuthResultCompletionHandle* auth_completion_handle =
+          new AuthResultCompletionHandle(
+              SafeFutureHandle<AuthResult>(future.GetHandle()), auth_data);
+      handler_->OnReauthenticate(provider_data_, auth_completion_handle);
+    } else {
+      auth_data->future_impl.CompleteWithResult(
+          SafeFutureHandle<AuthResult>(future.GetHandle()),
+          kAuthErrorUnimplemented,
+          "Operation is not supported on non-mobile systems.", AuthResult());
+    }
   }
   return future;
 }
 
 // Helper function to identify any missing required data from an
-// AuthetnicatedUserData struct.
+// AuthenticatedUserData struct.
 const char* CheckForRequiredAuthenicatedUserData(
     const FederatedAuthProvider::AuthenticatedUserData& user_data) {
   const char* error_message = nullptr;
-  if (user_data.uid == nullptr) {
-    error_message = "null uid";
-  } else if (user_data.provider_id == nullptr) {
-    error_message = "null provider_id";
-  } else if (user_data.access_token == nullptr) {
-    error_message = "null access_token";
-  } else if (user_data.refresh_token == nullptr) {
-    error_message = "null refresh_token";
+  if (user_data.uid == nullptr || user_data.uid[0] == '\0') {
+    error_message = "null or empty uid";
+  } else if (user_data.provider_id == nullptr ||
+             user_data.provider_id[0] == '\0') {
+    error_message = "null or empty provider_id";
+  } else if (user_data.access_token == nullptr ||
+             user_data.access_token[0] == '\0') {
+    error_message = "null or empty access_token";
+  } else if (user_data.refresh_token == nullptr ||
+             user_data.refresh_token[0] == '\0') {
+    error_message = "null or empty refresh_token";
   }
   return error_message;
 }
@@ -144,7 +155,8 @@ const char* CheckForRequiredAuthenicatedUserData(
 void CompleteAuthHandle(
     AuthResultCompletionHandle* completion_handle,
     const FederatedAuthProvider::AuthenticatedUserData& user_data,
-    AuthError auth_error, const char* error_message) {
+    AuthError auth_error, const char* error_message, bool require_signed_in,
+    bool require_matching_uid) {
   assert(completion_handle);
   assert(completion_handle->auth_data);
   AuthResult auth_result;
@@ -153,17 +165,35 @@ void CompleteAuthHandle(
     if (error_message != nullptr) {
       auth_error = kAuthErrorInvalidAuthenticatedUserData;
     } else {
-      AuthenticationResult authentication_result =
-          CompleteAuthenticedUserSignInFlow(completion_handle->auth_data,
-                                            user_data);
-      if (authentication_result.IsValid()) {
-        auth_result = authentication_result.SetAsCurrentUser(
-            completion_handle->auth_data);
+      std::string current_uid;
+      const bool is_signed_in = UserView::TryRead(
+          completion_handle->auth_data,
+          [&current_uid](const UserView::Reader& user) {
+            current_uid = user->uid;
+          });
+      if (require_signed_in && !is_signed_in) {
+        auth_error = kAuthErrorNoSignedInUser;
+        error_message = GetAuthErrorMessage(auth_error);
+      } else if (require_matching_uid && current_uid != user_data.uid) {
+        auth_error = kAuthErrorUserMismatch;
+        error_message = GetAuthErrorMessage(auth_error);
       } else {
-        auth_error = kAuthErrorInvalidAuthenticatedUserData;
-        error_message = "Internal parse error";
+        AuthenticationResult authentication_result =
+            CompleteAuthenticedUserSignInFlow(completion_handle->auth_data,
+                                              user_data);
+        if (authentication_result.IsValid()) {
+          auth_result = authentication_result.SetAsCurrentUser(
+              completion_handle->auth_data);
+        } else {
+          auth_error = authentication_result.error() != kAuthErrorNone
+                           ? authentication_result.error()
+                           : kAuthErrorInvalidAuthenticatedUserData;
+          error_message = "Internal parse error";
+        }
       }
     }
+  } else if (error_message == nullptr || error_message[0] == '\0') {
+    error_message = "Federated auth provider error";
   }
   completion_handle->auth_data->future_impl.CompleteWithResult(
       completion_handle->future_handle, auth_error,
@@ -178,7 +208,9 @@ void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::SignInComplete(
     const AuthenticatedUserData& user_data, AuthError auth_error,
     const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
-  CompleteAuthHandle(completion_handle, user_data, auth_error, error_message);
+  CompleteAuthHandle(completion_handle, user_data, auth_error, error_message,
+                     /*require_signed_in=*/false,
+                     /*require_matching_uid=*/false);
 }
 
 template <>
@@ -187,7 +219,9 @@ void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::LinkComplete(
     const AuthenticatedUserData& user_data, AuthError auth_error,
     const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
-  CompleteAuthHandle(completion_handle, user_data, auth_error, error_message);
+  CompleteAuthHandle(completion_handle, user_data, auth_error, error_message,
+                     /*require_signed_in=*/true,
+                     /*require_matching_uid=*/false);
 }
 
 template <>
@@ -196,9 +230,10 @@ void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::
                            const AuthenticatedUserData& user_data,
                            AuthError auth_error, const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
-  CompleteAuthHandle(completion_handle, user_data, auth_error, error_message);
+  CompleteAuthHandle(completion_handle, user_data, auth_error, error_message,
+                     /*require_signed_in=*/true,
+                     /*require_matching_uid=*/true);
 }
-#endif  // INTERNAL_EXPERIMENTAL
 
 }  // namespace auth
 }  // namespace firebase
