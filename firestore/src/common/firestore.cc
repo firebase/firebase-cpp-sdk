@@ -178,31 +178,7 @@ Firestore* Firestore::GetInstance(const char* db_name,
   return Firestore::GetInstance(app, db_name, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(App* app,
-                                  const char* db_name,
-                                  InitResult* init_result_out) {
-  ValidateApp(app);
-  ValidateDatabase(db_name);
 
-  Firestore* to_delete = nullptr;
-  Firestore* result = nullptr;
-  {
-    MutexLock lock(*g_firestores_lock);
-    Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
-    if (from_cache) {
-      return from_cache;
-    }
-
-    Firestore* new_firestore = new Firestore(app, db_name);
-    result = AddFirestoreToCache(new_firestore, init_result_out);
-    if (!result) {
-      to_delete = new_firestore;
-    }
-  }
-
-  if (to_delete) delete to_delete;
-  return result;
-}
 
 Firestore* Firestore::CreateFirestore(App* app,
                                       FirestoreInternal* internal,

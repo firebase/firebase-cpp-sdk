@@ -60,9 +60,8 @@ CollectionReference& CollectionReference::operator=(
 }
 
 CollectionReference& CollectionReference::operator=(
-    const CollectionReference& reference) {
-  CollectionReference tmp(reference);
-  Query::operator=(std::move(tmp));
+    CollectionReference&& reference) {
+  Query::operator=(std::move(reference));
   return *this;
 }
 

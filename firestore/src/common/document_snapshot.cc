@@ -56,7 +56,7 @@ DocumentSnapshot::DocumentSnapshot(const DocumentSnapshot& snapshot) {
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
-DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) {
+DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) noexcept {
   CleanupFnDocumentSnapshot::Unregister(&snapshot, snapshot.internal_);
   internal_ = std::exchange(snapshot.internal_, nullptr);
 #if FIRESTORE_HAVE_EXCEPTIONS
@@ -65,7 +65,6 @@ DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) {
   } catch (...) {
     delete internal_;
     internal_ = nullptr;
-    throw;
   }
 #else
   CleanupFnDocumentSnapshot::Register(this, internal_);
@@ -121,7 +120,7 @@ DocumentSnapshot& DocumentSnapshot::operator=(
   return *this;
 }
 
-DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) {
+DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) noexcept {
   if (this == &snapshot) {
     return *this;
   }
@@ -136,7 +135,6 @@ DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) {
   } catch (...) {
     delete internal_;
     internal_ = nullptr;
-    throw;
   }
 #else
   CleanupFnDocumentSnapshot::Register(this, internal_);

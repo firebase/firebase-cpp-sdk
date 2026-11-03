@@ -42,7 +42,7 @@ class Wrapper {
   Wrapper& operator=(const Wrapper& wrapper) = delete;
   Wrapper& operator=(Wrapper&& wrapper) = delete;
 
-  FirestoreInternal* firestore_internal() { return firestore_; }
+  FirestoreInternal* firestore_internal() const { return firestore_; }
   jni::Local<jni::Object> ToJava() const;
 
  protected:

@@ -346,6 +346,7 @@ void FirestoreInternal::ClearListeners() {
     listeners.swap(listeners_);
   }
   for (auto* listener : listeners) {
+    listener->Remove();
     delete listener;
   }
 }
@@ -375,8 +376,11 @@ void FirestoreInternal::RegisterListenerRegistration(
 
 void FirestoreInternal::UnregisterListenerRegistration(
     ListenerRegistrationInternal* registration) {
-  std::scoped_lock lock(listeners_mutex_);
-  listeners_.erase(registration);
+  {
+    std::scoped_lock lock(listeners_mutex_);
+    listeners_.erase(registration);
+  }
+  delete registration;
 }
 
 void FirestoreInternal::ApplyDefaultSettings() {
@@ -436,7 +440,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe(
-      [promise, progress_callback = std::move(progress_callback)](
+      [task, promise, progress_callback = std::move(progress_callback)](
           const api::LoadBundleTaskProgress& progress) mutable {
         LoadBundleTaskProgress api_progress = ToApiProgress(progress);
         if (progress_callback) {
