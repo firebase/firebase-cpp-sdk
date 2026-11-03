@@ -165,7 +165,7 @@ Future<void> DisconnectionHandlerInternal::RemoveValueLastResult() {
       future()->LastResult(kDisconnectionHandlerFnRemoveValue));
 }
 
-Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
+Future<void> DisconnectionHandlerInternal::SetValue(const Variant& value) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValue);
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
@@ -200,7 +200,7 @@ Future<void> DisconnectionHandlerInternal::SetValueLastResult() {
 }
 
 Future<void> DisconnectionHandlerInternal::SetValueAndPriority(
-    Variant value, Variant priority) {
+    const Variant& value, const Variant& priority) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValueAndPriority);
   if (SetValueLastResult().status() == kFutureStatusPending) {
@@ -252,7 +252,7 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriorityLastResult() {
       future()->LastResult(kDisconnectionHandlerFnSetValueAndPriority));
 }
 
-Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
+Future<void> DisconnectionHandlerInternal::UpdateChildren(const Variant& values) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnUpdateChildren);
   if (!values.is_map()) {

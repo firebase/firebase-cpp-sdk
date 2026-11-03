@@ -347,7 +347,6 @@ void FirestoreInternal::ClearListeners() {
   }
   for (auto* listener : listeners) {
     listener->Remove();
-    delete listener;
   }
 }
 
@@ -440,7 +439,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe(
-      [task, promise, progress_callback = std::move(progress_callback)](
+      [weak_task = std::weak_ptr<api::LoadBundleTask>(task), promise, progress_callback = std::move(progress_callback)](
           const api::LoadBundleTaskProgress& progress) mutable {
         LoadBundleTaskProgress api_progress = ToApiProgress(progress);
         if (progress_callback) {

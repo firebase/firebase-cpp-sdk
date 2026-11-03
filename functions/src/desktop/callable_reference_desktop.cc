@@ -107,15 +107,8 @@ struct CallExecutionContext
   void StartPerform() {
     auto self = shared_from_this();
     response.SetCallback([self]() {
-      std::vector<std::shared_ptr<void>> previously_retired;
       if (auto state = self->lifetime_state.lock()) {
         MutexLock lock(state->mutex);
-        // Drain previously completed calls so retired_calls never accumulates
-        // unboundedly, and defer destruction of `self` until outside
-        // Response::MarkCompleted(). Because `lifetime_state` is a
-        // std::weak_ptr, `retired_calls` never creates a reference cycle.
-        previously_retired.swap(state->retired_calls);
-        state->retired_calls.push_back(self);
         if (!state->alive) {
           return;
         }
@@ -445,13 +438,6 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   if (!future_api || !functions_) {
     return Future<HttpsCallableResult>();
   }
-  if (functions_->lifetime_state()) {
-    std::vector<std::shared_ptr<void>> to_destroy;
-    {
-      MutexLock lock(functions_->lifetime_state()->mutex);
-      to_destroy.swap(functions_->lifetime_state()->retired_calls);
-    }
-  }
   SafeFutureHandle<HttpsCallableResult> handle =
       future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
 
@@ -486,20 +472,21 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   auto fetch_app_check_and_perform = [ctx, app,
                                       limited_use =
                                           options_.limited_use_app_check_tokens]() {
+    Future<std::string> future_app_check;
+    bool has_app_check_future = false;
     if (auto state = ctx->lifetime_state.lock()) {
       MutexLock lock(state->mutex);
       if (!state->alive) {
         return;
       }
+      ::firebase::internal::FunctionId app_check_fn =
+          limited_use ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
+                      : ::firebase::internal::FnAppCheckGetTokenAsync;
+      has_app_check_future = app->function_registry()->CallFunction(
+          app_check_fn, app, nullptr, &future_app_check);
     } else {
       return;
     }
-    Future<std::string> future_app_check;
-    ::firebase::internal::FunctionId app_check_fn =
-        limited_use ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
-                    : ::firebase::internal::FnAppCheckGetTokenAsync;
-    bool has_app_check_future = app->function_registry()->CallFunction(
-        app_check_fn, app, nullptr, &future_app_check);
     if (has_app_check_future &&
         future_app_check.status() != kFutureStatusInvalid) {
       future_app_check.OnCompletion(

@@ -38,6 +38,15 @@ Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
   obj_.reset(env, obj);
 }
 
+Wrapper::Wrapper(const Wrapper& wrapper)
+    : firestore_(wrapper.firestore_), obj_(wrapper.obj_) {
+}
+
+Wrapper::Wrapper(Wrapper&& wrapper) noexcept
+    : firestore_(wrapper.firestore_), obj_(std::move(wrapper.obj_)) {
+  wrapper.firestore_ = nullptr;
+}
+
 Wrapper::~Wrapper() = default;
 
 jni::Env Wrapper::GetEnv() const { return FirestoreInternal::GetEnv(); }

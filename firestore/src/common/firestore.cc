@@ -141,6 +141,10 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
 }
 
+Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
+  return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
+}
+
 Firestore* Firestore::GetInstance(App* app,
                                   const char* db_name,
                                   InitResult* init_result_out) {
@@ -318,11 +322,7 @@ CollectionReference Firestore::Collection(const char* collection_path) const {
 
 CollectionReference Firestore::Collection(
     const std::string& collection_path) const {
-  if (collection_path.empty()) {
-    SimpleThrowInvalidArgument("Collection path cannot be empty.");
-  }
-  if (!internal_) return {};
-  return internal_->Collection(collection_path.c_str());
+  return Collection(collection_path.c_str());
 }
 
 DocumentReference Firestore::Document(const char* document_path) const {

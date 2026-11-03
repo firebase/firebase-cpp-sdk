@@ -57,6 +57,8 @@ class QueryInternal : public Wrapper {
       : Wrapper(firestore, object), promises_(firestore) {}
 
   ~QueryInternal() override = default;
+  QueryInternal(const QueryInternal& other) = default;
+  QueryInternal(QueryInternal&& other) noexcept = default;
 
   /** Gets the Firestore instance associated with this query. */
   Firestore* firestore() const;
