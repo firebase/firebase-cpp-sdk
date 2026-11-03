@@ -484,6 +484,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 
   jstring j_email = env->NewStringUTF(email);
   if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (j_email != nullptr) env->DeleteLocalRef(j_email);
     return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(
@@ -512,6 +513,7 @@ Future<AuthResult> Auth::SignInWithCustomToken(const char* token) {
 
   jstring j_token = env->NewStringUTF(token);
   if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (j_token != nullptr) env->DeleteLocalRef(j_token);
     return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(
@@ -621,7 +623,16 @@ Future<AuthResult> Auth::SignInWithEmailAndPassword(const char* email,
 
   JNIEnv* env = Env(auth_data_);
   jstring j_email = env->NewStringUTF(email);
+  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (j_email != nullptr) env->DeleteLocalRef(j_email);
+    return MakeFuture(&futures, handle);
+  }
   jstring j_password = env->NewStringUTF(password);
+  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    env->DeleteLocalRef(j_email);
+    if (j_password != nullptr) env->DeleteLocalRef(j_password);
+    return MakeFuture(&futures, handle);
+  }
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_),
       auth::GetMethodId(auth::kSignInWithEmailAndPassword), j_email,
@@ -654,7 +665,16 @@ Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char* email,
   JNIEnv* env = Env(auth_data_);
 
   jstring j_email = env->NewStringUTF(email);
+  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (j_email != nullptr) env->DeleteLocalRef(j_email);
+    return MakeFuture(&futures, handle);
+  }
   jstring j_password = env->NewStringUTF(password);
+  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    env->DeleteLocalRef(j_email);
+    if (j_password != nullptr) env->DeleteLocalRef(j_password);
+    return MakeFuture(&futures, handle);
+  }
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_),
       auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), j_email,
@@ -752,6 +772,7 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
   JNIEnv* env = Env(auth_data_);
   jstring j_email = env->NewStringUTF(email);
   if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (j_email != nullptr) env->DeleteLocalRef(j_email);
     return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(

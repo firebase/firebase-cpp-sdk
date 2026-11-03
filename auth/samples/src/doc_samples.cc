@@ -329,10 +329,7 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
     // [START auth_user_profile_data_check]
     firebase::auth::User user = auth->current_user();
     if (user.is_valid()) {
-      const std::vector<firebase::auth::UserInfoInterface> provider_data =
-          user.provider_data();
-      for (auto it = provider_data.begin(); it != provider_data.end(); ++it) {
-        firebase::auth::UserInfoInterface profile = *it;
+      for (const auto& profile : user.provider_data()) {
         // Id of the provider (ex: google.com)
         std::string providerId = profile.provider_id();
 
@@ -713,7 +710,6 @@ std::string DisplayIdentityProviders(const char* email,
   // Get results of most recently call to FetchProvidersForEmail().
   firebase::Future<firebase::auth::Auth::FetchProvidersResult> future =
       auth->FetchProvidersForEmailLastResult();
-  const firebase::auth::Auth::FetchProvidersResult* result = future.result();
 
   // Header.
   ShowTextBox("Sign in %s", email);
@@ -739,10 +735,11 @@ std::string DisplayIdentityProviders(const char* email,
 
   // Show a button for each provider available to this email.
   // Return the provider for the button that's pressed.
+  const firebase::auth::Auth::FetchProvidersResult* result = future.result();
   if (result != nullptr) {
-    for (size_t i = 0; i < result->providers.size(); ++i) {
-      const bool selected = ShowTextButton(result->providers[i].c_str());
-      if (selected) return result->providers[i];
+    for (const auto& provider : result->providers) {
+      const bool selected = ShowTextButton(provider.c_str());
+      if (selected) return provider;
     }
   }
   return "";

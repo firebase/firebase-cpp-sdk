@@ -186,10 +186,11 @@ void CheckEmulator(AuthData *auth_data) {
 
 // Platform-specific method to initialize AuthData.
 void Auth::InitPlatformAuth(AuthData *auth_data) {
-  // Ensure initial user value and emulator configuration are set before
-  // registering listeners.
-  UpdateCurrentUser(auth_data);
+  // Ensure emulator configuration and initial user value are set before
+  // registering listeners. CheckEmulator must run before accessing currentUser
+  // so that useEmulatorWithHost:port: is called before FIRAuth is used.
   CheckEmulator(auth_data);
+  UpdateCurrentUser(auth_data);
 
   FIRCPPAuthListenerHandle *listener_cpp_handle = [[FIRCPPAuthListenerHandle alloc] init];
   listener_cpp_handle.authData = auth_data;
@@ -617,6 +618,7 @@ void Auth::SignOut() {
   if (!auth_data_) return;
   NSError *_Nullable error = nil;
   if ([AuthImpl(auth_data_) signOut:&error]) {
+    MutexLock lock(auth_data_->future_impl.mutex());
     SetUserImpl(auth_data_, nullptr);
   } else if (error != nil) {
     LogError("Failed to sign out: %s", ErrorMessageFromNSError(error).c_str());

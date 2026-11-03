@@ -1210,6 +1210,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   // force resending token (if valid)
   if (options.force_resending_token != nullptr &&
       options.force_resending_token->is_valid() &&
+      options.force_resending_token->data_ != nullptr &&
       options.force_resending_token->data_->token_global_ref() != nullptr) {
     chained_ref = env->CallObjectMethod(
         builder,
@@ -1615,32 +1616,34 @@ Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
       futures.Complete(handle, kAuthErrorFailure,
                        "Failed to construct OAuthProvider.");
     } else {
-      jobject task = nullptr;
-      bool valid_user = false;
+      jobject user_local = nullptr;
       {
         MutexLock lock(auth_data->future_impl.mutex());
-        if (UserImpl(auth_data) != nullptr) {
-          valid_user = true;
-          task = env->CallObjectMethod(
-              UserImpl(auth_data),
-              user_idp::GetMethodId(
-                  user_idp::kStartActivityForLinkWithProvider),
-              auth_data->app->activity(), oauthprovider);
+        jobject user_impl = UserImpl(auth_data);
+        if (user_impl != nullptr) {
+          user_local = env->NewLocalRef(user_impl);
         }
       }
-      if (!valid_user) {
+      if (user_local == nullptr) {
         futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      } else if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-        if (task != nullptr) {
-          RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                                ReadAuthResult);
-        } else {
-          futures.Complete(handle, kAuthErrorFailure,
-                           "Failed to start activity for OAuth link.");
+      } else {
+        jobject task = env->CallObjectMethod(
+            user_local,
+            user_idp::GetMethodId(user_idp::kStartActivityForLinkWithProvider),
+            auth_data->app->activity(), oauthprovider);
+        env->DeleteLocalRef(user_local);
+        if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+          if (task != nullptr) {
+            RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                                  ReadAuthResult);
+          } else {
+            futures.Complete(handle, kAuthErrorFailure,
+                             "Failed to start activity for OAuth link.");
+          }
         }
-      }
-      if (task != nullptr) {
-        env->DeleteLocalRef(task);
+        if (task != nullptr) {
+          env->DeleteLocalRef(task);
+        }
       }
     }
   }
@@ -1670,33 +1673,36 @@ Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
       futures.Complete(handle, kAuthErrorFailure,
                        "Failed to construct OAuthProvider.");
     } else {
-      jobject task = nullptr;
-      bool valid_user = false;
+      jobject user_local = nullptr;
       {
         MutexLock lock(auth_data->future_impl.mutex());
-        if (UserImpl(auth_data) != nullptr) {
-          valid_user = true;
-          task = env->CallObjectMethod(
-              UserImpl(auth_data),
-              user_idp::GetMethodId(
-                  user_idp::kStartActivityForReauthenticateWithProvider),
-              auth_data->app->activity(), oauthprovider);
+        jobject user_impl = UserImpl(auth_data);
+        if (user_impl != nullptr) {
+          user_local = env->NewLocalRef(user_impl);
         }
       }
-      if (!valid_user) {
+      if (user_local == nullptr) {
         futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      } else if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-        if (task != nullptr) {
-          RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                                ReadAuthResult);
-        } else {
-          futures.Complete(
-              handle, kAuthErrorFailure,
-              "Failed to start activity for OAuth reauthentication.");
+      } else {
+        jobject task = env->CallObjectMethod(
+            user_local,
+            user_idp::GetMethodId(
+                user_idp::kStartActivityForReauthenticateWithProvider),
+            auth_data->app->activity(), oauthprovider);
+        env->DeleteLocalRef(user_local);
+        if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+          if (task != nullptr) {
+            RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                                  ReadAuthResult);
+          } else {
+            futures.Complete(
+                handle, kAuthErrorFailure,
+                "Failed to start activity for OAuth reauthentication.");
+          }
         }
-      }
-      if (task != nullptr) {
-        env->DeleteLocalRef(task);
+        if (task != nullptr) {
+          env->DeleteLocalRef(task);
+        }
       }
     }
   }

@@ -104,7 +104,10 @@ class Credential {
 
  public:
   Credential() : impl_(nullptr), error_code_(kAuthErrorNone) {}
-  virtual ~Credential();
+  // Note: Credential is a value type returned by value across the public API;
+  // ~Credential() is intentionally non-virtual to avoid adding a vptr and
+  // breaking ABI layout compatibility.
+  ~Credential();
 
   /// Copy constructor.
   Credential(const Credential& rhs);
@@ -236,7 +239,7 @@ class EmailAuthProvider {
   static const char* const kProviderId;
 
  private:
-  EmailAuthProvider() = delete;
+  EmailAuthProvider() {}
 };
 
 /// @brief Use an access token provided by Facebook to authenticate.
@@ -260,7 +263,7 @@ class FacebookAuthProvider {
   static const char* const kProviderId;
 
  private:
-  FacebookAuthProvider() = delete;
+  FacebookAuthProvider() {}
 };
 
 /// @brief GameCenter (Apple) auth provider.
@@ -285,7 +288,7 @@ class GameCenterAuthProvider {
   static const char* const kProviderId;
 
  private:
-  GameCenterAuthProvider() = delete;
+  GameCenterAuthProvider() {}
 };
 
 /// @brief Use an access token provided by GitHub to authenticate.
@@ -309,7 +312,7 @@ class GitHubAuthProvider {
   static const char* const kProviderId;
 
  private:
-  GitHubAuthProvider() = delete;
+  GitHubAuthProvider() {}
 };
 
 /// @brief Use an ID token and access token provided by Google to authenticate.
@@ -336,7 +339,7 @@ class GoogleAuthProvider {
   static const char* const kProviderId;
 
  private:
-  GoogleAuthProvider() = delete;
+  GoogleAuthProvider() {}
 };
 
 /// @brief Use an access token provided by Microsoft to authenticate.
@@ -346,7 +349,7 @@ class MicrosoftAuthProvider {
   static const char* const kProviderId;
 
  private:
-  MicrosoftAuthProvider() = delete;
+  MicrosoftAuthProvider() {}
 };
 
 /// @brief OAuth2.0+UserInfo auth provider (OIDC compliant and non-compliant).
@@ -387,17 +390,19 @@ class OAuthProvider {
   }
 
   /// Generate a credential for an OAuth2 provider with a nonce.
+  /// If `access_token` is empty, `nullptr` is passed to the underlying API.
   static Credential GetCredential(const std::string& provider_id,
                                   const std::string& id_token,
                                   const std::string& raw_nonce,
                                   const std::string& access_token) {
-    return GetCredential(provider_id.c_str(), id_token.c_str(),
-                         raw_nonce.c_str(), access_token.c_str());
+    return GetCredential(
+        provider_id.c_str(), id_token.c_str(), raw_nonce.c_str(),
+        access_token.empty() ? nullptr : access_token.c_str());
   }
 #endif  // !defined(SWIG)
 
  private:
-  OAuthProvider() = delete;
+  OAuthProvider() {}
 };
 
 /// @brief Use phone number text messages to authenticate.
@@ -627,8 +632,8 @@ class PhoneAuthProvider {
   // The PhoneAuthProvider is owned by the Auth class.
   ~PhoneAuthProvider();
 
-  PhoneAuthProvider(const PhoneAuthProvider&) = delete;
-  PhoneAuthProvider& operator=(const PhoneAuthProvider&) = delete;
+  PhoneAuthProvider(const PhoneAuthProvider&);
+  PhoneAuthProvider& operator=(const PhoneAuthProvider&);
 
   PhoneAuthProviderData* data_;
 };
@@ -699,7 +704,7 @@ class PlayGamesAuthProvider {
   static const char* const kProviderId;
 
  private:
-  PlayGamesAuthProvider() = delete;
+  PlayGamesAuthProvider() {}
 };
 
 /// @brief Use a token and secret provided by Twitter to authenticate.
@@ -725,7 +730,7 @@ class TwitterAuthProvider {
   static const char* const kProviderId;
 
  private:
-  TwitterAuthProvider() = delete;
+  TwitterAuthProvider() {}
 };
 
 /// @brief Use an access token provided by Yahoo to authenticate.
@@ -735,7 +740,7 @@ class YahooAuthProvider {
   static const char* const kProviderId;
 
  private:
-  YahooAuthProvider() = delete;
+  YahooAuthProvider() {}
 };
 
 }  // namespace auth

@@ -147,6 +147,10 @@ std::string PhoneAuthCredential::sms_code() const { return sms_code_; }
 //
 // Provider methods
 //
+Credential InternalAuthResultProvider::GetCredential(FIRAuthCredential* _Nullable credential) {
+  return GetCredential(credential, kAuthErrorInvalidCredential, "Invalid credential.");
+}
+
 Credential InternalAuthResultProvider::GetCredential(FIRAuthCredential* _Nullable credential,
                                                      AuthError error_code,
                                                      const std::string& error_message) {
@@ -517,7 +521,12 @@ void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
       error_msg = "Phone verification failed.";
     }
     listener->OnVerificationFailed(error_msg);
+    return;
   }
+
+  // Auto-retrieval is not supported on iOS; notify the listener immediately so
+  // the application can display its manual verification code entry UI.
+  listener->OnCodeAutoRetrievalTimeOut(std::string());
 }
 #else   // non-iOS Apple platforms (eg: tvOS)
 

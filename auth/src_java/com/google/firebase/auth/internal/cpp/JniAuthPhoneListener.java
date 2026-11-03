@@ -51,13 +51,16 @@ public class JniAuthPhoneListener extends OnVerificationStateChangedCallbacks {
   public synchronized void disconnect() {
     cListener = CPP_NULLPTR;
     Thread currentThread = Thread.currentThread();
+    boolean interrupted = false;
     while (hasOtherActiveThreads(currentThread)) {
       try {
         wait();
       } catch (InterruptedException e) {
-        currentThread.interrupt();
-        break;
+        interrupted = true;
       }
+    }
+    if (interrupted) {
+      currentThread.interrupt();
     }
   }
 

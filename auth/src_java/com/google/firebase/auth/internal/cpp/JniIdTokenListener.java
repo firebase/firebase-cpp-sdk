@@ -60,13 +60,16 @@ public class JniIdTokenListener implements FirebaseAuth.IdTokenListener {
     synchronized (lock) {
       cppAuthData = 0;
       Thread currentThread = Thread.currentThread();
+      boolean interrupted = false;
       while (hasOtherActiveThreads(currentThread)) {
         try {
           lock.wait();
         } catch (InterruptedException e) {
-          currentThread.interrupt();
-          break;
+          interrupted = true;
         }
+      }
+      if (interrupted) {
+        currentThread.interrupt();
       }
     }
   }

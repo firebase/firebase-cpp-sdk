@@ -33,8 +33,11 @@
 
 // Wraps AuthData with an Obj-C object so that it's possible to remove
 // the authData from any blocks that reference this handle.
+// All reads, dereferences, and clearing of `authData` are performed inside
+// `@synchronized(listener_cpp_handle)` blocks, guaranteeing that `AuthData`
+// cannot be destroyed while a completion/listener block is using it.
 @interface FIRCPPAuthListenerHandle : NSObject
-@property(atomic, nullable) firebase::auth::AuthData *authData;
+@property(nonatomic, nullable) firebase::auth::AuthData *authData;
 @end
 
 namespace firebase {
@@ -61,16 +64,21 @@ struct AuthDataIos {
 // by the iOS SDK.
 class InternalAuthResultProvider {
  public:
-  static Credential GetCredential(
-      FIRAuthCredential *_Nullable credential,
-      AuthError error_code = kAuthErrorInvalidCredential,
-      const std::string &error_message = "Invalid credential.");
+  static Credential GetCredential(FIRAuthCredential *_Nullable credential);
+  static Credential GetCredential(FIRAuthCredential *_Nullable credential,
+                                  AuthError error_code,
+                                  const std::string &error_message);
 };
 
 /// Convert from the platform-independent void* to the Obj-C FIRUser pointer.
+/// Retains the FIRUser under ARC while holding `future_impl.mutex()` so it
+/// cannot be deallocated by a concurrent `SetUserImpl` before the caller
+/// receives it.
 static inline FIRUser *_Nullable UserImpl(AuthData *_Nonnull auth_data) {
   MutexLock lock(auth_data->future_impl.mutex());
-  return FIRUserPointer::SafeGet(static_cast<FIRUserPointer *>(auth_data->user_impl));
+  __strong FIRUser *user =
+      FIRUserPointer::SafeGet(static_cast<FIRUserPointer *>(auth_data->user_impl));
+  return user;
 }
 
 /// Set or release the platform-dependent FIRUser object.

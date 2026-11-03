@@ -188,6 +188,13 @@ static std::string GetProviderId(AuthData* auth_data, jobject impl) {
   return GetUserProperty(auth_data, impl, userinfo::kGetProviderId);
 }
 
+static jobject AcquireUserLocalRef(JNIEnv* env, AuthData* auth_data) {
+  if (!env || !auth_data) return nullptr;
+  MutexLock lock(auth_data->future_impl.mutex());
+  jobject user_impl = UserImpl(auth_data);
+  return user_impl != nullptr ? env->NewLocalRef(user_impl) : nullptr;
+}
+
 static void UpdateUserOnSuccess(jobject /*result*/,
                                 FutureCallbackData<void>* d, bool success,
                                 void* /*void_data*/) {
@@ -209,45 +216,62 @@ bool User::is_valid() const { return ValidUser(auth_data_); }
 
 std::string User::uid() const {
   if (!auth_data_) return "";
-  MutexLock lock(auth_data_->future_impl.mutex());
-  return ValidUser(auth_data_) ? GetUID(auth_data_, UserImpl(auth_data_)) : "";
+  JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return "";
+  std::string result = GetUID(auth_data_, user_local);
+  env->DeleteLocalRef(user_local);
+  return result;
 }
 
 std::string User::email() const {
   if (!auth_data_) return "";
-  MutexLock lock(auth_data_->future_impl.mutex());
-  return ValidUser(auth_data_) ? GetEmail(auth_data_, UserImpl(auth_data_))
-                               : "";
+  JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return "";
+  std::string result = GetEmail(auth_data_, user_local);
+  env->DeleteLocalRef(user_local);
+  return result;
 }
 
 std::string User::display_name() const {
   if (!auth_data_) return "";
-  MutexLock lock(auth_data_->future_impl.mutex());
-  return ValidUser(auth_data_)
-             ? GetDisplayName(auth_data_, UserImpl(auth_data_))
-             : "";
+  JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return "";
+  std::string result = GetDisplayName(auth_data_, user_local);
+  env->DeleteLocalRef(user_local);
+  return result;
 }
 
 std::string User::phone_number() const {
   if (!auth_data_) return "";
-  MutexLock lock(auth_data_->future_impl.mutex());
-  return ValidUser(auth_data_)
-             ? GetPhoneNumber(auth_data_, UserImpl(auth_data_))
-             : "";
+  JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return "";
+  std::string result = GetPhoneNumber(auth_data_, user_local);
+  env->DeleteLocalRef(user_local);
+  return result;
 }
 
 std::string User::photo_url() const {
   if (!auth_data_) return "";
-  MutexLock lock(auth_data_->future_impl.mutex());
-  return ValidUser(auth_data_) ? GetPhotoUrl(auth_data_, UserImpl(auth_data_))
-                               : "";
+  JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return "";
+  std::string result = GetPhotoUrl(auth_data_, user_local);
+  env->DeleteLocalRef(user_local);
+  return result;
 }
 
 std::string User::provider_id() const {
   if (!auth_data_) return "";
-  MutexLock lock(auth_data_->future_impl.mutex());
-  return ValidUser(auth_data_) ? GetProviderId(auth_data_, UserImpl(auth_data_))
-                               : "";
+  JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return "";
+  std::string result = GetProviderId(auth_data_, user_local);
+  env->DeleteLocalRef(user_local);
+  return result;
 }
 
 static void ReadTokenResultImpl(jobject result,
@@ -304,19 +328,17 @@ Future<std::string> User::GetToken(bool force_refresh) {
   if (force_refresh) {
     auth_data_->SetExpectIdTokenListenerCallback(true);
   }
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      if (force_refresh) {
-        auth_data_->SetExpectIdTokenListenerCallback(false);
-      }
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    if (force_refresh) {
+      auth_data_->SetExpectIdTokenListenerCallback(false);
     }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kToken), force_refresh);
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kToken), force_refresh);
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_,
@@ -412,19 +434,17 @@ Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
   if (force_refresh) {
     auth_data_->SetExpectIdTokenListenerCallback(true);
   }
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      if (force_refresh) {
-        auth_data_->SetExpectIdTokenListenerCallback(false);
-      }
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    if (force_refresh) {
+      auth_data_->SetExpectIdTokenListenerCallback(false);
     }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kToken), force_refresh);
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kToken), force_refresh);
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(
@@ -441,13 +461,13 @@ Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
   if (!auth_data_) return provider_data;
-  MutexLock lock(auth_data_->future_impl.mutex());
-  if (ValidUser(auth_data_)) {
-    JNIEnv* env = Env(auth_data_);
-
+  JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local != nullptr) {
     // getProviderData returns `List<? extends UserInfo>`
     const jobject list = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kProviderData));
+        user_local, user::GetMethodId(user::kProviderData));
+    env->DeleteLocalRef(user_local);
     if (util::CheckAndClearJniExceptions(env)) {
       if (list) env->DeleteLocalRef(list);
       return provider_data;
@@ -496,19 +516,15 @@ Future<void> User::UpdatePassword(const char* password) {
   }
   JNIEnv* env = Env(auth_data_);
 
-  jstring j_password = env->NewStringUTF(password);
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      env->DeleteLocalRef(j_password);
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kUpdatePassword),
-        j_password);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jstring j_password = env->NewStringUTF(password);
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kUpdatePassword), j_password);
+  env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_password);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
@@ -540,9 +556,7 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 
   // Call UserProfileChangeRequest.Builder.setDisplayName.
   if (error == kAuthErrorNone && profile.display_name != nullptr) {
-    jstring j_display_name = strlen(profile.display_name) > 0
-                                 ? env->NewStringUTF(profile.display_name)
-                                 : nullptr;
+    jstring j_display_name = env->NewStringUTF(profile.display_name);
     jobject j_builder_discard = env->CallObjectMethod(
         j_user_profile_builder,
         userprofilebuilder::GetMethodId(userprofilebuilder::kSetDisplayName),
@@ -598,22 +612,19 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 
   if (error == kAuthErrorNone) {
     // Call FirebaseUser.updateProfile.
-    jobject pending_result = nullptr;
-    bool valid_user = false;
-    {
-      MutexLock lock(auth_data_->future_impl.mutex());
-      if (UserImpl(auth_data_) != nullptr) {
-        valid_user = true;
-        pending_result = env->CallObjectMethod(
-            UserImpl(auth_data_), user::GetMethodId(user::kUpdateUserProfile),
-            j_user_profile_request);
-      }
-    }
-    if (!valid_user) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data_);
+    if (user_local == nullptr) {
       futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    } else if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
-      env->DeleteLocalRef(pending_result);
+    } else {
+      jobject pending_result = env->CallObjectMethod(
+          user_local, user::GetMethodId(user::kUpdateUserProfile),
+          j_user_profile_request);
+      env->DeleteLocalRef(user_local);
+      if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+        RegisterCallback(pending_result, handle, auth_data_,
+                         UpdateUserOnSuccess);
+        env->DeleteLocalRef(pending_result);
+      }
     }
   } else {
     futures.Complete(handle, error, exception_error_message.c_str());
@@ -644,17 +655,15 @@ Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
   }
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kLinkWithCredential),
-        CredentialFromImpl(credential.impl_));
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kLinkWithCredential),
+      CredentialFromImpl(credential.impl_));
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
@@ -685,18 +694,15 @@ Future<AuthResult> User::Unlink(const char* provider) {
   }
   JNIEnv* env = Env(auth_data_);
 
-  jstring j_provider = env->NewStringUTF(provider);
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      env->DeleteLocalRef(j_provider);
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kUnlink), j_provider);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jstring j_provider = env->NewStringUTF(provider);
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kUnlink), j_provider);
+  env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_provider);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
@@ -728,17 +734,15 @@ Future<User> User::UpdatePhoneNumberCredential(
   jobject j_credential = CredentialFromImpl(credential.impl_);
   if (j_credential != nullptr &&
       env->IsInstanceOf(j_credential, phonecredential::GetClass())) {
-    jobject pending_result = nullptr;
-    {
-      MutexLock lock(auth_data_->future_impl.mutex());
-      if (UserImpl(auth_data_) == nullptr) {
-        futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-        return MakeFuture(&futures, handle);
-      }
-      pending_result = env->CallObjectMethod(
-          UserImpl(auth_data_),
-          user::GetMethodId(user::kUpdatePhoneNumberCredential), j_credential);
+    jobject user_local = AcquireUserLocalRef(env, auth_data_);
+    if (user_local == nullptr) {
+      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+      return MakeFuture(&futures, handle);
     }
+    jobject pending_result = env->CallObjectMethod(
+        user_local, user::GetMethodId(user::kUpdatePhoneNumberCredential),
+        j_credential);
+    env->DeleteLocalRef(user_local);
 
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterCallback(
@@ -746,7 +750,6 @@ Future<User> User::UpdatePhoneNumberCredential(
           [](jobject /*result*/, FutureCallbackData<User>* d, bool success,
              void* void_data) {
             auto* data = static_cast<User*>(void_data);
-            MutexLock lock(d->auth_data->future_impl.mutex());
             if (success) {
               UpdateCurrentUser(d->auth_data);
               *data = d->auth_data->auth->current_user();
@@ -771,16 +774,14 @@ Future<void> User::Reload() {
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reload);
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kReload));
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result =
+      env->CallObjectMethod(user_local, user::GetMethodId(user::kReload));
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
@@ -806,17 +807,15 @@ Future<void> User::Reauthenticate(const Credential& credential) {
   }
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kReauthenticate),
-        CredentialFromImpl(credential.impl_));
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kReauthenticate),
+      CredentialFromImpl(credential.impl_));
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
@@ -844,18 +843,15 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(
   }
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_),
-        user::GetMethodId(user::kReauthenticateAndRetrieveData),
-        CredentialFromImpl(credential.impl_));
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kReauthenticateAndRetrieveData),
+      CredentialFromImpl(credential.impl_));
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
@@ -881,16 +877,14 @@ Future<void> User::SendEmailVerification() {
   const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerification);
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kSendEmailVerification));
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kSendEmailVerification));
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, nullptr);
@@ -913,19 +907,15 @@ Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
   }
   JNIEnv* env = Env(auth_data_);
 
-  jstring j_email = env->NewStringUTF(email);
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      env->DeleteLocalRef(j_email);
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_),
-        user::GetMethodId(user::kVerifyBeforeUpdateEmail), j_email);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jstring j_email = env->NewStringUTF(email);
+  jobject pending_result = env->CallObjectMethod(
+      user_local, user::GetMethodId(user::kVerifyBeforeUpdateEmail), j_email);
+  env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_email);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
@@ -943,16 +933,14 @@ Future<void> User::Delete() {
   const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = nullptr;
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (UserImpl(auth_data_) == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
-    }
-    pending_result = env->CallObjectMethod(
-        UserImpl(auth_data_), user::GetMethodId(user::kDelete));
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (user_local == nullptr) {
+    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+    return MakeFuture(&futures, handle);
   }
+  jobject pending_result =
+      env->CallObjectMethod(user_local, user::GetMethodId(user::kDelete));
+  env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
@@ -963,13 +951,13 @@ Future<void> User::Delete() {
 
 UserMetadata User::metadata() const {
   if (!auth_data_) return UserMetadata();
-  MutexLock lock(auth_data_->future_impl.mutex());
-  if (!ValidUser(auth_data_)) return UserMetadata();
-
   JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return UserMetadata();
 
   jobject userMetadata = env->CallObjectMethod(
-      UserImpl(auth_data_), user::GetMethodId(user::kGetMetadata));
+      user_local, user::GetMethodId(user::kGetMetadata));
+  env->DeleteLocalRef(user_local);
   if (util::CheckAndClearJniExceptions(env) || !userMetadata) {
     if (userMetadata) env->DeleteLocalRef(userMetadata);
     return UserMetadata();
@@ -990,24 +978,24 @@ UserMetadata User::metadata() const {
 
 bool User::is_email_verified() const {
   if (!auth_data_) return false;
-  MutexLock lock(auth_data_->future_impl.mutex());
-  if (!ValidUser(auth_data_)) return false;
-
   JNIEnv* env = Env(auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return false;
   bool result = env->CallBooleanMethod(
-      UserImpl(auth_data_), userinfo::GetMethodId(userinfo::kIsEmailVerified));
+      user_local, userinfo::GetMethodId(userinfo::kIsEmailVerified));
+  env->DeleteLocalRef(user_local);
   util::CheckAndClearJniExceptions(env);
   return result;
 }
 
 bool User::is_anonymous() const {
   if (!auth_data_) return false;
-  MutexLock lock(auth_data_->future_impl.mutex());
-  if (!ValidUser(auth_data_)) return false;
-
   JNIEnv* env = Env(auth_data_);
-  bool result = env->CallBooleanMethod(UserImpl(auth_data_),
+  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  if (!user_local) return false;
+  bool result = env->CallBooleanMethod(user_local,
                                        user::GetMethodId(user::kIsAnonymous));
+  env->DeleteLocalRef(user_local);
   util::CheckAndClearJniExceptions(env);
   return result;
 }
