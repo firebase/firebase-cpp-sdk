@@ -30,7 +30,16 @@
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/jni/declaration.h"
+#include "app/src/jni/env.h"
+#include "app/src/jni/exception.h"
+#include "app/src/jni/global.h"
+#include "app/src/jni/local.h"
+#include "app/src/jni/ownership.h"
+#include "app/src/jni/string.h"
+#include "app/src/jni/traits.h"
 #include "app/src/jobject_reference.h"
 #include "app/src/log.h"
 
@@ -51,13 +60,14 @@ typedef struct {
 } JNINativeMethod;
 // Converts firebase::JNINativeMethod array to ::JNINativeMethod
 // array.
-// Caller ownes the result and must call CleanUpConvertedJNINativeMethod() to
+// Caller owns the result and must call CleanUpConvertedJNINativeMethod() to
 // release the allocation.
 inline const ::JNINativeMethod* ConvertJNINativeMethod(
     const JNINativeMethod* source, size_t number_of_native_methods) {
+  if (!source || number_of_native_methods == 0) return nullptr;
   ::JNINativeMethod* target = new ::JNINativeMethod[number_of_native_methods];
   ::JNINativeMethod* result = target;
-  for (int i = 0; i < number_of_native_methods; ++i) {
+  for (size_t i = 0; i < number_of_native_methods; ++i) {
     target->name = const_cast<char*>(source->name);
     target->signature = const_cast<char*>(source->signature);
     target->fnPtr = source->fnPtr;
@@ -76,11 +86,13 @@ typedef ::JNINativeMethod JNINativeMethod;
 // CleanUpConvertedJNINativeMethod() to match the other branch.
 inline const ::JNINativeMethod* ConvertJNINativeMethod(
     const JNINativeMethod* source, size_t number_of_native_methods) {
+  (void)number_of_native_methods;
   // We avoid copying and use the source directly.
   return source;
 }
 inline void CleanUpConvertedJNINativeMethod(const ::JNINativeMethod* target) {
-  // Dothing, as caller does not own it.
+  (void)target;
+  // Do nothing, as caller does not own it.
   return;
 }
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
@@ -264,10 +276,19 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* CacheEmbeddedFiles(). */                                                 \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::firebase::internal::EmbeddedFile>*        \
+      const std::vector<::firebase::internal::EmbeddedFile>*                  \
+          embedded_files,                                                     \
+      ::firebase::util::ClassRequirement optional);                           \
+                                                                              \
+  jclass CacheClassFromFiles(                                                 \
+      JNIEnv *env, jobject activity_object,                                   \
+      const std::vector<::firebase::internal::EmbeddedFile>*                  \
           embedded_files);                                                    \
                                                                               \
   /* Find and hold a reference to this namespace's class. */                  \
+  jclass CacheClass(JNIEnv *env, jobject activity_object,                     \
+                    ::firebase::util::ClassRequirement optional);             \
+  jclass CacheClass(JNIEnv *env, jobject activity_object);                    \
   jclass CacheClass(JNIEnv *env);                                             \
                                                                               \
   /* Get the cached class associated with this namespace. */                  \
@@ -323,7 +344,10 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
                                                                               \
   /* Skip optional "%PG%" at the beginning of the string, if present. */      \
   static const char* kClassName =                                             \
-      class_name[0] == '%' ? &class_name[4] : class_name;                     \
+      (class_name && class_name[0] == '%' && class_name[1] == 'P' &&          \
+       class_name[2] == 'G' && class_name[3] == '%')                          \
+          ? &class_name[4]                                                    \
+          : class_name;                                                       \
                                                                               \
   static const ::firebase::util::MethodNameSignature                \
       kMethodSignatures[] = {                                                 \
@@ -340,6 +364,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
                                                                               \
   static jclass g_class = nullptr;                                            \
   static bool g_registered_natives = false;                                   \
+  static ::firebase::Mutex g_mutex;                                           \
                                                                               \
   /* Find and hold a reference to this namespace's class, optionally */       \
   /* searching a set of files for the class. */                               \
@@ -349,11 +374,12 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* does not exist. */                                                       \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::firebase::internal::EmbeddedFile>*        \
+      const std::vector<::firebase::internal::EmbeddedFile>*                  \
           embedded_files,                                                     \
-      ::firebase::util::ClassRequirement optional) {                \
+      ::firebase::util::ClassRequirement optional) {                          \
+    ::firebase::MutexLock lock(g_mutex);                                      \
     if (!g_class) {                                                           \
-      g_class = ::firebase::util::FindClassGlobal(                  \
+      g_class = ::firebase::util::FindClassGlobal(                            \
           env, activity_object, embedded_files, kClassName, optional);        \
     }                                                                         \
     return g_class;                                                           \
@@ -381,34 +407,59 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
         ::firebase::util::ClassRequirement::kClassRequired);        \
   }                                                                           \
                                                                               \
+  /* Find and hold a reference to this namespace's class. */                  \
+  jclass CacheClass(JNIEnv* env) {                                            \
+    return CacheClass(env, nullptr);                                          \
+  }                                                                           \
+                                                                              \
   /* Get the cached class associated with this namespace. */                  \
   jclass GetClass() { return g_class; }                                       \
                                                                               \
   bool RegisterNatives(JNIEnv* env, const JNINativeMethod* native_methods,    \
                        size_t number_of_native_methods) {                     \
+    ::firebase::MutexLock lock(g_mutex);                                      \
     if (g_registered_natives) return false;                                   \
+    if (!env || !g_class || !native_methods ||                                \
+        number_of_native_methods == 0 ||                                      \
+        number_of_native_methods > static_cast<size_t>(INT32_MAX)) {          \
+      return false;                                                           \
+    }                                                                         \
+    ::firebase::util::CheckAndClearJniExceptions(env);                        \
     const ::JNINativeMethod* true_native_methods =                            \
-        firebase::ConvertJNINativeMethod(native_methods,            \
-                                         number_of_native_methods);           \
+        ::firebase::ConvertJNINativeMethod(native_methods,                    \
+                                           number_of_native_methods);         \
     const jint register_status = env->RegisterNatives(                        \
-      GetClass(), true_native_methods, number_of_native_methods);             \
-    firebase::CleanUpConvertedJNINativeMethod(true_native_methods); \
-    firebase::util::CheckAndClearJniExceptions(env);                \
-    g_registered_natives = register_status == JNI_OK;                         \
+      GetClass(), true_native_methods,                                        \
+      static_cast<jint>(number_of_native_methods));                           \
+    ::firebase::CleanUpConvertedJNINativeMethod(true_native_methods);         \
+    const bool had_exception =                                                \
+        ::firebase::util::CheckAndClearJniExceptions(env);                    \
+    g_registered_natives = (register_status == JNI_OK && !had_exception);     \
     return g_registered_natives;                                              \
   }                                                                           \
                                                                               \
   /* Release the cached class reference. */                                   \
   void ReleaseClass(JNIEnv* env) {                                            \
+    ::firebase::MutexLock lock(g_mutex);                                      \
+    for (size_t i = 0; i < static_cast<size_t>(kMethodCount); ++i) {          \
+      g_method_ids[i] = nullptr;                                              \
+    }                                                                         \
+    for (size_t i = 0; i < static_cast<size_t>(kFieldCount); ++i) {           \
+      g_field_ids[i] = nullptr;                                               \
+    }                                                                         \
     if (g_class) {                                                            \
-      if (g_registered_natives) {                                             \
-        env->UnregisterNatives(g_class);                                      \
-        g_registered_natives = false;                                         \
+      if (env) {                                                              \
+        ::firebase::util::CheckAndClearJniExceptions(env);                    \
+        if (g_registered_natives) {                                           \
+          env->UnregisterNatives(g_class);                                    \
+          ::firebase::util::CheckAndClearJniExceptions(env);                  \
+        }                                                                     \
       }                                                                       \
-      firebase::util::CheckAndClearJniExceptions(env);              \
-      env->DeleteGlobalRef(g_class);                                          \
+      ::firebase::jni::internal::GlobalRefReaper::DeleteOrEnqueue(            \
+          g_class, env);                                                      \
       g_class = nullptr;                                                      \
     }                                                                         \
+    g_registered_natives = false;                                             \
   }                                                                           \
                                                                               \
   /* See LookupMethodIds() */                                                 \
@@ -423,7 +474,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
                                                                               \
   /* Lookup a method ID using a Method enum value. */                         \
   jmethodID GetMethodId(Method method) {                                      \
-    FIREBASE_ASSERT(method < kMethodCount);                                   \
+    FIREBASE_ASSERT(static_cast<int>(method) >= 0 && method < kMethodCount);  \
     jmethodID method_id = g_method_ids[method];                               \
     return method_id;                                                         \
   }                                                                           \
@@ -441,7 +492,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
                                                                               \
   /* Lookup a field ID using a Field enum value. */                           \
   jfieldID GetFieldId(Field field) {                                          \
-    FIREBASE_ASSERT(field < kFieldCount);                                     \
+    FIREBASE_ASSERT(static_cast<int>(field) >= 0 && field < kFieldCount);     \
     jfieldID field_id = g_field_ids[field];                                   \
     return field_id;                                                          \
   }                                                                           \
@@ -463,7 +514,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   METHOD_LOOKUP_DEFINITION_EXPANDER(                                  \
       , ##__VA_ARGS__, METHOD_LOOKUP_DEFINITION_4(__VA_ARGS__),       \
       METHOD_LOOKUP_DEFINITION_3(__VA_ARGS__), numargs2(__VA_ARGS__), \
-      numargs1(__VA_ARGS__), numargs0(__VA_ARGS))
+      numargs1(__VA_ARGS__), numargs0(__VA_ARGS__))
 
 // Used to call android.app.Activity methods.
 // clang-format off
@@ -483,7 +534,8 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 #define ACTIVITY_METHODS(X)                                             \
   ACTIVITY_BASE_METHODS(X),                                             \
   X(GetCodeCacheDir, "getCodeCacheDir", "()Ljava/io/File;",             \
-    util::kMethodTypeInstance, util::kMethodOptional)
+    ::firebase::util::kMethodTypeInstance,                              \
+    ::firebase::util::kMethodOptional)
 #else
 #define ACTIVITY_METHODS(X) ACTIVITY_BASE_METHODS(X)
 #endif  // !defined(FIREBASE_ANDROID_FOR_DESKTOP)
@@ -694,8 +746,9 @@ METHOD_LOOKUP_DECLARATION(throwable, THROWABLE_METHODS);
 // clang-format off
 #define URI_METHODS(X)                                                         \
     X(ToString, "toString", "()Ljava/lang/String;"),                           \
+    X(GetPath, "getPath", "()Ljava/lang/String;"),                             \
     X(Parse, "parse", "(Ljava/lang/String;)Landroid/net/Uri;",                 \
-      kMethodTypeStatic)
+      ::firebase::util::kMethodTypeStatic)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(uri, URI_METHODS)
 
@@ -812,9 +865,15 @@ class JavaThreadContext {
 
  private:
   internal::JObjectReference object_;
-
-  static int initialize_count_;
 };
+
+using jni::ExceptionClearGuard;
+using jni::ExceptionPolicy;
+using jni::GlobalRef;
+using jni::JniCallbackScope;
+using jni::JniEnv;
+using jni::ScopedLocalRef;
+using jni::ScopedThreadAttachment;
 
 // Returns true of `obj` is a Java array.
 bool IsJArray(JNIEnv* env, jobject obj);
@@ -890,12 +949,14 @@ std::string JniUriGetPath(JNIEnv* env, jobject uri);
 // Note that a Java Boolean object is different from a jboolean primitive type.
 bool JBooleanToBool(JNIEnv* env, jobject obj);
 
-// Convert a Java Byte object into a C++ uint8_t.
+// Convert a Java Byte object into a C++ int8_t / uint8_t.
 // Note that a Java Byte object is different from a jbyte primitive type.
+int8_t JByteToInt8(JNIEnv* env, jobject obj);
 uint8_t JByteToUInt8(JNIEnv* env, jobject obj);
 
-// Convert a Java Character object into a C++ char.
+// Convert a Java Character object into a C++ uint16_t / char.
 // Note that a Java Char object is different from a jchar primitive type.
+uint16_t JCharToUInt16(JNIEnv* env, jobject obj);
 char JCharToChar(JNIEnv* env, jobject obj);
 
 // Convert a Java Short object into a C++ int16_t.
@@ -904,6 +965,7 @@ int16_t JShortToInt16(JNIEnv* env, jobject obj);
 
 // Convert a Java Integer object into a C++ int.
 // Note that a Java Integer object is different from a jint primitive type.
+int JIntToInt(JNIEnv* env, jobject obj);
 int JIntegerToInt(JNIEnv* env, jobject obj);
 
 // Convert a Java Long object into a C++ int64_t.
@@ -996,7 +1058,7 @@ jobject LocalToGlobalReference(JNIEnv* env, jobject local_reference);
 //                           ...));
 // [ ...etc., until... ]
 // jobject my_object = env->CallObjectMethod(builder, FINISH_BUILDING);
-// env->DeleteLocalEnv(builder);
+// env->DeleteLocalRef(builder);
 jobject ContinueBuilder(JNIEnv* env, jobject old_builder, jobject new_builder);
 
 // Indicates how the Future was finished.
@@ -1023,7 +1085,7 @@ typedef void TaskCallbackFn(JNIEnv* env, jobject result,
 
 // Calls callback_fn when the Task `task` is complete, where `task` is an
 // instance of com.google.android.gms.tasks.Task.
-// NOTE: api_identifier must *not* be deallocated or can be nullptr to place
+// NOTE: api_identifier is copied internally, or can be nullptr to place
 // the callback in the global pool.
 void RegisterCallbackOnTask(JNIEnv* env, jobject task,
                             TaskCallbackFn callback_fn, void* callback_data,
@@ -1046,8 +1108,9 @@ jclass FindClassGlobal(
 // Find a class, attempting to load the class if it's not found.
 jclass FindClass(JNIEnv* env, const char* class_name);
 // Deprecated method.
-static inline jclass FindClass(JNIEnv* env, jobject activity_object,
-                               const char* class_name) {
+inline jclass FindClass(JNIEnv* env, jobject activity_object,
+                        const char* class_name) {
+  (void)activity_object;
   return FindClass(env, class_name);
 }
 

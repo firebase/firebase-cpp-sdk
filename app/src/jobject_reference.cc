@@ -18,10 +18,11 @@
 
 #include <jni.h>
 
-#include <cassert>
+#include <atomic>
 
 #include "app/src/assert.h"
-// util_android.h is included for GetThreadsafeJNIEnv()
+#include "app/src/jni/exception.h"
+#include "app/src/jni/ownership.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
@@ -30,83 +31,172 @@ namespace internal {
 JObjectReference::JObjectReference() : java_vm_(nullptr), object_(nullptr) {}
 
 JObjectReference::JObjectReference(JNIEnv* env)
-    : java_vm_(GetJavaVM(env)), object_(nullptr) {}
-
-JObjectReference::JObjectReference(JNIEnv* env, jobject object) {
-  Initialize(GetJavaVM(env), env, object);
+    : java_vm_(nullptr), object_(nullptr) {
+  Initialize(env, nullptr, nullptr);
 }
 
-JObjectReference::JObjectReference(const JObjectReference& reference) {
-  Initialize(reference.java_vm_, reference.GetJNIEnv(), reference.object());
+JObjectReference::JObjectReference(JNIEnv* env, jobject object)
+    : java_vm_(nullptr), object_(nullptr) {
+  Initialize(env, nullptr, object);
 }
 
-#ifdef FIREBASE_USE_MOVE_OPERATORS
-JObjectReference::JObjectReference(JObjectReference&& reference) noexcept {
-  operator=(std::move(reference));
+JObjectReference::JObjectReference(const JObjectReference& reference)
+    : java_vm_(reference.java_vm_), object_(nullptr) {
+  if (reference.object_ != nullptr) {
+    Initialize(nullptr, reference.java_vm_, reference.object_);
+  }
 }
-#endif  // FIREBASE_USE_MOVE_OPERATORS
+
+JObjectReference::JObjectReference(JObjectReference&& reference) noexcept
+    : java_vm_(reference.java_vm_), object_(reference.object_) {
+  reference.java_vm_ = nullptr;
+  reference.object_ = nullptr;
+}
 
 JObjectReference::~JObjectReference() { Set(nullptr); }
 
 JObjectReference& JObjectReference::operator=(
     const JObjectReference& reference) {
-  Set(reference.GetJNIEnv(), reference.object_);
+  if (this == &reference) return *this;
+  if (!java_vm_ && reference.java_vm_) {
+    java_vm_ = reference.java_vm_;
+  }
+  if (reference.object_ == nullptr) {
+    Set(nullptr);
+    return *this;
+  }
+  Set(nullptr, reference.object_);
   return *this;
 }
 
-#ifdef FIREBASE_USE_MOVE_OPERATORS
 JObjectReference& JObjectReference::operator=(
     JObjectReference&& reference) noexcept {
-  java_vm_ = reference.java_vm_;
-  object_ = reference.object_;
-  reference.java_vm_ = nullptr;
-  reference.object_ = nullptr;
+  if (this != &reference) {
+    Set(nullptr);
+    java_vm_ = reference.java_vm_;
+    object_ = reference.object_;
+    reference.java_vm_ = nullptr;
+    reference.object_ = nullptr;
+  }
   return *this;
 }
-#endif  // FIREBASE_USE_MOVE_OPERATORS
 
 void JObjectReference::Set(jobject jobject_reference) {
-  JNIEnv* env = GetJNIEnv();
-  if (env && object_) env->DeleteGlobalRef(object_);
-  object_ = nullptr;
-  Initialize(java_vm_, env, jobject_reference);
+  if (jobject_reference == nullptr && object_ == nullptr) {
+    return;
+  }
+  Set(nullptr, jobject_reference);
 }
 
 void JObjectReference::Set(JNIEnv* env, jobject jobject_reference) {
-  if (env && object_) env->DeleteGlobalRef(object_);
-  object_ = nullptr;
-  Initialize(GetJavaVM(env), env, jobject_reference);
+  if (env && !java_vm_) {
+    java_vm_ = GetJavaVM(env);
+  }
+  if (jobject_reference != nullptr && jobject_reference == object_) {
+    return;
+  }
+
+  jobject new_object = nullptr;
+  if (jobject_reference != nullptr) {
+    new_object = jni::internal::GlobalRefReaper::NewGlobalRef(
+        env, jobject_reference, java_vm_);
+  }
+
+  if (object_ != nullptr) {
+    jni::internal::GlobalRefReaper::DeleteOrEnqueue(object_, env,
+                                                    java_vm_);
+  }
+
+  object_ = new_object;
+  if (java_vm_ == nullptr && env != nullptr) {
+    java_vm_ = GetJavaVM(env);
+  }
+}
+
+jobject JObjectReference::Set(JNIEnv* env, jobject jobject_reference,
+                              std::atomic<jobject>* target_jobject_reference) {
+  FIREBASE_DEV_ASSERT(env);
+  FIREBASE_DEV_ASSERT(target_jobject_reference);
+  if (!target_jobject_reference) return nullptr;
+  
+  jobject old_ref = target_jobject_reference->load(std::memory_order_acquire);
+  if (jobject_reference != nullptr &&
+      jobject_reference == old_ref) {
+    return old_ref;
+  }
+  if (env) {
+    jni::internal::GlobalRefReaper::RecordJavaVM(env);
+  }
+  jobject new_object = nullptr;
+  if (jobject_reference != nullptr) {
+    new_object =
+        jni::internal::GlobalRefReaper::NewGlobalRef(env, jobject_reference);
+  }
+  
+  // Try to atomically swap in the new reference
+  while (!target_jobject_reference->compare_exchange_weak(old_ref, new_object, std::memory_order_release, std::memory_order_acquire)) {
+    // If another thread updated it to the SAME object we just created a ref for (unlikely but possible)
+    if (old_ref == jobject_reference) {
+      if (new_object) {
+        jni::internal::GlobalRefReaper::DeleteOrEnqueue(new_object, env);
+      }
+      return old_ref;
+    }
+  }
+
+  // We successfully swapped. Delete the old reference.
+  if (old_ref != nullptr) {
+    jni::internal::GlobalRefReaper::DeleteOrEnqueue(old_ref, env);
+  }
+  return new_object;
+}
+
+JObjectReference JObjectReference::FromLocalReference(
+    JNIEnv* env, jobject local_reference) {
+  JObjectReference jref(env, local_reference);
+  if (env && local_reference) {
+    env->DeleteLocalRef(local_reference);
+  }
+  return jref;
 }
 
 JNIEnv* JObjectReference::GetJNIEnv() const {
-  return java_vm_ ? util::GetThreadsafeJNIEnv(java_vm_) : nullptr;
+  JavaVM* vm =
+      java_vm_ ? java_vm_ : jni::internal::GlobalRefReaper::GetJavaVM();
+  return vm ? util::GetThreadsafeJNIEnv(vm) : nullptr;
 }
 
 jobject JObjectReference::GetLocalRef() const {
+  if (!object_) return nullptr;
   JNIEnv* env = GetJNIEnv();
-  return object_ && env ? env->NewLocalRef(object_) : nullptr;
+  if (!env) return nullptr;
+  jni::ExceptionClearGuard guard(env);
+  return env->NewLocalRef(object_);
 }
 
-JObjectReference JObjectReference::FromLocalReference(JNIEnv* env,
-                                                      jobject local_reference) {
-  JObjectReference jobject_reference = JObjectReference(env, local_reference);
-  if (local_reference) env->DeleteLocalRef(local_reference);
-  return jobject_reference;
-}
-
-void JObjectReference::Initialize(JavaVM* jvm, JNIEnv* env,
+void JObjectReference::Initialize(JNIEnv* env, JavaVM* jvm,
                                   jobject jobject_reference) {
-  FIREBASE_DEV_ASSERT(env || !jobject_reference);
-  java_vm_ = jvm;
+  java_vm_ = jvm ? jvm : GetJavaVM(env);
+  FIREBASE_DEV_ASSERT(env || java_vm_ || !jobject_reference);
   object_ = nullptr;
-  if (jobject_reference) object_ = env->NewGlobalRef(jobject_reference);
+  if (jobject_reference != nullptr) {
+    object_ = jni::internal::GlobalRefReaper::NewGlobalRef(
+        env, jobject_reference, java_vm_);
+  }
 }
 
 JavaVM* JObjectReference::GetJavaVM(JNIEnv* env) {
-  FIREBASE_DEV_ASSERT(env);
+  if (!env) {
+    return jni::internal::GlobalRefReaper::GetJavaVM();
+  }
   JavaVM* jvm = nullptr;
+  jni::ExceptionClearGuard guard(env);
   jint result = env->GetJavaVM(&jvm);
+  (void)result;
   FIREBASE_DEV_ASSERT(result == JNI_OK);
+  if (result == JNI_OK && jvm != nullptr) {
+    jni::internal::GlobalRefReaper::SetJavaVM(jvm);
+  }
   return jvm;
 }
 

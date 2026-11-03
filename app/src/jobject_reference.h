@@ -13,104 +13,128 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef FIREBASE_APP_SRC_JOBJECT_REFERENCE_H_
 #define FIREBASE_APP_SRC_JOBJECT_REFERENCE_H_
 
 #include <jni.h>
 
-#include "app/src/include/firebase/internal/common.h"
+#include <atomic>
+#include <utility>
 
-namespace firebase {
-namespace internal {
-
-// Creates an alias of internal::JObjectReference named classname.
-// This is useful when defining the implementation of a forward declared class
-// using JObjectReference.
+/// @brief Macro to create a child class of JObjectReference for forward
+/// declaration compatibility.
 #define JOBJECT_REFERENCE(classname)                                        \
-  class classname : public firebase::internal::JObjectReference {           \
+  class classname : public ::firebase::internal::JObjectReference {         \
    public:                                                                  \
+    classname() = default;                                                  \
     explicit classname(JNIEnv* env)                                         \
-        : firebase::internal::JObjectReference(env) {}                      \
-    explicit classname(const firebase::internal::JObjectReference& obj)     \
-        : firebase::internal::JObjectReference(obj) {}                      \
-    explicit classname(firebase::internal::JObjectReference&& obj)          \
-        : firebase::internal::JObjectReference(obj) {}                      \
+        : ::firebase::internal::JObjectReference(env) {}                    \
     classname(JNIEnv* env, jobject obj)                                     \
-        : firebase::internal::JObjectReference(env, obj) {}                 \
-    classname& operator=(const firebase::internal::JObjectReference& rhs) { \
-      firebase::internal::JObjectReference::operator=(rhs);                 \
+        : ::firebase::internal::JObjectReference(env, obj) {}               \
+    classname(const classname&) = default;                                  \
+    classname(classname&&) noexcept = default;                              \
+    explicit classname(const ::firebase::internal::JObjectReference& obj)   \
+        : ::firebase::internal::JObjectReference(obj) {}                    \
+    explicit classname(::firebase::internal::JObjectReference&& obj) noexcept \
+        : ::firebase::internal::JObjectReference(std::move(obj)) {}         \
+    classname& operator=(const classname&) = default;                       \
+    classname& operator=(classname&&) noexcept = default;                   \
+    classname& operator=(                                                   \
+        const ::firebase::internal::JObjectReference& rhs) {                \
+      ::firebase::internal::JObjectReference::operator=(rhs);               \
       return *this;                                                         \
     }                                                                       \
-    classname& operator=(firebase::internal::JObjectReference&& rhs) {      \
-      firebase::internal::JObjectReference::operator=(rhs);                 \
+    classname& operator=(                                                   \
+        ::firebase::internal::JObjectReference&& rhs) noexcept {            \
+      ::firebase::internal::JObjectReference::operator=(std::move(rhs));    \
       return *this;                                                         \
     }                                                                       \
   }
 
-// Creates and holds a global reference to a Java object.
+namespace firebase {
+/// @cond FIREBASE_APP_INTERNAL
+namespace internal {
+
+// Backwards-compatible wrapper around a jobject global reference that manages
+// creation and deletion of the global reference.
 class JObjectReference {
  public:
+  // Construct an empty reference with no associated JavaVM.
   JObjectReference();
-  explicit JObjectReference(JNIEnv* env);
-  // Create a reference to a java object.
-  JObjectReference(JNIEnv* env, jobject object);
-  // Copy
-  JObjectReference(const JObjectReference& reference);
-  // Move
-#ifdef FIREBASE_USE_MOVE_OPERATORS
-  JObjectReference(JObjectReference&& reference) noexcept;
-#endif  // FIREBASE_USE_MOVE_OPERATORS
-  // Delete the reference to the java object.
-  ~JObjectReference();
-  // Copy this reference.
-  JObjectReference& operator=(const JObjectReference& reference);
-  // Move this reference.
-#ifdef FIREBASE_USE_MOVE_OPERATORS
-  JObjectReference& operator=(JObjectReference&& reference) noexcept;
-#endif  // FIREBASE_USE_MOVE_OPERATORS
 
-  // Add a global reference to the specified object, removing the reference
-  // to the object currently referenced by this class.  If jobject_reference
-  // is null, the existing reference is removed.
+  // Construct an empty reference bound to the given JNIEnv's JavaVM.
+  explicit JObjectReference(JNIEnv* env);
+
+  // Construct a reference from an existing jobject, creating a global reference
+  // if `object` is non-null.
+  JObjectReference(JNIEnv* env, jobject object);
+
+  // Copy constructor creates a new global reference to the referenced jobject.
+  JObjectReference(const JObjectReference& reference);
+
+  // Move constructor transfers ownership of the existing global reference.
+  JObjectReference(JObjectReference&& reference) noexcept;
+
+  // Destructor deletes the global reference if non-null.
+  virtual ~JObjectReference();
+
+  // Copy assignment creates a new global reference to the referenced jobject.
+  JObjectReference& operator=(const JObjectReference& reference);
+
+  // Move assignment transfers ownership of the referenced jobject.
+  JObjectReference& operator=(JObjectReference&& reference) noexcept;
+
+  // Set this instance's object reference, releasing any previous reference.
   void Set(jobject jobject_reference);
 
+  // Set this instance's object reference and JavaVM from `env`, releasing any
+  // previous reference.
   void Set(JNIEnv* env, jobject jobject_reference);
 
-  // Get a JNIEnv from the JavaVM associated with this class.
+  // Access the global reference.
+  jobject object() const noexcept { return object_; }
+  jobject Get() const noexcept { return object(); }
+  jobject operator*() const noexcept { return object(); }
+  explicit operator bool() const noexcept { return object_ != nullptr; }
+
+  // Access the cached JavaVM*.
+  JavaVM* java_vm() const noexcept { return java_vm_; }
+
+  // Retrieve the JNIEnv* for the current thread using the cached JavaVM*.
   JNIEnv* GetJNIEnv() const;
 
-  // Get the JavaVM associated with this class.
-  JavaVM* java_vm() const { return java_vm_; }
+  // Retrieve a new local reference to the wrapped jobject, or nullptr if unset.
+  // The caller is responsible for calling env->DeleteLocalRef() on the result.
+  [[nodiscard]] jobject GetLocalRef() const;
 
-  // Get the global reference to the Java object without incrementing the
-  // reference count.
-  jobject object() const { return object_; }
+  // Retrieve the JavaVM* associated with the specified JNIEnv*.
+  static JavaVM* GetJavaVM(JNIEnv* env);
 
-  // Get a local reference to the object. The returned reference must be
-  // deleted after use with DeleteLocalRef().
-  jobject GetLocalRef() const;
-
-  // Same as object()
-  jobject operator*() const { return object(); }
-
-  // Convert a local reference to a JObjectReference, deleting the local
-  // reference.
+  // Construct a JObjectReference from a local reference, creating a global
+  // reference and immediately deleting `local_reference`.
   static JObjectReference FromLocalReference(JNIEnv* env,
                                              jobject local_reference);
 
- private:
-  // Initialize this instance by adding a reference to the specified Java
-  // object.
-  void Initialize(JavaVM* jvm, JNIEnv* env, jobject jobject_reference);
-  // Get JavaVM from a JNIEnv.
-  static JavaVM* GetJavaVM(JNIEnv* env);
+  // Creates a new global reference to `jobject_reference` (without deleting
+  // `jobject_reference`), deletes any prior global reference stored in
+  // `*target_jobject_reference` (which must be initialized to nullptr or a
+  // valid global reference prior to calling), and writes and returns the new
+  // global reference in `*target_jobject_reference`.
+  static jobject Set(JNIEnv* env, jobject jobject_reference,
+                     std::atomic<jobject>* target_jobject_reference);
 
  private:
+  // Initialize this reference, creating a global reference to jobject_reference
+  // if it is non-null.
+  void Initialize(JNIEnv* env, JavaVM* jvm, jobject jobject_reference);
+
   JavaVM* java_vm_;
   jobject object_;
 };
 
 }  // namespace internal
+/// @endcond
 }  // namespace firebase
 
 #endif  // FIREBASE_APP_SRC_JOBJECT_REFERENCE_H_

@@ -17,26 +17,34 @@
 #ifndef FIREBASE_APP_SRC_UTIL_IOS_H_
 #define FIREBASE_APP_SRC_UTIL_IOS_H_
 
-#include <map>
-#include <string>
-#include <unordered_set>
-#include <vector>
-
 #ifdef __OBJC__
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <type_traits>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "app/src/include/firebase/internal/type_traits_ios.h"
 #include "app/src/include/firebase/variant.h"
 
 namespace firebase {
 namespace util {
 
-/// Define a class to wrap an Objective-C pointer.
-/// Objective-C uses automatic reference counting, we can't just cast them to
-/// void* or a forward declared C++ class to reference them from
-//  platform-independent data structures (like firebase::App's data_ pointer).
-/// Instead, we wrap the pointer in this class.
+/// Define a class to wrap an Objective-C pointer under ARC.
+/// Objective-C uses automatic reference counting, so we can't just cast
+/// Objective-C object pointers to void* or a forward-declared C++ class to
+/// reference them from platform-independent data structures (like
+/// firebase::App's data_ pointer). Instead, we wrap the pointer in this class.
 ///
 /// Usage:
 ///
@@ -45,102 +53,397 @@ namespace util {
 ///     void* platform_indep_ptr_;
 ///   };
 ///
-///   // .cpp
+///   // .mm
 ///   typedef ObjCPointer<MyObjCClass> MyObjCClassPointer;
 ///   // or OBJ_C_PTR_WRAPPER(MyObjCClass);
 ///   // or OBJ_C_PTR_WRAPPER_NAMED(MyObjCClassPointer, MyObjCClass);
-//    // OBJ_C_PTR_WRAPPER* define a class rather than a typedef which
-//    // is useful when defining a forward declared class.
-///
-///   void Init(MyPlatformIndependentClass* c, MyObjCClass* obj_c) {
-///     c->platform_indep_ptr_ = new MyObjCClassPointer(obj_c);
-///   }
-///
-///   void Uninit(MyPlatformIndependentClass* c) {
-///     delete static_cast<MyObjCClassPointer*>(c->platform_indep_ptr_);
-///     c->platform_indep_ptr_ = nullptr;
-///   }
-///
-///   void DoSomething(MyPlatformIndependentClass* c) {
-///     [static_cast<MyObjCClassPointer*>(
-///        c->platform_indep_ptr_)->get() fn_name];
-///   }
-///
+///   // OBJ_C_PTR_WRAPPER* define a class rather than a typedef which
+///   // is useful when defining a forward-declared class.
 template <typename T>
 class ObjCPointer {
  public:
-  // Construct with an empty class.
-  ObjCPointer() : objc_object_(nil) {}
+  // Construct with nil.
+  ObjCPointer() noexcept : objc_object_(nil) {}
+  template <typename U,
+            typename = std::enable_if_t<std::is_same_v<U, std::nullptr_t>>>
+  // NOLINTNEXTLINE(runtime/explicit)
+  ObjCPointer(U) noexcept : objc_object_(nil) {}
 
   // Construct with a reference to an Obj-C object.
-  explicit ObjCPointer(T *_Nullable objc_object) : objc_object_(objc_object) {}
+  explicit ObjCPointer(T *_Nullable objc_object) noexcept
+      : objc_object_(objc_object) {}
 
-  // Release the reference to the Obj-C object.
-  ~ObjCPointer() { release(); }
+  ObjCPointer(const ObjCPointer &other) noexcept
+      : objc_object_(other.objc_object_) {}
+
+  ObjCPointer(ObjCPointer &&other) noexcept
+      : objc_object_(other.objc_object_) {
+    other.objc_object_ = nil;
+  }
+
+  // Release the strong ARC reference directly without placing the object into
+  // the surrounding autorelease pool (fixes BUG-0378).
+  ~ObjCPointer() { objc_object_ = nil; }
 
   // Determine whether the Obj-C object is valid.
-  explicit operator bool() const { return get() != nil; }
+  explicit operator bool() const noexcept { return objc_object_ != nil; }
 
   // Get the Obj-C object.
-  T *_Nullable operator*() const { return get(); }
+  T *_Nullable operator*() const noexcept { return objc_object_; }
 
   // Get the Obj-C object.
-  T *_Nullable get() const { return objc_object_; }
+  T *_Nullable get() const noexcept { return objc_object_; }
 
-  // Release the reference to the Obj-C object.
-  T *_Nullable release() {
+  // Release the reference to the Obj-C object and return it.
+  T *_Nullable release() noexcept {
     T *released = objc_object_;
     objc_object_ = nil;
     return released;
   }
 
   // Assign a new Obj-C object.
-  void reset(T *_Nullable objc_object) { objc_object_ = objc_object; }
+  void reset(T *_Nullable objc_object = nil) noexcept {
+    objc_object_ = objc_object;
+  }
 
   // Assign a new Obj-C object.
-  ObjCPointer &operator=(T *_Nullable objc_object) {
-    reset(objc_object);
+  ObjCPointer &operator=(T *_Nullable objc_object) noexcept {
+    objc_object_ = objc_object;
     return *this;
   }
 
-  // Get the Obj-C object from an ObjCPointer if the specified object is
+  ObjCPointer &operator=(std::nullptr_t) noexcept {
+    objc_object_ = nil;
+    return *this;
+  }
+
+  ObjCPointer &operator=(const ObjCPointer &other) noexcept {
+    if (this != &other) {
+      objc_object_ = other.objc_object_;
+    }
+    return *this;
+  }
+
+  ObjCPointer &operator=(ObjCPointer &&other) noexcept {
+    if (this != &other) {
+      objc_object_ = other.objc_object_;
+      other.objc_object_ = nil;
+    }
+    return *this;
+  }
+
+  // Get the Obj-C object from an ObjCPointer if the specified wrapper is
   // non-null.
-  static T *_Nullable SafeGet(const ObjCPointer *_Nullable reference) {
+  static T *_Nullable SafeGet(const ObjCPointer *_Nullable reference) noexcept {
     return reference ? reference->get() : nil;
   }
 
  private:
-  /* This should be private */
-  T *_Nullable objc_object_;
+  T *__strong _Nullable objc_object_;
 };
+
+template <typename T>
+using ObjcPointer = ObjCPointer<T>;
+
+/// Thread-safe reference wrapper for capturing a C++ object pointer inside
+/// asynchronous Objective-C completion blocks without risking use-after-free
+/// when the C++ owner is destroyed while the block is in flight.
+///
+/// The C++ owner holds a `SafeReference<MyClass>` member and calls
+/// `Invalidate()` in its destructor. Objective-C blocks capture a copy of the
+/// `SafeReference<MyClass>` by value and call `Run([](MyClass* self) { ... })`
+/// or `auto locked = safe_ref.Lock();`.
+template <typename T>
+class SafeReference {
+ private:
+  struct State {
+    explicit State(T *_Nullable p) : ptr(p) {}
+    mutable std::recursive_mutex mutex;
+    T *_Nullable ptr;
+  };
+
+ public:
+  class LockedRef {
+   public:
+    LockedRef() noexcept : ptr_(nullptr) {}
+    LockedRef(std::shared_ptr<State> state,
+              std::unique_lock<std::recursive_mutex> &&lock,
+              T *_Nullable ptr) noexcept
+        : state_(std::move(state)), lock_(std::move(lock)), ptr_(ptr) {}
+
+    LockedRef(LockedRef &&other) noexcept
+        : state_(std::move(other.state_)),
+          lock_(std::move(other.lock_)),
+          ptr_(other.ptr_) {
+      other.ptr_ = nullptr;
+    }
+
+    LockedRef &operator=(LockedRef &&other) noexcept {
+      if (this != &other) {
+        if (lock_.owns_lock()) {
+          lock_.unlock();
+        }
+        lock_ = std::move(other.lock_);
+        state_ = std::move(other.state_);
+        ptr_ = other.ptr_;
+        other.ptr_ = nullptr;
+      }
+      return *this;
+    }
+
+    LockedRef(const LockedRef &) = delete;
+    LockedRef &operator=(const LockedRef &) = delete;
+
+    explicit operator bool() const noexcept { return ptr_ != nullptr; }
+    T *_Nullable get() const noexcept { return ptr_; }
+    T *_Nullable operator->() const noexcept { return ptr_; }
+    T &operator*() const noexcept { return *ptr_; }
+
+   private:
+    // `state_` MUST be declared before `lock_` so `State` (and `State::mutex`)
+    // remains alive until after `~LockedRef()` unlocks `lock_`.
+    std::shared_ptr<State> state_;
+    std::unique_lock<std::recursive_mutex> lock_;
+    T *_Nullable ptr_;
+  };
+
+  SafeReference() noexcept = default;
+  explicit SafeReference(T *_Nullable ptr)
+      : state_(ptr ? std::make_shared<State>(ptr) : nullptr) {}
+
+  SafeReference(const SafeReference &) = default;
+  SafeReference(SafeReference &&) noexcept = default;
+  SafeReference &operator=(const SafeReference &) = default;
+  SafeReference &operator=(SafeReference &&) noexcept = default;
+
+  // Invalidates the reference under the lock. Any currently executing `Run()`
+  // or `Lock()` scope completes before `Invalidate()` returns, and any
+  // subsequent block invocation becomes a safe no-op.
+  void Invalidate() const {
+    if (!state_) return;
+    std::lock_guard<std::recursive_mutex> lock(state_->mutex);
+    state_->ptr = nullptr;
+  }
+
+  void Clear() const { Invalidate(); }
+
+  void Reset(T *_Nullable ptr = nullptr) {
+    if (!state_) {
+      if (ptr) {
+        state_ = std::make_shared<State>(ptr);
+      }
+      return;
+    }
+    std::lock_guard<std::recursive_mutex> lock(state_->mutex);
+    state_->ptr = ptr;
+  }
+
+  LockedRef Lock() const {
+    std::shared_ptr<State> state = state_;
+    if (!state) return LockedRef();
+    std::unique_lock<std::recursive_mutex> lock(state->mutex);
+    if (!state->ptr) {
+      return LockedRef();
+    }
+    T *ptr = state->ptr;
+    return LockedRef(std::move(state), std::move(lock), ptr);
+  }
+
+  template <typename Fn>
+  bool Run(Fn &&fn) const {
+    LockedRef locked = Lock();
+    if (!locked) return false;
+    std::forward<Fn>(fn)(locked.get());
+    return true;
+  }
+
+ private:
+  std::shared_ptr<State> state_;
+};
+
+template <typename T>
+SafeReference<T> MakeSafeReference(T *_Nullable ptr) {
+  return SafeReference<T>(ptr);
+}
+
+/// Block capture helper that supports both `std::shared_ptr<T>` /
+/// `std::weak_ptr<T>` and `SafeReference<T>` owners in Objective-C blocks.
+template <typename T>
+class BlockWeakSelf {
+ public:
+  BlockWeakSelf() noexcept = default;
+
+  // NOLINTNEXTLINE(runtime/explicit)
+  BlockWeakSelf(const std::shared_ptr<T> &shared) noexcept
+      : weak_ptr_(shared) {}
+  // NOLINTNEXTLINE(runtime/explicit)
+  BlockWeakSelf(const std::weak_ptr<T> &weak) noexcept : weak_ptr_(weak) {}
+  // NOLINTNEXTLINE(runtime/explicit)
+  BlockWeakSelf(const SafeReference<T> &safe_ref) noexcept
+      : safe_ref_(safe_ref), uses_safe_ref_(true) {}
+
+  std::shared_ptr<T> LockShared() const noexcept { return weak_ptr_.lock(); }
+
+  typename SafeReference<T>::LockedRef LockSafeRef() const {
+    return safe_ref_.Lock();
+  }
+
+  template <typename Fn>
+  bool Run(Fn &&fn) const {
+    if (uses_safe_ref_) {
+      return safe_ref_.Run(std::forward<Fn>(fn));
+    }
+    if (std::shared_ptr<T> locked = weak_ptr_.lock()) {
+      std::forward<Fn>(fn)(locked.get());
+      return true;
+    }
+    return false;
+  }
+
+ private:
+  std::weak_ptr<T> weak_ptr_;
+  SafeReference<T> safe_ref_;
+  bool uses_safe_ref_ = false;
+};
+
+template <typename T>
+BlockWeakSelf<T> MakeBlockWeakSelf(const std::shared_ptr<T> &shared) noexcept {
+  return BlockWeakSelf<T>(shared);
+}
+
+template <typename T>
+BlockWeakSelf<T> MakeBlockWeakSelf(const std::weak_ptr<T> &weak) noexcept {
+  return BlockWeakSelf<T>(weak);
+}
+
+template <typename T>
+BlockWeakSelf<T> MakeBlockWeakSelf(const SafeReference<T> &safe_ref) noexcept {
+  return BlockWeakSelf<T>(safe_ref);
+}
 
 // Generate the class named class_name as an alias of ObjCPointer to contain
 // the Objective-C type objc_type_name.
-#define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name)               \
-  class class_name : public firebase::util::ObjCPointer<objc_type_name> { \
-   public:                                                                \
-    class_name() {}                                                       \
-    explicit class_name(                                                  \
-        const firebase::util::ObjCPointer<objc_type_name> &obj)           \
-        : firebase::util::ObjCPointer<objc_type_name>(obj) {}             \
-    explicit class_name(objc_type_name *_Nullable objc_object)            \
-        : firebase::util::ObjCPointer<objc_type_name>(objc_object) {}     \
-    class_name &operator=(objc_type_name *_Nullable objc_object) {        \
-      ObjCPointer<objc_type_name>::operator=(objc_object);                \
-      return *this;                                                       \
-    }                                                                     \
+#define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name)                  \
+  class class_name : public firebase::util::ObjCPointer<objc_type_name> {    \
+   public:                                                                   \
+    class_name() noexcept {}                                                 \
+    template <typename U,                                                    \
+              typename = std::enable_if_t<std::is_same_v<U, std::nullptr_t>>> \
+    class_name(U) noexcept                                                   \
+        : firebase::util::ObjCPointer<objc_type_name>(nil) {}                \
+    explicit class_name(                                                     \
+        const firebase::util::ObjCPointer<objc_type_name> &obj) noexcept     \
+        : firebase::util::ObjCPointer<objc_type_name>(obj) {}                \
+    explicit class_name(objc_type_name *_Nullable objc_object) noexcept      \
+        : firebase::util::ObjCPointer<objc_type_name>(objc_object) {}        \
+    class_name(const class_name &) noexcept = default;                       \
+    class_name(class_name &&) noexcept = default;                            \
+    class_name &operator=(const class_name &) noexcept = default;            \
+    class_name &operator=(class_name &&) noexcept = default;                 \
+    class_name &operator=(objc_type_name *_Nullable objc_object) noexcept {  \
+      ObjCPointer<objc_type_name>::operator=(objc_object);                   \
+      return *this;                                                          \
+    }                                                                        \
+    class_name &operator=(std::nullptr_t) noexcept {                         \
+      ObjCPointer<objc_type_name>::operator=(nullptr);                       \
+      return *this;                                                          \
+    }                                                                        \
   }
 
 /// Return an std::string created from an NSString pointer.
-/// If the NSString pointer is nil, returns a string of length zero.
-static inline std::string StringFromNSString(NSString *_Nullable ns_string) {
-  return std::string(ns_string ? [ns_string UTF8String] : "");
+/// If the NSString pointer is nil or cannot be encoded as UTF-8, returns an
+/// empty string (never passes nullptr to std::string, fixing BUG-0145).
+/// Preserves embedded NUL bytes when present.
+inline std::string StringFromNSString(NSString *_Nullable ns_string) {
+  if (!ns_string || [ns_string length] == 0) return std::string();
+  NSUInteger utf8_length =
+      [ns_string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+  if (utf8_length > 0) {
+    std::string result(utf8_length, '\0');
+    NSUInteger used_length = 0;
+    NSRange full_range = NSMakeRange(0, [ns_string length]);
+    if ([ns_string getBytes:&result[0]
+                  maxLength:utf8_length
+                 usedLength:&used_length
+                   encoding:NSUTF8StringEncoding
+                    options:0
+                      range:full_range
+             remainingRange:NULL]) {
+      result.resize(used_length);
+      return result;
+    }
+  }
+  const char *utf8 = [ns_string UTF8String];
+  return utf8 ? std::string(utf8) : std::string();
 }
 
 /// Return an std::string created from an NSURL pointer.
 /// If the NSURL pointer is nil, returns a string of length zero.
-static inline std::string StringFromNSUrl(NSURL *_Nullable url) {
-  return url ? StringFromNSString(url.absoluteString) : "";
+inline std::string StringFromNSUrl(NSURL *_Nullable url) {
+  return url ? StringFromNSString(url.absoluteString) : std::string();
+}
+
+/// Structured representation of an NSError translated into C++.
+struct ErrorInfo {
+  int code = 0;
+  std::string domain;
+  std::string message;
+};
+
+/// Extracts a safe UTF-8 error message from an NSError, falling back to
+/// `default_message` (or "Unknown error") if `error` or `localizedDescription`
+/// is nil.
+inline std::string NSErrorToErrorMessage(
+    NSError *_Nullable error,
+    const char *_Nullable default_message = "Unknown error") {
+  if (!error) return std::string();
+  NSString *desc = [error localizedDescription];
+  if (desc) {
+    std::string msg = StringFromNSString(desc);
+    if (!msg.empty()) return msg;
+  }
+  return default_message ? std::string(default_message) : std::string();
+}
+
+/// Translates an `NSError*` into a `firebase::util::ErrorInfo` with safe
+/// UTF-8 domain and message strings.
+inline ErrorInfo TranslateNSError(
+    NSError *_Nullable error, int default_error_code = -1,
+    const char *_Nullable default_message = "Unknown error") {
+  ErrorInfo info;
+  if (!error) {
+    info.code = 0;
+    return info;
+  }
+  info.code = static_cast<int>([error code]);
+  if (info.code == 0 && default_error_code != 0) {
+    info.code = default_error_code;
+  }
+  info.domain = StringFromNSString([error domain]);
+  info.message = NSErrorToErrorMessage(error, default_message);
+  return info;
+}
+
+/// Looks up `[error code]` in `code_map` (e.g., `std::map<NSInteger, Error>`
+/// or `std::unordered_map<int, Error>`), returning `default_error_code` if
+/// not found, and optionally populates `*out_message`.
+template <typename CodeMap, typename ErrorCodeType>
+ErrorCodeType TranslateNSErrorCode(
+    NSError *_Nullable error, const CodeMap &code_map,
+    ErrorCodeType default_error_code, ErrorCodeType ok_code,
+    std::string *_Nullable out_message = nullptr) {
+  if (!error) {
+    if (out_message) out_message->clear();
+    return ok_code;
+  }
+  if (out_message) {
+    *out_message = NSErrorToErrorMessage(error);
+  }
+  auto it = code_map.find(static_cast<typename CodeMap::key_type>([error code]));
+  if (it != code_map.end()) {
+    return static_cast<ErrorCodeType>(it->second);
+  }
+  return default_error_code;
 }
 
 NS_ASSUME_NONNULL_BEGIN
@@ -149,10 +452,7 @@ NS_ASSUME_NONNULL_BEGIN
 // your library.
 typedef BOOL (*AppDelegateApplicationDidFinishLaunchingWithOptionsFunc)(
     id self, SEL selector_value, UIApplication *application,
-    NSDictionary *launch_options);
-typedef BOOL (*AppDelegateApplicationDidFinishLaunchingWithOptionsFunc)(
-    id self, SEL selector_value, UIApplication *application,
-    NSDictionary *launch_options);
+    NSDictionary *_Nullable launch_options);
 typedef void (*AppDelegateApplicationDidBecomeActiveFunc)(
     id self, SEL selector_value, UIApplication *application);
 typedef void (*AppDelegateApplicationDidEnterBackgroundFunc)(
@@ -174,7 +474,7 @@ typedef void (
     NSDictionary *user_info, UIBackgroundFetchResultFunction handler);
 typedef BOOL (*AppDelegateApplicationOpenUrlSourceApplicationAnnotationFunc)(
     id self, SEL selector_value, UIApplication *application, NSURL *url,
-    NSString *sourceApplication, id annotation);
+    NSString *_Nullable sourceApplication, id _Nullable annotation);
 
 typedef BOOL (*AppDelegateApplicationOpenUrlOptionsFunc)(
     id self, SEL selector_value, UIApplication *application, NSURL *url,
@@ -183,7 +483,8 @@ typedef BOOL (*AppDelegateApplicationOpenUrlOptionsFunc)(
 typedef BOOL (
     *AppDelegateApplicationContinueUserActivityRestorationHandlerFunc)(
     id self, SEL selector_value, UIApplication *application,
-    NSUserActivity *user_activity, void (^restoration_handler)(NSArray *));
+    NSUserActivity *user_activity,
+    void (^restoration_handler)(NSArray *_Nullable));
 
 // Calls the given block for each unique Objective-C class that has been
 // previously passed to [UIApplication setDelegate:]. The block is executed
@@ -196,13 +497,13 @@ void RunOnAppDelegateClasses(void (^block)(Class));
 NSMutableArray *StringVectorToNSMutableArray(
     const std::vector<std::string> &vector);
 
-// Convert a unordered_set of strings into an NSMutableArray.
+// Convert an unordered_set of strings into an NSMutableArray.
 NSMutableArray *StringUnorderedSetToNSMutableArray(
     const std::unordered_set<std::string> &set);
 
-// Convert a NSArray into a vector of strings.  Asserts if a non NSString
+// Convert an NSArray into a vector of strings. Asserts if a non-NSString
 // object is found in the array.
-void NSArrayOfNSStringToVectorOfString(NSArray *array,
+void NSArrayOfNSStringToVectorOfString(NSArray *_Nullable array,
                                        std::vector<std::string> *string_vector);
 
 // Convert a string map to NSDictionary.
@@ -217,31 +518,49 @@ NSDictionary *CharArrayMapToNSDictionary(
 NSData *StringToNSData(const std::string &str);
 
 // Convert bytes to NSData.
-NSData *BytesToNSData(const char *bytes, const int len);
+NSData *BytesToNSData(const char *_Nullable bytes, const int len);
 
 // Convert bytes to NSData.
-NSData *BytesToNSData(const unsigned char *bytes, const int len);
+NSData *BytesToNSData(const unsigned char *_Nullable bytes, const int len);
+
+// Convert bytes to NSData with size_t length (avoids 32-bit int truncation,
+// fixing BUG-0379).
+NSData *BytesToNSData(const void *_Nullable bytes, size_t len);
 
 // Convert an NSData to std::string.
-std::string NSDataToString(NSData *data);
+std::string NSDataToString(NSData *_Nullable data);
 
-// Convert a std::string to NSString.
+// Convert a std::string to NSString (never returns nil; returns @"" on invalid
+// UTF-8, and preserves embedded NUL bytes).
 NSString *StringToNSString(const std::string &str);
 
-// Convert a C-string to NSString.
-NSString *CStringToNSString(const char *c_str);
+// Convert a C-string to NSString (returns @"" if c_str is nullptr or invalid
+// UTF-8, fixing nil insertion crashes in Objective-C collections).
+NSString *CStringToNSString(const char *_Nullable c_str);
 
-// Convert an NSString to std::string.
-std::string NSStringToString(NSString *string);
+// Convert an NSString to std::string (returns "" if string is nil, fixing
+// BUG-0145).
+std::string NSStringToString(NSString *_Nullable string);
+
+// Convert a vector<Variant> into an NSMutableArray.
+NSMutableArray *StdVectorToNSMutableArray(const std::vector<Variant> &vector);
+
+// Convert a map<Variant, Variant> into an NSMutableDictionary.
+NSMutableDictionary *StdMapToNSMutableDictionary(
+    const std::map<Variant, Variant> &map);
+
+// Convert an NSArray into a vector<Variant>.
+void NSArrayToStdVector(NSArray *_Nullable array,
+                        std::vector<Variant> *vector);
 
 // Convert a Variant to an NSObject.
 id VariantToId(const Variant &variant);
 
 // Convert an NSObject to a Variant.
-Variant IdToVariant(id value);
+Variant IdToVariant(id _Nullable value);
 
-// Converts an NSMutableDictionary mapping id-to-id to a map<Variant, Variant>.
-void NSDictionaryToStdMap(NSDictionary *dictionary,  // NOLINT
+// Converts an NSDictionary mapping id-to-id to a map<Variant, Variant>.
+void NSDictionaryToStdMap(NSDictionary *_Nullable dictionary,  // NOLINT
                           std::map<Variant, Variant> *map);
 
 // Runs a block on the main/UI thread immediately if the current thread is the
@@ -249,12 +568,12 @@ void NSDictionaryToStdMap(NSDictionary *dictionary,  // NOLINT
 void DispatchAsyncSafeMainQueue(void (^block)(void));
 
 // Runs a C++ function on the main/UI thread.
-void RunOnMainThread(void (*function_ptr)(void *function_data),
-                     void *function_data);
+void RunOnMainThread(void (*function_ptr)(void *_Nullable function_data),
+                     void *_Nullable function_data);
 
 // Runs a C++ function on a background thread.
-void RunOnBackgroundThread(void (*function_ptr)(void *function_data),
-                           void *function_data);
+void RunOnBackgroundThread(void (*function_ptr)(void *_Nullable function_data),
+                           void *_Nullable function_data);
 
 // Class which caches function implementations for a class.
 //
@@ -273,7 +592,7 @@ class ClassMethodImplementationCache {
   // only used if a method isn't found for the specified selector |name| and
   // therefore a new method needs to be added to the class.
   //
-  // The cached method method implementation can be retrieved using GetMethod().
+  // The cached method implementation can be retrieved using GetMethod().
   void ReplaceOrAddMethod(Class clazz, SEL name, IMP imp,
                           Class type_encoding_class) {
     ReplaceOrAddMethod(clazz, name, imp, type_encoding_class, true);
@@ -289,9 +608,9 @@ class ClassMethodImplementationCache {
   }
 
   // Get the original method implementation for the specific selector.
-  IMP GetMethod(Class clazz, SEL name);
-  IMP GetMethodForObject(id self, SEL name) {
-    return GetMethod([self class], name);
+  IMP _Nullable GetMethod(Class _Nullable clazz, SEL name);
+  IMP _Nullable GetMethodForObject(id _Nullable self, SEL name) {
+    return self ? GetMethod([self class], name) : nil;
   }
 
   // Get or create a cache object.
@@ -306,20 +625,21 @@ class ClassMethodImplementationCache {
   void ReplaceOrAddMethod(Class clazz, SEL name, IMP imp,
                           Class type_encoding_class, bool add_method);
 
-  void SetMethod(SEL name, NSString *implementation_selector_name);
+  void SetMethod(SEL name, Class clazz, NSString *implementation_selector_name);
 
-  // Generate a random method name from the specified selector name.  This is
+  // Generate a random method name from the specified selector name. This is
   // used to store the implementation of an overridden method.
-  NSString *GenerateRandomSelectorName(SEL name);
+  NSString *_Nullable GenerateRandomSelectorName(SEL name);
 
  private:
-  // Dictionary which contains the implementation (IMP) of swizzled methods
-  // that respond to each selector that is swizzled.  The dictionary is
-  // indexed by selector name with each element that referencing a dictionary
-  // of potential names for the selector that contains the original method
-  // implementation on the class.
-  // i.e.
-  // selector_implementation_names_dict = dict[original_selector_name];
+  // Protects concurrent swizzling and lookup operations.
+  mutable std::mutex mutex_;
+
+  // Dictionary which contains the implementation (IMP) selector names of
+  // swizzled methods that respond to each selector that is swizzled.
+  // Indexed by original selector name -> NSMutableDictionary mapping
+  // class name (NSStringFromClass(clazz)) -> random implementation selector
+  // name.
   NSMutableDictionary *selector_implementation_names_per_selector_;
 
   // Number of times to attempt to generate a random selector name.
@@ -329,6 +649,25 @@ class ClassMethodImplementationCache {
 NS_ASSUME_NONNULL_END
 
 }  // namespace util
+
+namespace apple {
+using util::BlockWeakSelf;
+using util::ErrorInfo;
+using util::MakeBlockWeakSelf;
+using util::MakeSafeReference;
+using util::NSErrorToErrorMessage;
+using util::ObjCPointer;
+using util::ObjcPointer;
+using util::SafeReference;
+using util::StringFromNSString;
+using util::StringFromNSUrl;
+using util::TranslateNSError;
+using util::TranslateNSErrorCode;
+}  // namespace apple
+
+using util::ObjCPointer;
+using util::ObjcPointer;
+
 }  // namespace firebase
 
 // Define a sample UI ApplicationDelegate simply to retrieve the method
@@ -343,7 +682,7 @@ NS_ASSUME_NONNULL_END
 
 // Define an opaque type for the Obj-C pointer wrapper struct when this header
 // is included in plain C++ files.
-#define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name) class class_name;
+#define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name) class class_name
 
 #endif  // __OBJC__
 

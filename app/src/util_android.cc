@@ -28,7 +28,9 @@
 #include <cstdint>
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -105,19 +107,6 @@ METHOD_LOOKUP_DEFINITION(
 METHOD_LOOKUP_DECLARATION(log, LOG_METHODS)
 METHOD_LOOKUP_DEFINITION(log, "com/google/firebase/app/internal/cpp/Log",
                          LOG_METHODS)
-
-// Methods of the android.net.Uri.Builder class,
-// used to create android.net.Uri objects.
-// clang-format off
-#define URI_BUILDER_METHODS(X)                                                 \
-    X(Constructor, "<init>", "()V"),                                           \
-    X(EncodedPath, "encodedPath",                                              \
-      "(Ljava/lang/String;)Landroid/net/Uri$Builder;"),                        \
-    X(Build, "build", "()Landroid/net/Uri;")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(uribuilder, URI_BUILDER_METHODS)
-METHOD_LOOKUP_DEFINITION(uribuilder, "android/net/Uri$Builder",
-                         URI_BUILDER_METHODS)
 
 // Methods of the java.net.URL class.
 // clang-format off
@@ -228,26 +217,57 @@ static unsigned int g_initialized_count = 0;
 struct CallbackData {
   // Global reference to the Java callback class that references this
   // struct.
-  jobject callback_reference;
+  jobject callback_reference = nullptr;
   // User specified data for the callback.
-  void* data;
+  void* data = nullptr;
+  // API identifier key in g_task_callbacks.
+  std::string api_id;
   // References CallbackData within the list.
-  std::list<CallbackData>::iterator iterator;
-  // Reference to the list containing this structure.
-  std::list<CallbackData>* list;
-  // Whether the callback is complete.
-  bool complete;
+  std::list<std::shared_ptr<CallbackData>>::iterator iterator;
+  // Whether the callback is complete or cancelled.
+  bool complete = false;
+  // Whether this entry is currently present in g_task_callbacks[api_id].
+  bool in_list = false;
 };
+using CallbackList = std::list<std::shared_ptr<CallbackData>>;
 // Tracks the set of global references to Java callback classes in flight.
-// This makes it possible to to remove references to the C++ objects when
+// This makes it possible to remove references to the C++ objects when
 // util::Terminate() is called.
-static std::map<const char*, std::list<CallbackData>>* g_task_callbacks;
-// Mutex for g_task_callbacks.
-static pthread_mutex_t g_task_callbacks_mutex;
+static std::map<std::string, CallbackList>* g_task_callbacks = nullptr;
+// Mutex for g_task_callbacks and GetLiveCallbacksLocked().
+// Statically initialized and never destroyed so late JNI callbacks on
+// background threads never lock a destroyed mutex.
+static pthread_mutex_t g_task_callbacks_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// Tracks live CallbackData instances by their address (cast to uintptr_t) so
+// JniResultCallback_nativeOnResult never dereferences a dangling raw pointer.
+// Must be accessed only while holding g_task_callbacks_mutex.
+static std::unordered_map<uintptr_t, std::shared_ptr<CallbackData>>&
+GetLiveCallbacksLocked() {
+  static auto* live_callbacks =
+      new std::unordered_map<uintptr_t, std::shared_ptr<CallbackData>>();
+  return *live_callbacks;
+}
+
+// Removes `data` from `g_task_callbacks` if still present.
+// Must be called while holding g_task_callbacks_mutex.
+static void RemoveCallbackDataLocked(
+    const std::shared_ptr<CallbackData>& data) {
+  if (!data || !data->in_list) return;
+  data->in_list = false;
+  if (!g_task_callbacks) return;
+  auto map_it = g_task_callbacks->find(data->api_id);
+  if (map_it != g_task_callbacks->end()) {
+    map_it->second.erase(data->iterator);
+    if (map_it->second.empty()) {
+      g_task_callbacks->erase(map_it);
+    }
+  }
+}
 
 // Global references to class loaders used to find classes and load embedded
 // classes.
-static std::vector<jobject>* g_class_loaders;
+static std::vector<jobject>* g_class_loaders = nullptr;
 
 static bool g_jniresultcallback_loaded = false;
 
@@ -282,19 +302,25 @@ static const char kMissingJavaMethodFieldError[] =
 // LINT.ThenChange(//depot_firebase_cpp/app/client/unity/src/swig/app.SWIG)
 
 // Create a global reference to the specified class loader add it to the
-// list
-// of class loaders and release the local reference.
+// list of class loaders and release the local reference.
 static void AddClassLoader(JNIEnv* env, jobject class_loader_object) {
-  assert(class_loader_object);
-  assert(g_class_loaders);
-  g_class_loaders->push_back(env->NewGlobalRef(class_loader_object));
+  if (!env || !class_loader_object) return;
+  if (!g_class_loaders) {
+    env->DeleteLocalRef(class_loader_object);
+    return;
+  }
+  jobject global_loader = env->NewGlobalRef(class_loader_object);
+  if (!CheckAndClearJniExceptions(env) && global_loader != nullptr) {
+    g_class_loaders->push_back(global_loader);
+  }
   env->DeleteLocalRef(class_loader_object);
 }
 
 // Get the last class loader added to the g_class_loaders list.
 static jobject GetParentLoader() {
-  assert(g_class_loaders);
-  return g_class_loaders->back();
+  return (g_class_loaders && !g_class_loaders->empty())
+             ? g_class_loaders->back()
+             : nullptr;
 }
 
 // Convert a JNI class name (e.g. "java/lang/String"), as used by
@@ -309,21 +335,28 @@ static std::string JniClassNameToBinaryName(const char* class_name) {
 
 // Try to find a class in the list of class loaders.
 static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
-  assert(g_class_loaders);
+  if (!env || !class_name || !g_class_loaders || g_class_loaders->empty()) {
+    return nullptr;
+  }
   static const class_loader::Method kFindLoadClassMethods[] = {
       class_loader::kFindLoadedClass, class_loader::kLoadClass};
   jstring class_name_object =
-      env->NewStringUTF(JniClassNameToBinaryName(class_name).c_str());
+      jni::NewRawJString(env, JniClassNameToBinaryName(class_name).c_str());
+  if (!class_name_object) return nullptr;
   jclass class_object = nullptr;
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kFindLoadClassMethods); ++i) {
     for (auto it = g_class_loaders->begin();
          !class_object && it != g_class_loaders->end(); ++it) {
+      if (!*it) continue;
       class_object = static_cast<jclass>(env->CallObjectMethod(
           *it, class_loader::GetMethodId(kFindLoadClassMethods[i]),
           class_name_object));
       if (env->ExceptionCheck()) {
         env->ExceptionClear();
-        class_object = nullptr;
+        if (class_object) {
+          env->DeleteLocalRef(class_object);
+          class_object = nullptr;
+        }
       }
     }
   }
@@ -336,10 +369,13 @@ static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
 static void InitializeClassLoaders(JNIEnv* env, jobject activity_object) {
   assert(!g_class_loaders);
   g_class_loaders = new std::vector<jobject>();
+  if (!env || !activity_object) return;
   jobject class_loader = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetClassLoader));
-  if (!CheckAndClearJniExceptions(env)) {
+  if (!CheckAndClearJniExceptions(env) && class_loader != nullptr) {
     AddClassLoader(env, class_loader);
+  } else if (class_loader != nullptr) {
+    env->DeleteLocalRef(class_loader);
   }
 }
 
@@ -410,9 +446,8 @@ static void ReleaseClasses(JNIEnv* env) {
   throwable::ReleaseClass(env);
   uri::ReleaseClass(env);
   object::ReleaseClass(env);
-  uribuilder::ReleaseClass(env);
   url::ReleaseClass(env);
-  if (g_jniresultcallback_loaded) {
+  if (g_jniresultcallback_loaded || jniresultcallback::GetClass() != nullptr) {
     jniresultcallback::ReleaseClass(env);
     g_jniresultcallback_loaded = false;
   }
@@ -432,6 +467,9 @@ static void ReleaseActivityClasses(JNIEnv* env) {
 }
 
 bool InitializeActivityClasses(JNIEnv* env, jobject activity_object) {
+  if (env) {
+    jni::internal::GlobalRefReaper::RecordJavaVM(env);
+  }
   g_initialized_activity_count++;
   if (g_initialized_activity_count > 1) {
     return true;
@@ -464,6 +502,10 @@ void TerminateActivityClasses(JNIEnv* env) {
 }
 
 bool Initialize(JNIEnv* env, jobject activity_object) {
+  if (env) {
+    jni::internal::GlobalRefReaper::RecordJavaVM(env);
+    jni::internal::GlobalRefReaper::Flush(env);
+  }
   // Note: We increment g_initialized_count when it's possible to call
   // Terminate() in all clean up code paths. ScopedCleanup calls Terminate() to
   // clean up when its destructor is called, decrementing g_initialized_count.
@@ -510,7 +552,6 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         throwable::CacheMethodIds(env, activity_object) &&
         uri::CacheMethodIds(env, activity_object) &&
         object::CacheMethodIds(env, activity_object) &&
-        uribuilder::CacheMethodIds(env, activity_object) &&
         url::CacheMethodIds(env, activity_object))) {
     ReleaseClasses(env);
     TerminateActivityClasses(env);
@@ -555,14 +596,20 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
                                               &embedded_files) &&
        jniresultcallback::CacheMethodIds(env, activity_object) &&
        jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1));
+  if (!g_jniresultcallback_loaded && jniresultcallback::GetClass() != nullptr) {
+    jniresultcallback::ReleaseClass(env);
+  }
 
   if (!JavaThreadContext::Initialize(env, activity_object, embedded_files)) {
     return false;
   }
   CheckAndClearJniExceptions(env);
 
-  g_task_callbacks = new std::map<const char*, std::list<CallbackData>>();
-  g_task_callbacks_mutex = PTHREAD_MUTEX_INITIALIZER;
+  pthread_mutex_lock(&g_task_callbacks_mutex);
+  if (!g_task_callbacks) {
+    g_task_callbacks = new std::map<std::string, CallbackList>();
+  }
+  pthread_mutex_unlock(&g_task_callbacks_mutex);
   cleanup.Cancel();
   return true;
 }
@@ -578,19 +625,21 @@ void Terminate(JNIEnv* env) {
       pthread_mutex_lock(&g_task_callbacks_mutex);
       delete g_task_callbacks;
       g_task_callbacks = nullptr;
+      GetLiveCallbacksLocked().clear();
       pthread_mutex_unlock(&g_task_callbacks_mutex);
-      pthread_mutex_destroy(&g_task_callbacks_mutex);
     }
 
     // Shutdown the log if it was initialized.
     jclass log_class = log::GetClass();
-    if (log_class) {
-      env->CallStaticVoidMethod(log_class, log::GetMethodId(log::kShutdown));
+    jmethodID shutdown_method = log_class ? log::GetMethodId(log::kShutdown) : nullptr;
+    if (log_class && shutdown_method) {
+      env->CallStaticVoidMethod(log_class, shutdown_method);
       CheckAndClearJniExceptions(env);
     }
 
     ReleaseClasses(env);
     TerminateActivityClasses(env);
+    jni::internal::GlobalRefReaper::Flush(env);
   }
 }
 
@@ -621,18 +670,18 @@ bool LookupMethodIds(JNIEnv* env, jclass clazz,
     if (CheckAndClearJniExceptions(env)) {
       method_ids[i] = 0;
     }
-    char method_message[256];
-    snprintf(method_message, sizeof(method_message),
-             "Method %s.%s (signature '%s', %s)", class_name, method.name,
-             method.signature,
-             method.type == kMethodTypeInstance ? "instance" : "static");
-    LogDebug("%s (optional %d) 0x%08x%s", method_message,
+    std::string method_message =
+        std::string("Method ") + (class_name ? class_name : "") + "." +
+        (method.name ? method.name : "") + " (signature '" +
+        (method.signature ? method.signature : "") + "', " +
+        (method.type == kMethodTypeInstance ? "instance" : "static") + ")";
+    LogDebug("%s (optional %d) %p%s", method_message.c_str(),
              (method.optional == kMethodOptional) ? 1 : 0,
-             static_cast<int>(reinterpret_cast<intptr_t>(method_ids[i])),
+             reinterpret_cast<void*>(method_ids[i]),
              method_ids[i] ? "" : " (not found)");
     FIREBASE_ASSERT_MESSAGE_RETURN(
         false, method_ids[i] || (method.optional == kMethodOptional),
-        kMissingJavaMethodFieldError, method_message, class_name);
+        kMissingJavaMethodFieldError, method_message.c_str(), class_name);
   }
   return true;
 }
@@ -666,18 +715,18 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
     if (CheckAndClearJniExceptions(env)) {
       field_ids[i] = 0;
     }
-    char field_message[256];
-    snprintf(field_message, sizeof(field_message),
-             "Field %s.%s (signature '%s', %s)", class_name, field.name,
-             field.signature,
-             field.type == kFieldTypeInstance ? "instance" : "static");
-    LogDebug("%s (optional %d) 0x%08x%s", field_message,
+    std::string field_message =
+        std::string("Field ") + (class_name ? class_name : "") + "." +
+        (field.name ? field.name : "") + " (signature '" +
+        (field.signature ? field.signature : "") + "', " +
+        (field.type == kFieldTypeInstance ? "instance" : "static") + ")";
+    LogDebug("%s (optional %d) %p%s", field_message.c_str(),
              (field.optional == kMethodOptional) ? 1 : 0,
-             static_cast<int>(reinterpret_cast<intptr_t>(field_ids[i])),
+             reinterpret_cast<void*>(field_ids[i]),
              field_ids[i] ? "" : " (not found)");
     FIREBASE_ASSERT_MESSAGE_RETURN(
         false, field_ids[i] || (field.optional == kMethodOptional),
-        kMissingJavaMethodFieldError, field_message, class_name);
+        kMissingJavaMethodFieldError, field_message.c_str(), class_name);
   }
   return true;
 }
@@ -686,15 +735,22 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 // Returns a local ref to a List.
 jobject StdVectorToJavaList(JNIEnv* env,
                             const std::vector<std::string>& string_vector) {
+  if (!env) return nullptr;
   jobject java_list =
       env->NewObject(array_list::GetClass(),
                      array_list::GetMethodId(array_list::kConstructor));
+  if (CheckAndClearJniExceptions(env) || !java_list) {
+    if (java_list) env->DeleteLocalRef(java_list);
+    return nullptr;
+  }
   jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
   for (auto it = string_vector.begin(); it != string_vector.end(); ++it) {
-    jstring value = env->NewStringUTF(it->c_str());
-    env->CallBooleanMethod(java_list, add_method, value);
-    CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(value);
+    jstring value = jni::NewRawJString(env, *it);
+    if (!CheckAndClearJniExceptions(env) && value) {
+      env->CallBooleanMethod(java_list, add_method, value);
+      CheckAndClearJniExceptions(env);
+    }
+    if (value) env->DeleteLocalRef(value);
   }
   return java_list;
 }
@@ -703,15 +759,22 @@ jobject StdVectorToJavaList(JNIEnv* env,
 // `java.util.ArrayList<String>` Returns a local ref to a List.
 jobject StdUnorderedSetToJavaList(
     JNIEnv* env, const std::unordered_set<std::string>& string_set) {
+  if (!env) return nullptr;
   jobject java_list =
       env->NewObject(array_list::GetClass(),
                      array_list::GetMethodId(array_list::kConstructor));
+  if (CheckAndClearJniExceptions(env) || !java_list) {
+    if (java_list) env->DeleteLocalRef(java_list);
+    return nullptr;
+  }
   jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
   for (auto it = string_set.begin(); it != string_set.end(); ++it) {
-    jstring value = env->NewStringUTF(it->c_str());
-    env->CallBooleanMethod(java_list, add_method, value);
-    CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(value);
+    jstring value = jni::NewRawJString(env, *it);
+    if (!CheckAndClearJniExceptions(env) && value) {
+      env->CallBooleanMethod(java_list, add_method, value);
+      CheckAndClearJniExceptions(env);
+    }
+    if (value) env->DeleteLocalRef(value);
   }
   return java_list;
 }
@@ -720,8 +783,13 @@ jobject StdUnorderedSetToJavaList(
 // Returns a local ref to a Map.
 jobject VariantMapToJavaMap(JNIEnv* env,
                             const std::map<Variant, Variant>& variant_map) {
+  if (!env) return nullptr;
   jobject java_map = env->NewObject(
       hash_map::GetClass(), hash_map::GetMethodId(hash_map::kConstructor));
+  if (CheckAndClearJniExceptions(env) || !java_map) {
+    if (java_map) env->DeleteLocalRef(java_map);
+    return nullptr;
+  }
   jmethodID put_method = map::GetMethodId(map::kPut);
   for (auto it = variant_map.begin(); it != variant_map.end(); ++it) {
     jobject key = VariantToJavaObject(env, it->first);
@@ -729,8 +797,8 @@ jobject VariantMapToJavaMap(JNIEnv* env,
     jobject previous = env->CallObjectMethod(java_map, put_method, key, value);
     CheckAndClearJniExceptions(env);
     if (previous) env->DeleteLocalRef(previous);
-    env->DeleteLocalRef(value);
-    env->DeleteLocalRef(key);
+    if (value) env->DeleteLocalRef(value);
+    if (key) env->DeleteLocalRef(key);
   }
   return java_map;
 }
@@ -739,17 +807,19 @@ jobject VariantMapToJavaMap(JNIEnv* env,
 // `java.util.Map<String, String>`.
 void StdMapToJavaMap(JNIEnv* env, jobject* to,
                      const std::map<const char*, const char*>& string_map) {
+  if (!env || !to || !*to) return;
   jmethodID put_method = map::GetMethodId(map::kPut);
   for (std::map<const char*, const char*>::const_iterator it =
            string_map.begin();
        it != string_map.end(); ++it) {
-    jstring key = env->NewStringUTF(it->first);
-    jstring value = env->NewStringUTF(it->second);
+    jstring key = jni::NewRawJString(env, it->first ? it->first : "");
+    jstring value = jni::NewRawJString(env, it->second ? it->second : "");
+    CheckAndClearJniExceptions(env);
     jobject previous = env->CallObjectMethod(*to, put_method, key, value);
     CheckAndClearJniExceptions(env);
     if (previous) env->DeleteLocalRef(previous);
-    env->DeleteLocalRef(value);
-    env->DeleteLocalRef(key);
+    if (value) env->DeleteLocalRef(value);
+    if (key) env->DeleteLocalRef(key);
   }
 }
 
@@ -757,16 +827,18 @@ void StdMapToJavaMap(JNIEnv* env, jobject* to,
 // `java.util.Map<String, String>`.
 void StdMapToJavaMap(JNIEnv* env, jobject* to,
                      const std::map<std::string, std::string>& from) {
+  if (!env || !to || !*to) return;
   jmethodID put_method = map::GetMethodId(map::kPut);
   for (std::map<std::string, std::string>::const_iterator iter = from.begin();
        iter != from.end(); ++iter) {
-    jstring key = env->NewStringUTF(iter->first.c_str());
-    jstring value = env->NewStringUTF(iter->second.c_str());
+    jstring key = jni::NewRawJString(env, iter->first);
+    jstring value = jni::NewRawJString(env, iter->second);
+    CheckAndClearJniExceptions(env);
     jobject previous = env->CallObjectMethod(*to, put_method, key, value);
     CheckAndClearJniExceptions(env);
     if (previous) env->DeleteLocalRef(previous);
-    env->DeleteLocalRef(value);
-    env->DeleteLocalRef(key);
+    if (value) env->DeleteLocalRef(value);
+    if (key) env->DeleteLocalRef(key);
   }
 }
 
@@ -778,32 +850,46 @@ void StdMapToJavaMap(JNIEnv* env, jobject* to,
 template <typename T, typename ConvertFn>
 static void JavaMapToStdMapTemplate(JNIEnv* env, std::map<T, T>* to,
                                     jobject from, ConvertFn convert) {
+  if (!to) return;
+  to->clear();
+  if (!env || !from) return;
   // Set<Object> key_set = from.keySet();
   jobject key_set = env->CallObjectMethod(from, map::GetMethodId(map::kKeySet));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !key_set) {
+    if (key_set) env->DeleteLocalRef(key_set);
+    return;
+  }
   // Iterator iter = key_set.iterator();
   jobject iter =
       env->CallObjectMethod(key_set, set::GetMethodId(set::kIterator));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !iter) {
+    if (iter) env->DeleteLocalRef(iter);
+    env->DeleteLocalRef(key_set);
+    return;
+  }
   // while (iter.hasNext())
   while (
       env->CallBooleanMethod(iter, iterator::GetMethodId(iterator::kHasNext))) {
-    CheckAndClearJniExceptions(env);
+    if (CheckAndClearJniExceptions(env)) break;
     // T key = iter.next();
     // T value = from.get(key);
     jobject key_object =
         env->CallObjectMethod(iter, iterator::GetMethodId(iterator::kNext));
-    CheckAndClearJniExceptions(env);
+    if (CheckAndClearJniExceptions(env)) {
+      if (key_object) env->DeleteLocalRef(key_object);
+      break;
+    }
     jobject value_object =
         env->CallObjectMethod(from, map::GetMethodId(map::kGet), key_object);
     CheckAndClearJniExceptions(env);
     const T key = convert(env, key_object);
     const T value = convert(env, value_object);
-    env->DeleteLocalRef(key_object);
-    env->DeleteLocalRef(value_object);
+    if (key_object) env->DeleteLocalRef(key_object);
+    if (value_object) env->DeleteLocalRef(value_object);
 
-    to->insert(std::pair<T, T>(key, value));
+    (*to)[key] = value;
   }
+  CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(iter);
   env->DeleteLocalRef(key_set);
 }
@@ -825,21 +911,31 @@ void JavaMapToVariantMap(JNIEnv* env, std::map<Variant, Variant>* to,
 // Converts a `java.util.Set<String>` to a `std::vector<std::string>`.
 void JavaSetToStdStringVector(JNIEnv* env, std::vector<std::string>* to,
                               jobject from) {
+  if (!to) return;
+  to->clear();
+  if (!env || !from) return;
   // Use an iterator over the set.
   jobject iter =
       env->CallObjectMethod(from, util::set::GetMethodId(util::set::kIterator));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !iter) {
+    if (iter) env->DeleteLocalRef(iter);
+    return;
+  }
   // while (iter.hasNext())
   while (env->CallBooleanMethod(
       iter, util::iterator::GetMethodId(util::iterator::kHasNext))) {
-    CheckAndClearJniExceptions(env);
+    if (CheckAndClearJniExceptions(env)) break;
     // String elem = iter.next();
     jobject elem_object = env->CallObjectMethod(
         iter, util::iterator::GetMethodId(util::iterator::kNext));
-    CheckAndClearJniExceptions(env);
+    if (CheckAndClearJniExceptions(env)) {
+      if (elem_object) env->DeleteLocalRef(elem_object);
+      break;
+    }
     std::string elem = JniStringToString(env, elem_object);
     to->push_back(elem);
   }
+  CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(iter);
 }
 
@@ -847,15 +943,20 @@ void JavaSetToStdStringVector(JNIEnv* env, std::vector<std::string>* to,
 // Returns a local ref to a List.
 jobject VariantVectorToJavaList(JNIEnv* env,
                                 const std::vector<Variant>& variant_vector) {
+  if (!env) return nullptr;
   jobject java_list =
       env->NewObject(array_list::GetClass(),
                      array_list::GetMethodId(array_list::kConstructor));
+  if (CheckAndClearJniExceptions(env) || !java_list) {
+    if (java_list) env->DeleteLocalRef(java_list);
+    return nullptr;
+  }
   jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
   for (auto it = variant_vector.begin(); it != variant_vector.end(); ++it) {
     jobject value = VariantToJavaObject(env, *it);
     env->CallBooleanMethod(java_list, add_method, value);
     CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(value);
+    if (value) env->DeleteLocalRef(value);
   }
   return java_list;
 }
@@ -863,10 +964,12 @@ jobject VariantVectorToJavaList(JNIEnv* env,
 // Converts a `java.util.List<String>` to a `std::vector<std::string>`.
 void JavaListToStdStringVector(JNIEnv* env, std::vector<std::string>* vector,
                                jobject from) {
-  int size = env->CallIntMethod(from, list::GetMethodId(list::kSize));
-  CheckAndClearJniExceptions(env);
+  if (!vector) return;
   vector->clear();
-  vector->reserve(size);
+  if (!env || !from) return;
+  int size = env->CallIntMethod(from, list::GetMethodId(list::kSize));
+  if (CheckAndClearJniExceptions(env) || size <= 0) return;
+  vector->reserve(static_cast<size_t>(size));
   for (int i = 0; i < size; i++) {
     jobject element =
         env->CallObjectMethod(from, list::GetMethodId(list::kGet), i);
@@ -878,27 +981,30 @@ void JavaListToStdStringVector(JNIEnv* env, std::vector<std::string>* vector,
 // Converts a `java.util.List<Object>` to a `std::vector<std::string>`.
 void JavaObjectListToStdStringVector(JNIEnv* env, std::vector<std::string>* to,
                                      jobject from) {
-  int size = env->CallIntMethod(from, list::GetMethodId(list::kSize));
-  CheckAndClearJniExceptions(env);
+  if (!to) return;
   to->clear();
-  to->reserve(size);
+  if (!env || !from) return;
+  int size = env->CallIntMethod(from, list::GetMethodId(list::kSize));
+  if (CheckAndClearJniExceptions(env) || size <= 0) return;
+  to->reserve(static_cast<size_t>(size));
   for (int i = 0; i < size; i++) {
     jobject element =
         env->CallObjectMethod(from, list::GetMethodId(list::kGet), i);
     CheckAndClearJniExceptions(env);
     to->push_back(JniObjectToString(env, element));
-    env->DeleteLocalRef(element);
   }
 }
 
 // Converts a `java.util.List<java.lang.Object>` to a `std::vector<Variant>`.
 void JavaListToVariantList(JNIEnv* env, std::vector<Variant>* to,
                            jobject from) {
+  if (!to) return;
+  to->clear();
+  if (!env || !from) return;
   // int size = from.size();
   int size = env->CallIntMethod(from, list::GetMethodId(list::kSize));
-  CheckAndClearJniExceptions(env);
-  to->clear();
-  to->reserve(size);
+  if (CheckAndClearJniExceptions(env) || size <= 0) return;
+  to->reserve(static_cast<size_t>(size));
 
   for (int i = 0; i < size; i++) {
     // Object obj = from.get(i);
@@ -906,45 +1012,42 @@ void JavaListToVariantList(JNIEnv* env, std::vector<Variant>* to,
     CheckAndClearJniExceptions(env);
 
     to->push_back(JavaObjectToVariant(env, obj));
-    env->DeleteLocalRef(obj);
+    if (obj) env->DeleteLocalRef(obj);
   }
 }
 
 // Convert a jstring to a std::string, releasing the reference to the
 // jstring.
 std::string JniStringToString(JNIEnv* env, jobject string_object) {
-  std::string return_string = JStringToString(env, string_object);
-  env->DeleteLocalRef(string_object);
-  return return_string;
+  return jni::JniStringToString(env, string_object);
 }
 
 // Convert a Java object of type java.lang.Object into an std::string, by
 // calling toString(), then release the object.
 std::string JniObjectToString(JNIEnv* env, jobject obj) {
-  if (obj == nullptr) return "";
+  if (!env || obj == nullptr) return "";
   jobject str =
       env->CallObjectMethod(obj, object::GetMethodId(object::kToString));
-  CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(obj);
+  if (CheckAndClearJniExceptions(env)) {
+    if (str) env->DeleteLocalRef(str);
+    return "";
+  }
   return JniStringToString(env, str);
 }
 
 // Convert a jstring (created by the JVM e.g passed into a native method)
-// into
-// a std::string.  Unlike JniStringToString() this does not release the
+// into a std::string. Unlike JniStringToString() this does not release the
 // reference to the string_object as the caller owns the object in a native
 // method.
 std::string JStringToString(JNIEnv* env, jobject string_object) {
-  if (string_object == nullptr) return "";
-  const char* string_buffer =
-      env->GetStringUTFChars(static_cast<jstring>(string_object), 0);
-  std::string return_string(string_buffer);
-  env->ReleaseStringUTFChars(static_cast<jstring>(string_object),
-                             string_buffer);
-  return return_string;
+  return jni::JStringToString(env, string_object);
 }
 
 bool IsJArray(JNIEnv* env, jobject obj) {
+  if (!env || !obj) return false;
   jclass obj_class = env->GetObjectClass(obj);
+  if (CheckAndClearJniExceptions(env) || !obj_class) return false;
   const bool is_array = env->CallBooleanMethod(
       obj_class, class_class::GetMethodId(class_class::kIsArray));
   CheckAndClearJniExceptions(env);
@@ -953,18 +1056,21 @@ bool IsJArray(JNIEnv* env, jobject obj) {
 }
 
 std::string JObjectClassName(JNIEnv* env, jobject obj) {
+  if (!env || !obj) return "";
   jclass obj_class = env->GetObjectClass(obj);
+  if (CheckAndClearJniExceptions(env) || !obj_class) return "";
   jobject obj_name = env->CallObjectMethod(
       obj_class, class_class::GetMethodId(class_class::kGetName));
   CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(obj_class);
   return JniStringToString(env, obj_name);
 }
 
 // Allow macros to iterate through all the primitive JNI types.
 #define FIREBASE_JNI_PRIMITIVE_TYPES(X)                       \
   X(boolean_class, "[Z", jboolean, Boolean, bool, Bool, "%d") \
-  X(byte_class, "[B", jbyte, Byte, uint8_t, UInt8, "%d")      \
-  X(character_class, "[C", jchar, Char, char, Char, "%c")     \
+  X(byte_class, "[B", jbyte, Byte, int8_t, Int8, "%d")        \
+  X(character_class, "[C", jchar, Char, uint16_t, UInt16, "%u") \
   X(short_class, "[S", jshort, Short, int16_t, Int16, "%d")   \
   X(integer_class, "[I", jint, Int, int, Int, "%d")           \
   X(long_class, "[J", jlong, Long, int64_t, Int64, "%ld")     \
@@ -980,12 +1086,25 @@ std::string JObjectClassName(JNIEnv* env, jobject obj) {
 #define FIREBASE_JTYPE_TO_TYPE(type_class, array_format, jtype, jname, ctype, \
                                cname, printf_type)                            \
   ctype J##jname##To##cname(JNIEnv* env, jobject obj) {                       \
-    ctype ret = env->Call##jname##Method(                                     \
-        obj, type_class::GetMethodId(type_class::kValue));                    \
+    if (!env || !obj) return static_cast<ctype>(0);                           \
+    ctype ret = static_cast<ctype>(env->Call##jname##Method(                  \
+        obj, type_class::GetMethodId(type_class::kValue)));                   \
     CheckAndClearJniExceptions(env);                                          \
     return ret;                                                               \
   }
 FIREBASE_JNI_PRIMITIVE_TYPES(FIREBASE_JTYPE_TO_TYPE)
+
+uint8_t JByteToUInt8(JNIEnv* env, jobject obj) {
+  return static_cast<uint8_t>(JByteToInt8(env, obj));
+}
+
+char JCharToChar(JNIEnv* env, jobject obj) {
+  return static_cast<char>(JCharToUInt16(env, obj));
+}
+
+int JIntegerToInt(JNIEnv* env, jobject obj) {
+  return JIntToInt(env, obj);
+}
 
 // Defines functions like this, but for all primitive JNI types.
 //
@@ -998,39 +1117,36 @@ FIREBASE_JNI_PRIMITIVE_TYPES(FIREBASE_JTYPE_TO_TYPE)
 #define FIREBASE_IS_JARRAY(type_class, array_format, jtype, jname, ctype, \
                            cname, printf_type)                            \
   bool IsJ##jname##Array(JNIEnv* env, jobject obj) {                      \
+    if (!env || !obj) return false;                                       \
     jclass array_class = env->FindClass(array_format);                    \
-    const bool is_array = env->IsInstanceOf(obj, array_class);            \
+    if (CheckAndClearJniExceptions(env) || !array_class) return false;    \
+    const bool is_array = env->IsInstanceOf(obj, array_class) == JNI_TRUE;\
+    CheckAndClearJniExceptions(env);                                      \
     env->DeleteLocalRef(array_class);                                     \
     return is_array;                                                      \
   }
 FIREBASE_JNI_PRIMITIVE_TYPES(FIREBASE_IS_JARRAY)
 
 // Defines functions like this, but for all the JNI array types.
-//
-// Variant JBooleanArrayToVariant(JNIEnv* env, jbooleanArray array) {
-//   const size_t len = env->GetArrayLength(array);
-//   jboolean* c_array = env->GetBooleanArrayElements(array, nullptr);
-//   // We can't use the Variant array constructor because we have to cast to
-//   // the C-type for each element (e.g. jboolean is char, which will become
-//   // int64_t in the Variant, but we want bool in the Variant).
-//   auto vec = new std::vector<Variant>(len);
-//   for (size_t i = 0; i < len; ++i) {
-//     (*vec)[i] = Variant(static_cast<bool>(c_array[i]));
-//   }
-//   Variant v;
-//   // Transfer ownership of vec to the Variant. Set vec to NULL.
-//   v.AssignVector(&vec);
-//   env->ReleaseBooleanArrayElements(array, c_array, JNI_ABORT);
-//   return v;
-// }
 #define FIREBASE_JARRAY_TO_VARIANT(type_class, array_format, jtype, jname, \
                                    ctype, cname, printf_type)              \
   Variant J##jname##ArrayToVariant(JNIEnv* env, jtype##Array array) {      \
-    const size_t len = env->GetArrayLength(array);                         \
+    if (!env || !array) return Variant::EmptyVector();                     \
+    const jsize jlen = env->GetArrayLength(array);                         \
+    if (CheckAndClearJniExceptions(env) || jlen <= 0) {                    \
+      return Variant::EmptyVector();                                       \
+    }                                                                      \
+    const size_t len = static_cast<size_t>(jlen);                          \
     jtype* c_array = env->Get##jname##ArrayElements(array, nullptr);       \
+    if (CheckAndClearJniExceptions(env) || !c_array) {                     \
+      return Variant::EmptyVector();                                       \
+    }                                                                      \
     auto vec = new std::vector<Variant>(len);                              \
+    using VariantValueType =                                               \
+        std::conditional_t<std::is_same<ctype, uint16_t>::value, int64_t,  \
+                           ctype>;                                         \
     for (size_t i = 0; i < len; ++i) {                                     \
-      (*vec)[i] = Variant(static_cast<ctype>(c_array[i]));                 \
+      (*vec)[i] = Variant(static_cast<VariantValueType>(c_array[i]));      \
     }                                                                      \
     Variant v;                                                             \
     v.AssignVector(&vec);                                                  \
@@ -1040,15 +1156,21 @@ FIREBASE_JNI_PRIMITIVE_TYPES(FIREBASE_IS_JARRAY)
 FIREBASE_JNI_PRIMITIVE_TYPES(FIREBASE_JARRAY_TO_VARIANT)
 
 Variant JObjectArrayToVariant(JNIEnv* env, jobjectArray array) {
-  const size_t len = env->GetArrayLength(array);
+  if (!env || !array) return Variant::EmptyVector();
+  const jsize jlen = env->GetArrayLength(array);
+  if (CheckAndClearJniExceptions(env) || jlen <= 0) {
+    return Variant::EmptyVector();
+  }
+  const size_t len = static_cast<size_t>(jlen);
   auto vec = new std::vector<Variant>();
   vec->reserve(len);
 
   // Loop through array converted each object into a Variant.
   for (size_t i = 0; i < len; ++i) {
-    jobject obj = env->GetObjectArrayElement(array, i);
+    jobject obj = env->GetObjectArrayElement(array, static_cast<jsize>(i));
+    CheckAndClearJniExceptions(env);
     vec->push_back(JavaObjectToVariant(env, obj));
-    env->DeleteLocalRef(obj);
+    if (obj) env->DeleteLocalRef(obj);
   }
 
   // Move vec so that we don't have to make a copy of it.
@@ -1068,7 +1190,23 @@ Variant JObjectArrayToVariant(JNIEnv* env, jobjectArray array) {
   }
 
 Variant JArrayToVariant(JNIEnv* env, jarray array) {
+  if (!env || !array) return Variant::EmptyVector();
   FIREBASE_ASSERT(IsJArray(env, array));
+
+  // Convert byte[] arrays to Variant blobs for round-trip symmetry with
+  // VariantToJavaObject().
+  if (IsJByteArray(env, array)) {
+    jbyteArray byte_array = static_cast<jbyteArray>(array);
+    const jsize jlen = env->GetArrayLength(byte_array);
+    if (CheckAndClearJniExceptions(env) || jlen <= 0) {
+      return Variant::EmptyMutableBlob(0);
+    }
+    Variant v = Variant::FromMutableBlob(nullptr, static_cast<size_t>(jlen));
+    env->GetByteArrayRegion(byte_array, 0, jlen,
+                            reinterpret_cast<jbyte*>(v.mutable_blob_data()));
+    CheckAndClearJniExceptions(env);
+    return v;
+  }
 
   // Check each array type in turn, and convert to it if the type matches.
   FIREBASE_JNI_PRIMITIVE_TYPES(FIREBASE_CONVERT_TO_VARIANT_ARRAY)
@@ -1079,17 +1217,21 @@ Variant JArrayToVariant(JNIEnv* env, jarray array) {
 
 // Code like this, but for all JNI primitive types.
 //
-//  if (env->IsInstanceOf(object, boolean_class::GetClass())) {  \
+//  if (env->IsInstanceOf(object, boolean_class::GetClass())) {
 //    return Variant(JBooleanToBool(env, object));
 //  }
 #define FIREBASE_CONVERT_TO_VARIANT(type_class, array_format, jtype, jname, \
                                     ctype, cname, printf_type)              \
   if (env->IsInstanceOf(object, type_class::GetClass())) {                  \
-    return Variant(J##jname##To##cname(env, object));                       \
+    using VariantValueType =                                                \
+        std::conditional_t<std::is_same<ctype, uint16_t>::value, int64_t,   \
+                           ctype>;                                          \
+    return Variant(                                                         \
+        static_cast<VariantValueType>(J##jname##To##cname(env, object)));   \
   }
 
 Variant JavaObjectToVariant(JNIEnv* env, jobject object) {
-  if (object == nullptr) return Variant();
+  if (!env || object == nullptr) return Variant();
 
   // Convert strings.
   if (env->IsInstanceOf(object, string::GetClass()))
@@ -1124,6 +1266,21 @@ Variant JavaObjectToVariant(JNIEnv* env, jobject object) {
     return v;
   }
 
+  // Convert byte[] arrays to Variant blobs for round-trip symmetry with
+  // VariantToJavaObject().
+  if (IsJByteArray(env, object)) {
+    jbyteArray byte_array = static_cast<jbyteArray>(object);
+    const jsize jlen = env->GetArrayLength(byte_array);
+    if (CheckAndClearJniExceptions(env) || jlen <= 0) {
+      return Variant::EmptyMutableBlob(0);
+    }
+    Variant v = Variant::FromMutableBlob(nullptr, static_cast<size_t>(jlen));
+    env->GetByteArrayRegion(byte_array, 0, jlen,
+                            reinterpret_cast<jbyte*>(v.mutable_blob_data()));
+    CheckAndClearJniExceptions(env);
+    return v;
+  }
+
   // Convert arrays.
   if (IsJArray(env, object)) {
     return JArrayToVariant(env, static_cast<jarray>(object));
@@ -1136,23 +1293,46 @@ Variant JavaObjectToVariant(JNIEnv* env, jobject object) {
 }
 
 jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
-  if (variant.is_null()) {
+  if (!env || variant.is_null()) {
     return nullptr;
   } else if (variant.is_int64()) {
-    return env->NewObject(long_class::GetClass(),
-                          long_class::GetMethodId(long_class::kConstructor),
-                          variant.int64_value());
+    jobject obj = env->NewObject(
+        long_class::GetClass(),
+        long_class::GetMethodId(long_class::kConstructor),
+        variant.int64_value());
+    if (CheckAndClearJniExceptions(env)) {
+      if (obj) env->DeleteLocalRef(obj);
+      return nullptr;
+    }
+    return obj;
   } else if (variant.is_double()) {
-    return env->NewObject(double_class::GetClass(),
-                          double_class::GetMethodId(double_class::kConstructor),
-                          variant.double_value());
+    jobject obj = env->NewObject(
+        double_class::GetClass(),
+        double_class::GetMethodId(double_class::kConstructor),
+        variant.double_value());
+    if (CheckAndClearJniExceptions(env)) {
+      if (obj) env->DeleteLocalRef(obj);
+      return nullptr;
+    }
+    return obj;
   } else if (variant.is_bool()) {
-    return env->NewObject(
+    jobject obj = env->NewObject(
         boolean_class::GetClass(),
         boolean_class::GetMethodId(boolean_class::kConstructor),
         variant.bool_value());
+    if (CheckAndClearJniExceptions(env)) {
+      if (obj) env->DeleteLocalRef(obj);
+      return nullptr;
+    }
+    return obj;
   } else if (variant.is_string()) {
-    return env->NewStringUTF(variant.string_value());
+    jstring str = jni::NewRawJString(
+        env, variant.string_value() ? variant.string_value() : "");
+    if (CheckAndClearJniExceptions(env)) {
+      if (str) env->DeleteLocalRef(str);
+      return nullptr;
+    }
+    return str;
   } else if (variant.is_blob()) {
     return static_cast<jobject>(ByteBufferToJavaByteArray(
         env, variant.blob_data(), variant.blob_size()));
@@ -1170,73 +1350,77 @@ jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
 // Convert a jobject of type android.net.Uri into an std::string,
 // and releases the reference to the jobject.
 std::string JniUriToString(JNIEnv* env, jobject uri) {
-  if (uri == nullptr) return "";
+  if (!env || uri == nullptr) return "";
   jobject path = env->CallObjectMethod(uri, uri::GetMethodId(uri::kToString));
   CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(uri);
   return JniStringToString(env, path);
 }
 
-// Convert a std::string into a jobject of type android.net.Uri.
+std::string JniUriGetPath(JNIEnv* env, jobject uri) {
+  if (!env || uri == nullptr) return "";
+  jobject path = env->CallObjectMethod(uri, uri::GetMethodId(uri::kGetPath));
+  CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(uri);
+  return JniStringToString(env, path);
+}
+
+// Convert a C string into a jobject of type android.net.Uri.
 // The caller must call env->DeleteLocalRef() on the returned jobject.
 jobject CharsToJniUri(JNIEnv* env, const char* uri) {
-  jobject uri_object = nullptr;
-  // Create a new android.net.Uri.Builder.
-  jobject builder =
-      env->NewObject(uribuilder::GetClass(),
-                     uribuilder::GetMethodId(uribuilder::kConstructor));
-
-  // Call builder.path().
-  jstring uri_string = env->NewStringUTF(uri);
-  jobject builder_discard = env->CallObjectMethod(
-      builder, uribuilder::GetMethodId(uribuilder::kEncodedPath), uri_string);
-  if (!CheckAndClearJniExceptions(env)) {
-    // Call builder.build().
-    uri_object = env->CallObjectMethod(
-        builder, uribuilder::GetMethodId(uribuilder::kBuild));
-    // Release all locally created objects.
-    env->DeleteLocalRef(builder_discard);
-  }
-  env->DeleteLocalRef(uri_string);
-  env->DeleteLocalRef(builder);
-
-  // Return the jobject. The caller is responsible for calling
-  // DeleteLocalRef().
-  return uri_object;
+  return ParseUriString(env, uri);
 }
 
 // Parse a string containing a URL into a android.net.Uri using Uri.parse().
 // The caller must call env->DeleteLocalRef() on the returned jobject.
 jobject ParseUriString(JNIEnv* env, const char* uri_string) {
-  jobject path_str = env->NewStringUTF(uri_string);
-  jobject uri = env->CallStaticObjectMethod(
+  if (!env || !uri_string) return nullptr;
+  jstring path_str = jni::NewRawJString(env, uri_string);
+  if (CheckAndClearJniExceptions(env) || !path_str) {
+    if (path_str) env->DeleteLocalRef(path_str);
+    return nullptr;
+  }
+  jobject parsed_uri = env->CallStaticObjectMethod(
       uri::GetClass(), uri::GetMethodId(uri::kParse), path_str);
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env)) {
+    if (parsed_uri) env->DeleteLocalRef(parsed_uri);
+    parsed_uri = nullptr;
+  }
   env->DeleteLocalRef(path_str);
-  return uri;
+  return parsed_uri;
 }
 
 // Convert a char array into a jobject of type java.net.URL.
 // The caller must call env->DeleteLocalRef() on the returned jobject.
 jobject CharsToURL(JNIEnv* env, const char* url_string) {
-  jobject url_jstring = env->NewStringUTF(url_string);
-  jobject url = env->NewObject(
+  if (!env || !url_string || url_string[0] == '\0') return nullptr;
+  jstring url_jstring = jni::NewRawJString(env, url_string);
+  if (CheckAndClearJniExceptions(env) || !url_jstring) {
+    if (url_jstring) env->DeleteLocalRef(url_jstring);
+    return nullptr;
+  }
+  jobject url_obj = env->NewObject(
       url::GetClass(), url::GetMethodId(url::kConstructor), url_jstring);
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env)) {
+    if (url_obj) env->DeleteLocalRef(url_obj);
+    url_obj = nullptr;
+  }
   env->DeleteLocalRef(url_jstring);
-  return url;
+  return url_obj;
 }
 
 // Convert a jbyteArray to a vector, releasing the reference to the
 // jbyteArray.
 std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array) {
   std::vector<unsigned char> value;
+  if (!env || !array) return value;
   jbyteArray byte_array = static_cast<jbyteArray>(array);
   jsize byte_array_length = env->GetArrayLength(byte_array);
-  if (byte_array_length) {
-    value.resize(byte_array_length);
+  if (!CheckAndClearJniExceptions(env) && byte_array_length > 0) {
+    value.resize(static_cast<size_t>(byte_array_length));
     env->GetByteArrayRegion(byte_array, 0, byte_array_length,
-                            reinterpret_cast<jbyte*>(&value[0]));
+                            reinterpret_cast<jbyte*>(value.data()));
+    CheckAndClearJniExceptions(env);
   }
   env->DeleteLocalRef(array);
   return value;
@@ -1245,46 +1429,77 @@ std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array) {
 // Convert a byte buffer and size into a jbyteArray.
 jbyteArray ByteBufferToJavaByteArray(JNIEnv* env, const uint8_t* data,
                                      size_t size) {
-  jbyteArray output_array = env->NewByteArray(size);
-  env->SetByteArrayRegion(output_array, 0, size,
-                          reinterpret_cast<const jbyte*>(data));
+  if (!env) return nullptr;
+  if (size > 0 && !data) return nullptr;
+  const jsize jlen = jni::SizeToJniSize(size);
+  jbyteArray output_array = env->NewByteArray(jlen);
+  if (CheckAndClearJniExceptions(env) || !output_array) {
+    if (output_array) env->DeleteLocalRef(output_array);
+    return nullptr;
+  }
+  if (jlen > 0 && data != nullptr) {
+    env->SetByteArrayRegion(output_array, 0, jlen,
+                            reinterpret_cast<const jbyte*>(data));
+    if (CheckAndClearJniExceptions(env)) {
+      env->DeleteLocalRef(output_array);
+      return nullptr;
+    }
+  }
   return output_array;
 }
 
 // Convert a local to global reference, deleting the specified local reference.
 jobject LocalToGlobalReference(JNIEnv* env, jobject local_reference) {
   jobject global_reference = nullptr;
-  if (local_reference) {
+  if (env && local_reference) {
     global_reference = env->NewGlobalRef(local_reference);
+    CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(local_reference);
   }
   return global_reference;
 }
 
 jobject ContinueBuilder(JNIEnv* env, jobject old_builder, jobject new_builder) {
-  env->DeleteLocalRef(old_builder);
+  if (env && old_builder) env->DeleteLocalRef(old_builder);
   return new_builder;
 }
 
 void RegisterCallbackOnTask(JNIEnv* env, jobject task,
                             TaskCallbackFn callback_fn, void* callback_data,
                             const char* api_identifier) {
+  if (!env || !task || !callback_fn) return;
+  if (!g_jniresultcallback_loaded || !jniresultcallback::GetClass()) {
+    callback_fn(env, nullptr, kFutureResultFailure,
+                "JniResultCallback is not initialized.", callback_data);
+    return;
+  }
+
+  const std::string key = api_identifier ? api_identifier : "";
+
   // Need to add the CallbackData to the g_task_callbacks before creating the
   // Java callback object as it could complete before we finish initializing
   // CallbackData.
-  CallbackData* data;
+  auto data = std::make_shared<CallbackData>();
+  const uintptr_t data_key = reinterpret_cast<uintptr_t>(data.get());
   pthread_mutex_lock(&g_task_callbacks_mutex);
+  if (!g_task_callbacks) {
+    pthread_mutex_unlock(&g_task_callbacks_mutex);
+    callback_fn(env, nullptr, kFutureResultFailure,
+                "JniResultCallback is not initialized.", callback_data);
+    return;
+  }
   {
-    auto& callback_list = (*g_task_callbacks)[api_identifier];
-    callback_list.push_back(CallbackData());
+    auto& callback_list = (*g_task_callbacks)[key];
+    callback_list.push_back(data);
     auto list_it = callback_list.end();
-    list_it--;
-    data = &(*list_it);
+    --list_it;
     data->data = callback_data;
     data->callback_reference = nullptr;
+    data->api_id = key;
     data->iterator = list_it;
-    data->list = &callback_list;
     data->complete = false;
+    data->in_list = true;
+    GetLiveCallbacksLocked()[data_key] = data;
   }
   pthread_mutex_unlock(&g_task_callbacks_mutex);
 
@@ -1293,44 +1508,71 @@ void RegisterCallbackOnTask(JNIEnv* env, jobject task,
   jobject jni_result_callback = env->NewObject(
       jniresultcallback::GetClass(),
       jniresultcallback::GetMethodId(jniresultcallback::kConstructor), task,
-      reinterpret_cast<jlong>(callback_fn), reinterpret_cast<jlong>(data));
+      reinterpret_cast<jlong>(callback_fn), static_cast<jlong>(data_key));
+  const bool create_failed =
+      CheckAndClearJniExceptions(env) || jni_result_callback == nullptr;
 
+  bool should_cancel_new_callback = false;
   // Store global reference to the callback so we can potentially cancel it in
   // Terminate().
   pthread_mutex_lock(&g_task_callbacks_mutex);
-  // If the callback wasn't completed immediately
-  // (see JniResultCallback_nativeOnResult()), add a global reference to the
-  // callback so it can be completed otherwise, remove it from the list.
-  if (data->complete) {
-    data->list->erase(data->iterator);
+  if (create_failed) {
+    data->complete = true;
+    RemoveCallbackDataLocked(data);
+    GetLiveCallbacksLocked().erase(data_key);
+  } else if (data->complete) {
+    // Completed or cancelled while NewObject was in flight.
+    should_cancel_new_callback = true;
+    RemoveCallbackDataLocked(data);
   } else {
     data->callback_reference = env->NewGlobalRef(jni_result_callback);
+    if (CheckAndClearJniExceptions(env) || !data->callback_reference) {
+      data->complete = true;
+      RemoveCallbackDataLocked(data);
+      should_cancel_new_callback = true;
+    }
   }
   pthread_mutex_unlock(&g_task_callbacks_mutex);
 
-  // The jni_result_callback has registered itself with Task.
-  // so it won't be garbage collected until the object has completed.
-  env->DeleteLocalRef(jni_result_callback);
+  if (jni_result_callback) {
+    if (should_cancel_new_callback) {
+      env->CallVoidMethod(
+          jni_result_callback,
+          jniresultcallback::GetMethodId(jniresultcallback::kCancel));
+      CheckAndClearJniExceptions(env);
+      pthread_mutex_lock(&g_task_callbacks_mutex);
+      GetLiveCallbacksLocked().erase(data_key);
+      pthread_mutex_unlock(&g_task_callbacks_mutex);
+    }
+    // The jni_result_callback has registered itself with Task.
+    // so it won't be garbage collected until the object has completed.
+    env->DeleteLocalRef(jni_result_callback);
+  }
 }
 
 JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
     JNIEnv* env, jobject clazz, jobject result, jboolean success,
     jboolean cancelled, jstring status_message, jlong callback_fn_param,
     jlong callback_data) {
-  void* user_callback_data;
+  (void)clazz;
+  jni::JniCallbackScope callback_scope(env);
+  void* user_callback_data = nullptr;
+  bool should_invoke_callback = (callback_data == 0);
   pthread_mutex_lock(&g_task_callbacks_mutex);
-  {
-    CallbackData* data = reinterpret_cast<CallbackData*>(callback_data);
-    user_callback_data = data->data;
-    // If a callback reference isn't present, the callback was completed before
-    // RegisterCallbackOnTask() finished adding it to a
-    // g_task_callbacks list.  In this case we leave it in the list and signal
-    // RegisterCallbackOnTask() that it is complete by setting
-    // complete to true.
-    data->complete = true;
-    if (data->callback_reference) {
-      env->DeleteGlobalRef(data->callback_reference);
-      data->list->erase(data->iterator);
+  if (callback_data != 0) {
+    auto& live = GetLiveCallbacksLocked();
+    auto it = live.find(static_cast<uintptr_t>(callback_data));
+    if (it != live.end()) {
+      std::shared_ptr<CallbackData> data = std::move(it->second);
+      live.erase(it);
+      user_callback_data = data->data;
+      should_invoke_callback = true;
+      data->complete = true;
+      if (data->callback_reference) {
+        env->DeleteGlobalRef(data->callback_reference);
+        data->callback_reference = nullptr;
+      }
+      RemoveCallbackDataLocked(data);
     }
   }
   pthread_mutex_unlock(&g_task_callbacks_mutex);
@@ -1338,15 +1580,19 @@ JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
   // Validate the assumption that it can't both succeed and be cancelled.
   assert(!(success && cancelled));
 
-  // Cast the jlongs to pointers and call the C++ callbaack.
+  if (!should_invoke_callback) return;
+
+  // Cast the jlongs to pointers and call the C++ callback.
   std::string status_message_c = JStringToString(env, status_message);
   TaskCallbackFn* callback_fn =
       reinterpret_cast<TaskCallbackFn*>(callback_fn_param);
   FutureResult result_code =
       success ? kFutureResultSuccess
               : (cancelled ? kFutureResultCancelled : kFutureResultFailure);
-  callback_fn(env, result, result_code, status_message_c.c_str(),
-              user_callback_data);
+  if (callback_fn) {
+    callback_fn(env, result, result_code, status_message_c.c_str(),
+                user_callback_data);
+  }
 }
 
 // Call a C++ function pointer, passing in a given data pointer. This is called
@@ -1354,11 +1600,13 @@ JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
 // contain C++ pointers.
 JNIEXPORT void JNICALL CppThreadDispatcherContext_nativeFunction(
     JNIEnv* env, jobject clazz, jlong function_ptr, jlong function_data) {
+  (void)clazz;
+  jni::JniCallbackScope callback_scope(env);
   void (*func)(void*) = reinterpret_cast<void (*)(void*)>(function_ptr);
-  func(reinterpret_cast<void*>(function_data));
+  if (func) {
+    func(reinterpret_cast<void*>(function_data));
+  }
 }
-
-int JavaThreadContext::initialize_count_ = 0;
 
 JavaThreadContext::JavaThreadContext(JNIEnv* env) : object_(env) {}
 
@@ -1367,7 +1615,7 @@ JavaThreadContext::~JavaThreadContext() {}
 void JavaThreadContext::Cancel() {
   JNIEnv* env = object_.GetJNIEnv();
   jobject dispatcher = object_.object();
-  if (dispatcher) {
+  if (env && dispatcher) {
     env->CallVoidMethod(dispatcher, cppthreaddispatchercontext::GetMethodId(
                                         cppthreaddispatchercontext::kCancel));
     CheckAndClearJniExceptions(env);
@@ -1377,7 +1625,7 @@ void JavaThreadContext::Cancel() {
 void JavaThreadContext::ReleaseExecuteCancelLock() {
   JNIEnv* env = object_.GetJNIEnv();
   jobject dispatcher = object_.object();
-  if (dispatcher) {
+  if (env && dispatcher) {
     env->CallVoidMethod(
         dispatcher, cppthreaddispatchercontext::GetMethodId(
                         cppthreaddispatchercontext::kReleaseExecuteCancelLock));
@@ -1389,7 +1637,7 @@ bool JavaThreadContext::AcquireExecuteCancelLock() {
   JNIEnv* env = object_.GetJNIEnv();
   bool acquired = false;
   jobject dispatcher = object_.object();
-  if (dispatcher) {
+  if (env && dispatcher) {
     acquired =
         env->CallBooleanMethod(
             dispatcher,
@@ -1437,7 +1685,7 @@ jobject JavaThreadContext::SetupInstance(JNIEnv* env, Callback function_ptr,
                      reinterpret_cast<jlong>(function_data),
                      reinterpret_cast<jlong>(cancel_function_ptr));
   CheckAndClearJniExceptions(env);
-  if (context) context->object_.Set(java_context);
+  if (context) context->object_.Set(env, java_context);
   return java_context;
 }
 
@@ -1448,12 +1696,14 @@ void JavaThreadContext::RunOnMainThread(
     JavaThreadContext* context) {
   jobject java_context = SetupInstance(env, function_ptr, function_data,
                                        cancel_function_ptr, context);
-  env->CallStaticVoidMethod(
-      cppthreaddispatcher::GetClass(),
-      cppthreaddispatcher::GetMethodId(cppthreaddispatcher::kRunOnMainThread),
-      activity_object, java_context);
-  CheckAndClearJniExceptions(env);
-  env->DeleteLocalRef(java_context);
+  if (java_context) {
+    env->CallStaticVoidMethod(
+        cppthreaddispatcher::GetClass(),
+        cppthreaddispatcher::GetMethodId(cppthreaddispatcher::kRunOnMainThread),
+        activity_object, java_context);
+    CheckAndClearJniExceptions(env);
+    env->DeleteLocalRef(java_context);
+  }
 }
 
 void JavaThreadContext::RunOnBackgroundThread(
@@ -1462,12 +1712,14 @@ void JavaThreadContext::RunOnBackgroundThread(
     JavaThreadContext* context) {
   jobject java_context = SetupInstance(env, function_ptr, function_data,
                                        cancel_function_ptr, context);
-  env->CallStaticVoidMethod(cppthreaddispatcher::GetClass(),
-                            cppthreaddispatcher::GetMethodId(
-                                cppthreaddispatcher::kRunOnBackgroundThread),
-                            java_context);
-  CheckAndClearJniExceptions(env);
-  env->DeleteLocalRef(java_context);
+  if (java_context) {
+    env->CallStaticVoidMethod(cppthreaddispatcher::GetClass(),
+                              cppthreaddispatcher::GetMethodId(
+                                  cppthreaddispatcher::kRunOnBackgroundThread),
+                              java_context);
+    CheckAndClearJniExceptions(env);
+    env->DeleteLocalRef(java_context);
+  }
 }
 
 void RunOnMainThread(JNIEnv* env, jobject activity_object,
@@ -1492,45 +1744,66 @@ void RunOnBackgroundThread(JNIEnv* env,
 // Cancel all callbacks associated with the specified API identifier.  If an
 // API identifier isn't specified, all pending callbacks are cancelled.
 void CancelCallbacks(JNIEnv* env, const char* api_identifier) {
+  if (!env || !g_task_callbacks) return;
   LogDebug("Cancel pending callbacks for \"%s\"",
            api_identifier ? api_identifier : "<all>");
   for (;;) {
-    bool pending_callbacks = false;
+    std::shared_ptr<CallbackData> to_cancel;
     jobject callback_reference = nullptr;
     pthread_mutex_lock(&g_task_callbacks_mutex);
-    if (api_identifier) {
-      auto& list = (*g_task_callbacks)[api_identifier];
-      if (!list.empty()) {
-        pending_callbacks = true;
-        callback_reference = list.front().callback_reference;
-      }
-    } else {
-      while (!g_task_callbacks->empty()) {
-        auto map_it = g_task_callbacks->begin();
-        auto& list = map_it->second;
-        if (list.empty()) {
-          g_task_callbacks->erase(map_it);
-        } else {
-          pending_callbacks = true;
-          callback_reference = list.front().callback_reference;
-          break;
+    if (g_task_callbacks) {
+      if (api_identifier) {
+        while (g_task_callbacks) {
+          auto map_it = g_task_callbacks->find(api_identifier);
+          if (map_it == g_task_callbacks->end() || map_it->second.empty()) {
+            if (map_it != g_task_callbacks->end()) {
+              g_task_callbacks->erase(map_it);
+            }
+            break;
+          }
+          std::shared_ptr<CallbackData> front = map_it->second.front();
+          front->complete = true;
+          callback_reference = front->callback_reference;
+          front->callback_reference = nullptr;
+          RemoveCallbackDataLocked(front);
+          if (callback_reference != nullptr) {
+            to_cancel = std::move(front);
+            break;
+          }
+        }
+      } else {
+        while (g_task_callbacks && !g_task_callbacks->empty()) {
+          auto map_it = g_task_callbacks->begin();
+          if (map_it->second.empty()) {
+            g_task_callbacks->erase(map_it);
+            continue;
+          }
+          std::shared_ptr<CallbackData> front = map_it->second.front();
+          front->complete = true;
+          callback_reference = front->callback_reference;
+          front->callback_reference = nullptr;
+          RemoveCallbackDataLocked(front);
+          if (callback_reference != nullptr) {
+            to_cancel = std::move(front);
+            break;
+          }
         }
       }
     }
-    if (pending_callbacks) {
-      callback_reference = env->NewGlobalRef(callback_reference);
-    }
     pthread_mutex_unlock(&g_task_callbacks_mutex);
-    if (!pending_callbacks) break;
+    if (!to_cancel || !callback_reference) break;
 
     // We can't call this while holding g_task_callbacks_mutex as this
     // could result in deadlock as cancel() and onCompletion() are both
     // synchronized on the JniResultCallback object.
-    // This will remove the callback data entry from g_task_callbacks list.
     env->CallVoidMethod(callback_reference, jniresultcallback::GetMethodId(
                                                 jniresultcallback::kCancel));
     CheckAndClearJniExceptions(env);
     env->DeleteGlobalRef(callback_reference);
+    pthread_mutex_lock(&g_task_callbacks_mutex);
+    GetLiveCallbacksLocked().erase(
+        reinterpret_cast<uintptr_t>(to_cancel.get()));
+    pthread_mutex_unlock(&g_task_callbacks_mutex);
   }
 }
 
@@ -1540,14 +1813,15 @@ jclass FindClassGlobal(
     JNIEnv* env, jobject activity_object,
     const std::vector<internal::EmbeddedFile>* embedded_files,
     const char* class_name, ClassRequirement optional) {
+  if (!env || !class_name) return nullptr;
   LogDebug("Looking up class %s", class_name);
   jclass local_class = FindClass(env, class_name);
   if (!local_class && embedded_files) {
     local_class =
         FindClassInFiles(env, activity_object, *embedded_files, class_name);
   }
-  LogDebug("Class %s, lref 0x%08x", class_name,
-           static_cast<int>(reinterpret_cast<intptr_t>(local_class)));
+  LogDebug("Class %s, lref %p", class_name,
+           reinterpret_cast<void*>(local_class));
   if (!local_class) {
     if (optional == kClassRequired) {
       LogError(kMissingJavaClassError, class_name, class_name);
@@ -1556,8 +1830,8 @@ jclass FindClassGlobal(
   }
   jclass global_class = static_cast<jclass>(env->NewGlobalRef(local_class));
   env->DeleteLocalRef(local_class);
-  LogDebug("Class %s, gref 0x%08x", class_name,
-           static_cast<int>(reinterpret_cast<intptr_t>(global_class)));
+  LogDebug("Class %s, gref %p", class_name,
+           reinterpret_cast<void*>(global_class));
   CheckAndClearJniExceptions(env);
   if (!global_class) {
     if (optional == kClassRequired) {
@@ -1570,6 +1844,7 @@ jclass FindClassGlobal(
 
 // Find a class, attempting to load the class if it's not found.
 jclass FindClass(JNIEnv* env, const char* class_name) {
+  if (!env || !class_name) return nullptr;
   jclass class_object = env->FindClass(class_name);
   if (env->ExceptionCheck()) {
     env->ExceptionClear();
@@ -1586,39 +1861,45 @@ jclass FindClass(JNIEnv* env, const char* class_name) {
 const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
     JNIEnv* env, jobject activity_object,
     const std::vector<internal::EmbeddedFile>& embedded_files) {
+  if (!env || !activity_object || embedded_files.empty()) {
+    return embedded_files;
+  }
   jobject cache_dir = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetCacheDir));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !cache_dir) {
+    if (cache_dir) env->DeleteLocalRef(cache_dir);
+    return embedded_files;
+  }
   // Write each file in the resources to the cache.
   for (std::vector<internal::EmbeddedFile>::const_iterator it =
            embedded_files.begin();
        it != embedded_files.end(); ++it) {
     LogDebug("Caching %s", it->name);
-    jstring filename = env->NewStringUTF(it->name);
+    jstring filename = jni::NewRawJString(env, it->name);
     jobject output_file = env->NewObject(
         file::GetClass(), file::GetMethodId(file::kConstructorFilePath),
         cache_dir, filename);
-    env->DeleteLocalRef(filename);
-    CheckAndClearJniExceptions(env);
+    if (filename) env->DeleteLocalRef(filename);
+    if (CheckAndClearJniExceptions(env) || !output_file) {
+      if (output_file) env->DeleteLocalRef(output_file);
+      break;
+    }
     // Below, we would have set the file read only on a previous run. Here, set
     // it to writable and then delete it before creating it again.
-    //
-    // if output_file.exists() {
     if (env->CallBooleanMethod(output_file, file::GetMethodId(file::kExists))) {
       CheckAndClearJniExceptions(env);
-      // output_file.setWritable(true);
       env->CallBooleanMethod(output_file, file::GetMethodId(file::kSetWritable),
                              JNI_TRUE);
       CheckAndClearJniExceptions(env);
-      // output_file.delete();
       env->CallBooleanMethod(output_file, file::GetMethodId(file::kDelete));
       CheckAndClearJniExceptions(env);
     }
+    CheckAndClearJniExceptions(env);
     jobject output_stream = env->NewObject(
         file_output_stream::GetClass(),
         file_output_stream::GetMethodId(file_output_stream::kConstructorFile),
         output_file);
-    bool failed = CheckAndClearJniExceptions(env);
+    bool failed = CheckAndClearJniExceptions(env) || !output_stream;
     if (!failed) {
       // Android 14 requires that we set the open dex file to readonly BEFORE
       // writing code to it.
@@ -1626,24 +1907,38 @@ const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
           output_file, file::GetMethodId(file::kSetReadOnly));
       // If it failed, move on and try again later after closing the file.
       if (CheckAndClearJniExceptions(env)) did_set_readonly = JNI_FALSE;
-      jobject output_array = env->NewByteArray(it->size);
-      env->SetByteArrayRegion(static_cast<jbyteArray>(output_array), 0,
-                              it->size,
-                              reinterpret_cast<const jbyte*>(it->data));
-      env->CallVoidMethod(
-          output_stream,
-          file_output_stream::GetMethodId(file_output_stream::kWrite),
-          output_array, 0, it->size);
-      failed |= CheckAndClearJniExceptions(env);
+      const jsize jsize_bytes = jni::SizeToJniSize(it->size);
+      jbyteArray output_array = env->NewByteArray(jsize_bytes);
+      failed |= CheckAndClearJniExceptions(env) || !output_array;
+      if (!failed && output_array) {
+        if (jsize_bytes > 0 && it->data != nullptr) {
+          env->SetByteArrayRegion(output_array, 0, jsize_bytes,
+                                  reinterpret_cast<const jbyte*>(it->data));
+          failed |= CheckAndClearJniExceptions(env);
+        }
+        if (!failed) {
+          env->CallVoidMethod(
+              output_stream,
+              file_output_stream::GetMethodId(file_output_stream::kWrite),
+              output_array, 0, jsize_bytes);
+          failed |= CheckAndClearJniExceptions(env);
+        }
+      }
       env->CallVoidMethod(output_stream, file_output_stream::GetMethodId(
                                              file_output_stream::kClose));
       failed |= CheckAndClearJniExceptions(env);
-      if (!did_set_readonly) {
+      if (failed) {
+        env->CallBooleanMethod(output_file,
+                               file::GetMethodId(file::kSetWritable), JNI_TRUE);
+        CheckAndClearJniExceptions(env);
+        env->CallBooleanMethod(output_file, file::GetMethodId(file::kDelete));
+        CheckAndClearJniExceptions(env);
+      } else if (!did_set_readonly) {
         env->CallBooleanMethod(output_file,
                                file::GetMethodId(file::kSetReadOnly));
         util::CheckAndClearJniExceptions(env);
       }
-      env->DeleteLocalRef(output_array);
+      if (output_array) env->DeleteLocalRef(output_array);
       env->DeleteLocalRef(output_stream);
     }
     env->DeleteLocalRef(output_file);
@@ -1666,16 +1961,23 @@ jclass FindClassInFiles(
     JNIEnv* env, jobject activity_object,
     const std::vector<internal::EmbeddedFile>& embedded_files,
     const char* class_name) {
-  if (!embedded_files.size()) {
+  if (!env || !activity_object || embedded_files.empty() || !class_name) {
     return nullptr;
   }
 
   jobject cache_dir = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetCacheDir));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !cache_dir) {
+    if (cache_dir) env->DeleteLocalRef(cache_dir);
+    return nullptr;
+  }
   jobject cache_dir_path_jstring = env->CallObjectMethod(
       cache_dir, file::GetMethodId(file::kGetAbsolutePath));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !cache_dir_path_jstring) {
+    if (cache_dir_path_jstring) env->DeleteLocalRef(cache_dir_path_jstring);
+    env->DeleteLocalRef(cache_dir);
+    return nullptr;
+  }
   std::string cache_dir_path =
       firebase::util::JniStringToString(env, cache_dir_path_jstring);
 
@@ -1684,20 +1986,33 @@ jclass FindClassInFiles(
       env->CallObjectMethod(cache_dir, file::GetMethodId(file::kToUri));
   CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(cache_dir);
+  if (!cache_uri) return nullptr;
   jobject cache_url =
       env->CallObjectMethod(cache_uri, java_uri::GetMethodId(java_uri::kToUrl));
   CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(cache_uri);
-  jobjectArray url_path_array =
-      env->NewObjectArray(embedded_files.size(), url::GetClass(), nullptr);
-  for (int i = 0; i < embedded_files.size(); ++i) {
-    jstring embedded_file_string = env->NewStringUTF(embedded_files[i].name);
+  if (!cache_url) return nullptr;
+  jobjectArray url_path_array = env->NewObjectArray(
+      jni::SizeToJniSize(embedded_files.size()), url::GetClass(), nullptr);
+  if (CheckAndClearJniExceptions(env) || !url_path_array) {
+    if (url_path_array) env->DeleteLocalRef(url_path_array);
+    env->DeleteLocalRef(cache_url);
+    return nullptr;
+  }
+  for (size_t i = 0; i < embedded_files.size(); ++i) {
+    jstring embedded_file_string =
+        jni::NewRawJString(env, embedded_files[i].name);
     jobject jar_url = env->NewObject(url::GetClass(),
                                      url::GetMethodId(url::kConstructorWithURL),
                                      cache_url, embedded_file_string);
-    env->SetObjectArrayElement(url_path_array, i, jar_url);
-    env->DeleteLocalRef(jar_url);
-    env->DeleteLocalRef(embedded_file_string);
+    CheckAndClearJniExceptions(env);
+    if (jar_url) {
+      env->SetObjectArrayElement(url_path_array, static_cast<jsize>(i),
+                                 jar_url);
+      CheckAndClearJniExceptions(env);
+      env->DeleteLocalRef(jar_url);
+    }
+    if (embedded_file_string) env->DeleteLocalRef(embedded_file_string);
   }
   env->DeleteLocalRef(cache_url);
 
@@ -1705,16 +2020,19 @@ jclass FindClassInFiles(
       url_class_loader::GetClass(),
       url_class_loader::GetMethodId(url_class_loader::kConstructor),
       url_path_array, GetParentLoader());
+  CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(url_path_array);
+  if (!class_loader_obj) return nullptr;
 
   std::string binary_name = JniClassNameToBinaryName(class_name);
   LogDebug("Load class %s (a.k.a. %s)", binary_name.c_str(), class_name);
-  jstring class_name_object = env->NewStringUTF(binary_name.c_str());
+  jstring class_name_object = jni::NewRawJString(env, binary_name.c_str());
   jclass loaded_class = static_cast<jclass>(env->CallObjectMethod(
       class_loader_obj,
       url_class_loader::GetMethodId(url_class_loader::kLoadClass),
       class_name_object));
-  CheckAndClearJniExceptions(env);
+  const bool load_failed =
+      CheckAndClearJniExceptions(env) || loaded_class == nullptr;
 #else   // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   static const char kPathSeparator = '/';
   static const char kDexPathSeparator = ':';
@@ -1726,12 +2044,17 @@ jclass FindClassInFiles(
           : activity::GetMethodId(activity::kGetCacheDir);
   jobject code_cache_dir =
       env->CallObjectMethod(activity_object, get_code_cache_dir_method_id);
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !code_cache_dir) {
+    if (code_cache_dir) env->DeleteLocalRef(code_cache_dir);
+    env->DeleteLocalRef(cache_dir);
+    return nullptr;
+  }
   jobject code_cache_dir_path = env->CallObjectMethod(
       code_cache_dir, file::GetMethodId(file::kGetAbsolutePath));
   CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(code_cache_dir);
   env->DeleteLocalRef(cache_dir);
+  if (!code_cache_dir_path) return nullptr;
 
   std::string dex_path;
   for (std::vector<internal::EmbeddedFile>::const_iterator it =
@@ -1740,38 +2063,47 @@ jclass FindClassInFiles(
     dex_path += cache_dir_path + kPathSeparator + std::string(it->name);
     dex_path.push_back(kDexPathSeparator);
   }
-  dex_path.pop_back();
+  if (!dex_path.empty()) {
+    dex_path.pop_back();
+  }
 
   LogDebug("Set class path to %s", dex_path.c_str());
 
-  jstring dex_path_string = env->NewStringUTF(dex_path.c_str());
+  jstring dex_path_string = jni::NewRawJString(env, dex_path.c_str());
   jobject class_loader_obj = env->NewObject(
       dex_class_loader::GetClass(),
       dex_class_loader::GetMethodId(dex_class_loader::kConstructor),
       dex_path_string, code_cache_dir_path, nullptr, GetParentLoader());
+  CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(code_cache_dir_path);
-  env->DeleteLocalRef(dex_path_string);
+  if (dex_path_string) env->DeleteLocalRef(dex_path_string);
+  if (!class_loader_obj) return nullptr;
 
   std::string binary_name = JniClassNameToBinaryName(class_name);
   LogDebug("Load class %s (a.k.a. %s)", binary_name.c_str(), class_name);
-  jstring class_name_object = env->NewStringUTF(binary_name.c_str());
+  jstring class_name_object = jni::NewRawJString(env, binary_name.c_str());
   jclass loaded_class = static_cast<jclass>(env->CallObjectMethod(
       class_loader_obj,
       dex_class_loader::GetMethodId(dex_class_loader::kLoadClass),
       class_name_object));
-  CheckAndClearJniExceptions(env);
+  const bool load_failed =
+      CheckAndClearJniExceptions(env) || loaded_class == nullptr;
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
-  if (!env->ExceptionCheck()) {
+  if (!load_failed) {
     LogDebug("%s loaded.", class_name);
     AddClassLoader(env, class_loader_obj);
   } else {
-    env->ExceptionClear();
     LogDebug("%s *not* loaded", class_name);
-    env->DeleteLocalRef(loaded_class);
-    env->DeleteLocalRef(class_loader_obj);
+    if (loaded_class) {
+      env->DeleteLocalRef(loaded_class);
+      loaded_class = nullptr;
+    }
+    if (class_loader_obj) {
+      env->DeleteLocalRef(class_loader_obj);
+    }
   }
-  env->DeleteLocalRef(class_name_object);
+  if (class_name_object) env->DeleteLocalRef(class_name_object);
   return loaded_class;
 }
 
@@ -1779,21 +2111,35 @@ jclass FindClassInFiles(
 int GetResourceIdFromActivity(JNIEnv* env, jobject activity_object,
                               const char* resource_name,
                               ResourceType resource_type) {
+  if (!env || !activity_object || !resource_name) return 0;
+  const size_t type_idx = static_cast<size_t>(resource_type);
+  if (type_idx >= FIREBASE_ARRAYSIZE(kResourceTypeStrings)) return 0;
   jobject resources_object = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetResources));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !resources_object) {
+    if (resources_object) env->DeleteLocalRef(resources_object);
+    return 0;
+  }
   jobject package_name = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetPackageName));
-  CheckAndClearJniExceptions(env);
+  if (CheckAndClearJniExceptions(env) || !package_name) {
+    if (package_name) env->DeleteLocalRef(package_name);
+    env->DeleteLocalRef(resources_object);
+    return 0;
+  }
   jobject resource_type_string =
-      env->NewStringUTF(kResourceTypeStrings[resource_type]);
-  jobject resource_name_string = env->NewStringUTF(resource_name);
-  int resource_id = env->CallIntMethod(
-      resources_object, resources::GetMethodId(resources::kGetIdentifier),
-      resource_name_string, resource_type_string, package_name);
-  CheckAndClearJniExceptions(env);
-  env->DeleteLocalRef(resource_name_string);
-  env->DeleteLocalRef(resource_type_string);
+      jni::NewRawJString(env, kResourceTypeStrings[type_idx]);
+  jobject resource_name_string = jni::NewRawJString(env, resource_name);
+  int resource_id = 0;
+  if (!CheckAndClearJniExceptions(env) && resource_type_string &&
+      resource_name_string) {
+    resource_id = env->CallIntMethod(
+        resources_object, resources::GetMethodId(resources::kGetIdentifier),
+        resource_name_string, resource_type_string, package_name);
+    CheckAndClearJniExceptions(env);
+  }
+  if (resource_name_string) env->DeleteLocalRef(resource_name_string);
+  if (resource_type_string) env->DeleteLocalRef(resource_type_string);
   env->DeleteLocalRef(package_name);
   env->DeleteLocalRef(resources_object);
   return resource_id;
@@ -1802,7 +2148,7 @@ int GetResourceIdFromActivity(JNIEnv* env, jobject activity_object,
 // Get a resource value as a string from the activity's package.
 std::string GetResourceStringFromActivity(JNIEnv* env, jobject activity_object,
                                           int resource_id) {
-  FIREBASE_ASSERT(resource_id);
+  if (!env || !activity_object || resource_id == 0) return std::string();
   jobject resource_value_string = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetString),
       resource_id);
@@ -1812,6 +2158,7 @@ std::string GetResourceStringFromActivity(JNIEnv* env, jobject activity_object,
 
 // Get the name of the package associated with this activity.
 std::string GetPackageName(JNIEnv* env, jobject activity_object) {
+  if (!env || !activity_object) return std::string();
   jobject package_name_string = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetPackageName));
   CheckAndClearJniExceptions(env);
@@ -1820,7 +2167,7 @@ std::string GetPackageName(JNIEnv* env, jobject activity_object) {
 
 // Check for JNI exceptions, report them if any, and clear them.
 bool CheckAndClearJniExceptions(JNIEnv* env) {
-  if (env->ExceptionCheck()) {
+  if (env && env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
     return true;
@@ -1829,6 +2176,7 @@ bool CheckAndClearJniExceptions(JNIEnv* env) {
 }
 
 std::string GetAndClearExceptionMessage(JNIEnv* env) {
+  if (!env || !env->ExceptionCheck()) return std::string();
   jobject exception = env->ExceptionOccurred();
   if (exception) {
     env->ExceptionClear();
@@ -1840,7 +2188,7 @@ std::string GetAndClearExceptionMessage(JNIEnv* env) {
 }
 
 std::string GetMessageFromException(JNIEnv* env, jobject exception) {
-  if (exception != nullptr) {
+  if (env && exception != nullptr) {
     jstring message = static_cast<jstring>(env->CallObjectMethod(
         exception, throwable::GetMethodId(throwable::kGetLocalizedMessage)));
     CheckAndClearJniExceptions(env);
@@ -1870,26 +2218,13 @@ std::string GetMessageFromException(JNIEnv* env, jobject exception) {
 }
 
 bool LogException(JNIEnv* env, LogLevel log_level, const char* log_fmt, ...) {
+  if (!env || !env->ExceptionCheck()) return false;
   jobject exception = env->ExceptionOccurred();
   if (exception != nullptr) {
     env->ExceptionClear();
-    jobject message = env->CallObjectMethod(
-        exception, throwable::GetMethodId(throwable::kGetLocalizedMessage));
-    CheckAndClearJniExceptions(env);
-    if (!message) {
-      // If GetLocalizedMessage returns null, try GetMessage.
-      message = env->CallObjectMethod(
-          exception, throwable::GetMethodId(throwable::kGetMessage));
-      CheckAndClearJniExceptions(env);
-    }
-    if (!message) {
-      // If GetMessage returns null too, just use ToString.
-      message = env->CallObjectMethod(
-          exception, throwable::GetMethodId(throwable::kToString));
-      CheckAndClearJniExceptions(env);
-    }
-    if (message) {
-      std::string message_str = JniStringToString(env, message);
+    std::string message_str = GetMessageFromException(env, exception);
+    env->DeleteLocalRef(exception);
+    if (!message_str.empty()) {
       if (log_fmt != nullptr) {
         char buf[512] = {0};
         va_list list;
@@ -1900,7 +2235,6 @@ bool LogException(JNIEnv* env, LogLevel log_level, const char* log_fmt, ...) {
       }
       LogMessage(log_level, "%s", message_str.c_str());
     }
-    env->DeleteLocalRef(exception);
     return true;
   }
   return false;
@@ -1915,13 +2249,20 @@ pthread_once_t pthread_key_initialized = PTHREAD_ONCE_INIT;
 namespace {
 
 extern "C" void DetachJVMThreads(void* stored_java_vm) {
-  assert(stored_java_vm);
-  JNIEnv* jni_env;
+  if (!stored_java_vm) return;
   JavaVM* java_vm = static_cast<JavaVM*>(stored_java_vm);
-  // AttachCurrentThread does nothing if we're already attached, but
-  // calling it ensures that the DetachCurrentThread doesn't fail.
-  firebase::util::AttachCurrentThread(java_vm, &jni_env);
-  java_vm->DetachCurrentThread();
+  JNIEnv* jni_env = nullptr;
+  // Only detach if the thread is still attached to the JVM, and never attach a
+  // dying thread inside a pthread destructor.
+  if (java_vm->GetEnv(jni::internal::JniEnvOut(&jni_env), JNI_VERSION_1_6) ==
+          JNI_OK &&
+      jni_env != nullptr) {
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionClear();
+    }
+    jni::internal::GlobalRefReaper::Flush(jni_env);
+    java_vm->DetachCurrentThread();
+  }
 }
 
 // Called the first time GetJNIEnv is invoked.
@@ -1933,14 +2274,31 @@ extern "C" void SetupJvmDetachOnThreadDestruction() {
 }  // namespace
 
 JNIEnv* GetThreadsafeJNIEnv(JavaVM* java_vm) {
+  if (!java_vm) return nullptr;
+  jni::internal::GlobalRefReaper::SetJavaVM(java_vm);
+
   // Set up the thread key and destructor the first time this is called:
   (void)pthread_once(&pthread_key_initialized,
                      SetupJvmDetachOnThreadDestruction);
-  pthread_setspecific(jni_env_key, java_vm);
 
-  JNIEnv* env;
-  jint result = firebase::util::AttachCurrentThread(java_vm, &env);
-  return result == JNI_OK ? env : nullptr;
+  JNIEnv* env = nullptr;
+  jint get_env_result =
+      java_vm->GetEnv(jni::internal::JniEnvOut(&env), JNI_VERSION_1_6);
+  if (get_env_result == JNI_OK && env != nullptr) {
+    // Thread is already attached (either by the JVM or a prior attachment on
+    // this thread). Do not overwrite pthread_setspecific on JVM-owned threads.
+    jni::internal::GlobalRefReaper::Flush(env);
+    return env;
+  }
+  if (get_env_result == JNI_EDETACHED) {
+    jint result = firebase::util::AttachCurrentThread(java_vm, &env);
+    if (result == JNI_OK && env != nullptr) {
+      pthread_setspecific(jni_env_key, java_vm);
+      jni::internal::GlobalRefReaper::Flush(env);
+      return env;
+    }
+  }
+  return nullptr;
 }
 
 jint AttachCurrentThread(JavaVM* java_vm, JNIEnv** env) {
