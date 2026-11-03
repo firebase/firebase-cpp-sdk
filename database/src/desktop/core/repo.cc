@@ -180,11 +180,13 @@ void Repo::RemoveEventCallback(void* listener_ptr,
 class OnDisconnectResponse : public connection::Response {
  public:
   OnDisconnectResponse(const Repo::ThisRef& repo_ref,
+                       const DatabaseInternal::ThisRef& db_ref,
                        const SafeFutureHandle<void>& handle,
                        ReferenceCountedFutureImpl* ref_future, const Path& path,
                        const Variant& data, ResponseCallback callback)
       : connection::Response(callback),
         repo_ref_(repo_ref),
+        db_ref_(db_ref),
         handle_(handle),
         ref_future_(ref_future),
         path_(path),
@@ -195,7 +197,7 @@ class OnDisconnectResponse : public connection::Response {
 
   ~OnDisconnectResponse() override {
     if (!completed_) {
-      Repo::ThisRefLock lock(&repo_ref_);
+      DatabaseInternal::ThisRefLock lock(&db_ref_);
       if (lock.GetReference() != nullptr && ref_future_) {
         ref_future_->Complete(handle_, kErrorUnknownError, "The database is being destroyed.");
       }
@@ -217,6 +219,7 @@ class OnDisconnectResponse : public connection::Response {
 
  private:
   Repo::ThisRef repo_ref_;
+  DatabaseInternal::ThisRef db_ref_;
   SafeFutureHandle<void> handle_;
   ReferenceCountedFutureImpl* ref_future_;
   Path path_;
@@ -228,7 +231,7 @@ void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                                 ReferenceCountedFutureImpl* ref_future,
                                 const Path& path, const Variant& data) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      safe_this_, handle, ref_future, path, data,
+      safe_this_, database_->this_ref(), handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
             static_cast<OnDisconnectResponse*>(ptr.get());
@@ -261,7 +264,7 @@ void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      safe_this_, handle, ref_future, path, Variant::Null(),
+      safe_this_, database_->this_ref(), handle, ref_future, path, Variant::Null(),
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
             static_cast<OnDisconnectResponse*>(ptr.get());
@@ -293,7 +296,7 @@ void Repo::OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path, const Variant& data) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      safe_this_, handle, ref_future, path, data,
+      safe_this_, database_->this_ref(), handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
             static_cast<OnDisconnectResponse*>(ptr.get());
