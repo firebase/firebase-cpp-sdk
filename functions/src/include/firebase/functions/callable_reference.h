@@ -35,32 +35,46 @@ class HttpsCallableReferenceInternal;
 /// @endcond
 
 /// Default timeout for callable invocations in milliseconds (70 seconds).
+#if !defined(SWIG)
 inline constexpr int64_t kDefaultTimeoutMilliseconds = 70000;
+#else
+static const int64_t kDefaultTimeoutMilliseconds = 70000;
+#endif  // !defined(SWIG)
 
 /// Represents the options for configuring the HttpsCallableReference.
 struct HttpsCallableOptions {
   /// Default Constructor.
-  HttpsCallableOptions() = default;
+  HttpsCallableOptions()
+      : limited_use_app_check_token(false),
+        timeout_ms(kDefaultTimeoutMilliseconds) {}
 
-  /// Constructor with limited_use_app_check_tokens.
-  explicit HttpsCallableOptions(bool limited_use_app_check_tokens)
-      : limited_use_app_check_tokens(limited_use_app_check_tokens) {}
+  /// Constructor with limited_use_app_check_token.
+  explicit HttpsCallableOptions(bool limited_use_app_check_token)
+      : limited_use_app_check_token(limited_use_app_check_token),
+        timeout_ms(kDefaultTimeoutMilliseconds) {}
 
-  /// Constructor with limited_use_app_check_tokens and timeout in milliseconds.
-  HttpsCallableOptions(bool limited_use_app_check_tokens, int64_t timeout_ms)
-      : limited_use_app_check_tokens(limited_use_app_check_tokens),
+  /// Constructor with limited_use_app_check_token and timeout in milliseconds.
+  HttpsCallableOptions(bool limited_use_app_check_token, int64_t timeout_ms)
+      : limited_use_app_check_token(limited_use_app_check_token),
         timeout_ms(timeout_ms) {}
 
   /// Decides whether or not to use limited-use App Check tokens when invoking
   /// the associated function. Notice that the jeopardy of using single-use
   /// tokens is that it lacks replay protection. By default, this is false.
-  bool limited_use_app_check_tokens = false;
+#if !defined(SWIG)
+  union {
+    bool limited_use_app_check_token;
+    bool limited_use_app_check_tokens;
+  };
+#else
+  bool limited_use_app_check_token;
+#endif  // !defined(SWIG)
 
   /// Timeout in milliseconds for invoking the function. Defaults to 70000ms.
-  int64_t timeout_ms = kDefaultTimeoutMilliseconds;
+  int64_t timeout_ms;
 
   bool operator==(const HttpsCallableOptions& other) const {
-    return limited_use_app_check_tokens == other.limited_use_app_check_tokens &&
+    return limited_use_app_check_token == other.limited_use_app_check_token &&
            timeout_ms == other.timeout_ms;
   }
 

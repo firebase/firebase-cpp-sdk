@@ -18,12 +18,14 @@
 #include <jni.h>
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
 #include "functions/src/include/firebase/functions/common.h"
@@ -31,6 +33,13 @@
 namespace firebase {
 namespace functions {
 namespace internal {
+
+// Shared lifetime token allowing asynchronous JNI Task callbacks to check,
+// under `mutex`, whether FunctionsInternal (and its FutureManager) is alive.
+struct FunctionsLifetimeState {
+  Mutex mutex;
+  bool alive = true;
+};
 
 class FunctionsInternal {
  public:
@@ -53,6 +62,14 @@ class FunctionsInternal {
   FutureManager& future_manager() { return future_manager_; }
 
   CleanupNotifier& cleanup() { return cleanup_; }
+
+  // Lifetime token shared with pending JNI Task completion callbacks.
+  const std::shared_ptr<FunctionsLifetimeState>& lifetime_state() const {
+    return lifetime_state_;
+  }
+
+  // Per-instance API identifier used to register / cancel JNI Task callbacks.
+  const std::string& jni_task_id() const { return jni_task_id_; }
 
   // Whether this object was successfully initialized by the constructor.
   bool is_valid() const { return app_ != nullptr && obj_ != nullptr; }
@@ -95,6 +112,8 @@ class FunctionsInternal {
   App* app_ = nullptr;
   std::string region_;
   jobject obj_ = nullptr;
+  std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

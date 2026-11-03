@@ -99,31 +99,35 @@ Functions* Functions::GetInstance(::firebase::App* app, const char* region,
   const char* effective_region =
       (region && region[0] != '\0') ? region : "us-central1";
 
-  MutexLock lock(GetFunctionsLock());
-  auto& functions_map = GetFunctionsMap();
-  std::pair key{app, std::string(effective_region)};
-  auto it = functions_map.find(key);
-  if (it != functions_map.end()) {
-    if (init_result_out != nullptr) {
-      *init_result_out = kInitResultSuccess;
+  Functions* failed_functions = nullptr;
+  {
+    MutexLock lock(GetFunctionsLock());
+    auto& functions_map = GetFunctionsMap();
+    std::pair key{app, std::string(effective_region)};
+    auto it = functions_map.find(key);
+    if (it != functions_map.end()) {
+      if (init_result_out != nullptr) {
+        *init_result_out = kInitResultSuccess;
+      }
+      return it->second;
     }
-    return it->second;
-  }
 
-  Functions* functions = new Functions(app, effective_region);
-  if (!functions->internal_ || !functions->internal_->is_valid()) {
-    if (init_result_out) {
-      *init_result_out = kInitResultFailedMissingDependency;
+    Functions* functions = new Functions(app, effective_region);
+    if (!functions->internal_ || !functions->internal_->is_valid()) {
+      if (init_result_out) {
+        *init_result_out = kInitResultFailedMissingDependency;
+      }
+      failed_functions = functions;
+    } else {
+      functions_map[key] = functions;
+      if (init_result_out) {
+        *init_result_out = kInitResultSuccess;
+      }
+      return functions;
     }
-    delete functions;
-    return nullptr;
   }
-
-  functions_map[key] = functions;
-  if (init_result_out) {
-    *init_result_out = kInitResultSuccess;
-  }
-  return functions;
+  delete failed_functions;
+  return nullptr;
 }
 
 Functions::Functions(::firebase::App* app, const char* region) {
@@ -152,35 +156,46 @@ Functions::Functions(::firebase::App* app, const char* region) {
 Functions::~Functions() { DeleteInternal(); }
 
 void Functions::DeleteInternal() {
-  MutexLock lock(GetFunctionsLock());
-  if (!internal_) return;
+  App* my_app = nullptr;
+  internal::FunctionsInternal* internal_to_delete = nullptr;
+  {
+    MutexLock lock(GetFunctionsLock());
+    if (!internal_) return;
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app());
-  if (notifier) {
-    notifier->UnregisterObject(this);
+    my_app = app();
+    std::string my_region = region();
+
+    // If a Functions is explicitly deleted, remove it from our cache inside
+    // the lock so concurrent GetInstance calls do not return a half-deleted
+    // instance.
+    if (g_functions) {
+      g_functions->erase({my_app, my_region});
+      for (auto it = g_functions->begin(); it != g_functions->end();) {
+        if (it->second == this) {
+          it = g_functions->erase(it);
+        } else {
+          ++it;
+        }
+      }
+      if (g_functions->empty()) {
+        delete g_functions;
+        g_functions = nullptr;
+      }
+    }
+
+    internal_to_delete = std::exchange(internal_, nullptr);
+  }
+
+  if (my_app) {
+    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(my_app);
+    if (notifier) {
+      notifier->UnregisterObject(this);
+    }
   }
 
   // Force cleanup of any live HttpsCallableReference instances first.
-  internal_->cleanup().CleanupAll();
-
-  // If a Functions is explicitly deleted, remove it from our cache.
-  if (g_functions) {
-    g_functions->erase({app(), std::string(region())});
-    for (auto it = g_functions->begin(); it != g_functions->end();) {
-      if (it->second == this) {
-        it = g_functions->erase(it);
-      } else {
-        ++it;
-      }
-    }
-    if (g_functions->empty()) {
-      delete g_functions;
-      g_functions = nullptr;
-    }
-  }
-
-  delete internal_;
-  internal_ = nullptr;
+  internal_to_delete->cleanup().CleanupAll();
+  delete internal_to_delete;
 }
 
 ::firebase::App* Functions::app() {

@@ -70,6 +70,7 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
 }
 
 FunctionsInternal::~FunctionsInternal() {
+  cleanup_.CleanupAll();
   MutexLock lock(lifetime_state_->mutex);
   lifetime_state_->alive = false;
 }
@@ -97,7 +98,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableWithOptions(
   if (!is_valid() || !name || name[0] == '\0') return nullptr;
   FIRHTTPSCallableOptions* objc_options = [[FIRHTTPSCallableOptions alloc]
       initWithRequireLimitedUseAppCheckTokens:options
-                                                  .limited_use_app_check_tokens];
+                                                  .limited_use_app_check_token];
   FIRHTTPSCallable* callable = [impl() HTTPSCallableWithName:@(name)
                                                      options:objc_options];
   if (!callable) return nullptr;
@@ -127,7 +128,7 @@ FunctionsInternal::GetHttpsCallableFromURLWithOptions(
   if (!nsurl || !nsurl.scheme) return nullptr;
   FIRHTTPSCallableOptions* objc_options = [[FIRHTTPSCallableOptions alloc]
       initWithRequireLimitedUseAppCheckTokens:options
-                                                  .limited_use_app_check_tokens];
+                                                  .limited_use_app_check_token];
   FIRHTTPSCallable* callable = [impl() HTTPSCallableWithURL:nsurl
                                                     options:objc_options];
   if (!callable) return nullptr;

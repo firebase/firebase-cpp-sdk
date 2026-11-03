@@ -78,7 +78,7 @@ class ConfigUpdateListenerRegistration {
 
   /// @brief Returns `true` if this registration refers to an active listener
   /// registration object.
-  [[nodiscard]] bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const { return internal_ != nullptr; }
 
   bool operator==(const ConfigUpdateListenerRegistration& other) const {
     return internal_ == other.internal_;

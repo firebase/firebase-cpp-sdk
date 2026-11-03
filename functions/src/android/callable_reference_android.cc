@@ -69,10 +69,7 @@ JNIEnv* ResolveJniEnv(FunctionsInternal* primary,
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, jobject wrapper_obj)
-    : functions_(functions),
-      obj_(nullptr),
-      lifetime_state_(
-          std::make_shared<CallableReferenceAndroidLifetimeState>()) {
+    : functions_(functions), obj_(nullptr) {
   if (functions_ && functions_->app()) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -84,11 +81,6 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
 
 void HttpsCallableReferenceInternal::Cleanup(
     FunctionsInternal* fallback_functions) noexcept {
-  if (lifetime_state_) {
-    MutexLock lock(lifetime_state_->mutex);
-    lifetime_state_->alive = false;
-  }
-  lifetime_state_.reset();
   if (obj_ != nullptr) {
     if (JNIEnv* env = ResolveJniEnv(functions_, fallback_functions)) {
       env->DeleteGlobalRef(obj_);
@@ -105,10 +97,7 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() { Cleanup(); }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& src)
-    : functions_(src.functions_),
-      obj_(nullptr),
-      lifetime_state_(
-          std::make_shared<CallableReferenceAndroidLifetimeState>()) {
+    : functions_(src.functions_), obj_(nullptr) {
   if (functions_ && functions_->app()) {
     functions_->future_manager().AllocFutureApi(this,
                                                 kHttpsCallableReferenceFnCount);
@@ -123,19 +112,11 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &src) {
     return *this;
   }
-  auto new_lifetime =
-      std::make_shared<CallableReferenceAndroidLifetimeState>();
   jobject new_obj = nullptr;
   if (src.obj_ != nullptr && src.functions_ != nullptr &&
       src.functions_->app() != nullptr) {
     new_obj = src.functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
   }
-
-  if (lifetime_state_) {
-    MutexLock lock(lifetime_state_->mutex);
-    lifetime_state_->alive = false;
-  }
-  lifetime_state_ = std::move(new_lifetime);
 
   if (obj_ != nullptr) {
     if (JNIEnv* env = ResolveJniEnv(functions_, src.functions_)) {
@@ -160,8 +141,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& src) noexcept
     : functions_(std::exchange(src.functions_, nullptr)),
-      obj_(std::exchange(src.obj_, nullptr)),
-      lifetime_state_(std::move(src.lifetime_state_)) {
+      obj_(std::exchange(src.obj_, nullptr)) {
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&src, this);
   }
@@ -175,7 +155,6 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   Cleanup(src.functions_);
   functions_ = std::exchange(src.functions_, nullptr);
   obj_ = std::exchange(src.obj_, nullptr);
-  lifetime_state_ = std::move(src.lifetime_state_);
   if (functions_) {
     functions_->future_manager().MoveFutureApi(&src, this);
   }
@@ -202,17 +181,21 @@ bool HttpsCallableReferenceInternal::operator==(
 
 namespace {
 
+// Completion liveness is tied to the owning FunctionsInternal (whose
+// FutureManager owns `future_impl`, including orphaned impls of destroyed
+// HttpsCallableReferences), not to the HttpsCallableReferenceInternal, so a
+// chained `functions->GetHttpsCallable("fn").Call()` whose temporary reference
+// is destroyed immediately still completes its Future.
 struct FutureCallbackData {
-  FutureCallbackData(
-      SafeFutureHandle<HttpsCallableResult> handle_,
-      ReferenceCountedFutureImpl* impl_,
-      std::shared_ptr<CallableReferenceAndroidLifetimeState> lifetime_state_)
+  FutureCallbackData(SafeFutureHandle<HttpsCallableResult> handle_,
+                     ReferenceCountedFutureImpl* impl_,
+                     std::shared_ptr<FunctionsLifetimeState> lifetime_state_)
       : handle(handle_),
         future_impl(impl_),
         lifetime_state(std::move(lifetime_state_)) {}
   SafeFutureHandle<HttpsCallableResult> handle;
   ReferenceCountedFutureImpl* future_impl;
-  std::shared_ptr<CallableReferenceAndroidLifetimeState> lifetime_state;
+  std::shared_ptr<FunctionsLifetimeState> lifetime_state;
 };
 
 }  // namespace
@@ -280,10 +263,10 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
     return MakeFuture(future_api, handle);
   }
 
-  FutureCallbackData* callback_data =
-      new FutureCallbackData(handle, future_api, lifetime_state_);
+  FutureCallbackData* callback_data = new FutureCallbackData(
+      handle, future_api, functions_->lifetime_state());
   util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
-                               "Functions");
+                               functions_->jni_task_id().c_str());
   env->DeleteLocalRef(task);
   util::CheckAndClearJniExceptions(env);
 
@@ -318,10 +301,10 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     return MakeFuture(future_api, handle);
   }
 
-  FutureCallbackData* callback_data =
-      new FutureCallbackData(handle, future_api, lifetime_state_);
+  FutureCallbackData* callback_data = new FutureCallbackData(
+      handle, future_api, functions_->lifetime_state());
   util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
-                               "Functions");
+                               functions_->jni_task_id().c_str());
   env->DeleteLocalRef(task);
   util::CheckAndClearJniExceptions(env);
 

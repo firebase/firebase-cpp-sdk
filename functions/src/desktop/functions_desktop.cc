@@ -66,21 +66,26 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
 
 FunctionsInternal::~FunctionsInternal() {
   {
-    MutexLock lock(lifetime_state_->mutex);
+    std::unique_lock<std::mutex> lock(lifetime_state_->mutex);
     lifetime_state_->alive = false;
+    // Wait for any Future completion in progress on other worker threads. A
+    // worker thread that is destroying us from inside an OnCompletion callback
+    // is excluded so it does not wait on itself.
+    const std::thread::id self_id = std::this_thread::get_id();
+    lifetime_state_->cv.wait(lock, [this, self_id]() {
+      for (const std::thread::id& id : lifetime_state_->resolving_threads) {
+        if (id != self_id) return false;
+      }
+      return true;
+    });
   }
+  // Force cleanup of any live HttpsCallableReference instances.
+  cleanup_.CleanupAll();
   if (app_) {
     app_->function_registry()->CallFunction(
         ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
   }
   rest::CleanupTransportCurl();
-  {
-    std::vector<std::shared_ptr<void>> to_destroy;
-    {
-      MutexLock lock(lifetime_state_->mutex);
-      to_destroy.swap(lifetime_state_->retired_calls);
-    }
-  }
   app_ = nullptr;
 }
 

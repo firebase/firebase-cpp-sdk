@@ -17,6 +17,8 @@
 #include <jni.h>
 
 #include <charconv>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -206,7 +208,7 @@ jobject BuildJavaOptions(JNIEnv* env, const HttpsCallableOptions& opts) {
       builder,
       options_builder::GetMethodId(
           options_builder::kSetLimitedUseAppCheckTokens),
-      opts.limited_use_app_check_tokens ? JNI_TRUE : JNI_FALSE);
+      opts.limited_use_app_check_token ? JNI_TRUE : JNI_FALSE);
   if (util::CheckAndClearJniExceptions(env) || !next_builder) {
     env->DeleteLocalRef(builder);
     return nullptr;
@@ -251,6 +253,10 @@ bool FunctionsInternal::Initialize(App* app) {
   if (initialize_count_ == 0) {
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
+    if (!util::Initialize(env, activity)) {
+      util::CheckAndClearJniExceptions(env);
+      return false;
+    }
     bool ok = functions::CacheMethodIds(env, activity) &&
               callable_reference::CacheMethodIds(env, activity) &&
               callable_result::CacheMethodIds(env, activity) &&
@@ -263,6 +269,7 @@ bool FunctionsInternal::Initialize(App* app) {
     if (!ok) {
       ReleaseClasses(env);
       util::CheckAndClearJniExceptions(env);
+      util::Terminate(env);
       return false;
     }
 
@@ -319,11 +326,14 @@ void FunctionsInternal::Terminate(App* app) {
     }
 
     util::CheckAndClearJniExceptions(env);
+    util::Terminate(env);
   }
 }
 
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
-    : region_(region ? region : "us-central1") {
+    : region_(region ? region : "us-central1"),
+      lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
+  jni_task_id_ = "Functions_" + std::to_string(reinterpret_cast<uintptr_t>(this));
   if (!app || !Initialize(app)) {
     return;
   }
@@ -354,10 +364,18 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
 }
 
 FunctionsInternal::~FunctionsInternal() {
-  // If initialization failed, there is nothing to clean up.
+  {
+    MutexLock lock(lifetime_state_->mutex);
+    lifetime_state_->alive = false;
+  }
+  // If initialization failed, there is nothing else to clean up.
   if (app_ == nullptr) return;
 
   JNIEnv* env = app_->GetJNIEnv();
+  // Cancel any pending JNI Task callbacks registered by this instance so their
+  // callback data is released, then clean up live HttpsCallableReferences.
+  util::CancelCallbacks(env, jni_task_id_.c_str());
+  cleanup_.CleanupAll();
   if (obj_) {
     env->DeleteGlobalRef(obj_);
     obj_ = nullptr;
@@ -536,6 +554,7 @@ Error FunctionsInternal::ErrorFromJavaFunctionsException(
         functions_exception::GetMethodId(functions_exception::kGetCode));
     if (!util::CheckAndClearJniExceptions(env) && code != nullptr) {
       error = kErrorInternal;
+      MutexLock init_lock(init_mutex_);
       if (code_map_) {
         for (const auto& [code_obj, mapped_error] : *code_map_) {
           if (env->IsSameObject(code, code_obj)) {

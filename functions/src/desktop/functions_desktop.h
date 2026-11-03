@@ -15,8 +15,11 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
 #define FIREBASE_FUNCTIONS_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
 
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "app/src/cleanup_notifier.h"
@@ -30,13 +33,18 @@ namespace functions {
 namespace internal {
 
 // Shared lifetime token allowing asynchronous callbacks to check whether
-// FunctionsInternal (and its FutureManager) is still alive under a mutex,
-// and deferring destruction of completed call contexts until outside
-// Response::MarkCompleted().
+// FunctionsInternal (and its FutureManager) is still alive under a mutex.
+//
+// Background call workers register themselves in `resolving_threads` while
+// they complete a Future (outside `mutex`), so ~FunctionsInternal() can wait
+// for in-flight completions on other threads before destroying the
+// FutureManager, without deadlocking when it is itself invoked from inside an
+// OnCompletion callback on one of those worker threads.
 struct FunctionsLifetimeState {
-  Mutex mutex;
+  std::mutex mutex;
+  std::condition_variable cv;
   bool alive = true;
-  std::vector<std::shared_ptr<void>> retired_calls;
+  std::vector<std::thread::id> resolving_threads;
 };
 
 class FunctionsInternal {

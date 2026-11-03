@@ -53,11 +53,6 @@ METHOD_LOOKUP_DECLARATION(callable_reference, CALLABLE_REFERENCE_METHODS)
 
 METHOD_LOOKUP_DECLARATION(callable_result, CALLABLE_RESULT_METHODS)
 
-struct CallableReferenceAndroidLifetimeState {
-  Mutex mutex;
-  bool alive = true;
-};
-
 class HttpsCallableReferenceInternal {
  public:
   HttpsCallableReferenceInternal(FunctionsInternal* functions,
@@ -122,9 +117,6 @@ class HttpsCallableReferenceInternal {
 
   // The Java HttpsCallableReference instance.
   jobject obj_ = nullptr;
-
-  // Shared lifetime state guarding asynchronous JNI completion callbacks.
-  std::shared_ptr<CallableReferenceAndroidLifetimeState> lifetime_state_;
 };
 
 }  // namespace internal

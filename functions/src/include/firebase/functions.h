@@ -61,7 +61,7 @@ class Functions {
   ///
   /// @return The Functions instance, or nullptr if the default App does not
   /// exist.
-  [[nodiscard]] static Functions* GetInstance() {
+  static Functions* GetInstance() {
     App* default_app = App::GetInstance();
     return default_app ? GetInstance(default_app) : nullptr;
   }
@@ -81,7 +81,7 @@ class Functions {
   /// not available on the current device.
   ///
   /// @returns An instance of Functions corresponding to the given App.
-  [[nodiscard]] static Functions* GetInstance(
+  static Functions* GetInstance(
       ::firebase::App* app, InitResult* init_result_out = nullptr);
 
   /// @brief Get an instance of Functions corresponding to the given App, with
@@ -101,27 +101,27 @@ class Functions {
   /// not available on the current device.
   ///
   /// @returns An instance of Functions corresponding to the given App.
-  [[nodiscard]] static Functions* GetInstance(
+  static Functions* GetInstance(
       ::firebase::App* app, const char* region,
       InitResult* init_result_out = nullptr);
 
   /// @brief Get the firebase::App that this Functions was created with.
   ///
   /// @returns The firebase::App this Functions was created with.
-  [[nodiscard]] ::firebase::App* app();
-  [[nodiscard]] ::firebase::App* app() const;
+  ::firebase::App* app();
+  ::firebase::App* app() const;
 
   /// @brief Get the region or custom domain that this Functions was created
   /// with.
   ///
   /// @returns The region or custom domain string.
-  [[nodiscard]] const char* region() const;
+  const char* region() const;
 
   /// @brief Get a FunctionsReference for the specified path.
   ///
   /// @param[in] name The name of the callable function.
   /// @return A HttpsCallableReference targeting the given function name.
-  [[nodiscard]] HttpsCallableReference GetHttpsCallable(const char* name) const;
+  HttpsCallableReference GetHttpsCallable(const char* name) const;
 
   /// @brief Get a FunctionsReference for the specified path with the given
   /// options.
@@ -129,7 +129,7 @@ class Functions {
   /// @param[in] name The name of the callable function.
   /// @param[in] options The options for configuring the HttpsCallableReference.
   /// @return A HttpsCallableReference targeting the given function name.
-  [[nodiscard]] HttpsCallableReference GetHttpsCallable(
+  HttpsCallableReference GetHttpsCallable(
       const char* name, const HttpsCallableOptions& options) const;
 
   /// @brief Get a FunctionsReference for the specified path and a given option.
@@ -141,14 +141,14 @@ class Functions {
   /// @param[in] name The name of the callable function.
   /// @param[in] options The options for configuring the HttpsCallableReference.
   /// @return A HttpsCallableReference targeting the given function name.
-  [[nodiscard]] HttpsCallableReference GetHttpsCallableWithOptions(
+  HttpsCallableReference GetHttpsCallableWithOptions(
       const char* name, const HttpsCallableOptions& options) const;
 
   /// @brief Get a FunctionsReference for the specified URL.
   ///
   /// @param[in] url The URL of the callable trigger.
   /// @return A HttpsCallableReference targeting the given URL.
-  [[nodiscard]] HttpsCallableReference GetHttpsCallableFromURL(
+  HttpsCallableReference GetHttpsCallableFromURL(
       const char* url) const;
 
   /// @brief Get a FunctionsReference for the specified URL with the given
@@ -157,7 +157,7 @@ class Functions {
   /// @param[in] url The URL of the callable trigger.
   /// @param[in] options The options for configuring the HttpsCallableReference.
   /// @return A HttpsCallableReference targeting the given URL.
-  [[nodiscard]] HttpsCallableReference GetHttpsCallableFromURL(
+  HttpsCallableReference GetHttpsCallableFromURL(
       const char* url, const HttpsCallableOptions& options) const;
 
   /// @brief Get a FunctionsReference for the specified URL and a given option.
@@ -169,7 +169,7 @@ class Functions {
   /// @param[in] url The URL of the callable trigger.
   /// @param[in] options The options for configuring the HttpsCallableReference.
   /// @return A HttpsCallableReference targeting the given URL.
-  [[nodiscard]] HttpsCallableReference GetHttpsCallableFromURLWithOptions(
+  HttpsCallableReference GetHttpsCallableFromURLWithOptions(
       const char* url, const HttpsCallableOptions& options) const;
 
   /// @brief Modifies this Functions instance to communicate with the Cloud

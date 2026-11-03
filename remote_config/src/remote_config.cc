@@ -116,24 +116,30 @@ RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
 }
 
 void RemoteConfig::Cleanup() {
-  MutexLock lock(GetRcLock());
-  if (!internal_) return;
+  internal::RemoteConfigInternal* internal_to_delete = nullptr;
+  {
+    MutexLock lock(GetRcLock());
+    internal_to_delete = std::exchange(internal_, nullptr);
+    if (internal_to_delete && app_) {
+      auto& instances = GetRcInstances();
+      if (auto it = instances.find(app_);
+          it != instances.end() && it->second == this) {
+        instances.erase(it);
+      }
+    }
+  }
 
   if (app_) {
     CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_);
     if (notifier) {
       notifier->UnregisterObject(this);
     }
-    auto& instances = GetRcInstances();
-    if (auto it = instances.find(app_);
-        it != instances.end() && it->second == this) {
-      instances.erase(it);
-    }
   }
 
-  internal_->Cleanup();
-  delete internal_;
-  internal_ = nullptr;
+  if (!internal_to_delete) return;
+
+  internal_to_delete->Cleanup();
+  delete internal_to_delete;
 }
 
 RemoteConfig::RemoteConfig(App* app) : app_(app), internal_(nullptr) {}

@@ -14,13 +14,17 @@
 
 #include "functions/src/desktop/callable_reference_desktop.h"
 
+#include <algorithm>
+#include <chrono>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
 #include "app/rest/transport_builder.h"
-#include "app/rest/transport_curl.h"
 #include "app/rest/transport_interface.h"
 #include "app/rest/util.h"
 #include "app/src/function_registry.h"
@@ -79,11 +83,18 @@ void FunctionsCallableResponse::InvokeCallback() {
 
 namespace {
 
+// How long Call() waits for a call that completes immediately (e.g. a mock
+// transport, or a request that fails before reaching the network) so that the
+// returned Future is already complete. Real network transfers continue on the
+// background worker thread after this short grace period.
+constexpr auto kImmediateCompletionGrace = std::chrono::milliseconds(5);
+
 // Self-contained execution context for a single Call() invocation.
-// Owned via std::shared_ptr by the asynchronous callbacks so destroying
-// HttpsCallableReference or FunctionsInternal while a request is in flight
-// never causes a Use-After-Free, and concurrent Call() invocations on the
-// same HttpsCallableReference never share mutable Request/Response/Transport.
+// Owned via std::shared_ptr by the asynchronous callbacks and by the
+// background worker thread, so destroying HttpsCallableReference or
+// FunctionsInternal while a request is in flight never causes a
+// Use-After-Free, and concurrent Call() invocations on the same
+// HttpsCallableReference never share mutable Request/Response/Transport.
 struct CallExecutionContext
     : public std::enable_shared_from_this<CallExecutionContext> {
   CallExecutionContext(
@@ -98,24 +109,58 @@ struct CallExecutionContext
         lifetime_state(lifetime_state_in) {
     request.options().timeout_ms =
         timeout_ms > 0 ? timeout_ms : kDefaultTimeoutMilliseconds;
-    if (auto* curl_transport =
-            dynamic_cast<rest::TransportCurl*>(transport.get())) {
-      curl_transport->set_is_async(true);
-    }
   }
 
+  // Runs the (synchronous) transport Perform() on a dedicated background
+  // thread, then completes the Future on that thread: never on the caller's
+  // thread for network I/O, never on the shared curl I/O thread, and never
+  // while holding FunctionsLifetimeState::mutex.
   void StartPerform() {
     auto self = shared_from_this();
-    response.SetCallback([self]() {
-      if (auto state = self->lifetime_state.lock()) {
-        MutexLock lock(state->mutex);
-        if (!state->alive) {
-          return;
-        }
-        ResolveFuture(self->future_api, self->handle, &self->response);
-      }
-    });
+    std::thread([self]() { self->RunOnWorker(); }).detach();
+
+    std::unique_lock<std::mutex> lock(signal_mutex);
+    signal_cv.wait(lock, [this]() { return worker_started; });
+    signal_cv.wait_for(lock, kImmediateCompletionGrace,
+                       [this]() { return worker_done; });
+  }
+
+  void RunOnWorker() {
+    {
+      std::lock_guard<std::mutex> lock(signal_mutex);
+      worker_started = true;
+    }
+    signal_cv.notify_all();
+
     transport->Perform(&request, &response, nullptr);
+
+    if (auto state = lifetime_state.lock()) {
+      const std::thread::id self_id = std::this_thread::get_id();
+      bool should_resolve = false;
+      {
+        std::lock_guard<std::mutex> lock(state->mutex);
+        if (state->alive) {
+          state->resolving_threads.push_back(self_id);
+          should_resolve = true;
+        }
+      }
+      if (should_resolve) {
+        ResolveFuture(future_api, handle, &response);
+        {
+          std::lock_guard<std::mutex> lock(state->mutex);
+          auto& threads = state->resolving_threads;
+          auto it = std::find(threads.begin(), threads.end(), self_id);
+          if (it != threads.end()) threads.erase(it);
+        }
+        state->cv.notify_all();
+      }
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(signal_mutex);
+      worker_done = true;
+    }
+    signal_cv.notify_all();
   }
 
   FunctionsCallableRequest request;
@@ -124,7 +169,21 @@ struct CallExecutionContext
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<HttpsCallableResult> handle;
   std::weak_ptr<FunctionsLifetimeState> lifetime_state;
+
+  std::mutex signal_mutex;
+  std::condition_variable signal_cv;
+  bool worker_started = false;
+  bool worker_done = false;
 };
+
+// Returns true if the FunctionsInternal guarded by `weak_state` is still alive.
+bool IsAlive(const std::weak_ptr<FunctionsLifetimeState>& weak_state) {
+  if (auto state = weak_state.lock()) {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    return state->alive;
+  }
+  return false;
+}
 
 }  // namespace
 
@@ -324,17 +383,16 @@ Error ErrorFromStatus(std::string_view status) {
   return kErrorInternal;
 }
 
-void ResolveFuture(ReferenceCountedFutureImpl* future_api,
-                   SafeFutureHandle<HttpsCallableResult> handle,
-                   rest::Response* response) {
+namespace {
+void ResolveFutureImpl(ReferenceCountedFutureImpl* future_api,
+                       SafeFutureHandle<HttpsCallableResult> handle,
+                       const rest::Response* response, bool transport_failed) {
   if (!future_api || !response) {
     return;
   }
 
   Error error = ErrorFromHttpStatus(response->status());
-  const auto* callable_response =
-      dynamic_cast<const FunctionsCallableResponse*>(response);
-  if (callable_response && callable_response->failed() && error == kErrorNone) {
+  if (transport_failed && error == kErrorNone) {
     error = kErrorUnavailable;
   }
   bool has_error = (error != kErrorNone);
@@ -427,6 +485,20 @@ void ResolveFuture(ReferenceCountedFutureImpl* future_api,
   HttpsCallableResult result(std::move(data));
   future_api->CompleteWithResult(handle, kErrorNone, "", result);
 }
+}  // namespace
+
+void ResolveFuture(ReferenceCountedFutureImpl* future_api,
+                   SafeFutureHandle<HttpsCallableResult> handle,
+                   const FunctionsCallableResponse* response) {
+  ResolveFutureImpl(future_api, handle, response,
+                    response != nullptr && response->failed());
+}
+
+void ResolveFuture(ReferenceCountedFutureImpl* future_api,
+                   SafeFutureHandle<HttpsCallableResult> handle,
+                   rest::Response* response) {
+  ResolveFutureImpl(future_api, handle, response, /*transport_failed=*/false);
+}
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
   return Call(Variant::Null());
@@ -471,11 +543,11 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
 
   auto fetch_app_check_and_perform = [ctx, app,
                                       limited_use =
-                                          options_.limited_use_app_check_tokens]() {
+                                          options_.limited_use_app_check_token]() {
     Future<std::string> future_app_check;
     bool has_app_check_future = false;
     if (auto state = ctx->lifetime_state.lock()) {
-      MutexLock lock(state->mutex);
+      std::lock_guard<std::mutex> lock(state->mutex);
       if (!state->alive) {
         return;
       }
@@ -491,12 +563,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
         future_app_check.status() != kFutureStatusInvalid) {
       future_app_check.OnCompletion(
           [ctx](const Future<std::string>& future_token) {
-            if (auto state = ctx->lifetime_state.lock()) {
-              MutexLock lock(state->mutex);
-              if (!state->alive) {
-                return;
-              }
-            } else {
+            if (!IsAlive(ctx->lifetime_state)) {
               return;
             }
             if (future_token.error() == 0 && future_token.result() != nullptr &&
@@ -522,12 +589,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   if (has_async_auth && future_auth.status() != kFutureStatusInvalid) {
     future_auth.OnCompletion([ctx, fetch_app_check_and_perform](
                                  const Future<std::string>& completed_auth) {
-      if (auto state = ctx->lifetime_state.lock()) {
-        MutexLock lock(state->mutex);
-        if (!state->alive) {
-          return;
-        }
-      } else {
+      if (!IsAlive(ctx->lifetime_state)) {
         return;
       }
       if (completed_auth.error() == 0 && completed_auth.result() != nullptr &&

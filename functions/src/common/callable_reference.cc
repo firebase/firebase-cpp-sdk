@@ -20,6 +20,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
@@ -41,6 +42,19 @@
 namespace firebase::functions {
 
 namespace {
+Mutex& GetCallableRefLock() {
+  static auto* lock = new Mutex();
+  return *lock;
+}
+
+CleanupNotifier* GetNotifier(
+    internal::HttpsCallableReferenceInternal* internal) noexcept {
+  if (internal && internal->functions_internal()) {
+    return &internal->functions_internal()->cleanup();
+  }
+  return nullptr;
+}
+
 void CleanupHttpsCallableReference(void* ref_void) {
   HttpsCallableReference* ref =
       reinterpret_cast<HttpsCallableReference*>(ref_void);
@@ -49,57 +63,55 @@ void CleanupHttpsCallableReference(void* ref_void) {
   *ref = HttpsCallableReference();
 }
 
-void RegisterForCleanup(HttpsCallableReference* obj,
-                        internal::HttpsCallableReferenceInternal* internal) {
-  if (internal && internal->functions_internal()) {
-    internal->functions_internal()->cleanup().RegisterObject(
-        obj, CleanupHttpsCallableReference);
+void RegisterWithNotifier(HttpsCallableReference* obj,
+                          CleanupNotifier* notifier) {
+  if (notifier) {
+    notifier->RegisterObject(obj, CleanupHttpsCallableReference);
   }
 }
 
-void UnregisterForCleanup(
-    HttpsCallableReference* obj,
-    internal::HttpsCallableReferenceInternal* internal) noexcept {
-  if (internal && internal->functions_internal()) {
+void UnregisterFromNotifier(HttpsCallableReference* obj,
+                            CleanupNotifier* notifier) noexcept {
+  if (notifier) {
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
     try {
-      internal->functions_internal()->cleanup().UnregisterObject(obj);
+      notifier->UnregisterObject(obj);
     } catch (...) {
       LogWarning("HttpsCallableReference: Failed to unregister object.");
     }
 #else
-    internal->functions_internal()->cleanup().UnregisterObject(obj);
+    notifier->UnregisterObject(obj);
 #endif
   }
 }
 
-void SafeRegisterForCleanup(
-    HttpsCallableReference* obj,
-    internal::HttpsCallableReferenceInternal* internal) noexcept {
+void SafeRegisterWithNotifier(HttpsCallableReference* obj,
+                              CleanupNotifier* notifier) noexcept {
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
   try {
-    RegisterForCleanup(obj, internal);
+    RegisterWithNotifier(obj, notifier);
   } catch (...) {
     LogWarning("HttpsCallableReference: Failed to register moved-to object.");
   }
 #else
-  RegisterForCleanup(obj, internal);
+  RegisterWithNotifier(obj, notifier);
 #endif
 }
 
 void RegisterForCleanupOrDelete(
     HttpsCallableReference* obj,
     internal::HttpsCallableReferenceInternal*& internal) {
+  CleanupNotifier* notifier = GetNotifier(internal);
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
   try {
-    RegisterForCleanup(obj, internal);
+    RegisterWithNotifier(obj, notifier);
   } catch (...) {
     delete internal;
     internal = nullptr;
     throw;
   }
 #else
-  RegisterForCleanup(obj, internal);
+  RegisterWithNotifier(obj, notifier);
 #endif
 }
 }  // namespace
@@ -112,9 +124,14 @@ HttpsCallableReference::HttpsCallableReference(
 
 HttpsCallableReference::HttpsCallableReference(
     const HttpsCallableReference& other)
-    : internal_(other.internal_ ? new internal::HttpsCallableReferenceInternal(
-                                      *other.internal_)
-                                : nullptr) {
+    : internal_(nullptr) {
+  {
+    MutexLock lock(GetCallableRefLock());
+    if (other.internal_) {
+      internal_ =
+          new internal::HttpsCallableReferenceInternal(*other.internal_);
+    }
+  }
   RegisterForCleanupOrDelete(this, internal_);
 }
 
@@ -123,22 +140,64 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   if (this == &other) {
     return *this;
   }
-  std::unique_ptr<internal::HttpsCallableReferenceInternal> new_internal(
-      other.internal_
-          ? new internal::HttpsCallableReferenceInternal(*other.internal_)
-          : nullptr);
-  UnregisterForCleanup(this, internal_);
-  delete internal_;
-  internal_ = new_internal.release();
-  RegisterForCleanupOrDelete(this, internal_);
+  std::unique_ptr<internal::HttpsCallableReferenceInternal> new_internal;
+  internal::HttpsCallableReferenceInternal* old_internal = nullptr;
+  CleanupNotifier* old_notifier = nullptr;
+  {
+    MutexLock lock(GetCallableRefLock());
+    if (other.internal_) {
+      new_internal = std::make_unique<internal::HttpsCallableReferenceInternal>(
+          *other.internal_);
+    }
+    old_internal = std::exchange(internal_, nullptr);
+    old_notifier = GetNotifier(old_internal);
+  }
+  UnregisterFromNotifier(this, old_notifier);
+  delete old_internal;
+
+  internal::HttpsCallableReferenceInternal* raw_new = new_internal.release();
+  CleanupNotifier* new_notifier = GetNotifier(raw_new);
+  {
+    MutexLock lock(GetCallableRefLock());
+    internal_ = raw_new;
+  }
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+  try {
+    RegisterWithNotifier(this, new_notifier);
+  } catch (...) {
+    internal::HttpsCallableReferenceInternal* to_delete = nullptr;
+    {
+      MutexLock lock(GetCallableRefLock());
+      to_delete = std::exchange(internal_, nullptr);
+    }
+    delete to_delete;
+    throw;
+  }
+#else
+  RegisterWithNotifier(this, new_notifier);
+#endif
   return *this;
 }
 
 HttpsCallableReference::HttpsCallableReference(
     HttpsCallableReference&& other) noexcept
-    : internal_(std::exchange(other.internal_, nullptr)) {
-  UnregisterForCleanup(&other, internal_);
-  SafeRegisterForCleanup(this, internal_);
+    : internal_(nullptr) {
+  CleanupNotifier* other_notifier = nullptr;
+  {
+    MutexLock lock(GetCallableRefLock());
+    other_notifier = GetNotifier(other.internal_);
+  }
+  // Unregister &other before stealing other.internal_ so concurrent
+  // CleanupAll() either completes first or never runs on &other.
+  UnregisterFromNotifier(&other, other_notifier);
+
+  CleanupNotifier* new_notifier = nullptr;
+  {
+    MutexLock lock(GetCallableRefLock());
+    internal_ = std::exchange(other.internal_, nullptr);
+    new_notifier = GetNotifier(internal_);
+  }
+  SafeRegisterWithNotifier(this, new_notifier);
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
@@ -146,58 +205,87 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   if (this == &other) {
     return *this;
   }
-  UnregisterForCleanup(this, internal_);
-  delete internal_;
-  internal_ = std::exchange(other.internal_, nullptr);
-  UnregisterForCleanup(&other, internal_);
-  SafeRegisterForCleanup(this, internal_);
+  CleanupNotifier* other_notifier = nullptr;
+  {
+    MutexLock lock(GetCallableRefLock());
+    other_notifier = GetNotifier(other.internal_);
+  }
+  UnregisterFromNotifier(&other, other_notifier);
+
+  internal::HttpsCallableReferenceInternal* old_internal = nullptr;
+  CleanupNotifier* old_notifier = nullptr;
+  CleanupNotifier* new_notifier = nullptr;
+  {
+    MutexLock lock(GetCallableRefLock());
+    old_internal =
+        std::exchange(internal_, std::exchange(other.internal_, nullptr));
+    old_notifier = GetNotifier(old_internal);
+    new_notifier = GetNotifier(internal_);
+  }
+  UnregisterFromNotifier(this, old_notifier);
+  delete old_internal;
+  SafeRegisterWithNotifier(this, new_notifier);
   return *this;
 }
 
 HttpsCallableReference::~HttpsCallableReference() {
-  if (internal_) {
-    UnregisterForCleanup(this, internal_);
-    delete internal_;
-    internal_ = nullptr;
+  internal::HttpsCallableReferenceInternal* old_internal = nullptr;
+  CleanupNotifier* old_notifier = nullptr;
+  {
+    MutexLock lock(GetCallableRefLock());
+    old_internal = std::exchange(internal_, nullptr);
+    old_notifier = GetNotifier(old_internal);
+  }
+  if (old_internal) {
+    UnregisterFromNotifier(this, old_notifier);
+    delete old_internal;
   }
 }
 
 Functions* HttpsCallableReference::functions() {
-  return internal_ ? internal_->functions() : nullptr;
+  return std::as_const(*this).functions();
 }
 
 Functions* HttpsCallableReference::functions() const {
+  MutexLock lock(GetCallableRefLock());
   return internal_ ? internal_->functions() : nullptr;
 }
 
 Future<HttpsCallableResult> HttpsCallableReference::Call() {
+  MutexLock lock(GetCallableRefLock());
   return internal_ ? internal_->Call() : Future<HttpsCallableResult>();
 }
 
 Future<HttpsCallableResult> HttpsCallableReference::Call() const {
+  MutexLock lock(GetCallableRefLock());
   return internal_ ? internal_->Call() : Future<HttpsCallableResult>();
 }
 
 Future<HttpsCallableResult> HttpsCallableReference::Call(const Variant& data) {
+  MutexLock lock(GetCallableRefLock());
   return internal_ ? internal_->Call(data) : Future<HttpsCallableResult>();
 }
 
 Future<HttpsCallableResult> HttpsCallableReference::Call(
     const Variant& data) const {
+  MutexLock lock(GetCallableRefLock());
   return internal_ ? internal_->Call(data) : Future<HttpsCallableResult>();
 }
 
 Future<HttpsCallableResult> HttpsCallableReference::CallLastResult() const {
+  MutexLock lock(GetCallableRefLock());
   return internal_ ? internal_->CallLastResult()
                    : Future<HttpsCallableResult>();
 }
 
 bool HttpsCallableReference::is_valid() const {
+  MutexLock lock(GetCallableRefLock());
   return internal_ != nullptr && internal_->is_valid();
 }
 
 bool HttpsCallableReference::operator==(
     const HttpsCallableReference& other) const {
+  MutexLock lock(GetCallableRefLock());
   if (internal_ == other.internal_) return true;
   if (!internal_ || !other.internal_) return false;
   return *internal_ == *other.internal_;

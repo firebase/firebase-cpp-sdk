@@ -63,7 +63,14 @@ class FunctionsCallableResponse : public rest::Response {
 // Maps a canonical gRPC status string (e.g. "NOT_FOUND") to an Error code.
 [[nodiscard]] Error ErrorFromStatus(std::string_view status);
 
-// Resolves a callable Future from a completed or failed HTTP response.
+// Resolves a callable Future from a completed or failed HTTP response. A
+// transport-level failure (`response->failed()`) with no HTTP error status is
+// reported as kErrorUnavailable.
+void ResolveFuture(ReferenceCountedFutureImpl* future_api,
+                   SafeFutureHandle<HttpsCallableResult> handle,
+                   const FunctionsCallableResponse* response);
+
+// Resolves a callable Future from a completed generic HTTP response.
 void ResolveFuture(ReferenceCountedFutureImpl* future_api,
                    SafeFutureHandle<HttpsCallableResult> handle,
                    rest::Response* response);
