@@ -358,7 +358,8 @@ class Env {
         initial_pending_exceptions_(other.initial_pending_exceptions_),
         policy_(other.policy_),
         exception_handler_(other.exception_handler_),
-        exceptions_(other.exceptions_) {
+        exceptions_(other.exceptions_),
+        saved_exception_(std::move(other.saved_exception_)) {
     other.env_ = nullptr;
     other.exception_handler_ = nullptr;
     other.exceptions_ = 0;
@@ -387,18 +388,20 @@ class Env {
   void set_policy(ExceptionPolicy policy) noexcept { policy_ = policy; }
 
   bool ExceptionCheck() const noexcept {
-    return env_ != nullptr && env_->ExceptionCheck() == JNI_TRUE;
+    return env_ != nullptr && (env_->ExceptionCheck() == JNI_TRUE || saved_exception_);
   }
 
   void ExceptionClear() noexcept {
     if (env_) {
       env_->ExceptionClear();
     }
+    saved_exception_ = {};
   }
 
   // Returns the currently pending Java exception without clearing it.
   // Call ClearExceptionOccurred() or ExceptionClear() to clear it.
   Local<Throwable> ExceptionOccurred() noexcept {
+    if (saved_exception_) return saved_exception_;
     if (!env_ || !env_->ExceptionCheck()) return {};
     jthrowable occurred = env_->ExceptionOccurred();
     return Local<Throwable>(env_, occurred, /*adopt_existing_local=*/true);
@@ -833,13 +836,22 @@ class Env {
     return {};
   }
 
-  void RecordException() noexcept { ++exceptions_; }
+  void RecordException() noexcept {
+    ++exceptions_;
+    if (policy_ == ExceptionPolicy::kCaptureAndClear && env_ && env_->ExceptionCheck()) {
+      if (!saved_exception_) {
+        saved_exception_ = Local<Throwable>(env_, env_->ExceptionOccurred(), true);
+      }
+      env_->ExceptionClear();
+    }
+  }
 
   JNIEnv* env_ = nullptr;
   int initial_pending_exceptions_ = 0;
   ExceptionPolicy policy_ = ExceptionPolicy::kCaptureAndClear;
   UnhandledExceptionHandler exception_handler_ = nullptr;
   size_t exceptions_ = 0;
+  Local<Throwable> saved_exception_;
 };
 
 using JniEnv = Env;

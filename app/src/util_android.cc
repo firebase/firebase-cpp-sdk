@@ -238,6 +238,8 @@ static std::map<std::string, CallbackList>* g_task_callbacks = nullptr;
 // Statically initialized and never destroyed so late JNI callbacks on
 // background threads never lock a destroyed mutex.
 static pthread_mutex_t g_task_callbacks_mutex = PTHREAD_MUTEX_INITIALIZER;
+// Mutex for g_initialized_activity_count, g_initialized_count, g_class_loaders.
+static pthread_mutex_t g_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Tracks live CallbackData instances by their address (cast to uintptr_t) so
 // JniResultCallback_nativeOnResult never dereferences a dangling raw pointer.
@@ -305,22 +307,28 @@ static const char kMissingJavaMethodFieldError[] =
 // list of class loaders and release the local reference.
 static void AddClassLoader(JNIEnv* env, jobject class_loader_object) {
   if (!env || !class_loader_object) return;
+  pthread_mutex_lock(&g_init_mutex);
   if (!g_class_loaders) {
+    pthread_mutex_unlock(&g_init_mutex);
     env->DeleteLocalRef(class_loader_object);
     return;
   }
   jobject global_loader = env->NewGlobalRef(class_loader_object);
   if (!CheckAndClearJniExceptions(env) && global_loader != nullptr) {
     g_class_loaders->push_back(global_loader);
+  } else if (global_loader != nullptr) {
+    env->DeleteGlobalRef(global_loader);
   }
+  pthread_mutex_unlock(&g_init_mutex);
   env->DeleteLocalRef(class_loader_object);
 }
 
 // Get the last class loader added to the g_class_loaders list.
 static jobject GetParentLoader() {
-  return (g_class_loaders && !g_class_loaders->empty())
-             ? g_class_loaders->back()
-             : nullptr;
+  pthread_mutex_lock(&g_init_mutex);
+  jobject loader = (g_class_loaders && !g_class_loaders->empty()) ? g_class_loaders->back() : nullptr;
+  pthread_mutex_unlock(&g_init_mutex);
+  return loader;
 }
 
 // Convert a JNI class name (e.g. "java/lang/String"), as used by
@@ -335,9 +343,15 @@ static std::string JniClassNameToBinaryName(const char* class_name) {
 
 // Try to find a class in the list of class loaders.
 static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
-  if (!env || !class_name || !g_class_loaders || g_class_loaders->empty()) {
-    return nullptr;
+  if (!env || !class_name) return nullptr;
+  std::vector<jobject> loaders;
+  pthread_mutex_lock(&g_init_mutex);
+  if (g_class_loaders && !g_class_loaders->empty()) {
+    loaders = *g_class_loaders;
   }
+  pthread_mutex_unlock(&g_init_mutex);
+  if (loaders.empty()) return nullptr;
+
   static const class_loader::Method kFindLoadClassMethods[] = {
       class_loader::kFindLoadedClass, class_loader::kLoadClass};
   jstring class_name_object =
@@ -345,11 +359,10 @@ static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
   if (!class_name_object) return nullptr;
   jclass class_object = nullptr;
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kFindLoadClassMethods); ++i) {
-    for (auto it = g_class_loaders->begin();
-         !class_object && it != g_class_loaders->end(); ++it) {
-      if (!*it) continue;
+    for (auto loader : loaders) {
+      if (!loader) continue;
       class_object = static_cast<jclass>(env->CallObjectMethod(
-          *it, class_loader::GetMethodId(kFindLoadClassMethods[i]),
+          loader, class_loader::GetMethodId(kFindLoadClassMethods[i]),
           class_name_object));
       if (env->ExceptionCheck()) {
         env->ExceptionClear();
@@ -358,7 +371,9 @@ static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
           class_object = nullptr;
         }
       }
+      if (class_object) break;
     }
+    if (class_object) break;
   }
   env->DeleteLocalRef(class_name_object);
   return class_object;
@@ -367,8 +382,11 @@ static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
 // Create the list of class loaders initializing it with the activity's
 // class loader.
 static void InitializeClassLoaders(JNIEnv* env, jobject activity_object) {
-  assert(!g_class_loaders);
-  g_class_loaders = new std::vector<jobject>();
+  pthread_mutex_lock(&g_init_mutex);
+  if (!g_class_loaders) {
+    g_class_loaders = new std::vector<jobject>();
+  }
+  pthread_mutex_unlock(&g_init_mutex);
   if (!env || !activity_object) return;
   jobject class_loader = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetClassLoader));
@@ -381,12 +399,17 @@ static void InitializeClassLoaders(JNIEnv* env, jobject activity_object) {
 
 // Remove all global references to class loaders and destroy the list.
 static void TerminateClassLoaders(JNIEnv* env) {
-  assert(g_class_loaders);
-  for (auto it = g_class_loaders->begin(); it != g_class_loaders->end(); ++it) {
-    env->DeleteGlobalRef(*it);
+  std::vector<jobject> loaders;
+  pthread_mutex_lock(&g_init_mutex);
+  if (g_class_loaders) {
+    loaders = std::move(*g_class_loaders);
+    delete g_class_loaders;
+    g_class_loaders = nullptr;
   }
-  delete g_class_loaders;
-  g_class_loaders = nullptr;
+  pthread_mutex_unlock(&g_init_mutex);
+  for (auto loader : loaders) {
+    env->DeleteGlobalRef(loader);
+  }
 }
 
 // This class executes the callback when it goes out of scope, unless Cancel()
@@ -470,10 +493,13 @@ bool InitializeActivityClasses(JNIEnv* env, jobject activity_object) {
   if (env) {
     jni::internal::GlobalRefReaper::RecordJavaVM(env);
   }
+  pthread_mutex_lock(&g_init_mutex);
   g_initialized_activity_count++;
   if (g_initialized_activity_count > 1) {
+    pthread_mutex_unlock(&g_init_mutex);
     return true;
   }
+  pthread_mutex_unlock(&g_init_mutex);
 
   ScopedCleanup<JNIEnv> cleanup(TerminateActivityClasses, env);
 
@@ -486,18 +512,23 @@ bool InitializeActivityClasses(JNIEnv* env, jobject activity_object) {
   InitializeClassLoaders(env, activity_object);
   CheckAndClearJniExceptions(env);
 
+  pthread_mutex_lock(&g_init_mutex);
+  g_initialized_count++;
+  pthread_mutex_unlock(&g_init_mutex);
+
   cleanup.Cancel();
   return true;
 }
 
 void TerminateActivityClasses(JNIEnv* env) {
+  pthread_mutex_lock(&g_init_mutex);
   FIREBASE_ASSERT(g_initialized_activity_count);
   g_initialized_activity_count--;
-  if (g_initialized_activity_count == 0) {
+  bool is_last = (g_initialized_activity_count == 0);
+  pthread_mutex_unlock(&g_init_mutex);
+  if (is_last) {
     ReleaseActivityClasses(env);
-    if (g_class_loaders) {
-      TerminateClassLoaders(env);
-    }
+    TerminateClassLoaders(env);
   }
 }
 
@@ -509,10 +540,13 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
   // Note: We increment g_initialized_count when it's possible to call
   // Terminate() in all clean up code paths. ScopedCleanup calls Terminate() to
   // clean up when its destructor is called, decrementing g_initialized_count.
+  pthread_mutex_lock(&g_init_mutex);
   if (g_initialized_count != 0) {
     g_initialized_count++;
+    pthread_mutex_unlock(&g_init_mutex);
     return true;
   }
+  pthread_mutex_unlock(&g_init_mutex);
 
   if (!InitializeActivityClasses(env, activity_object)) {
     return false;
@@ -617,9 +651,12 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
 // Terminate the utilities library.  Releases all global references to
 // classes.
 void Terminate(JNIEnv* env) {
+  pthread_mutex_lock(&g_init_mutex);
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
-  if (g_initialized_count == 0) {
+  bool is_last = (g_initialized_count == 0);
+  pthread_mutex_unlock(&g_init_mutex);
+  if (is_last) {
     if (g_task_callbacks) {
       CancelCallbacks(env, nullptr);
       pthread_mutex_lock(&g_task_callbacks_mutex);
@@ -1467,7 +1504,12 @@ jobject ContinueBuilder(JNIEnv* env, jobject old_builder, jobject new_builder) {
 void RegisterCallbackOnTask(JNIEnv* env, jobject task,
                             TaskCallbackFn callback_fn, void* callback_data,
                             const char* api_identifier) {
-  if (!env || !task || !callback_fn) return;
+  if (!env || !callback_fn) return;
+  if (!task) {
+    callback_fn(env, nullptr, kFutureResultFailure,
+                "Task is null.", callback_data);
+    return;
+  }
   if (!g_jniresultcallback_loaded || !jniresultcallback::GetClass()) {
     callback_fn(env, nullptr, kFutureResultFailure,
                 "JniResultCallback is not initialized.", callback_data);
