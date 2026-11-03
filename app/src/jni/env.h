@@ -401,7 +401,7 @@ class Env {
   // Returns the currently pending Java exception without clearing it.
   // Call ClearExceptionOccurred() or ExceptionClear() to clear it.
   Local<Throwable> ExceptionOccurred() noexcept {
-    if (saved_exception_) return saved_exception_;
+    if (saved_exception_) return Local<Throwable>(saved_exception_);
     if (!env_ || !env_->ExceptionCheck()) return {};
     jthrowable occurred = env_->ExceptionOccurred();
     return Local<Throwable>(env_, occurred, /*adopt_existing_local=*/true);
