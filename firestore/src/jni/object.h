@@ -44,11 +44,9 @@ class Object {
  public:
   Object() = default;
   constexpr explicit Object(jobject object) : object_(object) {}
- protected:
   ~Object() = default;
   Object(const Object&) = default;
   Object& operator=(const Object&) = default;
- public:
 
   [[nodiscard]] explicit operator bool() const { return object_ != nullptr; }
 
@@ -85,7 +83,7 @@ class Object {
  * `JNIEnv::IsSameObject()`. To invoke `java.lang.Object.equals`,
  * use `Object::Equals()`.
  */
-inline [[nodiscard]] bool operator==(const Object& lhs, const Object& rhs) {
+[[nodiscard]] inline bool operator==(const Object& lhs, const Object& rhs) {
   if (lhs.get() == rhs.get()) return true;
   if (!lhs || !rhs) return false;
   JNIEnv* env = GetEnv();
@@ -93,7 +91,7 @@ inline [[nodiscard]] bool operator==(const Object& lhs, const Object& rhs) {
   return env->IsSameObject(lhs.get(), rhs.get());
 }
 
-inline [[nodiscard]] bool operator!=(const Object& lhs, const Object& rhs) {
+[[nodiscard]] inline bool operator!=(const Object& lhs, const Object& rhs) {
   return !(lhs == rhs);
 }
 

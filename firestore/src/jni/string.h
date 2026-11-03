@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <string>
 
-#include "firestore/src/jni/array.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 
