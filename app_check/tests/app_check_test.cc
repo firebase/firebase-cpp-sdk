@@ -255,9 +255,14 @@ TEST_F(AppCheckTest, ListenerDestructorAutomaticallyUnregisters) {
 }
 
 TEST_F(AppCheckTest, UnsupportedProviderStubsAndDebugFactoryAreSafe) {
+#if !FIREBASE_PLATFORM_ANDROID
   EXPECT_EQ(PlayIntegrityProviderFactory::GetInstance(), nullptr);
+#endif
+
+#if !(FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS)
   EXPECT_EQ(DeviceCheckProviderFactory::GetInstance(), nullptr);
   EXPECT_EQ(AppAttestProviderFactory::GetInstance(), nullptr);
+#endif
 
   DebugAppCheckProviderFactory* debug_factory =
       DebugAppCheckProviderFactory::GetInstance();
