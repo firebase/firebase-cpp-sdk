@@ -30,18 +30,20 @@ namespace firestore {
 QuerySnapshotInternal::QuerySnapshotInternal(api::QuerySnapshot&& snapshot)
     : snapshot_{std::move(snapshot)} {}
 
-QuerySnapshotInternal::QuerySnapshotInternal(const QuerySnapshotInternal& other) {
-  std::scoped_lock lock(other.mutex_);
-  snapshot_ = other.snapshot_;
-}
+QuerySnapshotInternal::QuerySnapshotInternal(const QuerySnapshotInternal& other)
+    : snapshot_{[&]() {
+        std::scoped_lock lock(other.mutex_);
+        return other.snapshot_;
+      }()} {}
 
 QuerySnapshotInternal::~QuerySnapshotInternal() = default;
 
 QuerySnapshotInternal::QuerySnapshotInternal(
-    QuerySnapshotInternal&& other) noexcept {
-  std::scoped_lock lock(other.mutex_);
-  snapshot_ = std::move(other.snapshot_);
-}
+    QuerySnapshotInternal&& other) noexcept
+    : snapshot_{[&]() {
+        std::scoped_lock lock(other.mutex_);
+        return std::move(other.snapshot_);
+      }()} {}
 
 QuerySnapshotInternal& QuerySnapshotInternal::operator=(
     const QuerySnapshotInternal& other) {

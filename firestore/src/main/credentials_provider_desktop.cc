@@ -42,8 +42,8 @@ std::mutex& ListenerMutex() {
   return *mutex;
 }
 
-std::unordered_map<uint64_t, std::weak_ptr<Contents>>& ValidContexts() {
-  static auto* contexts = new std::unordered_map<uint64_t, std::weak_ptr<Contents>>();
+std::unordered_map<uint64_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>& ValidContexts() {
+  static auto* contexts = new std::unordered_map<uint64_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>();
   return *contexts;
 }
 
