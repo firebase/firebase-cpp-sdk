@@ -77,7 +77,7 @@ class JObjectReference {
   JObjectReference(JObjectReference&& reference) noexcept;
 
   // Destructor deletes the global reference if non-null.
-  ~JObjectReference();
+  virtual ~JObjectReference();
 
   // Copy assignment creates a new global reference to the referenced jobject.
   JObjectReference& operator=(const JObjectReference& reference);
