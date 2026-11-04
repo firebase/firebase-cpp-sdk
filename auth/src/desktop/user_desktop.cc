@@ -718,52 +718,42 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, const bool forc
   GetTokenInternal(auth_data, promise, force_refresh, kUserFn_GetToken);
 }
 
-void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise, const bool force_refresh, const int future_identifier) {
-  if (auth_data == nullptr) {     // user is not valid
-    return;  // invalid future
-  }
-  if (!ValidateCurrentUser(&promise, auth_data)) {
-    return;
-  }
-
+template <typename R, typename MapFn>
+void GetTokenHelper(AuthData* auth_data, Promise<R> promise, bool force_refresh, MapFn map_fn) {
+  if (!auth_data || !ValidateCurrentUser(&promise, auth_data)) return;
   GetTokenResult current_token(kAuthErrorFailure);
-  const bool is_user_logged_in =
-      UserView::TryRead(auth_data, [&](const UserView::Reader& user) {
-        current_token = GetTokenIfFresh(user, force_refresh);
-      });
+  bool logged_in = UserView::TryRead(auth_data, [&](const UserView::Reader& user) {
+    current_token = GetTokenIfFresh(user, force_refresh);
+  });
+  if (!logged_in) { FailPromise(&promise, kAuthErrorNoSignedInUser); return; }
+  if (current_token.IsValid()) { map_fn(promise, current_token.token()); return; }
+  auto callback = force_refresh ? +[](AuthDataHandle<R, rest::Request>* const p) {
+    auto res = EnsureFreshToken(p->auth_data, true);
+    if (!res.IsValid()) { FailPromise(&p->promise, res.error()); return; }
+    MapFn()(p->promise, res.token());
+  } : +[](AuthDataHandle<R, rest::Request>* const p) {
+    auto res = EnsureFreshToken(p->auth_data, false);
+    if (!res.IsValid()) { FailPromise(&p->promise, res.error()); return; }
+    MapFn()(p->promise, res.token());
+  };
+  CallAsync(auth_data, promise, std::unique_ptr<rest::Request>(), callback);
+}
 
-  if (!is_user_logged_in) {
-    FailPromise(&promise, kAuthErrorNoSignedInUser); return;
+struct MapToken { void operator()(Promise<std::string>& p, const std::string& t) const { p.CompleteWithResult(t); } };
+struct MapIdTokenResult {
+  void operator()(Promise<IdTokenResult>& p, const std::string& t) const {
+    IdTokenResult r;
+    if (!ParseIdToken(t, &r)) { LogWarning("Failed to parse ID token."); p.Fail(kAuthErrorFailure, kIdTokenResultParseErrorMessage); return; }
+    p.CompleteWithResult(r);
   }
-  if (current_token.IsValid()) {
-    promise.CompleteWithResult(current_token.token());
-    return;
-  }
+};
 
-  const auto callback =
-      force_refresh
-          ? +[](AuthDataHandle<std::string, rest::Request>* const promise) {
-              const GetTokenResult get_token_result =
-                  EnsureFreshToken(promise->auth_data, true);
-              if (!get_token_result.IsValid()) {
-                FailPromise(&promise->promise, get_token_result.error());
-                return;
-              }
-              promise->promise.CompleteWithResult(get_token_result.token());
-            }
-          : +[](AuthDataHandle<std::string, rest::Request>* const promise) {
-              const GetTokenResult get_token_result =
-                  EnsureFreshToken(promise->auth_data, false);
-              if (!get_token_result.IsValid()) {
-                FailPromise(&promise->promise, get_token_result.error());
-                return;
-              }
-              promise->promise.CompleteWithResult(get_token_result.token());
-            };
+void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise, const bool force_refresh, const int future_identifier) {
+  GetTokenHelper(auth_data, promise, force_refresh, MapToken());
+}
 
-  // Note: request is deliberately null because EnsureFreshToken will create it.
-  CallAsync(auth_data, promise, std::unique_ptr<rest::Request>(),
-                   callback);
+void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const bool force_refresh) {
+  GetTokenHelper(auth_data, promise, force_refresh, MapIdTokenResult());
 }
 
 void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const bool force_refresh) {

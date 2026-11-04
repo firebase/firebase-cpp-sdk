@@ -323,13 +323,7 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refr
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kToken), force_refresh);
-  env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data,
-                     force_refresh ? ReadTokenResultForced : ReadTokenResult);
-    env->DeleteLocalRef(pending_result);
-  } else if (force_refresh) {
+  env->DeleteLocalRef(user_local); else if (force_refresh) {
     // If the method failed for some reason, clear the expected callback.
     auth_data->SetExpectIdTokenListenerCallback(false);
   }
@@ -413,35 +407,19 @@ static void ReadIdTokenResultForced(jobject result,
 }
 
 void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool force_refresh) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  if (force_refresh) {
-    auth_data->SetExpectIdTokenListenerCallback(true);
-  }
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    if (force_refresh) {
-      auth_data->SetExpectIdTokenListenerCallback(false);
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  if (force_refresh) auth_data->SetExpectIdTokenListenerCallback(true);
+  RunAndroidTaskWithPromise(auth_data, promise, force_refresh ? ReadIdTokenResultForced : ReadIdTokenResult, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) {
+      if (force_refresh) auth_data->SetExpectIdTokenListenerCallback(false);
+      return (jobject)nullptr;
     }
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jobject pending_result = env->CallObjectMethod(
-      user_local, user::GetMethodId(user::kToken), force_refresh);
-  env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(
-        pending_result, promise.handle(), auth_data,
-        force_refresh ? ReadIdTokenResultForced : ReadIdTokenResult);
-    env->DeleteLocalRef(pending_result);
-  } else if (force_refresh) {
-    // If the method failed for some reason, clear the expected callback.
-    auth_data->SetExpectIdTokenListenerCallback(false);
-  }
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kToken), force_refresh);
+    env->DeleteLocalRef(user_local);
+    if (!task && force_refresh) auth_data->SetExpectIdTokenListenerCallback(false);
+    return task;
+  });
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
@@ -493,31 +471,16 @@ std::vector<UserInfoInterface> User::provider_data() const {
 }
 
 void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* password) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  if (!password) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingPassword,
-                     "Password must be provided.");
-    return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jstring j_password = env->NewStringUTF(password);
-  jobject pending_result = env->CallObjectMethod(
-      user_local, user::GetMethodId(user::kUpdatePassword), j_password);
-  env->DeleteLocalRef(user_local);
-  env->DeleteLocalRef(j_password);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
-    env->DeleteLocalRef(pending_result);
-  }
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  if (!password) { promise.Fail(kAuthErrorMissingPassword, "A password must be provided."); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, UpdateUserOnSuccess, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jstring j_password = env->NewStringUTF(password);
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kUpdatePassword), j_password);
+    env->DeleteLocalRef(user_local); env->DeleteLocalRef(j_password);
+    return task;
+  });
 }
 
 void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::UserProfile& profile) {
@@ -604,11 +567,6 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::U
           user_local, user::GetMethodId(user::kUpdateUserProfile),
           j_user_profile_request);
       env->DeleteLocalRef(user_local);
-      if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-        RegisterCallback(pending_result, promise.handle(), auth_data,
-                         UpdateUserOnSuccess);
-        env->DeleteLocalRef(pending_result);
-      }
     }
   } else {
     auth_data->future_impl.Complete(promise.handle(), error, exception_error_message.c_str());
@@ -622,34 +580,15 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::U
 }
 
 void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
-    auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
-                     internal::CredentialAccess::GetErrorMessage(credential).c_str());
-    return;
-  } else if (!credential.is_valid()) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
-                     "Invalid credential.");
-    return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jobject pending_result = env->CallObjectMethod(
-      user_local, user::GetMethodId(user::kLinkWithCredential),
-      CredentialFromImpl(::firebase::auth::internal::CredentialAccess::GetImpl(credential)));
-  env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
-    env->DeleteLocalRef(pending_result);
-  }
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jobject j_cred = static_cast<jobject>(internal::CredentialAccess::GetImpl(credential));
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kLinkWithCredential), j_cred);
+    env->DeleteLocalRef(user_local);
+    return task;
+  });
 }
 
 Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
@@ -684,11 +623,6 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provid
       user_local, user::GetMethodId(user::kUnlink), j_provider);
   env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_provider);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
-    env->DeleteLocalRef(pending_result);
-  }
 }
 
 void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential& credential) {
@@ -754,73 +688,30 @@ void Reload(AuthData* auth_data, Promise<void> promise) {
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kReload));
   env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
-    env->DeleteLocalRef(pending_result);
-  }
 }
 
 void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential& credential) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
-    auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
-                     internal::CredentialAccess::GetErrorMessage(credential).c_str());
-    return;
-  } else if (!credential.is_valid()) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
-                     "Invalid credential.");
-    return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jobject pending_result = env->CallObjectMethod(
-      user_local, user::GetMethodId(user::kReauthenticate),
-      CredentialFromImpl(::firebase::auth::internal::CredentialAccess::GetImpl(credential)));
-  env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
-    env->DeleteLocalRef(pending_result);
-  }
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, UpdateUserOnSuccess, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jobject j_cred = static_cast<jobject>(internal::CredentialAccess::GetImpl(credential));
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kReauthenticate), j_cred);
+    env->DeleteLocalRef(user_local);
+    return task;
+  });
 }
 
 void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
-    auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
-                     internal::CredentialAccess::GetErrorMessage(credential).c_str());
-    return;
-  } else if (!credential.is_valid()) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
-                     "Invalid credential.");
-    return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jobject pending_result = env->CallObjectMethod(
-      user_local, user::GetMethodId(user::kReauthenticateAndRetrieveData),
-      CredentialFromImpl(::firebase::auth::internal::CredentialAccess::GetImpl(credential)));
-  env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
-    env->DeleteLocalRef(pending_result);
-  }
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jobject j_cred = static_cast<jobject>(internal::CredentialAccess::GetImpl(credential));
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kReauthenticateAndRetrieveData), j_cred);
+    env->DeleteLocalRef(user_local);
+    return task;
+  });
 }
 
 Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
@@ -848,11 +739,6 @@ void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kSendEmailVerification));
   env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, nullptr);
-    env->DeleteLocalRef(pending_result);
-  }
 }
 
 void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
@@ -876,11 +762,6 @@ void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void>
       user_local, user::GetMethodId(user::kVerifyBeforeUpdateEmail), j_email);
   env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_email);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, nullptr);
-    env->DeleteLocalRef(pending_result);
-  }
 }
 
 void Delete(AuthData* auth_data, Promise<void> promise) {
@@ -897,11 +778,6 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kDelete));
   env->DeleteLocalRef(user_local);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
-    env->DeleteLocalRef(pending_result);
-  }
 }
 
 UserMetadata User::metadata() const {

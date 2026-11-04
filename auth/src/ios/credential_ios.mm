@@ -640,104 +640,95 @@ void FederatedOAuthProvider::SetProviderData(const FederatedOAuthProviderData& p
 void FederatedOAuthProvider::SetAuthHandler(AuthHandler* handler) { handler_ = handler; }
 #endif  // INTERNAL_EXPERIMENTAL
 
-Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
-  if (!auth_data) return Future<AuthResult>();
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithProvider, AuthResult());
-  if (provider_data_.provider_id.empty()) {
-    futures.Complete(handle, kAuthErrorInvalidProviderId, "Invalid provider ID.");
-    return MakeFuture(&futures, handle);
-  }
+template <typename Func>
+Future<AuthResult> RunFederatedOAuthProviderTask(AuthData* auth_data, int future_fn, const FederatedOAuthProviderData& provider_data, Func func) {
+  Promise<AuthResult> promise(&auth_data->future_impl, future_fn);
+  if (provider_data.provider_id.empty()) { promise.Fail(kAuthErrorInvalidProviderId, "Invalid provider ID."); return promise.future(); }
 #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = nil;
   @try {
-    ios_provider = (FIROAuthProvider*)[FIROAuthProvider
-        providerWithProviderID:util::CStringToNSString(provider_data_.provider_id.c_str())
-                          auth:AuthImpl(auth_data)];
+    ios_provider = (FIROAuthProvider*)[FIROAuthProvider providerWithProviderID:util::CStringToNSString(provider_data.provider_id.c_str()) auth:AuthImpl(auth_data)];
   } @catch (NSException* exception) {
-    futures.Complete(handle, kAuthErrorInvalidProviderId,
-                     util::StringFromNSString(exception.reason).c_str());
-    return MakeFuture(&futures, handle);
+    promise.Fail(kAuthErrorInvalidProviderId, util::StringFromNSString(exception.reason).c_str());
+    return promise.future();
   }
   if (ios_provider != nullptr) {
-    ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
-    ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
-    FIRCPPAuthListenerHandle* listener_cpp_handle =
-        reinterpret_cast<AuthDataIos*>(auth_data->auth_impl)->listener_handle.get();
-    [AuthImpl(auth_data)
-        signInWithProvider:ios_provider
-                UIDelegate:nullptr
-                completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
-                  @synchronized(listener_cpp_handle) {
-                    AuthData* data = listener_cpp_handle.authData;
-                    if (!data) return;
-                    AuthResultWithProviderCallback(auth_result, error, handle, data, ios_provider);
-                  }
-                }];
-    return MakeFuture(&futures, handle);
+    ios_provider.customParameters = util::StringMapToNSDictionary(provider_data.custom_parameters);
+    ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data.scopes);
+    FIRCPPAuthListenerHandle* listener_cpp_handle = reinterpret_cast<AuthDataIos*>(auth_data->auth_impl)->listener_handle.get();
+    
+    func(ios_provider, ^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
+      @synchronized(listener_cpp_handle) {
+        AuthData* data = listener_cpp_handle.authData;
+        if (!data) return;
+        AuthResultWithProviderCallback(auth_result, error, promise.GetHandle(), data, ios_provider);
+      }
+    });
+    return promise.future();
   } else {
-    Future<AuthResult> future = MakeFuture(&futures, handle);
-    futures.CompleteWithResult(handle, kAuthErrorFailure, "Internal error constructing provider.",
-                               AuthResult());
-    return future;
+    promise.Fail(kAuthErrorFailure, "Internal error constructing provider.");
+    return promise.future();
   }
+#else
+  promise.Fail(kAuthErrorApiNotAvailable, "OAuth provider actions are not supported on non-iOS Apple platforms.");
+  return promise.future();
+#endif
+}
 
-#else   // non-iOS Apple platforms (eg: tvOS)
-  Future<AuthResult> future = MakeFuture(&futures, handle);
-  futures.Complete(handle, kAuthErrorApiNotAvailable,
-                   "OAuth provider sign-in is not supported on non-iOS Apple platforms.");
-  return future;
-#endif  // FIREBASE_PLATFORM_IOS
+template <typename Func>
+Future<AuthResult> RunFederatedOAuthProviderTask(AuthData* auth_data, int future_fn, const FederatedOAuthProviderData& provider_data, Func func) {
+  Promise<AuthResult> promise(&auth_data->future_impl, future_fn);
+  if (provider_data.provider_id.empty()) { promise.Fail(kAuthErrorInvalidProviderId, "Invalid provider ID."); return promise.future(); }
+#if FIREBASE_PLATFORM_IOS
+  FIROAuthProvider* ios_provider = nil;
+  @try {
+    ios_provider = (FIROAuthProvider*)[FIROAuthProvider providerWithProviderID:util::CStringToNSString(provider_data.provider_id.c_str()) auth:AuthImpl(auth_data)];
+  } @catch (NSException* exception) {
+    promise.Fail(kAuthErrorInvalidProviderId, util::StringFromNSString(exception.reason).c_str());
+    return promise.future();
+  }
+  if (ios_provider != nullptr) {
+    ios_provider.customParameters = util::StringMapToNSDictionary(provider_data.custom_parameters);
+    ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data.scopes);
+    FIRCPPAuthListenerHandle* listener_cpp_handle = reinterpret_cast<AuthDataIos*>(auth_data->auth_impl)->listener_handle.get();
+    
+    func(ios_provider, ^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
+      @synchronized(listener_cpp_handle) {
+        AuthData* data = listener_cpp_handle.authData;
+        if (!data) return;
+        AuthResultWithProviderCallback(auth_result, error, promise.GetHandle(), data, ios_provider);
+      }
+    });
+    return promise.future();
+  } else {
+    promise.Fail(kAuthErrorFailure, "Internal error constructing provider.");
+    return promise.future();
+  }
+#else
+  promise.Fail(kAuthErrorApiNotAvailable, "OAuth provider actions are not supported on non-iOS Apple platforms.");
+  return promise.future();
+#endif
+}
+
+Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
+  if (!auth_data) return Future<AuthResult>();
+  return RunFederatedOAuthProviderTask(auth_data, kAuthFn_SignInWithProvider, provider_data_, [&](FIROAuthProvider* p, void(^comp)(FIRAuthDataResult*, NSError*)) {
+    [AuthImpl(auth_data) signInWithProvider:p UIDelegate:nullptr completion:comp];
+  });
 }
 
 Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   if (!ValidUser(auth_data)) return Future<AuthResult>();
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  auto handle = futures.SafeAlloc<AuthResult>(kUserFn_LinkWithProvider, AuthResult());
-  if (provider_data_.provider_id.empty()) {
-    futures.Complete(handle, kAuthErrorInvalidProviderId, "Invalid provider ID.");
-    return MakeFuture(&futures, handle);
-  }
-#if FIREBASE_PLATFORM_IOS
-  FIROAuthProvider* ios_provider = nil;
-  @try {
-    ios_provider = (FIROAuthProvider*)[FIROAuthProvider
-        providerWithProviderID:util::CStringToNSString(provider_data_.provider_id.c_str())
-                          auth:AuthImpl(auth_data)];
-  } @catch (NSException* exception) {
-    futures.Complete(handle, kAuthErrorInvalidProviderId,
-                     util::StringFromNSString(exception.reason).c_str());
-    return MakeFuture(&futures, handle);
-  }
-  if (ios_provider != nullptr) {
-    ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
-    ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
-    FIRCPPAuthListenerHandle* listener_cpp_handle =
-        reinterpret_cast<AuthDataIos*>(auth_data->auth_impl)->listener_handle.get();
-    [UserImpl(auth_data)
-        linkWithProvider:ios_provider
-              UIDelegate:nullptr
-              completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
-                @synchronized(listener_cpp_handle) {
-                  AuthData* data = listener_cpp_handle.authData;
-                  if (!data) return;
-                  AuthResultWithProviderCallback(auth_result, error, handle, data, ios_provider);
-                }
-              }];
-    return MakeFuture(&futures, handle);
-  } else {
-    Future<AuthResult> future = MakeFuture(&futures, handle);
-    futures.CompleteWithResult(handle, kAuthErrorFailure, "Internal error constructing provider.",
-                               AuthResult());
-    return future;
-  }
+  return RunFederatedOAuthProviderTask(auth_data, kUserFn_LinkWithProvider, provider_data_, [&](FIROAuthProvider* p, void(^comp)(FIRAuthDataResult*, NSError*)) {
+    [UserImpl(auth_data) linkWithProvider:p UIDelegate:nullptr completion:comp];
+  });
+}
 
-#else   // non-iOS Apple platforms (eg: tvOS)
-  Future<AuthResult> future = MakeFuture(&futures, handle);
-  futures.Complete(handle, kAuthErrorApiNotAvailable,
-                   "OAuth provider linking is not supported on non-iOS Apple platforms.");
-  return future;
-#endif  // FIREBASE_PLATFORM_IOS
+Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
+  if (!ValidUser(auth_data)) return Future<AuthResult>();
+  return RunFederatedOAuthProviderTask(auth_data, kUserFn_ReauthenticateWithProvider, provider_data_, [&](FIROAuthProvider* p, void(^comp)(FIRAuthDataResult*, NSError*)) {
+    [UserImpl(auth_data) reauthenticateWithProvider:p UIDelegate:nullptr completion:comp];
+  });
 }
 
 Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {

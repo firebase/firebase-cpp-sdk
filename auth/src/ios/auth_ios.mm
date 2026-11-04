@@ -505,82 +505,47 @@ Future<AuthResult> SignInWithProvider(AuthData* auth_data, FederatedAuthProvider
 }
 
 void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
-  FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
-  [AuthImpl(auth_data) signInAnonymouslyWithCompletion:^(FIRAuthDataResult *_Nullable auth_result,
-                                                          NSError *_Nullable error) {
-    @synchronized(listener_cpp_handle) {
-      AuthData *data = listener_cpp_handle.authData;
-      if (!data) return;
-      AuthResultCallback(auth_result, error, promise.handle(), data);
-    }
-  }];
+  RunAppleAuthTaskWithPromise(auth_data, promise, [=](FIRAuth* a, FIRCPPAuthListenerHandle* h) {
+    [a signInAnonymouslyWithCompletion:^(FIRAuthDataResult* r, NSError* e) {
+      @synchronized(h) {
+        if (!h.authData) return;
+        AuthResultWithProviderCallback(r, e, promise.handle(), h.authData, nil);
+      }
+    }];
+  });
 }
 
 void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char *email, const char *password) {
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  if (!email || strlen(email) == 0) {
-    futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email is not allowed.");
-  } else if (!password || strlen(password) == 0) {
-    futures.Complete(promise.handle(), kAuthErrorMissingPassword, "Empty password is not allowed.");
-  } else {
-    FIRCPPAuthListenerHandle *listener_cpp_handle =
-        reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
-    [AuthImpl(auth_data)
-        signInWithEmail:@(email)
-               password:@(password)
-             completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-               @synchronized(listener_cpp_handle) {
-                 AuthData *data = listener_cpp_handle.authData;
-                 if (!data) return;
-                 AuthResultCallback(auth_result, error, promise.handle(), data);
-               }
-             }];
-  }
+  RunAppleAuthTaskWithPromise(auth_data, promise, [=](FIRAuth* a, FIRCPPAuthListenerHandle* h) {
+    [a signInWithEmail:util::CStringToNSString(email) password:util::CStringToNSString(password) completion:^(FIRAuthDataResult* r, NSError* e) {
+      @synchronized(h) {
+        if (!h.authData) return;
+        AuthResultWithProviderCallback(r, e, promise.handle(), h.authData, nil);
+      }
+    }];
+  });
 }
 
 void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char *email, const char *password) {
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  if (!email || strlen(email) == 0) {
-    futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email is not allowed.");
-  } else if (!password || strlen(password) == 0) {
-    futures.Complete(promise.handle(), kAuthErrorMissingPassword, "Empty password is not allowed.");
-  } else {
-    FIRCPPAuthListenerHandle *listener_cpp_handle =
-        reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
-    [AuthImpl(auth_data)
-        createUserWithEmail:@(email)
-                   password:@(password)
-                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                   @synchronized(listener_cpp_handle) {
-                     AuthData *data = listener_cpp_handle.authData;
-                     if (!data) return;
-                     AuthResultCallback(auth_result, error, promise.handle(), data);
-                   }
-                 }];
-  }
+  RunAppleAuthTaskWithPromise(auth_data, promise, [=](FIRAuth* a, FIRCPPAuthListenerHandle* h) {
+    [a createUserWithEmail:util::CStringToNSString(email) password:util::CStringToNSString(password) completion:^(FIRAuthDataResult* r, NSError* e) {
+      @synchronized(h) {
+        if (!h.authData) return;
+        AuthResultWithProviderCallback(r, e, promise.handle(), h.authData, nil);
+      }
+    }];
+  });
 }
 
-
 void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const char *email) {
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  if (!email || strlen(email) == 0) {
-    futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email is not allowed.");
-    return;
-  }
-
-  FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
-  [AuthImpl(auth_data)
-      sendPasswordResetWithEmail:@(email)
-                      completion:^(NSError *_Nullable error) {
-                        @synchronized(listener_cpp_handle) {
-                          AuthData *data = listener_cpp_handle.authData;
-                          if (!data) return;
-                          data->future_impl.Complete(promise.handle(), AuthErrorFromNSError(error),
-                                                     ErrorMessageFromNSError(error).c_str());
-                        }
-                      }];
+  RunAppleAuthTaskWithPromise(auth_data, promise, [=](FIRAuth* a, FIRCPPAuthListenerHandle* h) {
+    [a sendPasswordResetWithEmail:util::CStringToNSString(email) completion:^(NSError* e) {
+      @synchronized(h) {
+        if (!h.authData) return;
+        CompletePromiseWithNSError(h.authData, promise.handle(), e);
+      }
+    }];
+  });
 }
 
 void Auth::UseEmulator(std::string host, uint32_t port) {

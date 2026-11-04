@@ -377,18 +377,14 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 }
 
 // RPCs
+template <typename RequestT, typename ResponseT, typename PromiseT>
+void RunDesktopSignInTask(AuthData* auth_data, PromiseT promise, std::unique_ptr<RequestT> request) {
+  CallAsync(auth_data, promise, std::move(request), PerformSignInFlow<ResponseT>);
+}
+
 void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* custom_token) {
-  if (!custom_token || strlen(custom_token) == 0) {
-    FailPromise(&promise, kAuthErrorInvalidCustomToken); return;
-  }
-
-  typedef VerifyCustomTokenRequest RequestT;
-  auto request = std::make_unique<RequestT>(*auth_data->app,
-                                            GetApiKey(*auth_data),
-                                            custom_token);
-
-  CallAsync(auth_data, promise, std::move(request),
-                   PerformSignInFlow<VerifyCustomTokenResponse>);
+  RunDesktopSignInTask<rest::VerifyCustomTokenRequest, rest::VerifyCustomTokenResponse, Promise<AuthResult>>(
+      auth_data, promise, std::make_unique<rest::VerifyCustomTokenRequest>(*auth_data->app, GetApiKey(*auth_data), custom_token));
 }
 
 void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential) {
@@ -426,29 +422,13 @@ void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
 }
 
 void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
-  if (!ValidateEmailAndPassword(&promise, email, password)) {
-    return;
-  }
-
-  typedef VerifyPasswordRequest RequestT;
-  auto request = std::make_unique<RequestT>(
-      *auth_data->app, GetApiKey(*auth_data), email, password);
-
-  CallAsync(auth_data, promise, std::move(request),
-                   PerformSignInFlow<VerifyPasswordResponse>);
+  RunDesktopSignInTask<rest::VerifyPasswordRequest, rest::VerifyPasswordResponse, Promise<AuthResult>>(
+      auth_data, promise, std::make_unique<rest::VerifyPasswordRequest>(*auth_data->app, GetApiKey(*auth_data), email, password));
 }
 
 void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
-  if (!ValidateEmailAndPassword(&promise, email, password)) {
-    return;
-  }
-
-  typedef SignUpNewUserRequest RequestT;
-  auto request = std::make_unique<RequestT>(
-      *auth_data->app, GetApiKey(*auth_data), email, password, "");
-
-  CallAsync(auth_data, promise, std::move(request),
-                   PerformSignInFlow<SignUpNewUserResponse>);
+  RunDesktopSignInTask<rest::SignUpNewUserRequest, rest::SignUpNewUserResponse, Promise<AuthResult>>(
+      auth_data, promise, std::make_unique<rest::SignUpNewUserRequest>(*auth_data->app, GetApiKey(*auth_data), email, password, ""));
 }
 
 void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
