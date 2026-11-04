@@ -29,7 +29,9 @@
 #include "app/src/include/firebase/log.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
-#include "app/src/util_android.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/env.h"
+#include "app/src/jni/ownership.h"
 #include "database/src/android/database_reference_android.h"
 #include "database/src/common/listener.h"
 #include "database/src/include/firebase/database.h"
@@ -45,6 +47,51 @@ namespace internal {
 extern Mutex g_database_reference_constructor_mutex;
 
 // This is the Android implementation of Database.
+class Callbacks {
+ public:
+  static jobject TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
+                                                 jlong db_ptr,
+                                                 jlong transaction_ptr,
+                                                 jobject mutable_data);
+  static void TransactionHandlerOnComplete(JNIEnv* env, jclass clazz,
+                                           jlong db_ptr, jlong listener_ptr,
+                                           jobject database_error,
+                                           jboolean was_committed,
+                                           jobject data_snapshot);
+  static void ChildListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
+                                             jlong db_ptr, jlong listener_ptr,
+                                             jobject database_error);
+
+  static void ChildListenerNativeOnChildAdded(JNIEnv* env, jclass clazz,
+                                              jlong db_ptr, jlong listener_ptr,
+                                              jobject data_snapshot,
+                                              jobject previous_child);
+
+  static void ChildListenerNativeOnChildChanged(JNIEnv* env, jclass clazz,
+                                                jlong db_ptr,
+                                                jlong listener_ptr,
+                                                jobject data_snapshot,
+                                                jobject previous_child);
+
+  static void ChildListenerNativeOnChildMoved(JNIEnv* env, jclass clazz,
+                                              jlong db_ptr, jlong listener_ptr,
+                                              jobject data_snapshot,
+                                              jobject previous_child);
+
+  static void ChildListenerNativeOnChildRemoved(JNIEnv* env, jclass clazz,
+                                                jlong db_ptr,
+                                                jlong listener_ptr,
+                                                jobject data_snapshot);
+
+  static void ValueListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
+                                             jlong db_ptr, jlong listener_ptr,
+                                             jobject database_error);
+
+  static void ValueListenerNativeOnDataChange(JNIEnv* env, jclass clazz,
+                                              jlong db_ptr, jlong listener_ptr,
+                                              jobject data_snapshot);
+};
+
 class DatabaseInternal {
  public:
   explicit DatabaseInternal(App* app);

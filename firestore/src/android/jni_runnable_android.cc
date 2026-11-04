@@ -18,7 +18,6 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/util_android.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"

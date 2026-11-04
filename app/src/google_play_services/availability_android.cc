@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "app/src/app_android.h"
+#include "app/src/jni/exception.h"
 #include "app/src/google_play_services/availability_android.h"
 
 #include <jni.h>
@@ -30,7 +32,6 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 
 namespace google_play_services {
 
@@ -38,7 +39,7 @@ namespace {
 
 using firebase::Future;
 using firebase::FutureHandle;
-using firebase::JNINativeMethod;
+using ::JNINativeMethod;
 using firebase::Mutex;
 using firebase::MutexLock;
 
@@ -52,12 +53,54 @@ using firebase::MutexLock;
     "(Landroid/content/Context;)I", ::firebase::util::kMethodTypeInstance,     \
     ::firebase::util::kMethodOptional)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(googleapiavailability,
-                          GOOGLE_API_AVAILABILITY_METHODS)
-METHOD_LOOKUP_DEFINITION(googleapiavailability,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/android/gms/common/GoogleApiAvailability",
-                         GOOGLE_API_AVAILABILITY_METHODS)
+namespace googleapiavailability {
+  enum Method {
+    kGetInstance,
+    kIsGooglePlayServicesAvailable,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace googleapiavailability {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<jclass> local_clazz(env, env->FindClass("com/google/android/gms/common/GoogleApiAvailability"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "()Lcom/google/android/gms/common/GoogleApiAvailability;");
+    ::firebase::jni::CheckAndClearException(env);
+    g_method_ids[kIsGooglePlayServicesAvailable] = env->GetMethodID(g_class.get(), "isGooglePlayServicesAvailable", "(Landroid/content/Context;)I");
+    ::firebase::jni::CheckAndClearException(env);
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define GOOGLE_API_AVAILABILITY_HELPER_METHODS(X)                              \
@@ -66,12 +109,54 @@ METHOD_LOOKUP_DEFINITION(googleapiavailability,
   X(MakeGooglePlayServicesAvailable, "makeGooglePlayServicesAvailable",        \
     "(Landroid/app/Activity;)Z", ::firebase::util::kMethodTypeStatic)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(googleapiavailabilityhelper,
-                          GOOGLE_API_AVAILABILITY_HELPER_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    googleapiavailabilityhelper,
-    "com/google/firebase/app/internal/cpp/GoogleApiAvailabilityHelper",
-    GOOGLE_API_AVAILABILITY_HELPER_METHODS)
+namespace googleapiavailabilityhelper {
+  enum Method {
+    kStopCallbacks,
+    kMakeGooglePlayServicesAvailable,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace googleapiavailabilityhelper {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<jclass> local_clazz(env, env->FindClass("com/google/firebase/app/internal/cpp/GoogleApiAvailabilityHelper"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kStopCallbacks] = env->GetStaticMethodID(g_class.get(), "stopCallbacks", "()V");
+    if (!g_method_ids[kStopCallbacks]) return false;
+    g_method_ids[kMakeGooglePlayServicesAvailable] = env->GetStaticMethodID(g_class.get(), "makeGooglePlayServicesAvailable", "(Landroid/app/Activity;)Z");
+    if (!g_method_ids[kMakeGooglePlayServicesAvailable]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // Enum from the Java side. These numbers won't change according to comments
 // in the GmsCore code. Only the entries we care about are reproduced here.
@@ -145,7 +230,7 @@ JNIEXPORT void JNICALL GoogleApiAvailabilityHelper_onCompleteNative(
     JNIEnv* env, jobject clazz, jint status_code, jstring status_message) {
   (void)clazz;
   std::string message =
-      firebase::util::JniStringToString(env, status_message);
+      ::firebase::jni::JStringToString(env, status_message);
   std::shared_ptr<AvailabilityData> data;
   firebase::SafeFutureHandle<void> handle;
   {
@@ -194,28 +279,15 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
   GetAvailabilityDataRef() = std::make_shared<AvailabilityData>();
 
   // We depend on firebase::util, so initialize it.
-  if (firebase::util::Initialize(env, activity)) {
+  if (true) {
     // Check if the GoogleApiAvailability class exists at all.
-    jclass availability_class = firebase::util::FindClass(
-        env, "com/google/android/gms/common/GoogleApiAvailability");
+    jclass availability_class = env->FindClass("com/google/android/gms/common/GoogleApiAvailability");
     if (availability_class != nullptr) {
       env->DeleteLocalRef(availability_class);
-      // Cache embedded files and load embedded classes.
-      const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-          firebase::util::CacheEmbeddedFiles(
-              env, activity,
-              firebase::internal::EmbeddedFile::ToVector(
-                  google_api::google_api_resources_filename,
-                  google_api::google_api_resources_data,
-                  google_api::google_api_resources_size));
-
-      // Cache JNI methods.
+      // Initialize JNI methods.
       if (googleapiavailability::CacheMethodIds(env, activity) &&
-          googleapiavailabilityhelper::CacheClassFromFiles(env, activity,
-                                                           &embedded_files) &&
-          googleapiavailabilityhelper::CacheMethodIds(env, activity) &&
-          googleapiavailabilityhelper::RegisterNatives(
-              env, kHelperMethods, std::size(kHelperMethods))) {
+          googleapiavailabilityhelper::CacheMethodIds(env, activity)) {
+        env->RegisterNatives(googleapiavailabilityhelper::GetClass(), kHelperMethods, std::size(kHelperMethods));
         // Everything initialized properly.
         GetAvailabilityDataRef()->classes_loaded = true;
         return true;
@@ -230,7 +302,6 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
       env->ExceptionDescribe();
       env->ExceptionClear();
     }
-    firebase::util::Terminate(env);
   }
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
@@ -301,7 +372,7 @@ void Terminate(JNIEnv* env) {
   if (should_cleanup_classes && env != nullptr) {
     if (helper_class_local != nullptr && stop_callbacks_method != nullptr) {
       env->CallStaticVoidMethod(helper_class_local, stop_callbacks_method);
-      firebase::util::CheckAndClearJniExceptions(env);
+      ::firebase::jni::CheckAndClearException(env);
     }
     if (helper_class_local != nullptr) {
       env->DeleteLocalRef(helper_class_local);
@@ -310,7 +381,6 @@ void Terminate(JNIEnv* env) {
       MutexLock lock(GetAvailabilityMutex());
       if (g_initialized_count == 0) {
         ReleaseClasses(env);
-        firebase::util::Terminate(env);
       }
     }
   }
@@ -353,9 +423,9 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
       is_available_method != nullptr) {
     jobject api = env->CallStaticObjectMethod(
         availability_class_local, get_instance_method);
-    if (!firebase::util::CheckAndClearJniExceptions(env) && api != nullptr) {
+    if (!::firebase::jni::CheckAndClearException(env) && api != nullptr) {
       jint result = env->CallIntMethod(api, is_available_method, activity);
-      bool exception = firebase::util::CheckAndClearJniExceptions(env);
+      bool exception = ::firebase::jni::CheckAndClearException(env);
       env->DeleteLocalRef(api);
       if (!exception) {
         for (size_t i = 0; i < std::size(ConnectionResultToAvailability);
@@ -411,7 +481,7 @@ void CallMakeAvailable(void* data) {
       jboolean result = env->CallStaticBooleanMethod(
           helper_class_local, make_available_method,
           call_data->activity_global);
-      bool exception_thrown = firebase::util::CheckAndClearJniExceptions(env);
+      bool exception_thrown = ::firebase::jni::CheckAndClearException(env);
       failed = exception_thrown || (result == JNI_FALSE);
     }
     if (helper_class_local != nullptr) {
@@ -484,7 +554,7 @@ Future<void> MakeAvailable(JNIEnv* env, jobject activity) {
             googleapiavailability::GetClass(),
             googleapiavailability::GetMethodId(
                 googleapiavailability::kGetInstance));
-        if (!firebase::util::CheckAndClearJniExceptions(env) &&
+        if (!::firebase::jni::CheckAndClearException(env) &&
             api != nullptr) {
           CallData* call_data = new CallData();  // deleted in CallMakeAvailable
           call_data->availability_data = data;

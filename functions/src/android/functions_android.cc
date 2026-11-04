@@ -1,3 +1,4 @@
+#include "app/src/app_android.h"
 // Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include "functions/src/android/functions_android.h"
 
 #include <jni.h>
@@ -25,7 +27,6 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/util_android.h"
 #include "functions/src/android/callable_reference_android.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
 #include "functions/src/include/firebase/functions/common.h"
@@ -37,7 +38,7 @@ namespace firebase::functions::internal {
   X(GetInstance, "getInstance",                                                \
     "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"                    \
     "Lcom/google/firebase/functions/FirebaseFunctions;",                       \
-    util::kMethodTypeStatic),                                                  \
+    firebase::util::kMethodTypeStatic),                                                  \
   X(GetHttpsCallable, "getHttpsCallable",                                      \
     "(Ljava/lang/String;)"                                                     \
     "Lcom/google/firebase/functions/HttpsCallableReference;"),                 \
@@ -59,11 +60,69 @@ namespace firebase::functions::internal {
     util::kMethodOptional)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(functions, FUNCTIONS_METHODS)
-METHOD_LOOKUP_DEFINITION(functions,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/functions/FirebaseFunctions",
-                         FUNCTIONS_METHODS)
+namespace functions {
+  enum Method {
+    kGetInstance,
+    kGetHttpsCallable,
+    kGetHttpsCallableWithOptions,
+    kGetHttpsCallableFromUrl,
+    kGetHttpsCallableFromUrlWithOptions,
+    kUseFunctionsEmulator,
+    kUseEmulator,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace functions {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/functions/FirebaseFunctions"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)Lcom/google/firebase/functions/FirebaseFunctions;");
+    if (!g_method_ids[kGetInstance]) return false;
+    g_method_ids[kGetHttpsCallable] = env->GetMethodID(g_class.get(), "getHttpsCallable", "(Ljava/lang/String;)Lcom/google/firebase/functions/HttpsCallableReference;");
+    if (!g_method_ids[kGetHttpsCallable]) return false;
+    g_method_ids[kGetHttpsCallableWithOptions] = env->GetMethodID(g_class.get(), "getHttpsCallable", "(Ljava/lang/String;Lcom/google/firebase/functions/HttpsCallableOptions;)Lcom/google/firebase/functions/HttpsCallableReference;");
+    if (!g_method_ids[kGetHttpsCallableWithOptions]) return false;
+    g_method_ids[kGetHttpsCallableFromUrl] = env->GetMethodID(g_class.get(), "getHttpsCallableFromUrl", "(Ljava/net/URL;)Lcom/google/firebase/functions/HttpsCallableReference;");
+    if (!g_method_ids[kGetHttpsCallableFromUrl]) return false;
+    g_method_ids[kGetHttpsCallableFromUrlWithOptions] = env->GetMethodID(g_class.get(), "getHttpsCallableFromUrl", "(Ljava/net/URL;Lcom/google/firebase/functions/HttpsCallableOptions;)Lcom/google/firebase/functions/HttpsCallableReference;");
+    if (!g_method_ids[kGetHttpsCallableFromUrlWithOptions]) return false;
+    g_method_ids[kUseFunctionsEmulator] = env->GetMethodID(g_class.get(), "useFunctionsEmulator", "(Ljava/lang/String;)V");
+    ::firebase::jni::CheckAndClearException(env);
+    g_method_ids[kUseEmulator] = env->GetMethodID(g_class.get(), "useEmulator", "(Ljava/lang/String;I)V");
+    ::firebase::jni::CheckAndClearException(env);
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define FUNCTIONS_EXCEPTION_METHODS(X)                                         \
@@ -72,12 +131,54 @@ METHOD_LOOKUP_DEFINITION(functions,
   X(GetDetails, "getDetails", "()Ljava/lang/Object;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(functions_exception, FUNCTIONS_EXCEPTION_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    functions_exception,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/functions/FirebaseFunctionsException",
-    FUNCTIONS_EXCEPTION_METHODS)
+namespace functions_exception {
+  enum Method {
+    kGetCode,
+    kGetDetails,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace functions_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/functions/FirebaseFunctionsException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetCode] = env->GetMethodID(g_class.get(), "getCode", "()Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_method_ids[kGetCode]) return false;
+    g_method_ids[kGetDetails] = env->GetMethodID(g_class.get(), "getDetails", "()Ljava/lang/Object;");
+    if (!g_method_ids[kGetDetails]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define CODE_METHODS(X)                                                        \
@@ -136,23 +237,153 @@ METHOD_LOOKUP_DEFINITION(
     util::kFieldTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(code, CODE_METHODS, CODE_FIELDS)
-METHOD_LOOKUP_DEFINITION(
-    code,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/functions/FirebaseFunctionsException$Code",
-    CODE_METHODS, CODE_FIELDS)
+namespace code {
+  enum Method {
+    kName,
+    kMethodCount
+  };
+  enum Field {
+    kOk,
+    kCancelled,
+    kUnknown,
+    kInvalidArgument,
+    kDeadlineExceeded,
+    kNotFound,
+    kAlreadyExists,
+    kPermissionDenied,
+    kUnauthenticated,
+    kResourceExhausted,
+    kFailedPrecondition,
+    kAborted,
+    kOutOfRange,
+    kUnimplemented,
+    kInternal,
+    kUnavailable,
+    kDataLoss,
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace code {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/functions/FirebaseFunctionsException$Code"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kName] = env->GetMethodID(g_class.get(), "name", "()Ljava/lang/String;");
+    if (!g_method_ids[kName]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kOk] = env->GetStaticFieldID(g_class.get(), "OK", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kOk]) return false;
+    g_field_ids[kCancelled] = env->GetStaticFieldID(g_class.get(), "CANCELLED", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kCancelled]) return false;
+    g_field_ids[kUnknown] = env->GetStaticFieldID(g_class.get(), "UNKNOWN", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kUnknown]) return false;
+    g_field_ids[kInvalidArgument] = env->GetStaticFieldID(g_class.get(), "INVALID_ARGUMENT", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kInvalidArgument]) return false;
+    g_field_ids[kDeadlineExceeded] = env->GetStaticFieldID(g_class.get(), "DEADLINE_EXCEEDED", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kDeadlineExceeded]) return false;
+    g_field_ids[kNotFound] = env->GetStaticFieldID(g_class.get(), "NOT_FOUND", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kNotFound]) return false;
+    g_field_ids[kAlreadyExists] = env->GetStaticFieldID(g_class.get(), "ALREADY_EXISTS", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kAlreadyExists]) return false;
+    g_field_ids[kPermissionDenied] = env->GetStaticFieldID(g_class.get(), "PERMISSION_DENIED", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kPermissionDenied]) return false;
+    g_field_ids[kUnauthenticated] = env->GetStaticFieldID(g_class.get(), "UNAUTHENTICATED", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kUnauthenticated]) return false;
+    g_field_ids[kResourceExhausted] = env->GetStaticFieldID(g_class.get(), "RESOURCE_EXHAUSTED", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kResourceExhausted]) return false;
+    g_field_ids[kFailedPrecondition] = env->GetStaticFieldID(g_class.get(), "FAILED_PRECONDITION", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kFailedPrecondition]) return false;
+    g_field_ids[kAborted] = env->GetStaticFieldID(g_class.get(), "ABORTED", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kAborted]) return false;
+    g_field_ids[kOutOfRange] = env->GetStaticFieldID(g_class.get(), "OUT_OF_RANGE", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kOutOfRange]) return false;
+    g_field_ids[kUnimplemented] = env->GetStaticFieldID(g_class.get(), "UNIMPLEMENTED", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kUnimplemented]) return false;
+    g_field_ids[kInternal] = env->GetStaticFieldID(g_class.get(), "INTERNAL", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kInternal]) return false;
+    g_field_ids[kUnavailable] = env->GetStaticFieldID(g_class.get(), "UNAVAILABLE", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kUnavailable]) return false;
+    g_field_ids[kDataLoss] = env->GetStaticFieldID(g_class.get(), "DATA_LOSS", "Lcom/google/firebase/functions/FirebaseFunctionsException$Code;");
+    if (!g_field_ids[kDataLoss]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define CALLABLE_OPTIONS_METHODS(X)                                            \
   X(GetLimitedUseAppCheckTokens, "getLimitedUseAppCheckTokens", "()Z")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(options, CALLABLE_OPTIONS_METHODS)
-METHOD_LOOKUP_DEFINITION(options,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/functions/HttpsCallableOptions",
-                         CALLABLE_OPTIONS_METHODS)
+namespace options {
+  enum Method {
+    kGetLimitedUseAppCheckTokens,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace options {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/functions/HttpsCallableOptions"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetLimitedUseAppCheckTokens] = env->GetMethodID(g_class.get(), "getLimitedUseAppCheckTokens", "()Z");
+    if (!g_method_ids[kGetLimitedUseAppCheckTokens]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define CALLABLE_OPTIONS_BUILDER_METHODS(X)                                    \
@@ -163,12 +394,57 @@ METHOD_LOOKUP_DEFINITION(options,
     "(Z)Lcom/google/firebase/functions/HttpsCallableOptions$Builder;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(options_builder, CALLABLE_OPTIONS_BUILDER_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    options_builder,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/functions/HttpsCallableOptions$Builder",
-    CALLABLE_OPTIONS_BUILDER_METHODS)
+namespace options_builder {
+  enum Method {
+    kConstructor,
+    kBuild,
+    kSetLimitedUseAppCheckTokens,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace options_builder {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/functions/HttpsCallableOptions$Builder"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "()V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/functions/HttpsCallableOptions;");
+    if (!g_method_ids[kBuild]) return false;
+    g_method_ids[kSetLimitedUseAppCheckTokens] = env->GetMethodID(g_class.get(), "setLimitedUseAppCheckTokens", "(Z)Lcom/google/firebase/functions/HttpsCallableOptions$Builder;");
+    if (!g_method_ids[kSetLimitedUseAppCheckTokens]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define TIME_UNIT_FIELDS(X)                                                    \
@@ -176,9 +452,51 @@ METHOD_LOOKUP_DEFINITION(
     util::kFieldTypeStatic, util::kMethodOptional)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(time_unit, METHOD_LOOKUP_NONE, TIME_UNIT_FIELDS)
-METHOD_LOOKUP_DEFINITION(time_unit, "java/util/concurrent/TimeUnit",
-                         METHOD_LOOKUP_NONE, TIME_UNIT_FIELDS)
+namespace time_unit {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kMilliseconds,
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace time_unit {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("java/util/concurrent/TimeUnit"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kMilliseconds] = env->GetStaticFieldID(g_class.get(), "MILLISECONDS", "Ljava/util/concurrent/TimeUnit;");
+    if (!g_field_ids[kMilliseconds]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 Mutex FunctionsInternal::init_mutex_;
 int FunctionsInternal::initialize_count_ = 0;
@@ -201,7 +519,7 @@ jobject BuildJavaOptions(JNIEnv* env, const HttpsCallableOptions& opts) {
   jobject builder = env->NewObject(
       options_builder::GetClass(),
       options_builder::GetMethodId(options_builder::kConstructor));
-  if (util::CheckAndClearJniExceptions(env) || !builder) {
+  if (jni::CheckAndClearException(env) || !builder) {
     return nullptr;
   }
   jobject next_builder = env->CallObjectMethod(
@@ -209,7 +527,7 @@ jobject BuildJavaOptions(JNIEnv* env, const HttpsCallableOptions& opts) {
       options_builder::GetMethodId(
           options_builder::kSetLimitedUseAppCheckTokens),
       opts.limited_use_app_check_token ? JNI_TRUE : JNI_FALSE);
-  if (util::CheckAndClearJniExceptions(env) || !next_builder) {
+  if (jni::CheckAndClearException(env) || !next_builder) {
     env->DeleteLocalRef(builder);
     return nullptr;
   }
@@ -217,7 +535,7 @@ jobject BuildJavaOptions(JNIEnv* env, const HttpsCallableOptions& opts) {
   jobject java_options = env->CallObjectMethod(
       builder, options_builder::GetMethodId(options_builder::kBuild));
   env->DeleteLocalRef(builder);
-  if (util::CheckAndClearJniExceptions(env) || !java_options) {
+  if (jni::CheckAndClearException(env) || !java_options) {
     return nullptr;
   }
   return java_options;
@@ -237,12 +555,12 @@ void ApplyJavaTimeout(JNIEnv* env, jobject callable_ref,
   }
   jobject ms_unit =
       env->GetStaticObjectField(time_unit::GetClass(), ms_field);
-  if (util::CheckAndClearJniExceptions(env) || !ms_unit) {
+  if (jni::CheckAndClearException(env) || !ms_unit) {
     return;
   }
   env->CallVoidMethod(callable_ref, set_timeout,
                       static_cast<jlong>(opts.timeout_ms), ms_unit);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(ms_unit);
 }
 
@@ -253,8 +571,8 @@ bool FunctionsInternal::Initialize(App* app) {
   if (initialize_count_ == 0) {
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
-    if (!util::Initialize(env, activity)) {
-      util::CheckAndClearJniExceptions(env);
+    if (!true) {
+      jni::CheckAndClearException(env);
       return false;
     }
     bool ok = functions::CacheMethodIds(env, activity) &&
@@ -268,8 +586,8 @@ bool FunctionsInternal::Initialize(App* app) {
               time_unit::CacheFieldIds(env, activity);
     if (!ok) {
       ReleaseClasses(env);
-      util::CheckAndClearJniExceptions(env);
-      util::Terminate(env);
+      jni::CheckAndClearException(env);
+      
       return false;
     }
 
@@ -279,7 +597,7 @@ bool FunctionsInternal::Initialize(App* app) {
       jclass code_class = code::GetClass();
       jobject code_object =
           env->GetStaticObjectField(code_class, code::GetFieldId(code_field));
-      if (!util::CheckAndClearJniExceptions(env) && code_object) {
+      if (!jni::CheckAndClearException(env) && code_object) {
         (*code_map_)[env->NewGlobalRef(code_object)] = error;
         env->DeleteLocalRef(code_object);
       }
@@ -302,7 +620,7 @@ bool FunctionsInternal::Initialize(App* app) {
     cache_error_code(code::kUnavailable, kErrorUnavailable);
     cache_error_code(code::kDataLoss, kErrorDataLoss);
 
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
   initialize_count_++;
   return true;
@@ -325,8 +643,8 @@ void FunctionsInternal::Terminate(App* app) {
       code_map_ = nullptr;
     }
 
-    util::CheckAndClearJniExceptions(env);
-    util::Terminate(env);
+    jni::CheckAndClearException(env);
+    
   }
 }
 
@@ -341,7 +659,7 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
   JNIEnv* env = app->GetJNIEnv();
   jobject platform_app = app->GetPlatformApp();
   jstring jregion = env->NewStringUTF(region_.c_str());
-  if (util::CheckAndClearJniExceptions(env) || !jregion) {
+  if (jni::CheckAndClearException(env) || !jregion) {
     if (platform_app) env->DeleteLocalRef(platform_app);
     Terminate(app);
     return;
@@ -349,7 +667,7 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
   jobject instance = env->CallStaticObjectMethod(
       functions::GetClass(), functions::GetMethodId(functions::kGetInstance),
       platform_app, jregion);
-  bool failed = util::CheckAndClearJniExceptions(env) || !instance;
+  bool failed = jni::CheckAndClearException(env) || !instance;
   env->DeleteLocalRef(jregion);
   if (platform_app) env->DeleteLocalRef(platform_app);
 
@@ -374,11 +692,11 @@ FunctionsInternal::~FunctionsInternal() {
   JNIEnv* env = app_->GetJNIEnv();
   // Cancel any pending JNI Task callbacks registered by this instance so their
   // callback data is released, then clean up live HttpsCallableReferences.
-  util::CancelCallbacks(env, jni_task_id_.c_str());  if (obj_) {
+  firebase::util::CancelCallbacks(env, jni_task_id_.c_str());  if (obj_) {
     env->DeleteGlobalRef(obj_);
     obj_ = nullptr;
   }
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   Terminate(app_);
   app_ = nullptr;
@@ -390,13 +708,13 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
   if (!name) return nullptr;
   JNIEnv* env = app_->GetJNIEnv();
   jstring name_string = env->NewStringUTF(name);
-  if (util::CheckAndClearJniExceptions(env) || !name_string) {
+  if (jni::CheckAndClearException(env) || !name_string) {
     return nullptr;
   }
   jobject callable_reference_obj = env->CallObjectMethod(
       obj_, functions::GetMethodId(functions::kGetHttpsCallable), name_string);
   env->DeleteLocalRef(name_string);
-  if (util::CheckAndClearJniExceptions(env) || !callable_reference_obj) {
+  if (jni::CheckAndClearException(env) || !callable_reference_obj) {
     return nullptr;
   }
   HttpsCallableReferenceInternal* callable_reference =
@@ -415,7 +733,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableWithOptions(
   if (!java_options) return nullptr;
 
   jstring name_string = env->NewStringUTF(name);
-  if (util::CheckAndClearJniExceptions(env) || !name_string) {
+  if (jni::CheckAndClearException(env) || !name_string) {
     env->DeleteLocalRef(java_options);
     return nullptr;
   }
@@ -424,7 +742,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableWithOptions(
       name_string, java_options);
   env->DeleteLocalRef(name_string);
   env->DeleteLocalRef(java_options);
-  if (util::CheckAndClearJniExceptions(env) || !callable_reference_obj) {
+  if (jni::CheckAndClearException(env) || !callable_reference_obj) {
     return nullptr;
   }
   ApplyJavaTimeout(env, callable_reference_obj, opts);
@@ -447,7 +765,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
       obj_, functions::GetMethodId(functions::kGetHttpsCallableFromUrl),
       url_object);
   env->DeleteLocalRef(url_object);
-  if (util::CheckAndClearJniExceptions(env) || !callable_reference_obj) {
+  if (jni::CheckAndClearException(env) || !callable_reference_obj) {
     return nullptr;
   }
   HttpsCallableReferenceInternal* callable_reference =
@@ -478,7 +796,7 @@ FunctionsInternal::GetHttpsCallableFromURLWithOptions(
       url_object, java_options);
   env->DeleteLocalRef(url_object);
   env->DeleteLocalRef(java_options);
-  if (util::CheckAndClearJniExceptions(env) || !callable_reference_obj) {
+  if (jni::CheckAndClearException(env) || !callable_reference_obj) {
     return nullptr;
   }
   ApplyJavaTimeout(env, callable_reference_obj, opts);
@@ -519,7 +837,7 @@ void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
         env->CallVoidMethod(obj_, use_emulator_id, jhost,
                             static_cast<jint>(port));
         env->DeleteLocalRef(jhost);
-        util::CheckAndClearJniExceptions(env);
+        jni::CheckAndClearException(env);
         return;
       }
     }
@@ -531,7 +849,7 @@ void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
     jstring jorigin = env->NewStringUTF(origin);
     env->CallVoidMethod(obj_, legacy_id, jorigin);
     env->DeleteLocalRef(jorigin);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
 }
 
@@ -543,14 +861,14 @@ Error FunctionsInternal::ErrorFromJavaFunctionsException(
   }
   Error error = kErrorUnknown;
   if (error_message != nullptr) {
-    *error_message = util::GetMessageFromException(env, java_exception);
-    util::CheckAndClearJniExceptions(env);
+    *error_message = ::firebase::jni::ExtractExceptionMessage(env, static_cast<jthrowable>(java_exception));
+    jni::CheckAndClearException(env);
   }
   if (env->IsInstanceOf(java_exception, functions_exception::GetClass())) {
     jobject code = env->CallObjectMethod(
         java_exception,
         functions_exception::GetMethodId(functions_exception::kGetCode));
-    if (!util::CheckAndClearJniExceptions(env) && code != nullptr) {
+    if (!jni::CheckAndClearException(env) && code != nullptr) {
       error = kErrorInternal;
       MutexLock init_lock(init_mutex_);
       if (code_map_) {
@@ -570,9 +888,9 @@ Error FunctionsInternal::ErrorFromJavaFunctionsException(
       jobject jdetails = env->CallObjectMethod(
           java_exception,
           functions_exception::GetMethodId(functions_exception::kGetDetails));
-      if (!util::CheckAndClearJniExceptions(env) && jdetails != nullptr) {
-        *details_out = util::JavaObjectToVariant(env, jdetails);
-        util::CheckAndClearJniExceptions(env);
+      if (!jni::CheckAndClearException(env) && jdetails != nullptr) {
+        *details_out = firebase::util::JavaObjectToVariant(env, jdetails);
+        jni::CheckAndClearException(env);
         env->DeleteLocalRef(jdetails);
       }
     }

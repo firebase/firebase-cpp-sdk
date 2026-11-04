@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "app/src/jni/exception.h"
 #include <jni.h>
 
 #include <cstdint>
@@ -25,14 +26,13 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/util_android.h"
 #include "auth/auth_resources.h"
 #include "auth/src/android/common_android.h"
 
 namespace firebase {
 namespace auth {
 
-using util::JniStringToString;
+using ::firebase::jni::JStringToString;
 
 // Used to setup the cache of Auth class method IDs to reduce time spent
 // looking up methods by string.
@@ -40,7 +40,7 @@ using util::JniStringToString;
 #define AUTH_METHODS(X)                                                        \
   X(GetInstance, "getInstance",                                                \
     "(Lcom/google/firebase/FirebaseApp;)"                                      \
-    "Lcom/google/firebase/auth/FirebaseAuth;", util::kMethodTypeStatic),       \
+    "Lcom/google/firebase/auth/FirebaseAuth;", firebase::util::kMethodTypeStatic),       \
   X(GetCurrentUser, "getCurrentUser",                                          \
     "()Lcom/google/firebase/auth/FirebaseUser;"),                              \
   X(GetLanguageCode, "getLanguageCode",                                        \
@@ -80,43 +80,260 @@ using util::JniStringToString;
     "Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(auth, AUTH_METHODS)
-METHOD_LOOKUP_DEFINITION(auth,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/FirebaseAuth",
-                         AUTH_METHODS)
+namespace auth {
+  enum Method {
+    kGetInstance,
+    kGetCurrentUser,
+    kGetLanguageCode,
+    kSetLanguageCode,
+    kUseAppLanguage,
+    kAddAuthStateListener,
+    kRemoveAuthStateListener,
+    kAddIdTokenListener,
+    kRemoveIdTokenListener,
+    kSignOut,
+    kUseEmulator,
+    kFetchSignInMethodsForEmail,
+    kSignInWithCustomToken,
+    kSignInWithCredential,
+    kSignInAnonymously,
+    kSignInWithEmailAndPassword,
+    kCreateUserWithEmailAndPassword,
+    kSendPasswordResetEmail,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace auth {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuth"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/auth/FirebaseAuth;");
+    if (!g_method_ids[kGetInstance]) return false;
+    g_method_ids[kGetCurrentUser] = env->GetMethodID(g_class.get(), "getCurrentUser", "()Lcom/google/firebase/auth/FirebaseUser;");
+    if (!g_method_ids[kGetCurrentUser]) return false;
+    g_method_ids[kGetLanguageCode] = env->GetMethodID(g_class.get(), "getLanguageCode", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetLanguageCode]) return false;
+    g_method_ids[kSetLanguageCode] = env->GetMethodID(g_class.get(), "setLanguageCode", "(Ljava/lang/String;)V");
+    if (!g_method_ids[kSetLanguageCode]) return false;
+    g_method_ids[kUseAppLanguage] = env->GetMethodID(g_class.get(), "useAppLanguage", "()V");
+    if (!g_method_ids[kUseAppLanguage]) return false;
+    g_method_ids[kAddAuthStateListener] = env->GetMethodID(g_class.get(), "addAuthStateListener", "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V");
+    if (!g_method_ids[kAddAuthStateListener]) return false;
+    g_method_ids[kRemoveAuthStateListener] = env->GetMethodID(g_class.get(), "removeAuthStateListener", "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V");
+    if (!g_method_ids[kRemoveAuthStateListener]) return false;
+    g_method_ids[kAddIdTokenListener] = env->GetMethodID(g_class.get(), "addIdTokenListener", "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V");
+    if (!g_method_ids[kAddIdTokenListener]) return false;
+    g_method_ids[kRemoveIdTokenListener] = env->GetMethodID(g_class.get(), "removeIdTokenListener", "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V");
+    if (!g_method_ids[kRemoveIdTokenListener]) return false;
+    g_method_ids[kSignOut] = env->GetMethodID(g_class.get(), "signOut", "()V");
+    if (!g_method_ids[kSignOut]) return false;
+    g_method_ids[kUseEmulator] = env->GetMethodID(g_class.get(), "useEmulator", "(Ljava/lang/String;I)V");
+    if (!g_method_ids[kUseEmulator]) return false;
+    g_method_ids[kFetchSignInMethodsForEmail] = env->GetMethodID(g_class.get(), "fetchSignInMethodsForEmail", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kFetchSignInMethodsForEmail]) return false;
+    g_method_ids[kSignInWithCustomToken] = env->GetMethodID(g_class.get(), "signInWithCustomToken", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kSignInWithCustomToken]) return false;
+    g_method_ids[kSignInWithCredential] = env->GetMethodID(g_class.get(), "signInWithCredential", "(Lcom/google/firebase/auth/AuthCredential;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kSignInWithCredential]) return false;
+    g_method_ids[kSignInAnonymously] = env->GetMethodID(g_class.get(), "signInAnonymously", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kSignInAnonymously]) return false;
+    g_method_ids[kSignInWithEmailAndPassword] = env->GetMethodID(g_class.get(), "signInWithEmailAndPassword", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kSignInWithEmailAndPassword]) return false;
+    g_method_ids[kCreateUserWithEmailAndPassword] = env->GetMethodID(g_class.get(), "createUserWithEmailAndPassword", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kCreateUserWithEmailAndPassword]) return false;
+    g_method_ids[kSendPasswordResetEmail] = env->GetMethodID(g_class.get(), "sendPasswordResetEmail", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kSendPasswordResetEmail]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define SIGNIN_METHOD_QUERY_RESULT_METHODS(X)                                  \
   X(GetSignInMethods, "getSignInMethods", "()Ljava/util/List;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(signinmethodquery, SIGNIN_METHOD_QUERY_RESULT_METHODS)
-METHOD_LOOKUP_DEFINITION(signinmethodquery,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/SignInMethodQueryResult",
-                         SIGNIN_METHOD_QUERY_RESULT_METHODS)
+namespace signinmethodquery {
+  enum Method {
+    kGetSignInMethods,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace signinmethodquery {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/SignInMethodQueryResult"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetSignInMethods] = env->GetMethodID(g_class.get(), "getSignInMethods", "()Ljava/util/List;");
+    if (!g_method_ids[kGetSignInMethods]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define JNI_LISTENER_CALLBACK_METHODS(X)                                       \
   X(Constructor, "<init>", "(J)V"),                                            \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(jnilistener, JNI_LISTENER_CALLBACK_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    jnilistener, "com/google/firebase/auth/internal/cpp/JniAuthStateListener",
-    JNI_LISTENER_CALLBACK_METHODS)
+namespace jnilistener {
+  enum Method {
+    kConstructor,
+    kDisconnect,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace jnilistener {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/internal/cpp/JniAuthStateListener"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(J)V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kDisconnect] = env->GetMethodID(g_class.get(), "disconnect", "()V");
+    if (!g_method_ids[kDisconnect]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS(X)                              \
   X(Constructor, "<init>", "(J)V"),                                            \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(jni_id_token_listener,
-                          JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    jni_id_token_listener,
-    "com/google/firebase/auth/internal/cpp/JniIdTokenListener",
-    JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS)
+namespace jni_id_token_listener {
+  enum Method {
+    kConstructor,
+    kDisconnect,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace jni_id_token_listener {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/internal/cpp/JniIdTokenListener"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(J)V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kDisconnect] = env->GetMethodID(g_class.get(), "disconnect", "()V");
+    if (!g_method_ids[kDisconnect]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 static Mutex g_init_mutex;
 static int g_initialized_count = 0;
@@ -166,12 +383,12 @@ void ReleaseAuthClasses(JNIEnv* env) {
   signinmethodquery::ReleaseClass(env);
   if (jnilistener::GetClass() != nullptr) {
     env->UnregisterNatives(jnilistener::GetClass());
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
   jnilistener::ReleaseClass(env);
   if (jni_id_token_listener::GetClass() != nullptr) {
     env->UnregisterNatives(jni_id_token_listener::GetClass());
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
   jni_id_token_listener::ReleaseClass(env);
 }
@@ -188,7 +405,7 @@ void UpdateCurrentUser(AuthData* auth_data) {
 
   jobject j_user = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kGetCurrentUser));
-  if (firebase::util::CheckAndClearJniExceptions(env)) {
+  if (::firebase::jni::CheckAndClearException(env)) {
     if (j_user != nullptr) {
       env->DeleteLocalRef(j_user);
     }
@@ -215,11 +432,11 @@ void SetEmulatorJni(AuthData* auth_data, const char* host, uint32_t port) {
   JNIEnv* env = Env(auth_data);
 
   jstring j_host = env->NewStringUTF(host);
-  if (!firebase::util::CheckAndClearJniExceptions(env) && j_host != nullptr) {
+  if (!::firebase::jni::CheckAndClearException(env) && j_host != nullptr) {
     env->CallVoidMethod(AuthImpl(auth_data),
                         auth::GetMethodId(auth::kUseEmulator), j_host,
                         static_cast<jint>(port));
-    firebase::util::CheckAndClearJniExceptions(env);
+    ::firebase::jni::CheckAndClearException(env);
   }
   if (j_host != nullptr) {
     env->DeleteLocalRef(j_host);
@@ -272,7 +489,7 @@ void* CreatePlatformAuth(App* app) {
 
   // Cache the JNI method ids so we only have to look them up by name once.
   if (!g_initialized_count) {
-    if (!util::Initialize(env, activity)) return nullptr;
+    if (!true) return nullptr;
 
     // Cache embedded files and load embedded classes.
     const std::vector<internal::EmbeddedFile> embedded_files =
@@ -287,7 +504,7 @@ void* CreatePlatformAuth(App* app) {
           CacheCredentialMethodIds(env, activity, embedded_files) &&
           CacheCommonMethodIds(env, activity))) {
       ReleaseClasses(env);
-      util::Terminate(env);
+      
       return nullptr;
     }
   }
@@ -296,7 +513,7 @@ void* CreatePlatformAuth(App* app) {
   jobject platform_app = app->GetPlatformApp();
   jobject j_auth_impl = env->CallStaticObjectMethod(
       auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
-  const bool exception_thrown = util::CheckAndClearJniExceptions(env);
+  const bool exception_thrown = jni::CheckAndClearException(env);
   env->DeleteLocalRef(platform_app);
   if (exception_thrown || j_auth_impl == nullptr) {
     if (j_auth_impl != nullptr) {
@@ -304,7 +521,7 @@ void* CreatePlatformAuth(App* app) {
     }
     if (!g_initialized_count) {
       ReleaseClasses(env);
-      util::Terminate(env);
+      
     }
     return nullptr;
   }
@@ -332,12 +549,12 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
       env->NewObject(jnilistener::GetClass(),
                      jnilistener::GetMethodId(jnilistener::kConstructor),
                      reinterpret_cast<jlong>(auth_data));
-  if (!util::CheckAndClearJniExceptions(env) && j_listener != nullptr) {
+  if (!jni::CheckAndClearException(env) && j_listener != nullptr) {
     // Register the listener with the Java FirebaseAuth class.
     env->CallVoidMethod(AuthImpl(auth_data),
                         auth::GetMethodId(auth::kAddAuthStateListener),
                         j_listener);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     // Convert listener from local to global ref, so it stays around.
     SetImplFromLocalRef(env, j_listener, &auth_data->listener_impl);
   } else if (j_listener != nullptr) {
@@ -350,13 +567,13 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
       jni_id_token_listener::GetClass(),
       jni_id_token_listener::GetMethodId(jni_id_token_listener::kConstructor),
       reinterpret_cast<jlong>(auth_data));
-  if (!util::CheckAndClearJniExceptions(env) &&
+  if (!jni::CheckAndClearException(env) &&
       j_id_token_listener != nullptr) {
     // Register the listener with the Java FirebaseAuth class.
     env->CallVoidMethod(AuthImpl(auth_data),
                         auth::GetMethodId(auth::kAddIdTokenListener),
                         j_id_token_listener);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     // Convert listener from local to global ref, so it stays around.
     SetImplFromLocalRef(env, j_id_token_listener,
                         &auth_data->id_token_listener_impl);
@@ -368,7 +585,7 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
 void Auth::DestroyPlatformAuth(AuthData* auth_data) {
   JNIEnv* env = Env(auth_data);
 
-  util::CancelCallbacks(env, auth_data->future_api_id.c_str());
+  firebase::util::CancelCallbacks(env, auth_data->future_api_id.c_str());
   ClearPretriggeredIdTokenCallbacks(auth_data);
 
   // Unregister the JniAuthStateListener and IdTokenListener from the
@@ -376,21 +593,21 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
   if (auth_data->listener_impl != nullptr) {
     env->CallVoidMethod(static_cast<jobject>(auth_data->listener_impl),
                         jnilistener::GetMethodId(jnilistener::kDisconnect));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     env->CallVoidMethod(AuthImpl(auth_data),
                         auth::GetMethodId(auth::kRemoveAuthStateListener),
                         static_cast<jobject>(auth_data->listener_impl));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
   if (auth_data->id_token_listener_impl != nullptr) {
     env->CallVoidMethod(
         static_cast<jobject>(auth_data->id_token_listener_impl),
         jni_id_token_listener::GetMethodId(jni_id_token_listener::kDisconnect));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     env->CallVoidMethod(
         AuthImpl(auth_data), auth::GetMethodId(auth::kRemoveIdTokenListener),
         static_cast<jobject>(auth_data->id_token_listener_impl));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
 
   // Deleting our global references should trigger the FirebaseAuth class and
@@ -405,7 +622,7 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
   g_initialized_count--;
   if (g_initialized_count == 0) {
     ReleaseClasses(env);
-    util::Terminate(env);
+    
   }
 }
 
@@ -449,13 +666,13 @@ static void ReadProviderResult(
                            result, signinmethodquery::GetMethodId(
                                        signinmethodquery::kGetSignInMethods))
                      : nullptr;
-  if (firebase::util::CheckAndClearJniExceptions(env)) list = nullptr;
+  if (::firebase::jni::CheckAndClearException(env)) list = nullptr;
 
   // `list` is of type List<String>. Loop through it.
   if (list != nullptr) {
     const int num_providers =
-        env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
-    if (firebase::util::CheckAndClearJniExceptions(env) || num_providers <= 0) {
+        env->CallIntMethod(list, env->GetMethodID(env->GetObjectClass(list), "size", "()I"));
+    if (::firebase::jni::CheckAndClearException(env) || num_providers <= 0) {
       env->DeleteLocalRef(list);
       return;
     }
@@ -464,8 +681,8 @@ static void ReadProviderResult(
     for (int i = 0; i < num_providers; ++i) {
       // provider local reference is released in JniStringToString().
       jstring provider = static_cast<jstring>(env->CallObjectMethod(
-          list, util::list::GetMethodId(util::list::kGet), i));
-      if (firebase::util::CheckAndClearJniExceptions(env)) {
+          list, env->GetMethodID(env->GetObjectClass(list), "get", "(I)Ljava/lang/Object;"), i));
+      if (::firebase::jni::CheckAndClearException(env)) {
         provider = nullptr;
       }
       data->providers[i] = JniStringToString(env, provider);
@@ -652,11 +869,11 @@ std::string Auth::language_code() const {
   JNIEnv* env = Env(auth_data_);
   jobject j_pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode));
-  if (firebase::util::CheckAndClearJniExceptions(env) ||
+  if (::firebase::jni::CheckAndClearException(env) ||
       j_pending_result == nullptr) {
     return std::string();
   }
-  return util::JniStringToString(env, j_pending_result);
+  return ::firebase::jni::JStringToString(env, j_pending_result);
 }
 
 void Auth::set_language_code(const char* language_code) {
@@ -666,12 +883,12 @@ void Auth::set_language_code(const char* language_code) {
   }
   JNIEnv* env = Env(auth_data_);
   jstring j_language_code = env->NewStringUTF(language_code);
-  if (!firebase::util::CheckAndClearJniExceptions(env) &&
+  if (!::firebase::jni::CheckAndClearException(env) &&
       j_language_code != nullptr) {
     env->CallVoidMethod(AuthImpl(auth_data_),
                         auth::GetMethodId(auth::kSetLanguageCode),
                         j_language_code);
-    firebase::util::CheckAndClearJniExceptions(env);
+    ::firebase::jni::CheckAndClearException(env);
   }
   if (j_language_code != nullptr) {
     env->DeleteLocalRef(j_language_code);
@@ -682,7 +899,7 @@ void Auth::UseAppLanguage() {
   JNIEnv* env = Env(auth_data_);
   env->CallVoidMethod(AuthImpl(auth_data_),
                       auth::GetMethodId(auth::kUseAppLanguage));
-  firebase::util::CheckAndClearJniExceptions(env);
+  ::firebase::jni::CheckAndClearException(env);
 }
 
 

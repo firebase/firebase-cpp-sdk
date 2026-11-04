@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/app_android.h"
+#include "app/src/jni/string.h"
+#include "app/src/jni/exception.h"
 #include "storage/src/android/storage_reference_android.h"
 
 #include <jni.h>
@@ -26,7 +29,6 @@
 #include <vector>
 
 #include "app/src/include/firebase/app.h"
-#include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
@@ -104,11 +106,123 @@ namespace internal {
     "()Ljava/lang/String;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(storage_reference, STORAGE_REFERENCE_METHODS)
-METHOD_LOOKUP_DEFINITION(storage_reference,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/storage/StorageReference",
-                         STORAGE_REFERENCE_METHODS)
+namespace storage_reference {
+  enum Method {
+    kChild,
+    kGetParent,
+    kGetRoot,
+    kGetName,
+    kGetPath,
+    kGetBucket,
+    kGetStorage,
+    kPutStream,
+    kPutStreamWithMetadata,
+    kPutFile,
+    kPutFileWithMetadata,
+    kPutFileWithMetadataAndUri,
+    kGetActiveUploadTasks,
+    kGetActiveDownloadTasks,
+    kGetMetadata,
+    kGetDownloadUrl,
+    kUpdateMetadata,
+    kGetStream,
+    kGetFileUri,
+    kGetFile,
+    kDelete,
+    kList,
+    kListWithToken,
+    kListAll,
+    kToString,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace storage_reference {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StorageReference"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kChild] = env->GetMethodID(g_class.get(), "child", "(Ljava/lang/String;)Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kChild]) return false;
+    g_method_ids[kGetParent] = env->GetMethodID(g_class.get(), "getParent", "()Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetParent]) return false;
+    g_method_ids[kGetRoot] = env->GetMethodID(g_class.get(), "getRoot", "()Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetRoot]) return false;
+    g_method_ids[kGetName] = env->GetMethodID(g_class.get(), "getName", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetName]) return false;
+    g_method_ids[kGetPath] = env->GetMethodID(g_class.get(), "getPath", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetPath]) return false;
+    g_method_ids[kGetBucket] = env->GetMethodID(g_class.get(), "getBucket", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetBucket]) return false;
+    g_method_ids[kGetStorage] = env->GetMethodID(g_class.get(), "getStorage", "()Lcom/google/firebase/storage/FirebaseStorage;");
+    if (!g_method_ids[kGetStorage]) return false;
+    g_method_ids[kPutStream] = env->GetMethodID(g_class.get(), "putStream", "(Ljava/io/InputStream;)Lcom/google/firebase/storage/UploadTask;");
+    if (!g_method_ids[kPutStream]) return false;
+    g_method_ids[kPutStreamWithMetadata] = env->GetMethodID(g_class.get(), "putStream", "(Ljava/io/InputStream;Lcom/google/firebase/storage/StorageMetadata;)Lcom/google/firebase/storage/UploadTask;");
+    if (!g_method_ids[kPutStreamWithMetadata]) return false;
+    g_method_ids[kPutFile] = env->GetMethodID(g_class.get(), "putFile", "(Landroid/net/Uri;)Lcom/google/firebase/storage/UploadTask;");
+    if (!g_method_ids[kPutFile]) return false;
+    g_method_ids[kPutFileWithMetadata] = env->GetMethodID(g_class.get(), "putFile", "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;)Lcom/google/firebase/storage/UploadTask;");
+    if (!g_method_ids[kPutFileWithMetadata]) return false;
+    g_method_ids[kPutFileWithMetadataAndUri] = env->GetMethodID(g_class.get(), "putFile", "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;Landroid/net/Uri;)Lcom/google/firebase/storage/UploadTask;");
+    if (!g_method_ids[kPutFileWithMetadataAndUri]) return false;
+    g_method_ids[kGetActiveUploadTasks] = env->GetMethodID(g_class.get(), "getActiveUploadTasks", "()Ljava/util/List;");
+    if (!g_method_ids[kGetActiveUploadTasks]) return false;
+    g_method_ids[kGetActiveDownloadTasks] = env->GetMethodID(g_class.get(), "getActiveDownloadTasks", "()Ljava/util/List;");
+    if (!g_method_ids[kGetActiveDownloadTasks]) return false;
+    g_method_ids[kGetMetadata] = env->GetMethodID(g_class.get(), "getMetadata", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetMetadata]) return false;
+    g_method_ids[kGetDownloadUrl] = env->GetMethodID(g_class.get(), "getDownloadUrl", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetDownloadUrl]) return false;
+    g_method_ids[kUpdateMetadata] = env->GetMethodID(g_class.get(), "updateMetadata", "(Lcom/google/firebase/storage/StorageMetadata;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kUpdateMetadata]) return false;
+    g_method_ids[kGetStream] = env->GetMethodID(g_class.get(), "getStream", "(Lcom/google/firebase/storage/StreamDownloadTask$StreamProcessor;)Lcom/google/firebase/storage/StreamDownloadTask;");
+    if (!g_method_ids[kGetStream]) return false;
+    g_method_ids[kGetFileUri] = env->GetMethodID(g_class.get(), "getFile", "(Landroid/net/Uri;)Lcom/google/firebase/storage/FileDownloadTask;");
+    if (!g_method_ids[kGetFileUri]) return false;
+    g_method_ids[kGetFile] = env->GetMethodID(g_class.get(), "getFile", "(Ljava/io/File;)Lcom/google/firebase/storage/FileDownloadTask;");
+    if (!g_method_ids[kGetFile]) return false;
+    g_method_ids[kDelete] = env->GetMethodID(g_class.get(), "delete", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kDelete]) return false;
+    g_method_ids[kList] = env->GetMethodID(g_class.get(), "list", "(I)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kList]) return false;
+    g_method_ids[kListWithToken] = env->GetMethodID(g_class.get(), "list", "(ILjava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kListWithToken]) return false;
+    g_method_ids[kListAll] = env->GetMethodID(g_class.get(), "listAll", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kListAll]) return false;
+    g_method_ids[kToString] = env->GetMethodID(g_class.get(), "toString", "()Ljava/lang/String;");
+    if (!g_method_ids[kToString]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define LIST_RESULT_METHODS(X)                                                 \
@@ -117,11 +231,57 @@ METHOD_LOOKUP_DEFINITION(storage_reference,
   X(GetPageToken, "getPageToken", "()Ljava/lang/String;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(list_result, LIST_RESULT_METHODS)
-METHOD_LOOKUP_DEFINITION(list_result,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/storage/ListResult",
-                         LIST_RESULT_METHODS)
+namespace list_result {
+  enum Method {
+    kGetItems,
+    kGetPrefixes,
+    kGetPageToken,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace list_result {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/ListResult"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetItems] = env->GetMethodID(g_class.get(), "getItems", "()Ljava/util/List;");
+    if (!g_method_ids[kGetItems]) return false;
+    g_method_ids[kGetPrefixes] = env->GetMethodID(g_class.get(), "getPrefixes", "()Ljava/util/List;");
+    if (!g_method_ids[kGetPrefixes]) return false;
+    g_method_ids[kGetPageToken] = env->GetMethodID(g_class.get(), "getPageToken", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetPageToken]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
@@ -217,7 +377,7 @@ struct JniListenerToken {
               java_listener,
               cpp_storage_listener::GetMethodId(
                   cpp_storage_listener::kDiscardPointers));
-          util::CheckAndClearJniExceptions(env);
+          jni::CheckAndClearException(env);
           env->DeleteGlobalRef(java_listener);
         }
         java_listener = nullptr;
@@ -259,7 +419,7 @@ struct JniListenerToken {
               java_listener,
               cpp_storage_listener::GetMethodId(
                   cpp_storage_listener::kDiscardPointers));
-          util::CheckAndClearJniExceptions(env);
+          jni::CheckAndClearException(env);
           env->DeleteGlobalRef(java_listener);
         }
         java_listener = nullptr;
@@ -313,7 +473,7 @@ struct JniListenerToken {
               java_listener,
               cpp_storage_listener::GetMethodId(
                   cpp_storage_listener::kDiscardPointers));
-          util::CheckAndClearJniExceptions(jni_env);
+          jni::CheckAndClearException(jni_env);
           jni_env->DeleteGlobalRef(java_listener);
         }
         java_listener = nullptr;
@@ -357,7 +517,7 @@ void StorageReferenceInternal::Terminate(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   storage_reference::ReleaseClass(env);
   list_result::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 StorageReferenceInternal::StorageReferenceInternal(StorageInternal* storage,
@@ -511,13 +671,13 @@ struct FutureCallbackData {
 // Universal callback handler. This callback checks the Java type of `result`
 // and completes a different typed Future depending on that type.
 void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
-                                              util::FutureResult result_code,
+                                              firebase::util::FutureResult result_code,
                                               const char* status_message,
                                               void* callback_data) {
   FutureCallbackData* data =
       reinterpret_cast<FutureCallbackData*>(callback_data);
   if (data == nullptr) {
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     return;
   }
 
@@ -531,7 +691,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     env->CallVoidMethod(data->cpp_byte_downloader,
                         cpp_byte_downloader::GetMethodId(
                             cpp_byte_downloader::kDiscardPointers));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     env->DeleteGlobalRef(data->cpp_byte_downloader);
     data->cpp_byte_downloader = nullptr;
   }
@@ -539,7 +699,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     env->CallVoidMethod(
         data->cpp_byte_uploader,
         cpp_byte_uploader::GetMethodId(cpp_byte_uploader::kDiscardPointers));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     env->DeleteGlobalRef(data->cpp_byte_uploader);
     data->cpp_byte_uploader = nullptr;
   }
@@ -568,7 +728,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     // Complete a Future<std::string> from a Java String object.
     data->impl->CompleteWithResult<std::string>(
         data->handle, kErrorNone, status_message,
-        util::JStringToString(env, result));
+        jni::JStringToString(env, result));
   } else if (result && env->IsInstanceOf(result, util::uri::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a URI.");
     // Complete a Future<std::string> from a Java URI object.
@@ -584,7 +744,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     jlong num_bytes = env->CallLongMethod(
         result, stream_download_task_task_snapshot::GetMethodId(
                     stream_download_task_task_snapshot::kGetBytesTransferred));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     data->impl->Complete<size_t>(
         data->handle, kErrorNone, status_message,
         [num_bytes](size_t* size) { *size = static_cast<size_t>(num_bytes); });
@@ -604,7 +764,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     jobject metadata_obj = env->CallObjectMethod(
         result, upload_task_task_snapshot::GetMethodId(
                     upload_task_task_snapshot::kGetMetadata));
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       if (metadata_obj) env->DeleteLocalRef(metadata_obj);
       metadata_obj = nullptr;
     }
@@ -624,7 +784,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     jlong bytes = env->CallLongMethod(
         result, file_download_task_task_snapshot::GetMethodId(
                     file_download_task_task_snapshot::kGetBytesTransferred));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     data->impl->Complete<size_t>(
         data->handle, kErrorNone, status_message,
         [bytes](size_t* size) { *size = static_cast<size_t>(bytes); });
@@ -633,28 +793,28 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     // Complete a Future<StorageListResult> from a Java ListResult object.
     jobject prefixes_list = env->CallObjectMethod(
         result, list_result::GetMethodId(list_result::kGetPrefixes));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     jobject items_list = env->CallObjectMethod(
         result, list_result::GetMethodId(list_result::kGetItems));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     jstring page_token_jstr = static_cast<jstring>(env->CallObjectMethod(
         result, list_result::GetMethodId(list_result::kGetPageToken)));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
 
     std::vector<StorageReference> prefixes;
     std::vector<StorageReference> items;
-    std::string page_token = util::JStringToString(env, page_token_jstr);
+    std::string page_token = jni::JStringToString(env, page_token_jstr);
 
     auto process_list = [&](jobject list_obj,
                             std::vector<StorageReference>& out_vec) {
       if (list_obj) {
         int size = env->CallIntMethod(
-            list_obj, util::list::GetMethodId(util::list::kSize));
-        if (!util::CheckAndClearJniExceptions(env)) {
+            list_obj, env->GetMethodID(env->GetObjectClass(list), "size", "()I"));
+        if (!jni::CheckAndClearException(env)) {
           for (int i = 0; i < size; ++i) {
             jobject ref_obj = env->CallObjectMethod(
-                list_obj, util::list::GetMethodId(util::list::kGet), i);
-            if (!util::CheckAndClearJniExceptions(env) && ref_obj) {
+                list_obj, env->GetMethodID(env->GetObjectClass(list), "get", "(I)Ljava/lang/Object;"), i);
+            if (!jni::CheckAndClearException(env) && ref_obj) {
               out_vec.push_back(StorageReference(
                   new StorageReferenceInternal(data->storage, ref_obj)));
               env->DeleteLocalRef(ref_obj);
@@ -688,7 +848,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
   }
   delete data;
 
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 Future<void> StorageReferenceInternal::Delete() {
@@ -704,13 +864,13 @@ Future<void> StorageReferenceInternal::Delete() {
     future_impl->Complete(handle, kErrorUnknown, "Call to delete() failed.");
     return DeleteLastResult();
   }
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future_impl, storage_, kStorageReferenceFnDelete)),
       storage_->jni_task_id());
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(task);
   return DeleteLastResult();
 }
@@ -724,22 +884,22 @@ std::string StorageReferenceInternal::bucket() const {
   JNIEnv* env = storage_->app()->GetJNIEnv();
   jstring bucket_jstring = static_cast<jstring>(env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kGetBucket)));
-  if (util::CheckAndClearJniExceptions(env) || !bucket_jstring) {
+  if (jni::CheckAndClearException(env) || !bucket_jstring) {
     if (bucket_jstring) env->DeleteLocalRef(bucket_jstring);
     return "";
   }
-  return util::JniStringToString(env, bucket_jstring);
+  return ::firebase::jni::JStringToString(env, bucket_jstring);
 }
 
 std::string StorageReferenceInternal::full_path() const {
   JNIEnv* env = storage_->app()->GetJNIEnv();
   jstring path_jstring = static_cast<jstring>(env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kGetPath)));
-  if (util::CheckAndClearJniExceptions(env) || !path_jstring) {
+  if (jni::CheckAndClearException(env) || !path_jstring) {
     if (path_jstring) env->DeleteLocalRef(path_jstring);
     return "";
   }
-  return util::JniStringToString(env, path_jstring);
+  return ::firebase::jni::JStringToString(env, path_jstring);
 }
 
 Future<size_t> StorageReferenceInternal::GetFile(const char* path,
@@ -755,7 +915,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
     return GetFileLastResult();
   }
   jobject uri = util::ParseUriString(env, path);
-  if (util::CheckAndClearJniExceptions(env) || !uri) {
+  if (jni::CheckAndClearException(env) || !uri) {
     if (uri) env->DeleteLocalRef(uri);
     if (controller_out) *controller_out = Controller();
     future_impl->Complete(handle, kErrorInvalidArgument,
@@ -777,7 +937,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
   }
   std::shared_ptr<JniListenerToken> listener_token =
       AssignListenerToTask(listener, task);
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
@@ -793,7 +953,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
     controller_out->internal_->AssignTask(storage_, task);
   }
   env->DeleteLocalRef(task);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return GetFileLastResult();
 }
 
@@ -809,7 +969,7 @@ StorageReferenceInternal::AssignListenerToTask(Listener* listener,
       cpp_storage_listener::GetClass(),
       cpp_storage_listener::GetMethodId(cpp_storage_listener::kConstructor),
       reinterpret_cast<jlong>(storage_), reinterpret_cast<jlong>(listener));
-  if (util::CheckAndClearJniExceptions(env) || !java_listener_local) {
+  if (jni::CheckAndClearException(env) || !java_listener_local) {
     if (java_listener_local) env->DeleteLocalRef(java_listener_local);
     return nullptr;
   }
@@ -828,13 +988,13 @@ StorageReferenceInternal::AssignListenerToTask(Listener* listener,
       task, storage_task::GetMethodId(storage_task::kAddOnPausedListener),
       java_listener);
   if (paused_res) env->DeleteLocalRef(paused_res);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   jobject progress_res = env->CallObjectMethod(
       task, storage_task::GetMethodId(storage_task::kAddOnProgressListener),
       java_listener);
   if (progress_res) env->DeleteLocalRef(progress_res);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   return token;
 }
@@ -861,7 +1021,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
       cpp_byte_downloader::GetClass(),
       cpp_byte_downloader::GetMethodId(cpp_byte_downloader::kConstructor),
       reinterpret_cast<jlong>(buffer), static_cast<jlong>(buffer_size));
-  if (util::CheckAndClearJniExceptions(env) || !byte_downloader_local) {
+  if (jni::CheckAndClearException(env) || !byte_downloader_local) {
     if (byte_downloader_local) env->DeleteLocalRef(byte_downloader_local);
     if (controller_out) *controller_out = Controller();
     future_impl->Complete(handle, kErrorUnknown,
@@ -886,7 +1046,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
   }
   std::shared_ptr<JniListenerToken> listener_token =
       AssignListenerToTask(listener, task);
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData, and will
       // handle copying the data into the buffer.
@@ -903,7 +1063,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
     controller_out->internal_->AssignTask(storage_, task);
   }
   env->DeleteLocalRef(task);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return GetBytesLastResult();
 }
 
@@ -928,14 +1088,14 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
                           "Call to getDownloadUrl() failed.");
     return GetDownloadUrlLastResult();
   }
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future_impl, storage_, kStorageReferenceFnGetDownloadUrl)),
       storage_->jni_task_id());
   env->DeleteLocalRef(task);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   return GetDownloadUrlLastResult();
 }
@@ -961,13 +1121,13 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
         handle, kErrorUnknown, "Call to getMetadata() failed.", Metadata(nullptr));
     return GetMetadataLastResult();
   }
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future_impl, storage_, kStorageReferenceFnGetMetadata)),
       storage_->jni_task_id());
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(task);
   return GetMetadataLastResult();
 }
@@ -1009,13 +1169,13 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
                                     Metadata(nullptr));
     return UpdateMetadataLastResult();
   }
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future_impl, storage_, kStorageReferenceFnUpdateMetadata)),
       storage_->jni_task_id());
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(task);
   return UpdateMetadataLastResult();
 }
@@ -1058,13 +1218,13 @@ Future<StorageListResult> StorageReferenceInternal::List(
       task == nullptr) {
     future_impl->Complete(handle, kErrorUnknown, "Call to list() failed.");
   } else {
-    util::RegisterCallbackOnTask(
+    firebase::util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         reinterpret_cast<void*>(new FutureCallbackData(
             handle, future_impl, storage_, kStorageReferenceFnList)),
         storage_->jni_task_id());
   }
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   if (task) env->DeleteLocalRef(task);
 
   return ListLastResult();
@@ -1090,13 +1250,13 @@ Future<StorageListResult> StorageReferenceInternal::ListAll() {
       task == nullptr) {
     future_impl->Complete(handle, kErrorUnknown, "Call to listAll() failed.");
   } else {
-    util::RegisterCallbackOnTask(
+    firebase::util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         reinterpret_cast<void*>(new FutureCallbackData(
             handle, future_impl, storage_, kStorageReferenceFnListAll)),
         storage_->jni_task_id());
   }
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   if (task) env->DeleteLocalRef(task);
 
   return ListAllLastResult();
@@ -1111,18 +1271,18 @@ std::string StorageReferenceInternal::name() const {
   JNIEnv* env = storage_->app()->GetJNIEnv();
   jstring name_jstring = static_cast<jstring>(env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kGetName)));
-  if (util::CheckAndClearJniExceptions(env) || !name_jstring) {
+  if (jni::CheckAndClearException(env) || !name_jstring) {
     if (name_jstring) env->DeleteLocalRef(name_jstring);
     return "";
   }
-  return util::JniStringToString(env, name_jstring);
+  return ::firebase::jni::JStringToString(env, name_jstring);
 }
 
 StorageReferenceInternal* StorageReferenceInternal::GetParent() const {
   JNIEnv* env = storage_->app()->GetJNIEnv();
   jobject parent_obj = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kGetParent));
-  if (util::CheckAndClearJniExceptions(env) || parent_obj == nullptr) {
+  if (jni::CheckAndClearException(env) || parent_obj == nullptr) {
     if (parent_obj) env->DeleteLocalRef(parent_obj);
     return nullptr;
   }
@@ -1164,7 +1324,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
       cpp_byte_uploader::GetMethodId(cpp_byte_uploader::kConstructor),
       reinterpret_cast<jlong>(buffer), static_cast<jlong>(buffer_size),
       static_cast<jlong>(0));
-  std::string exception_message = util::GetAndClearExceptionMessage(env);
+  std::string exception_message = jni::GetAndClearExceptionMessage(env);
   if (exception_message.empty() && uploader != nullptr) {
     jobject task =
         (meta_obj != nullptr)
@@ -1177,11 +1337,11 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
                   obj_,
                   storage_reference::GetMethodId(storage_reference::kPutStream),
                   uploader);
-    exception_message = util::GetAndClearExceptionMessage(env);
+    exception_message = jni::GetAndClearExceptionMessage(env);
     if (exception_message.empty() && task != nullptr) {
       std::shared_ptr<JniListenerToken> listener_token =
           AssignListenerToTask(listener, task);
-      util::RegisterCallbackOnTask(
+      firebase::util::RegisterCallbackOnTask(
           env, task, FutureCallback,
           // FutureCallback will delete the newed FutureCallbackData.
           reinterpret_cast<void*>(new FutureCallbackData(
@@ -1195,7 +1355,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
         }
         controller_out->internal_->AssignTask(storage_, task);
       }
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
       env->DeleteLocalRef(task);
       started = true;
     } else if (task != nullptr) {
@@ -1251,7 +1411,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
     meta_obj = MetadataToStorageMetadata(env, *metadata->internal_);
   }
   jobject uri = util::ParseUriString(env, path);
-  if (util::CheckAndClearJniExceptions(env) || !uri) {
+  if (jni::CheckAndClearException(env) || !uri) {
     if (uri) env->DeleteLocalRef(uri);
     if (meta_obj) env->DeleteLocalRef(meta_obj);
     if (controller_out) *controller_out = Controller();
@@ -1285,7 +1445,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   }
   std::shared_ptr<JniListenerToken> listener_token =
       AssignListenerToTask(listener, task);
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
@@ -1300,7 +1460,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
     }
     controller_out->internal_->AssignTask(storage_, task);
   }
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(task);
   return PutFileLastResult();
 }

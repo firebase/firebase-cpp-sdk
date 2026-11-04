@@ -9,7 +9,6 @@
 #include <jni.h>
 
 #include "app/src/include/firebase/app.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
 namespace performance {
@@ -30,7 +29,27 @@ namespace internal {
       "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/perf/metrics/HttpMetric;") // NOLINT
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(performance_jni, PERFORMANCE_METHODS)
+namespace performance_jni {
+  enum Method {
+    kSetEnabled,
+    kGetEnabled,
+    kGetInstance,
+    kNewTrace,
+    kNewHttpMetric,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // Used to setup the cache of HttpMetric class method IDs to reduce time spent
 // looking up methods by string.
@@ -48,7 +67,31 @@ METHOD_LOOKUP_DECLARATION(performance_jni, PERFORMANCE_METHODS)
   X(SetResponsePayloadSize, "setResponsePayloadSize", "(J)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(http_metric_jni, HTTP_METRIC_METHODS)
+namespace http_metric_jni {
+  enum Method {
+    kStartHttpMetric,
+    kStopHttpMetric,
+    kSetAttribute,
+    kGetAttribute,
+    kRemoveAttribute,
+    kSetHttpResponseCode,
+    kSetRequestPayloadSize,
+    kSetResponseContentType,
+    kSetResponsePayloadSize,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // Used to setup the cache of HttpMetric class method IDs to reduce time spent
 // looking up methods by string.
@@ -64,7 +107,30 @@ METHOD_LOOKUP_DECLARATION(http_metric_jni, HTTP_METRIC_METHODS)
   X(PutMetric, "putMetric", "(Ljava/lang/String;J)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(trace_jni, TRACE_METHODS)
+namespace trace_jni {
+  enum Method {
+    kStartTrace,
+    kStopTrace,
+    kSetAttribute,
+    kGetAttribute,
+    kRemoveAttribute,
+    kIncrementMetric,
+    kGetLongMetric,
+    kPutMetric,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // Returns the reference to the singleton FirebasePerformance object that is
 // created when firebase::performance::internal::Initialize() is called.

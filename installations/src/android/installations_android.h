@@ -21,7 +21,6 @@
 #include <string>
 
 #include "app/src/reference_count.h"
-#include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "installations/src/common.h"

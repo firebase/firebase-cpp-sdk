@@ -24,7 +24,6 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage/list_result.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
@@ -172,7 +171,7 @@ class StorageReferenceInternal {
 
  private:
   static void FutureCallback(JNIEnv* env, jobject result,
-                             util::FutureResult result_code,
+                             firebase::util::FutureResult result_code,
                              const char* status_message, void* callback_data);
 
   // If `listener` is not nullptr, create a Java listener class for it and

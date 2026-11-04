@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "app/src/app_android.h"
 #include "app/src/include/firebase/util.h"
 
 #include <assert.h>
@@ -31,7 +32,6 @@
 #if FIREBASE_PLATFORM_ANDROID
 #include "app/src/google_play_services/availability_android.h"
 #include "app/src/include/google_play_services/availability.h"
-#include "app/src/util_android.h"
 #endif  // FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
@@ -148,12 +148,12 @@ static void PerformInitialize(
               std::shared_ptr<ModuleInitializerState> cb_state = *holder;
               MutexLock cb_lock(cb_state->mutex);
               if (cb_state->cancelled) {
-                google_play_services::Terminate(util::GetJNIEnvFromApp());
+                google_play_services::Terminate(firebase::util::GetJNIEnvFromApp());
                 return;
               }
               JNIEnv* env = cb_state->app != nullptr
                                 ? cb_state->app->GetJNIEnv()
-                                : util::GetJNIEnvFromApp();
+                                : firebase::util::GetJNIEnvFromApp();
               if (result.status() == kFutureStatusComplete) {
                 if (result.error() == 0) {
                   LogInfo("Google Play services now available, continuing.");

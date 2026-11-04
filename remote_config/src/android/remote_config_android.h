@@ -25,7 +25,6 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_count.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "remote_config/src/include/firebase/remote_config.h"

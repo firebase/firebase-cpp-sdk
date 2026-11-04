@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include "app_check/src/android/play_integrity_provider_android.h"
 
 #include <algorithm>
@@ -22,7 +23,6 @@
 
 #include "app/src/app_common.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/play_integrity_provider.h"
 
@@ -36,19 +36,60 @@ namespace internal {
 #define PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS(X)                                      \
   X(GetInstance, "getInstance",                                                \
     "()Lcom/google/firebase/appcheck/playintegrity/PlayIntegrityAppCheckProviderFactory;",     \
-       util::kMethodTypeStatic),                                               \
+       firebase::util::kMethodTypeStatic),                                               \
   X(Create, "create",                                                          \
     "(Lcom/google/firebase/FirebaseApp;)"                                      \
     "Lcom/google/firebase/appcheck/AppCheckProvider;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(play_integrity_provider_factory,
-                          PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS)
-METHOD_LOOKUP_DEFINITION(play_integrity_provider_factory,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/appcheck/playintegrity/"
-                         "PlayIntegrityAppCheckProviderFactory",
-                         PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS)
+namespace play_integrity_provider_factory {
+  enum Method {
+    kGetInstance,
+    kCreate,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace play_integrity_provider_factory {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/playintegrity/PlayIntegrityAppCheckProviderFactory"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "()Lcom/google/firebase/appcheck/playintegrity/PlayIntegrityAppCheckProviderFactory;");
+    if (!g_method_ids[kGetInstance]) return false;
+    g_method_ids[kCreate] = env->GetMethodID(g_class.get(), "create", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/appcheck/AppCheckProvider;");
+    if (!g_method_ids[kCreate]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 namespace {
 
@@ -141,7 +182,7 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
           play_integrity_provider_factory::GetClass(),
           play_integrity_provider_factory::GetMethodId(
               play_integrity_provider_factory::kGetInstance));
-      if (util::CheckAndClearJniExceptions(env) ||
+      if (jni::CheckAndClearException(env) ||
           j_provider_factory_local == nullptr) {
         if (j_provider_factory_local != nullptr) {
           env->DeleteLocalRef(j_provider_factory_local);
@@ -151,7 +192,7 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
       // Hold a global reference. It will be freed when this factory is destroyed.
       android_provider_factory_ = env->NewGlobalRef(j_provider_factory_local);
       env->DeleteLocalRef(j_provider_factory_local);
-      if (util::CheckAndClearJniExceptions(env) ||
+      if (jni::CheckAndClearException(env) ||
           android_provider_factory_ == nullptr) {
         android_provider_factory_ = nullptr;
         return nullptr;
@@ -166,7 +207,7 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
                               play_integrity_provider_factory::GetMethodId(
                                   play_integrity_provider_factory::kCreate),
                               platform_app);
-    bool create_exception = util::CheckAndClearJniExceptions(env);
+    bool create_exception = jni::CheckAndClearException(env);
     env->DeleteLocalRef(platform_app);
     if (create_exception || j_android_provider_local == nullptr) {
       if (j_android_provider_local != nullptr) {

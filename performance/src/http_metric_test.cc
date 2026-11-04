@@ -17,7 +17,6 @@
 #include "performance/src/performance_common.h"
 
 #ifdef __ANDROID__
-#include "app/src/util_android.h"
 #endif  // __ANDROID__
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)

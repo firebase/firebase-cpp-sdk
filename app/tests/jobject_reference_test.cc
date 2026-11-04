@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-#include "app/src/jobject_reference.h"
+#include "app/src/jni/string.h"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-// For firebase::util::JStringToString.
-#include "app/src/util_android.h"
+// For ::firebase::jni::JStringToString.
 #include "testing/run_all_tests.h"
 
-using firebase::internal::JObjectReference;
-using firebase::util::JStringToString;
+using firebase::internal::jni::Global<jni::Object>;
+using ::firebase::jni::JStringToString;
 using testing::Eq;
 using testing::IsNull;
 using testing::NotNull;
 
-JOBJECT_REFERENCE(JObjectReferenceAlias);
+JOBJECT_REFERENCE(jni::Global<jni::Object>Alias);
 
-// Tests for JObjectReference.
-class JObjectReferenceTest : public ::testing::Test {
+// Tests for jni::Global<jni::Object>.
+class jni::Global<jni::Object>Test : public ::testing::Test {
  protected:
   void SetUp() override {
     env_ = firebase::testing::cppsdk::GetTestJniEnv();
@@ -43,120 +42,120 @@ class JObjectReferenceTest : public ::testing::Test {
   static const char *const kTestString;
 };
 
-const char *const JObjectReferenceTest::kTestString = "Testing testing 1 2 3";
+const char *const jni::Global<jni::Object>Test::kTestString = "Testing testing 1 2 3";
 
-TEST_F(JObjectReferenceTest, ConstructEmpty) {
-  JObjectReference ref(env_);
-  JObjectReferenceAlias alias(env_);
+TEST_F(jni::Global<jni::Object>Test, ConstructEmpty) {
+  jni::Global<jni::Object> ref(env_);
+  jni::Global<jni::Object>Alias alias(env_);
   EXPECT_THAT(ref.GetJNIEnv(), Eq(env_));
   EXPECT_THAT(ref.java_vm(), NotNull());
-  EXPECT_THAT(ref.object(), IsNull());
+  EXPECT_THAT(ref.get(), IsNull());
   EXPECT_THAT(*ref, IsNull());
   EXPECT_THAT(alias.GetJNIEnv(), Eq(env_));
   EXPECT_THAT(alias.java_vm(), NotNull());
-  EXPECT_THAT(alias.object(), IsNull());
+  EXPECT_THAT(alias.get(), IsNull());
   EXPECT_THAT(*alias, IsNull());
 }
 
-TEST_F(JObjectReferenceTest, ConstructDestruct) {
+TEST_F(jni::Global<jni::Object>Test, ConstructDestruct) {
   jobject java_string = env_->NewStringUTF(kTestString);
-  JObjectReference ref(env_, java_string);
-  JObjectReferenceAlias alias(env_, java_string);
+  jni::Global<jni::Object> ref(env_, java_string);
+  jni::Global<jni::Object>Alias alias(env_, java_string);
   env_->DeleteLocalRef(java_string);
-  EXPECT_THAT(JStringToString(env_, ref.object()),
+  EXPECT_THAT(JStringToString(env_, ref.get()),
               Eq(std::string(kTestString)));
   EXPECT_THAT(JStringToString(env_, *ref), Eq(std::string(kTestString)));
-  EXPECT_THAT(JStringToString(env_, alias.object()),
+  EXPECT_THAT(JStringToString(env_, alias.get()),
               Eq(std::string(kTestString)));
   EXPECT_THAT(JStringToString(env_, *alias), Eq(std::string(kTestString)));
 }
 
-TEST_F(JObjectReferenceTest, CopyConstruct) {
+TEST_F(jni::Global<jni::Object>Test, CopyConstruct) {
   jobject java_string = env_->NewStringUTF(kTestString);
-  JObjectReference ref1(env_, java_string);
+  jni::Global<jni::Object> ref1(env_, java_string);
   env_->DeleteLocalRef(java_string);
-  JObjectReference ref2(ref1);
-  JObjectReferenceAlias alias1(ref1);
-  JObjectReferenceAlias alias2(alias1);
-  EXPECT_THAT(JStringToString(env_, ref1.object()),
+  jni::Global<jni::Object> ref2(ref1);
+  jni::Global<jni::Object>Alias alias1(ref1);
+  jni::Global<jni::Object>Alias alias2(alias1);
+  EXPECT_THAT(JStringToString(env_, ref1.get()),
               Eq(std::string(kTestString)));
-  EXPECT_THAT(JStringToString(env_, ref2.object()),
+  EXPECT_THAT(JStringToString(env_, ref2.get()),
               Eq(std::string(kTestString)));
-  EXPECT_THAT(JStringToString(env_, alias1.object()),
+  EXPECT_THAT(JStringToString(env_, alias1.get()),
               Eq(std::string(kTestString)));
-  EXPECT_THAT(JStringToString(env_, alias2.object()),
+  EXPECT_THAT(JStringToString(env_, alias2.get()),
               Eq(std::string(kTestString)));
 }
 
-TEST_F(JObjectReferenceTest, Move) {
+TEST_F(jni::Global<jni::Object>Test, Move) {
   jobject java_string = env_->NewStringUTF(kTestString);
-  JObjectReference ref1(env_, java_string);
+  jni::Global<jni::Object> ref1(env_, java_string);
   env_->DeleteLocalRef(java_string);
-  JObjectReference ref2 = std::move(ref1);
-  EXPECT_THAT(JStringToString(env_, ref2.object()),
+  jni::Global<jni::Object> ref2 = std::move(ref1);
+  EXPECT_THAT(JStringToString(env_, ref2.get()),
               Eq(std::string(kTestString)));
-  JObjectReferenceAlias alias1(std::move(ref2));
-  EXPECT_THAT(JStringToString(env_, alias1.object()),
+  jni::Global<jni::Object>Alias alias1(std::move(ref2));
+  EXPECT_THAT(JStringToString(env_, alias1.get()),
               Eq(std::string(kTestString)));
-  JObjectReferenceAlias alias2(env_);
+  jni::Global<jni::Object>Alias alias2(env_);
   alias2 = std::move(alias1);
-  EXPECT_THAT(JStringToString(env_, alias2.object()),
+  EXPECT_THAT(JStringToString(env_, alias2.get()),
               Eq(std::string(kTestString)));
 }
 
-TEST_F(JObjectReferenceTest, Copy) {
+TEST_F(jni::Global<jni::Object>Test, Copy) {
   jobject java_string = env_->NewStringUTF(kTestString);
-  JObjectReference ref1(env_, java_string);
+  jni::Global<jni::Object> ref1(env_, java_string);
   env_->DeleteLocalRef(java_string);
-  JObjectReference ref2(env_);
+  jni::Global<jni::Object> ref2(env_);
   ref2 = ref1;
-  JObjectReferenceAlias alias(env_);
+  jni::Global<jni::Object>Alias alias(env_);
   alias = ref2;
-  EXPECT_THAT(JStringToString(env_, ref1.object()),
+  EXPECT_THAT(JStringToString(env_, ref1.get()),
               Eq(std::string(kTestString)));
-  EXPECT_THAT(JStringToString(env_, ref2.object()),
+  EXPECT_THAT(JStringToString(env_, ref2.get()),
               Eq(std::string(kTestString)));
-  EXPECT_THAT(JStringToString(env_, alias.object()),
+  EXPECT_THAT(JStringToString(env_, alias.get()),
               Eq(std::string(kTestString)));
 }
 
-TEST_F(JObjectReferenceTest, Set) {
+TEST_F(jni::Global<jni::Object>Test, Set) {
   jobject java_string = env_->NewStringUTF(kTestString);
-  JObjectReference ref(env_, java_string);
+  jni::Global<jni::Object> ref(env_, java_string);
   env_->DeleteLocalRef(java_string);
-  EXPECT_THAT(JStringToString(env_, ref.object()),
+  EXPECT_THAT(JStringToString(env_, ref.get()),
               Eq(std::string(kTestString)));
   ref.Set(nullptr);
-  EXPECT_THAT(ref.object(), IsNull());
+  EXPECT_THAT(ref.get(), IsNull());
 }
 
-TEST_F(JObjectReferenceTest, GetLocalRef) {
+TEST_F(jni::Global<jni::Object>Test, GetLocalRef) {
   jobject java_string = env_->NewStringUTF(kTestString);
-  JObjectReference ref(env_, java_string);
+  jni::Global<jni::Object> ref(env_, java_string);
   jobject local = ref.GetLocalRef();
   EXPECT_THAT(JStringToString(env_, local), Eq(std::string(kTestString)));
   env_->DeleteLocalRef(local);
 
-  JObjectReferenceAlias alias(env_, java_string);
+  jni::Global<jni::Object>Alias alias(env_, java_string);
   local = alias.GetLocalRef();
   EXPECT_THAT(JStringToString(env_, local), Eq(std::string(kTestString)));
   env_->DeleteLocalRef(local);
 }
 
-TEST_F(JObjectReferenceTest, FromGlobalReference) {
+TEST_F(jni::Global<jni::Object>Test, FromGlobalReference) {
   jobject java_string = env_->NewStringUTF(kTestString);
   jobject java_string_alias = env_->NewLocalRef(java_string);
-  JObjectReference ref =
-      JObjectReference::FromLocalReference(env_, java_string);
-  JObjectReferenceAlias alias(
-      JObjectReferenceAlias::FromLocalReference(env_, java_string_alias));
-  EXPECT_NE(nullptr, ref.object());
-  EXPECT_NE(nullptr, alias.object());
+  jni::Global<jni::Object> ref =
+      jni::Global<jni::Object>::FromLocalReference(env_, java_string);
+  jni::Global<jni::Object>Alias alias(
+      jni::Global<jni::Object>Alias::FromLocalReference(env_, java_string_alias));
+  EXPECT_NE(nullptr, ref.get());
+  EXPECT_NE(nullptr, alias.get());
 
-  JObjectReference nullref =
-      JObjectReference::FromLocalReference(env_, nullptr);
-  JObjectReferenceAlias alias_null(
-      JObjectReferenceAlias::FromLocalReference(env_, nullptr));
-  EXPECT_EQ(nullptr, nullref.object());
-  EXPECT_EQ(nullptr, alias_null.object());
+  jni::Global<jni::Object> nullref =
+      jni::Global<jni::Object>::FromLocalReference(env_, nullptr);
+  jni::Global<jni::Object>Alias alias_null(
+      jni::Global<jni::Object>Alias::FromLocalReference(env_, nullptr));
+  EXPECT_EQ(nullptr, nullref.get());
+  EXPECT_EQ(nullptr, alias_null.get());
 }

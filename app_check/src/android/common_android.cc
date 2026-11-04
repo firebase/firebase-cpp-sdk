@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/app_android.h"
+#include "app/src/jni/exception.h"
 #include "app_check/src/android/common_android.h"
 
 #include <cstdint>
@@ -19,17 +21,42 @@
 
 #include "app/src/app_common.h"
 #include "app/src/util.h"
-#include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
 
-METHOD_LOOKUP_DEFINITION(app_check_provider,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/appcheck/AppCheckProvider",
-                         APP_CHECK_PROVIDER_METHODS)
+namespace app_check_provider {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/AppCheckProvider"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetToken]) return false;
+    g_method_ids[kGetLimitedUseToken] = env->GetMethodID(g_class.get(), "getLimitedUseToken", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetLimitedUseToken]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // Used to setup the cache of AppCheckProvider interface method IDs to reduce
 // time spent looking up methods by string.
@@ -41,11 +68,54 @@ METHOD_LOOKUP_DEFINITION(app_check_provider,
     "()J")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(app_check_token, APP_CHECK_TOKEN_METHODS)
-METHOD_LOOKUP_DEFINITION(app_check_token,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/appcheck/AppCheckToken",
-                         APP_CHECK_TOKEN_METHODS)
+namespace app_check_token {
+  enum Method {
+    kGetToken,
+    kGetExpireTimeMillis,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace app_check_token {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/AppCheckToken"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetToken]) return false;
+    g_method_ids[kGetExpireTimeMillis] = env->GetMethodID(g_class.get(), "getExpireTimeMillis", "()J");
+    if (!g_method_ids[kGetExpireTimeMillis]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 bool CacheCommonAndroidMethodIds(JNIEnv* env, jobject activity) {
   // Cache the token and provider classes.
@@ -69,8 +139,8 @@ AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj) {
   if (env != nullptr && token_obj != nullptr) {
     jobject token_str = env->CallObjectMethod(
         token_obj, app_check_token::GetMethodId(app_check_token::kGetToken));
-    if (!util::CheckAndClearJniExceptions(env) && token_str != nullptr) {
-      cpp_token.token = util::JniStringToString(env, token_str);
+    if (!jni::CheckAndClearException(env) && token_str != nullptr) {
+      cpp_token.token = ::firebase::jni::JStringToString(env, token_str);
     } else if (token_str != nullptr) {
       env->DeleteLocalRef(token_str);
     }
@@ -78,7 +148,7 @@ AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj) {
     jlong millis = env->CallLongMethod(
         token_obj,
         app_check_token::GetMethodId(app_check_token::kGetExpireTimeMillis));
-    if (!util::CheckAndClearJniExceptions(env)) {
+    if (!jni::CheckAndClearException(env)) {
       cpp_token.expire_time_millis = static_cast<int64_t>(millis);
     }
   }
@@ -99,7 +169,7 @@ struct TokenResultCallbackData {
 };
 
 void TokenResultCallback(JNIEnv* env, jobject result,
-                         util::FutureResult result_code,
+                         firebase::util::FutureResult result_code,
                          const char* status_message, void* callback_data) {
   int result_error_code = kAppCheckErrorNone;
   AppCheckToken result_token;
@@ -138,7 +208,7 @@ AndroidAppCheckProvider::AndroidAppCheckProvider(jobject local_provider)
 AndroidAppCheckProvider::~AndroidAppCheckProvider() {
   JNIEnv* env = GetJniEnv();
   if (env != nullptr) {
-    util::CancelCallbacks(env, jni_task_id_.c_str());
+    firebase::util::CancelCallbacks(env, jni_task_id_.c_str());
     if (android_provider_ != nullptr) {
       env->DeleteGlobalRef(android_provider_);
       android_provider_ = nullptr;
@@ -161,12 +231,12 @@ void AndroidAppCheckProvider::GetToken(
   jobject j_task = env->CallObjectMethod(
       android_provider_,
       app_check_provider::GetMethodId(app_check_provider::kGetToken));
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = jni::GetAndClearExceptionMessage(env);
   if (error.empty() && j_task != nullptr) {
     // Create an object to wrap the callback function
     TokenResultCallbackData* completion_callback_data =
         new TokenResultCallbackData(std::move(completion_callback));
-    util::RegisterCallbackOnTask(
+    firebase::util::RegisterCallbackOnTask(
         env, j_task, TokenResultCallback,
         reinterpret_cast<void*>(completion_callback_data),
         jni_task_id_.c_str());
@@ -196,12 +266,12 @@ void AndroidAppCheckProvider::GetLimitedUseToken(
   jobject j_task = env->CallObjectMethod(
       android_provider_,
       app_check_provider::GetMethodId(app_check_provider::kGetLimitedUseToken));
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = jni::GetAndClearExceptionMessage(env);
   if (error.empty() && j_task != nullptr) {
     // Create an object to wrap the callback function
     TokenResultCallbackData* completion_callback_data =
         new TokenResultCallbackData(std::move(completion_callback));
-    util::RegisterCallbackOnTask(
+    firebase::util::RegisterCallbackOnTask(
         env, j_task, TokenResultCallback,
         reinterpret_cast<void*>(completion_callback_data),
         jni_task_id_.c_str());

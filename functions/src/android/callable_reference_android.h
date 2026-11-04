@@ -16,15 +16,16 @@
 #define FIREBASE_FUNCTIONS_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
 
 #include <jni.h>
+#include "app/src/app_android.h"
 
 #include <memory>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/app_android.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "functions/src/android/functions_android.h"
 #include "functions/src/include/firebase/functions.h"
 
@@ -35,23 +36,45 @@ class HttpsCallableResult;
 
 namespace internal {
 
-// clang-format off
-#define CALLABLE_REFERENCE_METHODS(X)                                          \
-  X(Call, "call", "()Lcom/google/android/gms/tasks/Task;"),                    \
-  X(CallWithParam, "call",                                                     \
-    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;"),                \
-  X(SetTimeout, "setTimeout", "(JLjava/util/concurrent/TimeUnit;)V",           \
-    util::kMethodTypeInstance, util::kMethodOptional)
-// clang-format on
 
-METHOD_LOOKUP_DECLARATION(callable_reference, CALLABLE_REFERENCE_METHODS)
+namespace callable_reference {
+  enum Method {
+    kCall,
+    kCallWithParam,
+    kSetTimeout,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
 
-// clang-format off
-#define CALLABLE_RESULT_METHODS(X)                                             \
-  X(GetData, "getData", "()Ljava/lang/Object;")
-// clang-format on
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
 
-METHOD_LOOKUP_DECLARATION(callable_result, CALLABLE_RESULT_METHODS)
+
+
+namespace callable_result {
+  enum Method {
+    kGetData,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 class HttpsCallableReferenceInternal {
  public:
@@ -104,7 +127,7 @@ class HttpsCallableReferenceInternal {
 
  private:
   static void FutureCallback(JNIEnv* env, jobject result,
-                             util::FutureResult result_code,
+                             firebase::util::FutureResult result_code,
                              const char* status_message, void* callback_data);
 
   void Cleanup(FunctionsInternal* fallback_functions = nullptr) noexcept;

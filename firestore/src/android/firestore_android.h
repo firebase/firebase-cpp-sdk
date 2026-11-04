@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_FIRESTORE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_FIRESTORE_ANDROID_H_
 
+#include "app/src/app_android.h"
 #include <cstdint>
 #include <functional>
 #include <list>

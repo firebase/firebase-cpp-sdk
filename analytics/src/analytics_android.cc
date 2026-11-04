@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#include "app/src/app_android.h"
+#include "app/src/app_common.h"
+#include "app/src/jni/string.h"
+#include "app/src/jni/exception.h"
 #include <assert.h>
 #include <jni.h>
 
@@ -27,9 +31,61 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
+
+namespace {
+  jclass g_hash_map_class = nullptr;
+  jmethodID g_hash_map_constructor = nullptr;
+  
+  jclass g_map_class = nullptr;
+  jmethodID g_map_put = nullptr;
+
+  jclass g_bundle_class = nullptr;
+  jmethodID g_bundle_constructor = nullptr;
+  jmethodID g_bundle_put_string = nullptr;
+  jmethodID g_bundle_put_long = nullptr;
+  jmethodID g_bundle_put_double = nullptr;
+  jmethodID g_bundle_put_bundle = nullptr;
+  jmethodID g_bundle_put_parcelable_array = nullptr;
+  jmethodID g_bundle_put_parcelable_array_list = nullptr;
+
+  jclass g_array_list_class = nullptr;
+  jmethodID g_array_list_constructor = nullptr;
+  jmethodID g_array_list_add = nullptr;
+
+  bool CacheJniHelpers(JNIEnv* env) {
+    jclass hash_map = env->FindClass("java/util/HashMap");
+    g_hash_map_class = (jclass)env->NewGlobalRef(hash_map);
+    g_hash_map_constructor = env->GetMethodID(hash_map, "<init>", "()V");
+    env->DeleteLocalRef(hash_map);
+
+    jclass map = env->FindClass("java/util/Map");
+    g_map_class = (jclass)env->NewGlobalRef(map);
+    g_map_put = env->GetMethodID(map, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+    env->DeleteLocalRef(map);
+
+    jclass bundle = env->FindClass("android/os/Bundle");
+    g_bundle_class = (jclass)env->NewGlobalRef(bundle);
+    g_bundle_constructor = env->GetMethodID(bundle, "<init>", "()V");
+    g_bundle_put_string = env->GetMethodID(bundle, "putString", "(Ljava/lang/String;Ljava/lang/String;)V");
+    g_bundle_put_long = env->GetMethodID(bundle, "putLong", "(Ljava/lang/String;J)V");
+    g_bundle_put_double = env->GetMethodID(bundle, "putDouble", "(Ljava/lang/String;D)V");
+    g_bundle_put_bundle = env->GetMethodID(bundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V");
+    g_bundle_put_parcelable_array = env->GetMethodID(bundle, "putParcelableArray", "(Ljava/lang/String;[Landroid/os/Parcelable;)V");
+    g_bundle_put_parcelable_array_list = env->GetMethodID(bundle, "putParcelableArrayList", "(Ljava/lang/String;Ljava/util/ArrayList;)V");
+    env->DeleteLocalRef(bundle);
+
+    jclass array_list = env->FindClass("java/util/ArrayList");
+    g_array_list_class = (jclass)env->NewGlobalRef(array_list);
+    g_array_list_constructor = env->GetMethodID(array_list, "<init>", "(I)V");
+    g_array_list_add = env->GetMethodID(array_list, "add", "(Ljava/lang/Object;)Z");
+    env->DeleteLocalRef(array_list);
+
+    return true;
+  }
+}
+
 namespace analytics {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAnalytics);
@@ -49,71 +105,188 @@ static const int kErrorSessionExpiredOrCollectionDisabled = -2;
 // Used to setup the cache of Analytics class method IDs to reduce time spent
 // looking up methods by string.
 // clang-format off
-#define ANALYTICS_METHODS(X)                                                  \
-  X(SetEnabled, "setAnalyticsCollectionEnabled", "(Z)V"),                     \
-  X(SetConsent, "setConsent", "(Ljava/util/Map;)V"),                          \
-  X(LogEvent, "logEvent", "(Ljava/lang/String;Landroid/os/Bundle;)V"),        \
-  X(SetUserProperty, "setUserProperty",                                       \
-    "(Ljava/lang/String;Ljava/lang/String;)V"),                               \
-  X(SetUserId, "setUserId", "(Ljava/lang/String;)V"),                         \
-  X(SetSessionTimeoutDuration, "setSessionTimeoutDuration", "(J)V"),          \
-  X(ResetAnalyticsData, "resetAnalyticsData", "()V"),                         \
-  X(GetAppInstanceId, "getAppInstanceId",                                     \
-    "()Lcom/google/android/gms/tasks/Task;"),                                 \
-  X(GetSessionId, "getSessionId",                                             \
-    "()Lcom/google/android/gms/tasks/Task;"),                                 \
-  X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
-    firebase::util::kMethodTypeStatic),                                       \
-  X(SetDefaultEventParameters, "setDefaultEventParameters",                   \
-    "(Landroid/os/Bundle;)V")
-// clang-format on
 
 // clang-format off
-#define ANALYTICS_CONSENT_TYPE_FIELDS(X)                                      \
-  X(AnalyticsStorage, "ANALYTICS_STORAGE",                                    \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
-      util::kFieldTypeStatic),                                                \
-  X(AdStorage, "AD_STORAGE",                                                  \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
-      util::kFieldTypeStatic),                                                \
-  X(AdUserData, "AD_USER_DATA",                                               \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
-      util::kFieldTypeStatic),                                                \
-  X(AdPersonalization, "AD_PERSONALIZATION",                                  \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
-      util::kFieldTypeStatic)
 
-#define ANALYTICS_CONSENT_STATUS_FIELDS(X)                                    \
-  X(Granted, "GRANTED",                                                       \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus;",        \
-      util::kFieldTypeStatic),                                                \
-  X(Denied, "DENIED",                                                         \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus;",        \
-      util::kFieldTypeStatic)
-// clang-format on
+namespace analytics {
+  enum Method {
+    kSetEnabled,
+    kSetConsent,
+    kLogEvent,
+    kSetUserProperty,
+    kSetUserId,
+    kSetSessionTimeoutDuration,
+    kResetAnalyticsData,
+    kGetAppInstanceId,
+    kGetSessionId,
+    kGetInstance,
+    kSetDefaultEventParameters,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
 
-METHOD_LOOKUP_DECLARATION(analytics, ANALYTICS_METHODS)
-METHOD_LOOKUP_DEFINITION(analytics,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/analytics/FirebaseAnalytics",
-                         ANALYTICS_METHODS)
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
 
-METHOD_LOOKUP_DECLARATION(analytics_consent_type, METHOD_LOOKUP_NONE,
-                          ANALYTICS_CONSENT_TYPE_FIELDS)
-METHOD_LOOKUP_DEFINITION(
-    analytics_consent_type,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/analytics/FirebaseAnalytics$ConsentType",
-    METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_TYPE_FIELDS)
+namespace analytics {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/analytics/FirebaseAnalytics"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kSetEnabled] = env->GetMethodID(g_class.get(), "setAnalyticsCollectionEnabled", "(Z)V");
+    if (!g_method_ids[kSetEnabled]) return false;
+    g_method_ids[kSetConsent] = env->GetMethodID(g_class.get(), "setConsent", "(Ljava/util/Map;)V");
+    if (!g_method_ids[kSetConsent]) return false;
+    g_method_ids[kLogEvent] = env->GetMethodID(g_class.get(), "logEvent", "(Ljava/lang/String;Landroid/os/Bundle;)V");
+    if (!g_method_ids[kLogEvent]) return false;
+    g_method_ids[kSetUserProperty] = env->GetMethodID(g_class.get(), "setUserProperty", "(Ljava/lang/String;Ljava/lang/String;)V");
+    if (!g_method_ids[kSetUserProperty]) return false;
+    g_method_ids[kSetUserId] = env->GetMethodID(g_class.get(), "setUserId", "(Ljava/lang/String;)V");
+    if (!g_method_ids[kSetUserId]) return false;
+    g_method_ids[kSetSessionTimeoutDuration] = env->GetMethodID(g_class.get(), "setSessionTimeoutDuration", "(J)V");
+    if (!g_method_ids[kSetSessionTimeoutDuration]) return false;
+    g_method_ids[kResetAnalyticsData] = env->GetMethodID(g_class.get(), "resetAnalyticsData", "()V");
+    if (!g_method_ids[kResetAnalyticsData]) return false;
+    g_method_ids[kGetAppInstanceId] = env->GetMethodID(g_class.get(), "getAppInstanceId", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetAppInstanceId]) return false;
+    g_method_ids[kGetSessionId] = env->GetMethodID(g_class.get(), "getSessionId", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetSessionId]) return false;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Landroid/content/Context;)Lcom/google/firebase/analytics/FirebaseAnalytics;");
+    if (!g_method_ids[kGetInstance]) return false;
+    g_method_ids[kSetDefaultEventParameters] = env->GetMethodID(g_class.get(), "setDefaultEventParameters", "(Landroid/os/Bundle;)V");
+    if (!g_method_ids[kSetDefaultEventParameters]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DECLARATION(analytics_consent_status, METHOD_LOOKUP_NONE,
-                          ANALYTICS_CONSENT_STATUS_FIELDS)
-METHOD_LOOKUP_DEFINITION(
-    analytics_consent_status,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",
-    METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_STATUS_FIELDS)
+
+namespace analytics_consent_type {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kAnalyticsStorage,
+    kAdStorage,
+    kAdUserData,
+    kAdPersonalization,
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace analytics_consent_type {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/analytics/FirebaseAnalytics$ConsentType"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kAnalyticsStorage] = env->GetStaticFieldID(g_class.get(), "ANALYTICS_STORAGE", "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;");
+    if (!g_field_ids[kAnalyticsStorage]) return false;
+    g_field_ids[kAdStorage] = env->GetStaticFieldID(g_class.get(), "AD_STORAGE", "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;");
+    if (!g_field_ids[kAdStorage]) return false;
+    g_field_ids[kAdUserData] = env->GetStaticFieldID(g_class.get(), "AD_USER_DATA", "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;");
+    if (!g_field_ids[kAdUserData]) return false;
+    g_field_ids[kAdPersonalization] = env->GetStaticFieldID(g_class.get(), "AD_PERSONALIZATION", "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;");
+    if (!g_field_ids[kAdPersonalization]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace analytics_consent_status {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kGranted,
+    kDenied,
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace analytics_consent_status {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/analytics/FirebaseAnalytics$ConsentStatus"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kGranted] = env->GetStaticFieldID(g_class.get(), "GRANTED", "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus;");
+    if (!g_field_ids[kGranted]) return false;
+    g_field_ids[kDenied] = env->GetStaticFieldID(g_class.get(), "DENIED", "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus;");
+    if (!g_field_ids[kDenied]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // Initialize the Analytics API.
 void Initialize(const ::firebase::App& app) {
@@ -127,24 +300,24 @@ void Initialize(const ::firebase::App& app) {
     FIREBASE_ASSERT(!g_analytics_class_instance);
     JNIEnv* env = app.GetJNIEnv();
 
-    if (!util::Initialize(env, app.activity())) {
+    if (false) {
       return;
     }
 
     // Cache method pointers.
     if (!analytics::CacheMethodIds(env, app.activity())) {
-      util::Terminate(env);
+      
       return;
     }
     if (!analytics_consent_type::CacheFieldIds(env, app.activity())) {
       analytics::ReleaseClass(env);
-      util::Terminate(env);
+      
       return;
     }
     if (!analytics_consent_status::CacheFieldIds(env, app.activity())) {
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      util::Terminate(env);
+      
       return;
     }
 
@@ -152,7 +325,7 @@ void Initialize(const ::firebase::App& app) {
     jobject analytics_class_instance_local = env->CallStaticObjectMethod(
         analytics::GetClass(), analytics::GetMethodId(analytics::kGetInstance),
         app.activity());
-    if (util::CheckAndClearJniExceptions(env) ||
+    if (jni::CheckAndClearException(env) ||
         !analytics_class_instance_local) {
       if (analytics_class_instance_local) {
         env->DeleteLocalRef(analytics_class_instance_local);
@@ -160,14 +333,14 @@ void Initialize(const ::firebase::App& app) {
       analytics_consent_status::ReleaseClass(env);
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      util::Terminate(env);
+      
       return;
     }
     // Keep a reference to the Analytics singleton.
     g_analytics_class_instance =
         env->NewGlobalRef(analytics_class_instance_local);
     env->DeleteLocalRef(analytics_class_instance_local);
-    if (util::CheckAndClearJniExceptions(env) || !g_analytics_class_instance) {
+    if (jni::CheckAndClearException(env) || !g_analytics_class_instance) {
       if (g_analytics_class_instance) {
         env->DeleteGlobalRef(g_analytics_class_instance);
         g_analytics_class_instance = nullptr;
@@ -175,7 +348,7 @@ void Initialize(const ::firebase::App& app) {
       analytics_consent_status::ReleaseClass(env);
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      util::Terminate(env);
+      
       return;
     }
 
@@ -187,6 +360,45 @@ void Initialize(const ::firebase::App& app) {
 }
 
 namespace internal {
+namespace firebase {
+namespace util {
+
+namespace hash_map {
+  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("java/util/HashMap"))).get(); }
+  enum Method { kConstructor };
+  inline jmethodID GetMethodId(Method) { return ::firebase::app_common::GetAnyApp()->GetJNIEnv()->GetMethodID(GetClass(), "<init>", "()V"); }
+}
+namespace map {
+  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("java/util/Map"))).get(); }
+  enum Method { kPut };
+  inline jmethodID GetMethodId(Method) { return ::firebase::app_common::GetAnyApp()->GetJNIEnv()->GetMethodID(GetClass(), "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"); }
+}
+namespace bundle {
+  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("android/os/Bundle"))).get(); }
+  enum Method { kConstructor, kPutString, kPutDouble, kPutLong, kPutParcelableArrayList, kPutBundle };
+  inline jmethodID GetMethodId(Method m) { 
+    JNIEnv* env = ::firebase::app_common::GetAnyApp()->GetJNIEnv();
+    if (m == kConstructor) return env->GetMethodID(GetClass(), "<init>", "()V");
+    if (m == kPutString) return env->GetMethodID(GetClass(), "putString", "(Ljava/lang/String;Ljava/lang/String;)V");
+    if (m == kPutDouble) return env->GetMethodID(GetClass(), "putDouble", "(Ljava/lang/String;D)V");
+    if (m == kPutLong) return env->GetMethodID(GetClass(), "putLong", "(Ljava/lang/String;J)V");
+    if (m == kPutParcelableArrayList) return env->GetMethodID(GetClass(), "putParcelableArrayList", "(Ljava/lang/String;Ljava/util/ArrayList;)V");
+    if (m == kPutBundle) return env->GetMethodID(GetClass(), "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V");
+    return nullptr;
+  }
+}
+namespace array_list {
+  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("java/util/ArrayList"))).get(); }
+  enum Method { kConstructor, kAdd };
+  inline jmethodID GetMethodId(Method m) { 
+    JNIEnv* env = ::firebase::app_common::GetAnyApp()->GetJNIEnv();
+    if (m == kConstructor) return env->GetMethodID(GetClass(), "<init>", "()V");
+    if (m == kAdd) return env->GetMethodID(GetClass(), "add", "(Ljava/lang/Object;)Z");
+    return nullptr;
+  }
+}
+}
+}
 
 // Determine whether the analytics module is initialized.
 bool IsInitialized() {
@@ -215,7 +427,7 @@ void Terminate() {
   // Release FutureData::mutex() before CancelCallbacks and CleanupNotifier
   // unregistration to avoid AB-BA lock-order inversion with in-flight JNI task
   // completion callbacks and App destruction callbacks.
-  util::CancelCallbacks(env, internal::kAnalyticsModuleName);
+  ::firebase::util::CancelCallbacks(env, internal::kAnalyticsModuleName);
   internal::UnregisterTerminateOnAppDestroy();
   {
     std::lock_guard<std::recursive_mutex> lock(internal::FutureData::mutex());
@@ -226,7 +438,7 @@ void Terminate() {
       analytics_consent_status::ReleaseClass(env);
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      util::Terminate(env);
+      
     }
   }
 }
@@ -240,7 +452,7 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kSetEnabled),
                       collection_enabled);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
@@ -249,13 +461,13 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   JNIEnv* env = g_app->GetJNIEnv();
 
   jobject consent_map =
-      env->NewObject(util::hash_map::GetClass(),
-                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
-  if (util::CheckAndClearJniExceptions(env) || !consent_map) {
+      env->NewObject(g_hash_map_class,
+                     g_hash_map_constructor);
+  if (jni::CheckAndClearException(env) || !consent_map) {
     if (consent_map) env->DeleteLocalRef(consent_map);
     return;
   }
-  jmethodID put_method = util::map::GetMethodId(util::map::kPut);
+  jmethodID put_method = g_map_put;
   for (auto it = consent_settings.begin(); it != consent_settings.end(); ++it) {
     jobject consent_type = nullptr;
     switch (it->first) {
@@ -264,8 +476,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_type::GetClass(),
                                       analytics_consent_type::GetFieldId(
                                           analytics_consent_type::kAdStorage));
-        if (util::LogException(env, kLogLevelError,
-                               "Failed to get ConsentTypeAdStorage") ||
+        if (::firebase::jni::CheckAndClearException(env) ||
             !consent_type) {
           if (consent_type) env->DeleteLocalRef(consent_type);
           env->DeleteLocalRef(consent_map);
@@ -278,8 +489,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             analytics_consent_type::GetFieldId(
                 analytics_consent_type::kAnalyticsStorage));
 
-        if (util::LogException(env, kLogLevelError,
-                               "Failed to get ConsentTypeAnalyticsStorage") ||
+        if (::firebase::jni::CheckAndClearException(env) ||
             !consent_type) {
           if (consent_type) env->DeleteLocalRef(consent_type);
           env->DeleteLocalRef(consent_map);
@@ -292,8 +502,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
                                       analytics_consent_type::GetFieldId(
                                           analytics_consent_type::kAdUserData));
 
-        if (util::LogException(env, kLogLevelError,
-                               "Failed to get ConsentTypeAdUserData") ||
+        if (::firebase::jni::CheckAndClearException(env) ||
             !consent_type) {
           if (consent_type) env->DeleteLocalRef(consent_type);
           env->DeleteLocalRef(consent_map);
@@ -306,8 +515,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             analytics_consent_type::GetFieldId(
                 analytics_consent_type::kAdPersonalization));
 
-        if (util::LogException(env, kLogLevelError,
-                               "Failed to get ConsentTypeAdPersonalization") ||
+        if (::firebase::jni::CheckAndClearException(env) ||
             !consent_type) {
           if (consent_type) env->DeleteLocalRef(consent_type);
           env->DeleteLocalRef(consent_map);
@@ -326,8 +534,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kGranted));
-        if (util::LogException(env, kLogLevelError,
-                               "Failed to get ConsentStatusGranted") ||
+        if (::firebase::jni::CheckAndClearException(env) ||
             !consent_status) {
           if (consent_status) env->DeleteLocalRef(consent_status);
           env->DeleteLocalRef(consent_map);
@@ -340,8 +547,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kDenied));
-        if (util::LogException(env, kLogLevelError,
-                               "Failed to get ConsentStatusDenied") ||
+        if (::firebase::jni::CheckAndClearException(env) ||
             !consent_status) {
           if (consent_status) env->DeleteLocalRef(consent_status);
           env->DeleteLocalRef(consent_map);
@@ -360,7 +566,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             static_cast<int>(it->second));
     jobject previous = env->CallObjectMethod(consent_map, put_method,
                                              consent_type, consent_status);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     if (previous) env->DeleteLocalRef(previous);
     env->DeleteLocalRef(consent_type);
     env->DeleteLocalRef(consent_status);
@@ -368,7 +574,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kSetConsent),
                       consent_map);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(consent_map);
 }
 
@@ -380,16 +586,16 @@ void LogEvent(JNIEnv* env, const char* name, BuildBundleFunction build_bundle) {
     return;
   }
   jobject bundle =
-      env->NewObject(util::bundle::GetClass(),
-                     util::bundle::GetMethodId(util::bundle::kConstructor));
-  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+      env->NewObject(g_bundle_class,
+                     g_bundle_constructor);
+  if (jni::CheckAndClearException(env) || !bundle) {
     LogError("Failed to create Bundle for event '%s'", name);
     if (bundle) env->DeleteLocalRef(bundle);
     return;
   }
   build_bundle(bundle);
   jstring event_name_string = jni::NewRawJString(env, name);
-  if (util::CheckAndClearJniExceptions(env) || !event_name_string) {
+  if (jni::CheckAndClearException(env) || !event_name_string) {
     LogError("Failed to create event name string for '%s'", name);
     if (event_name_string) env->DeleteLocalRef(event_name_string);
     env->DeleteLocalRef(bundle);
@@ -398,7 +604,7 @@ void LogEvent(JNIEnv* env, const char* name, BuildBundleFunction build_bundle) {
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kLogEvent),
                       event_name_string, bundle);
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     LogError("Failed to log event '%s'", name);
   }
   env->DeleteLocalRef(event_name_string);
@@ -410,20 +616,20 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key,
                  const char* value) {
   if (!bundle || !key) return;
   jstring key_string = jni::NewRawJString(env, key);
-  if (util::CheckAndClearJniExceptions(env) || !key_string) {
+  if (jni::CheckAndClearException(env) || !key_string) {
     if (key_string) env->DeleteLocalRef(key_string);
     return;
   }
   jstring value_string = value ? jni::NewRawJString(env, value) : nullptr;
-  if (value && (util::CheckAndClearJniExceptions(env) || !value_string)) {
+  if (value && (jni::CheckAndClearException(env) || !value_string)) {
     if (value_string) env->DeleteLocalRef(value_string);
     env->DeleteLocalRef(key_string);
     return;
   }
   env->CallVoidMethod(bundle,
-                      util::bundle::GetMethodId(util::bundle::kPutString),
+                      g_bundle_put_string,
                       key_string, value_string);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   if (value_string) env->DeleteLocalRef(value_string);
   env->DeleteLocalRef(key_string);
 }
@@ -432,14 +638,14 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key,
 void AddToBundle(JNIEnv* env, jobject bundle, const char* key, double value) {
   if (!bundle || !key) return;
   jstring key_string = jni::NewRawJString(env, key);
-  if (util::CheckAndClearJniExceptions(env) || !key_string) {
+  if (jni::CheckAndClearException(env) || !key_string) {
     if (key_string) env->DeleteLocalRef(key_string);
     return;
   }
   env->CallVoidMethod(bundle,
-                      util::bundle::GetMethodId(util::bundle::kPutDouble),
+                      g_bundle_put_double,
                       key_string, static_cast<jdouble>(value));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(key_string);
 }
 
@@ -447,13 +653,13 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key, double value) {
 void AddToBundle(JNIEnv* env, jobject bundle, const char* key, int64_t value) {
   if (!bundle || !key) return;
   jstring key_string = jni::NewRawJString(env, key);
-  if (util::CheckAndClearJniExceptions(env) || !key_string) {
+  if (jni::CheckAndClearException(env) || !key_string) {
     if (key_string) env->DeleteLocalRef(key_string);
     return;
   }
-  env->CallVoidMethod(bundle, util::bundle::GetMethodId(util::bundle::kPutLong),
+  env->CallVoidMethod(bundle, g_bundle_put_long,
                       key_string, static_cast<jlong>(value));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(key_string);
 }
 
@@ -462,14 +668,14 @@ void AddArrayListToBundle(JNIEnv* env, jobject bundle, const char* key,
                           jobject arraylist) {
   if (!bundle || !key || !arraylist) return;
   jstring key_string = jni::NewRawJString(env, key);
-  if (util::CheckAndClearJniExceptions(env) || !key_string) {
+  if (jni::CheckAndClearException(env) || !key_string) {
     if (key_string) env->DeleteLocalRef(key_string);
     return;
   }
   env->CallVoidMethod(
-      bundle, util::bundle::GetMethodId(util::bundle::kPutParcelableArrayList),
+      bundle, g_bundle_put_parcelable_array_list,
       key_string, arraylist);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(key_string);
 }
 
@@ -478,14 +684,14 @@ void AddBundleToBundle(JNIEnv* env, jobject bundle, const char* key,
                        jobject inner_bundle) {
   if (!bundle || !key || !inner_bundle) return;
   jstring key_string = jni::NewRawJString(env, key);
-  if (util::CheckAndClearJniExceptions(env) || !key_string) {
+  if (jni::CheckAndClearException(env) || !key_string) {
     if (key_string) env->DeleteLocalRef(key_string);
     return;
   }
   env->CallVoidMethod(bundle,
-                      util::bundle::GetMethodId(util::bundle::kPutBundle),
+                      g_bundle_put_bundle,
                       key_string, inner_bundle);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(key_string);
 }
 
@@ -497,9 +703,9 @@ jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map);
 jobject VectorOfMapsToArrayList(JNIEnv* env,
                                 const std::vector<Variant>& vector) {
   jobject arraylist = env->NewObject(
-      util::array_list::GetClass(),
-      util::array_list::GetMethodId(util::array_list::kConstructor));
-  if (util::CheckAndClearJniExceptions(env) || !arraylist) {
+      g_array_list_class,
+      g_array_list_constructor);
+  if (jni::CheckAndClearException(env) || !arraylist) {
     if (arraylist) env->DeleteLocalRef(arraylist);
     return nullptr;
   }
@@ -509,9 +715,9 @@ jobject VectorOfMapsToArrayList(JNIEnv* env,
       jobject bundle = MapToBundle(env, element.map());
       if (bundle) {
         env->CallBooleanMethod(
-            arraylist, util::array_list::GetMethodId(util::array_list::kAdd),
+            arraylist, g_array_list_add,
             bundle);
-        util::CheckAndClearJniExceptions(env);
+        jni::CheckAndClearException(env);
         env->DeleteLocalRef(bundle);
       }
     } else {
@@ -570,9 +776,9 @@ bool AddVariantToBundle(JNIEnv* env, jobject bundle, const char* key,
 // to delete the local reference when done.
 jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
   jobject bundle =
-      env->NewObject(util::bundle::GetClass(),
-                     util::bundle::GetMethodId(util::bundle::kConstructor));
-  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+      env->NewObject(g_bundle_class,
+                     g_bundle_constructor);
+  if (jni::CheckAndClearException(env) || !bundle) {
     if (bundle) env->DeleteLocalRef(bundle);
     return nullptr;
   }
@@ -587,7 +793,7 @@ jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
                Variant::TypeName(pair.second.type()),
                pair.first.string_value());
     }
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
   return bundle;
 }
@@ -747,16 +953,16 @@ void SetDefaultEventParameters(const Parameter* parameters,
     env->CallVoidMethod(
         g_analytics_class_instance,
         analytics::GetMethodId(analytics::kSetDefaultEventParameters), nullptr);
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       LogError("Failed to set default event parameters");
     }
     return;
   }
 
   jobject bundle =
-      env->NewObject(util::bundle::GetClass(),
-                     util::bundle::GetMethodId(util::bundle::kConstructor));
-  if (util::CheckAndClearJniExceptions(env) || !bundle) {
+      env->NewObject(g_bundle_class,
+                     g_bundle_constructor);
+  if (jni::CheckAndClearException(env) || !bundle) {
     LogError("Failed to create bundle for SetDefaultEventParameters.");
     if (bundle) env->DeleteLocalRef(bundle);
     return;
@@ -781,7 +987,7 @@ void SetDefaultEventParameters(const Parameter* parameters,
   env->CallVoidMethod(
       g_analytics_class_instance,
       analytics::GetMethodId(analytics::kSetDefaultEventParameters), bundle);
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     LogError("Failed to set default event parameters");
   }
   env->DeleteLocalRef(bundle);
@@ -850,12 +1056,12 @@ void SetUserProperty(const char* name, const char* value) {
   }
   JNIEnv* env = g_app->GetJNIEnv();
   jstring property_name = jni::NewRawJString(env, name);
-  if (util::CheckAndClearJniExceptions(env) || !property_name) {
+  if (jni::CheckAndClearException(env) || !property_name) {
     if (property_name) env->DeleteLocalRef(property_name);
     return;
   }
   jstring property_value = value ? jni::NewRawJString(env, value) : nullptr;
-  if (value && (util::CheckAndClearJniExceptions(env) || !property_value)) {
+  if (value && (jni::CheckAndClearException(env) || !property_value)) {
     if (property_value) env->DeleteLocalRef(property_value);
     env->DeleteLocalRef(property_name);
     return;
@@ -863,7 +1069,7 @@ void SetUserProperty(const char* name, const char* value) {
   env->CallVoidMethod(g_analytics_class_instance,
                        analytics::GetMethodId(analytics::kSetUserProperty),
                        property_name, property_value);
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     LogError("Unable to set user property name='%s', value='%s'", name,
              value ? value : "(null)");
   }
@@ -879,14 +1085,14 @@ void SetUserId(const char* user_id) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
   jstring user_id_value = user_id ? jni::NewRawJString(env, user_id) : nullptr;
-  if (user_id && (util::CheckAndClearJniExceptions(env) || !user_id_value)) {
+  if (user_id && (jni::CheckAndClearException(env) || !user_id_value)) {
     if (user_id_value) env->DeleteLocalRef(user_id_value);
     return;
   }
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kSetUserId),
                       user_id_value);
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     LogError("Unable to set user ID '%s'", user_id ? user_id : "(null)");
   }
   if (user_id_value) env->DeleteLocalRef(user_id_value);
@@ -901,7 +1107,7 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
       g_analytics_class_instance,
       analytics::GetMethodId(analytics::kSetSessionTimeoutDuration),
       static_cast<jlong>(milliseconds));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 void ResetAnalyticsData() {
@@ -910,7 +1116,7 @@ void ResetAnalyticsData() {
   JNIEnv* env = g_app->GetJNIEnv();
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kResetAnalyticsData));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 // NO-OP in Android and iOS. Only used in Windows.
@@ -941,11 +1147,11 @@ Future<std::string> GetAnalyticsInstanceId() {
   jobject task = env->CallObjectMethod(
       g_analytics_class_instance,
       analytics::GetMethodId(analytics::kGetAppInstanceId));
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = jni::GetAndClearExceptionMessage(env);
   if (error.empty() && task != nullptr) {
-    util::RegisterCallbackOnTask(
+    ::firebase::util::RegisterCallbackOnTask(
         env, task,
-        [](JNIEnv* env, jobject result, util::FutureResult result_code,
+        [](JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
            const char* status_message, void* callback_data) {
           std::lock_guard<std::recursive_mutex> lock(
               internal::FutureData::mutex());
@@ -953,16 +1159,16 @@ Future<std::string> GetAnalyticsInstanceId() {
               internal::FutureData::GetShared();
           if (future_data) {
             bool success =
-                result_code == util::kFutureResultSuccess && result != nullptr;
+                result_code == firebase::util::kFutureResultSuccess && result != nullptr;
             FutureHandleId future_id =
                 reinterpret_cast<FutureHandleId>(callback_data);
             auto handle = SafeFutureHandle<std::string>(FutureHandle(future_id));
             if (success) {
               future_data->api()->CompleteWithResult(
-                  handle, kErrorNone, "", util::JStringToString(env, result));
+                  handle, kErrorNone, "", jni::JStringToString(env, result));
             } else {
               std::string error_string =
-                  util::GetMessageFromException(env, result);
+                  ::firebase::jni::ExtractExceptionMessage(env, static_cast<jthrowable>(result));
               if (error_string.empty()) {
                 error_string = (status_message && *status_message)
                                    ? status_message
@@ -1018,11 +1224,11 @@ Future<int64_t> GetSessionId() {
       env->CallObjectMethod(g_analytics_class_instance,
                             analytics::GetMethodId(analytics::kGetSessionId));
 
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = jni::GetAndClearExceptionMessage(env);
   if (error.empty() && task != nullptr) {
-    util::RegisterCallbackOnTask(
+    ::firebase::util::RegisterCallbackOnTask(
         env, task,
-        [](JNIEnv* env, jobject result, util::FutureResult result_code,
+        [](JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
            const char* status_message, void* callback_data) {
           std::lock_guard<std::recursive_mutex> lock(
               internal::FutureData::mutex());
@@ -1033,12 +1239,18 @@ Future<int64_t> GetSessionId() {
                 reinterpret_cast<FutureHandleId>(callback_data);
             auto handle = SafeFutureHandle<int64_t>(FutureHandle(future_id));
 
-            if (result_code == util::kFutureResultSuccess) {
+            if (result_code == firebase::util::kFutureResultSuccess) {
               if (result != nullptr) {
                 // result is a Long class type, unbox it.
                 // It'll get deleted below.
-                int64_t session_id = util::JLongToInt64(env, result);
-                util::CheckAndClearJniExceptions(env);
+                int64_t session_id = [env, result]() -> int64_t {
+                  jclass longClass = env->FindClass("java/lang/Long");
+                  jmethodID longValue = env->GetMethodID(longClass, "longValue", "()J");
+                  int64_t val = env->CallLongMethod(result, longValue);
+                  env->DeleteLocalRef(longClass);
+                  return val;
+                }();
+                jni::CheckAndClearException(env);
                 future_data->api()->CompleteWithResult(handle, kErrorNone, "",
                                                        session_id);
               } else {
@@ -1056,7 +1268,7 @@ Future<int64_t> GetSessionId() {
             } else {
               // Failed, result may be an exception.
               std::string error_string =
-                  util::GetMessageFromException(env, result);
+                  ::firebase::jni::ExtractExceptionMessage(env, static_cast<jthrowable>(result));
               if (error_string.empty()) {
                 error_string = (status_message && *status_message)
                                    ? status_message

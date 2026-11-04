@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/app_android.h"
+#include "app/src/jni/exception.h"
 #include "app_check/src/android/app_check_android.h"
 
 #include <algorithm>
@@ -26,7 +28,6 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
-#include "app/src/util_android.h"
 #include "app_check/app_check_resources.h"
 #include "app_check/src/android/common_android.h"
 #include "app_check/src/android/debug_provider_android.h"
@@ -44,7 +45,7 @@ namespace internal {
   X(GetInstance, "getInstance",                                                \
     "(Lcom/google/firebase/FirebaseApp;)"                                      \
     "Lcom/google/firebase/appcheck/FirebaseAppCheck;",                         \
-    util::kMethodTypeStatic),                                                  \
+    firebase::util::kMethodTypeStatic),                                                  \
   X(InstallAppCheckProviderFactory, "installAppCheckProviderFactory",          \
     "(Lcom/google/firebase/appcheck/AppCheckProviderFactory;)V"),              \
   X(SetTokenAutoRefreshEnabled, "setTokenAutoRefreshEnabled",                  \
@@ -59,36 +60,171 @@ namespace internal {
     "(Lcom/google/firebase/appcheck/FirebaseAppCheck$AppCheckListener;)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(app_check, APP_CHECK_METHODS)
-METHOD_LOOKUP_DEFINITION(app_check,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/appcheck/FirebaseAppCheck",
-                         APP_CHECK_METHODS)
+namespace app_check {
+  enum Method {
+    kGetInstance,
+    kInstallAppCheckProviderFactory,
+    kSetTokenAutoRefreshEnabled,
+    kGetToken,
+    kGetLimitedUseToken,
+    kAddAppCheckListener,
+    kRemoveAppCheckListener,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace app_check {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/FirebaseAppCheck"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/appcheck/FirebaseAppCheck;");
+    if (!g_method_ids[kGetInstance]) return false;
+    g_method_ids[kInstallAppCheckProviderFactory] = env->GetMethodID(g_class.get(), "installAppCheckProviderFactory", "(Lcom/google/firebase/appcheck/AppCheckProviderFactory;)V");
+    if (!g_method_ids[kInstallAppCheckProviderFactory]) return false;
+    g_method_ids[kSetTokenAutoRefreshEnabled] = env->GetMethodID(g_class.get(), "setTokenAutoRefreshEnabled", "(Z)V");
+    if (!g_method_ids[kSetTokenAutoRefreshEnabled]) return false;
+    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getAppCheckToken", "(Z)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetToken]) return false;
+    g_method_ids[kGetLimitedUseToken] = env->GetMethodID(g_class.get(), "getLimitedUseAppCheckToken", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetLimitedUseToken]) return false;
+    g_method_ids[kAddAppCheckListener] = env->GetMethodID(g_class.get(), "addAppCheckListener", "(Lcom/google/firebase/appcheck/FirebaseAppCheck$AppCheckListener;)V");
+    if (!g_method_ids[kAddAppCheckListener]) return false;
+    g_method_ids[kRemoveAppCheckListener] = env->GetMethodID(g_class.get(), "removeAppCheckListener", "(Lcom/google/firebase/appcheck/FirebaseAppCheck$AppCheckListener;)V");
+    if (!g_method_ids[kRemoveAppCheckListener]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define DEFAULT_APP_CHECK_IMPL_METHODS(X)               \
   X(ResetAppCheckState, "resetAppCheckState", "()V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(default_app_check_impl,
-                          DEFAULT_APP_CHECK_IMPL_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    default_app_check_impl,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/appcheck/internal/DefaultFirebaseAppCheck",
-    DEFAULT_APP_CHECK_IMPL_METHODS)
+namespace default_app_check_impl {
+  enum Method {
+    kResetAppCheckState,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace default_app_check_impl {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/internal/DefaultFirebaseAppCheck"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kResetAppCheckState] = env->GetMethodID(g_class.get(), "resetAppCheckState", "()V");
+    if (!g_method_ids[kResetAppCheckState]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define JNI_APP_CHECK_PROVIDER_FACTORY_METHODS(X)                              \
   X(Constructor, "<init>", "(JJ)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(jni_provider_factory,
-                          JNI_APP_CHECK_PROVIDER_FACTORY_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    jni_provider_factory,
-    "com/google/firebase/appcheck/internal/cpp/JniAppCheckProviderFactory",
-    JNI_APP_CHECK_PROVIDER_FACTORY_METHODS)
+namespace jni_provider_factory {
+  enum Method {
+    kConstructor,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace jni_provider_factory {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/internal/cpp/JniAppCheckProviderFactory"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
+    if (!g_method_ids[kConstructor]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
     JNIEnv* env, jobject clazz, jlong c_factory, jlong c_app);
@@ -105,11 +241,54 @@ static const JNINativeMethod kNativeJniAppCheckProviderFactoryMethods[] = {
   "(Lcom/google/android/gms/tasks/TaskCompletionSource;Ljava/lang/String;JILjava/lang/String;)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(jni_provider, JNI_APP_CHECK_PROVIDER_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    jni_provider,
-    "com/google/firebase/appcheck/internal/cpp/JniAppCheckProvider",
-    JNI_APP_CHECK_PROVIDER_METHODS)
+namespace jni_provider {
+  enum Method {
+    kConstructor,
+    kHandleGetTokenResult,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace jni_provider {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/internal/cpp/JniAppCheckProvider"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(J)V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kHandleGetTokenResult] = env->GetMethodID(g_class.get(), "handleGetTokenResult", "(Lcom/google/android/gms/tasks/TaskCompletionSource;Ljava/lang/String;JILjava/lang/String;)V");
+    if (!g_method_ids[kHandleGetTokenResult]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
     JNIEnv* env, jobject j_provider, jlong c_provider,
@@ -131,12 +310,51 @@ static const JNINativeMethod kNativeJniAppCheckProviderMethods[] = {
   X(Constructor, "<init>", "(J)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(jni_app_check_listener,
-                          JNI_APP_CHECK_LISTENER_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    jni_app_check_listener,
-    "com/google/firebase/appcheck/internal/cpp/JniAppCheckListener",
-    JNI_APP_CHECK_LISTENER_METHODS)
+namespace jni_app_check_listener {
+  enum Method {
+    kConstructor,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace jni_app_check_listener {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/internal/cpp/JniAppCheckListener"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(J)V");
+    if (!g_method_ids[kConstructor]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
     JNIEnv* env, jobject clazz, jlong c_app_check, jobject token);
@@ -248,7 +466,7 @@ void ReleaseJniClassesLocked(JNIEnv* env) {
     }
     if (env != nullptr) {
       ReleaseClasses(env);
-      util::Terminate(env);
+      
     }
   }
 }
@@ -262,7 +480,7 @@ struct FutureDataHandle {
 };
 
 void TokenResultCallback(JNIEnv* env, jobject result,
-                         util::FutureResult result_code,
+                         firebase::util::FutureResult result_code,
                          const char* status_message, void* callback_data) {
   int result_error_code = kAppCheckErrorNone;
   AppCheckToken result_token;
@@ -302,14 +520,14 @@ struct JniTokenCallbackState {
     if (env != nullptr) {
       if (j_provider != nullptr) {
         j_provider_global = env->NewGlobalRef(j_provider);
-        if (util::CheckAndClearJniExceptions(env)) {
+        if (jni::CheckAndClearException(env)) {
           j_provider_global = nullptr;
         }
       }
       if (task_completion_source != nullptr) {
         task_completion_source_global =
             env->NewGlobalRef(task_completion_source);
-        if (util::CheckAndClearJniExceptions(env)) {
+        if (jni::CheckAndClearException(env)) {
           task_completion_source_global = nullptr;
         }
       }
@@ -329,11 +547,11 @@ struct JniTokenCallbackState {
       return;
     }
     jstring error_string = env->NewStringUTF(error_message.c_str());
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       error_string = nullptr;
     }
     jstring token_string = env->NewStringUTF(token_str.c_str());
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       if (error_string != nullptr) {
         env->DeleteLocalRef(error_string);
       }
@@ -342,7 +560,7 @@ struct JniTokenCallbackState {
     env->CallVoidMethod(j_provider_global, handle_result_mid,
                         task_completion_source_global, token_string,
                         expire_time_millis, error_code, error_string);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     if (token_string != nullptr) {
       env->DeleteLocalRef(token_string);
     }
@@ -495,7 +713,7 @@ AppCheckInternal::AppCheckInternal(App* app)
     MutexLock lock(GetRegistryMutex());
     if (g_initialized_count == 0) {
       jobject activity = app_->activity();
-      if (!util::Initialize(env, activity)) {
+      if (!true) {
         return;
       }
       // Cache embedded files and load embedded classes.
@@ -510,7 +728,7 @@ AppCheckInternal::AppCheckInternal(App* app)
       if (!(CacheAppCheckMethodIds(env, activity, embedded_files) &&
             CacheCommonAndroidMethodIds(env, activity))) {
         ReleaseClasses(env);
-        util::Terminate(env);
+        
         return;
       }
       // Each provider is optional as a user may or may not use it.
@@ -533,7 +751,7 @@ AppCheckInternal::AppCheckInternal(App* app)
   jobject j_app_check_local = env->CallStaticObjectMethod(
       app_check::GetClass(), app_check::GetMethodId(app_check::kGetInstance),
       platform_app);
-  bool get_instance_exception = util::CheckAndClearJniExceptions(env);
+  bool get_instance_exception = jni::CheckAndClearException(env);
   env->DeleteLocalRef(platform_app);
   if (get_instance_exception || j_app_check_local == nullptr) {
     if (j_app_check_local != nullptr) {
@@ -546,7 +764,7 @@ AppCheckInternal::AppCheckInternal(App* app)
   // released in the AppCheckInternal destructor.
   app_check_impl_ = env->NewGlobalRef(j_app_check_local);
   env->DeleteLocalRef(j_app_check_local);
-  if (util::CheckAndClearJniExceptions(env) || app_check_impl_ == nullptr) {
+  if (jni::CheckAndClearException(env) || app_check_impl_ == nullptr) {
     app_check_impl_ = nullptr;
     return;
   }
@@ -565,13 +783,13 @@ AppCheckInternal::AppCheckInternal(App* app)
         jni_provider_factory::GetClass(),
         jni_provider_factory::GetMethodId(jni_provider_factory::kConstructor),
         reinterpret_cast<jlong>(factory), reinterpret_cast<jlong>(app_));
-    if (!util::CheckAndClearJniExceptions(env) && j_factory != nullptr) {
+    if (!jni::CheckAndClearException(env) && j_factory != nullptr) {
       // Install the Java ProviderFactory in the Java AppCheck class.
       env->CallVoidMethod(
           app_check_impl_,
           app_check::GetMethodId(app_check::kInstallAppCheckProviderFactory),
           j_factory);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
       env->DeleteLocalRef(j_factory);
     }
   }
@@ -581,13 +799,13 @@ AppCheckInternal::AppCheckInternal(App* app)
       jni_app_check_listener::GetClass(),
       jni_app_check_listener::GetMethodId(jni_app_check_listener::kConstructor),
       reinterpret_cast<jlong>(this));
-  if (!util::CheckAndClearJniExceptions(env) && j_listener != nullptr) {
+  if (!jni::CheckAndClearException(env) && j_listener != nullptr) {
     env->CallVoidMethod(app_check_impl_,
                         app_check::GetMethodId(app_check::kAddAppCheckListener),
                         j_listener);
-    if (!util::CheckAndClearJniExceptions(env)) {
+    if (!jni::CheckAndClearException(env)) {
       j_app_check_listener_ = env->NewGlobalRef(j_listener);
-      if (util::CheckAndClearJniExceptions(env)) {
+      if (jni::CheckAndClearException(env)) {
         j_app_check_listener_ = nullptr;
       }
     }
@@ -603,7 +821,7 @@ AppCheckInternal::~AppCheckInternal() {
   JNIEnv* env = app_ ? app_->GetJNIEnv() : util::GetJNIEnvFromApp();
   if (env != nullptr) {
     if (!jni_task_id_.empty()) {
-      util::CancelCallbacks(env, jni_task_id_.c_str());
+      firebase::util::CancelCallbacks(env, jni_task_id_.c_str());
     }
 
     if (j_app_check_listener_ != nullptr) {
@@ -612,7 +830,7 @@ AppCheckInternal::~AppCheckInternal() {
             app_check_impl_,
             app_check::GetMethodId(app_check::kRemoveAppCheckListener),
             j_app_check_listener_);
-        util::CheckAndClearJniExceptions(env);
+        jni::CheckAndClearException(env);
       }
       env->DeleteGlobalRef(j_app_check_listener_);
       j_app_check_listener_ = nullptr;
@@ -636,7 +854,7 @@ AppCheckInternal::~AppCheckInternal() {
     if (default_cls != nullptr && reset_mid != nullptr &&
         env->IsInstanceOf(app_check_impl_, default_cls)) {
       env->CallVoidMethod(app_check_impl_, reset_mid);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
     }
 
     env->DeleteGlobalRef(app_check_impl_);
@@ -675,7 +893,7 @@ void AppCheckInternal::SetTokenAutoRefreshEnabled(
       app_check_impl_,
       app_check::GetMethodId(app_check::kSetTokenAutoRefreshEnabled),
       static_cast<jboolean>(is_token_auto_refresh_enabled));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
@@ -696,10 +914,10 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
       app_check_impl_, app_check::GetMethodId(app_check::kGetToken),
       static_cast<jboolean>(force_refresh));
 
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = jni::GetAndClearExceptionMessage(env);
   if (error.empty() && j_task != nullptr) {
     auto data_handle = new FutureDataHandle(future(), handle);
-    util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
+    firebase::util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
   } else {
@@ -736,10 +954,10 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
   jobject j_task = env->CallObjectMethod(
       app_check_impl_, app_check::GetMethodId(app_check::kGetLimitedUseToken));
 
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = jni::GetAndClearExceptionMessage(env);
   if (error.empty() && j_task != nullptr) {
     auto data_handle = new FutureDataHandle(future(), handle);
-    util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
+    firebase::util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
   } else {

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include "testing/run_all_tests.h"
 #include "testing/ticker.h"
 #include "testing/util_android.h"
@@ -25,7 +26,7 @@ void TickerElapse() {
   jclass cls = android_jni_env->FindClass("com/google/testing/TickerAndroid");
   android_jni_env->CallStaticVoidMethod(
       cls, android_jni_env->GetStaticMethodID(cls, "elapse", "()V"));
-  util::CheckAndClearException(android_jni_env);
+  jni::CheckAndClearException(android_jni_env);
   android_jni_env->DeleteLocalRef(cls);
 }
 
@@ -34,7 +35,7 @@ void TickerReset() {
   jclass cls = android_jni_env->FindClass("com/google/testing/TickerAndroid");
   android_jni_env->CallStaticVoidMethod(
       cls, android_jni_env->GetStaticMethodID(cls, "reset", "()V"));
-  util::CheckAndClearException(android_jni_env);
+  jni::CheckAndClearException(android_jni_env);
   android_jni_env->DeleteLocalRef(cls);
 }
 

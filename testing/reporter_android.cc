@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include <jni.h>
 
 #include <string>
@@ -30,7 +31,7 @@ void Reporter::reset() {
   JNIEnv* env = GetTestJniEnv();
   jclass cls = env->FindClass("com/google/testing/FakeReporter");
   env->CallStaticVoidMethod(cls, env->GetStaticMethodID(cls, "reset", "()V"));
-  util::CheckAndClearException(env);
+  jni::CheckAndClearException(env);
   env->DeleteLocalRef(cls);
 }
 
@@ -39,7 +40,7 @@ std::vector<std::string> Reporter::getAllFakes() {
   jclass cls = env->FindClass("com/google/testing/FakeReporter");
   jobject fake_functions_list = env->CallStaticObjectMethod(
       cls, env->GetStaticMethodID(cls, "getAllFakes", "()Ljava/util/List;"));
-  util::CheckAndClearException(env);
+  jni::CheckAndClearException(env);
   std::vector<std::string> fake_functions =
       util::JavaStringListToStdStringVector(env, fake_functions_list);
 
@@ -57,7 +58,7 @@ std::vector<std::string> Reporter::getFakeArgs(const std::string& fake) {
       env->GetStaticMethodID(cls, "getFakeArgs",
                              "(Ljava/lang/String;)Ljava/util/List;"),
       fake_string);
-  util::CheckAndClearException(env);
+  jni::CheckAndClearException(env);
   std::vector<std::string> fake_args =
       util::JavaStringListToStdStringVector(env, fake_args_list);
 
@@ -76,7 +77,7 @@ std::string Reporter::getFakeResult(const std::string& fake) {
       env->GetStaticMethodID(cls, "getFakeResult",
                              "(Ljava/lang/String;)Ljava/lang/String;"),
       fake_string);
-  util::CheckAndClearException(env);
+  jni::CheckAndClearException(env);
   std::string return_string =
       util::JavaStringToStdString(env, fake_result_string);
 

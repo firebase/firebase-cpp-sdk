@@ -17,9 +17,12 @@
 #include <jni.h>
 
 #include "app/src/future_manager.h"
-#include "app/src/util_android.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/env.h"
+#include "app/src/jni/ownership.h"
 #include "database/src/android/database_android.h"
-#include "database/src/android/util_android.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/env.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/include/firebase/database/disconnection.h"
 
@@ -42,20 +45,59 @@ namespace internal {
   X(Cancel, "cancel", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(on_disconnect, ON_DISCONNECT_METHODS)
-METHOD_LOOKUP_DEFINITION(on_disconnect,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/database/OnDisconnect",
-                         ON_DISCONNECT_METHODS)
+namespace on_disconnect {
 
-enum DisconnectionHandlerFn {
-  kDisconnectionHandlerFnCancel = 0,
-  kDisconnectionHandlerFnRemoveValue,
-  kDisconnectionHandlerFnSetValue,
-  kDisconnectionHandlerFnSetValueAndPriority,
-  kDisconnectionHandlerFnUpdateChildren,
-  kDisconnectionHandlerFnCount,
+enum Method {
+  kSetValue,
+  kSetValueAndStringPriority,
+  kSetValueAndDoublePriority,
+  kUpdateChildren,
+  kRemoveValue,
+  kCancel,
+  kMethodCount
 };
+
+enum Field { kFieldCount = 0 };
+
+::firebase::jni::Global<jclass> g_class;
+jmethodID g_method_ids[kMethodCount];
+
+jclass GetClass() { return g_class.get(); }
+jmethodID GetMethodId(Method method) {
+  return g_method_ids[method];
+}
+
+bool CacheMethodIds(JNIEnv* env, jobject activity) {
+  if (g_class) return true;
+  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/OnDisconnect"));
+  if (!local_clazz) {
+    ::firebase::jni::CheckAndClearException(env);
+    return false;
+  }
+  g_class = local_clazz;
+  g_method_ids[kSetValue] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
+  if (!g_method_ids[kSetValue]) return false;
+  g_method_ids[kSetValueAndStringPriority] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+  if (!g_method_ids[kSetValueAndStringPriority]) return false;
+  g_method_ids[kSetValueAndDoublePriority] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;D)Lcom/google/android/gms/tasks/Task;");
+  if (!g_method_ids[kSetValueAndDoublePriority]) return false;
+  g_method_ids[kUpdateChildren] = env->GetMethodID(g_class.get(), "updateChildren", "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;");
+  if (!g_method_ids[kUpdateChildren]) return false;
+  g_method_ids[kRemoveValue] = env->GetMethodID(g_class.get(), "removeValue", "()Lcom/google/android/gms/tasks/Task;");
+  if (!g_method_ids[kRemoveValue]) return false;
+  g_method_ids[kCancel] = env->GetMethodID(g_class.get(), "cancel", "()Lcom/google/android/gms/tasks/Task;");
+  if (!g_method_ids[kCancel]) return false;
+  return true;
+}
+
+void ReleaseClass(JNIEnv* env) {
+  g_class.reset();
+}
+
+}  // namespace on_disconnect
+
+
+
 
 DisconnectionHandlerInternal::DisconnectionHandlerInternal(DatabaseInternal* db,
                                                            jobject obj)
@@ -81,7 +123,7 @@ bool DisconnectionHandlerInternal::Initialize(App* app) {
 void DisconnectionHandlerInternal::Terminate(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   on_disconnect::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
+  ::firebase::jni::CheckAndClearException(env);
 }
 
 namespace {
@@ -122,68 +164,62 @@ void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
 }  // namespace
 
 void DisconnectionHandlerInternal::CancelImpl(SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle =
-      future()->SafeAlloc<void>(kDisconnectionHandlerFnCancel);
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, on_disconnect::GetMethodId(on_disconnect::kCancel));
-  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+  if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) env->DeleteLocalRef(task);
     future()->Complete(handle, kErrorUnknownError, "Cancel failed");
-    return MakeFuture(future(), handle);
+  return;
   }
   FutureCallbackData* callback_data = new FutureCallbackData(handle, future(), db_);
   util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       reinterpret_cast<void*>(callback_data),
       db_->jni_task_id());
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (::firebase::jni::CheckAndClearException(env)) {
     delete callback_data;
     future()->Complete(handle, kErrorUnknownError, "Cancel failed");
   }
   env->DeleteLocalRef(task);
-  return MakeFuture(future(), handle);
+  return;
 }
 
 
 void DisconnectionHandlerInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle =
-      future()->SafeAlloc<void>(kDisconnectionHandlerFnRemoveValue);
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, on_disconnect::GetMethodId(on_disconnect::kRemoveValue));
-  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+  if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) env->DeleteLocalRef(task);
     future()->Complete(handle, kErrorUnknownError, "RemoveValue failed");
-    return MakeFuture(future(), handle);
+  return;
   }
   FutureCallbackData* callback_data = new FutureCallbackData(handle, future(), db_);
   util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       reinterpret_cast<void*>(callback_data),
       db_->jni_task_id());
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (::firebase::jni::CheckAndClearException(env)) {
     delete callback_data;
     future()->Complete(handle, kErrorUnknownError, "RemoveValue failed");
   }
   env->DeleteLocalRef(task);
-  return MakeFuture(future(), handle);
+  return;
 }
 
 
 void DisconnectionHandlerInternal::SetValueImpl(const Variant& value, SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle =
-      future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValue);
-  if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
+  if (future()->LastResult(kDisconnectionHandlerFnSetValueAndPriority).status() == kFutureStatusPending) {
     future()->Complete(handle, kErrorConflictingOperationInProgress,
                        kErrorMsgConflictSetValue);
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
-    jobject value_obj = internal::VariantToJavaObject(env, value);
+    jobject value_obj = ::firebase::util::VariantToJavaObject(env, value);
     jobject task = env->CallObjectMethod(
         obj_, on_disconnect::GetMethodId(on_disconnect::kSetValue), value_obj);
     if (value_obj) env->DeleteLocalRef(value_obj);
-    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
       if (task != nullptr) env->DeleteLocalRef(task);
       future()->Complete(handle, kErrorUnknownError, "SetValue failed");
     } else {
@@ -192,22 +228,20 @@ void DisconnectionHandlerInternal::SetValueImpl(const Variant& value, SafeFuture
           env, task, FutureCallback,
           reinterpret_cast<void*>(callback_data),
           db_->jni_task_id());
-      if (util::CheckAndClearJniExceptions(env)) {
+      if (::firebase::jni::CheckAndClearException(env)) {
         delete callback_data;
         future()->Complete(handle, kErrorUnknownError, "SetValue failed");
       }
       env->DeleteLocalRef(task);
     }
   }
-  return MakeFuture(future(), handle);
+  return;
 }
 
 
 void DisconnectionHandlerInternal::SetValueAndPriorityImpl(
     const Variant& value, const Variant& priority, SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle =
-      future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValueAndPriority);
-  if (SetValueLastResult().status() == kFutureStatusPending) {
+  if (future()->LastResult(kDisconnectionHandlerFnSetValue).status() == kFutureStatusPending) {
     future()->Complete(handle, kErrorConflictingOperationInProgress,
                        kErrorMsgConflictSetValue);
   } else if (!IsValidPriority(priority)) {
@@ -215,12 +249,12 @@ void DisconnectionHandlerInternal::SetValueAndPriorityImpl(
                        kErrorMsgInvalidVariantForPriority);
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
-    jobject value_obj = internal::VariantToJavaObject(env, value);
+    jobject value_obj = ::firebase::util::VariantToJavaObject(env, value);
     jobject task = nullptr;
     if (priority.is_string() || priority.is_null()) {
       jobject priority_obj = priority.is_null()
                                  ? nullptr
-                                 : internal::VariantToJavaObject(env, priority);
+                                 : ::firebase::util::VariantToJavaObject(env, priority);
       task = env->CallObjectMethod(
           obj_,
           on_disconnect::GetMethodId(on_disconnect::kSetValueAndStringPriority),
@@ -233,7 +267,7 @@ void DisconnectionHandlerInternal::SetValueAndPriorityImpl(
           value_obj, priority.AsDouble().double_value());
     }
     if (value_obj) env->DeleteLocalRef(value_obj);
-    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
       if (task != nullptr) env->DeleteLocalRef(task);
       future()->Complete(handle, kErrorUnknownError,
                          "SetValueAndPriority failed");
@@ -243,31 +277,29 @@ void DisconnectionHandlerInternal::SetValueAndPriorityImpl(
           env, task, FutureCallback,
           reinterpret_cast<void*>(callback_data),
           db_->jni_task_id());
-      if (util::CheckAndClearJniExceptions(env)) {
+      if (::firebase::jni::CheckAndClearException(env)) {
         delete callback_data;
         future()->Complete(handle, kErrorUnknownError, "SetValueAndPriority failed");
       }
       env->DeleteLocalRef(task);
     }
   }
-  return MakeFuture(future(), handle);
+  return;
 }
 
 
 void DisconnectionHandlerInternal::UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle =
-      future()->SafeAlloc<void>(kDisconnectionHandlerFnUpdateChildren);
   if (!values.is_map()) {
     future()->Complete(handle, kErrorInvalidVariantType,
                        kErrorMsgInvalidVariantForUpdateChildren);
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
-    jobject values_obj = internal::VariantToJavaObject(env, values);
+    jobject values_obj = ::firebase::util::VariantToJavaObject(env, values);
     jobject task = env->CallObjectMethod(
         obj_, on_disconnect::GetMethodId(on_disconnect::kUpdateChildren),
         values_obj);
     if (values_obj) env->DeleteLocalRef(values_obj);
-    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
       if (task != nullptr) env->DeleteLocalRef(task);
       future()->Complete(handle, kErrorUnknownError, "UpdateChildren failed");
     } else {
@@ -276,14 +308,14 @@ void DisconnectionHandlerInternal::UpdateChildrenImpl(const Variant& values, Saf
           env, task, FutureCallback,
           reinterpret_cast<void*>(callback_data),
           db_->jni_task_id());
-      if (util::CheckAndClearJniExceptions(env)) {
+      if (::firebase::jni::CheckAndClearException(env)) {
         delete callback_data;
         future()->Complete(handle, kErrorUnknownError, "UpdateChildren failed");
       }
       env->DeleteLocalRef(task);
     }
   }
-  return MakeFuture(future(), handle);
+  return;
 }
 
 

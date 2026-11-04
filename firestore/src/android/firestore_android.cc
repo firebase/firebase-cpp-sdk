@@ -24,7 +24,6 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "firebase/firestore/firestore_version.h"
 #include "firestore/firestore_resources.h"
 #include "firestore/src/android/aggregate_query_android.h"

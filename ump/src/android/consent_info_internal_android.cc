@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "app/src/jni/string.h"
+#include "app/src/jni/exception.h"
 #include "ump/src/android/consent_info_internal_android.h"
 
 #include <jni.h>
@@ -25,7 +27,6 @@
 
 #include "app/src/assert.h"
 #include "app/src/thread.h"
-#include "app/src/util_android.h"
 #include "firebase/internal/common.h"
 #include "ump/ump_resources.h"
 
@@ -82,13 +83,112 @@ std::vector<::firebase::internal::EmbeddedFile>* g_cached_ump_embedded_files =
   X(FunctionCount, "FUNCTION_COUNT", "I", util::kFieldTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(consent_info_helper, CONSENTINFOHELPER_METHODS,
-                          CONSENTINFOHELPER_FIELDS);
+namespace consent_info_helper {
+  enum Method {
+    kConstructor,
+    kGetConsentStatus,
+    kRequestConsentInfoUpdate,
+    kLoadConsentForm,
+    kShowConsentForm,
+    kLoadAndShowConsentFormIfRequired,
+    kGetPrivacyOptionsRequirementStatus,
+    kShowPrivacyOptionsForm,
+    kReset,
+    kCanRequestAds,
+    kIsConsentFormAvailable,
+    kDisconnect,
+    kMethodCount
+  };
+  enum Field {
+    kPrivacyOptionsRequirementUnknown,
+    kPrivacyOptionsRequirementRequired,
+    kPrivacyOptionsRequirementNotRequired,
+    kFunctionRequestConsentInfoUpdate,
+    kFunctionLoadConsentForm,
+    kFunctionShowConsentForm,
+    kFunctionLoadAndShowConsentFormIfRequired,
+    kFunctionShowPrivacyOptionsForm,
+    kFunctionCount,
+    kFieldCount
+  };
 
-METHOD_LOOKUP_DEFINITION(
-    consent_info_helper,
-    "com/google/firebase/ump/internal/cpp/ConsentInfoHelper",
-    CONSENTINFOHELPER_METHODS, CONSENTINFOHELPER_FIELDS);
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+;
+
+namespace consent_info_helper {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/ump/internal/cpp/ConsentInfoHelper"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JLandroid/app/Activity;)V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kGetConsentStatus] = env->GetMethodID(g_class.get(), "getConsentStatus", "()I");
+    if (!g_method_ids[kGetConsentStatus]) return false;
+    g_method_ids[kRequestConsentInfoUpdate] = env->GetMethodID(g_class.get(), "requestConsentInfoUpdate", "(JZILjava/util/ArrayList;)V");
+    if (!g_method_ids[kRequestConsentInfoUpdate]) return false;
+    g_method_ids[kLoadConsentForm] = env->GetMethodID(g_class.get(), "loadConsentForm", "(J)V");
+    if (!g_method_ids[kLoadConsentForm]) return false;
+    g_method_ids[kShowConsentForm] = env->GetMethodID(g_class.get(), "showConsentForm", "(JLandroid/app/Activity;)Z");
+    if (!g_method_ids[kShowConsentForm]) return false;
+    g_method_ids[kLoadAndShowConsentFormIfRequired] = env->GetMethodID(g_class.get(), "loadAndShowConsentFormIfRequired", "(JLandroid/app/Activity;)V");
+    if (!g_method_ids[kLoadAndShowConsentFormIfRequired]) return false;
+    g_method_ids[kGetPrivacyOptionsRequirementStatus] = env->GetMethodID(g_class.get(), "getPrivacyOptionsRequirementStatus", "()I");
+    if (!g_method_ids[kGetPrivacyOptionsRequirementStatus]) return false;
+    g_method_ids[kShowPrivacyOptionsForm] = env->GetMethodID(g_class.get(), "showPrivacyOptionsForm", "(JLandroid/app/Activity;)V");
+    if (!g_method_ids[kShowPrivacyOptionsForm]) return false;
+    g_method_ids[kReset] = env->GetMethodID(g_class.get(), "reset", "()V");
+    if (!g_method_ids[kReset]) return false;
+    g_method_ids[kCanRequestAds] = env->GetMethodID(g_class.get(), "canRequestAds", "()Z");
+    if (!g_method_ids[kCanRequestAds]) return false;
+    g_method_ids[kIsConsentFormAvailable] = env->GetMethodID(g_class.get(), "isConsentFormAvailable", "()Z");
+    if (!g_method_ids[kIsConsentFormAvailable]) return false;
+    g_method_ids[kDisconnect] = env->GetMethodID(g_class.get(), "disconnect", "()V");
+    if (!g_method_ids[kDisconnect]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kPrivacyOptionsRequirementUnknown] = env->GetStaticFieldID(g_class.get(), "PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN", "I");
+    if (!g_field_ids[kPrivacyOptionsRequirementUnknown]) return false;
+    g_field_ids[kPrivacyOptionsRequirementRequired] = env->GetStaticFieldID(g_class.get(), "PRIVACY_OPTIONS_REQUIREMENT_REQUIRED", "I");
+    if (!g_field_ids[kPrivacyOptionsRequirementRequired]) return false;
+    g_field_ids[kPrivacyOptionsRequirementNotRequired] = env->GetStaticFieldID(g_class.get(), "PRIVACY_OPTIONS_REQUIREMENT_NOT_REQUIRED", "I");
+    if (!g_field_ids[kPrivacyOptionsRequirementNotRequired]) return false;
+    g_field_ids[kFunctionRequestConsentInfoUpdate] = env->GetStaticFieldID(g_class.get(), "FUNCTION_REQUEST_CONSENT_INFO_UPDATE", "I");
+    if (!g_field_ids[kFunctionRequestConsentInfoUpdate]) return false;
+    g_field_ids[kFunctionLoadConsentForm] = env->GetStaticFieldID(g_class.get(), "FUNCTION_LOAD_CONSENT_FORM", "I");
+    if (!g_field_ids[kFunctionLoadConsentForm]) return false;
+    g_field_ids[kFunctionShowConsentForm] = env->GetStaticFieldID(g_class.get(), "FUNCTION_SHOW_CONSENT_FORM", "I");
+    if (!g_field_ids[kFunctionShowConsentForm]) return false;
+    g_field_ids[kFunctionLoadAndShowConsentFormIfRequired] = env->GetStaticFieldID(g_class.get(), "FUNCTION_LOAD_AND_SHOW_CONSENT_FORM_IF_REQUIRED", "I");
+    if (!g_field_ids[kFunctionLoadAndShowConsentFormIfRequired]) return false;
+    g_field_ids[kFunctionShowPrivacyOptionsForm] = env->GetStaticFieldID(g_class.get(), "FUNCTION_SHOW_PRIVACY_OPTIONS_FORM", "I");
+    if (!g_field_ids[kFunctionShowPrivacyOptionsForm]) return false;
+    g_field_ids[kFunctionCount] = env->GetStaticFieldID(g_class.get(), "FUNCTION_COUNT", "I");
+    if (!g_field_ids[kFunctionCount]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+;
 
 // clang-format off
 #define CONSENTINFORMATION_CONSENTSTATUS_FIELDS(X)                              \
@@ -98,13 +198,60 @@ METHOD_LOOKUP_DEFINITION(
   X(Obtained, "OBTAINED", "I", util::kFieldTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(consentinformation_consentstatus, METHOD_LOOKUP_NONE,
-                          CONSENTINFORMATION_CONSENTSTATUS_FIELDS);
-METHOD_LOOKUP_DEFINITION(
-    consentinformation_consentstatus,
-    PROGUARD_KEEP_CLASS
-    "com/google/android/ump/ConsentInformation$ConsentStatus",
-    METHOD_LOOKUP_NONE, CONSENTINFORMATION_CONSENTSTATUS_FIELDS);
+namespace consentinformation_consentstatus {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kUnknown,
+    kNotRequired,
+    kRequired,
+    kObtained,
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+;
+namespace consentinformation_consentstatus {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/android/ump/ConsentInformation$ConsentStatus"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kUnknown] = env->GetStaticFieldID(g_class.get(), "UNKNOWN", "I");
+    if (!g_field_ids[kUnknown]) return false;
+    g_field_ids[kNotRequired] = env->GetStaticFieldID(g_class.get(), "NOT_REQUIRED", "I");
+    if (!g_field_ids[kNotRequired]) return false;
+    g_field_ids[kRequired] = env->GetStaticFieldID(g_class.get(), "REQUIRED", "I");
+    if (!g_field_ids[kRequired]) return false;
+    g_field_ids[kObtained] = env->GetStaticFieldID(g_class.get(), "OBTAINED", "I");
+    if (!g_field_ids[kObtained]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+;
 
 // clang-format off
 #define FORMERROR_ERRORCODE_FIELDS(X)                                           \
@@ -114,12 +261,60 @@ METHOD_LOOKUP_DEFINITION(
   X(TimeOut, "TIME_OUT", "I", util::kFieldTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(formerror_errorcode, METHOD_LOOKUP_NONE,
-                          FORMERROR_ERRORCODE_FIELDS);
-METHOD_LOOKUP_DEFINITION(formerror_errorcode,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/android/ump/FormError$ErrorCode",
-                         METHOD_LOOKUP_NONE, FORMERROR_ERRORCODE_FIELDS);
+namespace formerror_errorcode {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kInternalError,
+    kInternetError,
+    kInvalidOperation,
+    kTimeOut,
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+;
+namespace formerror_errorcode {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/android/ump/FormError$ErrorCode"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kInternalError] = env->GetStaticFieldID(g_class.get(), "INTERNAL_ERROR", "I");
+    if (!g_field_ids[kInternalError]) return false;
+    g_field_ids[kInternetError] = env->GetStaticFieldID(g_class.get(), "INTERNET_ERROR", "I");
+    if (!g_field_ids[kInternetError]) return false;
+    g_field_ids[kInvalidOperation] = env->GetStaticFieldID(g_class.get(), "INVALID_OPERATION", "I");
+    if (!g_field_ids[kInvalidOperation]) return false;
+    g_field_ids[kTimeOut] = env->GetStaticFieldID(g_class.get(), "TIME_OUT", "I");
+    if (!g_field_ids[kTimeOut]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+;
 
 // clang-format off
 #define CONSENTDEBUGSETTINGS_DEBUGGEOGRAPHY_FIELDS(X)                           \
@@ -128,14 +323,57 @@ METHOD_LOOKUP_DEFINITION(formerror_errorcode,
   X(NotEEA, "DEBUG_GEOGRAPHY_NOT_EEA", "I", util::kFieldTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(consentdebugsettings_debuggeography,
-                          METHOD_LOOKUP_NONE,
-                          CONSENTDEBUGSETTINGS_DEBUGGEOGRAPHY_FIELDS);
-METHOD_LOOKUP_DEFINITION(
-    consentdebugsettings_debuggeography,
-    PROGUARD_KEEP_CLASS
-    "com/google/android/ump/ConsentDebugSettings$DebugGeography",
-    METHOD_LOOKUP_NONE, CONSENTDEBUGSETTINGS_DEBUGGEOGRAPHY_FIELDS);
+namespace consentdebugsettings_debuggeography {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kDisabled,
+    kEEA,
+    kNotEEA,
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+;
+namespace consentdebugsettings_debuggeography {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/android/ump/ConsentDebugSettings$DebugGeography"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kDisabled] = env->GetStaticFieldID(g_class.get(), "DEBUG_GEOGRAPHY_DISABLED", "I");
+    if (!g_field_ids[kDisabled]) return false;
+    g_field_ids[kEEA] = env->GetStaticFieldID(g_class.get(), "DEBUG_GEOGRAPHY_EEA", "I");
+    if (!g_field_ids[kEEA]) return false;
+    g_field_ids[kNotEEA] = env->GetStaticFieldID(g_class.get(), "DEBUG_GEOGRAPHY_NOT_EEA", "I");
+    if (!g_field_ids[kNotEEA]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+;
 
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance(JNIEnv* jni_env,
                                                          jobject activity) {
@@ -166,7 +404,7 @@ ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
   if (env && helper_) {
     env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
                                      consent_info_helper::kDisconnect));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
 
   {
@@ -183,10 +421,10 @@ ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
     }
     if (consent_info_helper::GetClass() != nullptr) {
       env->UnregisterNatives(consent_info_helper::GetClass());
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
     }
     ReleaseClasses(env);
-    util::Terminate(env);
+    
   }
   java_vm_ = nullptr;
 }
@@ -198,7 +436,7 @@ bool ReadStaticIntField(JNIEnv* env, jclass clazz, jfieldID field_id,
     return false;
   }
   *out_value = env->GetStaticIntField(clazz, field_id);
-  return !util::CheckAndClearJniExceptions(env);
+  return !jni::CheckAndClearException(env);
 }
 }  // namespace
 
@@ -278,7 +516,7 @@ void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(
   }
   std::string error_message =
       error_message_obj
-          ? util::JStringToString(env, static_cast<jstring>(error_message_obj))
+          ? jni::JStringToString(env, static_cast<jstring>(error_message_obj))
           : "";
   instance->CompleteFutureFromJniCallback(
       env, future_fn, static_cast<FutureHandleId>(future_handle),
@@ -298,7 +536,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   MutexLock lock(s_instance_mutex);
   FIREBASE_ASSERT(s_instance == nullptr);
 
-  if (!util::Initialize(env, activity)) {
+  if (!true) {
     return;
   }
   env->GetJavaVM(&java_vm_);
@@ -328,7 +566,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
         formerror_errorcode::CacheFieldIds(env, activity) &&
         consentdebugsettings_debuggeography::CacheFieldIds(env, activity))) {
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     java_vm_ = nullptr;
     return;
   }
@@ -339,19 +577,19 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   if (!consent_info_helper::RegisterNatives(
           env, kConsentInfoHelperNativeMethods,
           FIREBASE_ARRAYSIZE(kConsentInfoHelperNativeMethods))) {
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     java_vm_ = nullptr;
     return;
   }
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   if (!CacheEnumValues(env)) {
     env->UnregisterNatives(consent_info_helper::GetClass());
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     java_vm_ = nullptr;
     return;
   }
@@ -373,24 +611,24 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
       consent_info_helper::GetClass(),
       consent_info_helper::GetMethodId(consent_info_helper::kConstructor),
       reinterpret_cast<jlong>(this), activity);
-  if (util::CheckAndClearJniExceptions(env) || !helper_ref) {
+  if (jni::CheckAndClearException(env) || !helper_ref) {
     s_instance = nullptr;
     env->UnregisterNatives(consent_info_helper::GetClass());
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     java_vm_ = nullptr;
     return;
   }
 
   helper_ = env->NewGlobalRef(helper_ref);
   env->DeleteLocalRef(helper_ref);
-  if (util::CheckAndClearJniExceptions(env) || !helper_) {
+  if (jni::CheckAndClearException(env) || !helper_) {
     s_instance = nullptr;
     env->UnregisterNatives(consent_info_helper::GetClass());
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     java_vm_ = nullptr;
     return;
   }
@@ -406,7 +644,7 @@ void ConsentInfoInternalAndroid::SetActivity(JNIEnv* jni_env,
     return;
   }
   env->CallVoidMethod(helper_, set_activity_method_id_, activity);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 ConsentStatus ConsentInfoInternalAndroid::CppConsentStatusFromAndroid(
@@ -524,7 +762,7 @@ Future<void> ConsentInfoInternalAndroid::RequestConsentInfoUpdate(
                       debug_geography, debug_device_ids_list);
 
   if (env->ExceptionCheck()) {
-    std::string exception_message = util::GetAndClearExceptionMessage(env);
+    std::string exception_message = jni::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentRequestErrorInternal,
                    exception_message.c_str());
   }
@@ -543,7 +781,7 @@ ConsentStatus ConsentInfoInternalAndroid::GetConsentStatus() {
   jint result = env->CallIntMethod(
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kGetConsentStatus));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     return kConsentStatusUnknown;
   }
   return CppConsentStatusFromAndroid(result);
@@ -557,7 +795,7 @@ ConsentFormStatus ConsentInfoInternalAndroid::GetConsentFormStatus() {
   jboolean is_available = env->CallBooleanMethod(
       helper_, consent_info_helper::GetMethodId(
                    consent_info_helper::kIsConsentFormAvailable));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     return kConsentFormStatusUnknown;
   }
   return (is_available == JNI_FALSE) ? kConsentFormStatusUnavailable
@@ -583,7 +821,7 @@ Future<void> ConsentInfoInternalAndroid::LoadConsentForm() {
       consent_info_helper::GetMethodId(consent_info_helper::kLoadConsentForm),
       future_handle);
   if (env->ExceptionCheck()) {
-    std::string exception_message = util::GetAndClearExceptionMessage(env);
+    std::string exception_message = jni::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
   }
@@ -608,7 +846,7 @@ Future<void> ConsentInfoInternalAndroid::ShowConsentForm(FormParent parent) {
       consent_info_helper::GetMethodId(consent_info_helper::kShowConsentForm),
       future_handle, parent);
   if (env->ExceptionCheck()) {
-    std::string exception_message = util::GetAndClearExceptionMessage(env);
+    std::string exception_message = jni::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
   } else if (success == JNI_FALSE) {
@@ -641,7 +879,7 @@ Future<void> ConsentInfoInternalAndroid::LoadAndShowConsentFormIfRequired(
           consent_info_helper::kLoadAndShowConsentFormIfRequired),
       future_handle, parent);
   if (env->ExceptionCheck()) {
-    std::string exception_message = util::GetAndClearExceptionMessage(env);
+    std::string exception_message = jni::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
   }
@@ -658,7 +896,7 @@ ConsentInfoInternalAndroid::GetPrivacyOptionsRequirementStatus() {
   jint result = env->CallIntMethod(
       helper_, consent_info_helper::GetMethodId(
                    consent_info_helper::kGetPrivacyOptionsRequirementStatus));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     return kPrivacyOptionsRequirementStatusUnknown;
   }
   return CppPrivacyOptionsRequirementStatusFromAndroid(result);
@@ -684,7 +922,7 @@ Future<void> ConsentInfoInternalAndroid::ShowPrivacyOptionsForm(
                           consent_info_helper::kShowPrivacyOptionsForm),
                       future_handle, parent);
   if (env->ExceptionCheck()) {
-    std::string exception_message = util::GetAndClearExceptionMessage(env);
+    std::string exception_message = jni::GetAndClearExceptionMessage(env);
     CompleteFuture(handle, kConsentFormErrorInternal,
                    exception_message.c_str());
   }
@@ -700,7 +938,7 @@ bool ConsentInfoInternalAndroid::CanRequestAds() {
   jboolean can_request = env->CallBooleanMethod(
       helper_,
       consent_info_helper::GetMethodId(consent_info_helper::kCanRequestAds));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     return false;
   }
   return (can_request != JNI_FALSE);
@@ -714,7 +952,7 @@ void ConsentInfoInternalAndroid::Reset() {
   JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(
       helper_, consent_info_helper::GetMethodId(consent_info_helper::kReset));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 JNIEnv* ConsentInfoInternalAndroid::GetJNIEnv() {

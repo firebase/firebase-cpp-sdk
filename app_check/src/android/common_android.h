@@ -20,7 +20,6 @@
 #include <string>
 
 #include "app/src/app_common.h"
-#include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
 #include "firebase/app_check.h"
 
@@ -36,7 +35,24 @@ namespace firebase::app_check::internal {
     "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(app_check_provider, APP_CHECK_PROVIDER_METHODS)
+namespace app_check_provider {
+  enum Method {
+    kGetToken,
+    kGetLimitedUseToken,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheCommonAndroidMethodIds(JNIEnv* env, jobject activity);

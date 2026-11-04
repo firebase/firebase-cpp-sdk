@@ -43,8 +43,7 @@ set(android_SRCS
     src/android/database_reference_android.cc
     src/android/disconnection_android.cc
     src/android/mutable_data_android.cc
-    src/android/query_android.cc
-    src/android/util_android.cc)
+    src/android/query_android.cc)
 
 # Source files used by the iOS implementation.
 set(ios_SRCS

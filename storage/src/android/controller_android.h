@@ -22,7 +22,6 @@
 #include <mutex>
 
 #include "app/src/include/firebase/app.h"
-#include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/android/storage_reference_android.h"
 
@@ -47,7 +46,29 @@ namespace internal {
   X(GetSnapshot, "getSnapshot",                                         \
     "()Lcom/google/firebase/storage/StorageTask$ProvideError;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(storage_task, STORAGE_TASK_METHODS)
+namespace storage_task {
+  enum Method {
+    kPause,
+    kResume,
+    kCancel,
+    kIsPaused,
+    kAddOnPausedListener,
+    kAddOnProgressListener,
+    kGetSnapshot,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // Used for UploadTask.TaskSnapshot.
 // clang-format off
@@ -61,8 +82,27 @@ METHOD_LOOKUP_DECLARATION(storage_task, STORAGE_TASK_METHODS)
   X(GetMetadata, "getMetadata",                                 \
     "()Lcom/google/firebase/storage/StorageMetadata;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(upload_task_task_snapshot,
-                          UPLOAD_TASK_TASK_SNAPSHOT_METHODS)
+namespace upload_task_task_snapshot {
+  enum Method {
+    kGetStorage,
+    kGetTask,
+    kGetTotalByteCount,
+    kGetBytesTransferred,
+    kGetMetadata,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // Used for StreamDownloadTask.TaskSnapshot and FileDownloadTask.TaskSnapshot.
 // clang-format off
@@ -74,10 +114,46 @@ METHOD_LOOKUP_DECLARATION(upload_task_task_snapshot,
   X(GetTotalByteCount, "getTotalByteCount", "()J"),             \
   X(GetBytesTransferred, "getBytesTransferred", "()J")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(file_download_task_task_snapshot,
-                          DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
-METHOD_LOOKUP_DECLARATION(stream_download_task_task_snapshot,
-                          DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
+namespace file_download_task_task_snapshot {
+  enum Method {
+    kGetStorage,
+    kGetTask,
+    kGetTotalByteCount,
+    kGetBytesTransferred,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace stream_download_task_task_snapshot {
+  enum Method {
+    kGetStorage,
+    kGetTask,
+    kGetTotalByteCount,
+    kGetBytesTransferred,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 class ControllerInternal {
  public:

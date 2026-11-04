@@ -37,7 +37,12 @@
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
-#include "app/src/util_android.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/env.h"
+#include "app/src/jni/exception.h"
+#include "app/src/jni/ownership.h"
+#include "app/src/jni/string.h"
+
 #include "messaging/messaging_generated.h"
 #include "messaging/src/android/cpp/message_reader.h"
 #include "messaging/src/android/cpp/messaging_internal.h"
@@ -174,11 +179,54 @@ static bool g_intent_message_fired = false;
     X(Register, "register", "()Lcom/google/android/gms/tasks/Task;"),          \
     X(Unregister, "unregister", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(firebase_messaging, FIREBASE_MESSAGING_METHODS);
-METHOD_LOOKUP_DEFINITION(firebase_messaging,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/messaging/FirebaseMessaging",
-                         FIREBASE_MESSAGING_METHODS);
+namespace firebase_messaging {
+  enum Method {
+    kIsAutoInitEnabled,
+    kSetAutoInitEnabled,
+    kSubscribeToTopic,
+    kUnsubscribeFromTopic,
+    kGetInstance,
+    kDeliveryMetricsExportToBigQueryEnabled,
+    kSetDeliveryMetricsExportToBigQuery,
+    kGetToken,
+    kDeleteToken,
+    kRegister,
+    kUnregister,
+    kMethodCount
+  };
+  static jclass g_class = nullptr;
+  static jmethodID g_method_ids[kMethodCount];
+  inline jclass GetClass() { return g_class; }
+  inline jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  inline bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    jclass local_class = env->FindClass("com/google/firebase/messaging/FirebaseMessaging");
+    if (!local_class) return false;
+    g_class = (jclass)env->NewGlobalRef(local_class);
+    env->DeleteLocalRef(local_class);
+    g_method_ids[kIsAutoInitEnabled] = env->GetMethodID(g_class, "isAutoInitEnabled", "()Z");
+    if (!g_method_ids[kIsAutoInitEnabled]) return false;
+    g_method_ids[kSetAutoInitEnabled] = env->GetMethodID(g_class, "setAutoInitEnabled", "(Z)V");
+    if (!g_method_ids[kSetAutoInitEnabled]) return false;
+    g_method_ids[kSubscribeToTopic] = env->GetMethodID(g_class, "subscribeToTopic", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kSubscribeToTopic]) return false;
+    g_method_ids[kUnsubscribeFromTopic] = env->GetMethodID(g_class, "unsubscribeFromTopic", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kUnsubscribeFromTopic]) return false;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class, "getInstance", "()Lcom/google/firebase/messaging/FirebaseMessaging;");
+    g_method_ids[kDeliveryMetricsExportToBigQueryEnabled] = env->GetMethodID(g_class, "deliveryMetricsExportToBigQueryEnabled", "()Z");
+    g_method_ids[kSetDeliveryMetricsExportToBigQuery] = env->GetMethodID(g_class, "setDeliveryMetricsExportToBigQuery", "(Z)V");
+    g_method_ids[kGetToken] = env->GetMethodID(g_class, "getToken", "()Lcom/google/android/gms/tasks/Task;");
+    g_method_ids[kDeleteToken] = env->GetMethodID(g_class, "deleteToken", "()Lcom/google/android/gms/tasks/Task;");
+    g_method_ids[kRegister] = env->GetMethodID(g_class, "register", "()Lcom/google/android/gms/tasks/Task;");
+    g_method_ids[kUnregister] = env->GetMethodID(g_class, "unregister", "()Lcom/google/android/gms/tasks/Task;");
+    return true;
+  }
+  inline void ReleaseClass(JNIEnv* env) {
+    if (g_class) {
+      env->DeleteGlobalRef(g_class);
+      g_class = nullptr;
+    }
+  }
+}
 
 static void FireIntentMessage(JNIEnv* env);
 
@@ -495,33 +543,27 @@ static void BundleToMessageData(JNIEnv* env,
                                 std::map<std::string, std::string>* to,
                                 jobject from) {
   // Set<String> key_set = from.keySet();
-  jobject key_set = env->CallObjectMethod(
-      from, util::bundle::GetMethodId(util::bundle::kKeySet));
-  if (util::CheckAndClearJniExceptions(env) || !key_set) return;
+  jobject key_set = env->CallObjectMethod(from, env->GetMethodID(env->GetObjectClass(from), "keySet", "()Ljava/util/Set;"));
+  if (::firebase::jni::CheckAndClearException(env) || !key_set) return;
   // Iterator iter = key_set.iterator();
-  jobject iter = env->CallObjectMethod(
-      key_set, util::set::GetMethodId(util::set::kIterator));
-  if (util::CheckAndClearJniExceptions(env) || !iter) {
+  jobject iter = env->CallObjectMethod(key_set, env->GetMethodID(env->GetObjectClass(key_set), "iterator", "()Ljava/util/Iterator;"));
+  if (::firebase::jni::CheckAndClearException(env) || !iter) {
     env->DeleteLocalRef(key_set);
     return;
   }
   // while (iter.hasNext())
-  while (env->CallBooleanMethod(
-      iter, util::iterator::GetMethodId(util::iterator::kHasNext))) {
-    if (util::CheckAndClearJniExceptions(env)) break;
+  while (env->CallBooleanMethod(iter, env->GetMethodID(env->GetObjectClass(iter), "hasNext", "()Z"))) {
+    if (::firebase::jni::CheckAndClearException(env)) break;
     // String key = iter.next();
-    jobject key_object = env->CallObjectMethod(
-        iter, util::iterator::GetMethodId(util::iterator::kNext));
-    if (util::CheckAndClearJniExceptions(env) || !key_object) break;
+    jobject key_object = env->CallObjectMethod(iter, env->GetMethodID(env->GetObjectClass(iter), "next", "()Ljava/lang/Object;"));
+    if (::firebase::jni::CheckAndClearException(env) || !key_object) break;
     const char* key =
         env->GetStringUTFChars(static_cast<jstring>(key_object), nullptr);
     if (key != nullptr && IsValidKey(key)) {
       // String value = from.getString(key);
-      jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(
-          from, util::bundle::GetMethodId(util::bundle::kGetString),
-          key_object));
-      if (!util::CheckAndClearJniExceptions(env) && value_jstring != nullptr) {
-        (*to)[key] = util::JniStringToString(env, value_jstring);
+      jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(from, env->GetMethodID(env->GetObjectClass(from), "getString", "(Ljava/lang/String;)Ljava/lang/String;"), key_object));
+      if (!::firebase::jni::CheckAndClearException(env) && value_jstring != nullptr) {
+        (*to)[key] = ::firebase::jni::JStringToString(env, value_jstring);
       }
     }
     if (key != nullptr) {
@@ -537,11 +579,9 @@ static void BundleToMessageData(JNIEnv* env,
 static std::string BundleGetString(JNIEnv* env, jobject bundle,
                                    const char* key) {
   jstring key_jstring = env->NewStringUTF(key);
-  jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(
-      bundle, util::bundle::GetMethodId(util::bundle::kGetString),
-      key_jstring));
-  util::CheckAndClearJniExceptions(env);
-  std::string value = util::JniStringToString(env, value_jstring);
+  jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(bundle, env->GetMethodID(env->GetObjectClass(bundle), "getString", "(Ljava/lang/String;)Ljava/lang/String;"), key_jstring));
+  ::firebase::jni::CheckAndClearException(env);
+  std::string value = ::firebase::jni::JStringToString(env, value_jstring);
   env->DeleteLocalRef(key_jstring);
   return value;
 }
@@ -556,20 +596,18 @@ static void FireIntentMessage(JNIEnv* env) {
     MutexLock lock(g_app_mutex);
     if (!g_app) return;
     activity = env->NewLocalRef(g_app->activity());
-    if (util::CheckAndClearJniExceptions(env) || !activity) return;
+    if (::firebase::jni::CheckAndClearException(env) || !activity) return;
   }
   g_intent_message_fired = true;
   // Intent intent = app.getIntent();
-  jobject intent = env->CallObjectMethod(
-      activity, util::activity::GetMethodId(util::activity::kGetIntent));
-  util::CheckAndClearJniExceptions(env);
+  jobject intent = env->CallObjectMethod(activity, env->GetMethodID(env->GetObjectClass(activity), "getIntent", "()Landroid/content/Intent;"));
+  ::firebase::jni::CheckAndClearException(env);
   env->DeleteLocalRef(activity);
 
   if (intent != nullptr) {
     // Bundle bundle = intent.getExtras();
-    jobject bundle = env->CallObjectMethod(
-        intent, util::intent::GetMethodId(util::intent::kGetExtras));
-    util::CheckAndClearJniExceptions(env);
+    jobject bundle = env->CallObjectMethod(intent, env->GetMethodID(env->GetObjectClass(intent), "getExtras", "()Landroid/os/Bundle;"));
+    ::firebase::jni::CheckAndClearException(env);
     if (bundle != nullptr) {
       Message message;
       message.message_id = BundleGetString(env, bundle, kExtraMessageId);
@@ -596,10 +634,18 @@ static void FireIntentMessage(JNIEnv* env) {
         message.notification_opened = true;
 
         // Check to see if we have a deep link on the intent.
-        jobject uri_object = env->CallObjectMethod(
-            intent, util::intent::GetMethodId(util::intent::kGetData));
-        util::CheckAndClearJniExceptions(env);
-        message.link = util::JniUriToString(env, uri_object);
+        jobject uri_object = env->CallObjectMethod(intent, env->GetMethodID(env->GetObjectClass(intent), "getData", "()Landroid/net/Uri;"));
+        ::firebase::jni::CheckAndClearException(env);
+        if (uri_object != nullptr) {
+          jclass uri_class = env->FindClass("android/net/Uri");
+          jmethodID toString = env->GetMethodID(uri_class, "toString", "()Ljava/lang/String;");
+          jstring str = static_cast<jstring>(env->CallObjectMethod(uri_object, toString));
+          message.link = ::firebase::jni::JStringToString(env, str);
+          env->DeleteLocalRef(uri_class);
+          env->DeleteLocalRef(str);
+        } else {
+          message.link = "";
+        }
 
         NotifyListenerOnMessage(message);
       }
@@ -628,58 +674,59 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
     return kInitResultSuccess;
   }
   JNIEnv* env = app.GetJNIEnv();
-  if (!util::Initialize(env, app.activity())) {
-    return kInitResultFailedMissingDependency;
-  }
 
   // Cache method pointers.
   if (!firebase_messaging::CacheMethodIds(env, app.activity())) {
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     LogError("Failed to initialize messaging");  // DEBUG
     return kInitResultFailedMissingDependency;
   }
 
   // Cache the local storage file and lockfile before publishing g_app.
-  jobject file = env->CallObjectMethod(
-      app.activity(), util::context::GetMethodId(util::context::kGetFilesDir));
-  if (util::CheckAndClearJniExceptions(env) || !file) {
+jclass context_class = env->FindClass("android/content/Context");
+  jmethodID get_files_dir_method = env->GetMethodID(context_class, "getFilesDir", "()Ljava/io/File;");
+  jobject file = env->CallObjectMethod(app.activity(), get_files_dir_method);
+  env->DeleteLocalRef(context_class);
+  if (::firebase::jni::CheckAndClearException(env) || !file) {
     if (file) env->DeleteLocalRef(file);
     ReleaseClasses(env);
-    util::Terminate(env);
     return kInitResultFailedMissingDependency;
   }
-  jstring path_jstring = static_cast<jstring>(env->CallObjectMethod(
-      file, util::file::GetMethodId(util::file::kGetPath)));
-  if (util::CheckAndClearJniExceptions(env) || !path_jstring) {
+  
+  jclass file_class = env->FindClass("java/io/File");
+  jmethodID get_path_method = env->GetMethodID(file_class, "getAbsolutePath", "()Ljava/lang/String;");
+  jstring path_jstring = static_cast<jstring>(env->CallObjectMethod(file, get_path_method));
+  env->DeleteLocalRef(file_class);
+  if (::firebase::jni::CheckAndClearException(env) || !path_jstring) {
     if (path_jstring) env->DeleteLocalRef(path_jstring);
     env->DeleteLocalRef(file);
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     return kInitResultFailedMissingDependency;
   }
-  std::string local_storage_dir = util::JniStringToString(env, path_jstring);
+  std::string local_storage_dir = ::firebase::jni::JStringToString(env, path_jstring);
   env->DeleteLocalRef(file);
 
   // Get / create the Firebase Cloud Messaging singleton.
   jobject firebase_messaging_instance = env->CallStaticObjectMethod(
       firebase_messaging::GetClass(),
       firebase_messaging::GetMethodId(firebase_messaging::kGetInstance));
-  if (util::CheckAndClearJniExceptions(env) || !firebase_messaging_instance) {
+  if (::firebase::jni::CheckAndClearException(env) || !firebase_messaging_instance) {
     if (firebase_messaging_instance) {
       env->DeleteLocalRef(firebase_messaging_instance);
     }
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     return kInitResultFailedMissingDependency;
   }
 
   // Keep a reference to the firebase messaging singleton.
   g_firebase_messaging = env->NewGlobalRef(firebase_messaging_instance);
   env->DeleteLocalRef(firebase_messaging_instance);
-  if (util::CheckAndClearJniExceptions(env) || !g_firebase_messaging) {
+  if (::firebase::jni::CheckAndClearException(env) || !g_firebase_messaging) {
     ReleaseClasses(env);
-    util::Terminate(env);
+    
     return kInitResultFailedMissingDependency;
   }
 
@@ -747,6 +794,15 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
 
 namespace internal {
 
+static std::string JniUriToString(JNIEnv* env, jobject uri) {
+  if (!uri) return "";
+  jstring str = (jstring)env->CallObjectMethod(uri, env->GetMethodID(env->GetObjectClass(uri), "toString", "()Ljava/lang/String;"));
+  std::string result = ::firebase::jni::JStringToString(env, str);
+  env->DeleteLocalRef(str);
+  return result;
+}
+
+
 bool IsInitialized() { return g_app != nullptr; }
 
 }  // namespace internal
@@ -758,7 +814,7 @@ void Terminate() {
   }
   internal::UnregisterTerminateOnDefaultAppDestroy();
   JNIEnv* env = g_app->GetJNIEnv();
-  util::CancelCallbacks(env, kApiIdentifier);
+  firebase::util::CancelCallbacks(env, kApiIdentifier);
   // Dereference the app.
   {
     MutexLock lock(g_app_mutex);
@@ -782,7 +838,7 @@ void Terminate() {
   g_firebase_messaging = nullptr;
   SetListener(nullptr);
   ReleaseClasses(env);
-  util::Terminate(env);
+  
   {
     MutexLock lock(g_future_data_mutex);
     FutureData::Destroy();
@@ -814,13 +870,13 @@ static void InstallationsGetToken() {
 }
 
 static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,
-                                       util::FutureResult result_code,
+                                       firebase::util::FutureResult result_code,
                                        const char* status_message,
                                        void* callback_data) {
   FutureHandleId future_id = reinterpret_cast<FutureHandleId>(callback_data);
   auto handle = SafeFutureHandle<void>(FutureHandle(future_id));
   Error error =
-      (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
+      (result_code == firebase::util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
   {
     MutexLock lock(g_future_data_mutex);
     if (FutureData::Get() && FutureData::Get()->api()) {
@@ -855,7 +911,7 @@ static void UpdateTopicSubscriptionInternal(
       env = g_app->GetJNIEnv();
       if (env) {
         messaging_obj = env->NewLocalRef(g_firebase_messaging);
-        if (util::CheckAndClearJniExceptions(env)) {
+        if (::firebase::jni::CheckAndClearException(env)) {
           if (messaging_obj) env->DeleteLocalRef(messaging_obj);
           messaging_obj = nullptr;
         }
@@ -878,9 +934,9 @@ static void UpdateTopicSubscriptionInternal(
   // If this function threw an exception, it is almost certainly due to an
   // invalid topic name, so we should complete the future with the proper error.
   if (env->ExceptionCheck()) {
-    jobject exception = static_cast<jobject>(env->ExceptionOccurred());
+    jthrowable exception = env->ExceptionOccurred();
     env->ExceptionClear();
-    std::string message = util::GetMessageFromException(env, exception);
+    std::string message = ::firebase::jni::ExtractExceptionMessage(env, exception);
     env->DeleteLocalRef(exception);
     if (result) env->DeleteLocalRef(result);
     MutexLock lock(g_future_data_mutex);
@@ -889,11 +945,11 @@ static void UpdateTopicSubscriptionInternal(
                                          message.c_str());
     }
   } else if (result) {
-    util::RegisterCallbackOnTask(
+    firebase::util::RegisterCallbackOnTask(
         env, result, SubscriptionUpdateComplete,
         reinterpret_cast<void*>(handle.get().id()),
         kApiIdentifier);
-    util::CheckAndClearJniExceptions(env);
+    ::firebase::jni::CheckAndClearException(env);
 
     env->DeleteLocalRef(result);
   } else {
@@ -936,13 +992,13 @@ static void HandlePendingSubscriptions() {
 }
 
 static void CompleteVoidCallback(JNIEnv* env, jobject result,
-                                 util::FutureResult result_code,
+                                 firebase::util::FutureResult result_code,
                                  const char* status_message,
                                  void* callback_data) {
   FutureHandleId future_id = reinterpret_cast<FutureHandleId>(callback_data);
   FutureHandle handle(future_id);
   Error error =
-      (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
+      (result_code == firebase::util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
   MutexLock lock(g_future_data_mutex);
   if (FutureData::Get() && FutureData::Get()->api()) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
@@ -954,13 +1010,13 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
 }
 
 static void CompleteStringCallback(JNIEnv* env, jobject result,
-                                   util::FutureResult result_code,
+                                   firebase::util::FutureResult result_code,
                                    const char* status_message,
                                    void* callback_data) {
-  bool success = (result_code == util::kFutureResultSuccess);
+  bool success = (result_code == firebase::util::kFutureResultSuccess);
   std::string result_value;
   if (success && result) {
-    result_value = util::JniStringToString(env, result);
+    result_value = ::firebase::jni::JStringToString(env, result);
   }
   if (result) {
     env->DeleteLocalRef(result);
@@ -1081,7 +1137,7 @@ bool DeliveryMetricsExportToBigQueryEnabled() {
       g_firebase_messaging,
       firebase_messaging::GetMethodId(
           firebase_messaging::kDeliveryMetricsExportToBigQueryEnabled));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (::firebase::jni::CheckAndClearException(env)) {
     return false;
   }
   return static_cast<bool>(result);
@@ -1098,7 +1154,7 @@ void SetDeliveryMetricsExportToBigQuery(bool enabled) {
         firebase_messaging::GetMethodId(
             firebase_messaging::kSetDeliveryMetricsExportToBigQuery),
         static_cast<jboolean>(enabled));
-    util::CheckAndClearJniExceptions(env);
+    ::firebase::jni::CheckAndClearException(env);
   }
 }
 
@@ -1128,7 +1184,7 @@ void SetTokenRegistrationOnInitEnabled(bool enabled) {
                         firebase_messaging::GetMethodId(
                             firebase_messaging::kSetAutoInitEnabled),
                         static_cast<jboolean>(enabled));
-    util::CheckAndClearJniExceptions(env);
+    ::firebase::jni::CheckAndClearException(env);
 
     // TODO(b/77659307): This shouldn't be required, but the native API
     // doesn't raise the event when flipping the bit to true, so we watch for
@@ -1153,7 +1209,7 @@ bool IsTokenRegistrationOnInitEnabled() {
   jboolean result = env->CallBooleanMethod(
       g_firebase_messaging,
       firebase_messaging::GetMethodId(firebase_messaging::kIsAutoInitEnabled));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (::firebase::jni::CheckAndClearException(env)) {
     return false;
   }
   return static_cast<bool>(result);
@@ -1193,16 +1249,16 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
       messaging_obj, firebase_messaging::GetMethodId(method));
   env->DeleteLocalRef(messaging_obj);
 
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = ::firebase::jni::GetAndClearExceptionMessage(env);
   if (error.empty() && task != nullptr) {
-    util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
+    firebase::util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                  reinterpret_cast<void*>(handle.get().id()),
                                  kApiIdentifier);
   } else {
     api->Complete(handle, kErrorUnknown, error.c_str());
   }
   if (task) env->DeleteLocalRef(task);
-  util::CheckAndClearJniExceptions(env);
+  ::firebase::jni::CheckAndClearException(env);
 
   return MakeFuture(api, handle);
 }
@@ -1275,9 +1331,9 @@ Future<std::string> GetToken() {
       firebase_messaging::GetMethodId(firebase_messaging::kGetToken));
   env->DeleteLocalRef(messaging_obj);
 
-  std::string error = util::GetAndClearExceptionMessage(env);
+  std::string error = ::firebase::jni::GetAndClearExceptionMessage(env);
   if (error.empty() && task != nullptr) {
-    util::RegisterCallbackOnTask(
+    firebase::util::RegisterCallbackOnTask(
         env, task, CompleteStringCallback,
         reinterpret_cast<void*>(handle.get().id()),
         kApiIdentifier);
@@ -1286,7 +1342,7 @@ Future<std::string> GetToken() {
                             std::string());
   }
   if (task) env->DeleteLocalRef(task);
-  util::CheckAndClearJniExceptions(env);
+  ::firebase::jni::CheckAndClearException(env);
 
   return MakeFuture(api, handle);
 }

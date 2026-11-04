@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "app/src/jni/string.h"
 #include <assert.h>
 #include <jni.h>
 
@@ -21,7 +22,6 @@
 
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
 
@@ -29,8 +29,8 @@ namespace firebase {
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_app_internal_cpp_Log_nativeLog(
     JNIEnv* env, jobject instance, jint priority, jstring tag, jstring msg) {
-  std::string ctag = util::JStringToString(env, tag);
-  std::string cmsg = util::JStringToString(env, msg);
+  std::string ctag = jni::JStringToString(env, tag);
+  std::string cmsg = jni::JStringToString(env, msg);
   static const LogLevel kLogPriorityToLogLevel[] = {
       kLogLevelDebug,    // 0 = undocumented
       kLogLevelDebug,    // 1 = undocumented

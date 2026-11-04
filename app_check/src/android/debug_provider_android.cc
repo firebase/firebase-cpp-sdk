@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include "app_check/src/android/debug_provider_android.h"
 
 #include <algorithm>
@@ -23,7 +24,6 @@
 #include "app/src/app_common.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/debug_provider.h"
 
@@ -37,32 +37,113 @@ namespace internal {
 #define DEBUG_PROVIDER_FACTORY_METHODS(X)                                      \
   X(GetInstance, "getInstance",                                                \
     "()Lcom/google/firebase/appcheck/debug/DebugAppCheckProviderFactory;",     \
-       util::kMethodTypeStatic),                                               \
+       firebase::util::kMethodTypeStatic),                                               \
   X(Create, "create",                                                          \
     "(Lcom/google/firebase/FirebaseApp;)"                                      \
     "Lcom/google/firebase/appcheck/AppCheckProvider;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(debug_provider_factory,
-                          DEBUG_PROVIDER_FACTORY_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    debug_provider_factory,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/appcheck/debug/DebugAppCheckProviderFactory",
-    DEBUG_PROVIDER_FACTORY_METHODS)
+namespace debug_provider_factory {
+  enum Method {
+    kGetInstance,
+    kCreate,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace debug_provider_factory {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/debug/DebugAppCheckProviderFactory"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "()Lcom/google/firebase/appcheck/debug/DebugAppCheckProviderFactory;");
+    if (!g_method_ids[kGetInstance]) return false;
+    g_method_ids[kCreate] = env->GetMethodID(g_class.get(), "create", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/appcheck/AppCheckProvider;");
+    if (!g_method_ids[kCreate]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define JNI_APP_CHECK_DEBUG_HELPER_METHODS(X)                    \
   X(SetDebugToken, "SetDebugToken",                             \
     "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)V",    \
-    util::kMethodTypeStatic)
+    firebase::util::kMethodTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(jni_debug_helper, JNI_APP_CHECK_DEBUG_HELPER_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    jni_debug_helper,
-    "com/google/firebase/appcheck/internal/cpp/JniAppCheckDebugHelper",
-    JNI_APP_CHECK_DEBUG_HELPER_METHODS)
+namespace jni_debug_helper {
+  enum Method {
+    kSetDebugToken,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace jni_debug_helper {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/internal/cpp/JniAppCheckDebugHelper"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kSetDebugToken] = env->GetStaticMethodID(g_class.get(), "SetDebugToken", "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)V");
+    if (!g_method_ids[kSetDebugToken]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 namespace {
 
@@ -166,7 +247,7 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
           env->CallStaticObjectMethod(debug_provider_factory::GetClass(),
                                       debug_provider_factory::GetMethodId(
                                           debug_provider_factory::kGetInstance));
-      if (util::CheckAndClearJniExceptions(env) ||
+      if (jni::CheckAndClearException(env) ||
           j_provider_factory_local == nullptr) {
         if (j_provider_factory_local != nullptr) {
           env->DeleteLocalRef(j_provider_factory_local);
@@ -176,7 +257,7 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
       // Hold a global reference. It will be freed when this factory is destroyed.
       android_provider_factory_ = env->NewGlobalRef(j_provider_factory_local);
       env->DeleteLocalRef(j_provider_factory_local);
-      if (util::CheckAndClearJniExceptions(env) ||
+      if (jni::CheckAndClearException(env) ||
           android_provider_factory_ == nullptr) {
         android_provider_factory_ = nullptr;
         return nullptr;
@@ -191,12 +272,12 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     // if we have a token to override it with, use it.
     if (!debug_token_.empty()) {
       jstring java_token = env->NewStringUTF(debug_token_.c_str());
-      if (!util::CheckAndClearJniExceptions(env) && java_token != nullptr) {
+      if (!jni::CheckAndClearException(env) && java_token != nullptr) {
         env->CallStaticVoidMethod(
             jni_debug_helper::GetClass(),
             jni_debug_helper::GetMethodId(jni_debug_helper::kSetDebugToken),
             platform_app, java_token);
-        util::CheckAndClearJniExceptions(env);
+        jni::CheckAndClearException(env);
         env->DeleteLocalRef(java_token);
       }
     }
@@ -205,7 +286,7 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
         android_provider_factory_,
         debug_provider_factory::GetMethodId(debug_provider_factory::kCreate),
         platform_app);
-    bool create_exception = util::CheckAndClearJniExceptions(env);
+    bool create_exception = jni::CheckAndClearException(env);
     env->DeleteLocalRef(platform_app);
     if (create_exception || j_android_provider_local == nullptr) {
       if (j_android_provider_local != nullptr) {

@@ -16,7 +16,6 @@
 
 #include "firestore/src/jni/throwable.h"
 
-#include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 
 namespace firebase {
@@ -28,7 +27,7 @@ std::string Throwable::GetMessage(Env& env) const {
     return "";
   }
   ExceptionClearGuard block(env);
-  return util::GetMessageFromException(env.get(), object_);
+  return ::firebase::jni::ExtractExceptionMessage(env.get(), object_);
 }
 
 }  // namespace jni

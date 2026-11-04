@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include <jni.h>
 
 #include "base/logging.h"
@@ -38,7 +39,7 @@ void ConfigSetImpl(const uint8_t* test_data_binary,
   android_jni_env->CallStaticVoidMethod(
       cls, android_jni_env->GetStaticMethodID(cls, "setImpl", "([B)V"),
       j_test_data);
-  util::CheckAndClearException(android_jni_env);
+  jni::CheckAndClearException(android_jni_env);
   android_jni_env->DeleteLocalRef(j_test_data);
   android_jni_env->DeleteLocalRef(cls);
 }

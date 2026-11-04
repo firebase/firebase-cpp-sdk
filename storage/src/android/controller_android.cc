@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include "storage/src/android/controller_android.h"
 
 #include <algorithm>
@@ -24,7 +25,6 @@
 #include <utility>
 #include <vector>
 
-#include "app/src/util_android.h"
 #include "storage/src/include/firebase/storage/listener.h"
 
 namespace firebase {
@@ -53,27 +53,153 @@ ActiveListenerRegistry& GetActiveListenerRegistry() {
 
 }  // namespace
 
-METHOD_LOOKUP_DEFINITION(storage_task,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/storage/StorageTask",
-                         STORAGE_TASK_METHODS)
+namespace storage_task {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StorageTask"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kPause] = env->GetMethodID(g_class.get(), "pause", "()Z");
+    if (!g_method_ids[kPause]) return false;
+    g_method_ids[kResume] = env->GetMethodID(g_class.get(), "resume", "()Z");
+    if (!g_method_ids[kResume]) return false;
+    g_method_ids[kCancel] = env->GetMethodID(g_class.get(), "cancel", "()Z");
+    if (!g_method_ids[kCancel]) return false;
+    g_method_ids[kIsPaused] = env->GetMethodID(g_class.get(), "isPaused", "()Z");
+    if (!g_method_ids[kIsPaused]) return false;
+    g_method_ids[kAddOnPausedListener] = env->GetMethodID(g_class.get(), "addOnPausedListener", "(Lcom/google/firebase/storage/OnPausedListener;)Lcom/google/firebase/storage/StorageTask;");
+    if (!g_method_ids[kAddOnPausedListener]) return false;
+    g_method_ids[kAddOnProgressListener] = env->GetMethodID(g_class.get(), "addOnProgressListener", "(Lcom/google/firebase/storage/OnProgressListener;)Lcom/google/firebase/storage/StorageTask;");
+    if (!g_method_ids[kAddOnProgressListener]) return false;
+    g_method_ids[kGetSnapshot] = env->GetMethodID(g_class.get(), "getSnapshot", "()Lcom/google/firebase/storage/StorageTask$ProvideError;");
+    if (!g_method_ids[kGetSnapshot]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DEFINITION(upload_task_task_snapshot,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/storage/UploadTask$TaskSnapshot",
-                         UPLOAD_TASK_TASK_SNAPSHOT_METHODS)
 
-METHOD_LOOKUP_DEFINITION(
-    file_download_task_task_snapshot,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/storage/FileDownloadTask$TaskSnapshot",
-    DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
+namespace upload_task_task_snapshot {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/UploadTask$TaskSnapshot"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetStorage] = env->GetMethodID(g_class.get(), "getStorage", "()Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetStorage]) return false;
+    g_method_ids[kGetTask] = env->GetMethodID(g_class.get(), "getTask", "()Lcom/google/firebase/storage/StorageTask;");
+    if (!g_method_ids[kGetTask]) return false;
+    g_method_ids[kGetTotalByteCount] = env->GetMethodID(g_class.get(), "getTotalByteCount", "()J");
+    if (!g_method_ids[kGetTotalByteCount]) return false;
+    g_method_ids[kGetBytesTransferred] = env->GetMethodID(g_class.get(), "getBytesTransferred", "()J");
+    if (!g_method_ids[kGetBytesTransferred]) return false;
+    g_method_ids[kGetMetadata] = env->GetMethodID(g_class.get(), "getMetadata", "()Lcom/google/firebase/storage/StorageMetadata;");
+    if (!g_method_ids[kGetMetadata]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DEFINITION(
-    stream_download_task_task_snapshot,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/storage/StreamDownloadTask$TaskSnapshot",
-    DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
+
+namespace file_download_task_task_snapshot {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/FileDownloadTask$TaskSnapshot"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetStorage] = env->GetMethodID(g_class.get(), "getStorage", "()Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetStorage]) return false;
+    g_method_ids[kGetTask] = env->GetMethodID(g_class.get(), "getTask", "()Lcom/google/firebase/storage/StorageTask;");
+    if (!g_method_ids[kGetTask]) return false;
+    g_method_ids[kGetTotalByteCount] = env->GetMethodID(g_class.get(), "getTotalByteCount", "()J");
+    if (!g_method_ids[kGetTotalByteCount]) return false;
+    g_method_ids[kGetBytesTransferred] = env->GetMethodID(g_class.get(), "getBytesTransferred", "()J");
+    if (!g_method_ids[kGetBytesTransferred]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace stream_download_task_task_snapshot {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StreamDownloadTask$TaskSnapshot"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetStorage] = env->GetMethodID(g_class.get(), "getStorage", "()Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetStorage]) return false;
+    g_method_ids[kGetTask] = env->GetMethodID(g_class.get(), "getTask", "()Lcom/google/firebase/storage/StorageTask;");
+    if (!g_method_ids[kGetTask]) return false;
+    g_method_ids[kGetTotalByteCount] = env->GetMethodID(g_class.get(), "getTotalByteCount", "()J");
+    if (!g_method_ids[kGetTotalByteCount]) return false;
+    g_method_ids[kGetBytesTransferred] = env->GetMethodID(g_class.get(), "getBytesTransferred", "()J");
+    if (!g_method_ids[kGetBytesTransferred]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 bool ControllerInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();
@@ -94,7 +220,7 @@ void ControllerInternal::Terminate(App* app) {
   upload_task_task_snapshot::ReleaseClass(env);
   file_download_task_task_snapshot::ReleaseClass(env);
   stream_download_task_task_snapshot::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 ControllerInternal::ControllerInternal() = default;
@@ -240,7 +366,7 @@ bool CallTaskBoolean(JNIEnv* env, jobject task_local, jmethodID method_id,
   jboolean result = env->CallBooleanMethod(task_local, method_id);
   if (error_message != nullptr) {
     if (util::LogException(env, kLogLevelError, error_message)) return false;
-  } else if (util::CheckAndClearJniExceptions(env)) {
+  } else if (jni::CheckAndClearException(env)) {
     return false;
   }
   return result != JNI_FALSE;
@@ -266,7 +392,7 @@ int64_t SnapshotLong(JNIEnv* env, jobject snapshot,
         snapshot,
         stream_download_task_task_snapshot::GetMethodId(stream_method));
   }
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     result = fallback;
   }
   return result;
@@ -363,7 +489,7 @@ std::int64_t ControllerInternal::total_byte_count() const {
   if (env == nullptr) return -1;
   jobject snapshot = env->CallObjectMethod(
       task_obj_, storage_task::GetMethodId(storage_task::kGetSnapshot));
-  if (util::CheckAndClearJniExceptions(env) || !snapshot) {
+  if (jni::CheckAndClearException(env) || !snapshot) {
     if (snapshot) env->DeleteLocalRef(snapshot);
     return -1;
   }
@@ -383,7 +509,7 @@ std::int64_t ControllerInternal::bytes_transferred() const {
   if (env == nullptr) return 0;
   jobject snapshot = env->CallObjectMethod(
       task_obj_, storage_task::GetMethodId(storage_task::kGetSnapshot));
-  if (util::CheckAndClearJniExceptions(env) || !snapshot) {
+  if (jni::CheckAndClearException(env) || !snapshot) {
     if (snapshot) env->DeleteLocalRef(snapshot);
     return 0;
   }
@@ -407,7 +533,7 @@ StorageReferenceInternal* ControllerInternal::GetReference() const {
   if (env == nullptr) return nullptr;
   jobject snapshot = env->CallObjectMethod(
       task_obj_, storage_task::GetMethodId(storage_task::kGetSnapshot));
-  if (util::CheckAndClearJniExceptions(env) || !snapshot) {
+  if (jni::CheckAndClearException(env) || !snapshot) {
     if (snapshot) env->DeleteLocalRef(snapshot);
     return nullptr;
   }
@@ -428,13 +554,13 @@ StorageReferenceInternal* ControllerInternal::GetReference() const {
                       stream_download_task_task_snapshot::kGetStorage));
   }
   env->DeleteLocalRef(snapshot);
-  if (util::CheckAndClearJniExceptions(env) || !obj) {
+  if (jni::CheckAndClearException(env) || !obj) {
     if (obj) env->DeleteLocalRef(obj);
     return nullptr;
   }
   StorageReferenceInternal* internal = new StorageReferenceInternal(storage, obj);
   env->DeleteLocalRef(obj);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return internal;
 }
 
@@ -530,7 +656,7 @@ void ControllerInternal::CppStorageListenerCallback(JNIEnv* env, jclass clazz,
         snapshot, stream_download_task_task_snapshot::GetMethodId(
                       stream_download_task_task_snapshot::kGetTask));
   }
-  if (util::CheckAndClearJniExceptions(env) || !task_obj) {
+  if (jni::CheckAndClearException(env) || !task_obj) {
     if (task_obj) env->DeleteLocalRef(task_obj);
     return;
   }

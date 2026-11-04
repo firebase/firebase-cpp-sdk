@@ -1,5 +1,6 @@
 // Copyright 2021 Google LLC
 
+#include "app/src/jni/exception.h"
 #include "performance/src/include/firebase/performance/http_metric.h"
 
 #include <jni.h>
@@ -9,11 +10,13 @@
 #include <utility>
 
 #include "app/src/assert.h"
+#include "app/src/app_android.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/util_android.h"
 #include "performance/src/android/performance_android_internal.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/string.h"
 #include "performance/src/include/firebase/performance.h"
 #include "performance/src/performance_common.h"
 
@@ -56,7 +59,7 @@ class HttpMetricInternal {
           env->CallVoidMethod(
               active_http_metric_,
               http_metric_jni::GetMethodId(http_metric_jni::kStopHttpMetric));
-          util::CheckAndClearJniExceptions(env);
+          jni::CheckAndClearException(env);
         }
       } else {
         env = firebase::util::GetJNIEnvFromApp();
@@ -106,7 +109,7 @@ class HttpMetricInternal {
         GetFirebasePerformanceClassInstance(),
         performance_jni::GetMethodId(performance_jni::kNewHttpMetric),
         url_jstring, http_method_jstring);
-    bool had_exception = util::CheckAndClearJniExceptions(env);
+    bool had_exception = jni::CheckAndClearException(env);
 
     if (!had_exception && local_active_http_metric != nullptr) {
       active_http_metric_ = env->NewGlobalRef(local_active_http_metric);
@@ -129,7 +132,7 @@ class HttpMetricInternal {
       env->CallVoidMethod(
           active_http_metric_,
           http_metric_jni::GetMethodId(http_metric_jni::kStartHttpMetric));
-      if (!util::CheckAndClearJniExceptions(env)) {
+      if (!jni::CheckAndClearException(env)) {
         is_started_ = true;
       }
     }
@@ -173,7 +176,7 @@ class HttpMetricInternal {
       env->CallVoidMethod(
           active_http_metric_,
           http_metric_jni::GetMethodId(http_metric_jni::kStopHttpMetric));
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
     }
     env->DeleteGlobalRef(active_http_metric_);
     active_http_metric_ = nullptr;
@@ -199,14 +202,14 @@ class HttpMetricInternal {
           active_http_metric_,
           http_metric_jni::GetMethodId(http_metric_jni::kRemoveAttribute),
           attribute_name_jstring);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
     } else {
       jstring attribute_value_jstring = env->NewStringUTF(attribute_value);
       env->CallVoidMethod(
           active_http_metric_,
           http_metric_jni::GetMethodId(http_metric_jni::kSetAttribute),
           attribute_name_jstring, attribute_value_jstring);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
       env->DeleteLocalRef(attribute_value_jstring);
     }
 
@@ -228,7 +231,7 @@ class HttpMetricInternal {
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kGetAttribute),
         attribute_name_jstring);
-    bool exception_pending = util::CheckAndClearJniExceptions(env);
+    bool exception_pending = jni::CheckAndClearException(env);
     env->DeleteLocalRef(attribute_name_jstring);
 
     if (exception_pending || attribute_value_jstring == nullptr) {
@@ -237,7 +240,7 @@ class HttpMetricInternal {
       }
       return "";
     }
-    return util::JniStringToString(env, attribute_value_jstring);
+    return jni::JStringToString(env, attribute_value_jstring);
   }
 
   // Sets the HTTP Response Code (for eg. 404 or 200) of the network
@@ -252,7 +255,7 @@ class HttpMetricInternal {
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kSetHttpResponseCode),
         http_response_code);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
 
   // Sets the Request Payload size in bytes for the network trace.
@@ -266,7 +269,7 @@ class HttpMetricInternal {
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kSetRequestPayloadSize),
         bytes);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
 
   // Sets the Response Content Type of the network trace.
@@ -283,7 +286,7 @@ class HttpMetricInternal {
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kSetResponseContentType),
         content_type_jstring);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     env->DeleteLocalRef(content_type_jstring);
   }
 
@@ -298,7 +301,7 @@ class HttpMetricInternal {
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kSetResponsePayloadSize),
         bytes);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
 
  private:

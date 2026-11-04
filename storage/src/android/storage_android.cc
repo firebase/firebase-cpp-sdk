@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include "storage/src/android/storage_android.h"
 
 #include <jni.h>
@@ -27,7 +28,6 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/util.h"
-#include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_reference_android.h"
@@ -60,11 +60,11 @@ bool SecondsToMillisClamped(double seconds, jlong* millis_out) {
   X(GetInstance, "getInstance",                                         \
     "(Lcom/google/firebase/FirebaseApp;)"                               \
     "Lcom/google/firebase/storage/FirebaseStorage;",                    \
-    util::kMethodTypeStatic),                                           \
+    firebase::util::kMethodTypeStatic),                                           \
   X(GetInstanceWithUrl, "getInstance",                                  \
     "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"             \
     "Lcom/google/firebase/storage/FirebaseStorage;",                    \
-    util::kMethodTypeStatic),                                           \
+    firebase::util::kMethodTypeStatic),                                           \
   X(GetMaxDownloadRetryTimeMillis, "getMaxDownloadRetryTimeMillis",     \
     "()J"),                                                             \
   X(SetMaxDownloadRetryTimeMillis, "setMaxDownloadRetryTimeMillis",     \
@@ -89,11 +89,84 @@ bool SecondsToMillisClamped(double seconds, jlong* millis_out) {
     "(Ljava/lang/String;I)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(firebase_storage, FIREBASE_STORAGE_METHODS)
-METHOD_LOOKUP_DEFINITION(firebase_storage,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/storage/FirebaseStorage",
-                         FIREBASE_STORAGE_METHODS)
+namespace firebase_storage {
+  enum Method {
+    kGetInstance,
+    kGetInstanceWithUrl,
+    kGetMaxDownloadRetryTimeMillis,
+    kSetMaxDownloadRetryTimeMillis,
+    kGetMaxUploadRetryTimeMillis,
+    kSetMaxUploadRetryTimeMillis,
+    kGetMaxOperationRetryTimeMillis,
+    kSetMaxOperationRetryTimeMillis,
+    kGetRootReference,
+    kGetReferenceFromUrl,
+    kGetReferenceFromPath,
+    kUseEmulator,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace firebase_storage {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/FirebaseStorage"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/storage/FirebaseStorage;");
+    if (!g_method_ids[kGetInstance]) return false;
+    g_method_ids[kGetInstanceWithUrl] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)Lcom/google/firebase/storage/FirebaseStorage;");
+    if (!g_method_ids[kGetInstanceWithUrl]) return false;
+    g_method_ids[kGetMaxDownloadRetryTimeMillis] = env->GetMethodID(g_class.get(), "getMaxDownloadRetryTimeMillis", "()J");
+    if (!g_method_ids[kGetMaxDownloadRetryTimeMillis]) return false;
+    g_method_ids[kSetMaxDownloadRetryTimeMillis] = env->GetMethodID(g_class.get(), "setMaxDownloadRetryTimeMillis", "(J)V");
+    if (!g_method_ids[kSetMaxDownloadRetryTimeMillis]) return false;
+    g_method_ids[kGetMaxUploadRetryTimeMillis] = env->GetMethodID(g_class.get(), "getMaxUploadRetryTimeMillis", "()J");
+    if (!g_method_ids[kGetMaxUploadRetryTimeMillis]) return false;
+    g_method_ids[kSetMaxUploadRetryTimeMillis] = env->GetMethodID(g_class.get(), "setMaxUploadRetryTimeMillis", "(J)V");
+    if (!g_method_ids[kSetMaxUploadRetryTimeMillis]) return false;
+    g_method_ids[kGetMaxOperationRetryTimeMillis] = env->GetMethodID(g_class.get(), "getMaxOperationRetryTimeMillis", "()J");
+    if (!g_method_ids[kGetMaxOperationRetryTimeMillis]) return false;
+    g_method_ids[kSetMaxOperationRetryTimeMillis] = env->GetMethodID(g_class.get(), "setMaxOperationRetryTimeMillis", "(J)V");
+    if (!g_method_ids[kSetMaxOperationRetryTimeMillis]) return false;
+    g_method_ids[kGetRootReference] = env->GetMethodID(g_class.get(), "getReference", "()Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetRootReference]) return false;
+    g_method_ids[kGetReferenceFromUrl] = env->GetMethodID(g_class.get(), "getReferenceFromUrl", "(Ljava/lang/String;)Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetReferenceFromUrl]) return false;
+    g_method_ids[kGetReferenceFromPath] = env->GetMethodID(g_class.get(), "getReference", "(Ljava/lang/String;)Lcom/google/firebase/storage/StorageReference;");
+    if (!g_method_ids[kGetReferenceFromPath]) return false;
+    g_method_ids[kUseEmulator] = env->GetMethodID(g_class.get(), "useEmulator", "(Ljava/lang/String;I)V");
+    if (!g_method_ids[kUseEmulator]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define STORAGE_EXCEPTION_FIELDS(X)                                           \
@@ -118,33 +191,223 @@ METHOD_LOOKUP_DEFINITION(firebase_storage,
   X(GetErrorCode, "getErrorCode", "()I")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(storage_exception, STORAGE_EXCEPTION_METHODS,
-                          STORAGE_EXCEPTION_FIELDS)
-METHOD_LOOKUP_DEFINITION(storage_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/storage/StorageException",
-                         STORAGE_EXCEPTION_METHODS, STORAGE_EXCEPTION_FIELDS)
+namespace storage_exception {
+  enum Method {
+    kGetCause,
+    kGetMessage,
+    kGetErrorCode,
+    kMethodCount
+  };
+  enum Field {
+    kUnknown,
+    kObjectNotFound,
+    kBucketNotFound,
+    kProjectNotFound,
+    kQuotaExceeded,
+    kNotAuthenticated,
+    kNotAuthorized,
+    kInvalidChecksum,
+    kCanceled,
+    kRetryLimitExceeded,
+    kFieldCount
+  };
 
-METHOD_LOOKUP_DECLARATION(index_out_of_bounds_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(index_out_of_bounds_exception,
-                         PROGUARD_KEEP_CLASS
-                         "java/lang/IndexOutOfBoundsException",
-                         METHOD_LOOKUP_NONE)
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
 
-METHOD_LOOKUP_DEFINITION(
-    cpp_storage_listener,
-    "com/google/firebase/storage/internal/cpp/CppStorageListener",
-    CPP_STORAGE_LISTENER_METHODS)
+namespace storage_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StorageException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetCause] = env->GetMethodID(g_class.get(), "getCause", "()Ljava/lang/Throwable;");
+    if (!g_method_ids[kGetCause]) return false;
+    g_method_ids[kGetMessage] = env->GetMethodID(g_class.get(), "getMessage", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetMessage]) return false;
+    g_method_ids[kGetErrorCode] = env->GetMethodID(g_class.get(), "getErrorCode", "()I");
+    if (!g_method_ids[kGetErrorCode]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    g_field_ids[kUnknown] = env->GetStaticFieldID(g_class.get(), "ERROR_UNKNOWN", "I");
+    if (!g_field_ids[kUnknown]) return false;
+    g_field_ids[kObjectNotFound] = env->GetStaticFieldID(g_class.get(), "ERROR_OBJECT_NOT_FOUND", "I");
+    if (!g_field_ids[kObjectNotFound]) return false;
+    g_field_ids[kBucketNotFound] = env->GetStaticFieldID(g_class.get(), "ERROR_BUCKET_NOT_FOUND", "I");
+    if (!g_field_ids[kBucketNotFound]) return false;
+    g_field_ids[kProjectNotFound] = env->GetStaticFieldID(g_class.get(), "ERROR_PROJECT_NOT_FOUND", "I");
+    if (!g_field_ids[kProjectNotFound]) return false;
+    g_field_ids[kQuotaExceeded] = env->GetStaticFieldID(g_class.get(), "ERROR_QUOTA_EXCEEDED", "I");
+    if (!g_field_ids[kQuotaExceeded]) return false;
+    g_field_ids[kNotAuthenticated] = env->GetStaticFieldID(g_class.get(), "ERROR_NOT_AUTHENTICATED", "I");
+    if (!g_field_ids[kNotAuthenticated]) return false;
+    g_field_ids[kNotAuthorized] = env->GetStaticFieldID(g_class.get(), "ERROR_NOT_AUTHORIZED", "I");
+    if (!g_field_ids[kNotAuthorized]) return false;
+    g_field_ids[kInvalidChecksum] = env->GetStaticFieldID(g_class.get(), "ERROR_INVALID_CHECKSUM", "I");
+    if (!g_field_ids[kInvalidChecksum]) return false;
+    g_field_ids[kCanceled] = env->GetStaticFieldID(g_class.get(), "ERROR_CANCELED", "I");
+    if (!g_field_ids[kCanceled]) return false;
+    g_field_ids[kRetryLimitExceeded] = env->GetStaticFieldID(g_class.get(), "ERROR_RETRY_LIMIT_EXCEEDED", "I");
+    if (!g_field_ids[kRetryLimitExceeded]) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DEFINITION(
-    cpp_byte_downloader,
-    "com/google/firebase/storage/internal/cpp/CppByteDownloader",
-    CPP_BYTE_DOWNLOADER_METHODS)
 
-METHOD_LOOKUP_DEFINITION(
-    cpp_byte_uploader,
-    "com/google/firebase/storage/internal/cpp/CppByteUploader",
-    CPP_BYTE_UPLOADER_METHODS)
+namespace index_out_of_bounds_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace index_out_of_bounds_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("java/lang/IndexOutOfBoundsException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace cpp_storage_listener {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/internal/cpp/CppStorageListener"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
+    if (!g_method_ids[kDiscardPointers]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace cpp_byte_downloader {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/internal/cpp/CppByteDownloader"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
+    if (!g_method_ids[kDiscardPointers]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace cpp_byte_uploader {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/internal/cpp/CppByteUploader"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJJ)V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
+    if (!g_method_ids[kDiscardPointers]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 Mutex StorageInternal::init_mutex_;  // NOLINT
 int StorageInternal::initialize_count_ = 0;
@@ -176,7 +439,7 @@ StorageInternal::StorageInternal(App* app, const char* url)
       env->DeleteLocalRef(url_jstring);
     }
   }
-  std::string exception = util::GetAndClearExceptionMessage(env);
+  std::string exception = jni::GetAndClearExceptionMessage(env);
   if (platform_app != nullptr) {
     env->DeleteLocalRef(platform_app);
   }
@@ -211,7 +474,7 @@ StorageInternal::~StorageInternal() {
 
   cleanup_.CleanupAll();
   JNIEnv* env = app_->GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
+  firebase::util::CancelCallbacks(env, jni_task_id_.c_str());
   if (obj_ != nullptr) {
     env->DeleteGlobalRef(obj_);
     obj_ = nullptr;
@@ -219,7 +482,7 @@ StorageInternal::~StorageInternal() {
   Terminate(app_);
   app_ = nullptr;
 
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 // Which StorageException Java fields correspond to which C++ Error enum values.
@@ -269,7 +532,7 @@ bool StorageInternal::Initialize(App* app) {
       index_out_of_bounds_exception::ReleaseClass(env);
       storage_exception::ReleaseClass(env);
       firebase_storage::ReleaseClass(env);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
       return false;
     }
 
@@ -284,7 +547,7 @@ bool StorageInternal::Initialize(App* app) {
       java_error_to_cpp_->insert(
           std::make_pair(java_error, g_error_codes[i].error_code));
     }
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
   initialize_count_++;
   return true;
@@ -332,10 +595,10 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
     cpp_storage_listener::ReleaseClass(env);
     cpp_byte_downloader::ReleaseClass(env);
     cpp_byte_uploader::ReleaseClass(env);
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     return false;
   }
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return true;
 }
 
@@ -359,7 +622,7 @@ void StorageInternal::Terminate(App* app) {
     cpp_byte_downloader::ReleaseClass(env);
     cpp_byte_uploader::ReleaseClass(env);
 
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
 
     delete java_error_to_cpp_;
     java_error_to_cpp_ = nullptr;
@@ -389,20 +652,20 @@ Error StorageInternal::ErrorFromJavaStorageException(
         jobject msg_obj = env->CallObjectMethod(
             java_exception,
             util::throwable::GetMethodId(util::throwable::kGetMessage));
-        if (util::CheckAndClearJniExceptions(env)) {
+        if (jni::CheckAndClearException(env)) {
           if (msg_obj != nullptr) env->DeleteLocalRef(msg_obj);
         } else if (msg_obj != nullptr) {
-          *error_message = util::JniStringToString(env, msg_obj);
+          *error_message = ::firebase::jni::JStringToString(env, msg_obj);
         }
       }
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
       return kErrorUnknown;
     }
 
     jint raw_code = env->CallIntMethod(
         java_exception,
         storage_exception::GetMethodId(storage_exception::kGetErrorCode));
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       return kErrorUnknown;
     }
     code = ErrorFromJavaErrorCode(raw_code);
@@ -410,17 +673,17 @@ Error StorageInternal::ErrorFromJavaStorageException(
       jobject msg_obj = env->CallObjectMethod(
           java_exception,
           storage_exception::GetMethodId(storage_exception::kGetMessage));
-      if (util::CheckAndClearJniExceptions(env)) {
+      if (jni::CheckAndClearException(env)) {
         if (msg_obj != nullptr) env->DeleteLocalRef(msg_obj);
       } else if (msg_obj != nullptr) {
-        *error_message = util::JniStringToString(env, msg_obj);
+        *error_message = ::firebase::jni::JStringToString(env, msg_obj);
       }
     }
     if (code == kErrorUnknown) {
       jobject cause = env->CallObjectMethod(
           java_exception,
           storage_exception::GetMethodId(storage_exception::kGetCause));
-      if (util::CheckAndClearJniExceptions(env)) {
+      if (jni::CheckAndClearException(env)) {
         if (cause != nullptr) env->DeleteLocalRef(cause);
       } else if (cause != nullptr) {
         if (env->IsInstanceOf(cause,
@@ -436,17 +699,17 @@ Error StorageInternal::ErrorFromJavaStorageException(
             jobject cause_msg = env->CallObjectMethod(
                 cause,
                 util::throwable::GetMethodId(util::throwable::kGetMessage));
-            if (util::CheckAndClearJniExceptions(env)) {
+            if (jni::CheckAndClearException(env)) {
               if (cause_msg != nullptr) env->DeleteLocalRef(cause_msg);
             } else if (cause_msg != nullptr) {
-              *error_message = util::JniStringToString(env, cause_msg);
+              *error_message = ::firebase::jni::JStringToString(env, cause_msg);
             }
           }
         }
         env->DeleteLocalRef(cause);
       }
     }
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
   }
   return code;
 }
@@ -455,7 +718,7 @@ StorageReferenceInternal* StorageInternal::GetReference() const {
   JNIEnv* env = app_->GetJNIEnv();
   jobject storage_reference_obj = env->CallObjectMethod(
       obj_, firebase_storage::GetMethodId(firebase_storage::kGetRootReference));
-  if (util::CheckAndClearJniExceptions(env) ||
+  if (jni::CheckAndClearException(env) ||
       storage_reference_obj == nullptr) {
     if (storage_reference_obj) env->DeleteLocalRef(storage_reference_obj);
     return nullptr;
@@ -463,7 +726,7 @@ StorageReferenceInternal* StorageInternal::GetReference() const {
   StorageReferenceInternal* internal = new StorageReferenceInternal(
       const_cast<StorageInternal*>(this), storage_reference_obj);
   env->DeleteLocalRef(storage_reference_obj);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return internal;
 }
 
@@ -477,7 +740,7 @@ StorageReferenceInternal* StorageInternal::GetReference(
       firebase_storage::GetMethodId(firebase_storage::kGetReferenceFromPath),
       path_string);
   env->DeleteLocalRef(path_string);
-  if (util::CheckAndClearJniExceptions(env) ||
+  if (jni::CheckAndClearException(env) ||
       storage_reference_obj == nullptr) {
     if (storage_reference_obj) env->DeleteLocalRef(storage_reference_obj);
     LogWarning("Storage::GetReference(): Invalid path specified: %s", path);
@@ -499,7 +762,7 @@ StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
       firebase_storage::GetMethodId(firebase_storage::kGetReferenceFromUrl),
       url_string);
   env->DeleteLocalRef(url_string);
-  if (util::CheckAndClearJniExceptions(env) ||
+  if (jni::CheckAndClearException(env) ||
       storage_reference_obj == nullptr) {
     if (storage_reference_obj) env->DeleteLocalRef(storage_reference_obj);
     LogWarning(
@@ -519,7 +782,7 @@ double StorageInternal::max_download_retry_time() const {
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxDownloadRetryTimeMillis));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return millis / 1000.0;
 }
 
@@ -534,7 +797,7 @@ void StorageInternal::set_max_download_retry_time(
                       firebase_storage::GetMethodId(
                           firebase_storage::kSetMaxDownloadRetryTimeMillis),
                       millis);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 double StorageInternal::max_upload_retry_time() const {
@@ -542,7 +805,7 @@ double StorageInternal::max_upload_retry_time() const {
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxUploadRetryTimeMillis));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return millis / 1000.0;
 }
 
@@ -557,7 +820,7 @@ void StorageInternal::set_max_upload_retry_time(
                       firebase_storage::GetMethodId(
                           firebase_storage::kSetMaxUploadRetryTimeMillis),
                       millis);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 double StorageInternal::max_operation_retry_time() const {
@@ -565,7 +828,7 @@ double StorageInternal::max_operation_retry_time() const {
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxOperationRetryTimeMillis));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return millis / 1000.0;
 }
 
@@ -580,7 +843,7 @@ void StorageInternal::set_max_operation_retry_time(
                       firebase_storage::GetMethodId(
                           firebase_storage::kSetMaxOperationRetryTimeMillis),
                       millis);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 void StorageInternal::UseEmulator(const char* host, int port) {
@@ -600,7 +863,7 @@ void StorageInternal::UseEmulator(const char* host, int port) {
       obj_, firebase_storage::GetMethodId(firebase_storage::kUseEmulator),
       host_string, port_num);
   env->DeleteLocalRef(host_string);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 }  // namespace internal

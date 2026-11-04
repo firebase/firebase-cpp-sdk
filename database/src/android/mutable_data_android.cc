@@ -16,9 +16,12 @@
 
 #include <jni.h>
 
-#include "app/src/util_android.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/env.h"
+#include "app/src/jni/ownership.h"
 #include "database/src/android/database_android.h"
-#include "database/src/android/util_android.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/env.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/include/firebase/database/mutable_data.h"
 
@@ -43,11 +46,76 @@ namespace internal {
   X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(mutable_data, MUTABLE_DATA_METHODS)
-METHOD_LOOKUP_DEFINITION(mutable_data,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/database/MutableData",
-                         MUTABLE_DATA_METHODS)
+namespace mutable_data {
+
+enum Method {
+  kHasChildren,
+  kHasChild,
+  kChild,
+  kGetChildrenCount,
+  kGetChildren,
+  kGetKey,
+  kGetValue,
+  kSetValue,
+  kSetPriority,
+  kGetPriority,
+  kEquals,
+  kToString,
+  kMethodCount
+};
+
+enum Field { kFieldCount = 0 };
+
+::firebase::jni::Global<jclass> g_class;
+jmethodID g_method_ids[kMethodCount];
+
+jclass GetClass() { return g_class.get(); }
+jmethodID GetMethodId(Method method) {
+  return g_method_ids[method];
+}
+
+bool CacheMethodIds(JNIEnv* env, jobject activity) {
+  if (g_class) return true;
+  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/MutableData"));
+  if (!local_clazz) {
+    ::firebase::jni::CheckAndClearException(env);
+    return false;
+  }
+  g_class = local_clazz;
+  g_method_ids[kHasChildren] = env->GetMethodID(g_class.get(), "hasChildren", "()Z");
+  if (!g_method_ids[kHasChildren]) return false;
+  g_method_ids[kHasChild] = env->GetMethodID(g_class.get(), "hasChild", "(Ljava/lang/String;)Z");
+  if (!g_method_ids[kHasChild]) return false;
+  g_method_ids[kChild] = env->GetMethodID(g_class.get(), "child", "(Ljava/lang/String;)Lcom/google/firebase/database/MutableData;");
+  if (!g_method_ids[kChild]) return false;
+  g_method_ids[kGetChildrenCount] = env->GetMethodID(g_class.get(), "getChildrenCount", "()J");
+  if (!g_method_ids[kGetChildrenCount]) return false;
+  g_method_ids[kGetChildren] = env->GetMethodID(g_class.get(), "getChildren", "()Ljava/lang/Iterable;");
+  if (!g_method_ids[kGetChildren]) return false;
+  g_method_ids[kGetKey] = env->GetMethodID(g_class.get(), "getKey", "()Ljava/lang/String;");
+  if (!g_method_ids[kGetKey]) return false;
+  g_method_ids[kGetValue] = env->GetMethodID(g_class.get(), "getValue", "()Ljava/lang/Object;");
+  if (!g_method_ids[kGetValue]) return false;
+  g_method_ids[kSetValue] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;)V");
+  if (!g_method_ids[kSetValue]) return false;
+  g_method_ids[kSetPriority] = env->GetMethodID(g_class.get(), "setPriority", "(Ljava/lang/Object;)V");
+  if (!g_method_ids[kSetPriority]) return false;
+  g_method_ids[kGetPriority] = env->GetMethodID(g_class.get(), "getPriority", "()Ljava/lang/Object;");
+  if (!g_method_ids[kGetPriority]) return false;
+  g_method_ids[kEquals] = env->GetMethodID(g_class.get(), "equals", "(Ljava/lang/Object;)Z");
+  if (!g_method_ids[kEquals]) return false;
+  g_method_ids[kToString] = env->GetMethodID(g_class.get(), "toString", "()Ljava/lang/String;");
+  if (!g_method_ids[kToString]) return false;
+  return true;
+}
+
+void ReleaseClass(JNIEnv* env) {
+  g_class.reset();
+}
+
+}  // namespace mutable_data
+
+
 
 MutableDataInternal::MutableDataInternal(DatabaseInternal* db, jobject obj)
     : db_(db) {
@@ -70,21 +138,21 @@ bool MutableDataInternal::Initialize(App* app) {
 void MutableDataInternal::Terminate(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   mutable_data::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
+  ::firebase::jni::CheckAndClearException(env);
 }
 
 MutableDataInternal* MutableDataInternal::Child(const char* path) {
   if (path == nullptr) return nullptr;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring path_string = env->NewStringUTF(path);
-  if (util::CheckAndClearJniExceptions(env) || path_string == nullptr) {
+  if (::firebase::jni::CheckAndClearException(env) || path_string == nullptr) {
     if (path_string != nullptr) env->DeleteLocalRef(path_string);
     return nullptr;
   }
   jobject child_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kChild), path_string);
   env->DeleteLocalRef(path_string);
-  if (util::LogException(
+  if (::firebase::util::LogException(
           env, kLogLevelWarning,
           "MutableData::Child(): Couldn't create child reference %s", path) ||
       child_obj == nullptr) {
@@ -103,14 +171,14 @@ std::vector<MutableData> MutableDataInternal::GetChildren() {
   // iterable = mutable_data.getChildren()
   jobject iterable = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetChildren));
-  if (util::CheckAndClearJniExceptions(env) || iterable == nullptr) {
+  if (::firebase::jni::CheckAndClearException(env) || iterable == nullptr) {
     if (iterable != nullptr) env->DeleteLocalRef(iterable);
     return result;
   }
   // iterator = iterable.iterator()
   jobject iterator = env->CallObjectMethod(
-      iterable, util::iterable::GetMethodId(util::iterable::kIterator));
-  if (util::CheckAndClearJniExceptions(env) || iterator == nullptr) {
+      iterable, env->GetMethodID(env->GetObjectClass(iterable), "iterator", "()Ljava/util/Iterator;"));
+  if (::firebase::jni::CheckAndClearException(env) || iterator == nullptr) {
     if (iterator != nullptr) env->DeleteLocalRef(iterator);
     env->DeleteLocalRef(iterable);
     return result;
@@ -118,14 +186,14 @@ std::vector<MutableData> MutableDataInternal::GetChildren() {
   // while (iterator.hasNext())
   while (true) {
     jboolean has_next = env->CallBooleanMethod(
-        iterator, util::iterator::GetMethodId(util::iterator::kHasNext));
-    if (util::CheckAndClearJniExceptions(env) || !has_next) {
+        iterator, env->GetMethodID(env->GetObjectClass(iterator), "hasNext", "()Z"));
+    if (::firebase::jni::CheckAndClearException(env) || !has_next) {
       break;
     }
     // MutableData java_mutable_data = iterator.next();
     jobject java_mutable_data = env->CallObjectMethod(
-        iterator, util::iterator::GetMethodId(util::iterator::kNext));
-    if (util::CheckAndClearJniExceptions(env) || java_mutable_data == nullptr) {
+        iterator, env->GetMethodID(env->GetObjectClass(iterator), "next", "()Ljava/lang/Object;"));
+    if (::firebase::jni::CheckAndClearException(env) || java_mutable_data == nullptr) {
       if (java_mutable_data != nullptr) env->DeleteLocalRef(java_mutable_data);
       break;
     }
@@ -142,7 +210,7 @@ size_t MutableDataInternal::GetChildrenCount() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jlong count = env->CallLongMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetChildrenCount));
-  if (util::CheckAndClearJniExceptions(env) || count < 0) {
+  if (::firebase::jni::CheckAndClearException(env) || count < 0) {
     return 0;
   }
   return static_cast<size_t>(count);
@@ -154,7 +222,7 @@ const char* MutableDataInternal::GetKey() {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, mutable_data::GetMethodId(mutable_data::kGetKey)));
-    if (util::LogException(env, kLogLevelError,
+    if (::firebase::util::LogException(env, kLogLevelError,
                            "MutableData::GetKey() failed")) {
       if (key_string != nullptr) env->DeleteLocalRef(key_string);
       return nullptr;
@@ -164,7 +232,7 @@ const char* MutableDataInternal::GetKey() {
       cached_key_ = Variant::EmptyMutableString();
     } else {
       const char* key = env->GetStringUTFChars(key_string, nullptr);
-      if (util::CheckAndClearJniExceptions(env) || key == nullptr) {
+      if (::firebase::jni::CheckAndClearException(env) || key == nullptr) {
         if (key != nullptr) {
           env->ReleaseStringUTFChars(key_string, key);
         }
@@ -189,11 +257,11 @@ Variant MutableDataInternal::GetValue() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject value_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetValue));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (::firebase::jni::CheckAndClearException(env)) {
     if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
     return Variant::Null();
   }
-  Variant v = internal::JavaObjectToVariant(env, value_obj);
+  Variant v = ::firebase::util::JavaObjectToVariant(env, value_obj);
   if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
   return v;
 }
@@ -202,11 +270,11 @@ Variant MutableDataInternal::GetPriority() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject value_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetPriority));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (::firebase::jni::CheckAndClearException(env)) {
     if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
     return Variant::Null();
   }
-  Variant v = internal::JavaObjectToVariant(env, value_obj);
+  Variant v = ::firebase::util::JavaObjectToVariant(env, value_obj);
   if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
   return v;
 }
@@ -215,14 +283,14 @@ bool MutableDataInternal::HasChild(const char* path) const {
   if (path == nullptr) return false;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring path_string = env->NewStringUTF(path);
-  if (util::CheckAndClearJniExceptions(env) || path_string == nullptr) {
+  if (::firebase::jni::CheckAndClearException(env) || path_string == nullptr) {
     if (path_string != nullptr) env->DeleteLocalRef(path_string);
     return false;
   }
   jboolean has_child = env->CallBooleanMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kHasChild), path_string);
   env->DeleteLocalRef(path_string);
-  if (util::LogException(env, kLogLevelWarning,
+  if (::firebase::util::LogException(env, kLogLevelWarning,
                          "MutableData::HasChild() failed")) {
     return false;
   }
@@ -231,14 +299,14 @@ bool MutableDataInternal::HasChild(const char* path) const {
 
 void MutableDataInternal::SetValue(const Variant& value) {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject value_java = internal::VariantToJavaObject(env, value);
+  jobject value_java = ::firebase::util::VariantToJavaObject(env, value);
   if (!value.is_null() && value_java == nullptr) {
     db_->logger()->LogError("MutableData::SetValue() failed: invalid Variant");
     return;
   }
   env->CallVoidMethod(obj_, mutable_data::GetMethodId(mutable_data::kSetValue),
                       value_java);
-  util::LogException(env, kLogLevelError, "MutableData::SetValue() failed");
+  ::firebase::util::LogException(env, kLogLevelError, "MutableData::SetValue() failed");
   if (value_java != nullptr) env->DeleteLocalRef(value_java);
 }
 
@@ -249,7 +317,7 @@ void MutableDataInternal::SetPriority(const Variant& priority) {
         "MutableData::SetPriority(): Invalid Variant type given for priority. "
         "Container types (Vector/Map) are not allowed.");
   } else {
-    jobject priority_java = internal::VariantToJavaObject(env, priority);
+    jobject priority_java = ::firebase::util::VariantToJavaObject(env, priority);
     if (!priority.is_null() && priority_java == nullptr) {
       db_->logger()->LogError(
           "MutableData::SetPriority() failed: invalid Variant");
@@ -258,7 +326,7 @@ void MutableDataInternal::SetPriority(const Variant& priority) {
     env->CallVoidMethod(obj_,
                         mutable_data::GetMethodId(mutable_data::kSetPriority),
                         priority_java);
-    util::LogException(env, kLogLevelError,
+    ::firebase::util::LogException(env, kLogLevelError,
                        "MutableData::SetPriority() failed");
     if (priority_java != nullptr) env->DeleteLocalRef(priority_java);
   }

@@ -31,7 +31,6 @@
 
 #ifdef __ANDROID__
 #include "app/src/semaphore.h"
-#include "app/src/util_android.h"
 #endif  // __ANDROID__
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)

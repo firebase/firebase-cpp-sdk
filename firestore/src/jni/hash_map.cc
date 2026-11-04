@@ -16,7 +16,6 @@
 
 #include "firestore/src/jni/hash_map.h"
 
-#include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 

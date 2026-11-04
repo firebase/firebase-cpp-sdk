@@ -1,3 +1,4 @@
+#include "app/src/app_android.h"
 // Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/app_android.h"
+#include "app/src/jni/exception.h"
 #include "functions/src/android/callable_reference_android.h"
 
 #include <jni.h>
@@ -26,7 +29,6 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "functions/src/android/functions_android.h"
 #include "functions/src/include/firebase/functions.h"
 #include "functions/src/include/firebase/functions/callable_result.h"
@@ -34,15 +36,67 @@
 
 namespace firebase::functions::internal {
 
-METHOD_LOOKUP_DEFINITION(callable_reference,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/functions/HttpsCallableReference",
-                         CALLABLE_REFERENCE_METHODS)
+namespace callable_reference {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/functions/HttpsCallableReference"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kCall] = env->GetMethodID(g_class.get(), "call", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kCall]) return false;
+    g_method_ids[kCallWithParam] = env->GetMethodID(g_class.get(), "call", "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kCallWithParam]) return false;
+    g_method_ids[kSetTimeout] = env->GetMethodID(g_class.get(), "setTimeout", "(JLjava/util/concurrent/TimeUnit;)V");
+    ::firebase::jni::CheckAndClearException(env);
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DEFINITION(callable_result,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/functions/HttpsCallableResult",
-                         CALLABLE_RESULT_METHODS)
+
+namespace callable_result {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/functions/HttpsCallableResult"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetData] = env->GetMethodID(g_class.get(), "getData", "()Ljava/lang/Object;");
+    if (!g_method_ids[kGetData]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 enum HttpsCallableReferenceFn {
   kHttpsCallableReferenceFnCall = 0,
@@ -71,7 +125,7 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, jobject wrapper_obj)
     : functions_(functions), future_impl_(kHttpsCallableReferenceFnCount), obj_(nullptr) {
   if (functions_ && functions_->app()) {
-    functions_->    if (wrapper_obj) {
+        if (wrapper_obj) {
       obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(wrapper_obj);
     }
   }
@@ -86,7 +140,7 @@ void HttpsCallableReferenceInternal::Cleanup(
     obj_ = nullptr;
   }
   if (functions_ != nullptr) {
-    functions_->    functions_ = nullptr;
+        functions_ = nullptr;
   }
 }
 
@@ -94,9 +148,9 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() { Cleanup(); }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& src)
-    : functions_(src.functions_), obj_(nullptr) {
+    : future_impl_(kHttpsCallableReferenceFnCount), functions_(src.functions_), obj_(nullptr) {
   if (functions_ && functions_->app()) {
-    functions_->    if (src.obj_ != nullptr) {
+        if (src.obj_ != nullptr) {
       obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
     }
   }
@@ -122,7 +176,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 
   if (functions_ != src.functions_) {
     if (functions_) {
-      functions_->    }
+      }
     functions_ = src.functions_;
       }
   return *this;
@@ -130,7 +184,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& src) noexcept
-    : functions_(std::exchange(src.functions_, nullptr)),
+    : future_impl_(kHttpsCallableReferenceFnCount), functions_(std::exchange(src.functions_, nullptr)),
       obj_(std::exchange(src.obj_, nullptr)) {
   }
 
@@ -185,7 +239,7 @@ struct FutureCallbackData {
 }  // namespace
 
 void HttpsCallableReferenceInternal::FutureCallback(
-    JNIEnv* env, jobject result, util::FutureResult result_code,
+    JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
     const char* status_message, void* callback_data) {
   std::unique_ptr<FutureCallbackData> data(
       static_cast<FutureCallbackData*>(callback_data));
@@ -214,12 +268,12 @@ void HttpsCallableReferenceInternal::FutureCallback(
   } else {
     jobject java_result = env->CallObjectMethod(
         result, callable_result::GetMethodId(callable_result::kGetData));
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       data->future_impl->Complete(data->handle, kErrorInternal,
                                   GetErrorMessage(kErrorInternal));
     } else {
-      Variant result_variant = util::JavaObjectToVariant(env, java_result);
-      util::CheckAndClearJniExceptions(env);
+      Variant result_variant = firebase::util::JavaObjectToVariant(env, java_result);
+      jni::CheckAndClearException(env);
       if (java_result != nullptr) {
         env->DeleteLocalRef(java_result);
       }
@@ -241,7 +295,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
 
   jobject task = env->CallObjectMethod(
       obj_, callable_reference::GetMethodId(callable_reference::kCall));
-  if (util::CheckAndClearJniExceptions(env) || !task) {
+  if (jni::CheckAndClearException(env) || !task) {
     future_api->Complete(handle, kErrorInternal,
                          GetErrorMessage(kErrorInternal));
     return MakeFuture(future_api, handle);
@@ -249,10 +303,10 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
 
   FutureCallbackData* callback_data = new FutureCallbackData(
       handle, future_api, functions_->lifetime_state());
-  util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
+  firebase::util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
                                functions_->jni_task_id().c_str());
   env->DeleteLocalRef(task);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   return MakeFuture(future_api, handle);
 }
@@ -267,8 +321,8 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
       future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
   JNIEnv* env = functions_->app()->GetJNIEnv();
 
-  jobject java_object = util::VariantToJavaObject(env, data);
-  if (util::CheckAndClearJniExceptions(env)) {
+  jobject java_object = firebase::util::VariantToJavaObject(env, data);
+  if (jni::CheckAndClearException(env)) {
     if (java_object) env->DeleteLocalRef(java_object);
     future_api->Complete(handle, kErrorInvalidArgument,
                          GetErrorMessage(kErrorInvalidArgument));
@@ -279,7 +333,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
       obj_, callable_reference::GetMethodId(callable_reference::kCallWithParam),
       java_object);
   if (java_object) env->DeleteLocalRef(java_object);
-  if (util::CheckAndClearJniExceptions(env) || !task) {
+  if (jni::CheckAndClearException(env) || !task) {
     future_api->Complete(handle, kErrorInternal,
                          GetErrorMessage(kErrorInternal));
     return MakeFuture(future_api, handle);
@@ -287,10 +341,10 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
 
   FutureCallbackData* callback_data = new FutureCallbackData(
       handle, future_api, functions_->lifetime_state());
-  util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
+  firebase::util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
                                functions_->jni_task_id().c_str());
   env->DeleteLocalRef(task);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   return MakeFuture(future_api, handle);
 }

@@ -22,7 +22,6 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/util_android.h"
 #include "firestore/src/jni/class.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
@@ -185,7 +184,7 @@ void Loader::Load(StaticMethodBase& method) {
 
   jmethodID result = LookupMethod(env_, last_class_, last_class_name_.c_str(),
                                   method.name_, method.sig_,
-                                  util::kMethodTypeStatic, &ok_);
+                                  firebase::util::kMethodTypeStatic, &ok_);
   if (!ok_) return;
 
   method.clazz_ = last_class_;

@@ -17,8 +17,9 @@
 #ifndef FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
 #define FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
 
+#include "app/src/app_android.h"
+#include "app/src/jni/exception.h"
 #include "app/src/embedded_file.h"
-#include "app/src/util_android.h"
 #include "auth/src/common.h"
 #include "auth/src/include/firebase/auth/credential.h"
 #include "auth/src/include/firebase/auth/user.h"
@@ -37,7 +38,25 @@ namespace auth {
     "()Lcom/google/firebase/auth/AuthCredential;",                             \
     util::kMethodTypeInstance)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(authresult, AUTH_RESULT_METHODS)
+namespace authresult {
+  enum Method {
+    kGetUser,
+    kGetAdditionalUserInfo,
+    kGetCredential,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // clang-format off
 #define ADDITIONAL_USER_INFO_METHODS(X)                                        \
@@ -46,13 +65,48 @@ METHOD_LOOKUP_DECLARATION(authresult, AUTH_RESULT_METHODS)
   X(GetUsername, "getUsername", "()Ljava/lang/String;"),                       \
   X(IsNewUser, "isNewUser", "()Z")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(additional_user_info, ADDITIONAL_USER_INFO_METHODS)
+namespace additional_user_info {
+  enum Method {
+    kGetProviderId,
+    kGetProfile,
+    kGetUsername,
+    kIsNewUser,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // clang-format off
 #define PHONE_CREDENTIAL_METHODS(X)                                            \
     X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
+namespace phonecredential {
+  enum Method {
+    kGetSmsCode,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // Invokes a private Credential constructor only accessible by friends of the
 // Credential class.
@@ -108,23 +162,23 @@ inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
   const jobject j_provider_id = env->CallObjectMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kGetProviderId));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   const jobject j_profile = env->CallObjectMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kGetProfile));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   const jobject j_user_name = env->CallObjectMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kGetUsername));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   const jboolean j_is_new_user = env->CallBooleanMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kIsNewUser));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   // Convert Java references to C++ types.
-  info->provider_id = util::JniStringToString(env, j_provider_id);
-  info->user_name = util::JniStringToString(env, j_user_name);
+  info->provider_id = ::firebase::jni::JStringToString(env, j_provider_id);
+  info->user_name = ::firebase::jni::JStringToString(env, j_user_name);
   info->is_new_user = (j_is_new_user != JNI_FALSE);
   if (j_profile) util::JavaMapToVariantMap(env, &info->profile, j_profile);
 
@@ -205,12 +259,12 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
 // Checks for Future success / failure or Android based exceptions, and maps
 // them to corresponding AuthError codes.
 AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
-                                             util::FutureResult result_code,
+                                             firebase::util::FutureResult result_code,
                                              bool* success);
 
 // The function called by the Java thread when a result completes.
 template <typename T>
-void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
+void FutureCallback(JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
                     const char* status_message, void* callback_data) {
   FutureCallbackData<T>* data =
       static_cast<FutureCallbackData<T>*>(callback_data);
@@ -235,7 +289,7 @@ void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
 // The function called by the Java thread when a result completes.
 template <typename T>
 void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
-                                         util::FutureResult result_code,
+                                         firebase::util::FutureResult result_code,
                                          const char* status_message,
                                          void* callback_data) {
   FutureCallbackData<T>* data =
@@ -276,7 +330,7 @@ void RegisterCallback(
     jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
   // The FutureCallbackData structure is deleted in FutureCallback().
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       Env(auth_data), pending_result, FutureCallback<T>,
       new FutureCallbackData<T>(handle, auth_data, read_result_fn),
       auth_data->future_api_id.c_str());
@@ -293,7 +347,7 @@ void RegisterFederatedAuthProviderCallback(
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
   // The FutureCallbackData structure is deleted in
   // FederatedAuthProviderFutureCallback().
-  util::RegisterCallbackOnTask(
+  firebase::util::RegisterCallbackOnTask(
       Env(auth_data), pending_result, FederatedAuthProviderFutureCallback<T>,
       new FutureCallbackData<T>(handle, auth_data, read_result_fn),
       auth_data->future_api_id.c_str());

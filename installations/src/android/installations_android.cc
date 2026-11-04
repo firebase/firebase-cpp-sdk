@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/app_android.h"
+#include "app/src/jni/string.h"
+#include "app/src/jni/exception.h"
 #include "installations/src/android/installations_android.h"
 
 #include <cstring>
@@ -22,7 +25,6 @@
 
 #include "app/src/log.h"
 #include "app/src/util.h"
-#include "app/src/util_android.h"
 #include "installations/src/common.h"
 
 namespace firebase {
@@ -44,12 +46,63 @@ namespace internal {
     firebase::util::kMethodTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(installations, INSTALLATIONS_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    installations,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/installations/FirebaseInstallations",
-    INSTALLATIONS_METHODS)
+namespace installations {
+  enum Method {
+    kGetId,
+    kDelete,
+    kGetToken,
+    kAddIdListener,
+    kGetInstance,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace installations {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/installations/FirebaseInstallations"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetId] = env->GetMethodID(g_class.get(), "getId", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetId]) return false;
+    g_method_ids[kDelete] = env->GetMethodID(g_class.get(), "delete", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kDelete]) return false;
+    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "(Z)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kGetToken]) return false;
+    g_method_ids[kAddIdListener] = env->GetMethodID(g_class.get(), "addFidListener", "(Lcom/google/firebase/installations/internal/FidListener;)Lcom/google/firebase/installations/internal/FidListenerHandle;");
+    ::firebase::jni::CheckAndClearException(env);
+    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/installations/FirebaseInstallations;");
+    if (!g_method_ids[kGetInstance]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // Methods of InstallationTokenResult
 // clang-format off
@@ -60,12 +113,57 @@ METHOD_LOOKUP_DEFINITION(
   X(GetTokenCreationTimestamp, "getTokenCreationTimestamp", "()J",             \
     firebase::util::kMethodTypeInstance, firebase::util::kMethodOptional)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(token_result, TOKEN_RESULT_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    token_result,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/installations/InstallationTokenResult",
-    TOKEN_RESULT_METHODS)
+namespace token_result {
+  enum Method {
+    kGetToken,
+    kGetTokenExpirationTimestamp,
+    kGetTokenCreationTimestamp,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace token_result {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/installations/InstallationTokenResult"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetToken]) return false;
+    g_method_ids[kGetTokenExpirationTimestamp] = env->GetMethodID(g_class.get(), "getTokenExpirationTimestamp", "()J");
+    ::firebase::jni::CheckAndClearException(env);
+    g_method_ids[kGetTokenCreationTimestamp] = env->GetMethodID(g_class.get(), "getTokenCreationTimestamp", "()J");
+    ::firebase::jni::CheckAndClearException(env);
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 using firebase::internal::ReferenceCount;
 using firebase::internal::ReferenceCountLock;
@@ -136,7 +234,7 @@ static void ReleaseClasses(JNIEnv* env) {
   token_result::ReleaseClass(env);
 }
 
-static Error MapAndroidError(util::FutureResult result_code,
+static Error MapAndroidError(firebase::util::FutureResult result_code,
                              const char* status_message) {
   if (result_code == util::kFutureResultSuccess) {
     return kInstallationsErrorNone;
@@ -154,7 +252,7 @@ static Error MapAndroidError(util::FutureResult result_code,
 }
 
 static void CompleteVoidCallback(JNIEnv* env, jobject result,
-                                 util::FutureResult result_code,
+                                 firebase::util::FutureResult result_code,
                                  const char* status_message,
                                  void* callback_data) {
   if (result != nullptr) {
@@ -177,13 +275,13 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
 }
 
 static void StringResultCallback(JNIEnv* env, jobject result,
-                                 util::FutureResult result_code,
+                                 firebase::util::FutureResult result_code,
                                  const char* status_message,
                                  void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   std::string result_value;
   if (success && result != nullptr) {
-    result_value = util::JStringToString(env, result);
+    result_value = jni::JStringToString(env, result);
   }
   if (result != nullptr) {
     env->DeleteLocalRef(result);
@@ -218,14 +316,14 @@ static InstallationTokenResult JTokenResultToStruct(JNIEnv* env,
 
   jobject jstring_obj = env->CallObjectMethod(
       jtoken, token_result::GetMethodId(token_result::kGetToken));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (jni::CheckAndClearException(env)) {
     if (jstring_obj != nullptr) {
       env->DeleteLocalRef(jstring_obj);
     }
     return token_result;
   }
   if (jstring_obj != nullptr) {
-    token_result.token = util::JStringToString(env, jstring_obj);
+    token_result.token = jni::JStringToString(env, jstring_obj);
     env->DeleteLocalRef(jstring_obj);
     *out_valid = true;
   }
@@ -234,7 +332,7 @@ static InstallationTokenResult JTokenResultToStruct(JNIEnv* env,
       token_result::GetMethodId(token_result::kGetTokenExpirationTimestamp);
   if (get_expiration_id != nullptr) {
     jlong expiration = env->CallLongMethod(jtoken, get_expiration_id);
-    if (!util::CheckAndClearJniExceptions(env)) {
+    if (!jni::CheckAndClearException(env)) {
       token_result.expiration_timestamp = static_cast<int64_t>(expiration);
     }
   }
@@ -242,7 +340,7 @@ static InstallationTokenResult JTokenResultToStruct(JNIEnv* env,
 }
 
 static void TokenResultCallback(JNIEnv* env, jobject result,
-                                util::FutureResult result_code,
+                                firebase::util::FutureResult result_code,
                                 const char* status_message,
                                 void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
@@ -275,7 +373,7 @@ static void TokenResultCallback(JNIEnv* env, jobject result,
 }
 
 static void TokenResultStructCallback(JNIEnv* env, jobject result,
-                                      util::FutureResult result_code,
+                                      firebase::util::FutureResult result_code,
                                       const char* status_message,
                                       void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
@@ -317,13 +415,13 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
 
   if (lock.AddReference() == 0) {
     jobject activity = app_.activity();
-    if (!util::Initialize(env, activity)) {
+    if (!true) {
       lock.RemoveReference();
       return;
     }
 
     if (!CacheJNIMethodIds(env, activity)) {
-      util::Terminate(env);
+      
       lock.RemoveReference();
       return;
     }
@@ -337,7 +435,7 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
   jobject installations_instance_local = env->CallStaticObjectMethod(
       installations_class,
       installations::GetMethodId(installations::kGetInstance), platform_app);
-  bool had_exception = util::CheckAndClearJniExceptions(env);
+  bool had_exception = jni::CheckAndClearException(env);
   if (platform_app != nullptr) {
     env->DeleteLocalRef(platform_app);
   }
@@ -363,7 +461,7 @@ void InstallationsInternal::Cleanup() {
   JNIEnv* env = app_.GetJNIEnv();
   if (!jni_task_id_.empty()) {
     if (env != nullptr) {
-      util::CancelCallbacks(env, jni_task_id_.c_str());
+      firebase::util::CancelCallbacks(env, jni_task_id_.c_str());
     }
     jni_task_id_.clear();
   }
@@ -381,7 +479,7 @@ void InstallationsInternal::Cleanup() {
     has_initializer_ref_ = false;
     if (lock.RemoveReference() == 1 && env != nullptr) {
       ReleaseClasses(env);
-      util::Terminate(env);
+      
     }
   }
 }
@@ -400,7 +498,7 @@ void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
   jobject installations_instance_local = env->CallStaticObjectMethod(
       installations_class,
       installations::GetMethodId(installations::kGetInstance), platform_app);
-  firebase::util::CheckAndClearJniExceptions(env);
+  ::firebase::jni::CheckAndClearException(env);
   if (installations_instance_local != nullptr) {
     env->DeleteLocalRef(installations_instance_local);
   }
@@ -421,7 +519,7 @@ Future<std::string> InstallationsInternal::GetId() {
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetId));
-  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+  if (jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) {
       env->DeleteLocalRef(task);
     }
@@ -434,7 +532,7 @@ Future<std::string> InstallationsInternal::GetId() {
       futures_.weak(), handle, pending_callbacks_);
   pending_callbacks_->Register(data_handle);
 
-  util::RegisterCallbackOnTask(env, task, StringResultCallback,
+  firebase::util::RegisterCallbackOnTask(env, task, StringResultCallback,
                                reinterpret_cast<void*>(data_handle),
                                jni_task_id_.c_str());
 
@@ -460,7 +558,7 @@ Future<std::string> InstallationsInternal::GetToken(bool force_refresh) {
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetToken),
       static_cast<jboolean>(force_refresh));
-  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+  if (jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) {
       env->DeleteLocalRef(task);
     }
@@ -473,7 +571,7 @@ Future<std::string> InstallationsInternal::GetToken(bool force_refresh) {
       futures_.weak(), handle, pending_callbacks_);
   pending_callbacks_->Register(data_handle);
 
-  util::RegisterCallbackOnTask(env, task, TokenResultCallback,
+  firebase::util::RegisterCallbackOnTask(env, task, TokenResultCallback,
                                reinterpret_cast<void*>(data_handle),
                                jni_task_id_.c_str());
 
@@ -500,7 +598,7 @@ Future<InstallationTokenResult> InstallationsInternal::GetTokenResult(
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetToken),
       static_cast<jboolean>(force_refresh));
-  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+  if (jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) {
       env->DeleteLocalRef(task);
     }
@@ -513,7 +611,7 @@ Future<InstallationTokenResult> InstallationsInternal::GetTokenResult(
       futures_.weak(), handle, pending_callbacks_);
   pending_callbacks_->Register(data_handle);
 
-  util::RegisterCallbackOnTask(env, task, TokenResultStructCallback,
+  firebase::util::RegisterCallbackOnTask(env, task, TokenResultStructCallback,
                                reinterpret_cast<void*>(data_handle),
                                jni_task_id_.c_str());
 
@@ -539,7 +637,7 @@ Future<void> InstallationsInternal::Delete() {
   JNIEnv* env = app_.GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kDelete));
-  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+  if (jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) {
       env->DeleteLocalRef(task);
     }
@@ -552,7 +650,7 @@ Future<void> InstallationsInternal::Delete() {
       futures_.weak(), handle, pending_callbacks_);
   pending_callbacks_->Register(data_handle);
 
-  util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
+  firebase::util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                reinterpret_cast<void*>(data_handle),
                                jni_task_id_.c_str());
 

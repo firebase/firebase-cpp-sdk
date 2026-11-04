@@ -20,7 +20,6 @@
 #include <unistd.h>
 
 #include "app/src/util.h"
-#include "app/src/util_android.h"
 #include "flatbuffers/util.h"
 #include "messaging/messaging_generated.h"
 #include "messaging/src/android/cpp/messaging_internal.h"
@@ -70,7 +69,7 @@ void InitializeMessagingTest() {
   jstring path_jstring = reinterpret_cast<jstring>(env->CallObjectMethod(
       file, util::file::GetMethodId(util::file::kGetPath)));
   assert(env->ExceptionCheck() == false);
-  std::string local_storage_dir = util::JniStringToString(env, path_jstring);
+  std::string local_storage_dir = ::firebase::jni::JStringToString(env, path_jstring);
   env->DeleteLocalRef(file);
   g_lockfile_path = new std::string(local_storage_dir + "/" + kLockfile);
   g_local_storage_file_path =

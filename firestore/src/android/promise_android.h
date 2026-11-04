@@ -17,13 +17,13 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_ANDROID_H_
 
+#include "app/src/app_android.h"
 #include <jni.h>
 #include <memory>
 
 #include <utility>
 
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "firestore/src/android/aggregate_query_snapshot_android.h"
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/document_snapshot_android.h"

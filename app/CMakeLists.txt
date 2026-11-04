@@ -77,8 +77,8 @@ set(log_android_SRCS
     src/log_android.cc
     src/log_android_callback.cc)
 set(log_android_HDRS
-    src/jobject_reference.h
-    src/util_android.h)
+    
+    )
 set(log_ios_SRCS
     src/log_ios.mm)
 set(log_ios_HDRS)

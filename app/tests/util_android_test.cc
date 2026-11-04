@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "app/src/util_android.h"
 
 #include <pthread.h>
 
@@ -245,7 +244,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
   // null converts to Variant::kTypeNull.
   {
     jobject obj = nullptr;
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj), Variant::Null());
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj), Variant::Null());
   }
   // Integral types convert to Variant::kTypeInt64. This includes Date.
   {
@@ -254,7 +253,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
         env_->NewObject(integer_class::GetClass(),
                         integer_class::GetMethodId(integer_class::kConstructor),
                         static_cast<jint>(kTestValueInt));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromInt64(kTestValueInt))
         << "Failed to convert Integer";
     env_->DeleteLocalRef(obj);
@@ -265,7 +264,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
         env_->NewObject(short_class::GetClass(),
                         short_class::GetMethodId(short_class::kConstructor),
                         static_cast<jshort>(kTestValueShort));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromInt64(kTestValueShort))
         << "Failed to convert Short";
     env_->DeleteLocalRef(obj);
@@ -276,7 +275,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
         env_->NewObject(long_class::GetClass(),
                         long_class::GetMethodId(long_class::kConstructor),
                         static_cast<jlong>(kTestValueLong));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromInt64(kTestValueLong))
         << "Failed to convert Long";
     env_->DeleteLocalRef(obj);
@@ -287,7 +286,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
         env_->NewObject(byte_class::GetClass(),
                         byte_class::GetMethodId(byte_class::kConstructor),
                         static_cast<jbyte>(kTestValueByte));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromInt64(kTestValueByte))
         << "Failed to convert Byte";
     env_->DeleteLocalRef(obj);
@@ -298,7 +297,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
     jobject obj = env_->NewObject(date::GetClass(),
                                   date::GetMethodId(date::kConstructorWithTime),
                                   static_cast<jlong>(kTestValueLong));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromInt64(kTestValueLong))
         << "Failed to convert Date";
     env_->DeleteLocalRef(obj);
@@ -311,7 +310,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
         env_->NewObject(float_class::GetClass(),
                         float_class::GetMethodId(float_class::kConstructor),
                         static_cast<jfloat>(kTestValueFloat));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromDouble(kTestValueFloat))
         << "Failed to convert Float";
     env_->DeleteLocalRef(obj);
@@ -322,7 +321,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
         env_->NewObject(double_class::GetClass(),
                         double_class::GetMethodId(double_class::kConstructor),
                         static_cast<jdouble>(kTestValueDouble));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromDouble(kTestValueDouble))
         << "Failed to convert Double";
     env_->DeleteLocalRef(obj);
@@ -333,7 +332,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
         env_->NewObject(boolean_class::GetClass(),
                         boolean_class::GetMethodId(boolean_class::kConstructor),
                         static_cast<jboolean>(kTestValueBool));
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromBool(kTestValueBool))
         << "Failed to convert Boolean";
     env_->DeleteLocalRef(obj);
@@ -341,7 +340,7 @@ TEST_F(JavaObjectToVariantTest, TestFundamentalTypes) {
   // String converts to Variant::kTypeMutableString.
   {
     jobject obj = env_->NewStringUTF(kTestValueString);
-    EXPECT_EQ(util::JavaObjectToVariant(env_, obj),
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, obj),
               Variant::FromMutableString(kTestValueString))
         << "Failed to convert String";
     env_->DeleteLocalRef(obj);
@@ -402,9 +401,9 @@ TEST_F(JavaObjectToVariantTest, TestContainerTypes) {
     expected.vector().push_back(Variant::FromMutableString(kTestValueString));
     expected.vector().push_back(Variant::Null());
 
-    EXPECT_EQ(util::JavaObjectToVariant(env_, array), expected)
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, array), expected)
         << "Failed to convert Array of Object{Integer, Float, String, Null}";
-    EXPECT_EQ(util::JavaObjectToVariant(env_, container), expected)
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, container), expected)
         << "Failed to convert ArrayList{Integer, Float, String, Null}";
     env_->DeleteLocalRef(array);
     env_->DeleteLocalRef(container);
@@ -468,7 +467,7 @@ TEST_F(JavaObjectToVariantTest, TestContainerTypes) {
         Variant::FromMutableString(kTestValueString);
     expected.map()[Variant("four")] = Variant::Null();
 
-    EXPECT_EQ(util::JavaObjectToVariant(env_, container), expected)
+    EXPECT_EQ(firebase::util::JavaObjectToVariant(env_, container), expected)
         << "Failed to convert Map of String to {Integer, Float, String, Null}";
     env_->DeleteLocalRef(container);
   }

@@ -1,3 +1,4 @@
+#include "app/src/jni/exception.h"
 #include "storage/src/android/metadata_android.h"
 
 #include <jni.h>
@@ -6,7 +7,6 @@
 #include <utility>
 
 #include "app/src/include/firebase/app.h"
-#include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/android/storage_reference_android.h"
 #include "storage/storage_resources.h"
@@ -30,13 +30,13 @@ void TerminateMetadataConverter(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   storage_metadata_builder::ReleaseClass(env);
   storage_metadata::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 }
 
 jobject MetadataToStorageMetadata(JNIEnv* env, const MetadataInternal& metadata) {
   jobject builder = env->NewObject(storage_metadata_builder::GetClass(),
                                    storage_metadata_builder::GetMethodId(storage_metadata_builder::kConstructor));
-  if (util::CheckAndClearJniExceptions(env) || !builder) return nullptr;
+  if (jni::CheckAndClearException(env) || !builder) return nullptr;
 
   auto set_str = [&](const char* val, storage_metadata_builder::Method m) {
     if (val && val[0] != '\0') {
@@ -78,7 +78,7 @@ jobject MetadataToStorageMetadata(JNIEnv* env, const MetadataInternal& metadata)
 MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj, StorageInternal* storage) {
   if (!obj) return nullptr;
   jobject jpath = env->CallObjectMethod(obj, storage_metadata::GetMethodId(storage_metadata::kGetPath));
-  std::string path_str = jpath ? util::JniStringToString(env, jpath) : "";
+  std::string path_str = jpath ? ::firebase::jni::JStringToString(env, jpath) : "";
   if (jpath) env->DeleteLocalRef(jpath);
   StorageReference ref(new StorageReferenceInternal(storage, path_str.c_str()));
   if (!obj) return nullptr;
@@ -87,7 +87,7 @@ MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj, StorageInt
   auto get_str = [&](storage_metadata::Method m, void (MetadataInternal::*setter)(const std::string&)) {
     jobject jstr = env->CallObjectMethod(obj, storage_metadata::GetMethodId(m));
     if (jstr) {
-      (meta->*setter)(util::JniStringToString(env, jstr));
+      (meta->*setter)(::firebase::jni::JStringToString(env, jstr));
       env->DeleteLocalRef(jstr);
     }
   };
@@ -110,12 +110,12 @@ MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj, StorageInt
   // Let me check if they were GetString in the old code.
   jobject jgen = env->CallObjectMethod(obj, storage_metadata::GetMethodId(storage_metadata::kGetGeneration));
   if (jgen) {
-    meta->set_generation(std::atoll(util::JniStringToString(env, jgen).c_str()));
+    meta->set_generation(std::atoll(::firebase::jni::JStringToString(env, jgen).c_str()));
     env->DeleteLocalRef(jgen);
   }
   jobject jmgen = env->CallObjectMethod(obj, storage_metadata::GetMethodId(storage_metadata::kGetMetadataGeneration));
   if (jmgen) {
-    meta->set_metadata_generation(std::atoll(util::JniStringToString(env, jmgen).c_str()));
+    meta->set_metadata_generation(std::atoll(::firebase::jni::JStringToString(env, jmgen).c_str()));
     env->DeleteLocalRef(jmgen);
   }
 
@@ -129,7 +129,7 @@ MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj, StorageInt
       for (int i = 0; i < count; ++i) {
         jstring k = (jstring)env->GetObjectArrayElement(keys_array, i);
         jstring v = (jstring)env->CallObjectMethod(obj, storage_metadata::GetMethodId(storage_metadata::kGetCustomMetadata), k);
-        (*meta->custom_metadata())[util::JniStringToString(env, k)] = util::JniStringToString(env, v);
+        (*meta->custom_metadata())[::firebase::jni::JStringToString(env, k)] = ::firebase::jni::JStringToString(env, v);
         env->DeleteLocalRef(k);
         if (v) env->DeleteLocalRef(v);
       }
@@ -139,7 +139,7 @@ MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj, StorageInt
     env->DeleteLocalRef(keys);
   }
 
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return meta;
 }
 

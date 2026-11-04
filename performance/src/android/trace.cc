@@ -1,5 +1,6 @@
 // Copyright 2021 Google LLC
 
+#include "app/src/jni/exception.h"
 #include "performance/src/include/firebase/performance/trace.h"
 
 #include <cstdint>
@@ -9,6 +10,8 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "performance/src/android/performance_android_internal.h"
+#include "app/src/app_android.h"
+#include "app/src/jni/string.h"
 #include "performance/src/include/firebase/performance.h"
 #include "performance/src/performance_common.h"
 
@@ -36,7 +39,7 @@ class TraceInternal {
           env->CallVoidMethod(
               active_trace_,
               trace_jni::GetMethodId(trace_jni::kStopTrace));
-          util::CheckAndClearJniExceptions(env);
+          jni::CheckAndClearException(env);
         }
       } else {
         env = firebase::util::GetJNIEnvFromApp();
@@ -74,7 +77,7 @@ class TraceInternal {
     jobject local_active_trace = env->CallObjectMethod(
         GetFirebasePerformanceClassInstance(),
         performance_jni::GetMethodId(performance_jni::kNewTrace), name_jstring);
-    bool had_exception = util::CheckAndClearJniExceptions(env);
+    bool had_exception = jni::CheckAndClearException(env);
 
     if (!had_exception && local_active_trace != nullptr) {
       active_trace_ = env->NewGlobalRef(local_active_trace);
@@ -97,7 +100,7 @@ class TraceInternal {
       JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kStartTrace));
-      if (!util::CheckAndClearJniExceptions(env)) {
+      if (!jni::CheckAndClearException(env)) {
         is_started_ = true;
       }
     }
@@ -124,7 +127,7 @@ class TraceInternal {
     if (is_started_) {
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kStopTrace));
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
     }
     env->DeleteGlobalRef(active_trace_);
     active_trace_ = nullptr;
@@ -167,13 +170,13 @@ class TraceInternal {
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kRemoveAttribute),
                           attribute_name_jstring);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
     } else {
       jstring attribute_value_jstring = env->NewStringUTF(attribute_value);
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kSetAttribute),
                           attribute_name_jstring, attribute_value_jstring);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
       env->DeleteLocalRef(attribute_value_jstring);
     }
 
@@ -195,7 +198,7 @@ class TraceInternal {
     jobject attribute_value_jstring = env->CallObjectMethod(
         active_trace_, trace_jni::GetMethodId(trace_jni::kGetAttribute),
         attribute_name_jstring);
-    bool exception_pending = util::CheckAndClearJniExceptions(env);
+    bool exception_pending = jni::CheckAndClearException(env);
     env->DeleteLocalRef(attribute_name_jstring);
 
     if (exception_pending || attribute_value_jstring == nullptr) {
@@ -204,7 +207,7 @@ class TraceInternal {
       }
       return "";
     }
-    return util::JniStringToString(env, attribute_value_jstring);
+    return ::firebase::jni::JStringToString(env, attribute_value_jstring);
   }
 
   // Gets the value of the metric identified by the metric_name or 0 if it
@@ -223,7 +226,7 @@ class TraceInternal {
     jlong metric_value = env->CallLongMethod(
         active_trace_, trace_jni::GetMethodId(trace_jni::kGetLongMetric),
         metric_name_jstring);
-    bool exception_pending = util::CheckAndClearJniExceptions(env);
+    bool exception_pending = jni::CheckAndClearException(env);
     env->DeleteLocalRef(metric_name_jstring);
     if (exception_pending) {
       return 0;
@@ -251,7 +254,7 @@ class TraceInternal {
                         trace_jni::GetMethodId(trace_jni::kIncrementMetric),
                         metric_name_jstring, increment_by);
 
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     env->DeleteLocalRef(metric_name_jstring);
   }
 
@@ -272,7 +275,7 @@ class TraceInternal {
                         trace_jni::GetMethodId(trace_jni::kPutMetric),
                         metric_name_jstring, metric_value);
 
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     env->DeleteLocalRef(metric_name_jstring);
   }
 

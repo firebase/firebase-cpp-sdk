@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app/src/jni/exception.h"
 #include "testing/util_android.h"
 
 #include <jni.h>
@@ -59,7 +60,7 @@ TEST_F(UtilTest, JavaStringListToStdStringVector) {
         jarray_list,
         env_->GetMethodID(jarray_list_class, "add", "(Ljava/lang/Object;)Z"),
         java_string);
-    util::CheckAndClearException(env_);
+    jni::CheckAndClearException(env_);
     env_->DeleteLocalRef(java_string);
   }
 

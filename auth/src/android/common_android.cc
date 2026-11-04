@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "app/src/jni/exception.h"
 #include "auth/src/android/common_android.h"
 
 #include "app/src/include/firebase/internal/common.h"
@@ -151,62 +152,374 @@ static const ErrorCodeMapping kFirebaseCodes[] = {
     {nullptr},
 };
 
-METHOD_LOOKUP_DEFINITION(authresult,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/AuthResult",
-                         AUTH_RESULT_METHODS)
+namespace authresult {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/AuthResult"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetUser] = env->GetMethodID(g_class.get(), "getUser", "()Lcom/google/firebase/auth/FirebaseUser;");
+    if (!g_method_ids[kGetUser]) return false;
+    g_method_ids[kGetAdditionalUserInfo] = env->GetMethodID(g_class.get(), "getAdditionalUserInfo", "()Lcom/google/firebase/auth/AdditionalUserInfo;");
+    if (!g_method_ids[kGetAdditionalUserInfo]) return false;
+    g_method_ids[kGetCredential] = env->GetMethodID(g_class.get(), "getCredential", "()Lcom/google/firebase/auth/AuthCredential;");
+    if (!g_method_ids[kGetCredential]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DEFINITION(additional_user_info,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/AdditionalUserInfo",
-                         ADDITIONAL_USER_INFO_METHODS)
 
-METHOD_LOOKUP_DECLARATION(api_not_available_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(api_not_available_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/FirebaseApiNotAvailableException",
-                         METHOD_LOOKUP_NONE)
+namespace additional_user_info {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/AdditionalUserInfo"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetProviderId] = env->GetMethodID(g_class.get(), "getProviderId", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetProviderId]) return false;
+    g_method_ids[kGetProfile] = env->GetMethodID(g_class.get(), "getProfile", "()Ljava/util/Map;");
+    if (!g_method_ids[kGetProfile]) return false;
+    g_method_ids[kGetUsername] = env->GetMethodID(g_class.get(), "getUsername", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetUsername]) return false;
+    g_method_ids[kIsNewUser] = env->GetMethodID(g_class.get(), "isNewUser", "()Z");
+    if (!g_method_ids[kIsNewUser]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DECLARATION(action_code_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(
-    action_code_exception,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/auth/FirebaseAuthActionCodeException",
-    METHOD_LOOKUP_NONE)
 
-METHOD_LOOKUP_DECLARATION(email_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(email_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/FirebaseAuthEmailException",
-                         METHOD_LOOKUP_NONE)
+namespace api_not_available_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
 
-METHOD_LOOKUP_DECLARATION(weak_password_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(
-    weak_password_exception,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/auth/FirebaseAuthWeakPasswordException",
-    METHOD_LOOKUP_NONE)
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
 
-METHOD_LOOKUP_DECLARATION(invalid_credentials_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(
-    invalid_credentials_exception,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/auth/FirebaseAuthInvalidCredentialsException",
-    METHOD_LOOKUP_NONE)
+namespace api_not_available_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/FirebaseApiNotAvailableException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DECLARATION(invalid_user_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(
-    invalid_user_exception,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/auth/FirebaseAuthInvalidUserException",
-    METHOD_LOOKUP_NONE)
 
-METHOD_LOOKUP_DECLARATION(recent_login_required_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(
-    recent_login_required_exception,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/auth/FirebaseAuthRecentLoginRequiredException",
-    METHOD_LOOKUP_NONE)
+namespace action_code_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace action_code_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthActionCodeException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace email_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace email_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthEmailException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace weak_password_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace weak_password_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthWeakPasswordException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace invalid_credentials_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace invalid_credentials_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthInvalidCredentialsException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace invalid_user_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace invalid_user_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthInvalidUserException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace recent_login_required_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace recent_login_required_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthRecentLoginRequiredException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define USER_COLLISION_METHODS(X)                                              \
@@ -214,46 +527,273 @@ METHOD_LOOKUP_DEFINITION(
     "()Lcom/google/firebase/auth/AuthCredential;",                             \
     util::kMethodTypeInstance, util::kMethodOptional)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(user_collision_exception, USER_COLLISION_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    user_collision_exception,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/auth/FirebaseAuthUserCollisionException",
-    USER_COLLISION_METHODS)
+namespace user_collision_exception {
+  enum Method {
+    kGetUpdatedCredential,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
 
-METHOD_LOOKUP_DECLARATION(android_web_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(android_web_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/FirebaseAuthWebException",
-                         METHOD_LOOKUP_NONE)
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace user_collision_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthUserCollisionException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetUpdatedCredential] = env->GetMethodID(g_class.get(), "getUpdatedCredential", "()Lcom/google/firebase/auth/AuthCredential;");
+    ::firebase::jni::CheckAndClearException(env);
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace android_web_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace android_web_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthWebException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define AUTH_EXCEPTION_METHODS(X)                                              \
   X(GetErrorCode, "getErrorCode", "()Ljava/lang/String;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(firebase_auth_exception, AUTH_EXCEPTION_METHODS)
-METHOD_LOOKUP_DEFINITION(firebase_auth_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/FirebaseAuthException",
-                         AUTH_EXCEPTION_METHODS)
+namespace firebase_auth_exception {
+  enum Method {
+    kGetErrorCode,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
 
-METHOD_LOOKUP_DECLARATION(firebase_network_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(firebase_network_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/FirebaseNetworkException",
-                         METHOD_LOOKUP_NONE)
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
 
-METHOD_LOOKUP_DECLARATION(too_many_requests_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(too_many_requests_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/FirebaseTooManyRequestsException",
-                         METHOD_LOOKUP_NONE)
+namespace firebase_auth_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuthException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetErrorCode] = env->GetMethodID(g_class.get(), "getErrorCode", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetErrorCode]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
 
-METHOD_LOOKUP_DECLARATION(firebase_exception, METHOD_LOOKUP_NONE)
-METHOD_LOOKUP_DEFINITION(firebase_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/FirebaseException",
-                         METHOD_LOOKUP_NONE)
+
+namespace firebase_network_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace firebase_network_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/FirebaseNetworkException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace too_many_requests_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace too_many_requests_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/FirebaseTooManyRequestsException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
+
+namespace firebase_exception {
+  enum Method {
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace firebase_exception {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/FirebaseException"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 bool CacheCommonMethodIds(JNIEnv* env, jobject activity) {
   // FirebaseAuthWebException may not exist. Check whether the class exists
@@ -335,8 +875,8 @@ static std::string GetFirebaseAuthExceptionErrorCode(JNIEnv* env,
   const jobject j_error_code = env->CallObjectMethod(
       exception, firebase_auth_exception::GetMethodId(
                      firebase_auth_exception::kGetErrorCode));
-  util::CheckAndClearJniExceptions(env);
-  return util::JniStringToString(env, j_error_code);
+  jni::CheckAndClearException(env);
+  return ::firebase::jni::JStringToString(env, j_error_code);
 }
 
 static bool StringStartsWith(const std::string& str, const std::string& start) {
@@ -358,7 +898,7 @@ AuthError ErrorCodeFromException(JNIEnv* env, jobject exception) {
   if (env->IsInstanceOf(exception, firebase_auth_exception::GetClass())) {
     error = GetFirebaseAuthExceptionErrorCode(env, exception);
   } else {
-    error = ::firebase::util::GetMessageFromException(env, exception);
+    error = ::firebase::jni::ExtractExceptionMessage(env, exception);
   }
 
   // This cannot be static because the ::GetClass() call isn't guaranteed to
@@ -480,7 +1020,7 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
     AuthError error_code = ErrorCodeFromException(env, exception);
     if (error_message != nullptr) {
       *error_message =
-          ::firebase::util::GetMessageFromException(env, exception);
+          ::firebase::jni::ExtractExceptionMessage(env, exception);
     }
     env->DeleteLocalRef(exception);
     return error_code;
@@ -491,7 +1031,7 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
 // Checks for Future success and/or Android based Exceptions, and maps them
 // to corresonding AuthError codes.
 AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
-                                             util::FutureResult result_code,
+                                             firebase::util::FutureResult result_code,
                                              bool* success) {
   *success = false;
   switch (result_code) {
@@ -537,7 +1077,7 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
     // `result` is of type AuthResult.
     const jobject j_user = env->CallObjectMethod(
         result, authresult::GetMethodId(authresult::kGetUser));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
 
     // Update our pointer to the Android FirebaseUser that we're wrapping.
     // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
@@ -552,7 +1092,7 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
     // Additional user info is not guaranteed to exist, so could be nullptr.
     const jobject j_additional_user_info = env->CallObjectMethod(
         result, authresult::GetMethodId(authresult::kGetAdditionalUserInfo));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     ReadAdditionalUserInfo(env, j_additional_user_info,
                            &auth_result->additional_user_info);
     env->DeleteLocalRef(j_additional_user_info);
@@ -560,7 +1100,7 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
     // Construct the AuthResult.credential, if it exists.
     const jobject j_credential = env->CallObjectMethod(
         result, authresult::GetMethodId(authresult::kGetCredential));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     if (j_credential != nullptr) {
       // This call converts the local reference to a global one, so no
       // need to delete the local reference here.
@@ -574,7 +1114,7 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
         user_collision_exception::kGetUpdatedCredential);
     if (get_updated_cred != nullptr) {
       jobject j_updated_cred = env->CallObjectMethod(result, get_updated_cred);
-      util::CheckAndClearJniExceptions(env);
+      jni::CheckAndClearException(env);
       if (j_updated_cred != nullptr) {
         auth_result->additional_user_info.updated_credential =
             InternalAuthResultProvider::GetCredential(j_updated_cred);
@@ -594,7 +1134,7 @@ void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
     // `result` is of type AuthResult.
     const jobject j_user = env->CallObjectMethod(
         result, authresult::GetMethodId(authresult::kGetUser));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
 
     // Update our pointer to the Android FirebaseUser that we're wrapping.
     // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java

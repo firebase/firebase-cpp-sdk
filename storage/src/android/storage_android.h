@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_ANDROID_STORAGE_ANDROID_H_
 #define FIREBASE_STORAGE_SRC_ANDROID_STORAGE_ANDROID_H_
 
+#include "app/src/app_android.h"
 #include <jni.h>
 
 #include <map>
@@ -27,7 +28,6 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/util_android.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
@@ -40,21 +40,72 @@ namespace internal {
     X(Constructor, "<init>", "(JJ)V"),                                     \
     X(DiscardPointers, "discardPointers", "()V")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(cpp_storage_listener, CPP_STORAGE_LISTENER_METHODS)
+namespace cpp_storage_listener {
+  enum Method {
+    kConstructor,
+    kDiscardPointers,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // clang-format off
 #define CPP_BYTE_DOWNLOADER_METHODS(X)                                    \
     X(Constructor, "<init>", "(JJ)V"),                                    \
     X(DiscardPointers, "discardPointers", "()V")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(cpp_byte_downloader, CPP_BYTE_DOWNLOADER_METHODS)
+namespace cpp_byte_downloader {
+  enum Method {
+    kConstructor,
+    kDiscardPointers,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 // clang-format off
 #define CPP_BYTE_UPLOADER_METHODS(X)                                      \
     X(Constructor, "<init>", "(JJJ)V"),                                   \
     X(DiscardPointers, "discardPointers", "()V")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(cpp_byte_uploader, CPP_BYTE_UPLOADER_METHODS)
+namespace cpp_byte_uploader {
+  enum Method {
+    kConstructor,
+    kDiscardPointers,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
 
 class StorageInternal {
  public:

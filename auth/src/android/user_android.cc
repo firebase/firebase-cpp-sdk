@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "app/src/jni/exception.h"
 #include <cstring>
 
 #include "app/src/time.h"
@@ -23,7 +24,7 @@ namespace firebase {
 namespace auth {
 
 using util::CharsToJniUri;
-using util::JniStringToString;
+using ::firebase::jni::JStringToString;
 using util::JniUriToString;
 
 // clang-format off
@@ -36,11 +37,57 @@ using util::JniUriToString;
     X(GetSignInSecondFactor, "getSignInSecondFactor", "()Ljava/lang/String;"), \
     X(GetClaims, "getClaims", "()Ljava/util/Map;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(tokenresult, TOKEN_RESULT_METHODS)
-METHOD_LOOKUP_DEFINITION(tokenresult,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/GetTokenResult",
-                         TOKEN_RESULT_METHODS)
+namespace tokenresult {
+  enum Method {
+    kGetToken,
+    kGetTokenExpirationTimestamp,
+    kGetTokenCreationTimestamp,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace tokenresult {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/GetTokenResult"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetToken]) return false;
+    g_method_ids[kGetTokenExpirationTimestamp] = env->GetMethodID(g_class.get(), "getTokenExpirationTimestamp", "()J");
+    ::firebase::jni::CheckAndClearException(env);
+    g_method_ids[kGetTokenCreationTimestamp] = env->GetMethodID(g_class.get(), "getTokenCreationTimestamp", "()J");
+    ::firebase::jni::CheckAndClearException(env);
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define USER_METHODS(X)                                                        \
@@ -75,11 +122,93 @@ METHOD_LOOKUP_DEFINITION(tokenresult,
     X(GetMetadata, "getMetadata",                                              \
       "()Lcom/google/firebase/auth/FirebaseUserMetadata;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(user, USER_METHODS)
-METHOD_LOOKUP_DEFINITION(user,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/FirebaseUser",
-                         USER_METHODS)
+namespace user {
+  enum Method {
+    kIsAnonymous,
+    kToken,
+    kProviderData,
+    kVerifyBeforeUpdateEmail,
+    kUpdatePassword,
+    kUpdateUserProfile,
+    kLinkWithCredential,
+    kUnlink,
+    kUpdatePhoneNumberCredential,
+    kReload,
+    kReauthenticate,
+    kReauthenticateAndRetrieveData,
+    kDelete,
+    kSendEmailVerification,
+    kGetMetadata,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace user {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseUser"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kIsAnonymous] = env->GetMethodID(g_class.get(), "isAnonymous", "()Z");
+    if (!g_method_ids[kIsAnonymous]) return false;
+    g_method_ids[kToken] = env->GetMethodID(g_class.get(), "getIdToken", "(Z)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kToken]) return false;
+    g_method_ids[kProviderData] = env->GetMethodID(g_class.get(), "getProviderData", "()Ljava/util/List;");
+    if (!g_method_ids[kProviderData]) return false;
+    g_method_ids[kVerifyBeforeUpdateEmail] = env->GetMethodID(g_class.get(), "verifyBeforeUpdateEmail", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kVerifyBeforeUpdateEmail]) return false;
+    g_method_ids[kUpdatePassword] = env->GetMethodID(g_class.get(), "updatePassword", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kUpdatePassword]) return false;
+    g_method_ids[kUpdateUserProfile] = env->GetMethodID(g_class.get(), "updateProfile", "(Lcom/google/firebase/auth/UserProfileChangeRequest;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kUpdateUserProfile]) return false;
+    g_method_ids[kLinkWithCredential] = env->GetMethodID(g_class.get(), "linkWithCredential", "(Lcom/google/firebase/auth/AuthCredential;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kLinkWithCredential]) return false;
+    g_method_ids[kUnlink] = env->GetMethodID(g_class.get(), "unlink", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kUnlink]) return false;
+    g_method_ids[kUpdatePhoneNumberCredential] = env->GetMethodID(g_class.get(), "updatePhoneNumber", "(Lcom/google/firebase/auth/PhoneAuthCredential;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kUpdatePhoneNumberCredential]) return false;
+    g_method_ids[kReload] = env->GetMethodID(g_class.get(), "reload", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kReload]) return false;
+    g_method_ids[kReauthenticate] = env->GetMethodID(g_class.get(), "reauthenticate", "(Lcom/google/firebase/auth/AuthCredential;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kReauthenticate]) return false;
+    g_method_ids[kReauthenticateAndRetrieveData] = env->GetMethodID(g_class.get(), "reauthenticateAndRetrieveData", "(Lcom/google/firebase/auth/AuthCredential;)Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kReauthenticateAndRetrieveData]) return false;
+    g_method_ids[kDelete] = env->GetMethodID(g_class.get(), "delete", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kDelete]) return false;
+    g_method_ids[kSendEmailVerification] = env->GetMethodID(g_class.get(), "sendEmailVerification", "()Lcom/google/android/gms/tasks/Task;");
+    if (!g_method_ids[kSendEmailVerification]) return false;
+    g_method_ids[kGetMetadata] = env->GetMethodID(g_class.get(), "getMetadata", "()Lcom/google/firebase/auth/FirebaseUserMetadata;");
+    if (!g_method_ids[kGetMetadata]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define USER_INFO_METHODS(X)                                                   \
@@ -91,22 +220,123 @@ METHOD_LOOKUP_DEFINITION(user,
     X(GetEmail, "getEmail", "()Ljava/lang/String;"),                           \
     X(IsEmailVerified, "isEmailVerified", "()Z")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(userinfo, USER_INFO_METHODS)
-METHOD_LOOKUP_DEFINITION(userinfo,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/UserInfo",
-                         USER_INFO_METHODS)
+namespace userinfo {
+  enum Method {
+    kGetUid,
+    kGetProviderId,
+    kGetDisplayName,
+    kGetPhoneNumber,
+    kGetPhotoUrl,
+    kGetEmail,
+    kIsEmailVerified,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace userinfo {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/UserInfo"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetUid] = env->GetMethodID(g_class.get(), "getUid", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetUid]) return false;
+    g_method_ids[kGetProviderId] = env->GetMethodID(g_class.get(), "getProviderId", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetProviderId]) return false;
+    g_method_ids[kGetDisplayName] = env->GetMethodID(g_class.get(), "getDisplayName", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetDisplayName]) return false;
+    g_method_ids[kGetPhoneNumber] = env->GetMethodID(g_class.get(), "getPhoneNumber", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetPhoneNumber]) return false;
+    g_method_ids[kGetPhotoUrl] = env->GetMethodID(g_class.get(), "getPhotoUrl", "()Landroid/net/Uri;");
+    if (!g_method_ids[kGetPhotoUrl]) return false;
+    g_method_ids[kGetEmail] = env->GetMethodID(g_class.get(), "getEmail", "()Ljava/lang/String;");
+    if (!g_method_ids[kGetEmail]) return false;
+    g_method_ids[kIsEmailVerified] = env->GetMethodID(g_class.get(), "isEmailVerified", "()Z");
+    if (!g_method_ids[kIsEmailVerified]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define METADATA_METHODS(X)                                                    \
     X(GetLastSignInTimestamp, "getLastSignInTimestamp", "()J"),                \
     X(GetCreationTimestamp, "getCreationTimestamp", "()J")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(metadata, METADATA_METHODS)
-METHOD_LOOKUP_DEFINITION(metadata,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/FirebaseUserMetadata",
-                         METADATA_METHODS)
+namespace metadata {
+  enum Method {
+    kGetLastSignInTimestamp,
+    kGetCreationTimestamp,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace metadata {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseUserMetadata"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kGetLastSignInTimestamp] = env->GetMethodID(g_class.get(), "getLastSignInTimestamp", "()J");
+    if (!g_method_ids[kGetLastSignInTimestamp]) return false;
+    g_method_ids[kGetCreationTimestamp] = env->GetMethodID(g_class.get(), "getCreationTimestamp", "()J");
+    if (!g_method_ids[kGetCreationTimestamp]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 // clang-format off
 #define USER_PROFILE_BUILDER_METHODS(X)                                        \
@@ -117,12 +347,60 @@ METHOD_LOOKUP_DEFINITION(metadata,
       "Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;"),          \
     X(Build, "build", "()Lcom/google/firebase/auth/UserProfileChangeRequest;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(userprofilebuilder, USER_PROFILE_BUILDER_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    userprofilebuilder,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/auth/UserProfileChangeRequest$Builder",
-    USER_PROFILE_BUILDER_METHODS)
+namespace userprofilebuilder {
+  enum Method {
+    kConstructor,
+    kSetDisplayName,
+    kSetPhotoUri,
+    kBuild,
+    kMethodCount
+  };
+  enum Field {
+    kFieldCount
+  };
+
+  jclass GetClass();
+  bool CacheMethodIds(JNIEnv* env, jobject activity);
+  bool CacheFieldIds(JNIEnv* env, jobject activity);
+  void ReleaseClass(JNIEnv* env);
+  jmethodID GetMethodId(Method method);
+  jfieldID GetFieldId(Field field);
+}
+
+namespace userprofilebuilder {
+  ::firebase::jni::Global<jclass> g_class;
+  jmethodID g_method_ids[kMethodCount];
+  jfieldID g_field_ids[kFieldCount];
+  jclass GetClass() { return g_class.get(); }
+  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
+  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
+  bool CacheMethodIds(JNIEnv* env, jobject activity) {
+    if (g_class) return true;
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/UserProfileChangeRequest$Builder"));
+    if (!local_clazz) {
+      ::firebase::jni::CheckAndClearException(env);
+      return false;
+    }
+    g_class = local_clazz;
+    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "()V");
+    if (!g_method_ids[kConstructor]) return false;
+    g_method_ids[kSetDisplayName] = env->GetMethodID(g_class.get(), "setDisplayName", "(Ljava/lang/String;)Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;");
+    if (!g_method_ids[kSetDisplayName]) return false;
+    g_method_ids[kSetPhotoUri] = env->GetMethodID(g_class.get(), "setPhotoUri", "(Landroid/net/Uri;)Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;");
+    if (!g_method_ids[kSetPhotoUri]) return false;
+    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/auth/UserProfileChangeRequest;");
+    if (!g_method_ids[kBuild]) return false;
+    return CacheFieldIds(env, activity);
+  }
+  bool CacheFieldIds(JNIEnv* env, jobject activity) {
+    if (!g_class) return false;
+    return true;
+  }
+  void ReleaseClass(JNIEnv* env) {
+    g_class = ::firebase::jni::Global<jclass>();
+  }
+}
+
 
 bool CacheUserMethodIds(JNIEnv* env, jobject activity) {
   return tokenresult::CacheMethodIds(env, activity) &&
@@ -149,7 +427,7 @@ static std::string GetUserProperty(AuthData* auth_data, jobject impl,
   jobject property =
       impl ? env->CallObjectMethod(impl, userinfo::GetMethodId(method_id))
            : nullptr;
-  if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
+  if (::firebase::jni::CheckAndClearException(env) || !property) {
     if (property) {
       env->DeleteLocalRef(property);
     }
@@ -282,7 +560,7 @@ static void ReadTokenResultImpl(jobject result,
     FIREBASE_ASSERT(result != nullptr);
     jstring j_token = static_cast<jstring>(env->CallObjectMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetToken)));
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       if (j_token) env->DeleteLocalRef(j_token);
       j_token = nullptr;
     }
@@ -355,25 +633,25 @@ static void ReadIdTokenResultImpl(jobject result,
     FIREBASE_ASSERT(result != nullptr);
     const jobject j_token = env->CallObjectMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetToken));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     const jlong expiration_timestamp = env->CallLongMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetExpirationTimestamp));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     const jlong auth_timestamp = env->CallLongMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetAuthTimestamp));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     const jlong issued_at_timestamp = env->CallLongMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetIssuedAtTimestamp));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     const jobject j_sign_in_provider = env->CallObjectMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetSignInProvider));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     const jobject j_sign_in_second_factor = env->CallObjectMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetSignInSecondFactor));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
     const jobject j_claims = env->CallObjectMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetClaims));
-    util::CheckAndClearJniExceptions(env);
+    jni::CheckAndClearException(env);
 
     // Note that JniStringToString releases local references for us.
     data->token = JniStringToString(env, j_token);
@@ -452,7 +730,7 @@ std::vector<UserInfoInterface> User::provider_data() const {
     const jobject list = env->CallObjectMethod(
         user_local, user::GetMethodId(user::kProviderData));
     env->DeleteLocalRef(user_local);
-    if (util::CheckAndClearJniExceptions(env)) {
+    if (jni::CheckAndClearException(env)) {
       if (list) env->DeleteLocalRef(list);
       return provider_data;
     }
@@ -460,13 +738,13 @@ std::vector<UserInfoInterface> User::provider_data() const {
     // Copy the Java UserInfo list into the returned vector.
     if (list != nullptr) {
       const int num_providers =
-          env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
-      if (!util::CheckAndClearJniExceptions(env) && num_providers > 0) {
+          env->CallIntMethod(list, env->GetMethodID(env->GetObjectClass(list), "size", "()I"));
+      if (!jni::CheckAndClearException(env) && num_providers > 0) {
         provider_data.reserve(num_providers);
         for (int i = 0; i < num_providers; ++i) {
           jobject j_user_info = env->CallObjectMethod(
-              list, util::list::GetMethodId(util::list::kGet), i);
-          if (util::CheckAndClearJniExceptions(env) || j_user_info == nullptr) {
+              list, env->GetMethodID(env->GetObjectClass(list), "get", "(I)Ljava/lang/Object;"), i);
+          if (jni::CheckAndClearException(env) || j_user_info == nullptr) {
             if (j_user_info) env->DeleteLocalRef(j_user_info);
             continue;
           }
@@ -880,7 +1158,7 @@ UserMetadata User::metadata() const {
   jobject userMetadata = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kGetMetadata));
   env->DeleteLocalRef(user_local);
-  if (util::CheckAndClearJniExceptions(env) || !userMetadata) {
+  if (jni::CheckAndClearException(env) || !userMetadata) {
     if (userMetadata) env->DeleteLocalRef(userMetadata);
     return UserMetadata();
   }
@@ -888,10 +1166,10 @@ UserMetadata User::metadata() const {
   UserMetadata data;
   data.last_sign_in_timestamp = env->CallLongMethod(
       userMetadata, metadata::GetMethodId(metadata::kGetLastSignInTimestamp));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   data.creation_timestamp = env->CallLongMethod(
       userMetadata, metadata::GetMethodId(metadata::kGetCreationTimestamp));
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
 
   env->DeleteLocalRef(userMetadata);
 
@@ -905,7 +1183,7 @@ bool User::is_email_verified() const {
   bool result = env->CallBooleanMethod(
       user_local, userinfo::GetMethodId(userinfo::kIsEmailVerified));
   env->DeleteLocalRef(user_local);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return result;
 }
 
@@ -916,7 +1194,7 @@ bool User::is_anonymous() const {
   bool result = env->CallBooleanMethod(user_local,
                                        user::GetMethodId(user::kIsAnonymous));
   env->DeleteLocalRef(user_local);
-  util::CheckAndClearJniExceptions(env);
+  jni::CheckAndClearException(env);
   return result;
 }
 
