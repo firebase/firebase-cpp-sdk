@@ -1,12 +1,29 @@
-#include "app/src/jni/exception.h"
+// Copyright 2016 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "storage/src/android/metadata_android.h"
 
 #include <jni.h>
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 #include <utility>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/jni/declaration.h"
+#include "app/src/jni/exception.h"
+#include "app/src/jni/string.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/android/storage_reference_android.h"
 #include "storage/storage_resources.h"
@@ -14,6 +31,66 @@
 namespace firebase {
 namespace storage {
 namespace internal {
+
+// clang-format off
+#define STORAGE_METADATA_METHODS(X)                                            \
+  X(Constructor, "<init>", "()V")                                              \
+  X(GetContentType, "getContentType", "()Ljava/lang/String;")                  \
+  X(GetCustomMetadata, "getCustomMetadata",                                    \
+    "(Ljava/lang/String;)Ljava/lang/String;")                                  \
+  X(GetCustomMetadataKeys, "getCustomMetadataKeys",                            \
+    "()Ljava/util/Set;")                                                       \
+  X(GetPath, "getPath", "()Ljava/lang/String;")                                \
+  X(GetName, "getName", "()Ljava/lang/String;")                                \
+  X(GetBucket, "getBucket", "()Ljava/lang/String;")                            \
+  X(GetGeneration, "getGeneration", "()Ljava/lang/String;")                    \
+  X(GetMetadataGeneration, "getMetadataGeneration", "()Ljava/lang/String;")    \
+  X(GetCreationTimeMillis, "getCreationTimeMillis", "()J")                     \
+  X(GetUpdatedTimeMillis, "getUpdatedTimeMillis", "()J")                       \
+  X(GetSizeBytes, "getSizeBytes", "()J")                                       \
+  X(GetMd5Hash, "getMd5Hash", "()Ljava/lang/String;")                          \
+  X(GetCacheControl, "getCacheControl", "()Ljava/lang/String;")                \
+  X(GetContentDisposition, "getContentDisposition", "()Ljava/lang/String;")    \
+  X(GetContentEncoding, "getContentEncoding", "()Ljava/lang/String;")          \
+  X(GetContentLanguage, "getContentLanguage", "()Ljava/lang/String;")          \
+  X(GetReference, "getReference",                                              \
+    "()Lcom/google/firebase/storage/StorageReference;")
+// clang-format on
+
+JNI_METHOD_LOOKUP_DECLARATION(
+    storage_metadata, STORAGE_METADATA_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/storage/StorageMetadata")
+
+// clang-format off
+#define STORAGE_METADATA_BUILDER_METHODS(X)                                    \
+  X(Constructor, "<init>", "()V")                                              \
+  X(ConstructorFromMetadata, "<init>",                                         \
+    "(Lcom/google/firebase/storage/StorageMetadata;)V")                        \
+  X(Build, "build", "()Lcom/google/firebase/storage/StorageMetadata;")         \
+  X(SetContentLanguage, "setContentLanguage",                                  \
+    "(Ljava/lang/String;)"                                                     \
+    "Lcom/google/firebase/storage/StorageMetadata$Builder;")                   \
+  X(SetContentDisposition, "setContentDisposition",                            \
+    "(Ljava/lang/String;)"                                                     \
+    "Lcom/google/firebase/storage/StorageMetadata$Builder;")                   \
+  X(SetContentEncoding, "setContentEncoding",                                  \
+    "(Ljava/lang/String;)"                                                     \
+    "Lcom/google/firebase/storage/StorageMetadata$Builder;")                   \
+  X(SetCacheControl, "setCacheControl",                                        \
+    "(Ljava/lang/String;)"                                                     \
+    "Lcom/google/firebase/storage/StorageMetadata$Builder;")                   \
+  X(SetContentType, "setContentType",                                          \
+    "(Ljava/lang/String;)"                                                     \
+    "Lcom/google/firebase/storage/StorageMetadata$Builder;")                   \
+  X(SetCustomMetadata, "setCustomMetadata",                                    \
+    "(Ljava/lang/String;Ljava/lang/String;)"                                   \
+    "Lcom/google/firebase/storage/StorageMetadata$Builder;")
+// clang-format on
+
+JNI_METHOD_LOOKUP_DECLARATION(
+    storage_metadata_builder, STORAGE_METADATA_BUILDER_METHODS,
+    FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/storage/StorageMetadata$Builder")
 
 bool InitializeMetadataConverter(App* app) {
   JNIEnv* env = app->GetJNIEnv();
@@ -86,10 +163,11 @@ MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj, StorageInt
   if (!obj) return nullptr;
   MetadataInternal* meta = new MetadataInternal(ref);
 
-  auto get_str = [&](storage_metadata::Method m, void (MetadataInternal::*setter)(const std::string&)) {
+  auto get_str = [&](storage_metadata::Method m, auto setter) {
     jobject jstr = env->CallObjectMethod(obj, storage_metadata::GetMethodId(m));
     if (jstr) {
-      (meta->*setter)(::firebase::jni::JStringToString(env, jstr));
+      std::string val = ::firebase::jni::JStringToString(env, jstr);
+      (meta->*setter)(val.c_str());
       env->DeleteLocalRef(jstr);
     }
   };
