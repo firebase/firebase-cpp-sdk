@@ -24,7 +24,6 @@
 #include "app/src/util.h"
 #include "installations/src/installations_internal.h"
 
-// Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
     installations,
     {
@@ -33,20 +32,16 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       }
       return kInitResultSuccess;
     },
-    {
-      // Cleanup for installations is handled via CleanupNotifier per App.
-    },
-    false);
+    {}, false);
 
 namespace firebase {
 namespace installations {
 
 namespace {
 std::map<App*, Installations*>* g_installations = nullptr;
-
 Mutex& InstallationsMutex() {
-  static Mutex* s_installations_mutex = new Mutex();
-  return *s_installations_mutex;
+  static auto* m = new Mutex();
+  return *m;
 }
 }  // namespace
 
@@ -56,16 +51,16 @@ const char* GetErrorMessage(Error error) noexcept {
   switch (error) {
     case kErrorNone:
       return "";
-    case kErrorUnknown:
-      return "An unknown Installations error occurred.";
     case kErrorNoAccess:
       return "The Installations service could not be accessed.";
     case kErrorInvalidConfiguration:
       return "Invalid Firebase App or Installations configuration.";
     case kErrorUnableToLoad:
       return "Unable to load or save Installations data in local storage.";
+    case kErrorUnknown:
+    default:
+      return "An unknown Installations error occurred.";
   }
-  return "An unknown Installations error occurred.";
 }
 
 Installations* Installations::GetInstance() {
@@ -85,78 +80,53 @@ Installations* Installations::GetInstance(App* app,
                                           InitResult* init_result_out) {
   if (!app) {
     LogError("Installations::GetInstance() called with nullptr App.");
-    if (init_result_out) {
-      *init_result_out = kInitResultFailedMissingDependency;
-    }
+    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
     return nullptr;
   }
 
-  Installations* installations = nullptr;
-  Installations* failed_installations = nullptr;
-  bool is_new_instance = false;
+  Installations* inst = nullptr;
+  Installations* failed = nullptr;
+  bool is_new = false;
   {
     MutexLock lock(InstallationsMutex());
-
-    // Return the Installations if it already exists.
-    Installations* existing_installations = FindInstallationsLocked(app);
-    if (existing_installations) {
-      if (init_result_out) {
-        *init_result_out = kInitResultSuccess;
-      }
-      installations = existing_installations;
+    if (Installations* existing = FindInstallationsLocked(app)) {
+      if (init_result_out) *init_result_out = kInitResultSuccess;
+      inst = existing;
     } else {
-      // Create a new Installations and initialize.
-      installations = new Installations(app);
-      LogDebug("Creating Installations %p for App %s", installations,
-               app->name());
-
-      if (!installations->InitInternal()) {
-        installations->DeleteInternalLocked();
-        failed_installations = installations;
-        installations = nullptr;
-        if (init_result_out) {
+      inst = new Installations(app);
+      if (!inst->InitInternal()) {
+        inst->DeleteInternalLocked();
+        failed = inst;
+        inst = nullptr;
+        if (init_result_out)
           *init_result_out = kInitResultFailedMissingDependency;
-        }
       } else {
-        (*g_installations)[app] = installations;
-        is_new_instance = true;
-        if (init_result_out) {
-          *init_result_out = kInitResultSuccess;
-        }
+        (*g_installations)[app] = inst;
+        is_new = true;
+        if (init_result_out) *init_result_out = kInitResultSuccess;
       }
     }
   }
-
-  if (failed_installations) {
-    delete failed_installations;
+  if (failed) {
+    delete failed;
     return nullptr;
   }
-
-  if (is_new_instance) {
-    // Register CleanupNotifier outside InstallationsMutex() to avoid
-    // lock-order inversions with CleanupNotifier::CleanupAll().
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-    FIREBASE_ASSERT(notifier);
-    if (notifier) {
-      notifier->RegisterObject(installations, [](void* object) {
-        Installations* installations_local =
-            reinterpret_cast<Installations*>(object);
+  if (is_new) {
+    if (CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app)) {
+      notifier->RegisterObject(inst, [](void* object) {
+        auto* local = reinterpret_cast<Installations*>(object);
         LogWarning(
             "Installations object 0x%08x should be deleted before the App "
             "0x%08x it depends upon.",
-            static_cast<int>(reinterpret_cast<intptr_t>(installations_local)),
-            static_cast<int>(
-                reinterpret_cast<intptr_t>(installations_local->app())));
-        installations_local->DeleteInternal();
+            static_cast<int>(reinterpret_cast<intptr_t>(local)),
+            static_cast<int>(reinterpret_cast<intptr_t>(local->app())));
+        local->DeleteInternal();
       });
     }
   } else {
-    // Log heartbeat data when instance getters are called on an existing
-    // instance (new instances log heartbeat during initialization).
     InstallationsInternal::LogHeartbeat(*app);
   }
-
-  return installations;
+  return inst;
 }
 
 Installations* Installations::FindInstallationsLocked(App* app) {
@@ -183,18 +153,16 @@ Installations::~Installations() {
     app_to_unregister = app_;
     DeleteInternalLocked();
   }
-
   if (app_to_unregister) {
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_to_unregister);
-    if (notifier) {
+    if (CleanupNotifier* notifier =
+            CleanupNotifier::FindByOwner(app_to_unregister)) {
       notifier->UnregisterObject(this);
     }
   }
 }
 
 bool Installations::InitInternal() {
-  return installations_internal_ != nullptr &&
-         installations_internal_->Initialized();
+  return installations_internal_ && installations_internal_->Initialized();
 }
 
 void Installations::DeleteInternalLocked() {
@@ -203,7 +171,6 @@ void Installations::DeleteInternalLocked() {
     delete installations_internal_;
     installations_internal_ = nullptr;
   }
-
   if (app_ && g_installations) {
     g_installations->erase(app_);
     if (g_installations->empty()) {
@@ -227,8 +194,10 @@ Future<std::string> Installations::GetId() {
 
 Future<std::string> Installations::GetIdLastResult() const {
   MutexLock lock(InstallationsMutex());
-  return installations_internal_ ? installations_internal_->GetIdLastResult()
-                                 : Future<std::string>();
+  return installations_internal_
+             ? installations_internal_->futures()
+                   .LastResult<internal::kInstallationsFnGetId>()
+             : Future<std::string>();
 }
 
 Future<std::string> Installations::GetToken(bool force_refresh) {
@@ -240,8 +209,10 @@ Future<std::string> Installations::GetToken(bool force_refresh) {
 
 Future<std::string> Installations::GetTokenLastResult() const {
   MutexLock lock(InstallationsMutex());
-  return installations_internal_ ? installations_internal_->GetTokenLastResult()
-                                 : Future<std::string>();
+  return installations_internal_
+             ? installations_internal_->futures()
+                   .LastResult<internal::kInstallationsFnGetToken>()
+             : Future<std::string>();
 }
 
 Future<InstallationTokenResult> Installations::GetTokenResult(
@@ -256,7 +227,8 @@ Future<InstallationTokenResult> Installations::GetTokenResultLastResult()
     const {
   MutexLock lock(InstallationsMutex());
   return installations_internal_
-             ? installations_internal_->GetTokenResultLastResult()
+             ? installations_internal_->futures()
+                   .LastResult<internal::kInstallationsFnGetTokenResult>()
              : Future<InstallationTokenResult>();
 }
 
@@ -268,8 +240,10 @@ Future<void> Installations::Delete() {
 
 Future<void> Installations::DeleteLastResult() const {
   MutexLock lock(InstallationsMutex());
-  return installations_internal_ ? installations_internal_->DeleteLastResult()
-                                 : Future<void>();
+  return installations_internal_
+             ? installations_internal_->futures()
+                   .LastResult<internal::kInstallationsFnDelete>()
+             : Future<void>();
 }
 
 }  // namespace installations

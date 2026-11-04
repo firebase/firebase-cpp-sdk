@@ -32,59 +32,34 @@
 
 namespace firebase::functions::internal {
 
-// This defines the class FIRHTTPSCallablePointer, which is a C++-compatible
-// wrapper around the FIRHTTPSCallable Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRHTTPSCallable);
 
 class HttpsCallableReferenceInternal {
  public:
   HttpsCallableReferenceInternal(FunctionsInternal* functions,
                                  std::unique_ptr<FIRHTTPSCallablePointer> impl);
-  ~HttpsCallableReferenceInternal();
+  ~HttpsCallableReferenceInternal() = default;
 
-  // Copy constructor. It's totally okay (and efficient) to copy
-  // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location in the Cloud Functions service.
   HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& other);
-
-  // Copy assignment operator. It's totally okay (and efficient) to copy
-  // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location in the Cloud Functions service.
   HttpsCallableReferenceInternal& operator=(
       const HttpsCallableReferenceInternal& other);
-
-  // Move constructor. Moving is an efficient operation for
-  // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal(
       HttpsCallableReferenceInternal&& other) noexcept;
-
-  // Move assignment operator. Moving is an efficient operation for
-  // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal& operator=(
       HttpsCallableReferenceInternal&& other) noexcept;
 
-  // Gets the Functions instance to which we refer.
   [[nodiscard]] Functions* functions() const;
-
   [[nodiscard]] FunctionsInternal* functions_internal() const {
     if (!functions_ || !functions_lifetime_) return nullptr;
     MutexLock fn_lock(functions_lifetime_->mutex);
     return functions_lifetime_->alive ? functions_ : nullptr;
   }
 
-  // Asynchronously calls the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
-
-  // Asynchronously calls the trigger endpoint with the given parameter.
   Future<HttpsCallableResult> Call(const Variant& data);
-
-  // Get the result of the most recent Call() call.
   Future<HttpsCallableResult> CallLastResult();
 
-  // Returns true if this HttpsCallableReference is valid, false if it is not
-  // valid.
   [[nodiscard]] bool is_valid() const;
-
   bool operator==(const HttpsCallableReferenceInternal& other) const;
 
  private:
@@ -92,14 +67,11 @@ class HttpsCallableReferenceInternal {
   FIRHTTPSCallable* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
 
-  // Get the Future for the HttpsCallableReferenceInternal.
   ReferenceCountedFutureImpl* future() { return future_impl_.get(); }
 
-  // The FunctionsInternal object we are part of.
   FunctionsInternal* functions_ = nullptr;
   std::shared_ptr<FunctionsLifetimeState> functions_lifetime_;
   std::shared_ptr<ReferenceCountedFutureImpl> future_impl_;
-
   std::unique_ptr<FIRHTTPSCallablePointer> impl_;
 };
 

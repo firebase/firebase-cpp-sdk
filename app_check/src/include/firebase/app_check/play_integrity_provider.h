@@ -24,8 +24,6 @@ namespace internal {
 class PlayIntegrityProviderFactoryInternal;
 }
 
-/// Implementation of an {@link AppCheckProviderFactory} that builds
-/// PlayIntegrityProviders. This is the default implementation.
 class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
  public:
 #if !defined(DOXYGEN)
@@ -34,13 +32,7 @@ class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
       delete;
 #endif  // !defined(DOXYGEN)
 
-  /// Gets an instance of this class for installation into a
-  /// firebase::app_check::AppCheck instance.
   static PlayIntegrityProviderFactory* GetInstance();
-
-  /// Gets the AppCheckProvider associated with the given
-  /// {@link App} instance, or creates one if none
-  /// already exists.
   firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
  private:

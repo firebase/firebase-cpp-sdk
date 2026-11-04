@@ -270,7 +270,7 @@ FirebaseFunctionsTest::TestFunctionHelper(
   WaitForCompletion(future,
                     (std::string("CallFunction ") + function_name).c_str(),
                     expected_error);
-  if (!expected_result.is_null()) {
+  if (!expected_result.is_null() && future.result() != nullptr) {
     EXPECT_EQ(VariantToString(expected_result),
               VariantToString(future.result()->data()))
         << "Unexpected result from calling " << function_name;

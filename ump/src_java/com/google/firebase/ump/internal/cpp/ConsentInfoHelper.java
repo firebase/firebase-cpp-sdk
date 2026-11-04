@@ -36,28 +36,17 @@ import com.google.android.ump.UserMessagingPlatform.OnConsentFormLoadSuccessList
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
-/**
- * Helper class to make interactions between the UMP C++ wrapper and the Android UMP API.
- */
+/** Helper class between the UMP C++ wrapper and the Android UMP API. */
 public class ConsentInfoHelper {
-  // C++ nullptr for use with the callbacks.
   private static final long CPP_NULLPTR = 0;
 
-  // Synchronization object for thread safe access to mInternalPtr, mActivityRef, and mConsentForm.
   private final Object mLock = new Object();
   private Context mAppContext;
   private final Handler mMainHandler = new Handler(Looper.getMainLooper());
-
-  // Pointer to the internal ConsentInfoInternalAndroid C++ object.
-  // This can be reset back to 0 by calling disconnect().
   private long mInternalPtr = 0;
-  // Weak reference to the latest Activity so configuration changes do not leak a destroyed Activity.
   private WeakReference<Activity> mActivityRef;
-  // The loaded consent form, if any.
   private ConsentForm mConsentForm = null;
 
-  // Create our own local passthrough version of these enum object values
-  // as integers, to make it easier for the C++ SDK to access them.
   public static final int PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN =
       PrivacyOptionsRequirementStatus.UNKNOWN.ordinal();
   public static final int PRIVACY_OPTIONS_REQUIREMENT_REQUIRED =
@@ -65,8 +54,6 @@ public class ConsentInfoHelper {
   public static final int PRIVACY_OPTIONS_REQUIREMENT_NOT_REQUIRED =
       PrivacyOptionsRequirementStatus.NOT_REQUIRED.ordinal();
 
-  // Enum values for tracking which function we are calling back.
-  // Ensure these are incremental starting at 0.
   public static final int FUNCTION_REQUEST_CONSENT_INFO_UPDATE = 0;
   public static final int FUNCTION_LOAD_CONSENT_FORM = 1;
   public static final int FUNCTION_SHOW_CONSENT_FORM = 2;
@@ -86,487 +73,350 @@ public class ConsentInfoHelper {
     synchronized (mLock) {
       if (activity != null) {
         mActivityRef = new WeakReference<>(activity);
-        if (mAppContext == null) {
-          mAppContext = activity.getApplicationContext();
-        }
+        if (mAppContext == null) mAppContext = activity.getApplicationContext();
       }
     }
   }
 
-  private static boolean isActivityUsable(Activity activity) {
-    if (activity == null || activity.isFinishing()) {
-      return false;
-    }
-    if (Build.VERSION.SDK_INT >= 17 && activity.isDestroyed()) {
-      return false;
-    }
-    return true;
+  private static boolean isActivityUsable(Activity a) {
+    return a != null && !a.isFinishing() && (Build.VERSION.SDK_INT < 17 || !a.isDestroyed());
   }
 
   private Activity resolveActivityLocked(Activity explicitActivity) {
-    if (isActivityUsable(explicitActivity)) {
-      return explicitActivity;
-    }
+    if (isActivityUsable(explicitActivity)) return explicitActivity;
     Activity fallback = mActivityRef != null ? mActivityRef.get() : null;
-    if (isActivityUsable(fallback)) {
-      return fallback;
-    }
-    return null;
+    return isActivityUsable(fallback) ? fallback : null;
   }
 
   private Context getSafeContextLocked() {
-    if (mAppContext != null) {
-      return mAppContext;
-    }
-    return resolveActivityLocked(null);
+    return mAppContext != null ? mAppContext : resolveActivityLocked(null);
   }
 
-  private void completeWithErrorLocked(int functionId, long futureHandle, int code, String msg) {
-    if (mInternalPtr != CPP_NULLPTR) {
-      completeFuture(functionId, mInternalPtr, futureHandle, code, msg);
+  private void completeWithErrorLocked(int fnId, long futureHandle, int code, String msg) {
+    if (mInternalPtr != CPP_NULLPTR) completeFuture(fnId, mInternalPtr, futureHandle, code, msg);
+  }
+
+  private void completeFormError(int fnId, long futureHandle, FormError err) {
+    synchronized (mLock) {
+      if (err == null) {
+        completeWithErrorLocked(fnId, futureHandle, 0, null);
+      } else {
+        completeWithErrorLocked(fnId, futureHandle, err.getErrorCode(), err.getMessage());
+      }
     }
+  }
+
+  private OnConsentFormDismissedListener dismissedListener(
+      final int fnId, final long futureHandle) {
+    return new OnConsentFormDismissedListener() {
+      @Override
+      public void onConsentFormDismissed(FormError formError) {
+        completeFormError(fnId, futureHandle, formError);
+      }
+    };
+  }
+
+  private interface ActivityAction {
+    void run(Activity activity);
+  }
+
+  private void runOnActivity(
+      final int fnId,
+      final long futureHandle,
+      Activity explicit,
+      String nullMsg,
+      final String destroyedMsg,
+      final ConsentForm restoreFormOnCancel,
+      final ActivityAction action) {
+    final Activity target;
+    synchronized (mLock) {
+      if (mInternalPtr == CPP_NULLPTR) return;
+      target = resolveActivityLocked(explicit);
+      if (target == null) {
+        if (restoreFormOnCancel != null && mConsentForm == null) mConsentForm = restoreFormOnCancel;
+        completeWithErrorLocked(
+            fnId, futureHandle, FormError.ErrorCode.INVALID_OPERATION, nullMsg);
+        return;
+      }
+    }
+    mMainHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            try {
+              Activity cur;
+              synchronized (mLock) {
+                if (mInternalPtr == CPP_NULLPTR) return;
+                cur = resolveActivityLocked(target);
+                if (cur == null) {
+                  if (restoreFormOnCancel != null && mConsentForm == null) {
+                    mConsentForm = restoreFormOnCancel;
+                  }
+                  completeWithErrorLocked(
+                      fnId, futureHandle, FormError.ErrorCode.INVALID_OPERATION, destroyedMsg);
+                  return;
+                }
+              }
+              action.run(cur);
+            } catch (Throwable t) {
+              synchronized (mLock) {
+                completeWithErrorLocked(
+                    fnId, futureHandle, FormError.ErrorCode.INTERNAL_ERROR, t.getMessage());
+              }
+            }
+          }
+        });
   }
 
   public int getConsentStatus() {
-    Context context;
+    Context ctx;
     synchronized (mLock) {
-      context = getSafeContextLocked();
+      ctx = getSafeContextLocked();
     }
-    if (context == null) {
-      return ConsentInformation.ConsentStatus.UNKNOWN;
-    }
-    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(context);
-    return consentInfo.getConsentStatus();
+    return ctx == null
+        ? ConsentInformation.ConsentStatus.UNKNOWN
+        : UserMessagingPlatform.getConsentInformation(ctx).getConsentStatus();
   }
 
-  public void requestConsentInfoUpdate(final long futureHandle, boolean tagForUnderAgeOfConsent,
-      int debugGeography, ArrayList<String> debugIdList) {
-    final int functionId = FUNCTION_REQUEST_CONSENT_INFO_UPDATE;
-    final Activity targetActivity;
+  public void requestConsentInfoUpdate(
+      final long futureHandle,
+      boolean tagForUnderAgeOfConsent,
+      int debugGeography,
+      ArrayList<String> debugIdList) {
+    final int fnId = FUNCTION_REQUEST_CONSENT_INFO_UPDATE;
     final Context safeContext;
     synchronized (mLock) {
-      if (mInternalPtr == CPP_NULLPTR) {
-        return;
-      }
-      targetActivity = resolveActivityLocked(null);
+      if (mInternalPtr == CPP_NULLPTR) return;
       safeContext = getSafeContextLocked();
-      if (targetActivity == null || safeContext == null) {
-        completeWithErrorLocked(
-            functionId,
-            futureHandle,
-            FormError.ErrorCode.INVALID_OPERATION,
-            "Cannot request consent info update: Activity is null or destroyed.");
-        return;
-      }
     }
-
-    ConsentDebugSettings.Builder debugSettingsBuilder = null;
-    if (debugGeography != ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_DISABLED) {
-      debugSettingsBuilder =
-          new ConsentDebugSettings.Builder(safeContext).setDebugGeography(debugGeography);
-    }
-    if (debugIdList != null && !debugIdList.isEmpty()) {
-      if (debugSettingsBuilder == null) {
-        debugSettingsBuilder = new ConsentDebugSettings.Builder(safeContext);
+    ConsentDebugSettings.Builder dbg = null;
+    if (safeContext != null) {
+      if (debugGeography != ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_DISABLED) {
+        dbg = new ConsentDebugSettings.Builder(safeContext).setDebugGeography(debugGeography);
       }
-      for (int i = 0; i < debugIdList.size(); i++) {
-        String id = debugIdList.get(i);
-        if (id != null) {
-          debugSettingsBuilder = debugSettingsBuilder.addTestDeviceHashedId(id);
+      if (debugIdList != null && !debugIdList.isEmpty()) {
+        if (dbg == null) dbg = new ConsentDebugSettings.Builder(safeContext);
+        for (int i = 0; i < debugIdList.size(); i++) {
+          String id = debugIdList.get(i);
+          if (id != null) dbg = dbg.addTestDeviceHashedId(id);
         }
       }
     }
-    ConsentRequestParameters.Builder paramsBuilder =
+    ConsentRequestParameters.Builder pb =
         new ConsentRequestParameters.Builder().setTagForUnderAgeOfConsent(tagForUnderAgeOfConsent);
-    if (debugSettingsBuilder != null) {
-      paramsBuilder = paramsBuilder.setConsentDebugSettings(debugSettingsBuilder.build());
-    }
-    final ConsentRequestParameters params = paramsBuilder.build();
+    if (dbg != null) pb = pb.setConsentDebugSettings(dbg.build());
+    final ConsentRequestParameters params = pb.build();
 
-    mMainHandler.post(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          Activity currentActivity;
-          synchronized (mLock) {
-            if (mInternalPtr == CPP_NULLPTR) {
-              return;
-            }
-            currentActivity = resolveActivityLocked(targetActivity);
-            if (currentActivity == null) {
-              completeWithErrorLocked(
-                  functionId,
-                  futureHandle,
-                  FormError.ErrorCode.INVALID_OPERATION,
-                  "Activity was destroyed before requestConsentInfoUpdate could run.");
-              return;
-            }
+    runOnActivity(
+        fnId,
+        futureHandle,
+        null,
+        "Cannot request consent info update: Activity is null or destroyed.",
+        "Activity was destroyed before requestConsentInfoUpdate could run.",
+        null,
+        new ActivityAction() {
+          @Override
+          public void run(Activity cur) {
+            UserMessagingPlatform.getConsentInformation(safeContext)
+                .requestConsentInfoUpdate(
+                    cur,
+                    params,
+                    new OnConsentInfoUpdateSuccessListener() {
+                      @Override
+                      public void onConsentInfoUpdateSuccess() {
+                        completeFormError(fnId, futureHandle, null);
+                      }
+                    },
+                    new OnConsentInfoUpdateFailureListener() {
+                      @Override
+                      public void onConsentInfoUpdateFailure(FormError e) {
+                        synchronized (mLock) {
+                          completeWithErrorLocked(
+                              fnId,
+                              futureHandle,
+                              e != null ? e.getErrorCode() : FormError.ErrorCode.INTERNAL_ERROR,
+                              e != null ? e.getMessage() : "Unknown error");
+                        }
+                      }
+                    });
           }
-          ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(safeContext);
-          consentInfo.requestConsentInfoUpdate(
-              currentActivity,
-              params,
-              new OnConsentInfoUpdateSuccessListener() {
-                @Override
-                public void onConsentInfoUpdateSuccess() {
-                  synchronized (mLock) {
-                    completeWithErrorLocked(functionId, futureHandle, 0, null);
-                  }
-                }
-              },
-              new OnConsentInfoUpdateFailureListener() {
-                @Override
-                public void onConsentInfoUpdateFailure(FormError formError) {
-                  synchronized (mLock) {
-                    int code =
-                        formError != null
-                            ? formError.getErrorCode()
-                            : FormError.ErrorCode.INTERNAL_ERROR;
-                    String msg = formError != null ? formError.getMessage() : "Unknown error";
-                    completeWithErrorLocked(functionId, futureHandle, code, msg);
-                  }
-                }
-              });
-        } catch (Throwable t) {
-          synchronized (mLock) {
-            completeWithErrorLocked(
-                functionId, futureHandle, FormError.ErrorCode.INTERNAL_ERROR, t.getMessage());
-          }
-        }
-      }
-    });
+        });
   }
 
   public void loadConsentForm(final long futureHandle) {
-    final int functionId = FUNCTION_LOAD_CONSENT_FORM;
-    final Context safeContext;
+    final int fnId = FUNCTION_LOAD_CONSENT_FORM;
     synchronized (mLock) {
-      if (mInternalPtr == CPP_NULLPTR) {
-        return;
-      }
-      safeContext = getSafeContextLocked();
-      if (safeContext == null) {
+      if (mInternalPtr == CPP_NULLPTR) return;
+      if (getSafeContextLocked() == null) {
         completeWithErrorLocked(
-            functionId,
+            fnId,
             futureHandle,
             FormError.ErrorCode.INVALID_OPERATION,
             "Cannot load consent form: Context is null.");
         return;
       }
     }
-
-    mMainHandler.post(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          Context currentContext;
-          synchronized (mLock) {
-            if (mInternalPtr == CPP_NULLPTR) {
-              return;
-            }
-            currentContext = getSafeContextLocked();
-            if (currentContext == null) {
-              completeWithErrorLocked(
-                  functionId,
-                  futureHandle,
-                  FormError.ErrorCode.INVALID_OPERATION,
-                  "Context was destroyed before loadConsentForm could run.");
-              return;
+    mMainHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            try {
+              Context ctx;
+              synchronized (mLock) {
+                if (mInternalPtr == CPP_NULLPTR) return;
+                ctx = getSafeContextLocked();
+                if (ctx == null) {
+                  completeWithErrorLocked(
+                      fnId,
+                      futureHandle,
+                      FormError.ErrorCode.INVALID_OPERATION,
+                      "Context was destroyed before loadConsentForm could run.");
+                  return;
+                }
+              }
+              UserMessagingPlatform.loadConsentForm(
+                  ctx,
+                  new OnConsentFormLoadSuccessListener() {
+                    @Override
+                    public void onConsentFormLoadSuccess(ConsentForm form) {
+                      synchronized (mLock) {
+                        if (mInternalPtr != CPP_NULLPTR) {
+                          mConsentForm = form;
+                          completeWithErrorLocked(fnId, futureHandle, 0, null);
+                        }
+                      }
+                    }
+                  },
+                  new OnConsentFormLoadFailureListener() {
+                    @Override
+                    public void onConsentFormLoadFailure(FormError e) {
+                      synchronized (mLock) {
+                        if (mInternalPtr != CPP_NULLPTR) {
+                          mConsentForm = null;
+                          completeWithErrorLocked(
+                              fnId,
+                              futureHandle,
+                              e != null ? e.getErrorCode() : FormError.ErrorCode.INTERNAL_ERROR,
+                              e != null ? e.getMessage() : "Unknown error");
+                        }
+                      }
+                    }
+                  });
+            } catch (Throwable t) {
+              synchronized (mLock) {
+                completeWithErrorLocked(
+                    fnId, futureHandle, FormError.ErrorCode.INTERNAL_ERROR, t.getMessage());
+              }
             }
           }
-          UserMessagingPlatform.loadConsentForm(
-              currentContext,
-              new OnConsentFormLoadSuccessListener() {
-                @Override
-                public void onConsentFormLoadSuccess(ConsentForm form) {
-                  synchronized (mLock) {
-                    if (mInternalPtr == CPP_NULLPTR) {
-                      return;
-                    }
-                    mConsentForm = form;
-                    completeWithErrorLocked(functionId, futureHandle, 0, null);
-                  }
-                }
-              },
-              new OnConsentFormLoadFailureListener() {
-                @Override
-                public void onConsentFormLoadFailure(FormError formError) {
-                  synchronized (mLock) {
-                    if (mInternalPtr == CPP_NULLPTR) {
-                      return;
-                    }
-                    mConsentForm = null;
-                    int code =
-                        formError != null
-                            ? formError.getErrorCode()
-                            : FormError.ErrorCode.INTERNAL_ERROR;
-                    String msg = formError != null ? formError.getMessage() : "Unknown error";
-                    completeWithErrorLocked(functionId, futureHandle, code, msg);
-                  }
-                }
-              });
-        } catch (Throwable t) {
-          synchronized (mLock) {
-            completeWithErrorLocked(
-                functionId, futureHandle, FormError.ErrorCode.INTERNAL_ERROR, t.getMessage());
-          }
-        }
-      }
-    });
+        });
   }
 
   public boolean showConsentForm(final long futureHandle, final Activity activity) {
-    final int functionId = FUNCTION_SHOW_CONSENT_FORM;
-    final ConsentForm consentFormForThread;
-    final Activity targetActivity;
+    final int fnId = FUNCTION_SHOW_CONSENT_FORM;
+    final ConsentForm form;
     synchronized (mLock) {
-      if (mInternalPtr == CPP_NULLPTR || mConsentForm == null) {
-        return false;
-      }
-      targetActivity = resolveActivityLocked(activity);
-      if (targetActivity == null) {
-        // Do NOT consume mConsentForm when the Activity is null or destroyed.
+      if (mInternalPtr == CPP_NULLPTR || mConsentForm == null) return false;
+      if (resolveActivityLocked(activity) == null) {
         completeWithErrorLocked(
-            functionId,
+            fnId,
             futureHandle,
             FormError.ErrorCode.INVALID_OPERATION,
             "Cannot show consent form: Activity is null or destroyed.");
         return true;
       }
-      consentFormForThread = mConsentForm;
+      form = mConsentForm;
       mConsentForm = null;
     }
-
-    mMainHandler.post(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          Activity currentActivity;
-          synchronized (mLock) {
-            if (mInternalPtr == CPP_NULLPTR) {
-              return;
-            }
-            currentActivity = resolveActivityLocked(targetActivity);
-            if (currentActivity == null) {
-              if (mConsentForm == null) {
-                mConsentForm = consentFormForThread;
-              }
-              completeWithErrorLocked(
-                  functionId,
-                  futureHandle,
-                  FormError.ErrorCode.INVALID_OPERATION,
-                  "Activity was destroyed before showConsentForm could run.");
-              return;
-            }
+    runOnActivity(
+        fnId,
+        futureHandle,
+        activity,
+        "Cannot show consent form: Activity is null or destroyed.",
+        "Activity was destroyed before showConsentForm could run.",
+        form,
+        new ActivityAction() {
+          @Override
+          public void run(Activity cur) {
+            form.show(cur, dismissedListener(fnId, futureHandle));
           }
-          consentFormForThread.show(
-              currentActivity,
-              new OnConsentFormDismissedListener() {
-                @Override
-                public void onConsentFormDismissed(FormError formError) {
-                  synchronized (mLock) {
-                    if (formError == null) {
-                      completeWithErrorLocked(functionId, futureHandle, 0, null);
-                    } else {
-                      completeWithErrorLocked(
-                          functionId,
-                          futureHandle,
-                          formError.getErrorCode(),
-                          formError.getMessage());
-                    }
-                  }
-                }
-              });
-        } catch (Throwable t) {
-          synchronized (mLock) {
-            completeWithErrorLocked(
-                functionId, futureHandle, FormError.ErrorCode.INTERNAL_ERROR, t.getMessage());
-          }
-        }
-      }
-    });
+        });
     return true;
   }
 
   public void loadAndShowConsentFormIfRequired(final long futureHandle, final Activity activity) {
-    final int functionId = FUNCTION_LOAD_AND_SHOW_CONSENT_FORM_IF_REQUIRED;
-    final Activity targetActivity;
-    synchronized (mLock) {
-      if (mInternalPtr == CPP_NULLPTR) {
-        return;
-      }
-      targetActivity = resolveActivityLocked(activity);
-      if (targetActivity == null) {
-        completeWithErrorLocked(
-            functionId,
-            futureHandle,
-            FormError.ErrorCode.INVALID_OPERATION,
-            "Cannot load and show consent form: Activity is null or destroyed.");
-        return;
-      }
-    }
-
-    mMainHandler.post(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          Activity currentActivity;
-          synchronized (mLock) {
-            if (mInternalPtr == CPP_NULLPTR) {
-              return;
-            }
-            currentActivity = resolveActivityLocked(targetActivity);
-            if (currentActivity == null) {
-              completeWithErrorLocked(
-                  functionId,
-                  futureHandle,
-                  FormError.ErrorCode.INVALID_OPERATION,
-                  "Activity was destroyed before loadAndShowConsentFormIfRequired could run.");
-              return;
-            }
+    final int fnId = FUNCTION_LOAD_AND_SHOW_CONSENT_FORM_IF_REQUIRED;
+    runOnActivity(
+        fnId,
+        futureHandle,
+        activity,
+        "Cannot load and show consent form: Activity is null or destroyed.",
+        "Activity was destroyed before loadAndShowConsentFormIfRequired could run.",
+        null,
+        new ActivityAction() {
+          @Override
+          public void run(Activity cur) {
+            UserMessagingPlatform.loadAndShowConsentFormIfRequired(
+                cur, dismissedListener(fnId, futureHandle));
           }
-          UserMessagingPlatform.loadAndShowConsentFormIfRequired(
-              currentActivity,
-              new OnConsentFormDismissedListener() {
-                @Override
-                public void onConsentFormDismissed(FormError formError) {
-                  synchronized (mLock) {
-                    if (formError == null) {
-                      completeWithErrorLocked(functionId, futureHandle, 0, null);
-                    } else {
-                      completeWithErrorLocked(
-                          functionId,
-                          futureHandle,
-                          formError.getErrorCode(),
-                          formError.getMessage());
-                    }
-                  }
-                }
-              });
-        } catch (Throwable t) {
-          synchronized (mLock) {
-            completeWithErrorLocked(
-                functionId, futureHandle, FormError.ErrorCode.INTERNAL_ERROR, t.getMessage());
-          }
-        }
-      }
-    });
+        });
   }
 
   public int getPrivacyOptionsRequirementStatus() {
-    Context context;
+    Context ctx;
     synchronized (mLock) {
-      context = getSafeContextLocked();
+      ctx = getSafeContextLocked();
     }
-    if (context == null) {
-      return PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN;
-    }
-    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(context);
-    return consentInfo.getPrivacyOptionsRequirementStatus().ordinal();
+    return ctx == null
+        ? PRIVACY_OPTIONS_REQUIREMENT_UNKNOWN
+        : UserMessagingPlatform.getConsentInformation(ctx)
+            .getPrivacyOptionsRequirementStatus()
+            .ordinal();
   }
 
   public void showPrivacyOptionsForm(final long futureHandle, final Activity activity) {
-    final int functionId = FUNCTION_SHOW_PRIVACY_OPTIONS_FORM;
-    final Activity targetActivity;
-    synchronized (mLock) {
-      if (mInternalPtr == CPP_NULLPTR) {
-        return;
-      }
-      targetActivity = resolveActivityLocked(activity);
-      if (targetActivity == null) {
-        completeWithErrorLocked(
-            functionId,
-            futureHandle,
-            FormError.ErrorCode.INVALID_OPERATION,
-            "Cannot show privacy options form: Activity is null or destroyed.");
-        return;
-      }
-    }
-
-    mMainHandler.post(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          Activity currentActivity;
-          synchronized (mLock) {
-            if (mInternalPtr == CPP_NULLPTR) {
-              return;
-            }
-            currentActivity = resolveActivityLocked(targetActivity);
-            if (currentActivity == null) {
-              completeWithErrorLocked(
-                  functionId,
-                  futureHandle,
-                  FormError.ErrorCode.INVALID_OPERATION,
-                  "Activity was destroyed before showPrivacyOptionsForm could run.");
-              return;
-            }
+    final int fnId = FUNCTION_SHOW_PRIVACY_OPTIONS_FORM;
+    runOnActivity(
+        fnId,
+        futureHandle,
+        activity,
+        "Cannot show privacy options form: Activity is null or destroyed.",
+        "Activity was destroyed before showPrivacyOptionsForm could run.",
+        null,
+        new ActivityAction() {
+          @Override
+          public void run(Activity cur) {
+            UserMessagingPlatform.showPrivacyOptionsForm(
+                cur, dismissedListener(fnId, futureHandle));
           }
-          UserMessagingPlatform.showPrivacyOptionsForm(
-              currentActivity,
-              new OnConsentFormDismissedListener() {
-                @Override
-                public void onConsentFormDismissed(FormError formError) {
-                  synchronized (mLock) {
-                    if (formError == null) {
-                      completeWithErrorLocked(functionId, futureHandle, 0, null);
-                    } else {
-                      completeWithErrorLocked(
-                          functionId,
-                          futureHandle,
-                          formError.getErrorCode(),
-                          formError.getMessage());
-                    }
-                  }
-                }
-              });
-        } catch (Throwable t) {
-          synchronized (mLock) {
-            completeWithErrorLocked(
-                functionId, futureHandle, FormError.ErrorCode.INTERNAL_ERROR, t.getMessage());
-          }
-        }
-      }
-    });
+        });
   }
 
   public boolean canRequestAds() {
-    Context context;
+    Context ctx;
     synchronized (mLock) {
-      context = getSafeContextLocked();
+      ctx = getSafeContextLocked();
     }
-    if (context == null) {
-      return false;
-    }
-    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(context);
-    return consentInfo.canRequestAds();
+    return ctx != null && UserMessagingPlatform.getConsentInformation(ctx).canRequestAds();
   }
 
   public boolean isConsentFormAvailable() {
-    Context context;
+    Context ctx;
     synchronized (mLock) {
-      context = getSafeContextLocked();
+      ctx = getSafeContextLocked();
     }
-    if (context == null) {
-      return false;
-    }
-    ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(context);
-    return consentInfo.isConsentFormAvailable();
+    return ctx != null && UserMessagingPlatform.getConsentInformation(ctx).isConsentFormAvailable();
   }
 
   public void reset() {
-    Context context;
+    Context ctx;
     synchronized (mLock) {
       mConsentForm = null;
-      context = getSafeContextLocked();
+      ctx = getSafeContextLocked();
     }
-    if (context != null) {
-      ConsentInformation consentInfo = UserMessagingPlatform.getConsentInformation(context);
-      consentInfo.reset();
-    }
+    if (ctx != null) UserMessagingPlatform.getConsentInformation(ctx).reset();
   }
 
-  /** Disconnect the helper from the native object. */
   public void disconnect() {
     synchronized (mLock) {
       mInternalPtr = CPP_NULLPTR;

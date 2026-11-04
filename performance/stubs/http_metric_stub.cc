@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "app/src/assert.h"
-#include "app/src/log.h"
 #include "performance/src/performance_common.h"
 
 namespace firebase {
@@ -23,133 +23,74 @@ class HttpMetricInternal {
   int64_t response_payload_size = 0;
   std::string response_content_type;
   std::map<std::string, std::string> attributes;
-
-  void Reset() {
-    is_created = false;
-    is_started = false;
-    http_response_code = 0;
-    request_payload_size = 0;
-    response_payload_size = 0;
-    response_content_type.clear();
-    attributes.clear();
-  }
 };
 
 }  // namespace internal
 
-HttpMetric::HttpMetric() {
+HttpMetric::HttpMetric() : internal_(new internal::HttpMetricInternal()) {
   FIREBASE_ASSERT(internal::IsInitialized());
-  internal_ = new internal::HttpMetricInternal();
 }
-
-HttpMetric::HttpMetric(const char* url, HttpMethod http_method) {
-  FIREBASE_ASSERT(internal::IsInitialized());
-  internal_ = new internal::HttpMetricInternal();
+HttpMetric::HttpMetric(const char* url, HttpMethod http_method) : HttpMetric() {
   Start(url, http_method);
 }
-
-HttpMetric::~HttpMetric() {
-  delete internal_;
-  internal_ = nullptr;
-}
-
-HttpMetric::HttpMetric(HttpMetric&& other) noexcept {
-  internal_ = other.internal_;
-  other.internal_ = nullptr;
-}
-
+HttpMetric::~HttpMetric() { delete internal_; }
+HttpMetric::HttpMetric(HttpMetric&& other) noexcept
+    : internal_(std::exchange(other.internal_, nullptr)) {}
 HttpMetric& HttpMetric::operator=(HttpMetric&& other) noexcept {
   if (this != &other) {
     delete internal_;
-    internal_ = other.internal_;
-    other.internal_ = nullptr;
+    internal_ = std::exchange(other.internal_, nullptr);
   }
   return *this;
 }
-
-bool HttpMetric::is_started() const {
-  return internal_ != nullptr && internal_->is_started;
-}
-
+bool HttpMetric::is_started() const { return internal_ && internal_->is_started; }
 void HttpMetric::Cancel() {
-  if (!internal_) return;
-  internal_->Reset();
+  if (internal_) *internal_ = {};
 }
-
 void HttpMetric::Stop() {
-  if (!internal_) return;
-  internal_->Reset();
+  if (internal_) *internal_ = {};
 }
-
 void HttpMetric::Start(const char* url, HttpMethod http_method) {
-  if (!internal_) {
-    internal_ = new internal::HttpMetricInternal();
-  }
-  internal_->Reset();
-  if (url == nullptr || http_method < kHttpMethodGet ||
-      http_method > kHttpMethodConnect) {
-    return;
-  }
-  internal_->is_created = true;
-  internal_->is_started = true;
+  Create(url, http_method);
+  StartCreatedHttpMetric();
 }
-
-void HttpMetric::SetAttribute(const char* attribute_name,
-                              const char* attribute_value) {
-  if (!internal_ || !internal_->is_created || attribute_name == nullptr) {
-    return;
-  }
-  if (attribute_value == nullptr) {
-    internal_->attributes.erase(attribute_name);
-  } else {
-    internal_->attributes[attribute_name] = attribute_value;
-  }
+void HttpMetric::SetAttribute(const char* name, const char* value) {
+  if (!internal_ || !internal_->is_created || !name) return;
+  if (!value)
+    internal_->attributes.erase(name);
+  else
+    internal_->attributes[name] = value;
 }
-
-std::string HttpMetric::GetAttribute(const char* attribute_name) const {
-  if (!internal_ || !internal_->is_created || attribute_name == nullptr) {
-    return "";
-  }
-  auto it = internal_->attributes.find(attribute_name);
+std::string HttpMetric::GetAttribute(const char* name) const {
+  if (!internal_ || !internal_->is_created || !name) return "";
+  auto it = internal_->attributes.find(name);
   return it != internal_->attributes.end() ? it->second : "";
 }
-
-void HttpMetric::set_http_response_code(int http_response_code) {
-  if (!internal_ || !internal_->is_created) return;
-  internal_->http_response_code = http_response_code;
+void HttpMetric::set_http_response_code(int code) {
+  if (internal_ && internal_->is_created) internal_->http_response_code = code;
 }
-
 void HttpMetric::set_request_payload_size(int64_t bytes) {
-  if (!internal_ || !internal_->is_created) return;
-  internal_->request_payload_size = bytes;
+  if (internal_ && internal_->is_created)
+    internal_->request_payload_size = bytes;
 }
-
 void HttpMetric::set_response_content_type(const char* content_type) {
-  if (!internal_ || !internal_->is_created || content_type == nullptr) return;
-  internal_->response_content_type = content_type;
+  if (internal_ && internal_->is_created && content_type)
+    internal_->response_content_type = content_type;
 }
-
 void HttpMetric::set_response_payload_size(int64_t bytes) {
-  if (!internal_ || !internal_->is_created) return;
-  internal_->response_payload_size = bytes;
+  if (internal_ && internal_->is_created)
+    internal_->response_payload_size = bytes;
 }
-
 void HttpMetric::Create(const char* url, HttpMethod http_method) {
-  if (!internal_) {
-    internal_ = new internal::HttpMetricInternal();
+  if (!internal_) internal_ = new internal::HttpMetricInternal();
+  *internal_ = {};
+  if (url && http_method >= kHttpMethodGet &&
+      http_method <= kHttpMethodConnect) {
+    internal_->is_created = true;
   }
-  internal_->Reset();
-  if (url == nullptr || http_method < kHttpMethodGet ||
-      http_method > kHttpMethodConnect) {
-    return;
-  }
-  internal_->is_created = true;
-  internal_->is_started = false;
 }
-
 void HttpMetric::StartCreatedHttpMetric() {
-  if (!internal_ || !internal_->is_created) return;
-  internal_->is_started = true;
+  if (internal_ && internal_->is_created) internal_->is_started = true;
 }
 
 }  // namespace performance

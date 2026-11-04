@@ -36,9 +36,7 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseInstallations);
 namespace {
 #ifdef __OBJC__
 Error MapIosError(NSError* _Nullable error) {
-  if (error == nil) {
-    return kInstallationsErrorNone;
-  }
+  if (error == nil) return kInstallationsErrorNone;
   switch (error.code) {
     case FIRInstallationsErrorCodeKeychain:
       return kErrorUnableToLoad;
@@ -46,10 +44,23 @@ Error MapIosError(NSError* _Nullable error) {
       return kErrorNoAccess;
     case FIRInstallationsErrorCodeInvalidConfiguration:
       return kErrorInvalidConfiguration;
-    case FIRInstallationsErrorCodeUnknown:
     default:
       return kInstallationsErrorFailure;
   }
+}
+
+template <InstallationsFn Slot, typename StartFn>
+Future<SlotResultT<Slot>> RunIosOp(FIRInstallations* _Nullable inst,
+                                   InstallationsFutures& futures,
+                                   StartFn start_fn) {
+  const auto handle = futures.SafeAlloc<Slot>();
+  if (inst == nil) {
+    futures.Complete<Slot>(handle, kErrorInvalidConfiguration,
+                           "Installations is not initialized.");
+    return futures.MakeFuture<Slot>(handle);
+  }
+  start_fn(inst, handle, futures.weak());
+  return futures.MakeFuture<Slot>(handle);
 }
 #endif  // __OBJC__
 }  // namespace
@@ -61,28 +72,20 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app) {
     return;
   }
   @try {
-    FIRInstallations* installations =
+    FIRInstallations* inst =
         [FIRInstallations installationsWithApp:platform_app];
-    if (installations != nil) {
-      impl_ = std::make_unique<FIRInstallationsPointer>(installations);
-    }
+    if (inst != nil) impl_ = std::make_unique<FIRInstallationsPointer>(inst);
   } @catch (NSException* exception) {
     LogError("Exception initializing FIRInstallations: %s",
              util::NSStringToString(exception.reason).c_str());
   }
 }
 
-InstallationsInternal::~InstallationsInternal() {
-  // Destructor is necessary for ARC garbage collection.
-  Cleanup();
-}
+InstallationsInternal::~InstallationsInternal() { Cleanup(); }
 
 void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
-  // Calling the native getter is sufficient to cause a Heartbeat to be logged.
   FIRApp* platform_app = app.GetPlatformApp();
-  if (platform_app == nil) {
-    return;
-  }
+  if (platform_app == nil) return;
   @try {
     (void)[FIRInstallations installationsWithApp:platform_app];
   } @catch (NSException* exception) {
@@ -98,154 +101,111 @@ bool InstallationsInternal::Initialized() const {
 void InstallationsInternal::Cleanup() { impl_.reset(); }
 
 Future<std::string> InstallationsInternal::GetId() {
-  const auto handle = futures_.SafeAlloc<kInstallationsFnGetId>();
-  FIRInstallations* installations = impl();
-  if (installations == nil) {
-    futures_.Complete<kInstallationsFnGetId>(
-        handle, kErrorInvalidConfiguration,
-        "Installations is not initialized.");
-    return futures_.MakeFuture<kInstallationsFnGetId>(handle);
-  }
-  std::weak_ptr<ReferenceCountedFutureImpl> weak_future = futures_.weak();
-  [installations
-      installationIDWithCompletion:^(NSString* _Nullable identity,
-                                     NSError* _Nullable error) {
-        auto api = weak_future.lock();
-        if (!api) {
-          return;
-        }
-        if (error != nil) {
-          api->Complete(
-              handle, MapIosError(error),
-              util::NSStringToString(error.localizedDescription).c_str());
-        } else {
-          api->CompleteWithResult(
-              handle, kInstallationsErrorNone, "",
-              identity != nil ? util::NSStringToString(identity)
-                              : std::string());
-        }
-      }];
-  return futures_.MakeFuture<kInstallationsFnGetId>(handle);
-}
-
-Future<std::string> InstallationsInternal::GetIdLastResult() const {
-  return futures_.LastResult<kInstallationsFnGetId>();
+  return RunIosOp<kInstallationsFnGetId>(
+      impl(), futures_,
+      [](FIRInstallations* inst, SafeFutureHandle<std::string> h,
+         std::weak_ptr<ReferenceCountedFutureImpl> weak_api) {
+        [inst installationIDWithCompletion:^(NSString* _Nullable identity,
+                                             NSError* _Nullable error) {
+          if (auto api = weak_api.lock()) {
+            if (error != nil) {
+              api->Complete(
+                  h, MapIosError(error),
+                  util::NSStringToString(error.localizedDescription).c_str());
+            } else {
+              api->CompleteWithResult(
+                  h, kInstallationsErrorNone, "",
+                  identity ? util::NSStringToString(identity) : std::string());
+            }
+          }
+        }];
+      });
 }
 
 Future<std::string> InstallationsInternal::GetToken(bool force_refresh) {
-  const auto handle = futures_.SafeAlloc<kInstallationsFnGetToken>();
-  FIRInstallations* installations = impl();
-  if (installations == nil) {
-    futures_.Complete<kInstallationsFnGetToken>(
-        handle, kErrorInvalidConfiguration,
-        "Installations is not initialized.");
-    return futures_.MakeFuture<kInstallationsFnGetToken>(handle);
-  }
-  std::weak_ptr<ReferenceCountedFutureImpl> weak_future = futures_.weak();
-  FIRInstallationsTokenHandler token_handler =
-      ^(FIRInstallationsAuthTokenResult* _Nullable token,
-        NSError* _Nullable error) {
-        auto api = weak_future.lock();
-        if (!api) {
-          return;
-        }
-        if (error != nil) {
-          api->Complete(
-              handle, MapIosError(error),
-              util::NSStringToString(error.localizedDescription).c_str());
-        } else if (token == nil || token.authToken == nil) {
-          api->Complete(handle, kInstallationsErrorFailure,
-                        "Token result is nil.");
-        } else {
-          api->CompleteWithResult(handle, kInstallationsErrorNone, "",
-                                  util::NSStringToString(token.authToken));
-        }
-      };
-
-  [installations authTokenForcingRefresh:force_refresh
-                              completion:token_handler];
-
-  return futures_.MakeFuture<kInstallationsFnGetToken>(handle);
-}
-
-Future<std::string> InstallationsInternal::GetTokenLastResult() const {
-  return futures_.LastResult<kInstallationsFnGetToken>();
+  return RunIosOp<kInstallationsFnGetToken>(
+      impl(), futures_,
+      [force_refresh](FIRInstallations* inst, SafeFutureHandle<std::string> h,
+                      std::weak_ptr<ReferenceCountedFutureImpl> weak_api) {
+        [inst authTokenForcingRefresh:force_refresh
+                           completion:^(FIRInstallationsAuthTokenResult* token,
+                                        NSError* error) {
+                             if (auto api = weak_api.lock()) {
+                               if (error != nil) {
+                                 api->Complete(
+                                     h, MapIosError(error),
+                                     util::NSStringToString(
+                                         error.localizedDescription)
+                                         .c_str());
+                               } else if (token == nil ||
+                                          token.authToken == nil) {
+                                 api->Complete(h, kInstallationsErrorFailure,
+                                               "Token result is nil.");
+                               } else {
+                                 api->CompleteWithResult(
+                                     h, kInstallationsErrorNone, "",
+                                     util::NSStringToString(token.authToken));
+                               }
+                             }
+                           }];
+      });
 }
 
 Future<InstallationTokenResult> InstallationsInternal::GetTokenResult(
     bool force_refresh) {
-  const auto handle = futures_.SafeAlloc<kInstallationsFnGetTokenResult>();
-  FIRInstallations* installations = impl();
-  if (installations == nil) {
-    futures_.Complete<kInstallationsFnGetTokenResult>(
-        handle, kErrorInvalidConfiguration,
-        "Installations is not initialized.");
-    return futures_.MakeFuture<kInstallationsFnGetTokenResult>(handle);
-  }
-  std::weak_ptr<ReferenceCountedFutureImpl> weak_future = futures_.weak();
-  FIRInstallationsTokenHandler token_handler =
-      ^(FIRInstallationsAuthTokenResult* _Nullable token,
-        NSError* _Nullable error) {
-        auto api = weak_future.lock();
-        if (!api) {
-          return;
-        }
-        if (error != nil) {
-          api->Complete(
-              handle, MapIosError(error),
-              util::NSStringToString(error.localizedDescription).c_str());
-        } else if (token == nil || token.authToken == nil) {
-          api->Complete(handle, kInstallationsErrorFailure,
-                        "Token result is nil.");
-        } else {
-          InstallationTokenResult result;
-          result.token = util::NSStringToString(token.authToken);
-          if (token.expirationDate != nil) {
-            result.expiration_timestamp = static_cast<int64_t>(
-                [token.expirationDate timeIntervalSince1970] * 1000.0);
-          }
-          api->CompleteWithResult(handle, kInstallationsErrorNone, "", result);
-        }
-      };
-
-  [installations authTokenForcingRefresh:force_refresh
-                              completion:token_handler];
-
-  return futures_.MakeFuture<kInstallationsFnGetTokenResult>(handle);
-}
-
-Future<InstallationTokenResult>
-InstallationsInternal::GetTokenResultLastResult() const {
-  return futures_.LastResult<kInstallationsFnGetTokenResult>();
+  return RunIosOp<kInstallationsFnGetTokenResult>(
+      impl(), futures_,
+      [force_refresh](FIRInstallations* inst,
+                      SafeFutureHandle<InstallationTokenResult> h,
+                      std::weak_ptr<ReferenceCountedFutureImpl> weak_api) {
+        [inst authTokenForcingRefresh:force_refresh
+                           completion:^(FIRInstallationsAuthTokenResult* token,
+                                        NSError* error) {
+                             if (auto api = weak_api.lock()) {
+                               if (error != nil) {
+                                 api->Complete(
+                                     h, MapIosError(error),
+                                     util::NSStringToString(
+                                         error.localizedDescription)
+                                         .c_str());
+                               } else if (token == nil ||
+                                          token.authToken == nil) {
+                                 api->Complete(h, kInstallationsErrorFailure,
+                                               "Token result is nil.");
+                               } else {
+                                 InstallationTokenResult res;
+                                 res.token =
+                                     util::NSStringToString(token.authToken);
+                                 if (token.expirationDate != nil) {
+                                   res.expiration_timestamp =
+                                       static_cast<int64_t>(
+                                           [token.expirationDate
+                                               timeIntervalSince1970] *
+                                           1000.0);
+                                 }
+                                 api->CompleteWithResult(
+                                     h, kInstallationsErrorNone, "", res);
+                               }
+                             }
+                           }];
+      });
 }
 
 Future<void> InstallationsInternal::Delete() {
-  const auto handle = futures_.SafeAlloc<kInstallationsFnDelete>();
-  FIRInstallations* installations = impl();
-  if (installations == nil) {
-    futures_.Complete<kInstallationsFnDelete>(
-        handle, kErrorInvalidConfiguration,
-        "Installations is not initialized.");
-    return futures_.MakeFuture<kInstallationsFnDelete>(handle);
-  }
-  std::weak_ptr<ReferenceCountedFutureImpl> weak_future = futures_.weak();
-  [installations deleteWithCompletion:^(NSError* _Nullable error) {
-    auto api = weak_future.lock();
-    if (!api) {
-      return;
-    }
-    if (error != nil) {
-      api->Complete(handle, MapIosError(error),
-                    util::NSStringToString(error.localizedDescription).c_str());
-    } else {
-      api->Complete(handle, kInstallationsErrorNone, "");
-    }
-  }];
-  return futures_.MakeFuture<kInstallationsFnDelete>(handle);
-}
-
-Future<void> InstallationsInternal::DeleteLastResult() const {
-  return futures_.LastResult<kInstallationsFnDelete>();
+  return RunIosOp<kInstallationsFnDelete>(
+      impl(), futures_,
+      [](FIRInstallations* inst, SafeFutureHandle<void> h,
+         std::weak_ptr<ReferenceCountedFutureImpl> weak_api) {
+        [inst deleteWithCompletion:^(NSError* _Nullable error) {
+          if (auto api = weak_api.lock()) {
+            api->Complete(h, MapIosError(error),
+                          error ? util::NSStringToString(
+                                      error.localizedDescription)
+                                      .c_str()
+                                : "");
+          }
+        }];
+      });
 }
 
 }  // namespace internal

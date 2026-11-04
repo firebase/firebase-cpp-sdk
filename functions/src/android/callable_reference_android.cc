@@ -46,17 +46,17 @@ namespace {
 
 JNIEnv* ResolveJniEnv(FunctionsInternal* primary,
                       FunctionsInternal* secondary = nullptr) noexcept {
-  if (primary && primary->app()) {
-    return primary->app()->GetJNIEnv();
-  }
-  if (secondary && secondary->app()) {
-    return secondary->app()->GetJNIEnv();
-  }
-  if (App* any_app = app_common::GetAnyApp()) {
-    return any_app->GetJNIEnv();
-  }
+  if (primary && primary->app()) return primary->app()->GetJNIEnv();
+  if (secondary && secondary->app()) return secondary->app()->GetJNIEnv();
+  if (App* any_app = app_common::GetAnyApp()) return any_app->GetJNIEnv();
   return nullptr;
 }
+
+struct FutureCallbackData {
+  SafeFutureHandle<HttpsCallableResult> handle;
+  std::shared_ptr<ReferenceCountedFutureImpl> future_impl;
+  std::shared_ptr<FunctionsLifetimeState> lifetime_state;
+};
 
 }  // namespace
 
@@ -80,8 +80,7 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, jobject wrapper_obj)
     : future_impl_(std::make_shared<ReferenceCountedFutureImpl>(
           kHttpsCallableReferenceFnCount)),
-      functions_(functions),
-      obj_(nullptr) {
+      functions_(functions) {
   if (functions_ && functions_->app() && wrapper_obj) {
     obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(wrapper_obj);
   }
@@ -89,7 +88,7 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
 
 void HttpsCallableReferenceInternal::Cleanup(
     FunctionsInternal* fallback_functions) noexcept {
-  if (obj_ != nullptr) {
+  if (obj_) {
     if (JNIEnv* env = ResolveJniEnv(functions_, fallback_functions)) {
       env->DeleteGlobalRef(obj_);
     }
@@ -102,31 +101,16 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() { Cleanup(); }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& src)
-    : future_impl_(std::make_shared<ReferenceCountedFutureImpl>(
-          kHttpsCallableReferenceFnCount)),
-      functions_(src.functions_),
-      obj_(nullptr) {
-  if (functions_ && functions_->app() && src.obj_ != nullptr) {
-    obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
-  }
-}
+    : HttpsCallableReferenceInternal(src.functions_, src.obj_) {}
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& src) {
-  if (this == &src) {
-    return *this;
-  }
-  jobject new_obj = nullptr;
-  if (src.obj_ != nullptr && src.functions_ != nullptr &&
-      src.functions_->app() != nullptr) {
-    new_obj = src.functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
-  }
-
-  if (obj_ != nullptr) {
-    if (JNIEnv* env = ResolveJniEnv(functions_, src.functions_)) {
-      env->DeleteGlobalRef(obj_);
-    }
-  }
+  if (this == &src) return *this;
+  jobject new_obj =
+      (src.obj_ && src.functions_ && src.functions_->app())
+          ? src.functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_)
+          : nullptr;
+  Cleanup(src.functions_);
   obj_ = new_obj;
   functions_ = src.functions_;
   if (!future_impl_) {
@@ -144,19 +128,19 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     HttpsCallableReferenceInternal&& src) noexcept {
-  if (this == &src) {
-    return *this;
+  if (this != &src) {
+    Cleanup(src.functions_);
+    future_impl_ = std::move(src.future_impl_);
+    functions_ = std::exchange(src.functions_, nullptr);
+    obj_ = std::exchange(src.obj_, nullptr);
   }
-  Cleanup(src.functions_);
-  future_impl_ = std::move(src.future_impl_);
-  functions_ = std::exchange(src.functions_, nullptr);
-  obj_ = std::exchange(src.obj_, nullptr);
   return *this;
 }
 
 Functions* HttpsCallableReferenceInternal::functions() const {
-  if (!functions_) return nullptr;
-  return Functions::GetInstance(functions_->app(), functions_->region());
+  return functions_
+             ? Functions::GetInstance(functions_->app(), functions_->region())
+             : nullptr;
 }
 
 bool HttpsCallableReferenceInternal::is_valid() const {
@@ -168,29 +152,9 @@ bool HttpsCallableReferenceInternal::operator==(
   if (functions_ != other.functions_) return false;
   if (obj_ == other.obj_) return true;
   if (!obj_ || !other.obj_ || !functions_ || !functions_->app()) return false;
-  JNIEnv* env = functions_->app()->GetJNIEnv();
-  return env->IsSameObject(obj_, other.obj_) == JNI_TRUE;
+  return functions_->app()->GetJNIEnv()->IsSameObject(obj_, other.obj_) ==
+         JNI_TRUE;
 }
-
-namespace {
-
-// `future_impl` is held via `std::shared_ptr<ReferenceCountedFutureImpl>` and
-// completion liveness is guarded by `FunctionsInternal`'s `lifetime_state`, so
-// a chained `functions->GetHttpsCallable("fn").Call()` whose temporary
-// reference is destroyed immediately still safely completes its Future.
-struct FutureCallbackData {
-  FutureCallbackData(SafeFutureHandle<HttpsCallableResult> handle_,
-                     std::shared_ptr<ReferenceCountedFutureImpl> impl_,
-                     std::shared_ptr<FunctionsLifetimeState> lifetime_state_)
-      : handle(handle_),
-        future_impl(std::move(impl_)),
-        lifetime_state(std::move(lifetime_state_)) {}
-  SafeFutureHandle<HttpsCallableResult> handle;
-  std::shared_ptr<ReferenceCountedFutureImpl> future_impl;
-  std::shared_ptr<FunctionsLifetimeState> lifetime_state;
-};
-
-}  // namespace
 
 void HttpsCallableReferenceInternal::FutureCallback(
     JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
@@ -210,12 +174,10 @@ void HttpsCallableReferenceInternal::FutureCallback(
     Variant details;
     Error code = FunctionsInternal::ErrorFromJavaFunctionsException(
         env, result, &error_msg, &details);
-    if (error_msg.empty()) {
-      error_msg = GetErrorMessage(code);
-    }
-    HttpsCallableResult callable_result(std::move(details));
-    data->future_impl->CompleteWithResult(data->handle, code, error_msg.c_str(),
-                                          callable_result);
+    if (error_msg.empty()) error_msg = GetErrorMessage(code);
+    data->future_impl->CompleteWithResult(
+        data->handle, code, error_msg.c_str(),
+        HttpsCallableResult(std::move(details)));
   } else if (!result) {
     data->future_impl->Complete(data->handle, kErrorInternal,
                                 GetErrorMessage(kErrorInternal));
@@ -226,89 +188,70 @@ void HttpsCallableReferenceInternal::FutureCallback(
       data->future_impl->Complete(data->handle, kErrorInternal,
                                   GetErrorMessage(kErrorInternal));
     } else {
-      Variant result_variant = firebase::util::JavaObjectToVariant(env, java_result);
+      Variant v = firebase::util::JavaObjectToVariant(env, java_result);
       jni::CheckAndClearException(env);
-      if (java_result != nullptr) {
-        env->DeleteLocalRef(java_result);
-      }
-      HttpsCallableResult callable_result(std::move(result_variant));
-      data->future_impl->CompleteWithResult(data->handle, kErrorNone, "",
-                                            callable_result);
+      if (java_result) env->DeleteLocalRef(java_result);
+      data->future_impl->CompleteWithResult(
+          data->handle, kErrorNone, "", HttpsCallableResult(std::move(v)));
     }
   }
 }
 
-Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
-  std::shared_ptr<ReferenceCountedFutureImpl> future_api = future_impl_;
-  if (!future_api || !functions_ || !functions_->app() || !obj_) {
-    return Future<HttpsCallableResult>();
-  }
-  SafeFutureHandle<HttpsCallableResult> handle =
-      future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
-  JNIEnv* env = functions_->app()->GetJNIEnv();
-
-  jobject task = env->CallObjectMethod(
-      obj_, callable_reference::GetMethodId(callable_reference::kCall));
+Future<HttpsCallableResult> HttpsCallableReferenceInternal::DispatchTask(
+    JNIEnv* env, SafeFutureHandle<HttpsCallableResult> handle, jobject task) {
   if (jni::CheckAndClearException(env) || !task) {
-    future_api->Complete(handle, kErrorInternal,
-                         GetErrorMessage(kErrorInternal));
-    return MakeFuture(future_api.get(), handle);
+    future_impl_->Complete(handle, kErrorInternal,
+                           GetErrorMessage(kErrorInternal));
+    return MakeFuture(future_impl_.get(), handle);
   }
-
-  FutureCallbackData* callback_data = new FutureCallbackData(
-      handle, future_api, functions_->lifetime_state());
-  firebase::util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
-                               functions_->jni_task_id().c_str());
+  auto* cb_data = new FutureCallbackData{handle, future_impl_,
+                                         functions_->lifetime_state()};
+  firebase::util::RegisterCallbackOnTask(env, task, FutureCallback, cb_data,
+                                         functions_->jni_task_id().c_str());
   env->DeleteLocalRef(task);
   jni::CheckAndClearException(env);
+  return MakeFuture(future_impl_.get(), handle);
+}
 
-  return MakeFuture(future_api.get(), handle);
+Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
+  if (!future_impl_ || !functions_ || !functions_->app() || !obj_) {
+    return Future<HttpsCallableResult>();
+  }
+  auto handle = future_impl_->SafeAlloc<HttpsCallableResult>(
+      kHttpsCallableReferenceFnCall);
+  JNIEnv* env = functions_->app()->GetJNIEnv();
+  jobject task = env->CallObjectMethod(
+      obj_, callable_reference::GetMethodId(callable_reference::kCall));
+  return DispatchTask(env, handle, task);
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     const Variant& data) {
-  std::shared_ptr<ReferenceCountedFutureImpl> future_api = future_impl_;
-  if (!future_api || !functions_ || !functions_->app() || !obj_) {
+  if (!future_impl_ || !functions_ || !functions_->app() || !obj_) {
     return Future<HttpsCallableResult>();
   }
-  SafeFutureHandle<HttpsCallableResult> handle =
-      future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
+  auto handle = future_impl_->SafeAlloc<HttpsCallableResult>(
+      kHttpsCallableReferenceFnCall);
   JNIEnv* env = functions_->app()->GetJNIEnv();
-
   jobject java_object = firebase::util::VariantToJavaObject(env, data);
   if (jni::CheckAndClearException(env)) {
     if (java_object) env->DeleteLocalRef(java_object);
-    future_api->Complete(handle, kErrorInvalidArgument,
-                         GetErrorMessage(kErrorInvalidArgument));
-    return MakeFuture(future_api.get(), handle);
+    future_impl_->Complete(handle, kErrorInvalidArgument,
+                           GetErrorMessage(kErrorInvalidArgument));
+    return MakeFuture(future_impl_.get(), handle);
   }
-
   jobject task = env->CallObjectMethod(
       obj_, callable_reference::GetMethodId(callable_reference::kCallWithParam),
       java_object);
   if (java_object) env->DeleteLocalRef(java_object);
-  if (jni::CheckAndClearException(env) || !task) {
-    future_api->Complete(handle, kErrorInternal,
-                         GetErrorMessage(kErrorInternal));
-    return MakeFuture(future_api.get(), handle);
-  }
-
-  FutureCallbackData* callback_data = new FutureCallbackData(
-      handle, future_api, functions_->lifetime_state());
-  firebase::util::RegisterCallbackOnTask(env, task, FutureCallback, callback_data,
-                               functions_->jni_task_id().c_str());
-  env->DeleteLocalRef(task);
-  jni::CheckAndClearException(env);
-
-  return MakeFuture(future_api.get(), handle);
+  return DispatchTask(env, handle, task);
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
-  ReferenceCountedFutureImpl* future_api = future();
-  return future_api ? static_cast<const Future<HttpsCallableResult>&>(
-                          future_api->LastResult(kHttpsCallableReferenceFnCall))
-                    : Future<HttpsCallableResult>();
+  return future_impl_
+             ? static_cast<const Future<HttpsCallableResult>&>(
+                   future_impl_->LastResult(kHttpsCallableReferenceFnCall))
+             : Future<HttpsCallableResult>();
 }
-
 
 }  // namespace firebase::functions::internal

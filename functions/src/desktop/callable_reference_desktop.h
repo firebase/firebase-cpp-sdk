@@ -52,25 +52,16 @@ class FunctionsCallableResponse : public rest::Response {
 
  private:
   void InvokeCallback();
-
   bool failed_ = false;
   Callback callback_;
 };
 
-// Maps an HTTP status code to a Cloud Functions Error code.
 [[nodiscard]] Error ErrorFromHttpStatus(int status);
-
-// Maps a canonical gRPC status string (e.g. "NOT_FOUND") to an Error code.
 [[nodiscard]] Error ErrorFromStatus(std::string_view status);
 
-// Resolves a callable Future from a completed or failed HTTP response. A
-// transport-level failure (`response->failed()`) with no HTTP error status is
-// reported as kErrorUnavailable.
 void ResolveFuture(ReferenceCountedFutureImpl* future_api,
                    SafeFutureHandle<HttpsCallableResult> handle,
                    const FunctionsCallableResponse* response);
-
-// Resolves a callable Future from a completed generic HTTP response.
 void ResolveFuture(ReferenceCountedFutureImpl* future_api,
                    SafeFutureHandle<HttpsCallableResult> handle,
                    rest::Response* response);
@@ -85,67 +76,42 @@ class HttpsCallableReferenceInternal {
   HttpsCallableReferenceInternal(FunctionsInternal* functions,
                                  const char* target, bool is_url,
                                  const HttpsCallableOptions& options);
-  ~HttpsCallableReferenceInternal();
+  ~HttpsCallableReferenceInternal() = default;
 
-  // Copy constructor. It's totally okay (and efficient) to copy
-  // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location in the Cloud Functions service.
-  HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& other);
-
-  // Copy assignment operator. It's totally okay (and efficient) to copy
-  // HttpsCallableReferenceInternal instances, as they simply point to the same
-  // location in the Cloud Functions service.
+  HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& other) =
+      default;
   HttpsCallableReferenceInternal& operator=(
-      const HttpsCallableReferenceInternal& other);
-
-  // Move constructor. Moving is an efficient operation for
-  // HttpsCallableReferenceInternal instances.
+      const HttpsCallableReferenceInternal& other) = default;
   HttpsCallableReferenceInternal(
       HttpsCallableReferenceInternal&& other) noexcept;
-
-  // Move assignment operator. Moving is an efficient operation for
-  // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal& operator=(
       HttpsCallableReferenceInternal&& other) noexcept;
 
-  // Gets the Functions instance to which we refer.
   [[nodiscard]] Functions* functions() const;
-
   [[nodiscard]] FunctionsInternal* functions_internal() const {
     return functions_;
   }
 
-  // Asynchronously calls the trigger endpoint with no parameters.
   Future<HttpsCallableResult> Call();
-
-  // Asynchronously calls the trigger endpoint with the given parameter.
   Future<HttpsCallableResult> Call(const Variant& data);
-
-  // Get the result of the most recent Call() call.
   Future<HttpsCallableResult> CallLastResult();
 
-  // Returns true if this HttpsCallableReference is valid, false if it is not
-  // valid.
   [[nodiscard]] bool is_valid() const;
-
-  // Returns the resolved target URL for this callable reference.
   [[nodiscard]] std::string url() const;
-
   [[nodiscard]] const HttpsCallableOptions& options() const { return options_; }
 
   bool operator==(const HttpsCallableReferenceInternal& other) const {
     if (functions_ != other.functions_ || !(options_ == other.options_)) {
       return false;
     }
-    if (is_url_ == other.is_url_) {
-      return target_ == other.target_;
-    }
-    return url() == other.url();
+    return is_url_ == other.is_url_ ? target_ == other.target_
+                                    : url() == other.url();
   }
 
  private:
-  // Get the Future for the HttpsCallableReferenceInternal.
-  ReferenceCountedFutureImpl* future() { return functions_ ? functions_->future() : nullptr; }
+  ReferenceCountedFutureImpl* future() {
+    return functions_ ? functions_->future() : nullptr;
+  }
 
   FunctionsInternal* functions_;
   std::string target_;

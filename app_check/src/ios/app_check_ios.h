@@ -17,46 +17,31 @@
 
 #include <memory>
 #include <mutex>
+#include <vector>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
+#include "app_check/src/common/common.h"
 #include "app_check/src/include/firebase/app_check.h"
 
 #ifdef __OBJC__
 #import "FIRAppCheck.h"
-#endif  // __OBJC__
 
-#ifdef __OBJC__
-// Interacts with the default notification center.
 @interface AppCheckNotificationCenterWrapper : NSObject
-
 - (id)init;
-
 - (instancetype)initWithApp:(firebase::App* _Nullable)app;
-
 - (void)stopListening;
-
 - (void)addListener:(firebase::app_check::AppCheckListener* _Nonnull)listener;
-
 - (void)removeListener:(firebase::app_check::AppCheckListener* _Nonnull)listener;
-
 - (void)appCheckTokenDidChangeNotification:(NSNotification*)notification;
-
 @end
 #endif  // __OBJC__
 
-namespace firebase {
-namespace app_check {
-namespace internal {
+namespace firebase::app_check::internal {
 
-// This defines the class AppCheckNotificationCenterWrapperPointer, which is a
-// C++-compatible wrapper around the AppCheckNotificationCenterWrapper Obj-C
-// class.
 OBJ_C_PTR_WRAPPER(AppCheckNotificationCenterWrapper);
-
-// This defines the class FIRAppCheckPointer, which is a C++-compatible
-// wrapper around the FIRAppCheck Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRAppCheck);
 
 class AppCheckInternal {
@@ -68,49 +53,39 @@ class AppCheckInternal {
   };
 
   explicit AppCheckInternal(::firebase::App* app);
-
   ~AppCheckInternal();
 
-  App* app() const;
+  App* app() const { return app_; }
 
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
 
   void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
-
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
-
   Future<AppCheckToken> GetAppCheckTokenLastResult();
-
   Future<AppCheckToken> GetLimitedUseAppCheckToken();
-
   Future<AppCheckToken> GetLimitedUseAppCheckTokenLastResult();
 
   void AddAppCheckListener(AppCheckListener* listener);
-
   void RemoveAppCheckListener(AppCheckListener* listener);
   ReferenceCountedFutureImpl* future() { return &future_impl_; }
-  ReferenceCountedFutureImpl future_impl_;
+  ReferenceCountedFutureImpl future_impl_{kAppCheckFnCount};
 
  private:
 #ifdef __OBJC__
   FIRAppCheck* impl() const { return impl_->get(); }
-
   AppCheckNotificationCenterWrapper* notification_center_wrapper() const {
     return notification_center_wrapper_->get();
   }
 #endif  // __OBJC__
+  Future<AppCheckToken> FetchToken(AppCheckFn fn, bool force_refresh);
 
   std::unique_ptr<FIRAppCheckPointer> impl_;
-
-  std::unique_ptr<AppCheckNotificationCenterWrapperPointer> notification_center_wrapper_;
-
+  std::unique_ptr<AppCheckNotificationCenterWrapperPointer>
+      notification_center_wrapper_;
   std::shared_ptr<LifetimeState> lifetime_state_;
+  ::firebase::App* app_{nullptr};
+};
 
-  ::firebase::App* app_{nullptr};};
-
-}  // namespace internal
-
-}  // namespace app_check
-}  // namespace firebase
+}  // namespace firebase::app_check::internal
 
 #endif  // FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_

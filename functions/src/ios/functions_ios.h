@@ -34,8 +34,6 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-// This defines the class FIRFunctionsPointer, which is a C++-compatible wrapper
-// around the FIRFunctions Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRFunctions);
 
 struct FunctionsLifetimeState {
@@ -51,19 +49,13 @@ class FunctionsInternal {
   FunctionsInternal(const FunctionsInternal&) = delete;
   FunctionsInternal& operator=(const FunctionsInternal&) = delete;
 
-  // Return the App we were created with.
-  [[nodiscard]] App* app() const;
-
-  // Return the region or custom domain we were created with.
-  [[nodiscard]] const char* region() const;
-
-  // Manage Future implementations.
+  [[nodiscard]] App* app() const { return app_; }
+  [[nodiscard]] const char* region() const { return region_.c_str(); }
   [[nodiscard]] const std::shared_ptr<FunctionsLifetimeState>& lifetime_state()
       const {
     return lifetime_state_;
   }
 
-  // Whether this object was successfully initialized by the constructor.
   [[nodiscard]] bool is_valid() const;
   [[nodiscard]] bool initialized() const { return is_valid(); }
 
@@ -89,14 +81,15 @@ class FunctionsInternal {
 
 #ifdef __OBJC__
   [[nodiscard]] static Error ErrorFromNSError(NSError* error);
-
   [[nodiscard]] FIRFunctions* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
  private:
   App* app_;
   std::string region_;
-  std::unique_ptr<FIRFunctionsPointer> impl_;  std::shared_ptr<FunctionsLifetimeState> lifetime_state_;};
+  std::unique_ptr<FIRFunctionsPointer> impl_;
+  std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
+};
 
 }  // namespace internal
 }  // namespace functions

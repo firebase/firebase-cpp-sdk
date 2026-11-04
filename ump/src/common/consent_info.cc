@@ -1,22 +1,6 @@
-/*
- * Copyright 2023 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2023 Google LLC
 
 #include "firebase/ump/consent_info.h"
-
-#include <cassert>
 
 #include "app/src/assert.h"
 #include "app/src/cleanup_notifier.h"
@@ -27,7 +11,6 @@
 #include "firebase/ump.h"
 #include "ump/src/common/consent_info_internal.h"
 
-// Register the module initializer for UMP.
 FIREBASE_APP_REGISTER_CALLBACKS(
     ump,
     {
@@ -38,19 +21,15 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       }
       return ::firebase::kInitResultSuccess;
     },
-    {
-      // Cleanup is handled by CleanupNotifier when bound to an App.
-      (void)app;
-    },
-    false);
+    { (void)app; }, false);
 
 namespace firebase {
 namespace ump {
 
 namespace {
 Mutex& UmpInstanceMutex() {
-  static Mutex* g_ump_instance_mutex = new Mutex();
-  return *g_ump_instance_mutex;
+  static Mutex* m = new Mutex();
+  return *m;
 }
 }  // namespace
 
@@ -64,12 +43,9 @@ ConsentInfo* ConsentInfo::GetInstance(const ::firebase::App& app,
 ConsentInfo* ConsentInfo::GetInstance(::firebase::App* app,
                                       ::firebase::InitResult* init_result_out) {
   if (!app) {
-    if (init_result_out) {
-      *init_result_out = kInitResultFailedMissingDependency;
-    }
+    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
     return nullptr;
   }
-
   ConsentInfo* instance = nullptr;
   {
     MutexLock lock(UmpInstanceMutex());
@@ -84,23 +60,18 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::App* app,
       instance =
           GetInstance(app->GetJNIEnv(), app->activity(), init_result_out);
 #else
-      ConsentInfo* consent_info = s_instance_ ? s_instance_ : new ConsentInfo();
-      InitResult result = consent_info->Initialize();
-      if (init_result_out) *init_result_out = result;
-      if (result != kInitResultSuccess) {
-        if (consent_info != s_instance_) {
-          delete consent_info;
-        }
+      ConsentInfo* ci = s_instance_ ? s_instance_ : new ConsentInfo();
+      InitResult res = ci->Initialize();
+      if (init_result_out) *init_result_out = res;
+      if (res != kInitResultSuccess) {
+        if (ci != s_instance_) delete ci;
         return nullptr;
       }
-      s_instance_ = consent_info;
-      instance = consent_info;
+      s_instance_ = instance = ci;
 #endif
     }
   }
-  if (instance) {
-    instance->BindToApp(app);
-  }
+  if (instance) instance->BindToApp(app);
   return instance;
 }
 
@@ -113,13 +84,10 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
       return s_instance_;
     }
   }
-  ::firebase::App* default_app = ::firebase::App::GetInstance();
-  if (default_app) {
+  if (::firebase::App* default_app = ::firebase::App::GetInstance()) {
     return GetInstance(*default_app, init_result_out);
   }
-  if (init_result_out) {
-    *init_result_out = kInitResultFailedMissingDependency;
-  }
+  if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
   return nullptr;
 }
 
@@ -131,54 +99,44 @@ ConsentInfo* ConsentInfo::GetInstance(JNIEnv* jni_env, jobject activity,
     if (init_result_out) *init_result_out = kInitResultSuccess;
     return s_instance_;
   }
-
-  ConsentInfo* consent_info = s_instance_ ? s_instance_ : new ConsentInfo();
-  InitResult result = consent_info->Initialize(jni_env, activity);
-  if (init_result_out) *init_result_out = result;
-  if (result != kInitResultSuccess) {
-    if (consent_info != s_instance_) {
-      delete consent_info;
-    }
+  ConsentInfo* ci = s_instance_ ? s_instance_ : new ConsentInfo();
+  InitResult res = ci->Initialize(jni_env, activity);
+  if (init_result_out) *init_result_out = res;
+  if (res != kInitResultSuccess) {
+    if (ci != s_instance_) delete ci;
     return nullptr;
   }
-  s_instance_ = consent_info;
-  return consent_info;
+  return s_instance_ = ci;
 }
 
 void ConsentInfo::SetActivity(JNIEnv* jni_env, jobject activity) {
   MutexLock lock(UmpInstanceMutex());
-  if (internal_) {
-    internal_->SetActivity(jni_env, activity);
-  }
+  if (internal_) internal_->SetActivity(jni_env, activity);
 }
-#else   // !FIREBASE_PLATFORM_ANDROID
+#else
 ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
-  ConsentInfo* consent_info = nullptr;
+  ConsentInfo* ci = nullptr;
   {
     MutexLock lock(UmpInstanceMutex());
     if (s_instance_ && s_instance_->internal_) {
       if (init_result_out) *init_result_out = kInitResultSuccess;
       return s_instance_;
     }
-
-    consent_info = s_instance_ ? s_instance_ : new ConsentInfo();
-    InitResult result = consent_info->Initialize();
-    if (init_result_out) *init_result_out = result;
-    if (result != kInitResultSuccess) {
-      if (consent_info != s_instance_) {
-        delete consent_info;
-      }
+    ci = s_instance_ ? s_instance_ : new ConsentInfo();
+    InitResult res = ci->Initialize();
+    if (init_result_out) *init_result_out = res;
+    if (res != kInitResultSuccess) {
+      if (ci != s_instance_) delete ci;
       return nullptr;
     }
-    s_instance_ = consent_info;
+    s_instance_ = ci;
   }
-  ::firebase::App* default_app = ::firebase::App::GetInstance();
-  if (default_app) {
-    consent_info->BindToApp(default_app);
+  if (::firebase::App* default_app = ::firebase::App::GetInstance()) {
+    ci->BindToApp(default_app);
   }
-  return consent_info;
+  return ci;
 }
-#endif  // FIREBASE_PLATFORM_ANDROID
+#endif
 
 ConsentInfo::ConsentInfo() : app_(nullptr), internal_(nullptr) {}
 
@@ -188,18 +146,13 @@ ConsentInfo::~ConsentInfo() {
     MutexLock lock(UmpInstanceMutex());
     app_to_unbind = app_;
     app_ = nullptr;
-    if (internal_) {
-      delete internal_;
-      internal_ = nullptr;
-    }
-    if (s_instance_ == this) {
-      s_instance_ = nullptr;
-    }
+    delete internal_;
+    internal_ = nullptr;
+    if (s_instance_ == this) s_instance_ = nullptr;
   }
   if (app_to_unbind) {
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_to_unbind);
-    if (notifier) {
-      notifier->UnregisterObject(this);
+    if (CleanupNotifier* n = CleanupNotifier::FindByOwner(app_to_unbind)) {
+      n->UnregisterObject(this);
     }
   }
 }
@@ -210,17 +163,14 @@ void ConsentInfo::BindToApp(::firebase::App* app) {
     MutexLock lock(UmpInstanceMutex());
     if (app_) return;
   }
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-  if (notifier) {
+  if (CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app)) {
     {
       MutexLock lock(UmpInstanceMutex());
       if (app_) return;
       app_ = app;
     }
-    notifier->RegisterObject(this, [](void* object) {
-      ConsentInfo* info = static_cast<ConsentInfo*>(object);
-      info->OnAppDestroyed();
-    });
+    notifier->RegisterObject(
+        this, [](void* obj) { static_cast<ConsentInfo*>(obj)->OnAppDestroyed(); });
   }
 }
 
@@ -231,23 +181,18 @@ void ConsentInfo::UnbindFromApp() {
     app_to_unbind = app_;
     app_ = nullptr;
   }
-  if (!app_to_unbind) return;
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_to_unbind);
-  if (notifier) {
-    notifier->UnregisterObject(this);
+  if (app_to_unbind) {
+    if (CleanupNotifier* n = CleanupNotifier::FindByOwner(app_to_unbind)) {
+      n->UnregisterObject(this);
+    }
   }
 }
 
 void ConsentInfo::OnAppDestroyed() {
   MutexLock lock(UmpInstanceMutex());
   app_ = nullptr;
-  if (internal_) {
-    delete internal_;
-    internal_ = nullptr;
-  }
-  // Keep s_instance_ pointing to the hollowed-out ConsentInfo shell so
-  // subsequent GetInstance() calls reuse this allocation without leaking, and
-  // any existing ConsentInfo* pointers held by callers safely no-op.
+  delete internal_;
+  internal_ = nullptr;
 }
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -264,100 +209,88 @@ InitResult ConsentInfo::Initialize() {
 }
 #endif
 
-// Below this, everything is a passthrough to ConsentInfoInternal. If there is
-// no internal_ pointer (e.g. it's been cleaned up), return default values and
-// invalid futures.
-
 ConsentStatus ConsentInfo::GetConsentStatus() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return kConsentStatusUnknown;
-  return internal_->GetConsentStatus();
+  return internal_ ? internal_->GetConsentStatus() : kConsentStatusUnknown;
 }
 
 ConsentFormStatus ConsentInfo::GetConsentFormStatus() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return kConsentFormStatusUnknown;
-  return internal_->GetConsentFormStatus();
+  return internal_ ? internal_->GetConsentFormStatus()
+                   : kConsentFormStatusUnknown;
 }
 
 Future<void> ConsentInfo::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->RequestConsentInfoUpdate(params);
+  return internal_ ? internal_->RequestConsentInfoUpdate(params)
+                   : Future<void>();
 }
 
 Future<void> ConsentInfo::RequestConsentInfoUpdateLastResult() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->RequestConsentInfoUpdateLastResult();
+  return internal_ ? internal_->RequestConsentInfoUpdateLastResult()
+                   : Future<void>();
 }
 
 Future<void> ConsentInfo::LoadConsentForm() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->LoadConsentForm();
+  return internal_ ? internal_->LoadConsentForm() : Future<void>();
 }
 
 Future<void> ConsentInfo::LoadConsentFormLastResult() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->LoadConsentFormLastResult();
+  return internal_ ? internal_->LoadConsentFormLastResult() : Future<void>();
 }
 
 Future<void> ConsentInfo::ShowConsentForm(FormParent parent) {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->ShowConsentForm(parent);
+  return internal_ ? internal_->ShowConsentForm(parent) : Future<void>();
 }
 
 Future<void> ConsentInfo::ShowConsentFormLastResult() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->ShowConsentFormLastResult();
+  return internal_ ? internal_->ShowConsentFormLastResult() : Future<void>();
 }
 
 Future<void> ConsentInfo::LoadAndShowConsentFormIfRequired(FormParent parent) {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->LoadAndShowConsentFormIfRequired(parent);
+  return internal_ ? internal_->LoadAndShowConsentFormIfRequired(parent)
+                   : Future<void>();
 }
 
 Future<void> ConsentInfo::LoadAndShowConsentFormIfRequiredLastResult() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->LoadAndShowConsentFormIfRequiredLastResult();
+  return internal_ ? internal_->LoadAndShowConsentFormIfRequiredLastResult()
+                   : Future<void>();
 }
 
 PrivacyOptionsRequirementStatus
 ConsentInfo::GetPrivacyOptionsRequirementStatus() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return kPrivacyOptionsRequirementStatusUnknown;
-  return internal_->GetPrivacyOptionsRequirementStatus();
+  return internal_ ? internal_->GetPrivacyOptionsRequirementStatus()
+                   : kPrivacyOptionsRequirementStatusUnknown;
 }
 
 Future<void> ConsentInfo::ShowPrivacyOptionsForm(FormParent parent) {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->ShowPrivacyOptionsForm(parent);
+  return internal_ ? internal_->ShowPrivacyOptionsForm(parent) : Future<void>();
 }
 
 Future<void> ConsentInfo::ShowPrivacyOptionsFormLastResult() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return Future<void>();
-  return internal_->ShowPrivacyOptionsFormLastResult();
+  return internal_ ? internal_->ShowPrivacyOptionsFormLastResult()
+                   : Future<void>();
 }
 
 bool ConsentInfo::CanRequestAds() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return false;
-  return internal_->CanRequestAds();
+  return internal_ ? internal_->CanRequestAds() : false;
 }
 
 void ConsentInfo::Reset() {
   MutexLock lock(UmpInstanceMutex());
-  if (!internal_) return;
-  internal_->Reset();
+  if (internal_) internal_->Reset();
 }
 
 }  // namespace ump

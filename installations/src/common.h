@@ -25,8 +25,6 @@ namespace firebase {
 namespace installations {
 namespace internal {
 
-// Ordered to match the declaration order in firebase/installations.h:
-// GetId, Delete, GetToken, GetTokenResult.
 enum InstallationsFn {
   kInstallationsFnGetId = 0,
   kInstallationsFnDelete = 1,
@@ -37,22 +35,12 @@ enum InstallationsFn {
 
 template <InstallationsFn Slot>
 struct SlotTraits;
-
 template <>
-struct SlotTraits<kInstallationsFnGetId> {
-  using Type = std::string;
-};
-
+struct SlotTraits<kInstallationsFnGetId> { using Type = std::string; };
 template <>
-struct SlotTraits<kInstallationsFnDelete> {
-  using Type = void;
-};
-
+struct SlotTraits<kInstallationsFnDelete> { using Type = void; };
 template <>
-struct SlotTraits<kInstallationsFnGetToken> {
-  using Type = std::string;
-};
-
+struct SlotTraits<kInstallationsFnGetToken> { using Type = std::string; };
 template <>
 struct SlotTraits<kInstallationsFnGetTokenResult> {
   using Type = InstallationTokenResult;
@@ -61,10 +49,6 @@ struct SlotTraits<kInstallationsFnGetTokenResult> {
 template <InstallationsFn Slot>
 using SlotResultT = typename SlotTraits<Slot>::Type;
 
-// Compile-time type-checked Future slot manager backed by a shared_ptr so
-// asynchronous platform callbacks can hold a weak_ptr<ReferenceCountedFutureImpl>
-// without risking use-after-free if Installations is destroyed while an async
-// operation is in flight.
 class InstallationsFutures {
  public:
   InstallationsFutures()
@@ -72,50 +56,32 @@ class InstallationsFutures {
             kInstallationsFnCount)) {}
 
   template <InstallationsFn Slot>
-  SafeFutureHandle<SlotResultT<Slot>> Alloc() {
-    return impl_->SafeAlloc<SlotResultT<Slot>>(static_cast<int>(Slot));
-  }
-
-  template <InstallationsFn Slot>
   SafeFutureHandle<SlotResultT<Slot>> SafeAlloc() {
-    return Alloc<Slot>();
+    return impl_->SafeAlloc<SlotResultT<Slot>>(static_cast<int>(Slot));
   }
 
   template <InstallationsFn Slot>
   void Complete(SafeFutureHandle<SlotResultT<Slot>> handle, int error,
                 const char* error_msg = "") {
-    impl_->Complete(handle, error, error_msg != nullptr ? error_msg : "");
+    impl_->Complete(handle, error, error_msg ? error_msg : "");
   }
 
   template <InstallationsFn Slot, typename ValueT>
   void CompleteWithResult(SafeFutureHandle<SlotResultT<Slot>> handle, int error,
                           const char* error_msg, const ValueT& value) {
-    impl_->CompleteWithResult(handle, error,
-                              error_msg != nullptr ? error_msg : "", value);
-  }
-
-  template <InstallationsFn Slot>
-  Future<SlotResultT<Slot>> Make(SafeFutureHandle<SlotResultT<Slot>> handle) {
-    return ::firebase::MakeFuture<SlotResultT<Slot>>(impl_.get(), handle);
+    impl_->CompleteWithResult(handle, error, error_msg ? error_msg : "", value);
   }
 
   template <InstallationsFn Slot>
   Future<SlotResultT<Slot>> MakeFuture(
       SafeFutureHandle<SlotResultT<Slot>> handle) {
-    return Make<Slot>(handle);
+    return ::firebase::MakeFuture<SlotResultT<Slot>>(impl_.get(), handle);
   }
 
   template <InstallationsFn Slot>
   Future<SlotResultT<Slot>> LastResult() const {
     return static_cast<const Future<SlotResultT<Slot>>&>(
         impl_->LastResult(static_cast<int>(Slot)));
-  }
-
-  ReferenceCountedFutureImpl* raw_impl() const noexcept { return impl_.get(); }
-
-  const std::shared_ptr<ReferenceCountedFutureImpl>& shared_impl()
-      const noexcept {
-    return impl_;
   }
 
   std::weak_ptr<ReferenceCountedFutureImpl> weak() const noexcept {

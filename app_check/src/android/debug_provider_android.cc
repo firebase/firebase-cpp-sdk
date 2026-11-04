@@ -1,6 +1,3 @@
-#include "app/src/assert.h"
-#include "app/src/cleanup_notifier.h"
-#include "app/src/jni/declaration.h"
 // Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app/src/jni/exception.h"
 #include "app_check/src/android/debug_provider_android.h"
 
 #include <algorithm>
@@ -25,65 +21,56 @@
 #include <vector>
 
 #include "app/src/app_common.h"
+#include "app/src/assert.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/jni/declaration.h"
+#include "app/src/jni/exception.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/debug_provider.h"
 
-namespace firebase {
-namespace app_check {
-namespace internal {
+namespace firebase::app_check::internal {
 
-// Used to setup the cache of DebugProviderFactory class method IDs to reduce
-// time spent looking up methods by string.
 // clang-format off
 #define DEBUG_PROVIDER_FACTORY_METHODS(X)                                      \
   X(GetInstance, "getInstance",                                                \
     "()Lcom/google/firebase/appcheck/debug/DebugAppCheckProviderFactory;",     \
-       firebase::jni::kMethodTypeStatic) \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(Create, "create",                                                          \
     "(Lcom/google/firebase/FirebaseApp;)"                                      \
     "Lcom/google/firebase/appcheck/AppCheckProvider;")
-// clang-format on
 
-JNI_METHOD_LOOKUP_DECLARATION(debug_provider_factory, DEBUG_PROVIDER_FACTORY_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/appcheck/debug/DebugAppCheckProviderFactory")
-
-
-// clang-format off
-#define JNI_APP_CHECK_DEBUG_HELPER_METHODS(X)                    \
-  X(SetDebugToken, "SetDebugToken",                             \
-    "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)V",    \
+#define JNI_APP_CHECK_DEBUG_HELPER_METHODS(X)                                  \
+  X(SetDebugToken, "SetDebugToken",                                            \
+    "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)V",                  \
     firebase::jni::kMethodTypeStatic)
 // clang-format on
 
-JNI_METHOD_LOOKUP_DECLARATION(jni_debug_helper, JNI_APP_CHECK_DEBUG_HELPER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/appcheck/internal/cpp/JniAppCheckDebugHelper")
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    debug_provider_factory, DEBUG_PROVIDER_FACTORY_METHODS, FIELD_LOOKUP_NONE,
+    "com/google/firebase/appcheck/debug/DebugAppCheckProviderFactory")
+JNI_METHOD_LOOKUP_DECLARATION(
+    jni_debug_helper, JNI_APP_CHECK_DEBUG_HELPER_METHODS, FIELD_LOOKUP_NONE,
+    "com/google/firebase/appcheck/internal/cpp/JniAppCheckDebugHelper")
 
 namespace {
-
-constexpr char kMethodsNotCachedError[] =
-    "DebugAppCheckProviderFactory methods were not cached.";
-
 Mutex& GetFactoryMutex() {
   static auto* mutex = new Mutex();
   return *mutex;
 }
-
 std::vector<const DebugAppCheckProviderFactoryInternal*>& GetLiveFactories() {
   static auto* factories =
       new std::vector<const DebugAppCheckProviderFactoryInternal*>();
   return *factories;
 }
-
 bool g_methods_cached = false;
-
 }  // namespace
 
 bool CacheDebugProviderMethodIds(
     JNIEnv* env, jobject activity,
     const std::vector<firebase::internal::EmbeddedFile>& embedded_files) {
   MutexLock lock(GetFactoryMutex());
-  // Cache the DebugProvider and JniAppCheckDebugHelper classes.
   g_methods_cached =
       debug_provider_factory::CacheMethodIds(env, activity) &&
       jni_debug_helper::CacheClassFromFiles(env, activity, &embedded_files) &&
@@ -103,17 +90,12 @@ void ReleaseDebugProviderClasses(JNIEnv* env) {
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : android_provider_factory_(nullptr),
-      created_providers_(),
-      debug_token_() {
+    : android_provider_factory_(nullptr) {
   MutexLock lock(GetFactoryMutex());
   GetLiveFactories().push_back(this);
 }
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
-  // Note: created_providers_ is declared as std::map<App*, AppCheckProvider*>
-  // in debug_provider_android.h; ownership is managed via std::unique_ptr on
-  // creation and eviction.
   std::map<App*, AppCheckProvider*> providers;
   jobject factory_ref = nullptr;
   {
@@ -121,18 +103,16 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
     auto& live = GetLiveFactories();
     live.erase(std::remove(live.begin(), live.end(), this), live.end());
     providers.swap(created_providers_);
-    factory_ref = android_provider_factory_;
-    android_provider_factory_ = nullptr;
+    factory_ref = std::exchange(android_provider_factory_, nullptr);
   }
   for (auto& [app, raw_provider] : providers) {
     std::unique_ptr<AppCheckProvider> provider(raw_provider);
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-    if (notifier != nullptr && provider != nullptr) {
+    if (auto* notifier = CleanupNotifier::FindByOwner(app);
+        notifier && provider) {
       notifier->UnregisterObject(provider.get());
     }
   }
-  JNIEnv* env = GetJniEnv();
-  if (env != nullptr && factory_ref != nullptr) {
+  if (JNIEnv* env = GetJniEnv(); env && factory_ref) {
     env->DeleteGlobalRef(factory_ref);
   }
 }
@@ -143,112 +123,82 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
   AppCheckProvider* raw_provider = nullptr;
   {
     MutexLock lock(GetFactoryMutex());
-    FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
-                                   kMethodsNotCachedError);
-
-    // Return the provider if it already exists.
-    auto it = created_providers_.find(app);
-    if (it != created_providers_.end()) {
+    FIREBASE_ASSERT_MESSAGE_RETURN(
+        nullptr, g_methods_cached,
+        "DebugAppCheckProviderFactory methods were not cached.");
+    if (auto it = created_providers_.find(app);
+        it != created_providers_.end()) {
       return it->second;
     }
     JNIEnv* env = app->GetJNIEnv();
-    if (env == nullptr) {
-      return nullptr;
-    }
-    // Create a provider factory first if needed.
-    if (android_provider_factory_ == nullptr) {
-      jobject j_provider_factory_local =
-          env->CallStaticObjectMethod(debug_provider_factory::GetClass(),
-                                      debug_provider_factory::GetMethodId(
-                                          debug_provider_factory::kGetInstance));
-      if (jni::CheckAndClearException(env) ||
-          j_provider_factory_local == nullptr) {
-        if (j_provider_factory_local != nullptr) {
-          env->DeleteLocalRef(j_provider_factory_local);
-        }
+    if (!env) return nullptr;
+    if (!android_provider_factory_) {
+      jobject local = env->CallStaticObjectMethod(
+          debug_provider_factory::GetClass(),
+          debug_provider_factory::GetMethodId(
+              debug_provider_factory::kGetInstance));
+      if (jni::CheckAndClearException(env) || !local) {
+        if (local) env->DeleteLocalRef(local);
         return nullptr;
       }
-      // Hold a global reference. It will be freed when this factory is destroyed.
-      android_provider_factory_ = env->NewGlobalRef(j_provider_factory_local);
-      env->DeleteLocalRef(j_provider_factory_local);
-      if (jni::CheckAndClearException(env) ||
-          android_provider_factory_ == nullptr) {
+      android_provider_factory_ = env->NewGlobalRef(local);
+      env->DeleteLocalRef(local);
+      if (jni::CheckAndClearException(env) || !android_provider_factory_) {
         android_provider_factory_ = nullptr;
         return nullptr;
       }
     }
     jobject platform_app = app->GetPlatformApp();
-    if (platform_app == nullptr) {
-      return nullptr;
-    }
+    if (!platform_app) return nullptr;
 
-    // Before making the Provider, which is when Android reads the Debug token,
-    // if we have a token to override it with, use it.
     if (!debug_token_.empty()) {
-      jstring java_token = env->NewStringUTF(debug_token_.c_str());
-      if (!jni::CheckAndClearException(env) && java_token != nullptr) {
+      jstring jtoken = env->NewStringUTF(debug_token_.c_str());
+      if (!jni::CheckAndClearException(env) && jtoken) {
         env->CallStaticVoidMethod(
             jni_debug_helper::GetClass(),
             jni_debug_helper::GetMethodId(jni_debug_helper::kSetDebugToken),
-            platform_app, java_token);
+            platform_app, jtoken);
         jni::CheckAndClearException(env);
-        env->DeleteLocalRef(java_token);
+        env->DeleteLocalRef(jtoken);
       }
     }
 
-    jobject j_android_provider_local = env->CallObjectMethod(
+    jobject j_prov = env->CallObjectMethod(
         android_provider_factory_,
         debug_provider_factory::GetMethodId(debug_provider_factory::kCreate),
         platform_app);
-    bool create_exception = jni::CheckAndClearException(env);
+    bool ex = jni::CheckAndClearException(env);
     env->DeleteLocalRef(platform_app);
-    if (create_exception || j_android_provider_local == nullptr) {
-      if (j_android_provider_local != nullptr) {
-        env->DeleteLocalRef(j_android_provider_local);
-      }
+    if (ex || !j_prov) {
+      if (j_prov) env->DeleteLocalRef(j_prov);
       return nullptr;
     }
 
-    // Pass a local ref into the C++ provider constructor; it creates its own
-    // global ref and releases it when the C++ provider is destroyed.
-    auto cpp_provider =
-        std::make_unique<internal::AndroidAppCheckProvider>(
-            j_android_provider_local);
-    env->DeleteLocalRef(j_android_provider_local);
-    raw_provider = cpp_provider.release();
+    raw_provider = new internal::AndroidAppCheckProvider(j_prov);
+    env->DeleteLocalRef(j_prov);
     created_providers_[app] = raw_provider;
   }
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-  if (notifier != nullptr) {
+  if (auto* notifier = CleanupNotifier::FindByOwner(app)) {
     notifier->RegisterObject(
         raw_provider, [this, app, raw_provider](void* /*object*/) {
-          std::unique_ptr<AppCheckProvider> provider_to_delete;
-          {
-            MutexLock cleanup_lock(GetFactoryMutex());
-            const auto& live = GetLiveFactories();
-            if (std::find(live.begin(), live.end(), this) == live.end()) {
-              return;
-            }
-            auto provider_it = created_providers_.find(app);
-            if (provider_it != created_providers_.end() &&
-                provider_it->second == raw_provider) {
-              provider_to_delete.reset(provider_it->second);
-              created_providers_.erase(provider_it);
-            }
+          std::unique_ptr<AppCheckProvider> to_delete;
+          MutexLock cleanup_lock(GetFactoryMutex());
+          const auto& live = GetLiveFactories();
+          if (std::find(live.begin(), live.end(), this) == live.end()) return;
+          if (auto it = created_providers_.find(app);
+              it != created_providers_.end() && it->second == raw_provider) {
+            to_delete.reset(it->second);
+            created_providers_.erase(it);
           }
         });
   }
   return raw_provider;
 }
 
-void DebugAppCheckProviderFactoryInternal::SetDebugToken(
-    const char* token) {
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(const char* token) {
   MutexLock lock(GetFactoryMutex());
-  // The App may not exist yet, so we save the debug token to use later.
   debug_token_ = token ? token : "";
 }
 
-}  // namespace internal
-}  // namespace app_check
-}  // namespace firebase
+}  // namespace firebase::app_check::internal

@@ -31,8 +31,6 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-// Shared lifetime token allowing asynchronous JNI Task callbacks to check,
-// under `mutex`, whether FunctionsInternal (and its FutureManager) is alive.
 struct FunctionsLifetimeState {
   Mutex mutex;
   bool alive = true;
@@ -46,25 +44,15 @@ class FunctionsInternal {
   FunctionsInternal(const FunctionsInternal&) = delete;
   FunctionsInternal& operator=(const FunctionsInternal&) = delete;
 
-  // Return the App we were created with.
   App* app() const { return app_; }
-
-  // Return the region or custom domain we were created with.
   const char* region() const { return region_.c_str(); }
-
-  // Return the Java object we are wrapping.
   jobject obj() const { return obj_; }
 
-  // Manage Future implementations.
-  // Lifetime token shared with pending JNI Task completion callbacks.
   const std::shared_ptr<FunctionsLifetimeState>& lifetime_state() const {
     return lifetime_state_;
   }
-
-  // Per-instance API identifier used to register / cancel JNI Task callbacks.
   const std::string& jni_task_id() const { return jni_task_id_; }
 
-  // Whether this object was successfully initialized by the constructor.
   bool is_valid() const { return app_ != nullptr && obj_ != nullptr; }
   bool initialized() const { return is_valid(); }
 
@@ -92,13 +80,16 @@ class FunctionsInternal {
                                                Variant* details_out = nullptr);
 
  private:
-  // Initialize JNI classes and method IDs.
   static bool Initialize(App* app);
   static void Terminate(App* app);
+  HttpsCallableReferenceInternal* WrapCallable(
+      JNIEnv* env, jobject ref_obj,
+      const HttpsCallableOptions* opts = nullptr) const;
 
   static Mutex init_mutex_;
   static int initialize_count_;
-  static std::map<jobject, Error>* code_map_;  App* app_ = nullptr;
+  static std::map<jobject, Error>* code_map_;
+  App* app_ = nullptr;
   std::string region_;
   jobject obj_ = nullptr;
   std::shared_ptr<FunctionsLifetimeState> lifetime_state_;

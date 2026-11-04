@@ -1,6 +1,3 @@
-#include "app/src/assert.h"
-#include "app/src/cleanup_notifier.h"
-#include "app/src/jni/declaration.h"
 // Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app/src/jni/exception.h"
 #include "app_check/src/android/play_integrity_provider_android.h"
 
 #include <algorithm>
@@ -25,7 +21,11 @@
 #include <vector>
 
 #include "app/src/app_common.h"
+#include "app/src/assert.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/jni/declaration.h"
+#include "app/src/jni/exception.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/play_integrity_provider.h"
 
@@ -33,44 +33,38 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// Used to setup the cache of PlayIntegrityProviderFactory class method IDs to
-// reduce time spent looking up methods by string.
 // clang-format off
-#define PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS(X)                                      \
+#define PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS(X)                             \
   X(GetInstance, "getInstance",                                                \
-    "()Lcom/google/firebase/appcheck/playintegrity/PlayIntegrityAppCheckProviderFactory;",     \
-       firebase::jni::kMethodTypeStatic) \
+    "()Lcom/google/firebase/appcheck/playintegrity/"                           \
+    "PlayIntegrityAppCheckProviderFactory;",                                   \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(Create, "create",                                                          \
     "(Lcom/google/firebase/FirebaseApp;)"                                      \
     "Lcom/google/firebase/appcheck/AppCheckProvider;")
 // clang-format on
 
-JNI_METHOD_LOOKUP_DECLARATION(play_integrity_provider_factory, PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/appcheck/playintegrity/PlayIntegrityAppCheckProviderFactory")
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    play_integrity_provider_factory, PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS,
+    FIELD_LOOKUP_NONE,
+    "com/google/firebase/appcheck/playintegrity/"
+    "PlayIntegrityAppCheckProviderFactory")
 
 namespace {
-
-constexpr char kMethodsNotCachedError[] =
-    "PlayIntegrityProviderFactory methods were not cached.";
-
 Mutex& GetFactoryMutex() {
   static auto* mutex = new Mutex();
   return *mutex;
 }
-
 std::vector<const PlayIntegrityProviderFactoryInternal*>& GetLiveFactories() {
   static auto* factories =
       new std::vector<const PlayIntegrityProviderFactoryInternal*>();
   return *factories;
 }
-
 bool g_methods_cached = false;
-
 }  // namespace
 
 bool CachePlayIntegrityProviderMethodIds(JNIEnv* env, jobject activity) {
   MutexLock lock(GetFactoryMutex());
-  // Cache the PlayIntegrityProvider classes.
   g_methods_cached =
       play_integrity_provider_factory::CacheMethodIds(env, activity);
   return g_methods_cached;
@@ -83,15 +77,12 @@ void ReleasePlayIntegrityProviderClasses(JNIEnv* env) {
 }
 
 PlayIntegrityProviderFactoryInternal::PlayIntegrityProviderFactoryInternal()
-    : android_provider_factory_(nullptr), created_providers_() {
+    : android_provider_factory_(nullptr) {
   MutexLock lock(GetFactoryMutex());
   GetLiveFactories().push_back(this);
 }
 
 PlayIntegrityProviderFactoryInternal::~PlayIntegrityProviderFactoryInternal() {
-  // Note: created_providers_ is declared as std::map<App*, AppCheckProvider*>
-  // in play_integrity_provider_android.h; ownership is managed via
-  // std::unique_ptr on creation and eviction.
   std::map<App*, AppCheckProvider*> providers;
   jobject factory_ref = nullptr;
   {
@@ -99,18 +90,16 @@ PlayIntegrityProviderFactoryInternal::~PlayIntegrityProviderFactoryInternal() {
     auto& live = GetLiveFactories();
     live.erase(std::remove(live.begin(), live.end(), this), live.end());
     providers.swap(created_providers_);
-    factory_ref = android_provider_factory_;
-    android_provider_factory_ = nullptr;
+    factory_ref = std::exchange(android_provider_factory_, nullptr);
   }
   for (auto& [app, raw_provider] : providers) {
     std::unique_ptr<AppCheckProvider> provider(raw_provider);
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-    if (notifier != nullptr && provider != nullptr) {
+    if (auto* notifier = CleanupNotifier::FindByOwner(app);
+        notifier && provider) {
       notifier->UnregisterObject(provider.get());
     }
   }
-  JNIEnv* env = GetJniEnv();
-  if (env != nullptr && factory_ref != nullptr) {
+  if (JNIEnv* env = GetJniEnv(); env && factory_ref) {
     env->DeleteGlobalRef(factory_ref);
   }
 }
@@ -121,85 +110,60 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
   AppCheckProvider* raw_provider = nullptr;
   {
     MutexLock lock(GetFactoryMutex());
-    FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
-                                   kMethodsNotCachedError);
-
-    // Return the provider if it already exists.
-    auto it = created_providers_.find(app);
-    if (it != created_providers_.end()) {
+    FIREBASE_ASSERT_MESSAGE_RETURN(
+        nullptr, g_methods_cached,
+        "PlayIntegrityProviderFactory methods were not cached.");
+    if (auto it = created_providers_.find(app);
+        it != created_providers_.end()) {
       return it->second;
     }
     JNIEnv* env = app->GetJNIEnv();
-    if (env == nullptr) {
-      return nullptr;
-    }
-    // Create a provider factory first if needed.
-    if (android_provider_factory_ == nullptr) {
-      jobject j_provider_factory_local = env->CallStaticObjectMethod(
+    if (!env) return nullptr;
+    if (!android_provider_factory_) {
+      jobject local = env->CallStaticObjectMethod(
           play_integrity_provider_factory::GetClass(),
           play_integrity_provider_factory::GetMethodId(
               play_integrity_provider_factory::kGetInstance));
-      if (jni::CheckAndClearException(env) ||
-          j_provider_factory_local == nullptr) {
-        if (j_provider_factory_local != nullptr) {
-          env->DeleteLocalRef(j_provider_factory_local);
-        }
+      if (jni::CheckAndClearException(env) || !local) {
+        if (local) env->DeleteLocalRef(local);
         return nullptr;
       }
-      // Hold a global reference. It will be freed when this factory is destroyed.
-      android_provider_factory_ = env->NewGlobalRef(j_provider_factory_local);
-      env->DeleteLocalRef(j_provider_factory_local);
-      if (jni::CheckAndClearException(env) ||
-          android_provider_factory_ == nullptr) {
+      android_provider_factory_ = env->NewGlobalRef(local);
+      env->DeleteLocalRef(local);
+      if (jni::CheckAndClearException(env) || !android_provider_factory_) {
         android_provider_factory_ = nullptr;
         return nullptr;
       }
     }
     jobject platform_app = app->GetPlatformApp();
-    if (platform_app == nullptr) {
-      return nullptr;
-    }
-    jobject j_android_provider_local =
-        env->CallObjectMethod(android_provider_factory_,
-                              play_integrity_provider_factory::GetMethodId(
-                                  play_integrity_provider_factory::kCreate),
-                              platform_app);
-    bool create_exception = jni::CheckAndClearException(env);
+    if (!platform_app) return nullptr;
+    jobject j_prov = env->CallObjectMethod(
+        android_provider_factory_,
+        play_integrity_provider_factory::GetMethodId(
+            play_integrity_provider_factory::kCreate),
+        platform_app);
+    bool ex = jni::CheckAndClearException(env);
     env->DeleteLocalRef(platform_app);
-    if (create_exception || j_android_provider_local == nullptr) {
-      if (j_android_provider_local != nullptr) {
-        env->DeleteLocalRef(j_android_provider_local);
-      }
+    if (ex || !j_prov) {
+      if (j_prov) env->DeleteLocalRef(j_prov);
       return nullptr;
     }
-
-    // Pass a local ref into the C++ provider constructor; it creates its own
-    // global ref and releases it when the C++ provider is destroyed.
-    auto cpp_provider =
-        std::make_unique<internal::AndroidAppCheckProvider>(
-            j_android_provider_local);
-    env->DeleteLocalRef(j_android_provider_local);
-    raw_provider = cpp_provider.release();
+    raw_provider = new internal::AndroidAppCheckProvider(j_prov);
+    env->DeleteLocalRef(j_prov);
     created_providers_[app] = raw_provider;
   }
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-  if (notifier != nullptr) {
+  if (auto* notifier = CleanupNotifier::FindByOwner(app)) {
     notifier->RegisterObject(
         raw_provider, [this, app, raw_provider](void* /*object*/) {
-          std::unique_ptr<AppCheckProvider> provider_to_delete;
-          {
-            MutexLock cleanup_lock(GetFactoryMutex());
-            const auto& live = GetLiveFactories();
-            if (std::find(live.begin(), live.end(), this) == live.end()) {
-              return;
-            }
-            auto provider_it = created_providers_.find(app);
-            if (provider_it != created_providers_.end() &&
-                provider_it->second == raw_provider) {
-              provider_to_delete.reset(provider_it->second);
-              created_providers_.erase(provider_it);
-            }
+          std::unique_ptr<AppCheckProvider> to_delete;
+          MutexLock cleanup_lock(GetFactoryMutex());
+          const auto& live = GetLiveFactories();
+          if (std::find(live.begin(), live.end(), this) == live.end()) return;
+          if (auto it = created_providers_.find(app);
+              it != created_providers_.end() && it->second == raw_provider) {
+            to_delete.reset(it->second);
+            created_providers_.erase(it);
           }
         });
   }
@@ -209,24 +173,19 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
 }  // namespace internal
 
 PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
-  static auto* g_play_integrity_provider_factory =
-      new PlayIntegrityProviderFactory();
-  return g_play_integrity_provider_factory;
+  static auto* g_factory = new PlayIntegrityProviderFactory();
+  return g_factory;
 }
 
 PlayIntegrityProviderFactory::PlayIntegrityProviderFactory()
     : internal_(new internal::PlayIntegrityProviderFactoryInternal()) {}
 
 PlayIntegrityProviderFactory::~PlayIntegrityProviderFactory() {
-  delete internal_;
-  internal_ = nullptr;
+  delete std::exchange(internal_, nullptr);
 }
 
 AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(App* app) {
-  if (internal_ && app) {
-    return internal_->CreateProvider(app);
-  }
-  return nullptr;
+  return (internal_ && app) ? internal_->CreateProvider(app) : nullptr;
 }
 
 }  // namespace app_check

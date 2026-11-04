@@ -30,14 +30,9 @@
 namespace firebase {
 namespace installations {
 namespace internal {
-// Installations Client implementation for iOS.
 
-// This defines the class FIRInstallationsPointer, which is a C++-compatible
-// wrapper around the FIRInstallations Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRInstallations);
 
-// This class implements functions from `firebase/installations.h` header.
-// See `firebase/installations.h` for all public functions documentation.
 class InstallationsInternal {
  public:
   explicit InstallationsInternal(const firebase::App& app);
@@ -46,25 +41,16 @@ class InstallationsInternal {
   InstallationsInternal(const InstallationsInternal&) = delete;
   InstallationsInternal& operator=(const InstallationsInternal&) = delete;
 
-  // Platform-specific method that causes a heartbeat to be logged.
-  // See go/firebase-platform-logging-design for more information.
   static void LogHeartbeat(const firebase::App& app);
 
   Future<std::string> GetId();
-  Future<std::string> GetIdLastResult() const;
-
   Future<void> Delete();
-  Future<void> DeleteLastResult() const;
-
   Future<std::string> GetToken(bool force_refresh);
-  Future<std::string> GetTokenLastResult() const;
-
   Future<InstallationTokenResult> GetTokenResult(bool force_refresh);
-  Future<InstallationTokenResult> GetTokenResultLastResult() const;
 
   bool Initialized() const;
-
   void Cleanup();
+  const InstallationsFutures& futures() const { return futures_; }
 
  private:
 #ifdef __OBJC__
@@ -72,10 +58,7 @@ class InstallationsInternal {
     return impl_ ? impl_->get() : nil;
   }
 #endif
-
   std::unique_ptr<FIRInstallationsPointer> impl_;
-
-  /// Handle calls from Futures that the API returns.
   InstallationsFutures futures_;
 };
 

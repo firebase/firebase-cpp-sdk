@@ -13,48 +13,39 @@
 // limitations under the License.
 
 #include <string>
+#include <utility>
 
 #include "firebase/app_check/debug_provider.h"
 
-// Include the header that matches the platform being used.
 #if FIREBASE_PLATFORM_ANDROID
 #include "app_check/src/android/debug_provider_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "app_check/src/ios/debug_provider_ios.h"
 #else
 #include "app_check/src/desktop/debug_provider_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
-        // FIREBASE_PLATFORM_TVOS
+#endif
 
 namespace firebase {
 namespace app_check {
 
 DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-  static DebugAppCheckProviderFactory g_debug_app_check_provider_factory;
-  return &g_debug_app_check_provider_factory;
+  static DebugAppCheckProviderFactory g_factory;
+  return &g_factory;
 }
 
 DebugAppCheckProviderFactory::DebugAppCheckProviderFactory()
     : internal_(new internal::DebugAppCheckProviderFactoryInternal()) {}
 
 DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {
-  if (internal_) {
-    delete internal_;
-    internal_ = nullptr;
-  }
+  delete std::exchange(internal_, nullptr);
 }
 
 AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
-  if (internal_ && app) {
-    return internal_->CreateProvider(app);
-  }
-  return nullptr;
+  return (internal_ && app) ? internal_->CreateProvider(app) : nullptr;
 }
 
 void DebugAppCheckProviderFactory::SetDebugToken(const char* token) {
-  if (internal_) {
-    return internal_->SetDebugToken(token ? token : "");
-  }
+  if (internal_) internal_->SetDebugToken(token ? token : "");
 }
 
 void DebugAppCheckProviderFactory::SetDebugToken(const std::string& token) {

@@ -1,28 +1,13 @@
-/*
- * Copyright 2023 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2023 Google LLC
 
 #ifndef FIREBASE_UMP_SRC_ANDROID_CONSENT_INFO_INTERNAL_ANDROID_H_
 #define FIREBASE_UMP_SRC_ANDROID_CONSENT_INFO_INTERNAL_ANDROID_H_
 
 #include <jni.h>
-
 #include <atomic>
 #include <vector>
-#include "app/src/embedded_file.h"
 
+#include "app/src/embedded_file.h"
 #include "firebase/internal/mutex.h"
 #include "ump/src/common/consent_info_internal.h"
 
@@ -40,26 +25,19 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   ~ConsentInfoInternalAndroid() override;
 
   void SetActivity(JNIEnv* jni_env, jobject activity) override;
-
   ConsentStatus GetConsentStatus() override;
   ConsentFormStatus GetConsentFormStatus() override;
-
   Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) override;
   Future<void> LoadConsentForm() override;
   Future<void> ShowConsentForm(FormParent parent) override;
-
   Future<void> LoadAndShowConsentFormIfRequired(FormParent parent) override;
-
   PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus() override;
   Future<void> ShowPrivacyOptionsForm(FormParent parent) override;
-
   bool CanRequestAds() override;
-
   void Reset() override;
 
-  bool valid() const { return (helper_ != nullptr); }
-
+  bool valid() const { return helper_ != nullptr; }
   JNIEnv* GetJNIEnv();
 
  private:
@@ -68,23 +46,19 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
     jint consentstatus_required = 0;
     jint consentstatus_not_required = 0;
     jint consentstatus_obtained = 0;
-
     jint formerror_success = 0;
     jint formerror_internal = 0;
     jint formerror_network = 0;
     jint formerror_invalid_operation = 0;
     jint formerror_timeout = 0;
-
     jint debug_geography_disabled = 0;
     jint debug_geography_eea = 0;
     jint debug_geography_not_eea = 0;
     jint debug_geography_regulated_us_state = 3;
     jint debug_geography_other = 4;
-
     jint privacy_options_requirement_unknown = 0;
     jint privacy_options_requirement_required = 0;
     jint privacy_options_requirement_not_required = 0;
-
     jint function_request_consent_info_update = 0;
     jint function_load_consent_form = 1;
     jint function_show_consent_form = 2;
@@ -93,23 +67,15 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
     jint function_count = 5;
   };
 
-  // JNI native method callback for ConsentInfoHelper.completeFuture.
-  // Calls CompleteFutureFromJniCallback() below.
   static void JNI_ConsentInfoHelper_completeFuture(
       JNIEnv* env, jclass clazz, jint future_fn,
       jlong consent_info_internal_ptr, jlong future_handle, jint error_code,
       jobject error_message_obj);
 
-  // Complete the given Future when called from JNI.
   void CompleteFutureFromJniCallback(JNIEnv* env, jint future_fn,
                                      FutureHandleId handle_id, int error_code,
                                      const char* error_message);
-
-  // Cache Java enum field values in the struct below. Returns false if a JNI
-  // exception occurred.
   bool CacheEnumValues(JNIEnv* env);
-
-  // Enum conversion methods.
   ConsentStatus CppConsentStatusFromAndroid(jint status) const;
   PrivacyOptionsRequirementStatus CppPrivacyOptionsRequirementStatusFromAndroid(
       jint status) const;
@@ -119,6 +85,8 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
       jint error, const char* message = nullptr) const;
   ConsentFormError CppConsentFormErrorFromAndroidFormError(
       jint error, const char* message = nullptr) const;
+  Future<void> RunFormMethod(ConsentInfoFn fn, int method_id,
+                             FormParent parent);
 
   const EnumCache& enums() const { return enums_; }
 
@@ -126,13 +94,10 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   static firebase::Mutex s_instance_mutex;
 
   EnumCache enums_;
-
-  JavaVM* java_vm_;
-  jobject helper_;
-  jmethodID set_activity_method_id_;
-
-  // Needed for GetConsentFormStatus to return Unknown until an update succeeds.
-  std::atomic<bool> has_requested_consent_info_update_;
+  JavaVM* java_vm_ = nullptr;
+  jobject helper_ = nullptr;
+  jmethodID set_activity_method_id_ = nullptr;
+  std::atomic<bool> has_requested_consent_info_update_{false};
 };
 
 }  // namespace internal

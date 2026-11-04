@@ -28,26 +28,17 @@
 #include "functions/src/desktop/callable_reference_desktop.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
 
-namespace firebase {
-namespace functions {
-namespace internal {
-
+namespace firebase::functions::internal {
 namespace {
 bool HasHttpScheme(std::string_view s) {
   return s.substr(0, 7) == "http://" || s.substr(0, 8) == "https://";
 }
-
 std::string StripTrailingSlashes(std::string_view s) {
-  while (!s.empty() && s.back() == '/') {
-    s.remove_suffix(1);
-  }
+  while (!s.empty() && s.back() == '/') s.remove_suffix(1);
   return std::string(s);
 }
-
 std::string StripLeadingSlashes(std::string_view s) {
-  while (!s.empty() && s.front() == '/') {
-    s.remove_prefix(1);
-  }
+  while (!s.empty() && s.front() == '/') s.remove_prefix(1);
   return std::string(s);
 }
 }  // namespace
@@ -69,9 +60,6 @@ FunctionsInternal::~FunctionsInternal() {
   {
     std::unique_lock<std::mutex> lock(lifetime_state_->mutex);
     lifetime_state_->alive = false;
-    // Wait for any Future completion in progress on other worker threads. A
-    // worker thread that is destroying us from inside an OnCompletion callback
-    // is excluded so it does not wait on itself.
     const std::thread::id self_id = std::this_thread::get_id();
     lifetime_state_->cv.wait(lock, [this, self_id]() {
       for (const std::thread::id& id : lifetime_state_->resolving_threads) {
@@ -80,8 +68,7 @@ FunctionsInternal::~FunctionsInternal() {
       return true;
     });
   }
-  // Force cleanup of any live HttpsCallableReference instances.
-    if (app_) {
+  if (app_) {
     app_->function_registry()->CallFunction(
         ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
   }
@@ -89,17 +76,9 @@ FunctionsInternal::~FunctionsInternal() {
   app_ = nullptr;
 }
 
-App* FunctionsInternal::app() const { return app_; }
-
-const char* FunctionsInternal::region() const { return region_.c_str(); }
-
-bool FunctionsInternal::is_valid() const { return app_ != nullptr; }
-
 std::string FunctionsInternal::GetUrl(const std::string& name) const {
   std::string clean_name = StripLeadingSlashes(name);
-  if (clean_name.empty()) {
-    return "";
-  }
+  if (clean_name.empty()) return "";
 
   std::string origin;
   {
@@ -115,58 +94,43 @@ std::string FunctionsInternal::GetUrl(const std::string& name) const {
       LogError("Functions: project_id is required when using the emulator.");
       return "";
     }
-    // If region_ was a custom domain URL, fall back to "us-central1" for the
-    // emulator path segment.
     const std::string effective_region =
         HasHttpScheme(region_) ? "us-central1" : region_;
     return origin + "/" + proj + "/" + effective_region + "/" + clean_name;
   }
-
-  if (HasHttpScheme(region_)) {
-    return region_ + "/" + clean_name;
-  }
-
+  if (HasHttpScheme(region_)) return region_ + "/" + clean_name;
   if (proj.empty() || region_.empty()) {
     LogError("Functions: project_id and region are required to construct URL.");
     return "";
   }
-  return std::string("https://") + region_ + "-" + proj +
-         ".cloudfunctions.net/" + clean_name;
+  return "https://" + region_ + "-" + proj + ".cloudfunctions.net/" +
+         clean_name;
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
     const char* name) const {
-  if (!name || name[0] == '\0') {
-    return new HttpsCallableReferenceInternal(
-        const_cast<FunctionsInternal*>(this), "", /*is_url=*/true);
-  }
-  return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), name, /*is_url=*/false);
+  return GetHttpsCallableWithOptions(name, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableWithOptions(
     const char* name, const HttpsCallableOptions& options) const {
-  if (!name || name[0] == '\0') {
-    return new HttpsCallableReferenceInternal(
-        const_cast<FunctionsInternal*>(this), "", /*is_url=*/true, options);
-  }
+  bool empty = !name || name[0] == '\0';
   return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), name, /*is_url=*/false, options);
+      const_cast<FunctionsInternal*>(this), empty ? "" : name,
+      /*is_url=*/empty, options);
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
     const char* url) const {
-  std::string valid_url = (url && HasHttpScheme(url)) ? url : "";
-  return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), valid_url.c_str(), /*is_url=*/true);
+  return GetHttpsCallableFromURLWithOptions(url, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal*
 FunctionsInternal::GetHttpsCallableFromURLWithOptions(
     const char* url, const HttpsCallableOptions& options) const {
-  std::string valid_url = (url && HasHttpScheme(url)) ? url : "";
+  const char* valid_url = (url && HasHttpScheme(url)) ? url : "";
   return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), valid_url.c_str(), /*is_url=*/true,
+      const_cast<FunctionsInternal*>(this), valid_url, /*is_url=*/true,
       options);
 }
 
@@ -177,12 +141,8 @@ void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
     return;
   }
   std::string formatted(origin);
-  if (!HasHttpScheme(formatted)) {
-    formatted = std::string("http://") + formatted;
-  }
+  if (!HasHttpScheme(formatted)) formatted = "http://" + formatted;
   emulator_origin_ = StripTrailingSlashes(formatted);
 }
 
-}  // namespace internal
-}  // namespace functions
-}  // namespace firebase
+}  // namespace firebase::functions::internal

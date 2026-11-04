@@ -34,33 +34,23 @@ class HttpsCallableReferenceInternal;
 }  // namespace internal
 /// @endcond
 
-/// Default timeout for callable invocations in milliseconds (70 seconds).
 #if !defined(SWIG)
 inline constexpr int64_t kDefaultTimeoutMilliseconds = 70000;
 #else
 static const int64_t kDefaultTimeoutMilliseconds = 70000;
 #endif  // !defined(SWIG)
 
-/// Represents the options for configuring the HttpsCallableReference.
 struct HttpsCallableOptions {
-  /// Default Constructor.
   HttpsCallableOptions()
       : limited_use_app_check_token(false),
         timeout_ms(kDefaultTimeoutMilliseconds) {}
-
-  /// Constructor with limited_use_app_check_token.
   explicit HttpsCallableOptions(bool limited_use_app_check_token)
       : limited_use_app_check_token(limited_use_app_check_token),
         timeout_ms(kDefaultTimeoutMilliseconds) {}
-
-  /// Constructor with limited_use_app_check_token and timeout in milliseconds.
   HttpsCallableOptions(bool limited_use_app_check_token, int64_t timeout_ms)
       : limited_use_app_check_token(limited_use_app_check_token),
         timeout_ms(timeout_ms) {}
 
-  /// Decides whether or not to use limited-use App Check tokens when invoking
-  /// the associated function. Notice that the jeopardy of using single-use
-  /// tokens is that it lacks replay protection. By default, this is false.
 #if !defined(SWIG)
   union {
     bool limited_use_app_check_token;
@@ -70,101 +60,38 @@ struct HttpsCallableOptions {
   bool limited_use_app_check_token;
 #endif  // !defined(SWIG)
 
-  /// Timeout in milliseconds for invoking the function. Defaults to 70000ms.
   int64_t timeout_ms;
 
   bool operator==(const HttpsCallableOptions& other) const {
     return limited_use_app_check_token == other.limited_use_app_check_token &&
            timeout_ms == other.timeout_ms;
   }
-
   bool operator!=(const HttpsCallableOptions& other) const {
     return !(*this == other);
   }
 };
 
-/// Represents a reference to a Cloud Functions object.
-/// Developers can call the Cloud Task once they acquire a Reference to it.
 class HttpsCallableReference {
  public:
-  /// @brief Default constructor. This creates an invalid
-  /// HttpsCallableReference. Attempting to perform any operations on this
-  /// reference will fail unless a valid HttpsCallableReference has been
-  /// assigned to it.
   HttpsCallableReference() : internal_(nullptr) {}
-
-  /// @brief Copy constructor. It's totally okay (and efficient) to copy
-  /// HttpsCallableReference instances, as they simply point to the same
-  /// location in the Cloud Functions service.
-  ///
-  /// @param[in] reference HttpsCallableReference to copy from.
   HttpsCallableReference(const HttpsCallableReference& reference);
-
-  /// @brief Copy assignment operator. It's totally okay (and efficient) to copy
-  /// HttpsCallableReference instances, as they simply point to the same
-  /// location in the Cloud Functions service.
-  ///
-  /// @param[in] reference HttpsCallableReference to copy from.
-  ///
-  /// @returns Reference to the destination HttpsCallableReference.
   HttpsCallableReference& operator=(const HttpsCallableReference& reference);
-
-  /// @brief Move constructor. Moving is an efficient operation for
-  /// HttpsCallableReference instances.
-  ///
-  /// @param[in] other HttpsCallableReference to move data from.
   HttpsCallableReference(HttpsCallableReference&& other) noexcept;
-
-  /// @brief Move assignment operator. Moving is an efficient operation for
-  /// HttpsCallableReference instances.
-  ///
-  /// @param[in] other HttpsCallableReference to move data from.
-  ///
-  /// @returns Reference to the destination HttpsCallableReference.
   HttpsCallableReference& operator=(HttpsCallableReference&& other) noexcept;
-
   ~HttpsCallableReference();
 
-  /// @brief Gets the Functions instance to which we refer.
-  ///
-  /// The pointer will remain valid indefinitely.
-  ///
-  /// @returns The Functions instance that this HttpsCallableReference refers
-  /// to.
   Functions* functions();
   Functions* functions() const;
 
-  /// @brief Asynchronously calls the trigger endpoint with no parameters.
-  ///
-  /// @returns The result of the call.
   Future<HttpsCallableResult> Call();
   Future<HttpsCallableResult> Call() const;
-
-  /// @brief Asynchronously calls the trigger endpoint with the given
-  /// parameter.
-  ///
-  /// @returns The result of the call as a Future<HttpsCallableResult>.
   Future<HttpsCallableResult> Call(const Variant& data);
   Future<HttpsCallableResult> Call(const Variant& data) const;
-
-  /// @brief Get the result of the most recent Call() call.
-  ///
-  /// @returns The result of the most recent Call() call.
   Future<HttpsCallableResult> CallLastResult() const;
 
-  /// @brief Returns true if this HttpsCallableReference is valid, false if it
-  /// is not valid. An invalid HttpsCallableReference could be returned if, for
-  /// example, the Functions instance gets deleted, or if the Reference was
-  /// default-constructed.
-  ///
-  /// @returns true if this HttpsCallableReference is valid, false if this
-  /// HttpsCallableReference is invalid.
   bool is_valid() const;
 
-  /// @brief Equality operator.
   bool operator==(const HttpsCallableReference& other) const;
-
-  /// @brief Inequality operator.
   bool operator!=(const HttpsCallableReference& other) const {
     return !(*this == other);
   }

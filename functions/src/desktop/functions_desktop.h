@@ -22,24 +22,15 @@
 #include <thread>
 #include <vector>
 
-#include "app/src/future_manager.h"
-#include "app/src/reference_counted_future_impl.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/reference_counted_future_impl.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
 
 namespace firebase {
 namespace functions {
 namespace internal {
 
-// Shared lifetime token allowing asynchronous callbacks to check whether
-// FunctionsInternal (and its FutureManager) is still alive under a mutex.
-//
-// Background call workers register themselves in `resolving_threads` while
-// they complete a Future (outside `mutex`), so ~FunctionsInternal() can wait
-// for in-flight completions on other threads before destroying the
-// FutureManager, without deadlocking when it is itself invoked from inside an
-// OnCompletion callback on one of those worker threads.
 struct FunctionsLifetimeState {
   std::mutex mutex;
   std::condition_variable cv;
@@ -55,8 +46,10 @@ class FunctionsInternal {
   FunctionsInternal(const FunctionsInternal&) = delete;
   FunctionsInternal& operator=(const FunctionsInternal&) = delete;
 
-  App* app() const;
-  const char* region() const;
+  App* app() const { return app_; }
+  const char* region() const { return region_.c_str(); }
+  bool is_valid() const { return app_ != nullptr; }
+  bool initialized() const { return is_valid(); }
 
   HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
   HttpsCallableReferenceInternal* GetHttpsCallable(
@@ -75,21 +68,11 @@ class FunctionsInternal {
       const char* url, const HttpsCallableOptions& options) const;
   void UseFunctionsEmulator(const char* origin);
 
-  // Whether this object was successfully initialized by the constructor.
-  bool is_valid() const;
-  bool initialized() const { return is_valid(); }
-
-  // Compute the URL for the given function trigger name.
   std::string GetUrl(const std::string& name) const;
-
-  
-
-  
 
   const std::shared_ptr<FunctionsLifetimeState>& lifetime_state() const {
     return lifetime_state_;
   }
-
   ReferenceCountedFutureImpl* future() { return &future_impl_; }
 
  private:
@@ -97,8 +80,6 @@ class FunctionsInternal {
   std::string region_;
   mutable Mutex mutex_;
   std::string emulator_origin_;
-  
-  
   std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
   ReferenceCountedFutureImpl future_impl_;
 };

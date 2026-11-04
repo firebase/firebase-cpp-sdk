@@ -17,75 +17,50 @@
 
 #include <jni.h>
 
+#include <functional>
 #include <string>
 
 #include "app/src/app_common.h"
+#include "app/src/jni/declaration.h"
 #include "app_check/src/include/firebase/app_check.h"
 #include "firebase/app_check.h"
 
 namespace firebase::app_check::internal {
 
-// Used to setup the cache of AppCheckProvider interface method IDs to reduce
-// time spent looking up methods by string.
 // clang-format off
 #define APP_CHECK_PROVIDER_METHODS(X)                                 \
   X(GetToken, "getToken",                                             \
-    "()Lcom/google/android/gms/tasks/Task;"),                         \
+    "()Lcom/google/android/gms/tasks/Task;")                          \
   X(GetLimitedUseToken, "getLimitedUseToken",                         \
     "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 
-namespace app_check_provider {
-  enum Method {
-    kGetToken,
-    kGetLimitedUseToken,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
+JNI_METHOD_LOOKUP_DECLARATION(app_check_provider, APP_CHECK_PROVIDER_METHODS,
+                              FIELD_LOOKUP_NONE,
+                              "com/google/firebase/appcheck/AppCheckProvider")
 
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-
-// Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheCommonAndroidMethodIds(JNIEnv* env, jobject activity);
-
-// Release app check classes cached by CacheCommonAndroidMethodIds().
 void ReleaseCommonAndroidClasses(JNIEnv* env);
-
 JNIEnv* GetJniEnv();
-
 AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj);
 
-// A generic class to wrap a java AppCheckProvider.
 class AndroidAppCheckProvider : public AppCheckProvider {
  public:
   explicit AndroidAppCheckProvider(jobject debug_provider);
   ~AndroidAppCheckProvider() override;
 
-  /// Fetches an AppCheckToken and then calls the provided callback method with
-  /// the token or with an error code and error message.
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
                     completion_callback) override;
-
-  /// Fetches an AppCheckToken via a fallback method to the GetToken. The
-  /// current Android implementation does not support limited use tokens. For
-  /// custom App Check providers.
   void GetLimitedUseToken(
       std::function<void(AppCheckToken, int, const std::string&)>
           completion_callback) override;
 
  private:
-  jobject android_provider_;
+  void FetchToken(app_check_provider::Method method,
+                  std::function<void(AppCheckToken, int, const std::string&)>
+                      completion_callback);
 
-  // String to be used when registering for JNI task callbacks.
+  jobject android_provider_;
   std::string jni_task_id_;
 };
 

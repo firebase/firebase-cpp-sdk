@@ -26,10 +26,6 @@ namespace firebase {
 namespace installations {
 namespace internal {
 
-// Stub implementation of Installations for desktop builds.
-//
-// This class implements functions from `firebase/installations.h` header.
-// See `firebase/installations.h` for all public functions documentation.
 class InstallationsInternal {
  public:
   explicit InstallationsInternal(const firebase::App& app);
@@ -38,25 +34,16 @@ class InstallationsInternal {
   InstallationsInternal(const InstallationsInternal&) = delete;
   InstallationsInternal& operator=(const InstallationsInternal&) = delete;
 
-  // Platform-specific method that causes a heartbeat to be logged.
-  // See go/firebase-platform-logging-design for more information.
   static void LogHeartbeat(const firebase::App& app);
 
   Future<std::string> GetId();
-  Future<std::string> GetIdLastResult() const;
-
   Future<void> Delete();
-  Future<void> DeleteLastResult() const;
-
   Future<std::string> GetToken(bool force_refresh);
-  Future<std::string> GetTokenLastResult() const;
-
   Future<InstallationTokenResult> GetTokenResult(bool force_refresh);
-  Future<InstallationTokenResult> GetTokenResultLastResult() const;
 
-  bool Initialized() const;
-
-  void Cleanup();
+  bool Initialized() const { return true; }
+  void Cleanup() {}
+  const InstallationsFutures& futures() const { return futures_; }
 
  private:
   std::string ResolveTokenLocked(bool force_refresh);

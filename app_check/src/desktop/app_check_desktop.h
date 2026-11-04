@@ -31,16 +31,12 @@
 
 namespace firebase::app_check::internal {
 
-// The callback type for psuedo-AppCheckListeners added via the
-// function registry.
 using FunctionRegistryCallback = void (*)(const std::string&, void*);
 
 class FunctionRegistryAppCheckListener : public AppCheckListener {
  public:
   bool AddListener(FunctionRegistryCallback callback, void* context);
-
   void RemoveListener(FunctionRegistryCallback callback, void* context);
-
   void OnAppCheckTokenChanged(const AppCheckToken& token) override;
 
  private:
@@ -59,86 +55,52 @@ class AppCheckInternal {
   };
 
   explicit AppCheckInternal(::firebase::App* app);
-
   ~AppCheckInternal();
 
-  App* app() const;
+  App* app() const { return app_; }
 
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
 
   void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
-
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
-
   Future<AppCheckToken> GetAppCheckTokenLastResult();
-
   Future<AppCheckToken> GetLimitedUseAppCheckToken();
-
   Future<AppCheckToken> GetLimitedUseAppCheckTokenLastResult();
 
-  // Gets the App Check token as just the string, to be used by
-  // internal methods to not conflict with the publicly returned future.
   Future<std::string> GetAppCheckTokenStringInternal(bool force_refresh = false);
-
-  // Gets the limited-use App Check token as just the string, to be used by
-  // internal methods to not conflict with the publicly returned future.
   Future<std::string> GetLimitedUseAppCheckTokenStringInternal();
 
   void AddAppCheckListener(AppCheckListener* listener);
-
   void RemoveAppCheckListener(AppCheckListener* listener);
   ReferenceCountedFutureImpl* future() { return &future_impl_; }
   ReferenceCountedFutureImpl future_impl_;
 
  private:
-  // Is the cached token valid (caller must NOT hold mutex_).
   bool HasValidCacheToken() const;
-  // Is the cached token valid (caller MUST hold mutex_).
   bool HasValidCacheTokenLocked() const;
-
-  // Update the cached Token, and call the listeners
   void UpdateCachedToken(AppCheckToken token);
-
-  // Get the Provider associated with the stored App used to create this.
   AppCheckProvider* GetProvider();
-
-  // Adds internal App Check functions to the function registry, which other
-  // products can then call to get App Check information without needing a
-  // direct dependency.
   void InitRegistryCalls();
-
-  // Removes those functions from the registry.
   void CleanupRegistryCalls();
 
-  // Gets a Future<AppCheckToken> for the given App, stored in the out_future.
-  static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/,
+  static bool GetAppCheckTokenAsyncForRegistry(App* app, void* force_refresh_ptr,
                                                void* out_future);
-
   static bool GetLimitedUseAppCheckTokenAsyncForRegistry(App* app,
                                                          void* /*unused*/,
                                                          void* out_future);
-
   static bool AddAppCheckListenerForRegistry(App* app, void* callback,
                                              void* context);
-
   static bool RemoveAppCheckListenerForRegistry(App* app, void* callback,
                                                 void* context);
 
   ::firebase::App* app_{nullptr};
   mutable std::mutex mutex_;
   std::shared_ptr<LifetimeState> lifetime_state_;
-
-  // Cached provider for the App. Use GetProvider instead of this.
   AppCheckProvider* cached_provider_{nullptr};
   AppCheckProviderFactory* cached_provider_factory_{nullptr};
-  // Cached token, can be expired.
   AppCheckToken cached_token_{};
-  // List of registered listeners for Token changes.
   std::list<AppCheckListener*> token_listeners_;
-  // Internal listener used by the function registry to track Token changes.
   FunctionRegistryAppCheckListener internal_listener_;
-  // Should it automatically get an App Check token if there is not a valid
-  // cached token.
   bool is_token_auto_refresh_enabled_{true};
 };
 

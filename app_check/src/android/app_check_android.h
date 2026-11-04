@@ -1,16 +1,4 @@
 // Copyright 2022 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
@@ -22,60 +10,40 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app_check/src/common/common.h"
 #include "app_check/src/include/firebase/app_check.h"
 
-namespace firebase {
-namespace app_check {
-namespace internal {
+namespace firebase::app_check::internal {
 
 class AppCheckInternal {
  public:
   explicit AppCheckInternal(::firebase::App* app);
-
   ~AppCheckInternal();
 
-  App* app() const;
-
+  App* app() const { return app_; }
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
-
   void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
-
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
-
   Future<AppCheckToken> GetAppCheckTokenLastResult();
-
   Future<AppCheckToken> GetLimitedUseAppCheckToken();
-
   Future<AppCheckToken> GetLimitedUseAppCheckTokenLastResult();
-
   void AddAppCheckListener(AppCheckListener* listener);
-
   void RemoveAppCheckListener(AppCheckListener* listener);
-
   void NotifyTokenChanged(AppCheckToken token);
   ReferenceCountedFutureImpl* future() { return &future_impl_; }
   ReferenceCountedFutureImpl future_impl_;
 
  private:
+  Future<AppCheckToken> DispatchTokenTask(AppCheckFn fn, bool force_refresh);
+
   ::firebase::App* app_;
-
-  // A Java FirebaseAppCheck instance
   jobject app_check_impl_;
-
-  // A Java AppCheckListener instance
   jobject j_app_check_listener_;
-
-  // A collection of C++ AppCheckListeners
   std::vector<AppCheckListener*> listeners_;
-
-  // Lock object for accessing listeners_.
   Mutex listeners_mutex_;
-  // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;
 };
 
-}  // namespace internal
-}  // namespace app_check
-}  // namespace firebase
+}  // namespace firebase::app_check::internal
 
 #endif  // FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_

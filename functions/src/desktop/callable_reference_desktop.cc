@@ -75,26 +75,13 @@ void FunctionsCallableResponse::MarkFailed() {
 }
 
 void FunctionsCallableResponse::InvokeCallback() {
-  Callback cb = std::move(callback_);
-  if (cb) {
-    cb();
-  }
+  if (Callback cb = std::move(callback_)) cb();
 }
 
 namespace {
 
-// How long Call() waits for a call that completes immediately (e.g. a mock
-// transport, or a request that fails before reaching the network) so that the
-// returned Future is already complete. Real network transfers continue on the
-// background worker thread after this short grace period.
 constexpr auto kImmediateCompletionGrace = std::chrono::milliseconds(5);
 
-// Self-contained execution context for a single Call() invocation.
-// Owned via std::shared_ptr by the asynchronous callbacks and by the
-// background worker thread, so destroying HttpsCallableReference or
-// FunctionsInternal while a request is in flight never causes a
-// Use-After-Free, and concurrent Call() invocations on the same
-// HttpsCallableReference never share mutable Request/Response/Transport.
 struct CallExecutionContext
     : public std::enable_shared_from_this<CallExecutionContext> {
   CallExecutionContext(
@@ -111,10 +98,6 @@ struct CallExecutionContext
         timeout_ms > 0 ? timeout_ms : kDefaultTimeoutMilliseconds;
   }
 
-  // Runs the (synchronous) transport Perform() on a dedicated background
-  // thread, then completes the Future on that thread: never on the caller's
-  // thread for network I/O, never on the shared curl I/O thread, and never
-  // while holding FunctionsLifetimeState::mutex.
   void StartPerform() {
     auto self = shared_from_this();
     std::thread([self]() { self->RunOnWorker(); }).detach();
@@ -149,8 +132,10 @@ struct CallExecutionContext
         {
           std::lock_guard<std::mutex> lock(state->mutex);
           auto& threads = state->resolving_threads;
-          auto it = std::find(threads.begin(), threads.end(), self_id);
-          if (it != threads.end()) threads.erase(it);
+          if (auto it = std::find(threads.begin(), threads.end(), self_id);
+              it != threads.end()) {
+            threads.erase(it);
+          }
         }
         state->cv.notify_all();
       }
@@ -176,7 +161,6 @@ struct CallExecutionContext
   bool worker_done = false;
 };
 
-// Returns true if the FunctionsInternal guarded by `weak_state` is still alive.
 bool IsAlive(const std::weak_ptr<FunctionsLifetimeState>& weak_state) {
   if (auto state = weak_state.lock()) {
     std::lock_guard<std::mutex> lock(state->mutex);
@@ -209,133 +193,66 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     : functions_(functions),
       target_(target ? target : ""),
       is_url_(is_url),
-      options_(options) {
-  
-}
-
-HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
-  
-}
-
-HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    const HttpsCallableReferenceInternal& other)
-    : functions_(other.functions_),
-      target_(other.target_),
-      is_url_(other.is_url_),
-      options_(other.options_) {
-  
-}
-
-HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
-    const HttpsCallableReferenceInternal& other) {
-  if (this == &other) {
-    return *this;
-  }
-  if (functions_ != other.functions_) {
-    
-    functions_ = other.functions_;
-    
-  }
-  target_ = other.target_;
-  is_url_ = other.is_url_;
-  options_ = other.options_;
-  return *this;
-}
+      options_(options) {}
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other) noexcept
     : functions_(std::exchange(other.functions_, nullptr)),
       target_(std::move(other.target_)),
       is_url_(other.is_url_),
-      options_(other.options_) {
-  
-}
+      options_(other.options_) {}
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     HttpsCallableReferenceInternal&& other) noexcept {
-  if (this == &other) {
-    return *this;
+  if (this != &other) {
+    functions_ = std::exchange(other.functions_, nullptr);
+    target_ = std::move(other.target_);
+    is_url_ = other.is_url_;
+    options_ = other.options_;
   }
-  
-  functions_ = std::exchange(other.functions_, nullptr);
-  target_ = std::move(other.target_);
-  is_url_ = other.is_url_;
-  options_ = other.options_;
-  
   return *this;
 }
 
 Functions* HttpsCallableReferenceInternal::functions() const {
-  if (!functions_) {
-    return nullptr;
-  }
-  return Functions::GetInstance(functions_->app(), functions_->region());
+  return functions_
+             ? Functions::GetInstance(functions_->app(), functions_->region())
+             : nullptr;
 }
 
 std::string HttpsCallableReferenceInternal::url() const {
-  if (is_url_) {
-    return target_;
-  }
-  return functions_ ? functions_->GetUrl(target_) : "";
+  return is_url_ ? target_ : (functions_ ? functions_->GetUrl(target_) : "");
 }
 
 bool HttpsCallableReferenceInternal::is_valid() const {
   return functions_ != nullptr && !url().empty();
 }
 
-
-
 Error ErrorFromHttpStatus(int status) {
   switch (status) {
     case 200:
     case 201:
-    case 202:
-      return kErrorNone;
+    case 202: return kErrorNone;
     case 204:
-      // TransportCurl sets 204 (HttpNoContent) when a transfer is canceled.
-      return kErrorCancelled;
-    case 400:
-      return kErrorInvalidArgument;
-    case 401:
-      return kErrorUnauthenticated;
-    case 403:
-      return kErrorPermissionDenied;
-    case 404:
-      return kErrorNotFound;
+    case 499: return kErrorCancelled;
+    case 400: return kErrorInvalidArgument;
+    case 401: return kErrorUnauthenticated;
+    case 403: return kErrorPermissionDenied;
+    case 404: return kErrorNotFound;
     case 408:
-      // TransportCurl sets 408 (HttpRequestTimeout) on request timeout.
-      return kErrorDeadlineExceeded;
-    case 409:
-      return kErrorAborted;
-    case 429:
-      return kErrorResourceExhausted;
-    case 499:
-      return kErrorCancelled;
-    case 500:
-      return kErrorInternal;
-    case 501:
-      return kErrorUnimplemented;
+    case 504: return kErrorDeadlineExceeded;
+    case 409: return kErrorAborted;
+    case 429: return kErrorResourceExhausted;
+    case 500: return kErrorInternal;
+    case 501: return kErrorUnimplemented;
     case 503:
-      return kErrorUnavailable;
-    case 504:
-      return kErrorDeadlineExceeded;
-    case 0:
-      // Wait/connection failure before receiving an HTTP response.
-      return kErrorUnavailable;
+    case 0: return kErrorUnavailable;
     default:
-      if (status >= 200 && status < 300) {
-        return kErrorNone;
-      }
-      return kErrorInternal;
+      return (status >= 200 && status < 300) ? kErrorNone : kErrorInternal;
   }
 }
 
 Error ErrorFromStatus(std::string_view status) {
-  struct StatusEntry {
-    std::string_view name;
-    Error error;
-  };
-  static constexpr StatusEntry kStatusTable[] = {
+  static constexpr std::pair<std::string_view, Error> kStatusTable[] = {
       {"OK", kErrorNone},
       {"CANCELLED", kErrorCancelled},
       {"UNKNOWN", kErrorUnknown},
@@ -354,10 +271,8 @@ Error ErrorFromStatus(std::string_view status) {
       {"UNAVAILABLE", kErrorUnavailable},
       {"DATA_LOSS", kErrorDataLoss},
   };
-  for (const auto& entry : kStatusTable) {
-    if (status == entry.name) {
-      return entry.error;
-    }
+  for (const auto& [name, err] : kStatusTable) {
+    if (status == name) return err;
   }
   return kErrorInternal;
 }
@@ -366,68 +281,54 @@ namespace {
 void ResolveFutureImpl(ReferenceCountedFutureImpl* future_api,
                        SafeFutureHandle<HttpsCallableResult> handle,
                        const rest::Response* response, bool transport_failed) {
-  if (!future_api || !response) {
-    return;
-  }
+  if (!future_api || !response) return;
 
   Error error = ErrorFromHttpStatus(response->status());
-  if (transport_failed && error == kErrorNone) {
-    error = kErrorUnavailable;
-  }
+  if (transport_failed && error == kErrorNone) error = kErrorUnavailable;
   bool has_error = (error != kErrorNone);
 
   const char* body_str = response->GetBody();
-  Variant body_variant =
-      (body_str && body_str[0] != '\0')
-          ? firebase::util::JsonToVariant(body_str)
-          : Variant::Null();
-
+  Variant body_variant = (body_str && body_str[0] != '\0')
+                             ? firebase::util::JsonToVariant(body_str)
+                             : Variant::Null();
   if (body_variant.is_null() || !body_variant.is_map()) {
-    if (!has_error) {
-      error = kErrorInternal;
-    }
+    if (!has_error) error = kErrorInternal;
     future_api->Complete(handle, error, GetErrorMessage(error));
     return;
   }
 
   const auto& body_map = body_variant.map();
-  auto error_it = body_map.find("error");
-  if (error_it != body_map.end() && !error_it->second.is_null()) {
-    has_error = true;
+  if (auto error_it = body_map.find("error");
+      error_it != body_map.end() && !error_it->second.is_null()) {
     if (!error_it->second.is_map()) {
-      if (error == kErrorNone) {
-        error = kErrorInternal;
-      }
+      if (error == kErrorNone) error = kErrorInternal;
       future_api->Complete(handle, error, GetErrorMessage(error));
       return;
     }
 
     const auto& error_map = error_it->second.map();
-    auto status_it = error_map.find("status");
-    if (status_it != error_map.end()) {
+    if (auto status_it = error_map.find("status");
+        status_it != error_map.end()) {
       if (!status_it->second.is_string()) {
-        error = kErrorInternal;
-        future_api->Complete(handle, error, GetErrorMessage(error));
+        future_api->Complete(handle, kErrorInternal,
+                             GetErrorMessage(kErrorInternal));
         return;
       }
       Error status_error = ErrorFromStatus(status_it->second.string_value());
-      // "status": "OK" inside an error envelope is invalid.
       error = (status_error == kErrorNone) ? kErrorInternal : status_error;
     } else if (error == kErrorNone) {
       error = kErrorInternal;
     }
 
-    std::string message;
     auto message_it = error_map.find("message");
-    if (message_it != error_map.end() && message_it->second.is_string()) {
-      message = message_it->second.string_value();
-    } else {
-      message = GetErrorMessage(error);
-    }
+    std::string message =
+        (message_it != error_map.end() && message_it->second.is_string())
+            ? message_it->second.string_value()
+            : GetErrorMessage(error);
 
     Variant details;
-    auto details_it = error_map.find("details");
-    if (details_it != error_map.end()) {
+    if (auto details_it = error_map.find("details");
+        details_it != error_map.end()) {
       details = Decode(details_it->second);
       if (details.is_null() && !details_it->second.is_null()) {
         error = kErrorInternal;
@@ -435,8 +336,8 @@ void ResolveFutureImpl(ReferenceCountedFutureImpl* future_api,
       }
     }
 
-    HttpsCallableResult result(std::move(details));
-    future_api->CompleteWithResult(handle, error, message.c_str(), result);
+    future_api->CompleteWithResult(handle, error, message.c_str(),
+                                   HttpsCallableResult(std::move(details)));
     return;
   }
 
@@ -446,23 +347,21 @@ void ResolveFutureImpl(ReferenceCountedFutureImpl* future_api,
   }
 
   auto data_it = body_map.find("data");
+  if (data_it == body_map.end()) data_it = body_map.find("result");
   if (data_it == body_map.end()) {
-    data_it = body_map.find("result");
-  }
-  if (data_it == body_map.end()) {
-    error = kErrorInternal;
-    future_api->Complete(handle, error, GetErrorMessage(error));
+    future_api->Complete(handle, kErrorInternal,
+                         GetErrorMessage(kErrorInternal));
     return;
   }
 
   Variant data = Decode(data_it->second);
   if (data.is_null() && !data_it->second.is_null()) {
-    error = kErrorInternal;
-    future_api->Complete(handle, error, GetErrorMessage(error));
+    future_api->Complete(handle, kErrorInternal,
+                         GetErrorMessage(kErrorInternal));
     return;
   }
-  HttpsCallableResult result(std::move(data));
-  future_api->CompleteWithResult(handle, kErrorNone, "", result);
+  future_api->CompleteWithResult(handle, kErrorNone, "",
+                                 HttpsCallableResult(std::move(data)));
 }
 }  // namespace
 
@@ -486,26 +385,19 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     const Variant& data) {
   ReferenceCountedFutureImpl* future_api = future();
-  if (!future_api || !functions_) {
-    return Future<HttpsCallableResult>();
-  }
-  SafeFutureHandle<HttpsCallableResult> handle =
+  if (!future_api || !functions_) return Future<HttpsCallableResult>();
+  auto handle =
       future_api->SafeAlloc<HttpsCallableResult>(kHttpsCallableReferenceFnCall);
 
   const std::string resolved_url = url();
-  if (resolved_url.empty()) {
+  Variant encoded_data = Encode(data);
+  if (resolved_url.empty() || (encoded_data.is_null() && !data.is_null())) {
     future_api->Complete(handle, kErrorInvalidArgument,
                          GetErrorMessage(kErrorInvalidArgument));
     return MakeFuture(future_api, handle);
   }
 
   Variant body_variant = Variant::EmptyMap();
-  Variant encoded_data = Encode(data);
-  if (encoded_data.is_null() && !data.is_null()) {
-    future_api->Complete(handle, kErrorInvalidArgument,
-                         GetErrorMessage(kErrorInvalidArgument));
-    return MakeFuture(future_api, handle);
-  }
   body_variant.map()["data"] = std::move(encoded_data);
   std::string body = firebase::util::VariantToJson(body_variant);
 
@@ -520,61 +412,55 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     return MakeFuture(future_api, handle);
   }
 
-  auto fetch_app_check_and_perform = [ctx, app,
-                                      limited_use =
-                                          options_.limited_use_app_check_token]() {
-    Future<std::string> future_app_check;
-    bool has_app_check_future = false;
-    if (auto state = ctx->lifetime_state.lock()) {
-      std::lock_guard<std::mutex> lock(state->mutex);
-      if (!state->alive) {
-        return;
-      }
-      ::firebase::internal::FunctionId app_check_fn =
-          limited_use ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
-                      : ::firebase::internal::FnAppCheckGetTokenAsync;
-      has_app_check_future = app->function_registry()->CallFunction(
-          app_check_fn, app, nullptr, &future_app_check);
-    } else {
-      return;
-    }
-    if (has_app_check_future &&
-        future_app_check.status() != kFutureStatusInvalid) {
-      future_app_check.OnCompletion(
-          [ctx](const Future<std::string>& future_token) {
-            if (!IsAlive(ctx->lifetime_state)) {
-              return;
-            }
-            if (future_token.error() == 0 && future_token.result() != nullptr &&
-                !future_token.result()->empty()) {
-              ctx->request.add_header("X-Firebase-AppCheck",
-                                      future_token.result()->c_str());
-            } else if (future_token.error() != 0) {
-              LogWarning("Failed to get AppCheck token with Error %d: %s",
-                         future_token.error(), future_token.error_message());
-            }
-            ctx->StartPerform();
-          });
-    } else {
-      ctx->StartPerform();
-    }
-  };
+  auto fetch_app_check_and_perform =
+      [ctx, app, limited_use = options_.limited_use_app_check_token]() {
+        Future<std::string> future_app_check;
+        bool has_app_check_future = false;
+        if (auto state = ctx->lifetime_state.lock()) {
+          std::lock_guard<std::mutex> lock(state->mutex);
+          if (!state->alive) return;
+          auto app_check_fn =
+              limited_use
+                  ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
+                  : ::firebase::internal::FnAppCheckGetTokenAsync;
+          has_app_check_future = app->function_registry()->CallFunction(
+              app_check_fn, app, nullptr, &future_app_check);
+        } else {
+          return;
+        }
+        if (has_app_check_future &&
+            future_app_check.status() != kFutureStatusInvalid) {
+          future_app_check.OnCompletion(
+              [ctx](const Future<std::string>& future_token) {
+                if (!IsAlive(ctx->lifetime_state)) return;
+                if (future_token.error() == 0 && future_token.result() &&
+                    !future_token.result()->empty()) {
+                  ctx->request.add_header("X-Firebase-AppCheck",
+                                          future_token.result()->c_str());
+                } else if (future_token.error() != 0) {
+                  LogWarning("Failed to get AppCheck token with Error %d: %s",
+                             future_token.error(),
+                             future_token.error_message());
+                }
+                ctx->StartPerform();
+              });
+        } else {
+          ctx->StartPerform();
+        }
+      };
 
   bool force_refresh = false;
   Future<std::string> future_auth;
-  bool has_async_auth = app->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetTokenAsync, app, &force_refresh,
-      &future_auth);
-  if (has_async_auth && future_auth.status() != kFutureStatusInvalid) {
+  if (app->function_registry()->CallFunction(
+          ::firebase::internal::FnAuthGetTokenAsync, app, &force_refresh,
+          &future_auth) &&
+      future_auth.status() != kFutureStatusInvalid) {
     future_auth.OnCompletion([ctx, fetch_app_check_and_perform](
                                  const Future<std::string>& completed_auth) {
-      if (!IsAlive(ctx->lifetime_state)) {
-        return;
-      }
-      if (completed_auth.error() == 0 && completed_auth.result() != nullptr &&
+      if (!IsAlive(ctx->lifetime_state)) return;
+      if (completed_auth.error() == 0 && completed_auth.result() &&
           !completed_auth.result()->empty()) {
-        std::string header("Bearer ");
-        header += *completed_auth.result();
+        std::string header = "Bearer " + *completed_auth.result();
         ctx->request.add_header(rest::util::kAuthorization, header.c_str());
       }
       fetch_app_check_and_perform();
@@ -585,8 +471,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
             ::firebase::internal::FnAuthGetCurrentToken, app, nullptr,
             &auth_token) &&
         !auth_token.empty()) {
-      std::string header("Bearer ");
-      header += auth_token;
+      std::string header = "Bearer " + auth_token;
       ctx->request.add_header(rest::util::kAuthorization, header.c_str());
     }
     fetch_app_check_and_perform();
