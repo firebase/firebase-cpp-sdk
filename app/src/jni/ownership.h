@@ -74,6 +74,7 @@ class GlobalRefReaper {
     State& state = GetState();
     JavaVM* cached = state.jvm.load(std::memory_order_acquire);
     if (cached) return cached;
+    if (env->ExceptionCheck()) return nullptr;
     JavaVM* vm = nullptr;
     if (env->GetJavaVM(&vm) == JNI_OK && vm != nullptr) {
       SetJavaVM(vm);
@@ -104,6 +105,7 @@ class GlobalRefReaper {
     if (!env) return;
     State& state = GetState();
     if (state.pending_count.load(std::memory_order_acquire) == 0) return;
+    if (env->ExceptionCheck()) return;
     std::vector<jobject> to_delete;
     {
       std::lock_guard<std::mutex> lock(state.mutex);

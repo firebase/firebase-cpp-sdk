@@ -234,7 +234,8 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
 
   int current_write_id = 0;
 
-  std::map<int, EventRegistration*> registrations;
+  std::map<int, std::vector<EventRegistration*>> registrations;
+  std::map<int, QuerySpec> registration_query_specs;
   for (const test_data::Step* spec : *test_spec->steps()) {
     if (spec->comment()) {
       logger_.LogInfo(" > %s", spec->comment()->c_str());
@@ -254,13 +255,16 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
         }
         EventRegistration* event_registration = nullptr;
         int callback_id = spec->callbackId();
-        if (callback_id != 0 && registrations.count(callback_id) != 0) {
+        if (callback_id != 0 &&
+            registration_query_specs.count(callback_id) != 0) {
           event_registration = new TestEventRegistration(
-              registrations[callback_id]->query_spec());
+              registration_query_specs[callback_id]);
+          registrations[callback_id].push_back(event_registration);
         } else {
           event_registration = new TestEventRegistration(query->query_spec());
           if (callback_id != 0) {
-            registrations[callback_id] = event_registration;
+            registrations[callback_id].push_back(event_registration);
+            registration_query_specs[callback_id] = query->query_spec();
           }
         }
         std::vector<Event> actual = sync_tree_->AddEventRegistration(
@@ -271,12 +275,14 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
       case test_data::StepType_unlisten: {
         EventRegistration* event_registration = nullptr;
         int callback_id = spec->callbackId();
-        EXPECT_TRUE(callback_id != 0 && registrations.count(callback_id) != 0);
-        event_registration = registrations[callback_id];
+        EXPECT_TRUE(callback_id != 0 && !registrations[callback_id].empty());
+        ASSERT_FALSE(registrations[callback_id].empty());
+        event_registration = registrations[callback_id].front();
+        registrations[callback_id].erase(registrations[callback_id].begin());
         ASSERT_NE(event_registration, nullptr);
+        QuerySpec query_spec = registration_query_specs[callback_id];
         std::vector<Event> actual = sync_tree_->RemoveEventRegistration(
-            event_registration->query_spec(),
-            static_cast<void*>(event_registration), kErrorNone);
+            query_spec, static_cast<void*>(event_registration), kErrorNone);
         EXPECT_THAT(actual, Pointwise(EventEq(), expected));
         break;
       }

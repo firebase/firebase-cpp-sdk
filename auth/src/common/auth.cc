@@ -60,6 +60,10 @@ namespace {
 // reference.
 std::map<App*, Auth*>* g_auths = nullptr;
 Mutex* g_auths_mutex = new Mutex();
+// Serializes DeleteInternal() across CleanupNotifier and ~Auth() so ~Auth()
+// cannot return early and free the Auth instance while another thread is still
+// executing DeleteInternal().
+Mutex* g_auth_delete_mutex = new Mutex();
 
 // Assumes *g_auths_mutex is held by caller.
 Auth* FindAuthLocked(App* app) {
@@ -68,6 +72,19 @@ Auth* FindAuthLocked(App* app) {
   }
   auto it = g_auths->find(app);
   return it != g_auths->end() ? it->second : nullptr;
+}
+
+// Assumes *g_auths_mutex is held by caller.
+App* FindAppForAuthLocked(Auth* auth) {
+  if (g_auths == nullptr || auth == nullptr) {
+    return nullptr;
+  }
+  for (auto it = g_auths->begin(); it != g_auths->end(); ++it) {
+    if (it->second == auth) {
+      return it->first;
+    }
+  }
+  return nullptr;
 }
 }  // namespace
 
@@ -82,7 +99,6 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
   }
 
   Auth* auth = nullptr;
-  bool is_new_auth = false;
   {
     MutexLock lock(*g_auths_mutex);
     if (g_auths == nullptr) {
@@ -98,6 +114,10 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
       // Create the platform dependent version of Auth.
       void* auth_impl = CreatePlatformAuth(app);
       if (!auth_impl) {
+        if (g_auths->empty()) {
+          delete g_auths;
+          g_auths = nullptr;
+        }
         if (init_result_out != nullptr) {
           *init_result_out = kInitResultFailedMissingDependency;
         }
@@ -109,35 +129,37 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
       // InitPlatformAuth so re-entrant FindAuth(app) calls during
       // initialization succeed.
       auth = new Auth(app, auth_impl);
-      is_new_auth = true;
       LogDebug("Creating Auth %p for App %p", auth, app);
+
+      CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+      assert(notifier);
+      if (notifier != nullptr) {
+        notifier->RegisterObject(auth, [](void* object) {
+          Auth* auth_to_clean = reinterpret_cast<Auth*>(object);
+          MutexLock delete_lock(*g_auth_delete_mutex);
+          App* app_to_log = nullptr;
+          {
+            MutexLock lock(*g_auths_mutex);
+            app_to_log = FindAppForAuthLocked(auth_to_clean);
+            if (app_to_log == nullptr) {
+              return;
+            }
+          }
+          LogWarning(
+              "Auth object %p should be deleted before the App %p it depends "
+              "upon.",
+              auth_to_clean, app_to_log);
+          auth_to_clean->DeleteInternal();
+        });
+      }
 
       if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     }
-  }
 
-  if (is_new_auth) {
-    // Register CleanupNotifier outside *g_auths_mutex to avoid lock-order
-    // inversions with CleanupNotifier::CleanupAll().
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-    assert(notifier);
-    if (notifier != nullptr) {
-      notifier->RegisterObject(auth, [](void* object) {
-        Auth* auth_to_clean = reinterpret_cast<Auth*>(object);
-        LogWarning(
-            "Auth object %p should be deleted before the App %p it depends "
-            "upon.",
-            auth_to_clean,
-            auth_to_clean->auth_data_ ? auth_to_clean->auth_data_->app
-                                      : nullptr);
-        auth_to_clean->DeleteInternal();
-      });
-    }
+    // Log heartbeat data when instance getters are called.
+    // See go/firebase-platform-logging-design for more information.
+    LogHeartbeat(auth);
   }
-
-  // Log heartbeat data when instance getters are called.
-  // See go/firebase-platform-logging-design for more information.
-  LogHeartbeat(auth);
   return auth;
 }
 
@@ -182,7 +204,8 @@ Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
 }
 
 void Auth::DeleteInternal() {
-  bool is_last_auth = false;
+  MutexLock delete_lock(*g_auth_delete_mutex);
+  App* app = nullptr;
   {
     MutexLock lock(*g_auths_mutex);
     if (!auth_data_) return;
@@ -193,6 +216,8 @@ void Auth::DeleteInternal() {
       auth_data_->destructing = true;
     }
 
+    app = auth_data_->app;
+
     if (g_auths != nullptr) {
       for (auto it = g_auths->begin(); it != g_auths->end(); ++it) {
         if (it->second == this) {
@@ -201,23 +226,18 @@ void Auth::DeleteInternal() {
           break;
         }
       }
-      if (g_auths->empty()) {
-        delete g_auths;
-        g_auths = nullptr;
-        is_last_auth = true;
-      }
     }
+  }
+
+  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+  if (notifier != nullptr) {
+    notifier->UnregisterObject(this);
   }
 
   // Wait for any in-flight futures without holding g_auths_mutex so callbacks
   // calling FindAuth() cannot deadlock.
   while (!auth_data_->future_impl.IsSafeToDelete()) {
     ::firebase::internal::Sleep(100);
-  }
-
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);
-  if (notifier != nullptr) {
-    notifier->UnregisterObject(this);
   }
 
   auth_data_->ClearListeners();
@@ -236,8 +256,13 @@ void Auth::DeleteInternal() {
 
   // If this is the last Auth instance to be cleaned up, also clean up data for
   // Credentials.
-  if (is_last_auth) {
-    CleanupCredentialFutureImpl();
+  {
+    MutexLock lock(*g_auths_mutex);
+    if (g_auths != nullptr && g_auths->empty()) {
+      delete g_auths;
+      g_auths = nullptr;
+      CleanupCredentialFutureImpl();
+    }
   }
 }
 
@@ -439,52 +464,61 @@ AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, AuthResult)
 AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, AuthResult)
 
 Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithCustomToken);
   ::firebase::auth::SignInWithCustomToken(auth_data_, promise, custom_token);
   return promise.future();
 }
 
 Future<User> Auth::SignInWithCredential(const Credential& credential) {
+  if (!auth_data_) return Future<User>();
   Promise<User> promise(&auth_data_->future_impl, kAuthFn_SignInWithCredential);
   ::firebase::auth::SignInWithCredential(auth_data_, promise, credential);
   return promise.future();
 }
 
 Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+  if (!auth_data_) return Future<AuthResult>();
   return ::firebase::auth::SignInWithProvider(auth_data_, provider);
 }
 
 Future<AuthResult> Auth::SignInAnonymously() {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously);
   ::firebase::auth::SignInAnonymously(auth_data_, promise);
   return promise.future();
 }
 
 Future<AuthResult> Auth::SignInWithEmailAndPassword(const char* const email, const char* const password) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithEmailAndPassword);
   ::firebase::auth::SignInWithEmailAndPassword(auth_data_, promise, email, password);
   return promise.future();
 }
 
 Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char* const email, const char* const password) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_CreateUserWithEmailAndPassword);
   ::firebase::auth::CreateUserWithEmailAndPassword(auth_data_, promise, email, password);
   return promise.future();
 }
 
 Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(const Credential& credential) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInAndRetrieveDataWithCredential);
   ::firebase::auth::SignInAndRetrieveDataWithCredential(auth_data_, promise, credential);
   return promise.future();
 }
 
 Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char* email) {
+  if (!auth_data_) return Future<Auth::FetchProvidersResult>();
   Promise<Auth::FetchProvidersResult> promise(&auth_data_->future_impl, kAuthFn_FetchProvidersForEmail);
   ::firebase::auth::FetchProvidersForEmail(auth_data_, promise, email);
   return promise.future();
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
+  if (!auth_data_) return Future<void>();
   Promise<void> promise(&auth_data_->future_impl, kAuthFn_SendPasswordResetEmail);
   ::firebase::auth::SendPasswordResetEmail(auth_data_, promise, email);
   return promise.future();
@@ -492,10 +526,12 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
 
 
 User Auth::current_user() {
+  if (!auth_data_) return User();
   return auth_data_->current_user;
 }
 
 void Auth::SignOut() {
+  if (!auth_data_) return;
   ::firebase::auth::SignOut(auth_data_);
 }
 

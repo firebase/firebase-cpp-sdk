@@ -67,7 +67,9 @@ class HttpsCallableReferenceInternal {
   [[nodiscard]] Functions* functions() const;
 
   [[nodiscard]] FunctionsInternal* functions_internal() const {
-    return functions_;
+    if (!functions_ || !functions_lifetime_) return nullptr;
+    MutexLock fn_lock(functions_lifetime_->mutex);
+    return functions_lifetime_->alive ? functions_ : nullptr;
   }
 
   // Asynchronously calls the trigger endpoint with no parameters.
@@ -91,11 +93,12 @@ class HttpsCallableReferenceInternal {
 #endif  // __OBJC__
 
   // Get the Future for the HttpsCallableReferenceInternal.
-  ReferenceCountedFutureImpl* future() { return &future_impl_; }
-  ReferenceCountedFutureImpl future_impl_;
+  ReferenceCountedFutureImpl* future() { return future_impl_.get(); }
 
   // The FunctionsInternal object we are part of.
-  FunctionsInternal* functions_;
+  FunctionsInternal* functions_ = nullptr;
+  std::shared_ptr<FunctionsLifetimeState> functions_lifetime_;
+  std::shared_ptr<ReferenceCountedFutureImpl> future_impl_;
 
   std::unique_ptr<FIRHTTPSCallablePointer> impl_;
 };

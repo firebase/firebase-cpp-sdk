@@ -33,6 +33,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/time.h"
 #include "app/src/util.h"
+#include "app/src/util_android.h"
 #include "app/src/jni/collection.h"
 #include "remote_config/remote_config_resources.h"
 #include "remote_config/src/common.h"
@@ -329,8 +330,16 @@ static jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
     if (!blob_data && blob_size > 0) {
       return nullptr;
     }
-    result = static_cast<jobject>(
-        ::firebase::jni::ByteBufferToJavaByteArray(env, blob_data, blob_size));
+    // Workaround a Remote Config Android SDK bug (b/141322200): rather than
+    // using a byte[] array, use a String containing binary data instead.
+    std::vector<jchar> unicode_bytes(blob_size);
+    for (size_t i = 0; i < blob_size; ++i) {
+      unicode_bytes[i] = static_cast<jchar>(blob_data[i]);
+    }
+    const jchar kEmptyChar = 0;
+    result = env->NewString(
+        unicode_bytes.empty() ? &kEmptyChar : unicode_bytes.data(),
+        static_cast<jsize>(blob_size));
   }
   if (jni::CheckAndClearException(env)) {
     return nullptr;
@@ -650,6 +659,8 @@ static Mutex g_listener_wrappers_mutex;
 static jlong g_next_listener_id = 1;
 static std::map<jlong, ConfigUpdateListenerWrapper*>*
     g_active_listener_wrappers = nullptr;
+static std::vector<ConfigUpdateListenerWrapper*>*
+    g_retired_listener_wrappers = nullptr;
 
 static jlong RegisterListenerWrapper(ConfigUpdateListenerWrapper* wrapper) {
   MutexLock lock(g_listener_wrappers_mutex);
@@ -663,18 +674,21 @@ static jlong RegisterListenerWrapper(ConfigUpdateListenerWrapper* wrapper) {
 }
 
 static void UnregisterAndDeleteListenerWrapper(jlong listener_id) {
-  ConfigUpdateListenerWrapper* wrapper = nullptr;
-  {
-    MutexLock lock(g_listener_wrappers_mutex);
-    if (g_active_listener_wrappers) {
-      auto it = g_active_listener_wrappers->find(listener_id);
-      if (it != g_active_listener_wrappers->end()) {
-        wrapper = it->second;
-        g_active_listener_wrappers->erase(it);
+  MutexLock lock(g_listener_wrappers_mutex);
+  if (g_active_listener_wrappers) {
+    auto it = g_active_listener_wrappers->find(listener_id);
+    if (it != g_active_listener_wrappers->end()) {
+      ConfigUpdateListenerWrapper* wrapper = it->second;
+      g_active_listener_wrappers->erase(it);
+      if (wrapper) {
+        if (!g_retired_listener_wrappers) {
+          g_retired_listener_wrappers =
+              new std::vector<ConfigUpdateListenerWrapper*>();
+        }
+        g_retired_listener_wrappers->push_back(wrapper);
       }
     }
   }
-  delete wrapper;
 }
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
@@ -691,7 +705,7 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   if (lock.AddReference() == 0) {
     // Initialize
     jobject activity = app_.activity();
-    if (!true) {
+    if (!util::Initialize(env, activity)) {
       lock.RemoveReference();
       return;
     }
@@ -707,7 +721,7 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
     // Cache method pointers.
     if (!CacheJNIMethodIds(env, activity, embedded_files)) {
       ReleaseClasses(env);
-      
+      util::Terminate(env);
       lock.RemoveReference();
       return;
     }
@@ -737,7 +751,8 @@ bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
 }
 
-void RemoteConfigInternal::Cleanup() {  if (!jni_task_id_.empty()) {
+void RemoteConfigInternal::Cleanup() {
+  if (!jni_task_id_.empty()) {
     JNIEnv* env = app_.GetJNIEnv();
     firebase::util::CancelCallbacks(env, jni_task_id_.c_str());
     jni_task_id_.clear();
@@ -753,7 +768,16 @@ void RemoteConfigInternal::Cleanup() {  if (!jni_task_id_.empty()) {
     if (lock.RemoveReference() == 1) {
       JNIEnv* env = app_.GetJNIEnv();
       ReleaseClasses(env);
-      
+      util::Terminate(env);
+      MutexLock listener_lock(g_listener_wrappers_mutex);
+      if (g_retired_listener_wrappers) {
+        for (ConfigUpdateListenerWrapper* wrapper :
+             *g_retired_listener_wrappers) {
+          delete wrapper;
+        }
+        delete g_retired_listener_wrappers;
+        g_retired_listener_wrappers = nullptr;
+      }
     }
   }
 }

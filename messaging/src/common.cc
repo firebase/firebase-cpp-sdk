@@ -406,8 +406,7 @@ PollableListener& PollableListener::operator=(
       if (state.listener == &other) {
         state.listener = this;
       } else if (state.listener == this) {
-        state.listener = nullptr;
-        NotifyListenerSet(nullptr);
+        UnregisterListener(this);
       }
     }
     delete old_impl;

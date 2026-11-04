@@ -125,7 +125,6 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info,
 // Global reference to the Firebase App.
 static const ::firebase::App *g_app = nullptr;
 
-static std::mutex g_delegate_mutex;
 static id<UNUserNotificationCenterDelegate> g_user_delegate = nil;
 
 // Caches the notification used to launch the application.  This is delivered when the API is
@@ -219,7 +218,7 @@ void NotifyListenerSet(Listener* listener) {
       UNUserNotificationCenter *center =
           [UNUserNotificationCenter currentNotificationCenter];
       if (center.delegate != nil && center.delegate != appDelegate) {
-        std::lock_guard<std::mutex> lock(g_delegate_mutex);
+        MutexLock lock(g_delegate_mutex);
         g_user_delegate = center.delegate;
       }
       center.delegate = appDelegate;
@@ -232,7 +231,7 @@ void NotifyListenerSet(Listener* listener) {
     }
     NSDictionary* cached_notification = nil;
     {
-      std::lock_guard<std::mutex> lock(g_delegate_mutex);
+      MutexLock lock(g_delegate_mutex);
       if (g_launch_notification != nil) {
         cached_notification = g_launch_notification;
         g_launch_notification = nil;
@@ -286,7 +285,7 @@ Future<void> RequestPermission() {
       UNUserNotificationCenter *center =
           [UNUserNotificationCenter currentNotificationCenter];
       if (center.delegate != nil && center.delegate != appDelegate) {
-        std::lock_guard<std::mutex> lock(g_delegate_mutex);
+        MutexLock lock(g_delegate_mutex);
         g_user_delegate = center.delegate;
       }
       center.delegate = appDelegate;
@@ -366,11 +365,23 @@ void Terminate() {
   }
   SetListener(nullptr);
   g_messaging_options = MessagingOptions();
+  id<UNUserNotificationCenterDelegate> user_delegate = nil;
   {
-    std::lock_guard<std::mutex> lock(g_delegate_mutex);
+    MutexLock lock(g_delegate_mutex);
     g_launch_notification = nil;
+    user_delegate = g_user_delegate;
     g_user_delegate = nil;
   }
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  if ([UNUserNotificationCenter class] != nil) {
+    UNUserNotificationCenter *center =
+        [UNUserNotificationCenter currentNotificationCenter];
+    if (user_delegate != nil ||
+        center.delegate == (id<UNUserNotificationCenterDelegate>)[UIApplication sharedApplication]) {
+      center.delegate = user_delegate;
+    }
+  }
+#endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 }
 
 // Register the device with FCM and retrieve a new registration token.
@@ -621,8 +632,11 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
                                                                 NSDictionary *launch_options) {
 #if FIREBASE_PLATFORM_IOS
   // If the app was launched with a notification, cache it until we're connected.
-  g_launch_notification =
-      [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+  {
+    MutexLock lock(g_delegate_mutex);
+    g_launch_notification =
+        [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+  }
 #endif  // FIREBASE_PLATFORM_IOS
 
   BOOL ret = NO;
@@ -653,7 +667,7 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     id user_notification_center = [notification_center_class currentNotificationCenter];
     id existing_delegate = [user_notification_center delegate];
     if (existing_delegate != nil && existing_delegate != application) {
-      std::lock_guard<std::mutex> lock(g_delegate_mutex);
+      MutexLock lock(g_delegate_mutex);
       g_user_delegate = existing_delegate;
     }
     [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
@@ -661,8 +675,8 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
 
   NSDictionary* cached_notification = nil;
   {
-    std::lock_guard<std::mutex> lock(g_delegate_mutex);
-    if (g_launch_notification != nil && MessagingIsInitialized()) {
+    MutexLock lock(g_delegate_mutex);
+    if (g_launch_notification != nil && g_delegate.isListenerSet) {
       cached_notification = g_launch_notification;
       g_launch_notification = nil;
     }
@@ -981,7 +995,7 @@ Future<std::string> GetToken() {
   [[FIRMessaging messaging] tokenWithCompletion:^(NSString *_Nullable token,
                                            NSError *_Nullable error) {
     MutexLock completion_lock(g_future_data_mutex);
-    if (!FutureData::Get() || !FutureData::Get()->api()) return;
+    if (!FutureData::Get() || FutureData::Get()->api() != api) return;
     ReferenceCountedFutureImpl* completion_api = FutureData::Get()->api();
     if (error) {
       completion_api->CompleteWithResult(
@@ -1072,7 +1086,7 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
   }
   id<UNUserNotificationCenterDelegate> user_delegate = nil;
   {
-    std::lock_guard<std::mutex> lock(::firebase::messaging::g_delegate_mutex);
+    ::firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
     user_delegate = ::firebase::messaging::g_user_delegate;
   }
   if (user_delegate &&

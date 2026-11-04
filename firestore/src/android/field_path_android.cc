@@ -53,6 +53,7 @@ Local<Object> FieldPathConverter::Create(Env& env, const FieldPath& path) {
   if (path.internal_ == nullptr || path.internal_->size() == 0) {
     SimpleThrowInvalidArgument(
         "Invalid field path. Provided path must not be empty.");
+    return {};
   }
   FieldPath::FieldPathInternal& internal = *path.internal_;
 

@@ -37,7 +37,9 @@
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
+#include "app/src/util_android.h"
 #include "app/src/app_android.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/jni/env.h"
 #include "app/src/jni/exception.h"
 #include "app/src/jni/ownership.h"
@@ -115,7 +117,7 @@ static bool g_registration_token_received = false;
 // Recursive mutex which controls access of:
 // * g_registration_token_received
 // * g_pending_topic_ops
-static std::unique_ptr<Mutex> g_registration_token_mutex;
+static Mutex g_registration_token_mutex;
 
 // Calls to Subscribe/Unsubscribe can happen before the registration token
 // has been received, and thus can't be handled immediately. Queue them in
@@ -139,7 +141,7 @@ static std::unique_ptr<std::vector<PendingTopicOp>> g_pending_topic_ops;
 static std::unique_ptr<std::string> g_local_storage_file_path;
 static std::unique_ptr<std::string> g_lockfile_path;
 
-static std::unique_ptr<Mutex> g_file_locker_mutex;
+static Mutex g_file_locker_mutex;
 
 // Mutex for managing if FutureData is safe to use, or if it has been deleted.
 static Mutex g_future_data_mutex;
@@ -179,54 +181,9 @@ static bool g_intent_message_fired = false;
     X(Register, "register", "()Lcom/google/android/gms/tasks/Task;"),          \
     X(Unregister, "unregister", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
-namespace firebase_messaging {
-  enum Method {
-    kIsAutoInitEnabled,
-    kSetAutoInitEnabled,
-    kSubscribeToTopic,
-    kUnsubscribeFromTopic,
-    kGetInstance,
-    kDeliveryMetricsExportToBigQueryEnabled,
-    kSetDeliveryMetricsExportToBigQuery,
-    kGetToken,
-    kDeleteToken,
-    kRegister,
-    kUnregister,
-    kMethodCount
-  };
-  static jclass g_class = nullptr;
-  static jmethodID g_method_ids[kMethodCount];
-  inline jclass GetClass() { return g_class; }
-  inline jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  inline bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    jclass local_class = env->FindClass("com/google/firebase/messaging/FirebaseMessaging");
-    if (!local_class) return false;
-    g_class = (jclass)env->NewGlobalRef(local_class);
-    env->DeleteLocalRef(local_class);
-    g_method_ids[kIsAutoInitEnabled] = env->GetMethodID(g_class, "isAutoInitEnabled", "()Z");
-    if (!g_method_ids[kIsAutoInitEnabled]) return false;
-    g_method_ids[kSetAutoInitEnabled] = env->GetMethodID(g_class, "setAutoInitEnabled", "(Z)V");
-    if (!g_method_ids[kSetAutoInitEnabled]) return false;
-    g_method_ids[kSubscribeToTopic] = env->GetMethodID(g_class, "subscribeToTopic", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kSubscribeToTopic]) return false;
-    g_method_ids[kUnsubscribeFromTopic] = env->GetMethodID(g_class, "unsubscribeFromTopic", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kUnsubscribeFromTopic]) return false;
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class, "getInstance", "()Lcom/google/firebase/messaging/FirebaseMessaging;");
-    g_method_ids[kDeliveryMetricsExportToBigQueryEnabled] = env->GetMethodID(g_class, "deliveryMetricsExportToBigQueryEnabled", "()Z");
-    g_method_ids[kSetDeliveryMetricsExportToBigQuery] = env->GetMethodID(g_class, "setDeliveryMetricsExportToBigQuery", "(Z)V");
-    g_method_ids[kGetToken] = env->GetMethodID(g_class, "getToken", "()Lcom/google/android/gms/tasks/Task;");
-    g_method_ids[kDeleteToken] = env->GetMethodID(g_class, "deleteToken", "()Lcom/google/android/gms/tasks/Task;");
-    g_method_ids[kRegister] = env->GetMethodID(g_class, "register", "()Lcom/google/android/gms/tasks/Task;");
-    g_method_ids[kUnregister] = env->GetMethodID(g_class, "unregister", "()Lcom/google/android/gms/tasks/Task;");
-    return true;
-  }
-  inline void ReleaseClass(JNIEnv* env) {
-    if (g_class) {
-      env->DeleteGlobalRef(g_class);
-      g_class = nullptr;
-    }
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(
+    firebase_messaging, FIREBASE_MESSAGING_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/messaging/FirebaseMessaging")
 
 static void FireIntentMessage(JNIEnv* env);
 
@@ -249,14 +206,10 @@ FileLocker::~FileLocker() {
 // the contents of the storage file. This should be called at the beginning
 // of a critical section.
 int FileLocker::AcquireLock(const char* lock_filename) {
-  if (g_file_locker_mutex) {
-    g_file_locker_mutex->Acquire();
-  }
+  g_file_locker_mutex.Acquire();
   int fd = open(lock_filename, O_RDWR | O_CREAT, 0666);
   if (fd < 0) {
-    if (g_file_locker_mutex) {
-      g_file_locker_mutex->Release();
-    }
+    g_file_locker_mutex.Release();
     return -1;
   }
   int lock_result = 0;
@@ -265,9 +218,7 @@ int FileLocker::AcquireLock(const char* lock_filename) {
   } while (lock_result < 0 && errno == EINTR);
   if (lock_result < 0) {
     close(fd);
-    if (g_file_locker_mutex) {
-      g_file_locker_mutex->Release();
-    }
+    g_file_locker_mutex.Release();
     return -1;
   }
   return fd;
@@ -281,9 +232,7 @@ void FileLocker::ReleaseLock(const char* lock_filename, int fd) {
     flock(fd, LOCK_UN);
     close(fd);
   }
-  if (g_file_locker_mutex) {
-    g_file_locker_mutex->Release();
-  }
+  g_file_locker_mutex.Release();
 }
 
 // Lock the file referenced by g_lockfile_path.
@@ -353,8 +302,8 @@ static void ConsumeEvents() {
       },
       nullptr,
       [](const char* token, void* callback_data) {
-        if (g_registration_token_mutex) {
-          MutexLock lock(*g_registration_token_mutex);
+        {
+          MutexLock lock(g_registration_token_mutex);
           g_registration_token_received = true;
           HandlePendingSubscriptions();
         }
@@ -362,8 +311,8 @@ static void ConsumeEvents() {
       },
       nullptr,
       [](const char* installationId, void* callback_data) {
-        if (g_registration_token_mutex) {
-          MutexLock lock(*g_registration_token_mutex);
+        {
+          MutexLock lock(g_registration_token_mutex);
           g_registration_token_received = true;
           HandlePendingSubscriptions();
         }
@@ -542,28 +491,67 @@ static bool IsValidKey(const char* key) {
 static void BundleToMessageData(JNIEnv* env,
                                 std::map<std::string, std::string>* to,
                                 jobject from) {
+  jclass from_class = env->GetObjectClass(from);
+  jmethodID key_set_method =
+      env->GetMethodID(from_class, "keySet", "()Ljava/util/Set;");
+  jmethodID get_string_method = env->GetMethodID(
+      from_class, "getString", "(Ljava/lang/String;)Ljava/lang/String;");
+  env->DeleteLocalRef(from_class);
+  if (::firebase::jni::CheckAndClearException(env) || !key_set_method ||
+      !get_string_method) {
+    return;
+  }
+
   // Set<String> key_set = from.keySet();
-  jobject key_set = env->CallObjectMethod(from, env->GetMethodID(env->GetObjectClass(from), "keySet", "()Ljava/util/Set;"));
+  jobject key_set = env->CallObjectMethod(from, key_set_method);
   if (::firebase::jni::CheckAndClearException(env) || !key_set) return;
+
+  jclass set_class = env->GetObjectClass(key_set);
+  jmethodID iterator_method =
+      env->GetMethodID(set_class, "iterator", "()Ljava/util/Iterator;");
+  env->DeleteLocalRef(set_class);
+  if (::firebase::jni::CheckAndClearException(env) || !iterator_method) {
+    env->DeleteLocalRef(key_set);
+    return;
+  }
+
   // Iterator iter = key_set.iterator();
-  jobject iter = env->CallObjectMethod(key_set, env->GetMethodID(env->GetObjectClass(key_set), "iterator", "()Ljava/util/Iterator;"));
+  jobject iter = env->CallObjectMethod(key_set, iterator_method);
   if (::firebase::jni::CheckAndClearException(env) || !iter) {
     env->DeleteLocalRef(key_set);
     return;
   }
+
+  jclass iter_class = env->GetObjectClass(iter);
+  jmethodID has_next_method = env->GetMethodID(iter_class, "hasNext", "()Z");
+  jmethodID next_method =
+      env->GetMethodID(iter_class, "next", "()Ljava/lang/Object;");
+  env->DeleteLocalRef(iter_class);
+  if (::firebase::jni::CheckAndClearException(env) || !has_next_method ||
+      !next_method) {
+    env->DeleteLocalRef(iter);
+    env->DeleteLocalRef(key_set);
+    return;
+  }
+
   // while (iter.hasNext())
-  while (env->CallBooleanMethod(iter, env->GetMethodID(env->GetObjectClass(iter), "hasNext", "()Z"))) {
+  while (env->CallBooleanMethod(iter, has_next_method)) {
     if (::firebase::jni::CheckAndClearException(env)) break;
     // String key = iter.next();
-    jobject key_object = env->CallObjectMethod(iter, env->GetMethodID(env->GetObjectClass(iter), "next", "()Ljava/lang/Object;"));
+    jobject key_object = env->CallObjectMethod(iter, next_method);
     if (::firebase::jni::CheckAndClearException(env) || !key_object) break;
     const char* key =
         env->GetStringUTFChars(static_cast<jstring>(key_object), nullptr);
     if (key != nullptr && IsValidKey(key)) {
       // String value = from.getString(key);
-      jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(from, env->GetMethodID(env->GetObjectClass(from), "getString", "(Ljava/lang/String;)Ljava/lang/String;"), key_object));
-      if (!::firebase::jni::CheckAndClearException(env) && value_jstring != nullptr) {
+      jstring value_jstring = static_cast<jstring>(
+          env->CallObjectMethod(from, get_string_method, key_object));
+      if (!::firebase::jni::CheckAndClearException(env) &&
+          value_jstring != nullptr) {
         (*to)[key] = ::firebase::jni::JStringToString(env, value_jstring);
+      }
+      if (value_jstring != nullptr) {
+        env->DeleteLocalRef(value_jstring);
       }
     }
     if (key != nullptr) {
@@ -578,11 +566,23 @@ static void BundleToMessageData(JNIEnv* env,
 // Returns the string associated with the given key in the bundle.
 static std::string BundleGetString(JNIEnv* env, jobject bundle,
                                    const char* key) {
+  jclass bundle_class = env->GetObjectClass(bundle);
+  jmethodID get_string_method = env->GetMethodID(
+      bundle_class, "getString", "(Ljava/lang/String;)Ljava/lang/String;");
+  env->DeleteLocalRef(bundle_class);
+  if (::firebase::jni::CheckAndClearException(env) || !get_string_method) {
+    return "";
+  }
   jstring key_jstring = env->NewStringUTF(key);
-  jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(bundle, env->GetMethodID(env->GetObjectClass(bundle), "getString", "(Ljava/lang/String;)Ljava/lang/String;"), key_jstring));
-  ::firebase::jni::CheckAndClearException(env);
-  std::string value = ::firebase::jni::JStringToString(env, value_jstring);
+  jstring value_jstring = static_cast<jstring>(
+      env->CallObjectMethod(bundle, get_string_method, key_jstring));
   env->DeleteLocalRef(key_jstring);
+  if (::firebase::jni::CheckAndClearException(env) || !value_jstring) {
+    if (value_jstring) env->DeleteLocalRef(value_jstring);
+    return "";
+  }
+  std::string value = ::firebase::jni::JStringToString(env, value_jstring);
+  env->DeleteLocalRef(value_jstring);
   return value;
 }
 
@@ -600,14 +600,30 @@ static void FireIntentMessage(JNIEnv* env) {
   }
   g_intent_message_fired = true;
   // Intent intent = app.getIntent();
-  jobject intent = env->CallObjectMethod(activity, env->GetMethodID(env->GetObjectClass(activity), "getIntent", "()Landroid/content/Intent;"));
-  ::firebase::jni::CheckAndClearException(env);
+  jclass activity_class = env->GetObjectClass(activity);
+  jmethodID get_intent_method = env->GetMethodID(
+      activity_class, "getIntent", "()Landroid/content/Intent;");
+  env->DeleteLocalRef(activity_class);
+  jobject intent = nullptr;
+  if (!::firebase::jni::CheckAndClearException(env) && get_intent_method) {
+    intent = env->CallObjectMethod(activity, get_intent_method);
+    ::firebase::jni::CheckAndClearException(env);
+  }
   env->DeleteLocalRef(activity);
 
   if (intent != nullptr) {
     // Bundle bundle = intent.getExtras();
-    jobject bundle = env->CallObjectMethod(intent, env->GetMethodID(env->GetObjectClass(intent), "getExtras", "()Landroid/os/Bundle;"));
-    ::firebase::jni::CheckAndClearException(env);
+    jclass intent_class = env->GetObjectClass(intent);
+    jmethodID get_extras_method =
+        env->GetMethodID(intent_class, "getExtras", "()Landroid/os/Bundle;");
+    jmethodID get_data_method =
+        env->GetMethodID(intent_class, "getData", "()Landroid/net/Uri;");
+    env->DeleteLocalRef(intent_class);
+    jobject bundle = nullptr;
+    if (!::firebase::jni::CheckAndClearException(env) && get_extras_method) {
+      bundle = env->CallObjectMethod(intent, get_extras_method);
+      ::firebase::jni::CheckAndClearException(env);
+    }
     if (bundle != nullptr) {
       Message message;
       message.message_id = BundleGetString(env, bundle, kExtraMessageId);
@@ -634,15 +650,27 @@ static void FireIntentMessage(JNIEnv* env) {
         message.notification_opened = true;
 
         // Check to see if we have a deep link on the intent.
-        jobject uri_object = env->CallObjectMethod(intent, env->GetMethodID(env->GetObjectClass(intent), "getData", "()Landroid/net/Uri;"));
+        jobject uri_object =
+            get_data_method ? env->CallObjectMethod(intent, get_data_method)
+                            : nullptr;
         ::firebase::jni::CheckAndClearException(env);
         if (uri_object != nullptr) {
           jclass uri_class = env->FindClass("android/net/Uri");
-          jmethodID toString = env->GetMethodID(uri_class, "toString", "()Ljava/lang/String;");
-          jstring str = static_cast<jstring>(env->CallObjectMethod(uri_object, toString));
-          message.link = ::firebase::jni::JStringToString(env, str);
-          env->DeleteLocalRef(uri_class);
-          env->DeleteLocalRef(str);
+          jmethodID toString =
+              uri_class ? env->GetMethodID(uri_class, "toString",
+                                           "()Ljava/lang/String;")
+                        : nullptr;
+          if (!::firebase::jni::CheckAndClearException(env) && toString) {
+            jstring str = static_cast<jstring>(
+                env->CallObjectMethod(uri_object, toString));
+            if (!::firebase::jni::CheckAndClearException(env) &&
+                str != nullptr) {
+              message.link = ::firebase::jni::JStringToString(env, str);
+            }
+            if (str) env->DeleteLocalRef(str);
+          }
+          if (uri_class) env->DeleteLocalRef(uri_class);
+          env->DeleteLocalRef(uri_object);
         } else {
           message.link = "";
         }
@@ -684,8 +712,19 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
   }
 
   // Cache the local storage file and lockfile before publishing g_app.
-jclass context_class = env->FindClass("android/content/Context");
-  jmethodID get_files_dir_method = env->GetMethodID(context_class, "getFilesDir", "()Ljava/io/File;");
+  jclass context_class = env->FindClass("android/content/Context");
+  if (::firebase::jni::CheckAndClearException(env) || !context_class) {
+    if (context_class) env->DeleteLocalRef(context_class);
+    ReleaseClasses(env);
+    return kInitResultFailedMissingDependency;
+  }
+  jmethodID get_files_dir_method =
+      env->GetMethodID(context_class, "getFilesDir", "()Ljava/io/File;");
+  if (::firebase::jni::CheckAndClearException(env) || !get_files_dir_method) {
+    env->DeleteLocalRef(context_class);
+    ReleaseClasses(env);
+    return kInitResultFailedMissingDependency;
+  }
   jobject file = env->CallObjectMethod(app.activity(), get_files_dir_method);
   env->DeleteLocalRef(context_class);
   if (::firebase::jni::CheckAndClearException(env) || !file) {
@@ -693,31 +732,48 @@ jclass context_class = env->FindClass("android/content/Context");
     ReleaseClasses(env);
     return kInitResultFailedMissingDependency;
   }
-  
+
   jclass file_class = env->FindClass("java/io/File");
-  jmethodID get_path_method = env->GetMethodID(file_class, "getAbsolutePath", "()Ljava/lang/String;");
-  jstring path_jstring = static_cast<jstring>(env->CallObjectMethod(file, get_path_method));
+  if (::firebase::jni::CheckAndClearException(env) || !file_class) {
+    if (file_class) env->DeleteLocalRef(file_class);
+    env->DeleteLocalRef(file);
+    ReleaseClasses(env);
+    return kInitResultFailedMissingDependency;
+  }
+  jmethodID get_path_method =
+      env->GetMethodID(file_class, "getAbsolutePath", "()Ljava/lang/String;");
+  if (::firebase::jni::CheckAndClearException(env) || !get_path_method) {
+    env->DeleteLocalRef(file_class);
+    env->DeleteLocalRef(file);
+    ReleaseClasses(env);
+    return kInitResultFailedMissingDependency;
+  }
+  jstring path_jstring =
+      static_cast<jstring>(env->CallObjectMethod(file, get_path_method));
   env->DeleteLocalRef(file_class);
   if (::firebase::jni::CheckAndClearException(env) || !path_jstring) {
     if (path_jstring) env->DeleteLocalRef(path_jstring);
     env->DeleteLocalRef(file);
     ReleaseClasses(env);
-    
+
     return kInitResultFailedMissingDependency;
   }
-  std::string local_storage_dir = ::firebase::jni::JStringToString(env, path_jstring);
+  std::string local_storage_dir =
+      ::firebase::jni::JStringToString(env, path_jstring);
+  env->DeleteLocalRef(path_jstring);
   env->DeleteLocalRef(file);
 
   // Get / create the Firebase Cloud Messaging singleton.
   jobject firebase_messaging_instance = env->CallStaticObjectMethod(
       firebase_messaging::GetClass(),
       firebase_messaging::GetMethodId(firebase_messaging::kGetInstance));
-  if (::firebase::jni::CheckAndClearException(env) || !firebase_messaging_instance) {
+  if (::firebase::jni::CheckAndClearException(env) ||
+      !firebase_messaging_instance) {
     if (firebase_messaging_instance) {
       env->DeleteLocalRef(firebase_messaging_instance);
     }
     ReleaseClasses(env);
-    
+
     return kInitResultFailedMissingDependency;
   }
 
@@ -726,13 +782,14 @@ jclass context_class = env->FindClass("android/content/Context");
   env->DeleteLocalRef(firebase_messaging_instance);
   if (::firebase::jni::CheckAndClearException(env) || !g_firebase_messaging) {
     ReleaseClasses(env);
-    
+
     return kInitResultFailedMissingDependency;
   }
 
-  g_registration_token_mutex = std::make_unique<Mutex>();
-  g_file_locker_mutex = std::make_unique<Mutex>();
-  g_pending_topic_ops = std::make_unique<std::vector<PendingTopicOp>>();
+  {
+    MutexLock lock(g_registration_token_mutex);
+    g_pending_topic_ops = std::make_unique<std::vector<PendingTopicOp>>();
+  }
   g_intent_message_fired = false;
   g_lockfile_path = std::make_unique<std::string>(local_storage_dir + "/" + kLockfile);
   g_local_storage_file_path =
@@ -794,15 +851,6 @@ jclass context_class = env->FindClass("android/content/Context");
 
 namespace internal {
 
-static std::string JniUriToString(JNIEnv* env, jobject uri) {
-  if (!uri) return "";
-  jstring str = (jstring)env->CallObjectMethod(uri, env->GetMethodID(env->GetObjectClass(uri), "toString", "()Ljava/lang/String;"));
-  std::string result = ::firebase::jni::JStringToString(env, str);
-  env->DeleteLocalRef(str);
-  return result;
-}
-
-
 bool IsInitialized() { return g_app != nullptr; }
 
 }  // namespace internal
@@ -822,14 +870,15 @@ void Terminate() {
   }
   TerminateMessageProcessingThread();
 
-  // g_registration_token_mutex.reset();
-  g_file_locker_mutex.reset();
-  g_pending_topic_ops.reset();
+  {
+    MutexLock lock(g_registration_token_mutex);
+    g_pending_topic_ops.reset();
+    g_registration_token_received = false;
+    g_registration_token_request_state = kRegistrationTokenRequestStateNone;
+  }
   g_local_storage_file_path.reset();
   g_lockfile_path.reset();
 
-  g_registration_token_received = false;
-  g_registration_token_request_state = kRegistrationTokenRequestStateNone;
   g_delivery_metrics_export_to_big_query_state =
       kDeliveryMetricsExportToBigQueryNone;
   g_intent_message_fired = false;
@@ -845,28 +894,67 @@ void Terminate() {
   }
 }
 
+static void InstallationsGetTokenComplete(
+    JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
+    const char* status_message, void* callback_data) {
+  (void)status_message;
+  (void)callback_data;
+  bool success = (result_code == firebase::util::kFutureResultSuccess);
+  std::string token;
+  if (success && result != nullptr) {
+    token = ::firebase::jni::JStringToString(env, result);
+  }
+  if (result != nullptr) {
+    env->DeleteLocalRef(result);
+  }
+  if (success && !token.empty()) {
+    {
+      MutexLock lock(g_registration_token_mutex);
+      {
+        MutexLock app_lock(g_app_mutex);
+        if (!g_app) return;
+      }
+      g_registration_token_received = true;
+      HandlePendingSubscriptions();
+    }
+    NotifyListenerOnTokenReceived(token.c_str());
+  }
+}
+
 // Start a service which will communicate with the Firebase Cloud Messaging
 // server to generate a registration token for the app.
 static void InstallationsGetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(internal::IsInitialized(),
                                       kMessagingNotInitializedError);
-  Future<std::string> result = GetToken();
-
-  result.OnCompletion(
-      [](const Future<std::string>& result, void* voidptr) {
-        (void)voidptr;
-        if (result.error() == kErrorNone && result.result() != nullptr &&
-            !result.result()->empty()) {
-          MutexLock app_lock(g_app_mutex);
-          if (g_app && g_registration_token_mutex) {
-            MutexLock lock(*g_registration_token_mutex);
-            g_registration_token_received = true;
-            HandlePendingSubscriptions();
-          }
-          NotifyListenerOnTokenReceived(result.result()->c_str());
+  JNIEnv* env = nullptr;
+  jobject messaging_obj = nullptr;
+  {
+    MutexLock lock(g_app_mutex);
+    if (g_app && g_firebase_messaging) {
+      env = g_app->GetJNIEnv();
+      if (env) {
+        messaging_obj = env->NewLocalRef(g_firebase_messaging);
+        if (::firebase::jni::CheckAndClearException(env)) {
+          if (messaging_obj) env->DeleteLocalRef(messaging_obj);
+          messaging_obj = nullptr;
         }
-      },
-      nullptr);
+      }
+    }
+  }
+  if (!messaging_obj) return;
+
+  jobject result = env->CallObjectMethod(
+      messaging_obj,
+      firebase_messaging::GetMethodId(firebase_messaging::kGetToken));
+  env->DeleteLocalRef(messaging_obj);
+  if (!::firebase::jni::CheckAndClearException(env) && result != nullptr) {
+    firebase::util::RegisterCallbackOnTask(
+        env, result, InstallationsGetTokenComplete, nullptr, kApiIdentifier);
+    ::firebase::jni::CheckAndClearException(env);
+  }
+  if (result != nullptr) {
+    env->DeleteLocalRef(result);
+  }
 }
 
 static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,
@@ -978,7 +1066,6 @@ static void UnsubscribeInternal(const char* topic,
 
 // NOTE: Should be called when g_registration_token_mutex is held.
 static void HandlePendingSubscriptions() {
-  assert(g_registration_token_mutex);
   if (g_pending_topic_ops) {
     for (const auto& op : *g_pending_topic_ops) {
       if (op.type == kPendingTopicSubscribe) {
@@ -1036,35 +1123,59 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
 Future<void> Subscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock lock(g_registration_token_mutex);
   bool initialized = false;
   {
     MutexLock app_lock(g_app_mutex);
-    initialized = (g_app && g_registration_token_mutex && g_firebase_messaging);
+    initialized = (g_app && g_firebase_messaging);
   }
   if (!initialized) {
+    MutexLock future_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) {
+      return Future<void>();
+    }
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
     api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
     return MakeFuture(api, handle);
   }
-  MutexLock lock(*g_registration_token_mutex);
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
+  SafeFutureHandle<void> handle;
+  {
+    MutexLock future_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) {
+      return Future<void>();
+    }
+    handle = FutureData::Get()->api()->SafeAlloc<void>(kMessagingFnSubscribe);
+  }
   if (!topic || topic[0] == '\0') {
-    api->Complete(handle, kErrorInvalidTopicName,
-                  kErrorMessageInvalidTopicName);
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->Complete(handle, kErrorInvalidTopicName,
+                                         kErrorMessageInvalidTopicName);
+    }
   } else if (g_registration_token_received) {
     SubscribeInternal(topic, handle);
   } else if (g_registration_token_request_state ==
              kRegistrationTokenRequestStateDisable) {
-    api->Complete(handle, kErrorNoRegistrationToken,
-                  kErrorMessageNoRegistrationToken);
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->Complete(handle, kErrorNoRegistrationToken,
+                                         kErrorMessageNoRegistrationToken);
+    }
   } else if (g_pending_topic_ops) {
     g_pending_topic_ops->emplace_back(kPendingTopicSubscribe, topic, handle);
   } else {
-    api->Complete(handle, kErrorUnknown, kErrorMessageSubscriptionUnknown);
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->Complete(handle, kErrorUnknown,
+                                         kErrorMessageSubscriptionUnknown);
+    }
   }
-  return MakeFuture(api, handle);
+  MutexLock future_lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) {
+    return Future<void>();
+  }
+  return MakeFuture(FutureData::Get()->api(), handle);
 }
 
 Future<void> SubscribeLastResult() {
@@ -1081,35 +1192,60 @@ Future<void> SubscribeLastResult() {
 Future<void> Unsubscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock lock(g_registration_token_mutex);
   bool initialized = false;
   {
     MutexLock app_lock(g_app_mutex);
-    initialized = (g_app && g_registration_token_mutex && g_firebase_messaging);
+    initialized = (g_app && g_firebase_messaging);
   }
   if (!initialized) {
+    MutexLock future_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) {
+      return Future<void>();
+    }
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-    SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
+    SafeFutureHandle<void> handle =
+        api->SafeAlloc<void>(kMessagingFnUnsubscribe);
     api->Complete(handle, kErrorUnknown, "Messaging is uninitialized.");
     return MakeFuture(api, handle);
   }
-  MutexLock lock(*g_registration_token_mutex);
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
+  SafeFutureHandle<void> handle;
+  {
+    MutexLock future_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) {
+      return Future<void>();
+    }
+    handle = FutureData::Get()->api()->SafeAlloc<void>(kMessagingFnUnsubscribe);
+  }
   if (!topic || topic[0] == '\0') {
-    api->Complete(handle, kErrorInvalidTopicName,
-                  kErrorMessageInvalidTopicName);
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->Complete(handle, kErrorInvalidTopicName,
+                                         kErrorMessageInvalidTopicName);
+    }
   } else if (g_registration_token_received) {
     UnsubscribeInternal(topic, handle);
   } else if (g_registration_token_request_state ==
              kRegistrationTokenRequestStateDisable) {
-    api->Complete(handle, kErrorNoRegistrationToken,
-                  kErrorMessageNoRegistrationToken);
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->Complete(handle, kErrorNoRegistrationToken,
+                                         kErrorMessageNoRegistrationToken);
+    }
   } else if (g_pending_topic_ops) {
     g_pending_topic_ops->emplace_back(kPendingTopicUnsubscribe, topic, handle);
   } else {
-    api->Complete(handle, kErrorUnknown, kErrorMessageSubscriptionUnknown);
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->Complete(handle, kErrorUnknown,
+                                         kErrorMessageSubscriptionUnknown);
+    }
   }
-  return MakeFuture(api, handle);
+  MutexLock future_lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) {
+    return Future<void>();
+  }
+  return MakeFuture(FutureData::Get()->api(), handle);
 }
 
 Future<void> UnsubscribeLastResult() {
@@ -1171,7 +1307,7 @@ void SetTokenRegistrationOnInitEnabled(bool enabled) {
   // Unsubscribe() reflect runtime changes to auto-init state.
   if (internal::IsInitialized()) {
     {
-      MutexLock lock(*g_registration_token_mutex);
+      MutexLock lock(g_registration_token_mutex);
       g_registration_token_request_state =
           enabled ? kRegistrationTokenRequestStateEnable
                   : kRegistrationTokenRequestStateDisable;
@@ -1219,6 +1355,7 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
                                        firebase_messaging::Method method) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock lock(g_registration_token_mutex);
   JNIEnv* env = nullptr;
   jobject messaging_obj = nullptr;
   {
@@ -1231,9 +1368,8 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
     }
   }
 
-  if (!messaging_obj || !g_registration_token_mutex) {
-    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
-    MutexLock lock(g_future_data_mutex);
+  if (!messaging_obj) {
+    MutexLock future_lock(g_future_data_mutex);
     if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
@@ -1241,9 +1377,15 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
     return MakeFuture(api, handle);
   }
 
-  MutexLock lock(*g_registration_token_mutex);
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  SafeFutureHandle<void> handle = api->SafeAlloc<void>(fn);
+  SafeFutureHandle<void> handle;
+  {
+    MutexLock future_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) {
+      env->DeleteLocalRef(messaging_obj);
+      return Future<void>();
+    }
+    handle = FutureData::Get()->api()->SafeAlloc<void>(fn);
+  }
 
   jobject task = env->CallObjectMethod(
       messaging_obj, firebase_messaging::GetMethodId(method));
@@ -1255,12 +1397,17 @@ static Future<void> CallVoidTaskMethod(MessagingFn fn,
                                  reinterpret_cast<void*>(handle.get().id()),
                                  kApiIdentifier);
   } else {
-    api->Complete(handle, kErrorUnknown, error.c_str());
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->Complete(handle, kErrorUnknown, error.c_str());
+    }
   }
   if (task) env->DeleteLocalRef(task);
   ::firebase::jni::CheckAndClearException(env);
 
-  return MakeFuture(api, handle);
+  MutexLock future_lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<void>();
+  return MakeFuture(FutureData::Get()->api(), handle);
 }
 
 Future<void> Register() {
@@ -1299,6 +1446,7 @@ Future<std::string> GetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<std::string>(),
                                  internal::IsInitialized(),
                                  kMessagingNotInitializedError);
+  MutexLock lock(g_registration_token_mutex);
   JNIEnv* env = nullptr;
   jobject messaging_obj = nullptr;
   {
@@ -1311,9 +1459,8 @@ Future<std::string> GetToken() {
     }
   }
 
-  if (!messaging_obj || !g_registration_token_mutex) {
-    if (messaging_obj) env->DeleteLocalRef(messaging_obj);
-    MutexLock lock(g_future_data_mutex);
+  if (!messaging_obj) {
+    MutexLock future_lock(g_future_data_mutex);
     if (!FutureData::Get() || !FutureData::Get()->api()) return Future<std::string>();
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
     SafeFutureHandle<std::string> handle = api->SafeAlloc<std::string>(kMessagingFnGetToken);
@@ -1321,10 +1468,16 @@ Future<std::string> GetToken() {
     return MakeFuture(api, handle);
   }
 
-  MutexLock lock(*g_registration_token_mutex);
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  SafeFutureHandle<std::string> handle =
-      api->SafeAlloc<std::string>(kMessagingFnGetToken);
+  SafeFutureHandle<std::string> handle;
+  {
+    MutexLock future_lock(g_future_data_mutex);
+    if (!FutureData::Get() || !FutureData::Get()->api()) {
+      env->DeleteLocalRef(messaging_obj);
+      return Future<std::string>();
+    }
+    handle =
+        FutureData::Get()->api()->SafeAlloc<std::string>(kMessagingFnGetToken);
+  }
 
   jobject task = env->CallObjectMethod(
       messaging_obj,
@@ -1338,13 +1491,18 @@ Future<std::string> GetToken() {
         reinterpret_cast<void*>(handle.get().id()),
         kApiIdentifier);
   } else {
-    api->CompleteWithResult(handle, kErrorUnknown, error.c_str(),
-                            std::string());
+    MutexLock future_lock(g_future_data_mutex);
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      FutureData::Get()->api()->CompleteWithResult(handle, kErrorUnknown,
+                                                   error.c_str(), std::string());
+    }
   }
   if (task) env->DeleteLocalRef(task);
   ::firebase::jni::CheckAndClearException(env);
 
-  return MakeFuture(api, handle);
+  MutexLock future_lock(g_future_data_mutex);
+  if (!FutureData::Get() || !FutureData::Get()->api()) return Future<std::string>();
+  return MakeFuture(FutureData::Get()->api(), handle);
 }
 
 Future<std::string> GetTokenLastResult() {

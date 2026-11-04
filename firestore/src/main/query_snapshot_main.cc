@@ -41,6 +41,9 @@ QuerySnapshotInternal::~QuerySnapshotInternal() = default;
 QuerySnapshotInternal::QuerySnapshotInternal(QuerySnapshotInternal&& other) noexcept
     : snapshot_{[&]() {
         std::scoped_lock lock(other.mutex_);
+        other.document_changes_exclude_metadata_.reset();
+        other.document_changes_include_metadata_.reset();
+        other.documents_.reset();
         return std::move(other.snapshot_);
       }()} {}
 
@@ -61,9 +64,14 @@ QuerySnapshotInternal& QuerySnapshotInternal::operator=(
   if (this != &other) {
     std::scoped_lock lock(mutex_, other.mutex_);
     snapshot_ = std::move(other.snapshot_);
-    document_changes_exclude_metadata_.reset();
-    document_changes_include_metadata_.reset();
-    documents_.reset();
+    document_changes_exclude_metadata_ =
+        std::move(other.document_changes_exclude_metadata_);
+    document_changes_include_metadata_ =
+        std::move(other.document_changes_include_metadata_);
+    documents_ = std::move(other.documents_);
+    other.document_changes_exclude_metadata_.reset();
+    other.document_changes_include_metadata_.reset();
+    other.documents_.reset();
   }
   return *this;
 }
@@ -131,6 +139,10 @@ std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
 
 bool operator==(const QuerySnapshotInternal& lhs,
                 const QuerySnapshotInternal& rhs) {
+  if (&lhs == &rhs) {
+    return true;
+  }
+  std::scoped_lock lock(lhs.mutex_, rhs.mutex_);
   return lhs.snapshot_ == rhs.snapshot_;
 }
 

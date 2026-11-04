@@ -238,56 +238,60 @@ TEST(FunctionsDesktopTest, UrlConstructionAndLifecycle) {
   EXPECT_EQ(init_result, kInitResultSuccess);
   EXPECT_STREQ(fn->region(), "europe-west1");
 
-  // Callable created BEFORE UseFunctionsEmulator dynamically updates its URL.
-  HttpsCallableReference ref = fn->GetHttpsCallable("/myFunc");
-  EXPECT_TRUE(ref.is_valid());
-  EXPECT_EQ(ref.functions(), fn);
-  EXPECT_EQ(
-      ref.internal()->url(),
-      "https://europe-west1-test-proj.cloudfunctions.net/myFunc");
-
-  fn->UseFunctionsEmulator("https://localhost:5005/");
-  EXPECT_EQ(ref.internal()->url(),
-            "https://localhost:5005/test-proj/europe-west1/myFunc");
-
-  fn->UseEmulator("127.0.0.1", 5001);
-  EXPECT_EQ(ref.internal()->url(),
-            "http://127.0.0.1:5001/test-proj/europe-west1/myFunc");
-
-  // Custom domain support.
   Functions* custom_fn =
       Functions::GetInstance(app, "https://api.example.com/");
   ASSERT_NE(custom_fn, nullptr);
-  HttpsCallableReference custom_ref = custom_fn->GetHttpsCallable("runTask");
-  EXPECT_EQ(custom_ref.internal()->url(), "https://api.example.com/runTask");
 
-  // Invalid URL in GetHttpsCallableFromURL produces an invalid reference.
-  HttpsCallableReference bad_url_ref =
-      fn->GetHttpsCallableFromURL("not-a-valid-url");
-  EXPECT_FALSE(bad_url_ref.is_valid());
-
-  // Mock HTTP call and destroy HttpsCallableReference immediately after Call().
-  firebase::testing::cppsdk::ConfigSet(
-      "{"
-      "  config:["
-      "    {fake:'http://127.0.0.1:5001/test-proj/europe-west1/myFunc',"
-      "     httpresponse: {"
-      "       header: ['HTTP/1.1 200 Ok'],"
-      "       body: ['{\"result\": {\"answer\": 99}}']"
-      "     }"
-      "    }"
-      "  ]"
-      "}");
-
-  Future<HttpsCallableResult> call_future;
   {
-    HttpsCallableReference temp_ref = fn->GetHttpsCallable("myFunc");
-    call_future = temp_ref.Call(Variant("input"));
+    // Callable created BEFORE UseFunctionsEmulator dynamically updates its URL.
+    HttpsCallableReference ref = fn->GetHttpsCallable("/myFunc");
+    EXPECT_TRUE(ref.is_valid());
+    EXPECT_EQ(ref.functions(), fn);
+    EXPECT_EQ(
+        ref.internal()->url(),
+        "https://europe-west1-test-proj.cloudfunctions.net/myFunc");
+
+    fn->UseFunctionsEmulator("https://localhost:5005/");
+    EXPECT_EQ(ref.internal()->url(),
+              "https://localhost:5005/test-proj/europe-west1/myFunc");
+
+    fn->UseEmulator("127.0.0.1", 5001);
+    EXPECT_EQ(ref.internal()->url(),
+              "http://127.0.0.1:5001/test-proj/europe-west1/myFunc");
+
+    // Custom domain support.
+    HttpsCallableReference custom_ref = custom_fn->GetHttpsCallable("runTask");
+    EXPECT_EQ(custom_ref.internal()->url(), "https://api.example.com/runTask");
+
+    // Invalid URL in GetHttpsCallableFromURL produces an invalid reference.
+    HttpsCallableReference bad_url_ref =
+        fn->GetHttpsCallableFromURL("not-a-valid-url");
+    EXPECT_FALSE(bad_url_ref.is_valid());
+
+    // Mock HTTP call and destroy HttpsCallableReference immediately after
+    // Call().
+    firebase::testing::cppsdk::ConfigSet(
+        "{"
+        "  config:["
+        "    {fake:'http://127.0.0.1:5001/test-proj/europe-west1/myFunc',"
+        "     httpresponse: {"
+        "       header: ['HTTP/1.1 200 Ok'],"
+        "       body: ['{\"result\": {\"answer\": 99}}']"
+        "     }"
+        "    }"
+        "  ]"
+        "}");
+
+    Future<HttpsCallableResult> call_future;
+    {
+      HttpsCallableReference temp_ref = fn->GetHttpsCallable("myFunc");
+      call_future = temp_ref.Call(Variant("input"));
+    }
+    EXPECT_EQ(call_future.status(), kFutureStatusComplete);
+    EXPECT_EQ(call_future.error(), kErrorNone);
+    ASSERT_NE(call_future.result(), nullptr);
+    EXPECT_EQ(call_future.result()->data().map().at("answer"), Variant(99));
   }
-  EXPECT_EQ(call_future.status(), kFutureStatusComplete);
-  EXPECT_EQ(call_future.error(), kErrorNone);
-  ASSERT_NE(call_future.result(), nullptr);
-  EXPECT_EQ(call_future.result()->data().map().at("answer"), Variant(99));
 
   delete custom_fn;
   delete fn;

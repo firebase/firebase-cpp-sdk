@@ -485,6 +485,10 @@ class Env {
                      std::vector<T>>::type
   GetArrayRegion(const Array<T>& array, size_t start, size_t len) {
     if (!ok() || !array || len == 0) return {};
+    if (start > static_cast<size_t>(std::numeric_limits<jsize>::max()) ||
+        len > static_cast<size_t>(std::numeric_limits<jsize>::max()) - start) {
+      return {};
+    }
     std::vector<T> result(len);
     GetArrayRegion(array, start, len, result.data());
     if (!ok()) return {};
@@ -646,9 +650,6 @@ class ExceptionClearGuard {
 
   ~ExceptionClearGuard() {
     if (exception_) {
-      if (!env_.ok()) {
-        env_.ExceptionClear();
-      }
       env_.Throw(exception_);
     }
   }

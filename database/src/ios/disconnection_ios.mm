@@ -48,35 +48,28 @@ DisconnectionHandlerInternal::~DisconnectionHandlerInternal() {
 }
 
 void DisconnectionHandlerInternal::CancelImpl(SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnCancel);
   [impl() cancelDisconnectOperationsWithCompletionBlock:CreateCompletionBlock(handle, future())];
-  return MakeFuture(future(), handle);
 }
 
 
 void DisconnectionHandlerInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnRemoveValue);
   [impl() onDisconnectRemoveValueWithCompletionBlock:CreateCompletionBlock(handle, future())];
-  return MakeFuture(future(), handle);
 }
 
 
 void DisconnectionHandlerInternal::SetValueImpl(Variant value, SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValue);
-  if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
+  if (future()->LastResult(kDisconnectionHandlerFnSetValueAndPriority).status() ==
+      kFutureStatusPending) {
     future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
   } else {
     [impl() onDisconnectSetValue:VariantToId(value)
              withCompletionBlock:CreateCompletionBlock(handle, future())];
   }
-  return MakeFuture(future(), handle);
 }
 
 
 void DisconnectionHandlerInternal::SetValueAndPriorityImpl(Variant value, Variant priority, SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle =
-      future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValueAndPriority);
-  if (SetValueLastResult().status() == kFutureStatusPending) {
+  if (future()->LastResult(kDisconnectionHandlerFnSetValue).status() == kFutureStatusPending) {
     future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
   } else if (!IsValidPriority(priority)) {
     future()->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForPriority);
@@ -85,12 +78,10 @@ void DisconnectionHandlerInternal::SetValueAndPriorityImpl(Variant value, Varian
                      andPriority:VariantToId(priority)
              withCompletionBlock:CreateCompletionBlock(handle, future())];
   }
-  return MakeFuture(future(), handle);
 }
 
 
 void DisconnectionHandlerInternal::UpdateChildrenImpl(Variant values, SafeFutureHandle<void> handle) {
-  SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnUpdateChildren);
   if (!values.is_map()) {
     future()->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForUpdateChildren);
   } else {
@@ -99,7 +90,6 @@ void DisconnectionHandlerInternal::UpdateChildrenImpl(Variant values, SafeFuture
     [impl() onDisconnectUpdateChildValues:values_dict
                       withCompletionBlock:CreateCompletionBlock(handle, future())];
   }
-  return MakeFuture(future(), handle);
 }
 
 

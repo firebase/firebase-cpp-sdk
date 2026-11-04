@@ -17,8 +17,10 @@
 #include <jni.h>
 
 #include "app/src/app_android.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/jni/env.h"
 #include "app/src/jni/ownership.h"
+#include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
 #include "database/src/android/database_reference_android.h"
 #include "database/src/common/query.h"
@@ -91,131 +93,9 @@ namespace internal {
     "()Lcom/google/firebase/database/DatabaseReference;")
 // clang-format on
 
-namespace query {
-
-enum Method {
-  kAddValueEventListener,
-  kAddChildEventListener,
-  kAddListenerForSingleValueEvent,
-  kRemoveValueEventListener,
-  kRemoveChildEventListener,
-  kKeepSynced,
-  kStartAtString,
-  kStartAtDouble,
-  kStartAtBool,
-  kStartAtStringString,
-  kStartAtDoubleString,
-  kStartAtBoolString,
-  kEndAtString,
-  kEndAtDouble,
-  kEndAtBool,
-  kEndAtStringString,
-  kEndAtDoubleString,
-  kEndAtBoolString,
-  kEqualToString,
-  kEqualToDouble,
-  kEqualToBool,
-  kEqualToStringString,
-  kEqualToDoubleString,
-  kEqualToBoolString,
-  kLimitToFirst,
-  kLimitToLast,
-  kOrderByChild,
-  kOrderByPriority,
-  kOrderByKey,
-  kOrderByValue,
-  kGetRef,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/Query"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kAddValueEventListener] = env->GetMethodID(g_class.get(), "addValueEventListener", "(Lcom/google/firebase/database/ValueEventListener;)Lcom/google/firebase/database/ValueEventListener;");
-  if (!g_method_ids[kAddValueEventListener]) return false;
-  g_method_ids[kAddChildEventListener] = env->GetMethodID(g_class.get(), "addChildEventListener", "(Lcom/google/firebase/database/ChildEventListener;)Lcom/google/firebase/database/ChildEventListener;");
-  if (!g_method_ids[kAddChildEventListener]) return false;
-  g_method_ids[kAddListenerForSingleValueEvent] = env->GetMethodID(g_class.get(), "addListenerForSingleValueEvent", "(Lcom/google/firebase/database/ValueEventListener;)V");
-  if (!g_method_ids[kAddListenerForSingleValueEvent]) return false;
-  g_method_ids[kRemoveValueEventListener] = env->GetMethodID(g_class.get(), "removeEventListener", "(Lcom/google/firebase/database/ValueEventListener;)V");
-  if (!g_method_ids[kRemoveValueEventListener]) return false;
-  g_method_ids[kRemoveChildEventListener] = env->GetMethodID(g_class.get(), "removeEventListener", "(Lcom/google/firebase/database/ChildEventListener;)V");
-  if (!g_method_ids[kRemoveChildEventListener]) return false;
-  g_method_ids[kKeepSynced] = env->GetMethodID(g_class.get(), "keepSynced", "(Z)V");
-  if (!g_method_ids[kKeepSynced]) return false;
-  g_method_ids[kStartAtString] = env->GetMethodID(g_class.get(), "startAt", "(Ljava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kStartAtString]) return false;
-  g_method_ids[kStartAtDouble] = env->GetMethodID(g_class.get(), "startAt", "(D)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kStartAtDouble]) return false;
-  g_method_ids[kStartAtBool] = env->GetMethodID(g_class.get(), "startAt", "(Z)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kStartAtBool]) return false;
-  g_method_ids[kStartAtStringString] = env->GetMethodID(g_class.get(), "startAt", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kStartAtStringString]) return false;
-  g_method_ids[kStartAtDoubleString] = env->GetMethodID(g_class.get(), "startAt", "(DLjava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kStartAtDoubleString]) return false;
-  g_method_ids[kStartAtBoolString] = env->GetMethodID(g_class.get(), "startAt", "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kStartAtBoolString]) return false;
-  g_method_ids[kEndAtString] = env->GetMethodID(g_class.get(), "endAt", "(Ljava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEndAtString]) return false;
-  g_method_ids[kEndAtDouble] = env->GetMethodID(g_class.get(), "endAt", "(D)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEndAtDouble]) return false;
-  g_method_ids[kEndAtBool] = env->GetMethodID(g_class.get(), "endAt", "(Z)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEndAtBool]) return false;
-  g_method_ids[kEndAtStringString] = env->GetMethodID(g_class.get(), "endAt", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEndAtStringString]) return false;
-  g_method_ids[kEndAtDoubleString] = env->GetMethodID(g_class.get(), "endAt", "(DLjava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEndAtDoubleString]) return false;
-  g_method_ids[kEndAtBoolString] = env->GetMethodID(g_class.get(), "endAt", "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEndAtBoolString]) return false;
-  g_method_ids[kEqualToString] = env->GetMethodID(g_class.get(), "equalTo", "(Ljava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEqualToString]) return false;
-  g_method_ids[kEqualToDouble] = env->GetMethodID(g_class.get(), "equalTo", "(D)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEqualToDouble]) return false;
-  g_method_ids[kEqualToBool] = env->GetMethodID(g_class.get(), "equalTo", "(Z)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEqualToBool]) return false;
-  g_method_ids[kEqualToStringString] = env->GetMethodID(g_class.get(), "equalTo", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEqualToStringString]) return false;
-  g_method_ids[kEqualToDoubleString] = env->GetMethodID(g_class.get(), "equalTo", "(DLjava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEqualToDoubleString]) return false;
-  g_method_ids[kEqualToBoolString] = env->GetMethodID(g_class.get(), "equalTo", "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kEqualToBoolString]) return false;
-  g_method_ids[kLimitToFirst] = env->GetMethodID(g_class.get(), "limitToFirst", "(I)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kLimitToFirst]) return false;
-  g_method_ids[kLimitToLast] = env->GetMethodID(g_class.get(), "limitToLast", "(I)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kLimitToLast]) return false;
-  g_method_ids[kOrderByChild] = env->GetMethodID(g_class.get(), "orderByChild", "(Ljava/lang/String;)Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kOrderByChild]) return false;
-  g_method_ids[kOrderByPriority] = env->GetMethodID(g_class.get(), "orderByPriority", "()Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kOrderByPriority]) return false;
-  g_method_ids[kOrderByKey] = env->GetMethodID(g_class.get(), "orderByKey", "()Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kOrderByKey]) return false;
-  g_method_ids[kOrderByValue] = env->GetMethodID(g_class.get(), "orderByValue", "()Lcom/google/firebase/database/Query;");
-  if (!g_method_ids[kOrderByValue]) return false;
-  g_method_ids[kGetRef] = env->GetMethodID(g_class.get(), "getRef", "()Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kGetRef]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace query
+JNI_METHOD_LOOKUP_DECLARATION(query, QUERY_METHODS, FIELD_LOOKUP_NONE,
+                              PROGUARD_KEEP_CLASS
+                              "com/google/firebase/database/Query")
 
 
 
@@ -253,7 +133,6 @@ QueryInternal& QueryInternal::operator=(const QueryInternal& src) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 QueryInternal::QueryInternal(QueryInternal&& src) : db_(src.db_) {
   obj_ = src.obj_;
   src.obj_ = nullptr;
@@ -276,7 +155,6 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& src) {
   query_spec_ = std::move(src.query_spec_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 QueryInternal::~QueryInternal() {
   if (obj_ != nullptr) {
@@ -302,8 +180,8 @@ DatabaseReferenceInternal* QueryInternal::GetReference() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject database_reference_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kGetRef));
-  if (::firebase::util::LogException(env, kLogLevelWarning,
-                         "Query::GetReference() failed")) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogWarning("Query::GetReference() failed");
     return nullptr;
   }
   DatabaseReferenceInternal* internal =
@@ -327,8 +205,9 @@ QueryInternal* QueryInternal::OrderByChild(const char* path) {
   jobject query_obj = env->CallObjectMethod(
       obj_, query::GetMethodId(query::kOrderByChild), path_string);
   env->DeleteLocalRef(path_string);
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::OrderByChild (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogError("Query::OrderByChild (URL = %s)",
+                            query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -342,8 +221,9 @@ QueryInternal* QueryInternal::OrderByKey() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject query_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByKey));
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::OrderByKey (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogError("Query::OrderByKey (URL = %s)",
+                            query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -357,9 +237,9 @@ QueryInternal* QueryInternal::OrderByPriority() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject query_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByPriority));
-  if (::firebase::util::LogException(env, kLogLevelError,
-                         "Query::OrderByPriority (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogError("Query::OrderByPriority (URL = %s)",
+                            query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -373,8 +253,9 @@ QueryInternal* QueryInternal::OrderByValue() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject query_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByValue));
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::OrderByValue (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogError("Query::OrderByValue (URL = %s)",
+                            query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -387,9 +268,11 @@ QueryInternal* QueryInternal::LimitToFirst(size_t limit) {
   spec.params.limit_first = limit;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject query_obj = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kLimitToFirst), limit);
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::LimitToFirst (URL = %s)",
-                         query_spec_.path.c_str())) {
+      obj_, query::GetMethodId(query::kLimitToFirst),
+      static_cast<jint>(limit));
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogError("Query::LimitToFirst (URL = %s)",
+                            query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -402,9 +285,11 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
   spec.params.limit_last = limit;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject query_obj = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kLimitToLast), limit);
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::LimitToLast (URL = %s)",
-                         query_spec_.path.c_str())) {
+      obj_, query::GetMethodId(query::kLimitToLast),
+      static_cast<jint>(limit));
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogError("Query::LimitToLast (URL = %s)",
+                            query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -438,8 +323,8 @@ QueryInternal* QueryInternal::StartAt(Variant value) {
         obj_, query::GetMethodId(query::kStartAtString), value_string);
     env->DeleteLocalRef(value_string);
   }
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::StartAt (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    logger->LogError("Query::StartAt (URL = %s)", query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -479,8 +364,8 @@ QueryInternal* QueryInternal::StartAt(Variant value, const char* key) {
     env->DeleteLocalRef(value_string);
   }
   env->DeleteLocalRef(key_string);
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::StartAt (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    logger->LogError("Query::StartAt (URL = %s)", query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -514,8 +399,8 @@ QueryInternal* QueryInternal::EndAt(Variant value) {
         obj_, query::GetMethodId(query::kEndAtString), value_string);
     env->DeleteLocalRef(value_string);
   }
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::EndAt (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    logger->LogError("Query::EndAt (URL = %s)", query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -555,8 +440,8 @@ QueryInternal* QueryInternal::EndAt(Variant value, const char* key) {
     env->DeleteLocalRef(value_string);
   }
   env->DeleteLocalRef(key_string);
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::EndAt (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    logger->LogError("Query::EndAt (URL = %s)", query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -590,8 +475,8 @@ QueryInternal* QueryInternal::EqualTo(Variant value) {
         obj_, query::GetMethodId(query::kEqualToString), value_string);
     env->DeleteLocalRef(value_string);
   }
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::EqualTo (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    logger->LogError("Query::EqualTo (URL = %s)", query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -631,8 +516,8 @@ QueryInternal* QueryInternal::EqualTo(Variant value, const char* key) {
     env->DeleteLocalRef(value_string);
   }
   env->DeleteLocalRef(key_string);
-  if (::firebase::util::LogException(env, kLogLevelError, "Query::EqualTo (URL = %s)",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    logger->LogError("Query::EqualTo (URL = %s)", query_spec_.path.c_str());
     return nullptr;
   }
   QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
@@ -684,12 +569,11 @@ void SingleValueListener::OnCancelled(const Error& error_code,
 void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   // Register a one-time ValueEventListener with the query.
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-                                              DataSnapshot(nullptr);
   SingleValueListener* single_listener =
       new SingleValueListener(db_, query_future(), handle);
   // The SingleValueListener newed above is deleted in one of several places:
-  // - In the LogException block below, if an exception was thrown adding the
-  //   listener.
+  // - In the CheckAndClearException block below, if an exception was thrown
+  //   adding the listener.
   // - In the listener's OnValueChanged and OnCancelled callbacks, which are
   //   guaranteed to be called once as long as the database is still valid.
   // - In DatabaseInternal's destructor, if any SingleValueListeners were
@@ -699,14 +583,13 @@ void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   env->CallVoidMethod(
       obj_, query::GetMethodId(query::kAddListenerForSingleValueEvent),
       listener);
-  if (::firebase::util::LogException(env, kLogLevelError,
-                         "Query::GetValue (URL = %s) failed",
-                         query_spec_.path.c_str())) {
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db_->logger()->LogError("Query::GetValue (URL = %s) failed",
+                            query_spec_.path.c_str());
     // The query failed, so it needs to clean itself up.
-    db_->RemoveSingleValueListener(listener);
+    delete single_listener;
     db_->ClearJavaEventListener(listener);
     env->DeleteGlobalRef(listener);
-    delete single_listener;
     query_future()->Complete(handle, kErrorUnknownError,
                              "addListenerForSingleValueEvent failed");
   }
@@ -723,9 +606,10 @@ void QueryInternal::AddValueListener(ValueListener* value_listener) {
     jobject listener_ref = env->CallObjectMethod(
         obj_, query::GetMethodId(query::kAddValueEventListener), listener);
     env->DeleteLocalRef(listener_ref);
-    ::firebase::util::LogException(env, kLogLevelError,
-                       "Query::AddValueListener (URL = %s) failed",
-                       query_spec_.path.c_str());
+    if (::firebase::jni::CheckAndClearException(env)) {
+      db_->logger()->LogError("Query::AddValueListener (URL = %s) failed",
+                              query_spec_.path.c_str());
+    }
   } else {
     Logger* logger = db_->logger();
     logger->LogWarning(
@@ -744,9 +628,10 @@ void QueryInternal::RemoveValueListener(ValueListener* value_listener) {
     // local ref is deleted.
     env->CallVoidMethod(
         obj_, query::GetMethodId(query::kRemoveValueEventListener), listener);
-    ::firebase::util::LogException(env, kLogLevelError,
-                       "Query::RemoveValueListener (URL = %s) failed",
-                       query_spec_.path.c_str());
+    if (::firebase::jni::CheckAndClearException(env)) {
+      db_->logger()->LogError("Query::RemoveValueListener (URL = %s) failed",
+                              query_spec_.path.c_str());
+    }
     env->DeleteLocalRef(listener);
   }
 }
@@ -773,9 +658,10 @@ void QueryInternal::AddChildListener(ChildListener* child_listener) {
     jobject listener_ref = env->CallObjectMethod(
         obj_, query::GetMethodId(query::kAddChildEventListener), listener);
     env->DeleteLocalRef(listener_ref);
-    ::firebase::util::LogException(env, kLogLevelError,
-                       "Query::AddChildListener (URL = %s) failed",
-                       query_spec_.path.c_str());
+    if (::firebase::jni::CheckAndClearException(env)) {
+      db_->logger()->LogError("Query::AddChildListener (URL = %s) failed",
+                              query_spec_.path.c_str());
+    }
   } else {
     Logger* logger = db_->logger();
     logger->LogWarning(
@@ -794,9 +680,10 @@ void QueryInternal::RemoveChildListener(ChildListener* child_listener) {
     // local ref is deleted.
     env->CallVoidMethod(
         obj_, query::GetMethodId(query::kRemoveChildEventListener), listener);
-    ::firebase::util::LogException(env, kLogLevelError,
-                       "Query::RemoveChildListener (URL = %s) failed",
-                       query_spec_.path.c_str());
+    if (::firebase::jni::CheckAndClearException(env)) {
+      db_->logger()->LogError("Query::RemoveChildListener (URL = %s) failed",
+                              query_spec_.path.c_str());
+    }
     env->DeleteLocalRef(listener);
   }
 }

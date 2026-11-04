@@ -33,15 +33,9 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/util_android.h"
 
 namespace firebase {
-
-namespace {
-  bool CacheJniHelpers(JNIEnv* env) {
-    return ::firebase::jni::CacheCollectionMethodIds(env, nullptr);
-  }
-}
-
 namespace analytics {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAnalytics);
@@ -106,24 +100,31 @@ void Initialize(const ::firebase::App& app) {
     FIREBASE_ASSERT(!g_analytics_class_instance);
     JNIEnv* env = app.GetJNIEnv();
 
-    if (false) {
+    if (!util::Initialize(env, app.activity())) {
+      return;
+    }
+    if (!::firebase::jni::CacheCollectionMethodIds(env, app.activity())) {
+      util::Terminate(env);
       return;
     }
 
     // Cache method pointers.
     if (!analytics::CacheMethodIds(env, app.activity())) {
-      
+      ::firebase::jni::ReleaseCollectionClasses(env);
+      util::Terminate(env);
       return;
     }
     if (!analytics_consent_type::CacheFieldIds(env, app.activity())) {
       analytics::ReleaseClass(env);
-      
+      ::firebase::jni::ReleaseCollectionClasses(env);
+      util::Terminate(env);
       return;
     }
     if (!analytics_consent_status::CacheFieldIds(env, app.activity())) {
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      
+      ::firebase::jni::ReleaseCollectionClasses(env);
+      util::Terminate(env);
       return;
     }
 
@@ -139,7 +140,8 @@ void Initialize(const ::firebase::App& app) {
       analytics_consent_status::ReleaseClass(env);
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      
+      ::firebase::jni::ReleaseCollectionClasses(env);
+      util::Terminate(env);
       return;
     }
     // Keep a reference to the Analytics singleton.
@@ -154,7 +156,8 @@ void Initialize(const ::firebase::App& app) {
       analytics_consent_status::ReleaseClass(env);
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      
+      ::firebase::jni::ReleaseCollectionClasses(env);
+      util::Terminate(env);
       return;
     }
 
@@ -166,45 +169,6 @@ void Initialize(const ::firebase::App& app) {
 }
 
 namespace internal {
-namespace firebase {
-namespace util {
-
-namespace hash_map {
-  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("java/util/HashMap"))).get(); }
-  enum Method { kConstructor };
-  inline jmethodID GetMethodId(Method) { return ::firebase::app_common::GetAnyApp()->GetJNIEnv()->GetMethodID(GetClass(), "<init>", "()V"); }
-}
-namespace map {
-  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("java/util/Map"))).get(); }
-  enum Method { kPut };
-  inline jmethodID GetMethodId(Method) { return ::firebase::app_common::GetAnyApp()->GetJNIEnv()->GetMethodID(GetClass(), "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"); }
-}
-namespace bundle {
-  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("android/os/Bundle"))).get(); }
-  enum Method { kConstructor, kPutString, kPutDouble, kPutLong, kPutParcelableArrayList, kPutBundle };
-  inline jmethodID GetMethodId(Method m) { 
-    JNIEnv* env = ::firebase::app_common::GetAnyApp()->GetJNIEnv();
-    if (m == kConstructor) return env->GetMethodID(GetClass(), "<init>", "()V");
-    if (m == kPutString) return env->GetMethodID(GetClass(), "putString", "(Ljava/lang/String;Ljava/lang/String;)V");
-    if (m == kPutDouble) return env->GetMethodID(GetClass(), "putDouble", "(Ljava/lang/String;D)V");
-    if (m == kPutLong) return env->GetMethodID(GetClass(), "putLong", "(Ljava/lang/String;J)V");
-    if (m == kPutParcelableArrayList) return env->GetMethodID(GetClass(), "putParcelableArrayList", "(Ljava/lang/String;Ljava/util/ArrayList;)V");
-    if (m == kPutBundle) return env->GetMethodID(GetClass(), "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V");
-    return nullptr;
-  }
-}
-namespace array_list {
-  inline jclass GetClass() { return ::firebase::jni::Global<jclass>(::firebase::jni::Local<jclass>(::firebase::app_common::GetAnyApp()->GetJNIEnv(), ::firebase::app_common::GetAnyApp()->GetJNIEnv()->FindClass("java/util/ArrayList"))).get(); }
-  enum Method { kConstructor, kAdd };
-  inline jmethodID GetMethodId(Method m) { 
-    JNIEnv* env = ::firebase::app_common::GetAnyApp()->GetJNIEnv();
-    if (m == kConstructor) return env->GetMethodID(GetClass(), "<init>", "()V");
-    if (m == kAdd) return env->GetMethodID(GetClass(), "add", "(Ljava/lang/Object;)Z");
-    return nullptr;
-  }
-}
-}
-}
 
 // Determine whether the analytics module is initialized.
 bool IsInitialized() {
@@ -244,7 +208,8 @@ void Terminate() {
       analytics_consent_status::ReleaseClass(env);
       analytics_consent_type::ReleaseClass(env);
       analytics::ReleaseClass(env);
-      
+      ::firebase::jni::ReleaseCollectionClasses(env);
+      util::Terminate(env);
     }
   }
 }
@@ -1049,16 +1014,27 @@ Future<int64_t> GetSessionId() {
               if (result != nullptr) {
                 // result is a Long class type, unbox it.
                 // It'll get deleted below.
-                int64_t session_id = [env, result]() -> int64_t {
-                  jclass longClass = env->FindClass("java/lang/Long");
-                  jmethodID longValue = env->GetMethodID(longClass, "longValue", "()J");
-                  int64_t val = env->CallLongMethod(result, longValue);
-                  env->DeleteLocalRef(longClass);
-                  return val;
-                }();
-                jni::CheckAndClearException(env);
-                future_data->api()->CompleteWithResult(handle, kErrorNone, "",
-                                                       session_id);
+                jmethodID long_value_method =
+                    ::firebase::jni::long_class::GetMethodId(
+                        ::firebase::jni::long_class::kValue);
+                if (!long_value_method) {
+                  future_data->api()->CompleteWithResult(
+                      handle, kErrorCodeFailed,
+                      "Failed to look up Long.longValue() method", int64_t(0));
+                } else {
+                  int64_t session_id =
+                      env->CallLongMethod(result, long_value_method);
+                  std::string unbox_error =
+                      jni::GetAndClearExceptionMessage(env);
+                  if (!unbox_error.empty()) {
+                    future_data->api()->CompleteWithResult(
+                        handle, kErrorCodeFailed, unbox_error.c_str(),
+                        int64_t(0));
+                  } else {
+                    future_data->api()->CompleteWithResult(
+                        handle, kErrorNone, "", session_id);
+                  }
+                }
               } else {
                 // Succeeded, but with a nullptr result.
                 // This occurs when AnalyticsStorage consent is set to Denied or

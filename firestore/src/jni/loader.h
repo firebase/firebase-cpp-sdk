@@ -53,8 +53,33 @@ class Loader {
   Loader(const Loader&) = delete;
   Loader& operator=(const Loader&) = delete;
 
-  Loader(Loader&& other) noexcept = default;
-  Loader& operator=(Loader&& other) noexcept = default;
+  Loader(Loader&& other) noexcept
+      : app_(std::exchange(other.app_, nullptr)),
+        env_(std::exchange(other.env_, nullptr)),
+        last_class_name_(std::move(other.last_class_name_)),
+        last_class_(std::exchange(other.last_class_, nullptr)),
+        ok_(std::exchange(other.ok_, false)),
+        loaded_classes_(std::move(other.loaded_classes_)),
+        embedded_files_(std::move(other.embedded_files_)) {
+    other.loaded_classes_.clear();
+    other.embedded_files_.clear();
+  }
+
+  Loader& operator=(Loader&& other) noexcept {
+    if (this != &other) {
+      Unload();
+      app_ = std::exchange(other.app_, nullptr);
+      env_ = std::exchange(other.env_, nullptr);
+      last_class_name_ = std::move(other.last_class_name_);
+      last_class_ = std::exchange(other.last_class_, nullptr);
+      ok_ = std::exchange(other.ok_, false);
+      loaded_classes_ = std::move(other.loaded_classes_);
+      other.loaded_classes_.clear();
+      embedded_files_ = std::move(other.embedded_files_);
+      other.embedded_files_.clear();
+    }
+    return *this;
+  }
 
   /**
    * Returns true if the loader has succeeded. If not, any errors have already

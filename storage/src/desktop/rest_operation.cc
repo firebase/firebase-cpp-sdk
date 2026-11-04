@@ -60,15 +60,12 @@ bool RejectStartWithoutStorage(StorageInternal* storage_internal,
 // RestOperation, which may have been destroyed by the user callback.
 class RestOperation::NotifyScope {
  public:
+  NotifyScope() = default;
+
   // Registers the calling thread unless the operation is shutting down;
   // check active() before invoking the callback.
-  explicit NotifyScope(std::shared_ptr<NotifyState> state)
-      : state_(std::move(state)), id_(std::this_thread::get_id()) {
-    std::lock_guard<std::mutex> lock(state_->mutex);
-    if (!state_->shutting_down) {
-      state_->threads.push_back(id_);
-      active_ = true;
-    }
+  explicit NotifyScope(std::shared_ptr<NotifyState> state) {
+    Enter(std::move(state));
   }
   ~NotifyScope() {
     if (!active_) {
@@ -84,6 +81,20 @@ class RestOperation::NotifyScope {
 
   NotifyScope(const NotifyScope&) = delete;
   NotifyScope& operator=(const NotifyScope&) = delete;
+
+  bool Enter(std::shared_ptr<NotifyState> state) {
+    if (active_ || !state) {
+      return active_;
+    }
+    state_ = std::move(state);
+    id_ = std::this_thread::get_id();
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    if (!state_->shutting_down) {
+      state_->threads.push_back(id_);
+      active_ = true;
+    }
+    return active_;
+  }
 
   bool active() const { return active_; }
 
@@ -251,6 +262,10 @@ RestOperation::~RestOperation() {
   if (request_notifier_) {
     request_notifier_->set_update_callback(nullptr, nullptr);
   }
+  // Cancel() also acquires and releases mutex_, ensuring any thread that
+  // entered Pause() or NotifyListenerOfProgress() before shutting_down was set
+  // has either registered in notify_state->threads or exited mutex_ before we
+  // wait below.
   Cancel();
 
   // Wait for any in-flight progress/pause notification on other threads to
@@ -298,20 +313,22 @@ RestOperation::~RestOperation() {
 }
 
 bool RestOperation::Pause() {
+  NotifyScope scope;
   bool paused = false;
   std::shared_ptr<ListenerSharedState> state;
+  std::shared_ptr<storage::Controller> controller;
   {
     MutexLock lock(mutex_);
     paused = rest_controller_ ? rest_controller_->Pause() : false;
-    state = listener_state_;
-  }
-  if (paused && state) {
-    // The user callback may destroy this operation, so only stack-owned values
-    // (scope, state, paused) are used once it has been invoked.
-    NotifyScope scope(notify_state_);
-    if (scope.active()) {
-      ListenerInternal::NotifyPaused(std::move(state), &controller_);
+    if (paused && listener_state_ && scope.Enter(notify_state_)) {
+      state = listener_state_;
+      controller = listener_controller_;
     }
+  }
+  if (scope.active()) {
+    // The user callback may destroy this operation, so only stack-owned values
+    // (scope, state, controller, paused) are used once it has been invoked.
+    ListenerInternal::NotifyPaused(std::move(state), controller.get());
   }
   return paused;
 }
@@ -352,7 +369,12 @@ void RestOperation::NotifyListenerOfProgress() {
   // transfers that only the I/O thread can finish). Instead the notification
   // is posted to the StorageInternal's CallbackDispatcher, with shared copies
   // of everything it needs, so it never touches `this`.
+  NotifyScope scope;
   std::shared_ptr<ListenerSharedState> state;
+  std::shared_ptr<storage::Controller> controller;
+  std::shared_ptr<OperationHandle> handle;
+  std::shared_ptr<std::atomic<bool>> pending;
+  StorageInternal* storage_internal = nullptr;
   {
     MutexLock lock(mutex_);
     if (perform_thread_ == std::this_thread::get_id()) {
@@ -362,23 +384,24 @@ void RestOperation::NotifyListenerOfProgress() {
       // future.
       return;
     }
+    if (!listener_state_ || storage_internal_ == nullptr ||
+        !scope.Enter(notify_state_)) {
+      return;
+    }
     state = listener_state_;
+    controller = listener_controller_;
+    handle = op_handle_;
+    pending = progress_pending_;
+    storage_internal = storage_internal_;
   }
-  if (!state || storage_internal_ == nullptr) {
-    return;
-  }
-  // ~RestOperation() waits for this scope, so storage_internal_ and the
-  // members read below stay valid until it ends.
-  NotifyScope scope(notify_state_);
-  if (!scope.active()) {
-    return;
-  }
-  if (progress_pending_->exchange(true)) {
+  // ~RestOperation() waits for `scope`, so `storage_internal` remains valid
+  // until Post() returns.
+  if (pending->exchange(true)) {
     return;  // A queued notification will report the latest progress.
   }
-  const bool posted = storage_internal_->listener_dispatcher().Post(
-      [state = std::move(state), controller = listener_controller_,
-       handle = op_handle_, pending = progress_pending_]() {
+  const bool posted = storage_internal->listener_dispatcher().Post(
+      [state = std::move(state), controller = std::move(controller),
+       handle = std::move(handle), pending]() {
         // Cleared before sampling, so progress made from here on is
         // reported by a new notification.
         pending->store(false);
@@ -388,7 +411,7 @@ void RestOperation::NotifyListenerOfProgress() {
                                          handle.get());
       });
   if (!posted) {
-    progress_pending_->store(false);
+    pending->store(false);
   }
 }
 

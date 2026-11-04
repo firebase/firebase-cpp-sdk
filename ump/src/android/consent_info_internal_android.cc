@@ -31,6 +31,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/thread.h"
+#include "app/src/util_android.h"
 #include "firebase/internal/common.h"
 #include "ump/ump_resources.h"
 
@@ -98,7 +99,7 @@ JNI_METHOD_LOOKUP_DECLARATION(consent_info_helper, CONSENTINFOHELPER_METHODS, CO
   X(Obtained, "OBTAINED", "I", jni::kFieldTypeStatic)
 // clang-format on
 
-JNI_METHOD_LOOKUP_DECLARATION(consentinformation_consentstatus, CONSENTINFOHELPER_METHODS, CONSENTINFORMATION_CONSENTSTATUS_FIELDS, "com/google/android/ump/ConsentInformation$ConsentStatus")
+JNI_METHOD_LOOKUP_DECLARATION(consentinformation_consentstatus, METHOD_LOOKUP_NONE, CONSENTINFORMATION_CONSENTSTATUS_FIELDS, "com/google/android/ump/ConsentInformation$ConsentStatus")
 ;
 
 // clang-format off
@@ -109,7 +110,7 @@ JNI_METHOD_LOOKUP_DECLARATION(consentinformation_consentstatus, CONSENTINFOHELPE
   X(TimeOut, "TIME_OUT", "I", jni::kFieldTypeStatic)
 // clang-format on
 
-JNI_METHOD_LOOKUP_DECLARATION(formerror_errorcode, CONSENTINFOHELPER_METHODS, FORMERROR_ERRORCODE_FIELDS, "com/google/android/ump/FormError$ErrorCode")
+JNI_METHOD_LOOKUP_DECLARATION(formerror_errorcode, METHOD_LOOKUP_NONE, FORMERROR_ERRORCODE_FIELDS, "com/google/android/ump/FormError$ErrorCode")
 ;
 
 // clang-format off
@@ -119,7 +120,7 @@ JNI_METHOD_LOOKUP_DECLARATION(formerror_errorcode, CONSENTINFOHELPER_METHODS, FO
   X(NotEEA, "DEBUG_GEOGRAPHY_NOT_EEA", "I", jni::kFieldTypeStatic)
 // clang-format on
 
-JNI_METHOD_LOOKUP_DECLARATION(consentdebugsettings_debuggeography, CONSENTINFOHELPER_METHODS, CONSENTDEBUGSETTINGS_DEBUGGEOGRAPHY_FIELDS, "com/google/android/ump/ConsentDebugSettings$DebugGeography")
+JNI_METHOD_LOOKUP_DECLARATION(consentdebugsettings_debuggeography, METHOD_LOOKUP_NONE, CONSENTDEBUGSETTINGS_DEBUGGEOGRAPHY_FIELDS, "com/google/android/ump/ConsentDebugSettings$DebugGeography")
 ;
 
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance(JNIEnv* jni_env,
@@ -171,7 +172,7 @@ ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
       jni::CheckAndClearException(env);
     }
     ReleaseClasses(env);
-    
+    util::Terminate(env);
   }
   java_vm_ = nullptr;
 }
@@ -283,19 +284,38 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
   MutexLock lock(s_instance_mutex);
   FIREBASE_ASSERT(s_instance == nullptr);
 
-  if (!true) {
+  if (!util::Initialize(env, activity)) {
     return;
   }
   env->GetJavaVM(&java_vm_);
 
-  if (!(
+  // Ensure we only load these files once.
+  {
+    MutexLock embedded_files_lock(
+        ::firebase::ump::internal::g_cached_ump_embedded_files_mutex);
+    if (::firebase::ump::internal::g_cached_ump_embedded_files == nullptr) {
+      ::firebase::ump::internal::g_cached_ump_embedded_files =
+          new std::vector<firebase::internal::EmbeddedFile>();
+      *::firebase::ump::internal::g_cached_ump_embedded_files =
+          util::CacheEmbeddedFiles(env, activity,
+                                   firebase::internal::EmbeddedFile::ToVector(
+                                       firebase_ump::ump_resources_filename,
+                                       firebase_ump::ump_resources_data,
+                                       firebase_ump::ump_resources_size));
+    }
+  }
+  const std::vector<firebase::internal::EmbeddedFile>& embedded_files =
+      *::firebase::ump::internal::g_cached_ump_embedded_files;
+
+  if (!(consent_info_helper::CacheClassFromFiles(env, activity,
+                                                 &embedded_files) != nullptr &&
         consent_info_helper::CacheMethodIds(env, activity) &&
         consent_info_helper::CacheFieldIds(env, activity) &&
         consentinformation_consentstatus::CacheFieldIds(env, activity) &&
         formerror_errorcode::CacheFieldIds(env, activity) &&
         consentdebugsettings_debuggeography::CacheFieldIds(env, activity))) {
     ReleaseClasses(env);
-    
+    util::Terminate(env);
     java_vm_ = nullptr;
     return;
   }
@@ -308,7 +328,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
           FIREBASE_ARRAYSIZE(kConsentInfoHelperNativeMethods)) != 0) {
     jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    
+    util::Terminate(env);
     java_vm_ = nullptr;
     return;
   }
@@ -318,7 +338,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
     env->UnregisterNatives(consent_info_helper::GetClass());
     jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    
+    util::Terminate(env);
     java_vm_ = nullptr;
     return;
   }
@@ -345,7 +365,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
     env->UnregisterNatives(consent_info_helper::GetClass());
     jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    
+    util::Terminate(env);
     java_vm_ = nullptr;
     return;
   }
@@ -357,7 +377,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
     env->UnregisterNatives(consent_info_helper::GetClass());
     jni::CheckAndClearException(env);
     ReleaseClasses(env);
-    
+    util::Terminate(env);
     java_vm_ = nullptr;
     return;
   }
@@ -685,7 +705,7 @@ void ConsentInfoInternalAndroid::Reset() {
 }
 
 JNIEnv* ConsentInfoInternalAndroid::GetJNIEnv() {
-  return ::firebase::util::GetThreadsafeJNIEnv(java_vm_);
+  return ::firebase::jni::GetThreadsafeJNIEnv(java_vm_);
 }
 
 void ConsentInfoInternalAndroid::CompleteFutureFromJniCallback(

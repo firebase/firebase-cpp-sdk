@@ -457,10 +457,20 @@ TEST_F(StorageDesktopUtilsTests, testStorageReferenceHandlesAcrossStorageDeletio
   move_assigned = std::move(assigned);
   EXPECT_FALSE(assigned.is_valid());
   EXPECT_EQ(move_assigned.full_path(), "/a/b.txt");
+  Metadata attached_meta =
+      MetadataInternal::AsMetadata(new MetadataInternal(child));
+  Metadata copied_meta(attached_meta);
+  Metadata moved_meta(std::move(copied_meta));
+  EXPECT_TRUE(attached_meta.is_valid());
+  EXPECT_FALSE(copied_meta.is_valid());
+  EXPECT_TRUE(moved_meta.is_valid());
   {
     // Released while the Storage is alive: unregistered and deleted.
     StorageReference temp = root.Child("temp");
     EXPECT_TRUE(temp.is_valid());
+    Metadata temp_meta =
+        MetadataInternal::AsMetadata(new MetadataInternal(temp));
+    EXPECT_TRUE(temp_meta.is_valid());
   }
 
   delete storage;
@@ -470,6 +480,8 @@ TEST_F(StorageDesktopUtilsTests, testStorageReferenceHandlesAcrossStorageDeletio
   EXPECT_FALSE(child.is_valid());
   EXPECT_FALSE(moved.is_valid());
   EXPECT_FALSE(move_assigned.is_valid());
+  EXPECT_FALSE(attached_meta.is_valid());
+  EXPECT_FALSE(moved_meta.is_valid());
   StorageReference after_copy(child);
   StorageReference after_move(std::move(moved));
   EXPECT_FALSE(after_copy.is_valid());

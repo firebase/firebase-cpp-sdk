@@ -84,12 +84,14 @@ MetadataInternal* FIRStorageMetadataToMetadata(FIRStorageMetadata* fir_meta, Sto
   if (fir_meta.timeCreated) meta->set_creation_time((int64_t)([fir_meta.timeCreated timeIntervalSince1970] * 1000));
   if (fir_meta.updated) meta->set_updated_time((int64_t)([fir_meta.updated timeIntervalSince1970] * 1000));
   if (fir_meta.md5Hash) meta->set_md5_hash(fir_meta.md5Hash.UTF8String);
-  if (fir_meta.generation) meta->set_generation(fir_meta.generation);
-  if (fir_meta.metageneration) meta->set_metadata_generation(fir_meta.metageneration);
+  meta->set_generation(fir_meta.generation);
+  meta->set_metadata_generation(fir_meta.metageneration);
   if (fir_meta.customMetadata) {
     for (NSString* key in fir_meta.customMetadata) {
       NSString* value = fir_meta.customMetadata[key];
-      (*meta->custom_metadata())[key.UTF8String] = value.UTF8String;
+      if (key && value) {
+        (*meta->custom_metadata())[key.UTF8String] = value.UTF8String;
+      }
     }
   }
   return meta;
@@ -772,11 +774,16 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
           Error error_code = NSErrorToErrorCode(error);
           std::string error_string = GetNSErrorMessage(error, error_code);
           if (error == nil && metadata != nil && alive_storage != nullptr) {
+            FIRStorageReference* meta_ref =
+                metadata.storageReference ?: my_impl;
             future_impl->CompleteWithResult(
                 handle, kErrorNone, "",
-                Metadata(new MetadataInternal(
-                    alive_storage,
-                    std::make_unique<FIRStorageMetadataPointer>(metadata))));
+                Metadata(FIRStorageMetadataToMetadata(
+                    metadata,
+                    StorageReference(new StorageReferenceInternal(
+                        alive_storage,
+                        std::make_unique<FIRStorageReferencePointer>(
+                            meta_ref))))));
           } else {
             Error fallback_error =
                 (error_code != kErrorNone)
@@ -868,11 +875,16 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
           Error error_code = NSErrorToErrorCode(error);
           std::string error_string = GetNSErrorMessage(error, error_code);
           if (error == nil && metadata_impl != nil && alive_storage != nullptr) {
+            FIRStorageReference* meta_ref =
+                metadata_impl.storageReference ?: my_impl;
             future_impl->CompleteWithResult(
                 handle, kErrorNone, "",
-                Metadata(new MetadataInternal(
-                    alive_storage,
-                    std::make_unique<FIRStorageMetadataPointer>(metadata_impl))));
+                Metadata(FIRStorageMetadataToMetadata(
+                    metadata_impl,
+                    StorageReference(new StorageReferenceInternal(
+                        alive_storage,
+                        std::make_unique<FIRStorageReferencePointer>(
+                            meta_ref))))));
           } else {
             Error fallback_error =
                 (error_code != kErrorNone)
@@ -886,9 +898,8 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
                                             fallback_message, Metadata(nullptr));
           }
         };
-    MetadataInternal local_metadata(*metadata->internal_);
-    local_metadata.CommitCustomMetadata();
-    FIRStorageMetadata* metadata_copy = [local_metadata.impl() copy];
+    FIRStorageMetadata* metadata_copy =
+        MetadataToFIRStorageMetadata(*metadata->internal_);
     util::DispatchAsyncSafeMainQueue(^() {
       (void)retained_future;
       if (!storage_token) {
@@ -1022,12 +1033,16 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
               std::string error_string = GetNSErrorMessage(error, error_code);
               if (error == nil && resultant_metadata != nil &&
                   alive_storage != nullptr) {
+                FIRStorageReference* meta_ref =
+                    resultant_metadata.storageReference ?: my_impl;
                 future_impl->CompleteWithResult(
                     handle, kErrorNone, "",
-                    Metadata(new MetadataInternal(
-                        alive_storage,
-                        std::make_unique<FIRStorageMetadataPointer>(
-                            resultant_metadata))));
+                    Metadata(FIRStorageMetadataToMetadata(
+                        resultant_metadata,
+                        StorageReference(new StorageReferenceInternal(
+                            alive_storage,
+                            std::make_unique<FIRStorageReferencePointer>(
+                                meta_ref))))));
               } else {
                 Error fallback_error =
                     (error_code != kErrorNone)
@@ -1174,12 +1189,16 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
               std::string error_string = GetNSErrorMessage(error, error_code);
               if (error == nil && resultant_metadata != nil &&
                   alive_storage != nullptr) {
+                FIRStorageReference* meta_ref =
+                    resultant_metadata.storageReference ?: my_impl;
                 future_impl->CompleteWithResult(
                     handle, kErrorNone, "",
-                    Metadata(new MetadataInternal(
-                        alive_storage,
-                        std::make_unique<FIRStorageMetadataPointer>(
-                            resultant_metadata))));
+                    Metadata(FIRStorageMetadataToMetadata(
+                        resultant_metadata,
+                        StorageReference(new StorageReferenceInternal(
+                            alive_storage,
+                            std::make_unique<FIRStorageReferencePointer>(
+                                meta_ref))))));
               } else {
                 Error fallback_error =
                     (error_code != kErrorNone)

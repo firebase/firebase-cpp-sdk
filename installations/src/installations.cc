@@ -92,6 +92,7 @@ Installations* Installations::GetInstance(App* app,
   }
 
   Installations* installations = nullptr;
+  Installations* failed_installations = nullptr;
   bool is_new_instance = false;
   {
     MutexLock lock(InstallationsMutex());
@@ -110,25 +111,46 @@ Installations* Installations::GetInstance(App* app,
                app->name());
 
       if (!installations->InitInternal()) {
-        delete installations;
+        installations->DeleteInternalLocked();
+        failed_installations = installations;
+        installations = nullptr;
         if (init_result_out) {
           *init_result_out = kInitResultFailedMissingDependency;
         }
-        return nullptr;
-      }
-
-      (*g_installations)[app] = installations;
-      is_new_instance = true;
-      if (init_result_out) {
-        *init_result_out = kInitResultSuccess;
+      } else {
+        (*g_installations)[app] = installations;
+        is_new_instance = true;
+        if (init_result_out) {
+          *init_result_out = kInitResultSuccess;
+        }
       }
     }
+  }
+
+  if (failed_installations) {
+    delete failed_installations;
+    return nullptr;
   }
 
   if (is_new_instance) {
     // Register CleanupNotifier outside InstallationsMutex() to avoid
     // lock-order inversions with CleanupNotifier::CleanupAll().
-      } else {
+    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+    FIREBASE_ASSERT(notifier);
+    if (notifier) {
+      notifier->RegisterObject(installations, [](void* object) {
+        Installations* installations_local =
+            reinterpret_cast<Installations*>(object);
+        LogWarning(
+            "Installations object 0x%08x should be deleted before the App "
+            "0x%08x it depends upon.",
+            static_cast<int>(reinterpret_cast<intptr_t>(installations_local)),
+            static_cast<int>(
+                reinterpret_cast<intptr_t>(installations_local->app())));
+        installations_local->DeleteInternal();
+      });
+    }
+  } else {
     // Log heartbeat data when instance getters are called on an existing
     // instance (new instances log heartbeat during initialization).
     InstallationsInternal::LogHeartbeat(*app);
@@ -163,7 +185,11 @@ Installations::~Installations() {
   }
 
   if (app_to_unregister) {
-      }
+    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_to_unregister);
+    if (notifier) {
+      notifier->UnregisterObject(this);
+    }
+  }
 }
 
 bool Installations::InitInternal() {

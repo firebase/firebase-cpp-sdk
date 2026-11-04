@@ -569,7 +569,7 @@ ParsedUpdateData UserDataConverter::ParseUpdateData(
     const model::FieldPath& path = kv.first;
     const FieldValue& value = *kv.second;
 
-    if (value.type() == Type::kDelete) {
+    if (value.is_valid() && value.type() == Type::kDelete) {
       // Add it to the field mask, but don't add anything to update_data.
       context.AddToFieldMask(path);
     } else {

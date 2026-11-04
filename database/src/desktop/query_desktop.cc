@@ -85,51 +85,55 @@ static bool ValidateQueryEndpoints(const QueryParams& params, Logger* logger) {
 
 QueryInternal::QueryInternal(DatabaseInternal* database,
                              const QuerySpec& query_spec)
-    : database_(database), query_spec_(query_spec), future_impl_(kQueryFnCount) {
-  
-}
+    : database_(database),
+      query_spec_(query_spec),
+      future_impl_(
+          std::make_shared<ReferenceCountedFutureImpl>(kQueryFnCount)) {}
 
 QueryInternal::QueryInternal(const QueryInternal& internal)
-    : database_(internal.database_), query_spec_(internal.query_spec_), future_impl_(kQueryFnCount) {
-}
+    : database_(internal.database_),
+      query_spec_(internal.query_spec_),
+      future_impl_(
+          std::make_shared<ReferenceCountedFutureImpl>(kQueryFnCount)) {}
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& internal) {
   if (&internal == this) return *this;
   database_ = internal.database_;
   query_spec_ = internal.query_spec_;
+  future_impl_ = std::make_shared<ReferenceCountedFutureImpl>(kQueryFnCount);
   return *this;
 }
 
 QueryInternal::QueryInternal(QueryInternal&& internal) noexcept
     : database_(internal.database_),
-      query_spec_(std::move(internal.query_spec_)), future_impl_(kQueryFnCount) {
+      query_spec_(std::move(internal.query_spec_)),
+      future_impl_(std::move(internal.future_impl_)) {
   internal.database_ = nullptr;
-  
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& internal) noexcept {
   if (&internal == this) return *this;
-  
   database_ = internal.database_;
   internal.database_ = nullptr;
   query_spec_ = std::move(internal.query_spec_);
-  
+  future_impl_ = std::move(internal.future_impl_);
   return *this;
 }
 
-QueryInternal::~QueryInternal() {
-  
-}
+QueryInternal::~QueryInternal() = default;
 
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:
-  SingleValueEventRegistration(DatabaseInternal* database,
-                               std::unique_ptr<SingleValueListener> listener,
-                               const QuerySpec& query_spec)
+  SingleValueEventRegistration(
+      DatabaseInternal* database,
+      std::shared_ptr<ReferenceCountedFutureImpl> future_impl,
+      std::unique_ptr<SingleValueListener> listener,
+      const QuerySpec& query_spec)
       : ValueEventRegistration(database, listener.get(), query_spec),
         active_(true),
         database_ref_(database ? database->this_ref()
                                : DatabaseInternal::ThisRef(nullptr)),
+        future_impl_(std::move(future_impl)),
         listener_(std::move(listener)) {}
 
   void FireEvent(const Event& event) override {
@@ -173,19 +177,26 @@ class SingleValueEventRegistration : public ValueEventRegistration {
 
   bool active_;
   DatabaseInternal::ThisRef database_ref_;
+  std::shared_ptr<ReferenceCountedFutureImpl> future_impl_;
   std::unique_ptr<SingleValueListener> listener_;
 };
 
 void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   ReferenceCountedFutureImpl* api = query_future();
-  if (!database_ || !api) return;
+  if (!database_ || !api) {
+    if (future_impl_) {
+      future_impl_->Complete(handle, kErrorUnknownError,
+                             "The database is being destroyed.");
+    }
+    return;
+  }
   auto listener =
       std::make_unique<SingleValueListener>(database_, query_spec_, api, handle);
   void* listener_ptr = listener.get();
-  AddEventRegistration(std::make_unique<SingleValueEventRegistration>(
-                           database_, std::move(listener), query_spec_),
-                       listener_ptr);
-  
+  AddEventRegistration(
+      std::make_unique<SingleValueEventRegistration>(
+          database_, future_impl_, std::move(listener), query_spec_),
+      listener_ptr);
 }
 
 
@@ -565,7 +576,7 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
 }
 
 ReferenceCountedFutureImpl* QueryInternal::query_future() {
-  return database_ ? &future_impl_ : nullptr;
+  return database_ ? future_impl_.get() : nullptr;
 }
 
 }  // namespace internal

@@ -98,28 +98,39 @@ class LoadBundleProgressCompletion
       : firestore_ref_(firestore), callback_(std::move(callback)) {}
 
   void SetJavaListener(const jni::Object& java_listener) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(java_listener_mutex_);
     java_listener_ = java_listener;
   }
 
   void DiscardJavaListener(jni::Env& env) {
-    jni::Global<jni::Object> listener;
+    std::lock_guard<std::mutex> lock(java_listener_mutex_);
+    if (java_listener_) {
+      jni::ExceptionClearGuard guard(env);
+      EventListenerInternal::DiscardPointers(env, java_listener_);
+      java_listener_.clear();
+    }
+  }
+
+  void Cancel(jni::Env& env) {
+    DiscardJavaListener(env);
+    std::function<void(const LoadBundleTaskProgress&)> discarded_callback;
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      listener = std::move(java_listener_);
-    }
-    if (listener) {
-      jni::ExceptionClearGuard guard(env);
-      EventListenerInternal::DiscardPointers(env, listener);
-      listener.clear();
+      completed_ = true;
+      discarded_callback = std::move(callback_);
+      callback_ = nullptr;
     }
   }
 
   void OnEvent(const LoadBundleTaskProgress& progress,
                Error,
                const std::string&) override {
+    std::function<void(const LoadBundleTaskProgress&)> callback;
     {
       std::lock_guard<std::mutex> lock(mutex_);
+      if (completed_) {
+        return;
+      }
       last_docs_ = progress.documents_loaded();
       last_total_docs_ = progress.total_documents();
       last_bytes_ = progress.bytes_loaded();
@@ -127,53 +138,55 @@ class LoadBundleProgressCompletion
       if (progress.state() != LoadBundleTaskProgress::State::kInProgress) {
         saw_terminal_state_ = true;
       }
+      callback = callback_;
     }
-    if (callback_) {
-      callback_(progress);
+    if (callback) {
+      callback(progress);
     }
   }
 
   void CompleteWith(Error error_code,
                     const char*,
                     LoadBundleTaskProgress*) override {
-    firestore_ref_.RunIfValid([this](FirestoreInternal& firestore) {
-      firestore.UnregisterBundleListener(this);
-    });
-
     jni::Env env;
     DiscardJavaListener(env);
 
-    if (error_code != Error::kErrorOk && callback_) {
-      bool should_notify_error = false;
-      LoadBundleTaskProgress error_progress;
-      {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (!saw_terminal_state_) {
-          saw_terminal_state_ = true;
-          should_notify_error = true;
-          error_progress = LoadBundleTaskProgress(
-              last_docs_, last_total_docs_, last_bytes_, last_total_bytes_,
-              LoadBundleTaskProgress::State::kError);
-        }
+    std::function<void(const LoadBundleTaskProgress&)> error_callback;
+    LoadBundleTaskProgress error_progress(
+        0, 0, 0, 0, LoadBundleTaskProgress::State::kError);
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (completed_) {
+        return;
       }
-      if (should_notify_error) {
-        callback_(error_progress);
+      completed_ = true;
+      if (error_code != Error::kErrorOk && callback_ && !saw_terminal_state_) {
+        saw_terminal_state_ = true;
+        error_progress = LoadBundleTaskProgress(
+            last_docs_, last_total_docs_, last_bytes_, last_total_bytes_,
+            LoadBundleTaskProgress::State::kError);
+        error_callback = std::move(callback_);
       }
+      callback_ = nullptr;
     }
 
-    delete this;
+    if (error_callback) {
+      error_callback(error_progress);
+    }
   }
 
  private:
   FirestoreInternalWeakReference firestore_ref_;
   std::function<void(const LoadBundleTaskProgress&)> callback_;
   std::mutex mutex_;
+  std::mutex java_listener_mutex_;
   jni::Global<jni::Object> java_listener_;
   int32_t last_docs_ = 0;
   int32_t last_total_docs_ = 0;
   int64_t last_bytes_ = 0;
   int64_t last_total_bytes_ = 0;
   bool saw_terminal_state_ = false;
+  bool completed_ = false;
 };
 
 namespace {
@@ -554,7 +567,12 @@ FirestoreInternal::~FirestoreInternal() {
   Env env = GetEnv();
   ExceptionClearGuard exception_clear_guard(env);
 
-  ClearBundleListeners(env);
+  {
+    MutexLock lock(bundle_listeners_mutex_);
+    for (auto* listener : bundle_listeners_) {
+      listener->Cancel(env);
+    }
+  }
 
   // Call `terminate()` on the Java `FirebaseFirestore` object and wait for it
   // to complete to guarantee that the next instance of `FirestoreInternal` will
@@ -584,6 +602,7 @@ FirestoreInternal::~FirestoreInternal() {
   obj_.clear();
 
   Terminate(app_);
+  ClearBundleListeners(env);
   app_ = nullptr;
 }
 
@@ -775,19 +794,27 @@ void FirestoreInternal::RegisterBundleListener(
 
 void FirestoreInternal::UnregisterBundleListener(
     LoadBundleProgressCompletion* listener) {
-  MutexLock lock(bundle_listeners_mutex_);
-  bundle_listeners_.erase(listener);
+  LoadBundleProgressCompletion* to_delete = nullptr;
+  {
+    MutexLock lock(bundle_listeners_mutex_);
+    auto iter = bundle_listeners_.find(listener);
+    if (iter != bundle_listeners_.end()) {
+      to_delete = *iter;
+      bundle_listeners_.erase(iter);
+    }
+  }
+  delete to_delete;
 }
 
 void FirestoreInternal::ClearBundleListeners(Env& env) {
-  std::vector<LoadBundleProgressCompletion*> listeners;
+  std::unordered_set<LoadBundleProgressCompletion*> listeners;
   {
     MutexLock lock(bundle_listeners_mutex_);
-    listeners.assign(bundle_listeners_.begin(), bundle_listeners_.end());
-    bundle_listeners_.clear();
+    listeners.swap(bundle_listeners_);
   }
   for (auto* listener : listeners) {
-    listener->DiscardJavaListener(env);
+    listener->Cancel(env);
+    delete listener;
   }
 }
 
@@ -818,8 +845,13 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     return {};
   }
   completion->SetJavaListener(progress_listener);
-  RegisterBundleListener(completion);
   task.AddProgressListener(env, user_callback_executor(), progress_listener);
+  if (!env.ok()) {
+    completion->DiscardJavaListener(env);
+    delete completion;
+    return {};
+  }
+  RegisterBundleListener(completion);
 
   return promises_->NewFuture<LoadBundleTaskProgress>(
       env, AsyncFn::kLoadBundle, task, completion);

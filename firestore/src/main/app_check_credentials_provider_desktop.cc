@@ -69,16 +69,21 @@ CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
 
 void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<std::string> listener) {
-  std::scoped_lock lock(ListenerMutex());
   bool has_listener = static_cast<bool>(listener);
+  {
+    std::scoped_lock lock(ListenerMutex());
+    if (!has_listener) {
+      SIMPLE_HARD_ASSERT(change_listener_,
+                         "Change listener removed without being set!");
+      change_listener_ = {};
+    } else {
+      SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
+      change_listener_ = std::move(listener);
+    }
+  }
   if (!has_listener) {
-    SIMPLE_HARD_ASSERT(change_listener_,
-                       "Change listener removed without being set!");
-    change_listener_ = {};
     RemoveAppCheckStateListener();
   } else {
-    SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
-    change_listener_ = std::move(listener);
     AddAppCheckStateListener();
   }
 }

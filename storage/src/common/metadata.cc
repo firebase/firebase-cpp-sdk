@@ -16,20 +16,25 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
 
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "storage/src/common/metadata_internal.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-#include "storage/src/common/metadata_internal.h"
 #if FIREBASE_PLATFORM_ANDROID
-#include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
+#include "storage/src/android/storage_reference_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "storage/src/ios/storage_ios.h"
+#include "storage/src/ios/storage_reference_ios.h"
 #else
 #include "storage/src/desktop/storage_desktop.h"
+#include "storage/src/desktop/storage_reference_desktop.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
@@ -38,52 +43,241 @@ namespace storage {
 
 namespace internal {
 
+namespace {
+
+using StorageToken = std::shared_ptr<StorageInternal::LifetimeToken>;
+
+struct OwnerEntry {
+  Metadata* owner = nullptr;
+  StorageInternal* storage = nullptr;
+  StorageToken token;
+};
+
+// Leaked on purpose: handles may be destroyed during static destruction.
+std::mutex& HandleMutex() {
+  static auto* mutex = new std::mutex();
+  return *mutex;
+}
+
+std::unordered_map<MetadataInternal*, OwnerEntry>& Owners() {
+  static auto* owners = new std::unordered_map<MetadataInternal*, OwnerEntry>();
+  return *owners;
+}
+
+StorageToken TokenOf(StorageInternal* storage) {
+  return storage ? StorageToken(storage->lifetime_token()) : StorageToken();
+}
+
+template <typename F>
+bool RunWhileStorageAlive(const StorageToken& token, StorageInternal* storage,
+                          F&& fn) {
+  if (!token || !storage) {
+    return false;
+  }
+#if FIREBASE_PLATFORM_ANDROID
+  std::lock_guard<std::mutex> lock(token->mutex);
+  if (!token->alive) {
+    return false;
+  }
+  fn(*storage);
+  return true;
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  (void)storage;
+  return token->RunWhileAlive(
+      [&fn](StorageInternal& alive_storage) { fn(alive_storage); });
+#else
+  (void)storage;
+  std::lock_guard<std::mutex> lock(token->mutex);
+  if (token->storage == nullptr) {
+    return false;
+  }
+  fn(*token->storage);
+  return true;
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
+}
+
+}  // namespace
+
+class MetadataInternalCommon {
+ public:
+  static void Attach(Metadata* handle, MetadataInternal* internal) {
+    if (internal == nullptr) {
+      std::lock_guard<std::mutex> lock(HandleMutex());
+      handle->internal_ = nullptr;
+      return;
+    }
+    StorageInternal* storage = GetStorage(internal);
+    StorageToken token = TokenOf(storage);
+    AttachWithStorage(handle, internal, storage, token);
+  }
+
+  static void CopyFrom(Metadata* handle, const Metadata& source) {
+    MetadataInternal* internal = nullptr;
+    StorageInternal* storage = nullptr;
+    StorageToken token;
+    {
+      std::lock_guard<std::mutex> lock(HandleMutex());
+      if (source.internal_ == nullptr) {
+        handle->internal_ = nullptr;
+        return;
+      }
+      internal = new MetadataInternal(*source.internal_);
+      auto it = Owners().find(source.internal_);
+      if (it != Owners().end()) {
+        storage = it->second.storage;
+        token = it->second.token;
+      }
+    }
+    AttachWithStorage(handle, internal, storage, token);
+  }
+
+  static void MoveFrom(Metadata* handle, Metadata* source) noexcept {
+    std::lock_guard<std::mutex> lock(HandleMutex());
+    MetadataInternal* internal = source->internal_;
+    source->internal_ = nullptr;
+    handle->internal_ = internal;
+    if (internal != nullptr) {
+      auto it = Owners().find(internal);
+      if (it != Owners().end()) {
+        it->second.owner = handle;
+      }
+    }
+  }
+
+  static void Release(Metadata* handle) {
+    MetadataInternal* internal = nullptr;
+    StorageInternal* storage = nullptr;
+    StorageToken token;
+    {
+      std::lock_guard<std::mutex> lock(HandleMutex());
+      internal = handle->internal_;
+      handle->internal_ = nullptr;
+      if (internal == nullptr) {
+        return;
+      }
+      auto it = Owners().find(internal);
+      if (it != Owners().end()) {
+        it->second.owner = nullptr;
+        storage = it->second.storage;
+        token = it->second.token;
+      }
+    }
+    if (storage != nullptr) {
+      const bool unregistered = RunWhileStorageAlive(
+          token, storage, [internal](StorageInternal& alive_storage) {
+            alive_storage.cleanup().UnregisterObject(internal);
+          });
+      if (!unregistered) {
+        return;
+      }
+      std::lock_guard<std::mutex> lock(HandleMutex());
+      if (Owners().erase(internal) == 0) {
+        return;
+      }
+    }
+    delete internal;
+  }
+
+ private:
+  static StorageInternal* GetStorage(MetadataInternal* internal) {
+    if (!internal) return nullptr;
+    StorageReferenceInternal* ref_internal = internal->reference_internal();
+    return ref_internal ? ref_internal->storage_internal() : nullptr;
+  }
+
+  static void AttachWithStorage(Metadata* handle, MetadataInternal* internal,
+                                StorageInternal* storage,
+                                const StorageToken& token) {
+    if (storage == nullptr) {
+      std::lock_guard<std::mutex> lock(HandleMutex());
+      handle->internal_ = internal;
+      return;
+    }
+    {
+      std::lock_guard<std::mutex> lock(HandleMutex());
+      handle->internal_ = internal;
+      Owners()[internal] = OwnerEntry{handle, storage, token};
+    }
+    const bool registered = RunWhileStorageAlive(
+        token, storage, [internal](StorageInternal& alive_storage) {
+          alive_storage.cleanup().RegisterObject(internal, CleanupMetadata);
+        });
+    if (!registered) {
+      {
+        std::lock_guard<std::mutex> lock(HandleMutex());
+        auto it = Owners().find(internal);
+        if (it == Owners().end()) {
+          return;
+        }
+        if (it->second.owner != nullptr) {
+          it->second.owner->internal_ = nullptr;
+        }
+        Owners().erase(it);
+      }
+      delete internal;
+    }
+  }
+
+  static void CleanupMetadata(void* internal_void) {
+    auto* internal = static_cast<MetadataInternal*>(internal_void);
+    {
+      std::lock_guard<std::mutex> lock(HandleMutex());
+      auto it = Owners().find(internal);
+      if (it == Owners().end()) {
+        return;
+      }
+      Metadata* owner = it->second.owner;
+      Owners().erase(it);
+      if (owner != nullptr) {
+        owner->internal_ = nullptr;
+      }
+    }
+    delete internal;
+  }
+};
 
 }  // namespace internal
 
 using internal::MetadataInternal;
+using internal::MetadataInternalCommon;
 
-Metadata::Metadata() : internal_(new MetadataInternal(nullptr)) {
+Metadata::Metadata() : internal_(nullptr) {
+  MetadataInternalCommon::Attach(this, new MetadataInternal(nullptr));
 }
 
-Metadata::Metadata(const Metadata& src)
-    : internal_(src.internal_ ? new MetadataInternal(*src.internal_)
-                              : nullptr) {
+Metadata::Metadata(const Metadata& src) : internal_(nullptr) {
+  MetadataInternalCommon::CopyFrom(this, src);
 }
 
-Metadata::Metadata(MetadataInternal* internal) : internal_(internal) {
+Metadata::Metadata(MetadataInternal* internal) : internal_(nullptr) {
+  MetadataInternalCommon::Attach(this, internal);
 }
 
 Metadata& Metadata::operator=(const Metadata& src) {
   if (this == &src) {
     return *this;
   }
-  delete internal_;
-  internal_ = nullptr;
-  internal_ = src.internal_ ? new MetadataInternal(*src.internal_) : nullptr;
+  Metadata copy(src);
+  MetadataInternalCommon::Release(this);
+  MetadataInternalCommon::MoveFrom(this, &copy);
   return *this;
 }
 
-// The move operations are noexcept: they only transfer the internal pointer.
-// Re-registering for cleanup can only fail with std::bad_alloc, which is
-// treated as fatal (as everywhere else in the SDK).
-Metadata::Metadata(Metadata&& other) noexcept : internal_(other.internal_) {
-  other.internal_ = nullptr;
+Metadata::Metadata(Metadata&& other) noexcept : internal_(nullptr) {
+  MetadataInternalCommon::MoveFrom(this, &other);
 }
 
 Metadata& Metadata::operator=(Metadata&& other) noexcept {
   if (this == &other) {
     return *this;
   }
-  delete internal_;
-  internal_ = nullptr;
-  internal_ = other.internal_;
-  other.internal_ = nullptr;
+  MetadataInternalCommon::Release(this);
+  MetadataInternalCommon::MoveFrom(this, &other);
   return *this;
 }
 
-Metadata::~Metadata() { delete internal_;
-  internal_ = nullptr; }
+Metadata::~Metadata() { MetadataInternalCommon::Release(this); }
 
 const char* Metadata::bucket() const {
   return internal_ ? internal_->bucket() : nullptr;

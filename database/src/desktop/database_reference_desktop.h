@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_DATABASE_REFERENCE_DESKTOP_H_
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/future.h"
@@ -90,17 +91,11 @@ class DatabaseReferenceInternal : public QueryInternal {
 
   void GoOnline();
 
- private:
   // Get the Future for the DatabaseReferenceInternal.
-  public:
   ReferenceCountedFutureImpl* ref_future();
 
-  // The memory location of this member variable is used to look up our
-  // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and
-  // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
-  // instances, but have the same "this" pointer as one is a subclass of the
-  // other.
-  ReferenceCountedFutureImpl ref_future_impl_;
+ private:
+  std::shared_ptr<ReferenceCountedFutureImpl> ref_future_impl_;
 };
 
 }  // namespace internal

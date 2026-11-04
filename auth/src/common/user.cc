@@ -50,6 +50,7 @@ AUTH_RESULT_FN(User, Delete, void)
 AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
 Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
+  if (!auth_data_) return Future<std::string>();
   MutexLock lock(auth_data_->future_impl.mutex());
   Future<std::string> future = GetToken(force_refresh);
   if (future.status() != kFutureStatusPending) {
@@ -61,6 +62,7 @@ Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
 }
 
 Future<IdTokenResult> User::GetIdTokenResultThreadSafe(bool force_refresh) {
+  if (!auth_data_) return Future<IdTokenResult>();
   MutexLock lock(auth_data_->future_impl.mutex());
   Future<IdTokenResult> future = GetIdTokenResult(force_refresh);
   if (future.status() != kFutureStatusPending) {

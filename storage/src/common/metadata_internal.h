@@ -174,7 +174,11 @@ class MetadataInternal {
 
  public:
   StorageReference GetReference() const { return storage_reference_; }
-private:
+  StorageReferenceInternal* reference_internal() const {
+    return storage_reference_.internal_;
+  }
+
+ private:
   StorageReference storage_reference_;
 
 

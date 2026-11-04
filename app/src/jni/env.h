@@ -373,6 +373,7 @@ class Env {
       policy_ = other.policy_;
       exception_handler_ = other.exception_handler_;
       exceptions_ = other.exceptions_;
+      saved_exception_ = std::move(other.saved_exception_);
       other.env_ = nullptr;
       other.exception_handler_ = nullptr;
       other.exceptions_ = 0;
@@ -839,10 +840,13 @@ class Env {
   void RecordException() noexcept {
     ++exceptions_;
     if (policy_ == ExceptionPolicy::kCaptureAndClear && env_ && env_->ExceptionCheck()) {
-      if (!saved_exception_) {
-        saved_exception_ = Local<Throwable>(env_, env_->ExceptionOccurred(), true);
-      }
+      jthrowable ex = env_->ExceptionOccurred();
       env_->ExceptionClear();
+      if (!saved_exception_) {
+        saved_exception_ = Local<Throwable>(env_, ex, true);
+      } else if (ex) {
+        env_->DeleteLocalRef(ex);
+      }
     }
   }
 

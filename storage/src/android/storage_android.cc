@@ -120,7 +120,7 @@ JNI_METHOD_LOOKUP_DECLARATION(firebase_storage, FIREBASE_STORAGE_METHODS, FIELD_
 JNI_METHOD_LOOKUP_DECLARATION(storage_exception, STORAGE_EXCEPTION_METHODS, STORAGE_EXCEPTION_FIELDS, "com/google/firebase/storage/StorageException")
 
 
-JNI_METHOD_LOOKUP_DECLARATION(index_out_of_bounds_exception, STORAGE_EXCEPTION_METHODS, FIELD_LOOKUP_NONE, "java/lang/IndexOutOfBoundsException")
+JNI_METHOD_LOOKUP_DECLARATION(index_out_of_bounds_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "java/lang/IndexOutOfBoundsException")
 
 
 Mutex StorageInternal::init_mutex_;  // NOLINT
@@ -290,13 +290,19 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
               firebase_storage_resources::storage_resources_filename,
               firebase_storage_resources::storage_resources_data,
               firebase_storage_resources::storage_resources_size));
-  if (!(cpp_storage_listener::CacheMethodIds(env, app->activity()) &&
+  if (!(cpp_storage_listener::CacheClassFromFiles(env, app->activity(),
+                                                  &embedded_files) &&
+        cpp_storage_listener::CacheMethodIds(env, app->activity()) &&
         cpp_storage_listener::RegisterNatives(
             env, kCppStorageListener,
             FIREBASE_ARRAYSIZE(kCppStorageListener)) &&
+        cpp_byte_downloader::CacheClassFromFiles(env, app->activity(),
+                                                 &embedded_files) &&
         cpp_byte_downloader::CacheMethodIds(env, app->activity()) &&
         cpp_byte_downloader::RegisterNatives(
             env, kCppByteDownloader, FIREBASE_ARRAYSIZE(kCppByteDownloader)) &&
+        cpp_byte_uploader::CacheClassFromFiles(env, app->activity(),
+                                               &embedded_files) &&
         cpp_byte_uploader::CacheMethodIds(env, app->activity()) &&
         cpp_byte_uploader::RegisterNatives(
             env, kCppByteUploader, FIREBASE_ARRAYSIZE(kCppByteUploader)))) {

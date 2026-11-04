@@ -1,4 +1,3 @@
-#include "app/src/cleanup_notifier.h"
 /*
  * Copyright 2023 Google LLC
  *
@@ -20,6 +19,7 @@
 #include <cassert>
 
 #include "app/src/assert.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/util.h"
 #include "firebase/app.h"
 #include "firebase/internal/mutex.h"
@@ -70,24 +70,34 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::App* app,
     return nullptr;
   }
 
-  MutexLock lock(UmpInstanceMutex());
-  if (s_instance_ && s_instance_->internal_) {
+  ConsentInfo* instance = nullptr;
+  {
+    MutexLock lock(UmpInstanceMutex());
+    if (s_instance_ && s_instance_->internal_) {
 #if FIREBASE_PLATFORM_ANDROID
-    s_instance_->SetActivity(app->GetJNIEnv(), app->activity());
+      s_instance_->SetActivity(app->GetJNIEnv(), app->activity());
 #endif
-    if (!s_instance_->app_) {
-      s_instance_->BindToApp(app);
-    }
-    if (init_result_out) *init_result_out = kInitResultSuccess;
-    return s_instance_;
-  }
-
+      if (init_result_out) *init_result_out = kInitResultSuccess;
+      instance = s_instance_;
+    } else {
 #if FIREBASE_PLATFORM_ANDROID
-  ConsentInfo* instance =
-      GetInstance(app->GetJNIEnv(), app->activity(), init_result_out);
+      instance =
+          GetInstance(app->GetJNIEnv(), app->activity(), init_result_out);
 #else
-  ConsentInfo* instance = GetInstance(init_result_out);
+      ConsentInfo* consent_info = s_instance_ ? s_instance_ : new ConsentInfo();
+      InitResult result = consent_info->Initialize();
+      if (init_result_out) *init_result_out = result;
+      if (result != kInitResultSuccess) {
+        if (consent_info != s_instance_) {
+          delete consent_info;
+        }
+        return nullptr;
+      }
+      s_instance_ = consent_info;
+      instance = consent_info;
 #endif
+    }
+  }
   if (instance) {
     instance->BindToApp(app);
   }
@@ -96,10 +106,12 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::App* app,
 
 #if FIREBASE_PLATFORM_ANDROID
 ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
-  MutexLock lock(UmpInstanceMutex());
-  if (s_instance_ && s_instance_->internal_) {
-    if (init_result_out) *init_result_out = kInitResultSuccess;
-    return s_instance_;
+  {
+    MutexLock lock(UmpInstanceMutex());
+    if (s_instance_ && s_instance_->internal_) {
+      if (init_result_out) *init_result_out = kInitResultSuccess;
+      return s_instance_;
+    }
   }
   ::firebase::App* default_app = ::firebase::App::GetInstance();
   if (default_app) {
@@ -141,25 +153,28 @@ void ConsentInfo::SetActivity(JNIEnv* jni_env, jobject activity) {
 }
 #else   // !FIREBASE_PLATFORM_ANDROID
 ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
-  MutexLock lock(UmpInstanceMutex());
-  if (s_instance_ && s_instance_->internal_) {
-    if (init_result_out) *init_result_out = kInitResultSuccess;
-    return s_instance_;
-  }
-
-  ConsentInfo* consent_info = s_instance_ ? s_instance_ : new ConsentInfo();
-  InitResult result = consent_info->Initialize();
-  if (init_result_out) *init_result_out = result;
-  if (result != kInitResultSuccess) {
-    if (consent_info != s_instance_) {
-      delete consent_info;
+  ConsentInfo* consent_info = nullptr;
+  {
+    MutexLock lock(UmpInstanceMutex());
+    if (s_instance_ && s_instance_->internal_) {
+      if (init_result_out) *init_result_out = kInitResultSuccess;
+      return s_instance_;
     }
-    return nullptr;
+
+    consent_info = s_instance_ ? s_instance_ : new ConsentInfo();
+    InitResult result = consent_info->Initialize();
+    if (init_result_out) *init_result_out = result;
+    if (result != kInitResultSuccess) {
+      if (consent_info != s_instance_) {
+        delete consent_info;
+      }
+      return nullptr;
+    }
+    s_instance_ = consent_info;
   }
-  s_instance_ = consent_info;
   ::firebase::App* default_app = ::firebase::App::GetInstance();
-  if (default_app && !s_instance_->app_) {
-    s_instance_->BindToApp(default_app);
+  if (default_app) {
+    consent_info->BindToApp(default_app);
   }
   return consent_info;
 }
@@ -190,10 +205,18 @@ ConsentInfo::~ConsentInfo() {
 }
 
 void ConsentInfo::BindToApp(::firebase::App* app) {
-  if (!app || app_) return;
+  if (!app) return;
+  {
+    MutexLock lock(UmpInstanceMutex());
+    if (app_) return;
+  }
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
   if (notifier) {
-    app_ = app;
+    {
+      MutexLock lock(UmpInstanceMutex());
+      if (app_) return;
+      app_ = app;
+    }
     notifier->RegisterObject(this, [](void* object) {
       ConsentInfo* info = static_cast<ConsentInfo*>(object);
       info->OnAppDestroyed();

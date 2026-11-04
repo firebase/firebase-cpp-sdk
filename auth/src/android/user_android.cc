@@ -202,6 +202,7 @@ User::~User() { auth_data_ = nullptr; }
 bool User::is_valid() const { return ValidUser(auth_data_); }
 
 std::string User::uid() const {
+  if (!ValidUser(auth_data_)) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -211,6 +212,7 @@ std::string User::uid() const {
 }
 
 std::string User::email() const {
+  if (!ValidUser(auth_data_)) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -220,6 +222,7 @@ std::string User::email() const {
 }
 
 std::string User::display_name() const {
+  if (!ValidUser(auth_data_)) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -229,6 +232,7 @@ std::string User::display_name() const {
 }
 
 std::string User::phone_number() const {
+  if (!ValidUser(auth_data_)) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -238,6 +242,7 @@ std::string User::phone_number() const {
 }
 
 std::string User::photo_url() const {
+  if (!ValidUser(auth_data_)) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -247,6 +252,7 @@ std::string User::photo_url() const {
 }
 
 std::string User::provider_id() const {
+  if (!ValidUser(auth_data_)) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -440,6 +446,7 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool 
 
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
+  if (!ValidUser(auth_data_)) return provider_data;
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (user_local != nullptr) {
@@ -647,6 +654,7 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
 
 Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
   if (!ValidUser(auth_data)) {
+    if (!auth_data) return Future<AuthResult>();
     Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_LinkWithProvider);
     promise.Fail(kAuthErrorFailure, "Invalid user");
     return promise.future();
@@ -817,6 +825,7 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
 
 Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
   if (!ValidUser(auth_data)) {
+    if (!auth_data) return Future<AuthResult>();
     Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_ReauthenticateWithProvider);
     promise.Fail(kAuthErrorFailure, "Invalid user");
     return promise.future();
@@ -896,6 +905,7 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
 }
 
 UserMetadata User::metadata() const {
+  if (!ValidUser(auth_data_)) return UserMetadata();
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return UserMetadata();
@@ -922,6 +932,7 @@ UserMetadata User::metadata() const {
 }
 
 bool User::is_email_verified() const {
+  if (!ValidUser(auth_data_)) return false;
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return false;
@@ -933,6 +944,7 @@ bool User::is_email_verified() const {
 }
 
 bool User::is_anonymous() const {
+  if (!ValidUser(auth_data_)) return false;
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return false;

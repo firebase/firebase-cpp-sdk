@@ -111,7 +111,7 @@ int64_t LoadBundleTaskProgressInternal::total_bytes() const {
 
 LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const {
   Env env = GetEnv();
-  return ToPublicState(env, obj_.get(env));
+  return ToPublicState(env, obj_);
 }
 
 }  // namespace firestore

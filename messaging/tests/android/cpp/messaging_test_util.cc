@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "app/src/util.h"
+#include "app/src/util_android.h"
 #include "flatbuffers/util.h"
 #include "messaging/messaging_generated.h"
 #include "messaging/src/android/cpp/messaging_internal.h"
@@ -50,13 +51,14 @@ using ::com::google::firebase::messaging::cpp::SerializedNotificationBuilder;
 namespace firebase {
 namespace messaging {
 
-static std::string* g_local_storage_file_path;
-static std::string* g_lockfile_path;
+static std::string* g_local_storage_file_path = nullptr;
+static std::string* g_lockfile_path = nullptr;
 
 // Lock the file referenced by g_lockfile_path.
 class TestMessageLockFileLocker : private FileLocker {
  public:
-  TestMessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {}
+  TestMessageLockFileLocker()
+      : FileLocker(g_lockfile_path ? g_lockfile_path->c_str() : "") {}
   ~TestMessageLockFileLocker() {}
 };
 
@@ -69,7 +71,9 @@ void InitializeMessagingTest() {
   jstring path_jstring = reinterpret_cast<jstring>(env->CallObjectMethod(
       file, util::file::GetMethodId(util::file::kGetPath)));
   assert(env->ExceptionCheck() == false);
-  std::string local_storage_dir = ::firebase::jni::JStringToString(env, path_jstring);
+  std::string local_storage_dir =
+      ::firebase::jni::JStringToString(env, path_jstring);
+  env->DeleteLocalRef(path_jstring);
   env->DeleteLocalRef(file);
   g_lockfile_path = new std::string(local_storage_dir + "/" + kLockfile);
   g_local_storage_file_path =
@@ -84,8 +88,17 @@ void TerminateMessagingTest() {
 }
 
 static void WriteBuffer(const ::flatbuffers::FlatBufferBuilder& builder) {
+  assert(g_lockfile_path != nullptr);
+  assert(g_local_storage_file_path != nullptr);
+  if (!g_lockfile_path || !g_local_storage_file_path) {
+    return;
+  }
   TestMessageLockFileLocker file_lock;
   FILE* data_file = fopen(g_local_storage_file_path->c_str(), "a");
+  assert(data_file != nullptr);
+  if (!data_file) {
+    return;
+  }
   int size = builder.GetSize();
   fwrite(&size, sizeof(size), 1, data_file);
   fwrite(builder.GetBufferPointer(), size, 1, data_file);

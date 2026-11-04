@@ -126,9 +126,11 @@ CollectionReference DocumentReference::Collection(
     const char* collection_path) const {
   if (!collection_path) {
     SimpleThrowInvalidArgument("Collection path cannot be null.");
+    return {};
   }
   if (collection_path[0] == '\0') {
     SimpleThrowInvalidArgument("Collection path cannot be empty.");
+    return {};
   }
 
   if (!internal_) return {};
@@ -139,6 +141,7 @@ CollectionReference DocumentReference::Collection(
     const std::string& collection_path) const {
   if (collection_path.empty()) {
     SimpleThrowInvalidArgument("Collection path cannot be empty.");
+    return {};
   }
 
   if (!internal_) return {};

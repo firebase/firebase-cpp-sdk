@@ -88,15 +88,14 @@ class QueryInternal {
 
   DatabaseInternal* database_internal() const { return database_; }
 
+  // Get the Future for the QueryInternal.
+  ReferenceCountedFutureImpl* query_future();
+
  protected:
   DatabaseInternal* database_ = nullptr;
   QuerySpec query_spec_;
 
  private:
-  // Get the Future for the QueryInternal.
-  public:
-  ReferenceCountedFutureImpl* query_future();
-
   void AddEventRegistration(std::unique_ptr<EventRegistration> registration,
                             void* listener_ptr);
 
@@ -106,12 +105,7 @@ class QueryInternal {
   void RemoveEventRegistration(ChildListener* listener,
                                const QuerySpec& query_spec);
 
-  // The memory location of this member variable is used to look up our
-  // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and
-  // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
-  // instances, but have the same "this" pointer as one is a subclass of the
-  // other.
-  ReferenceCountedFutureImpl future_impl_;
+  std::shared_ptr<ReferenceCountedFutureImpl> future_impl_;
 };
 
 struct ValueListenerCleanupData {

@@ -16,13 +16,13 @@
 
 #include <jni.h>
 
-#include "app/src/future_manager.h"
 #include "app/src/app_android.h"
+#include "app/src/future_manager.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/jni/env.h"
 #include "app/src/jni/ownership.h"
+#include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
-#include "app/src/app_android.h"
-#include "app/src/jni/env.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/include/firebase/database/disconnection.h"
 
@@ -45,56 +45,9 @@ namespace internal {
   X(Cancel, "cancel", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 
-namespace on_disconnect {
-
-enum Method {
-  kSetValue,
-  kSetValueAndStringPriority,
-  kSetValueAndDoublePriority,
-  kUpdateChildren,
-  kRemoveValue,
-  kCancel,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/OnDisconnect"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kSetValue] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kSetValue]) return false;
-  g_method_ids[kSetValueAndStringPriority] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kSetValueAndStringPriority]) return false;
-  g_method_ids[kSetValueAndDoublePriority] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;D)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kSetValueAndDoublePriority]) return false;
-  g_method_ids[kUpdateChildren] = env->GetMethodID(g_class.get(), "updateChildren", "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kUpdateChildren]) return false;
-  g_method_ids[kRemoveValue] = env->GetMethodID(g_class.get(), "removeValue", "()Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kRemoveValue]) return false;
-  g_method_ids[kCancel] = env->GetMethodID(g_class.get(), "cancel", "()Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kCancel]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace on_disconnect
+JNI_METHOD_LOOKUP_DECLARATION(
+    on_disconnect, ON_DISCONNECT_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/database/OnDisconnect")
 
 
 

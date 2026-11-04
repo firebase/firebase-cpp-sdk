@@ -41,8 +41,8 @@ class TraceInternal {
               trace_jni::GetMethodId(trace_jni::kStopTrace));
           jni::CheckAndClearException(env);
         }
-      } else {
-        env = firebase::util::GetJNIEnvFromApp();
+      } else if (App::GetInstance() != nullptr) {
+        env = App::GetInstance()->GetJNIEnv();
       }
       if (env) {
         env->DeleteGlobalRef(active_trace_);
@@ -63,56 +63,29 @@ class TraceInternal {
     }
 
     MutexLock lock(mutex_);
-    if (active_trace_ != nullptr) {
-      CancelTrace();
-    }
-
-    stop_on_destroy_ = stop_on_destroy;
-    is_started_ = false;
-
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-
-    jstring name_jstring = env->NewStringUTF(name);
-
-    jobject local_active_trace = env->CallObjectMethod(
-        GetFirebasePerformanceClassInstance(),
-        performance_jni::GetMethodId(performance_jni::kNewTrace), name_jstring);
-    bool had_exception = jni::CheckAndClearException(env);
-
-    if (!had_exception && local_active_trace != nullptr) {
-      active_trace_ = env->NewGlobalRef(local_active_trace);
-    }
-    if (local_active_trace != nullptr) {
-      env->DeleteLocalRef(local_active_trace);
-    }
-    if (name_jstring != nullptr) {
-      env->DeleteLocalRef(name_jstring);
-    }
-    return active_trace_ != nullptr;
+    return CreateTraceLocked(name, stop_on_destroy);
   }
 
   // Starts a created Trace using the Android implementation.
   void StartCreatedTrace() {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     MutexLock lock(mutex_);
-    if (WarnIfNotCreated("Cannot start Trace.")) return;
-    if (!is_started_) {
-      JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-      env->CallVoidMethod(active_trace_,
-                          trace_jni::GetMethodId(trace_jni::kStartTrace));
-      if (!jni::CheckAndClearException(env)) {
-        is_started_ = true;
-      }
-    }
+    StartCreatedTraceLocked();
   }
 
   // Creates and Starts a Trace using the Android implementation. If this
   // method is called before stopping the previous trace, the previous trace
   // is cancelled.
   void CreateAndStartTrace(const char* name) {
+    FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
+
+    if (WarnIf(name == nullptr, "Cannot start trace. Name cannot be null.")) {
+      return;
+    }
+
     MutexLock lock(mutex_);
-    if (CreateTrace(name, true)) {
-      StartCreatedTrace();
+    if (CreateTraceLocked(name, true)) {
+      StartCreatedTraceLocked();
     }
   }
 
@@ -129,9 +102,7 @@ class TraceInternal {
                           trace_jni::GetMethodId(trace_jni::kStopTrace));
       jni::CheckAndClearException(env);
     }
-    env->DeleteGlobalRef(active_trace_);
-    active_trace_ = nullptr;
-    is_started_ = false;
+    CancelTraceLocked();
   }
 
   // Cancels the currently running trace if one exists, which prevents it from
@@ -141,10 +112,7 @@ class TraceInternal {
     MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot cancel Trace.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-    env->DeleteGlobalRef(active_trace_);
-    active_trace_ = nullptr;
-    is_started_ = false;
+    CancelTraceLocked();
   }
 
   // Returns whether the trace has been started.
@@ -195,9 +163,10 @@ class TraceInternal {
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
     jstring attribute_name_jstring = env->NewStringUTF(attribute_name);
-    jobject attribute_value_jstring = env->CallObjectMethod(
-        active_trace_, trace_jni::GetMethodId(trace_jni::kGetAttribute),
-        attribute_name_jstring);
+    jstring attribute_value_jstring =
+        static_cast<jstring>(env->CallObjectMethod(
+            active_trace_, trace_jni::GetMethodId(trace_jni::kGetAttribute),
+            attribute_name_jstring));
     bool exception_pending = jni::CheckAndClearException(env);
     env->DeleteLocalRef(attribute_name_jstring);
 
@@ -207,7 +176,10 @@ class TraceInternal {
       }
       return "";
     }
-    return ::firebase::jni::JStringToString(env, attribute_value_jstring);
+    std::string attribute_value =
+        ::firebase::jni::JStringToString(env, attribute_value_jstring);
+    env->DeleteLocalRef(attribute_value_jstring);
+    return attribute_value;
   }
 
   // Gets the value of the metric identified by the metric_name or 0 if it
@@ -289,6 +261,54 @@ class TraceInternal {
   // object.
   bool stop_on_destroy_ = false;
   bool is_started_ = false;
+
+  bool CreateTraceLocked(const char* name, bool stop_on_destroy) {
+    if (active_trace_ != nullptr) {
+      CancelTraceLocked();
+    }
+
+    stop_on_destroy_ = stop_on_destroy;
+    is_started_ = false;
+
+    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+
+    jstring name_jstring = env->NewStringUTF(name);
+
+    jobject local_active_trace = env->CallObjectMethod(
+        GetFirebasePerformanceClassInstance(),
+        performance_jni::GetMethodId(performance_jni::kNewTrace), name_jstring);
+    bool had_exception = jni::CheckAndClearException(env);
+
+    if (!had_exception && local_active_trace != nullptr) {
+      active_trace_ = env->NewGlobalRef(local_active_trace);
+    }
+    if (local_active_trace != nullptr) {
+      env->DeleteLocalRef(local_active_trace);
+    }
+    if (name_jstring != nullptr) {
+      env->DeleteLocalRef(name_jstring);
+    }
+    return active_trace_ != nullptr;
+  }
+
+  void StartCreatedTraceLocked() {
+    if (WarnIfNotCreated("Cannot start Trace.")) return;
+    if (!is_started_) {
+      JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+      env->CallVoidMethod(active_trace_,
+                          trace_jni::GetMethodId(trace_jni::kStartTrace));
+      if (!jni::CheckAndClearException(env)) {
+        is_started_ = true;
+      }
+    }
+  }
+
+  void CancelTraceLocked() {
+    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    env->DeleteGlobalRef(active_trace_);
+    active_trace_ = nullptr;
+    is_started_ = false;
+  }
 
   bool WarnIfNotCreated(const char* warning_message_details) const {
     if (!active_trace_) {

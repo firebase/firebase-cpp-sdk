@@ -113,7 +113,7 @@ class FirebaseCppCredentialsProvider final
         firestore::credentials::User> auth_listener;
   };
   std::shared_ptr<Contents> contents_;
-  std::weak_ptr<Contents>* auth_listener_context_{nullptr};
+  void* auth_listener_context_{nullptr};
 };
 
 }  // namespace firestore

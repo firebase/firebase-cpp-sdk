@@ -268,7 +268,8 @@ class StorageReference {
   /// @returns A Future result containing the StorageListResult page.
   Future<StorageListResult> List(int max_results_per_page,
                                  const std::string& page_token) {
-    return List(max_results_per_page, page_token.c_str());
+    return List(max_results_per_page,
+                page_token.empty() ? nullptr : page_token.c_str());
   }
 #endif  // SWIG
 

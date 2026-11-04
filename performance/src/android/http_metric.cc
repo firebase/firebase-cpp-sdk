@@ -9,14 +9,14 @@
 #include <string>
 #include <utility>
 
-#include "app/src/assert.h"
 #include "app/src/app_android.h"
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/log.h"
-#include "performance/src/android/performance_android_internal.h"
-#include "app/src/app_android.h"
 #include "app/src/jni/string.h"
+#include "app/src/log.h"
+#include "app/src/util_android.h"
+#include "performance/src/android/performance_android_internal.h"
 #include "performance/src/include/firebase/performance.h"
 #include "performance/src/performance_common.h"
 
@@ -73,76 +73,27 @@ class HttpMetricInternal {
   }
 
   // Creates an underlying Java HttpMetric. If a previous one exists, it is
-  // stopped (when stop_on_destroy is true and it was started) or cancelled.
+  // stopped (when stop_on_destroy_ is true and it was started) or cancelled.
   bool CreateHttpMetric(const char* url, HttpMethod http_method,
                         bool stop_on_destroy) {
     FIREBASE_ASSERT_RETURN(false, IsInitialized());
-
-    if (WarnIf(url == nullptr,
-               "URL cannot be nullptr. Unable to create HttpMetric.")) {
-      return false;
-    }
-    const char* method_str = GetFIRHttpMethodString(http_method);
-    if (WarnIf(method_str == nullptr,
-               "Invalid HttpMethod. Unable to create HttpMetric.")) {
-      return false;
-    }
-
     MutexLock lock(mutex_);
-    if (active_http_metric_ != nullptr) {
-      if (stop_on_destroy && is_started_) {
-        StopHttpMetric();
-      } else {
-        CancelHttpMetric();
-      }
-    }
-
-    stop_on_destroy_ = stop_on_destroy;
-    is_started_ = false;
-
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-
-    jstring url_jstring = env->NewStringUTF(url);
-    jstring http_method_jstring = env->NewStringUTF(method_str);
-
-    jobject local_active_http_metric = env->CallObjectMethod(
-        GetFirebasePerformanceClassInstance(),
-        performance_jni::GetMethodId(performance_jni::kNewHttpMetric),
-        url_jstring, http_method_jstring);
-    bool had_exception = jni::CheckAndClearException(env);
-
-    if (!had_exception && local_active_http_metric != nullptr) {
-      active_http_metric_ = env->NewGlobalRef(local_active_http_metric);
-    }
-    if (local_active_http_metric != nullptr) {
-      env->DeleteLocalRef(local_active_http_metric);
-    }
-    if (url_jstring) env->DeleteLocalRef(url_jstring);
-    if (http_method_jstring) env->DeleteLocalRef(http_method_jstring);
-    return active_http_metric_ != nullptr;
+    return CreateHttpMetricLocked(url, http_method, stop_on_destroy);
   }
 
   // Starts an already created Java HttpMetric.
   void StartCreatedHttpMetric() {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     MutexLock lock(mutex_);
-    if (WarnIfNotCreated("Cannot start HttpMetric.")) return;
-    if (!is_started_) {
-      JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-      env->CallVoidMethod(
-          active_http_metric_,
-          http_metric_jni::GetMethodId(http_metric_jni::kStartHttpMetric));
-      if (!jni::CheckAndClearException(env)) {
-        is_started_ = true;
-      }
-    }
+    StartCreatedHttpMetricLocked();
   }
 
   // Creates and starts an underlying Java HttpMetric.
   void CreateAndStartHttpMetric(const char* url, HttpMethod http_method) {
+    FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     MutexLock lock(mutex_);
-    if (CreateHttpMetric(url, http_method, true)) {
-      StartCreatedHttpMetric();
+    if (CreateHttpMetricLocked(url, http_method, true)) {
+      StartCreatedHttpMetricLocked();
     }
   }
 
@@ -158,10 +109,7 @@ class HttpMetricInternal {
     MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot cancel HttpMetric.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-    env->DeleteGlobalRef(active_http_metric_);
-    active_http_metric_ = nullptr;
-    is_started_ = false;
+    CancelHttpMetricLocked();
   }
 
   // Stops the network trace if it hasn't already been stopped, and logs it to
@@ -171,16 +119,7 @@ class HttpMetricInternal {
     MutexLock lock(mutex_);
     if (WarnIfNotCreated("Cannot stop HttpMetric.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
-    if (is_started_) {
-      env->CallVoidMethod(
-          active_http_metric_,
-          http_metric_jni::GetMethodId(http_metric_jni::kStopHttpMetric));
-      jni::CheckAndClearException(env);
-    }
-    env->DeleteGlobalRef(active_http_metric_);
-    active_http_metric_ = nullptr;
-    is_started_ = false;
+    StopHttpMetricLocked();
   }
 
   // Creates a custom attribute for the given network trace with the
@@ -227,10 +166,11 @@ class HttpMetricInternal {
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
     jstring attribute_name_jstring = env->NewStringUTF(attribute_name);
-    jobject attribute_value_jstring = env->CallObjectMethod(
-        active_http_metric_,
-        http_metric_jni::GetMethodId(http_metric_jni::kGetAttribute),
-        attribute_name_jstring);
+    jstring attribute_value_jstring =
+        static_cast<jstring>(env->CallObjectMethod(
+            active_http_metric_,
+            http_metric_jni::GetMethodId(http_metric_jni::kGetAttribute),
+            attribute_name_jstring));
     bool exception_pending = jni::CheckAndClearException(env);
     env->DeleteLocalRef(attribute_name_jstring);
 
@@ -240,7 +180,10 @@ class HttpMetricInternal {
       }
       return "";
     }
-    return jni::JStringToString(env, attribute_value_jstring);
+    std::string attribute_value =
+        jni::JStringToString(env, attribute_value_jstring);
+    env->DeleteLocalRef(attribute_value_jstring);
+    return attribute_value;
   }
 
   // Sets the HTTP Response Code (for eg. 404 or 200) of the network
@@ -313,6 +256,84 @@ class HttpMetricInternal {
   // to track whether it should be stopped before deallocating the object.
   bool stop_on_destroy_ = false;
   bool is_started_ = false;
+
+  bool CreateHttpMetricLocked(const char* url, HttpMethod http_method,
+                              bool stop_on_destroy) {
+    if (WarnIf(url == nullptr,
+               "URL cannot be nullptr. Unable to create HttpMetric.")) {
+      return false;
+    }
+    const char* method_str = GetFIRHttpMethodString(http_method);
+    if (WarnIf(method_str == nullptr,
+               "Invalid HttpMethod. Unable to create HttpMetric.")) {
+      return false;
+    }
+
+    if (active_http_metric_ != nullptr) {
+      if (stop_on_destroy_ && is_started_) {
+        StopHttpMetricLocked();
+      } else {
+        CancelHttpMetricLocked();
+      }
+    }
+
+    stop_on_destroy_ = stop_on_destroy;
+    is_started_ = false;
+
+    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+
+    jstring url_jstring = env->NewStringUTF(url);
+    jstring http_method_jstring = env->NewStringUTF(method_str);
+
+    jobject local_active_http_metric = env->CallObjectMethod(
+        GetFirebasePerformanceClassInstance(),
+        performance_jni::GetMethodId(performance_jni::kNewHttpMetric),
+        url_jstring, http_method_jstring);
+    bool had_exception = jni::CheckAndClearException(env);
+
+    if (!had_exception && local_active_http_metric != nullptr) {
+      active_http_metric_ = env->NewGlobalRef(local_active_http_metric);
+    }
+    if (local_active_http_metric != nullptr) {
+      env->DeleteLocalRef(local_active_http_metric);
+    }
+    if (url_jstring) env->DeleteLocalRef(url_jstring);
+    if (http_method_jstring) env->DeleteLocalRef(http_method_jstring);
+    return active_http_metric_ != nullptr;
+  }
+
+  void StartCreatedHttpMetricLocked() {
+    if (WarnIfNotCreated("Cannot start HttpMetric.")) return;
+    if (!is_started_) {
+      JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+      env->CallVoidMethod(
+          active_http_metric_,
+          http_metric_jni::GetMethodId(http_metric_jni::kStartHttpMetric));
+      if (!jni::CheckAndClearException(env)) {
+        is_started_ = true;
+      }
+    }
+  }
+
+  void CancelHttpMetricLocked() {
+    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    env->DeleteGlobalRef(active_http_metric_);
+    active_http_metric_ = nullptr;
+    is_started_ = false;
+  }
+
+  void StopHttpMetricLocked() {
+    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    if (is_started_) {
+      env->CallVoidMethod(
+          active_http_metric_,
+          http_metric_jni::GetMethodId(http_metric_jni::kStopHttpMetric));
+      jni::CheckAndClearException(env);
+    }
+    env->DeleteGlobalRef(active_http_metric_);
+    active_http_metric_ = nullptr;
+    is_started_ = false;
+  }
 
   bool WarnIfNotCreated(const char* warning_message_details) const {
     if (!active_http_metric_) {

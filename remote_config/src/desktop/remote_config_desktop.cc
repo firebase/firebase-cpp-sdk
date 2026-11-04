@@ -133,9 +133,7 @@ bool RemoteConfigInternal::Initialized() const {
   return initialized_;
 }
 
-void RemoteConfigInternal::Cleanup() {
-  // Do nothing.
-}
+void RemoteConfigInternal::Cleanup() { cleanup_.CleanupAll(); }
 
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
   MutexLock lock(internal_mutex_);

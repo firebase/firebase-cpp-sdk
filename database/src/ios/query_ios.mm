@@ -248,17 +248,15 @@ static void CancelValueListener(
 }
 
 void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
-  if (!database_) return Future<DataSnapshot>();
+  if (!database_) return;
   ReferenceCountedFutureImpl* future_api = query_future();
-  SafeFutureHandle<DataSnapshot> future_handle =
-      future_api->SafeAlloc<DataSnapshot>(kQueryFnGetValue,
-                                          DataSnapshot(nullptr));
-  Future<DataSnapshot> result_future = MakeFuture(future_api, future_handle);
+  if (!future_api) return;
   if (!impl()) {
-    future_api->Complete(future_handle, kErrorOperationFailed,
+    future_api->Complete(handle, kErrorOperationFailed,
                          GetErrorMessage(kErrorOperationFailed));
-    return result_future;
+    return;
   }
+  Future<DataSnapshot> result_future = MakeFuture(future_api, handle);
 
   // Register a one-time ValueEventListener with the query.
   FIRCPPDatabaseQueryCallbackState* callback_state =
@@ -267,7 +265,7 @@ void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
                                                 andValueListener:nullptr
                                                 andChildListener:nullptr];
   SingleValueListener* single_listener = new SingleValueListener(
-      database_, future_api, future_handle, result_future,
+      database_, future_api, handle, result_future,
       FIRCPPDatabaseQueryCallbackStatePointer(callback_state));
   callback_state.valueListener = single_listener;
 
@@ -301,16 +299,14 @@ void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   [callback_state.lock lock];
   @try {
     database_->AddSingleValueListener(single_listener);
-    FIRDatabaseHandle handle =
+    FIRDatabaseHandle observer_handle =
         [impl() observeEventType:FIRDataEventTypeValue
                        withBlock:block
                  withCancelBlock:cancel_block];
-    [callback_state addObserverHandle:handle];
+    [callback_state addObserverHandle:observer_handle];
   } @finally {
     [callback_state.lock unlock];
   }
-
-  return result_future;
 }
 
 
@@ -753,7 +749,8 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
 }
 
 ReferenceCountedFutureImpl* QueryInternal::query_future() {
-  return database_->future_manager().GetFutureApi(&future_api_id_);
+  return database_ ? database_->future_manager().GetFutureApi(&future_api_id_)
+                   : nullptr;
 }
 
 }  // namespace internal

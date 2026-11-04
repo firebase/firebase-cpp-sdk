@@ -106,13 +106,16 @@ Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
     assert(app_notifier);
     app_notifier->RegisterObject(this, [](void* object) {
       Database* database = reinterpret_cast<Database*>(object);
-      Logger* logger = app_common::FindAppLoggerByName(database->app()->name());
-      if (logger) {
-        logger->LogWarning(
-            "Database object 0x%08x should be deleted before the App 0x%08x it "
-            "depends upon.",
-            static_cast<int>(reinterpret_cast<intptr_t>(database)),
-            static_cast<int>(reinterpret_cast<intptr_t>(database->app())));
+      App* app = database->app();
+      if (app) {
+        Logger* logger = app_common::FindAppLoggerByName(app->name());
+        if (logger) {
+          logger->LogWarning(
+              "Database object 0x%08x should be deleted before the App 0x%08x "
+              "it depends upon.",
+              static_cast<int>(reinterpret_cast<intptr_t>(database)),
+              static_cast<int>(reinterpret_cast<intptr_t>(app)));
+        }
       }
       database->DeleteInternal();
     });
@@ -120,54 +123,38 @@ Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
 }
 
 void Database::DeleteInternal() {
-  App* my_app = nullptr;
-  CleanupNotifier* app_notifier = nullptr;
-  DatabaseInternal* internal_to_delete = nullptr;
+  MutexLock lock(g_databases_lock);
 
-  {
-    MutexLock lock(g_databases_lock);
+  if (!internal_) return;
 
-    if (!internal_) return;
-
-    // An instance whose initialization failed was never registered with the
-    // App's CleanupNotifier or added to g_databases, and app() may be null.
-    if (!internal_->initialized()) {
-      delete internal_;
-      internal_ = nullptr;
-      return;
-    }
-
-    my_app = app();
-    std::string url = internal_->constructor_url();
-    app_notifier = CleanupNotifier::FindByOwner(my_app);
-
-    // Remove from cache to avoid concurrent GetInstance calls finding it.
-    g_databases->erase(MakeKey(my_app, url));
-
-    internal_to_delete = internal_;
+  // An instance whose initialization failed was never registered with the
+  // App's CleanupNotifier or added to g_databases, and app() may be null.
+  if (!internal_->initialized()) {
+    delete internal_;
     internal_ = nullptr;
+    return;
   }
 
-  if (app_notifier) {
-    app_notifier->UnregisterObject(this);
-  }
+  App* my_app = app();
+  std::string url = internal_->constructor_url();
+
+  CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
+  assert(app_notifier);
+  app_notifier->UnregisterObject(this);
 
   {
     MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
     // Force cleanup to happen first.
-    #if !defined(FIREBASE_TARGET_DESKTOP)
-    internal_to_delete->cleanup().CleanupAll();
-#endif
+    internal_->cleanup().CleanupAll();
   }
-  delete internal_to_delete;
-
-  {
-    MutexLock lock(g_databases_lock);
-    // If it's the last one, delete the map.
-    if (g_databases && g_databases->empty()) {
-      delete g_databases;
-      g_databases = nullptr;
-    }
+  delete internal_;
+  internal_ = nullptr;
+  // If a Database is explicitly deleted, remove it from our cache.
+  g_databases->erase(MakeKey(my_app, url));
+  // If it's the last one, delete the map.
+  if (g_databases->empty()) {
+    delete g_databases;
+    g_databases = nullptr;
   }
 }
 

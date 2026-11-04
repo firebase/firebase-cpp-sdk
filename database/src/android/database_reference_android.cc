@@ -16,14 +16,15 @@
 
 #include <jni.h>
 
-#include "app/src/reference_counted_future_impl.h"
 #include "app/src/app_android.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/jni/env.h"
 #include "app/src/jni/ownership.h"
+#include "app/src/reference_counted_future_impl.h"
+#include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
 #include "database/src/android/disconnection_android.h"
-#include "app/src/app_android.h"
-#include "app/src/jni/env.h"
+#include "database/src/android/util_android.h"
 #include "database/src/common/database_reference.h"
 
 namespace firebase {
@@ -61,86 +62,9 @@ namespace internal {
   X(GetKey, "getKey", "()Ljava/lang/String;")
 // clang-format on
 
-namespace database_reference {
-
-enum Method {
-  kChild,
-  kPush,
-  kSetValue,
-  kSetValueAndPriority,
-  kSetPriority,
-  kUpdateChildren,
-  kRemoveValue,
-  kOnDisconnect,
-  kRunTransaction,
-  kGoOffline,
-  kGoOnline,
-  kGetDatabase,
-  kToString,
-  kGetParent,
-  kGetRoot,
-  kGetKey,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/DatabaseReference"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kChild] = env->GetMethodID(g_class.get(), "child", "(Ljava/lang/String;)Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kChild]) return false;
-  g_method_ids[kPush] = env->GetMethodID(g_class.get(), "push", "()Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kPush]) return false;
-  g_method_ids[kSetValue] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kSetValue]) return false;
-  g_method_ids[kSetValueAndPriority] = env->GetMethodID(g_class.get(), "setValue", "(Ljava/lang/Object;Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kSetValueAndPriority]) return false;
-  g_method_ids[kSetPriority] = env->GetMethodID(g_class.get(), "setPriority", "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kSetPriority]) return false;
-  g_method_ids[kUpdateChildren] = env->GetMethodID(g_class.get(), "updateChildren", "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kUpdateChildren]) return false;
-  g_method_ids[kRemoveValue] = env->GetMethodID(g_class.get(), "removeValue", "()Lcom/google/android/gms/tasks/Task;");
-  if (!g_method_ids[kRemoveValue]) return false;
-  g_method_ids[kOnDisconnect] = env->GetMethodID(g_class.get(), "onDisconnect", "()Lcom/google/firebase/database/OnDisconnect;");
-  if (!g_method_ids[kOnDisconnect]) return false;
-  g_method_ids[kRunTransaction] = env->GetMethodID(g_class.get(), "runTransaction", "(Lcom/google/firebase/database/Transaction$Handler;Z)V");
-  if (!g_method_ids[kRunTransaction]) return false;
-  g_method_ids[kGoOffline] = env->GetStaticMethodID(g_class.get(), "goOffline", "()V");
-  if (!g_method_ids[kGoOffline]) return false;
-  g_method_ids[kGoOnline] = env->GetStaticMethodID(g_class.get(), "goOnline", "()V");
-  if (!g_method_ids[kGoOnline]) return false;
-  g_method_ids[kGetDatabase] = env->GetMethodID(g_class.get(), "getDatabase", "()Lcom/google/firebase/database/FirebaseDatabase;");
-  if (!g_method_ids[kGetDatabase]) return false;
-  g_method_ids[kToString] = env->GetMethodID(g_class.get(), "toString", "()Ljava/lang/String;");
-  if (!g_method_ids[kToString]) return false;
-  g_method_ids[kGetParent] = env->GetMethodID(g_class.get(), "getParent", "()Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kGetParent]) return false;
-  g_method_ids[kGetRoot] = env->GetMethodID(g_class.get(), "getRoot", "()Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kGetRoot]) return false;
-  g_method_ids[kGetKey] = env->GetMethodID(g_class.get(), "getKey", "()Ljava/lang/String;");
-  if (!g_method_ids[kGetKey]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace database_reference
+JNI_METHOD_LOOKUP_DECLARATION(
+    database_reference, DATABASE_REFERENCE_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/database/DatabaseReference")
 
 
 
@@ -163,8 +87,10 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(
     MutexLock src_lock(src.member_mutex_);
     cached_key_ = src.cached_key_;
   }
-  db_->future_manager().AllocFutureApi(&future_api_id_,
-                                       kDatabaseReferenceFnCount);
+  if (db_ != nullptr) {
+    db_->future_manager().AllocFutureApi(&future_api_id_,
+                                         kDatabaseReferenceFnCount);
+  }
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
@@ -183,10 +109,14 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     }
     cached_key_ = std::move(src_key);
   }
-  db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  if (db_ != nullptr) {
+    db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
   QueryInternal::operator=(src);
-  db_->future_manager().AllocFutureApi(&future_api_id_,
-                                       kDatabaseReferenceFnCount);
+  if (db_ != nullptr) {
+    db_->future_manager().AllocFutureApi(&future_api_id_,
+                                         kDatabaseReferenceFnCount);
+  }
   return *this;
 }
 
@@ -199,7 +129,9 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(
     src.cached_disconnection_handler_ = nullptr;
     cached_key_ = std::move(src.cached_key_);
   }
-  db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
+  if (db_ != nullptr) {
+    db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
+  }
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
@@ -222,9 +154,13 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     cached_disconnection_handler_ = src_handler;
     cached_key_ = std::move(src_key);
   }
-  db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  if (db_ != nullptr) {
+    db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
   QueryInternal::operator=(std::move(src));
-  db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
+  if (db_ != nullptr) {
+    db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
+  }
   return *this;
 }
 
@@ -236,7 +172,9 @@ DatabaseReferenceInternal::~DatabaseReferenceInternal() {
       cached_disconnection_handler_ = nullptr;
     }
   }
-  db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  if (db_ != nullptr) {
+    db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
 }
 
 bool DatabaseReferenceInternal::Initialize(App* app) {
@@ -252,6 +190,7 @@ void DatabaseReferenceInternal::Terminate(App* app) {
 }
 
 Database* DatabaseReferenceInternal::GetDatabase() const {
+  if (!db_) return nullptr;
   return db_->constructor_url().empty()
              ? Database::GetInstance(db_->GetApp())
              : Database::GetInstance(db_->GetApp(),
@@ -262,6 +201,7 @@ const char* DatabaseReferenceInternal::GetKey() {
   MutexLock lock(member_mutex_);
   // Check for a cached key.
   if (cached_key_.is_null()) {
+    if (!db_) return nullptr;
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, database_reference::GetMethodId(database_reference::kGetKey)));
@@ -289,8 +229,8 @@ const char* DatabaseReferenceInternal::GetKey() {
 }
 
 const std::string& DatabaseReferenceInternal::GetKeyString() {
-  MutexLock lock(member_mutex_);
   (void)GetKey();  // populates cached_key_.
+  MutexLock lock(member_mutex_);
   if (!cached_key_.is_string()) {
     static const std::string* kEmptyString = new std::string();
     return *kEmptyString;
@@ -299,6 +239,7 @@ const std::string& DatabaseReferenceInternal::GetKeyString() {
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::GetParent() const {
+  if (!db_) return nullptr;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject parent_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kGetParent));
@@ -317,6 +258,7 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::GetParent() const {
 }
 
 bool DatabaseReferenceInternal::IsRoot() const {
+  if (!db_) return false;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject parent_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kGetParent));
@@ -335,6 +277,7 @@ bool DatabaseReferenceInternal::IsRoot() const {
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::GetRoot() const {
+  if (!db_) return nullptr;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject root_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kGetRoot));
@@ -350,7 +293,7 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::GetRoot() const {
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::Child(
     const char* path) const {
-  if (path == nullptr) return nullptr;
+  if (!db_ || path == nullptr) return nullptr;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring path_string = env->NewStringUTF(path);
   if (::firebase::jni::CheckAndClearException(env) || path_string == nullptr) {
@@ -377,6 +320,7 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::Child(
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() const {
+  if (!db_) return nullptr;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject child_obj = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kPush));
@@ -396,6 +340,7 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() const {
 }
 
 std::string DatabaseReferenceInternal::GetUrl() const {
+  if (!db_) return std::string();
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jstring url_string = static_cast<jstring>(env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kToString)));
@@ -403,12 +348,15 @@ std::string DatabaseReferenceInternal::GetUrl() const {
     if (url_string != nullptr) env->DeleteLocalRef(url_string);
     return std::string();
   }
-  return ::firebase::jni::JStringToString(env, url_string);
+  std::string url = ::firebase::jni::JStringToString(env, url_string);
+  env->DeleteLocalRef(url_string);
+  return url;
 }
 
 DisconnectionHandler* DatabaseReferenceInternal::OnDisconnect() {
   MutexLock lock(member_mutex_);
   if (cached_disconnection_handler_ == nullptr) {
+    if (!db_) return nullptr;
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jobject on_disconnect = env->CallObjectMethod(
         obj_,
@@ -426,6 +374,7 @@ DisconnectionHandler* DatabaseReferenceInternal::OnDisconnect() {
 }
 
 void DatabaseReferenceInternal::GoOffline() const {
+  if (!db_) return;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   env->CallStaticVoidMethod(
       database_reference::GetClass(),
@@ -434,6 +383,7 @@ void DatabaseReferenceInternal::GoOffline() const {
 }
 
 void DatabaseReferenceInternal::GoOnline() const {
+  if (!db_) return;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   env->CallStaticVoidMethod(
       database_reference::GetClass(),
@@ -444,23 +394,32 @@ void DatabaseReferenceInternal::GoOnline() const {
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
     DoTransactionWithContext transaction_function, void* context,
     void (*delete_context)(void*), bool trigger_local_events) {
+  if (!db_) {
+    if (delete_context) delete_context(context);
+    return Future<DataSnapshot>();
+  }
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!api) {
+    if (delete_context) delete_context(context);
+    return Future<DataSnapshot>();
+  }
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  SafeFutureHandle<DataSnapshot> handle = ref_future()->SafeAlloc<DataSnapshot>(
+  SafeFutureHandle<DataSnapshot> handle = api->SafeAlloc<DataSnapshot>(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
   // The TransactionData* created here will be deleted in the Java OnCompleted
   // handler, right before the Future completes.  Or, if the Database is
   // destroyed while the Transaction is still pending, it will be deleted in
   // DatabaseInternal's destructor.
   TransactionData* data = new TransactionData(transaction_function,
-                                              ref_future(), handle);  // NOLINT
+                                              api, handle);  // NOLINT
   data->context = context;
   data->delete_context = delete_context;
   jobject transaction_handler = db_->CreateJavaTransactionHandler(data);
   if (transaction_handler == nullptr) {
     delete data;
-    ref_future()->Complete(handle, kErrorUnknownError,
-                           "RunTransaction failed");
-    return MakeFuture(ref_future(), handle);
+    api->Complete(handle, kErrorUnknownError,
+                  "RunTransaction failed");
+    return MakeFuture(api, handle);
   }
   env->CallVoidMethod(
       obj_,
@@ -468,10 +427,10 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
       transaction_handler, trigger_local_events);
   if (::firebase::jni::CheckAndClearException(env)) {
     db_->DeleteJavaTransactionHandler(transaction_handler);
-    ref_future()->Complete(handle, kErrorUnknownError,
-                           "RunTransaction failed");
+    api->Complete(handle, kErrorUnknownError,
+                  "RunTransaction failed");
   }
-  return MakeFuture(ref_future(), handle);
+  return MakeFuture(api, handle);
 }
 
 
@@ -529,10 +488,12 @@ void RegisterTaskCallback(JNIEnv* env, jobject task,
 }  // namespace
 
 void DatabaseReferenceInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
+  if (!db_) return;
   ReferenceCountedFutureImpl* api = ref_future();
-  if (!db_ || !api) return;
+  if (!api) return;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kRemoveValue));
+  jobject task = env->CallObjectMethod(
+      obj_, database_reference::GetMethodId(database_reference::kRemoveValue));
   if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) env->DeleteLocalRef(task);
     api->Complete(handle, kErrorUnknownError, "RemoveValue failed");
@@ -541,17 +502,27 @@ void DatabaseReferenceInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
   }
 }
 
-
-void DatabaseReferenceInternal::SetValueImpl(const Variant& value, SafeFutureHandle<void> handle) {
+void DatabaseReferenceInternal::SetValueImpl(const Variant& value,
+                                             SafeFutureHandle<void> handle) {
+  if (!db_) return;
   ReferenceCountedFutureImpl* api = ref_future();
-  if (!db_ || !api) return;
+  if (!api) return;
+  if (api->LastResult(kDatabaseReferenceFnSetValueAndPriority).status() ==
+      kFutureStatusPending) {
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetValue);
+    return;
+  }
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject value_obj = ::firebase::util::VariantToJavaObject(env, value);
   if (!value.is_null() && value_obj == nullptr) {
-    api->Complete(handle, kErrorInvalidVariantType, "SetValue failed: invalid Variant");
+    api->Complete(handle, kErrorInvalidVariantType,
+                  "SetValue failed: invalid Variant");
     return;
   }
-  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kSetValue), value_obj);
+  jobject task = env->CallObjectMethod(
+      obj_, database_reference::GetMethodId(database_reference::kSetValue),
+      value_obj);
   if (value_obj) env->DeleteLocalRef(value_obj);
   if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) env->DeleteLocalRef(task);
@@ -561,17 +532,32 @@ void DatabaseReferenceInternal::SetValueImpl(const Variant& value, SafeFutureHan
   }
 }
 
-
-void DatabaseReferenceInternal::SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle) {
+void DatabaseReferenceInternal::SetPriorityImpl(const Variant& priority,
+                                                SafeFutureHandle<void> handle) {
+  if (!db_) return;
   ReferenceCountedFutureImpl* api = ref_future();
-  if (!db_ || !api) return;
+  if (!api) return;
+  if (api->LastResult(kDatabaseReferenceFnSetValueAndPriority).status() ==
+      kFutureStatusPending) {
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetPriority);
+    return;
+  }
+  if (!IsValidPriority(priority)) {
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForPriority);
+    return;
+  }
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject priority_obj = ::firebase::util::VariantToJavaObject(env, priority);
   if (!priority.is_null() && priority_obj == nullptr) {
-    api->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForPriority);
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForPriority);
     return;
   }
-  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kSetPriority), priority_obj);
+  jobject task = env->CallObjectMethod(
+      obj_, database_reference::GetMethodId(database_reference::kSetPriority),
+      priority_obj);
   if (priority_obj) env->DeleteLocalRef(priority_obj);
   if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) env->DeleteLocalRef(task);
@@ -581,32 +567,37 @@ void DatabaseReferenceInternal::SetPriorityImpl(const Variant& priority, SafeFut
   }
 }
 
-
 void DatabaseReferenceInternal::SetValueAndPriorityImpl(
-    const Variant& value, const Variant& priority, SafeFutureHandle<void> handle) {
-  if (ref_future()->LastResult(kDatabaseReferenceFnSetValue).status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetValue);
-  } else if (ref_future()->LastResult(kDatabaseReferenceFnSetPriority).status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetPriority);
+    const Variant& value, const Variant& priority,
+    SafeFutureHandle<void> handle) {
+  if (!db_) return;
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!api) return;
+  if (api->LastResult(kDatabaseReferenceFnSetValue).status() ==
+      kFutureStatusPending) {
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetValue);
+  } else if (api->LastResult(kDatabaseReferenceFnSetPriority).status() ==
+             kFutureStatusPending) {
+    api->Complete(handle, kErrorConflictingOperationInProgress,
+                  kErrorMsgConflictSetPriority);
   } else if (!IsValidPriority(priority)) {
-    ref_future()->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForPriority);
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForPriority);
   } else {
     JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jobject value_obj = ::firebase::util::VariantToJavaObject(env, value);
     if (!value.is_null() && value_obj == nullptr) {
-      ref_future()->Complete(handle, kErrorInvalidVariantType,
-                             "SetValueAndPriority failed: invalid Variant");
-  return;
+      api->Complete(handle, kErrorInvalidVariantType,
+                    "SetValueAndPriority failed: invalid Variant");
+      return;
     }
     jobject priority_obj = ::firebase::util::VariantToJavaObject(env, priority);
     if (!priority.is_null() && priority_obj == nullptr) {
       if (value_obj) env->DeleteLocalRef(value_obj);
-      ref_future()->Complete(handle, kErrorInvalidVariantType,
-                             kErrorMsgInvalidVariantForPriority);
-  return;
+      api->Complete(handle, kErrorInvalidVariantType,
+                    kErrorMsgInvalidVariantForPriority);
+      return;
     }
     jobject task =
         env->CallObjectMethod(obj_,
@@ -617,24 +608,36 @@ void DatabaseReferenceInternal::SetValueAndPriorityImpl(
     if (priority_obj) env->DeleteLocalRef(priority_obj);
     if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
       if (task != nullptr) env->DeleteLocalRef(task);
-      ref_future()->Complete(handle, kErrorUnknownError,
-                             "SetValueAndPriority failed");
+      api->Complete(handle, kErrorUnknownError, "SetValueAndPriority failed");
     } else {
-      RegisterTaskCallback(env, task, handle, ref_future(), db_,
+      RegisterTaskCallback(env, task, handle, api, db_,
                            "SetValueAndPriority failed");
     }
   }
-  return;
 }
 
-
-void DatabaseReferenceInternal::UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle) {
+void DatabaseReferenceInternal::UpdateChildrenImpl(
+    const Variant& values, SafeFutureHandle<void> handle) {
+  if (!db_) return;
   ReferenceCountedFutureImpl* api = ref_future();
-  if (!db_ || !api) return;
+  if (!api) return;
+  if (!values.is_map()) {
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForUpdateChildren);
+    return;
+  }
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject values_obj = ::firebase::util::VariantToJavaObject(env, values);
-  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kUpdateChildren), values_obj);
-  if (values_obj) env->DeleteLocalRef(values_obj);
+  if (values_obj == nullptr) {
+    api->Complete(handle, kErrorInvalidVariantType,
+                  kErrorMsgInvalidVariantForUpdateChildren);
+    return;
+  }
+  jobject task = env->CallObjectMethod(
+      obj_,
+      database_reference::GetMethodId(database_reference::kUpdateChildren),
+      values_obj);
+  env->DeleteLocalRef(values_obj);
   if (::firebase::jni::CheckAndClearException(env) || task == nullptr) {
     if (task != nullptr) env->DeleteLocalRef(task);
     api->Complete(handle, kErrorUnknownError, "UpdateChildren failed");
@@ -643,9 +646,8 @@ void DatabaseReferenceInternal::UpdateChildrenImpl(const Variant& values, SafeFu
   }
 }
 
-
 ReferenceCountedFutureImpl* DatabaseReferenceInternal::ref_future() {
-  return db_->future_manager().GetFutureApi(&future_api_id_);
+  return db_ ? db_->future_manager().GetFutureApi(&future_api_id_) : nullptr;
 }
 
 }  // namespace internal

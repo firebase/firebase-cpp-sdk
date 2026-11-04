@@ -27,6 +27,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
+#include "app/src/util_android.h"
 #include "auth/auth_resources.h"
 #include "auth/src/android/common_android.h"
 
@@ -261,11 +262,11 @@ void* CreatePlatformAuth(App* app) {
 
   // Cache the JNI method ids so we only have to look them up by name once.
   if (!g_initialized_count) {
-    if (!true) return nullptr;
+    if (!util::Initialize(env, activity)) return nullptr;
 
     // Cache embedded files and load embedded classes.
     const std::vector<::firebase::internal::EmbeddedFile> embedded_files =
-        jni::CacheEmbeddedFiles(env, activity,
+        util::CacheEmbeddedFiles(env, activity,
                                  ::firebase::internal::EmbeddedFile::ToVector(
                                      firebase_auth::auth_resources_filename,
                                      firebase_auth::auth_resources_data,
@@ -276,7 +277,7 @@ void* CreatePlatformAuth(App* app) {
           CacheCredentialMethodIds(env, activity, embedded_files) &&
           CacheCommonMethodIds(env, activity))) {
       ReleaseClasses(env);
-      
+      util::Terminate(env);
       return nullptr;
     }
   }
@@ -293,20 +294,30 @@ void* CreatePlatformAuth(App* app) {
     }
     if (!g_initialized_count) {
       ReleaseClasses(env);
-      
+      util::Terminate(env);
+    }
+    return nullptr;
+  }
+
+  // Ensure the reference hangs around.
+  void* auth_impl = nullptr;
+  SetImplFromLocalRef(env, j_auth_impl, &auth_impl);
+  if (auth_impl == nullptr) {
+    if (!g_initialized_count) {
+      ReleaseClasses(env);
+      util::Terminate(env);
     }
     return nullptr;
   }
 
   g_initialized_count++;
-
-  // Ensure the reference hangs around.
-  void* auth_impl = nullptr;
-  SetImplFromLocalRef(env, j_auth_impl, &auth_impl);
   return auth_impl;
 }
 
 void Auth::InitPlatformAuth(AuthData* auth_data) {
+  if (auth_data == nullptr || AuthImpl(auth_data) == nullptr) {
+    return;
+  }
   JNIEnv* env = Env(auth_data);
 
   // Ensure our User is in-line with underlying API's user before registering
@@ -355,10 +366,17 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
 }
 
 void Auth::DestroyPlatformAuth(AuthData* auth_data) {
+  if (auth_data == nullptr) {
+    return;
+  }
   JNIEnv* env = Env(auth_data);
 
   firebase::util::CancelCallbacks(env, auth_data->future_api_id.c_str());
   ClearPretriggeredIdTokenCallbacks(auth_data);
+
+  if (AuthImpl(auth_data) == nullptr) {
+    return;
+  }
 
   // Unregister the JniAuthStateListener and IdTokenListener from the
   // FirebaseAuth class.
@@ -394,7 +412,7 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
   g_initialized_count--;
   if (g_initialized_count == 0) {
     ReleaseClasses(env);
-    
+    util::Terminate(env);
   }
 }
 
@@ -438,15 +456,37 @@ static void ReadProviderResult(
                            result, signinmethodquery::GetMethodId(
                                        signinmethodquery::kGetSignInMethods))
                      : nullptr;
-  if (::firebase::jni::CheckAndClearException(env)) list = nullptr;
+  if (::firebase::jni::CheckAndClearException(env)) {
+    if (list != nullptr) {
+      env->DeleteLocalRef(list);
+      list = nullptr;
+    }
+  }
 
   // `list` is of type List<String>. Loop through it.
   if (list != nullptr) {
     jclass list_class = env->GetObjectClass(list);
+    if (::firebase::jni::CheckAndClearException(env) || list_class == nullptr) {
+      if (list_class != nullptr) {
+        env->DeleteLocalRef(list_class);
+      }
+      env->DeleteLocalRef(list);
+      return;
+    }
     jmethodID size_method = env->GetMethodID(list_class, "size", "()I");
+    if (::firebase::jni::CheckAndClearException(env) ||
+        size_method == nullptr) {
+      env->DeleteLocalRef(list_class);
+      env->DeleteLocalRef(list);
+      return;
+    }
     jmethodID get_method =
         env->GetMethodID(list_class, "get", "(I)Ljava/lang/Object;");
     env->DeleteLocalRef(list_class);
+    if (::firebase::jni::CheckAndClearException(env) || get_method == nullptr) {
+      env->DeleteLocalRef(list);
+      return;
+    }
     const int num_providers = env->CallIntMethod(list, size_method);
     if (::firebase::jni::CheckAndClearException(env) || num_providers <= 0) {
       env->DeleteLocalRef(list);
@@ -455,13 +495,18 @@ static void ReadProviderResult(
     data->providers.resize(num_providers);
 
     for (int i = 0; i < num_providers; ++i) {
-      // provider local reference is released in jni::JniStringToStringAndReleaseLocalRef().
       jstring provider =
           static_cast<jstring>(env->CallObjectMethod(list, get_method, i));
       if (::firebase::jni::CheckAndClearException(env)) {
-        provider = nullptr;
+        if (provider != nullptr) {
+          env->DeleteLocalRef(provider);
+          provider = nullptr;
+        }
       }
-      data->providers[i] = jni::JniStringToStringAndReleaseLocalRef(env, provider);
+      if (provider != nullptr) {
+        data->providers[i] = JStringToString(env, provider);
+        env->DeleteLocalRef(provider);
+      }
     }
     env->DeleteLocalRef(list);
   }
@@ -649,13 +694,20 @@ void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> pro
 
 std::string Auth::language_code() const {
   JNIEnv* env = Env(auth_data_);
-  jobject j_pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode));
-  if (::firebase::jni::CheckAndClearException(env) ||
-      j_pending_result == nullptr) {
+  jstring j_language_code = static_cast<jstring>(env->CallObjectMethod(
+      AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode)));
+  if (::firebase::jni::CheckAndClearException(env)) {
+    if (j_language_code != nullptr) {
+      env->DeleteLocalRef(j_language_code);
+    }
     return std::string();
   }
-  return ::firebase::jni::JStringToString(env, j_pending_result);
+  if (j_language_code == nullptr) {
+    return std::string();
+  }
+  std::string result = ::firebase::jni::JStringToString(env, j_language_code);
+  env->DeleteLocalRef(j_language_code);
+  return result;
 }
 
 void Auth::set_language_code(const char* language_code) {
@@ -718,13 +770,14 @@ void DisableTokenAutoRefresh(AuthData* auth_data) {}
 
 
 void SignOut(AuthData* auth_data) {
+  if (auth_data == nullptr || AuthImpl(auth_data) == nullptr) {
+    return;
+  }
   JNIEnv* env = Env(auth_data);
   env->CallVoidMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignOut));
-  ::firebase::jni::CheckAndClearException(env);
-
-  // Release our current user implementation in Java.
-  MutexLock lock(auth_data->future_impl.mutex());
-  SetImplFromLocalRef(env, nullptr, &auth_data->user_impl);
+  if (!::firebase::jni::CheckAndClearException(env)) {
+    UpdateCurrentUser(auth_data);
+  }
 }
 }  // namespace auth
 }  // namespace firebase

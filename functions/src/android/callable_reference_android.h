@@ -16,18 +16,19 @@
 #define FIREBASE_FUNCTIONS_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
 
 #include <jni.h>
-#include "app/src/app_android.h"
 
 #include <memory>
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/app_android.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util_android.h"
 #include "functions/src/android/functions_android.h"
 #include "functions/src/include/firebase/functions.h"
+#include "functions/src/include/firebase/functions/callable_reference.h"
 
 namespace firebase {
 namespace functions {
@@ -35,46 +36,6 @@ namespace functions {
 class HttpsCallableResult;
 
 namespace internal {
-
-
-namespace callable_reference {
-  enum Method {
-    kCall,
-    kCallWithParam,
-    kSetTimeout,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-
-
-namespace callable_result {
-  enum Method {
-    kGetData,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
 
 class HttpsCallableReferenceInternal {
  public:
@@ -102,6 +63,10 @@ class HttpsCallableReferenceInternal {
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal& operator=(
       HttpsCallableReferenceInternal&& other) noexcept;
+
+  // Initialize JNI bindings for this class.
+  static bool Initialize(App* app);
+  static void Terminate(App* app);
 
   // Gets the Functions instance to which we refer.
   [[nodiscard]] Functions* functions() const;
@@ -133,8 +98,8 @@ class HttpsCallableReferenceInternal {
   void Cleanup(FunctionsInternal* fallback_functions = nullptr) noexcept;
 
   // Get the Future for the HttpsCallableReferenceInternal.
-  ReferenceCountedFutureImpl* future() { return &future_impl_; }
-  ReferenceCountedFutureImpl future_impl_;
+  ReferenceCountedFutureImpl* future() { return future_impl_.get(); }
+  std::shared_ptr<ReferenceCountedFutureImpl> future_impl_;
 
   // The FunctionsInternal object we are part of.
   FunctionsInternal* functions_ = nullptr;

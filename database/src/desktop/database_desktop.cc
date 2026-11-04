@@ -114,6 +114,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
 }
 
 DatabaseInternal::~DatabaseInternal() {
+  cleanup_.CleanupAll();
   safe_this_.ClearReference();
   if (app_ != nullptr) {
     app_->function_registry()->CallFunction(
@@ -122,6 +123,7 @@ DatabaseInternal::~DatabaseInternal() {
   {
     MutexLock lock(repo_mutex_);
     repo_.reset(nullptr);
+    repo_lifetime_objects_.clear();
   }
 }
 
@@ -258,7 +260,6 @@ bool DatabaseInternal::UnregisterValueListenerLocked(const QuerySpec& spec,
 
 void DatabaseInternal::UnregisterAllValueListeners(const QuerySpec& spec) {
   MutexLock lock(listener_mutex_);
-  RemoveActiveEventRegistrationsLocked(spec, nullptr);
   std::vector<ValueListener*> listeners;
   if (value_listeners_by_query_.Get(spec, &listeners)) {
     for (ValueListener* listener : listeners) {
@@ -301,7 +302,6 @@ bool DatabaseInternal::UnregisterChildListenerLocked(const QuerySpec& spec,
 
 void DatabaseInternal::UnregisterAllChildListeners(const QuerySpec& spec) {
   MutexLock lock(listener_mutex_);
-  RemoveActiveEventRegistrationsLocked(spec, nullptr);
   std::vector<ChildListener*> listeners;
   if (child_listeners_by_query_.Get(spec, &listeners)) {
     for (ChildListener* listener : listeners) {

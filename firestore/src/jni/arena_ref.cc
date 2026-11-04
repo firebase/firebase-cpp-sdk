@@ -20,8 +20,8 @@
 #include <atomic>
 #include <memory>
 
+#include "app/src/assert.h"
 #include "app/src/log.h"
-#include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/object.h"
@@ -36,9 +36,143 @@ namespace {
 constexpr char kObjectArenaClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/ObjectArena";
 
-StaticMethod<Object> kGet("get", "(J)Ljava/lang/Object;");
-StaticMethod<void> kSet("set", "(JLjava/lang/Object;)V");
-StaticMethod<void> kRemove("remove", "(J)V");
+// A convenience class for repeatedly loading Java JNI method IDs from a given
+// Java class.
+class MethodLoader {
+ public:
+  MethodLoader(Loader& loader, jclass java_class)
+      : loader_(loader), java_class_(java_class) {}
+
+  jmethodID LoadMethodId(const char* name, const char* signature) const {
+    if (!loader_.ok()) {
+      return {};
+    }
+    jmethodID method_id =
+        loader_.env()->GetStaticMethodID(java_class_, name, signature);
+    if (!loader_.ok()) {
+      return {};
+    }
+    return method_id;
+  }
+
+ private:
+  Loader& loader_;
+  jclass java_class_{};
+};
+
+// Helper class for calling methods on the Java `ObjectArena` class.
+class ObjectArena {
+ public:
+  // Disable copy and move, since this class has a global singleton instance.
+  ObjectArena(const ObjectArena&) = delete;
+  ObjectArena(ObjectArena&&) = delete;
+  ObjectArena& operator=(const ObjectArena&) = delete;
+  ObjectArena& operator=(ObjectArena&&) = delete;
+
+  // Delete the destructor to prevent the global singleton instance from being
+  // deleted.
+  ~ObjectArena() = delete;
+
+  // Initialize the global singleton instance of this class.
+  // This function must be invoked prior to invoking any other static or
+  // non-static member functions in this class.
+  // This function is NOT thread-safe, and must not be invoked concurrently.
+  static void Initialize(Loader& loader) {
+    GetOrCreateSingletonInstance().Initialize_(loader);
+  }
+
+  // Returns a reference to the global singleton instance of this class.
+  // Note that `Initialize()` must be called before this function.
+  static const ObjectArena& GetInstance() {
+    const ObjectArena& instance = GetOrCreateSingletonInstance();
+    FIREBASE_ASSERT_MESSAGE(instance.initialized_,
+                            "ObjectArena should be initialized");
+    return instance;
+  }
+
+  // Calls the Java method ObjectArena.set() with the given arguments.
+  void Set(Env& env, jlong id, jobject value) const {
+    if (!env.ok() || !initialized_) {
+      return;
+    }
+    env.get()->CallStaticVoidMethod(java_class_, set_, id, value);
+  }
+
+  // Calls the Java method ObjectArena.get() with the given argument, returning
+  // whatever it returns.
+  Local<Object> Get(Env& env, jlong id) const {
+    if (!env.ok() || !initialized_) {
+      return {};
+    }
+    jobject result = env.get()->CallStaticObjectMethod(java_class_, get_, id);
+    if (!env.ok()) {
+      return {};
+    }
+    return Local<Object>(env.get(), result);
+  }
+
+  // Calls the Java method ObjectArena.remove() with the given argument.
+  void Remove(Env& env, jlong id) const {
+    if (!env.ok() || !initialized_) {
+      return;
+    }
+    env.get()->CallStaticVoidMethod(java_class_, remove_, id);
+  }
+
+ private:
+  // Make the constructor private so that instances cannot be created, except
+  // for the global singleton instance.
+  ObjectArena() = default;
+
+  static ObjectArena& GetOrCreateSingletonInstance() {
+    // Create the global singleton instance on the heap so that the destructor
+    // is never invoked. This avoids potential use-after-free issues on
+    // application shutdown where some other static object's destructor tries to
+    // use the global singleton instance _after_ its destructor has run.
+    static auto* instance = new ObjectArena;
+    return *instance;
+  }
+
+  void Initialize_(Loader& loader) {
+    if (initialized_) {
+      return;
+    }
+
+    jclass java_class = java_class_;
+    if (!java_class) {
+      java_class = loader.LoadClass(kObjectArenaClassName);
+      if (!loader.ok() || !java_class) {
+        return;
+      }
+      java_class = static_cast<jclass>(loader.env()->NewGlobalRef(java_class));
+      if (!loader.ok() || !java_class) {
+        return;
+      }
+      java_class_ = java_class;
+    }
+
+    MethodLoader method_loader(loader, java_class);
+    jmethodID get = method_loader.LoadMethodId("get", "(J)Ljava/lang/Object;");
+    jmethodID set = method_loader.LoadMethodId("set", "(JLjava/lang/Object;)V");
+    jmethodID remove = method_loader.LoadMethodId("remove", "(J)V");
+    if (!loader.ok() || !get || !set || !remove) {
+      return;
+    }
+
+    get_ = get;
+    set_ = set;
+    remove_ = remove;
+    initialized_ = true;
+  }
+
+  // Wrap the member variables below in `std::atomic` so that their values set
+  // by `Initialize()` are guaranteed to be visible to all threads.
+  std::atomic<jclass> java_class_{};
+  std::atomic<jmethodID> get_{};
+  std::atomic<jmethodID> set_{};
+  std::atomic<jmethodID> remove_{};
+  std::atomic<bool> initialized_{false};
+};
 
 jlong GenerateUniqueId() {
   // Start the IDs at a large number with an easily-identifiable prefix to
@@ -67,32 +201,37 @@ class ArenaRef::ObjectArenaEntry final {
   ObjectArenaEntry& operator=(ObjectArenaEntry&&) = delete;
 
   ~ObjectArenaEntry() {
-    if (kRemove.clazz() == nullptr || kRemove.id() == nullptr) {
+    Env env;
+    JNIEnv* jni_env = env.get();
+    if (jni_env == nullptr) {
       return;
     }
 
-    Env env;
-    ExceptionClearGuard exception_clear_guard(env);
-    env.Call(kRemove, id_);
+    jthrowable pending_exception = jni_env->ExceptionOccurred();
+    if (pending_exception != nullptr) {
+      jni_env->ExceptionClear();
+    }
 
-    if (!env.ok()) {
-      if (env.get() != nullptr) {
-        env.get()->ExceptionDescribe();
+    {
+      ExceptionClearGuard exception_clear_guard(env);
+      ObjectArena::GetInstance().Remove(env, id_);
+
+      if (!env.ok()) {
+        jni_env->ExceptionDescribe();
+        env.ExceptionClear();
+        firebase::LogWarning(
+            "~ObjectArenaEntry(): ObjectArena::Remove() failed");
       }
-      env.ExceptionClear();
-      firebase::LogWarning("~ObjectArenaEntry(): ObjectArena::Remove() failed");
+    }
+
+    if (pending_exception != nullptr) {
+      jni_env->Throw(pending_exception);
+      jni_env->DeleteLocalRef(pending_exception);
     }
   }
 
   Local<Object> GetReferent(Env& env) const {
-    if (!env.ok() || kGet.clazz() == nullptr || kGet.id() == nullptr) {
-      return {};
-    }
-    Local<Object> result = env.Call(kGet, id_);
-    if (!env.ok()) {
-      return {};
-    }
-    return result;
+    return ObjectArena::GetInstance().Get(env, id_);
   }
 
  private:
@@ -115,29 +254,20 @@ void ArenaRef::reset(Env& env, const Object& object) {
 }
 
 void ArenaRef::reset(Env& env, jobject object) {
-  if (object == nullptr || !env.ok() || kSet.clazz() == nullptr ||
-      kSet.id() == nullptr) {
-    entry_.reset();
+  entry_.reset();
+  if (object == nullptr || !env.ok()) {
     return;
   }
 
   const jlong id = GenerateUniqueId();
-  entry_ = std::make_shared<ArenaRef::ObjectArenaEntry>(id);
-  env.Call(kSet, id, Object(object));
+  ObjectArena::GetInstance().Set(env, id, object);
   if (!env.ok()) {
-    entry_.reset();
     return;
   }
+  entry_ = std::make_shared<ArenaRef::ObjectArenaEntry>(id);
 }
 
-void ArenaRef::Initialize(Loader& loader) {
-  if (kGet.clazz() != nullptr && kGet.id() != nullptr &&
-      kSet.clazz() != nullptr && kSet.id() != nullptr &&
-      kRemove.clazz() != nullptr && kRemove.id() != nullptr) {
-    return;
-  }
-  loader.LoadClass(kObjectArenaClassName, kGet, kSet, kRemove);
-}
+void ArenaRef::Initialize(Loader& loader) { ObjectArena::Initialize(loader); }
 
 }  // namespace jni
 }  // namespace firestore

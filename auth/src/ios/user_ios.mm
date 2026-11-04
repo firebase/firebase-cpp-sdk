@@ -53,12 +53,6 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refr
                       @synchronized(listener_cpp_handle) {
                         AuthData *data = listener_cpp_handle.authData;
                         if (!data) return;
-                        data->future_impl.Complete(
-                            promise.handle(), AuthErrorFromNSError(error),
-                            ErrorMessageFromNSError(error).c_str(),
-                            [token](std::string *result_data) {
-                              *result_data = StringFromNSString(token);
-                            });
                         if (force_refresh) {
                           if (error == nil) {
                             bool should_notify = false;
@@ -74,6 +68,12 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refr
                             data->SetExpectIdTokenListenerCallback(false);
                           }
                         }
+                        data->future_impl.Complete(
+                            promise.handle(), AuthErrorFromNSError(error),
+                            ErrorMessageFromNSError(error).c_str(),
+                            [token](std::string *result_data) {
+                              *result_data = StringFromNSString(token);
+                            });
                       }
                     }];
 }
@@ -101,6 +101,21 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool 
                             @synchronized(listener_cpp_handle) {
                               AuthData *data = listener_cpp_handle.authData;
                               if (!data) return;
+                              if (force_refresh) {
+                                if (error == nil) {
+                                  bool should_notify = false;
+                                  {
+                                    MutexLock lock(data->future_impl.mutex());
+                                    should_notify = data->ShouldTriggerIdTokenListenerCallback();
+                                  }
+                                  if (should_notify) {
+                                    NotifyIdTokenListeners(data);
+                                  }
+                                } else {
+                                  MutexLock lock(data->future_impl.mutex());
+                                  data->SetExpectIdTokenListenerCallback(false);
+                                }
+                              }
                               data->future_impl.Complete(
                                   promise.handle(), AuthErrorFromNSError(error),
                                   ErrorMessageFromNSError(error).c_str(),
@@ -139,27 +154,13 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool 
                                       *result_data = IdTokenResult();
                                     }
                                   });
-                              if (force_refresh) {
-                                if (error == nil) {
-                                  bool should_notify = false;
-                                  {
-                                    MutexLock lock(data->future_impl.mutex());
-                                    should_notify = data->ShouldTriggerIdTokenListenerCallback();
-                                  }
-                                  if (should_notify) {
-                                    NotifyIdTokenListeners(data);
-                                  }
-                                } else {
-                                  MutexLock lock(data->future_impl.mutex());
-                                  data->SetExpectIdTokenListenerCallback(false);
-                                }
-                              }
                             }
                           }];
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
+  if (!auth_data_) return provider_data;
   MutexLock lock(auth_data_->future_impl.mutex());
   if (ValidUser(auth_data_)) {
     NSArray<id<FIRUserInfo>> *fir_provider_data = UserImpl(auth_data_).providerData;
@@ -323,6 +324,9 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
 }
 
 Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider *provider) {
+  if (!auth_data) {
+    return Future<AuthResult>();
+  }
   if (!ValidUser(auth_data)) {
     Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_LinkWithProvider);
     promise.Fail(kAuthErrorFailure, "Invalid user");
@@ -483,6 +487,9 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
 }
 
 Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider *provider) {
+  if (!auth_data) {
+    return Future<AuthResult>();
+  }
   if (!ValidUser(auth_data)) {
     Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_ReauthenticateWithProvider);
     promise.Fail(kAuthErrorFailure, "Invalid user");
@@ -515,6 +522,7 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
 }
 
 UserMetadata User::metadata() const {
+  if (!auth_data_) return UserMetadata();
   MutexLock lock(auth_data_->future_impl.mutex());
   if (!ValidUser(auth_data_)) return UserMetadata();
 
@@ -533,41 +541,49 @@ UserMetadata User::metadata() const {
 }
 
 bool User::is_email_verified() const {
+  if (!auth_data_) return false;
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? UserImpl(auth_data_).emailVerified : false;
 }
 
 bool User::is_anonymous() const {
+  if (!auth_data_) return false;
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? UserImpl(auth_data_).anonymous : false;
 }
 
 std::string User::uid() const {
+  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).uid) : "";
 }
 
 std::string User::email() const {
+  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).email) : "";
 }
 
 std::string User::display_name() const {
+  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).displayName) : "";
 }
 
 std::string User::phone_number() const {
+  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).phoneNumber) : "";
 }
 
 std::string User::photo_url() const {
+  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSUrl(UserImpl(auth_data_).photoURL) : "";
 }
 
 std::string User::provider_id() const {
+  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).providerID) : "";
 }

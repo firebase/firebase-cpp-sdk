@@ -89,9 +89,11 @@ DocumentReference CollectionReference::Document(
     const char* document_path) const {
   if (!document_path) {
     SimpleThrowInvalidArgument("Document path cannot be null.");
+    return {};
   }
   if (document_path[0] == '\0') {
     SimpleThrowInvalidArgument("Document path cannot be empty.");
+    return {};
   }
 
   if (!internal()) return {};
@@ -102,6 +104,7 @@ DocumentReference CollectionReference::Document(
     const std::string& document_path) const {
   if (document_path.empty()) {
     SimpleThrowInvalidArgument("Document path cannot be empty.");
+    return {};
   }
   if (!internal()) return {};
   return internal()->Document(document_path);

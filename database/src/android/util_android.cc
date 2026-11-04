@@ -18,9 +18,7 @@
 #include "app/src/include/firebase/log.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/app_android.h"
-#include "app/src/jni/env.h"
-#include "app/src/jni/ownership.h"
+#include "app/src/util_android.h"
 #include "database/src/android/data_snapshot_android.h"
 #include "database/src/android/database_android.h"
 #include "database/src/android/mutable_data_android.h"
@@ -179,17 +177,21 @@ void Callbacks::TransactionHandlerOnComplete(
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     TransactionData* data =
         reinterpret_cast<TransactionData*>(transaction_data_ptr);
+    auto future = data->future;
+    auto handle = data->handle;
+    jobject java_handler_global = data->java_handler;
     if (was_committed) {
       // Transaction success!
       jobject data_snapshot_global =
           data_snapshot ? env->NewGlobalRef(data_snapshot) : nullptr;
-      data->future->Complete<DataSnapshot>(
-          data->handle, kErrorNone, "",
-          [db, data_snapshot_global](DataSnapshot* result) {
+      db->DeleteJavaTransactionHandler(java_handler_global);  // deletes `data`.
+      future->Complete<DataSnapshot>(
+          handle, kErrorNone, "",
+          [env, db, data_snapshot_global](DataSnapshot* result) {
             if (data_snapshot_global != nullptr) {
               *result = DataSnapshot(
                   new DataSnapshotInternal(db, data_snapshot_global));
-              db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+              env->DeleteGlobalRef(data_snapshot_global);
             } else {
               *result = DataSnapshot(nullptr);
             }
@@ -197,15 +199,16 @@ void Callbacks::TransactionHandlerOnComplete(
     } else if (database_error == nullptr) {
       jobject data_snapshot_global =
           data_snapshot ? env->NewGlobalRef(data_snapshot) : nullptr;
-      data->future->Complete<DataSnapshot>(
-          data->handle, kErrorTransactionAbortedByUser,
+      db->DeleteJavaTransactionHandler(java_handler_global);  // deletes `data`.
+      future->Complete<DataSnapshot>(
+          handle, kErrorTransactionAbortedByUser,
           "The transaction was aborted, because the transaction function "
           "returned kTransactionResultAbort.",
-          [db, data_snapshot_global](DataSnapshot* result) {
+          [env, db, data_snapshot_global](DataSnapshot* result) {
             if (data_snapshot_global != nullptr) {
               *result = DataSnapshot(
                   new DataSnapshotInternal(db, data_snapshot_global));
-              db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+              env->DeleteGlobalRef(data_snapshot_global);
             } else {
               *result = DataSnapshot(nullptr);
             }
@@ -215,10 +218,9 @@ void Callbacks::TransactionHandlerOnComplete(
       std::string error_message;
       Error error =
           db->ErrorFromJavaDatabaseError(database_error, &error_message);
-      data->future->Complete(data->handle, error, error_message.c_str());
+      db->DeleteJavaTransactionHandler(java_handler_global);  // deletes `data`.
+      future->Complete(handle, error, error_message.c_str());
     }
-    jobject java_handler_global = data->java_handler;
-    db->DeleteJavaTransactionHandler(java_handler_global);  // deletes `data`.
   }
 }
 

@@ -172,7 +172,7 @@ class ListenerInternal {
     }
   };
 
-  static void Unregister(const std::shared_ptr<State>& state, const Key& key) {
+  static void Unregister(std::shared_ptr<State> state, const Key& key) {
     const std::thread::id self_id = std::this_thread::get_id();
     std::unique_lock<std::mutex> lock(state->mutex);
     for (auto it = state->callbacks.begin(); it != state->callbacks.end();

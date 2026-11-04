@@ -138,12 +138,15 @@ struct FieldDescriptor {
 };
 
 // Whether a Java class is required or optional.
+#ifndef FIREBASE_UTIL_CLASS_REQUIREMENT_DEFINED
+#define FIREBASE_UTIL_CLASS_REQUIREMENT_DEFINED
 enum ClassRequirement {
   kClassRequired,  // The class is required, an error will be logged if you
                    // try to look it up and it doesn't exist.
   kClassOptional,  // The class is optional, no error be logged if you try
                    // to look it up and it doesn't exist.
 };
+#endif  // FIREBASE_UTIL_CLASS_REQUIREMENT_DEFINED
 
 // Maps ResourceType enumeration values to strings.
 // clang-format off
@@ -237,12 +240,14 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 #define FIELD_ID(...) METHOD_ID(__VA_ARGS__)
 
 // Used with METHOD_LOOKUP_DECLARATION to generate no method lookups.
+#undef METHOD_LOOKUP_NONE
 #define METHOD_LOOKUP_NONE(X)                        \
   X(InvalidMethod, nullptr, nullptr,                 \
     ::firebase::util::MethodType::kMethodTypeStatic, \
     ::firebase::util::MethodRequirement::kMethodOptional)
 
 // Used with METHOD_LOOKUP_DECLARATION to generate no field lookups.
+#undef FIELD_LOOKUP_NONE
 #define FIELD_LOOKUP_NONE(X)                       \
   X(InvalidField, nullptr, nullptr,                \
     ::firebase::util::FieldType::kFieldTypeStatic, \

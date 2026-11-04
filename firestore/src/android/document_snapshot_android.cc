@@ -66,14 +66,14 @@ Method<int32_t> kHashCode("hashCode", "()I");
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     const DocumentSnapshotInternal& other)
     : Wrapper(other) {
-  cached_id_ = other.cached_id_;
+  // Do not copy other.cached_id_ without synchronization, as that would race
+  // with concurrent calls to other.id(). cached_id_ will be lazily populated
+  // via id_once_flag_ if id() is called on this copy.
 }
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     DocumentSnapshotInternal&& other) noexcept
-    : Wrapper(std::move(other)) {
-  cached_id_ = std::move(other.cached_id_);
-}
+    : Wrapper(std::move(other)), cached_id_(std::move(other.cached_id_)) {}
 
 void DocumentSnapshotInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClass, kGetId, kGetReference, kGetMetadata, kExists,
@@ -88,18 +88,24 @@ Firestore* DocumentSnapshotInternal::firestore() const {
 }
 
 const std::string& DocumentSnapshotInternal::id() const {
-  if (cached_id_.empty()) {
-    std::call_once(id_once_flag_, [this]() {
+  std::call_once(id_once_flag_, [this]() {
+    if (cached_id_.empty()) {
       Env env = GetEnv();
       cached_id_ = env.Call(obj_, kGetId).ToString(env);
-    });
-  }
+    }
+  });
   return cached_id_;
 }
 
 DocumentReference DocumentSnapshotInternal::reference() const {
+  if (firestore_ == nullptr) {
+    return DocumentReference();
+  }
   Env env = GetEnv();
   Local<Object> reference = env.Call(obj_, kGetReference);
+  if (!env.ok() || !reference) {
+    return DocumentReference();
+  }
   return firestore_->NewDocumentReference(env, reference);
 }
 

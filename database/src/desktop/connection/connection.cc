@@ -155,9 +155,10 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
                     is_sensitive ? "(contents hidden)" : to_send.c_str());
 
   // Split info frames if the length is larger than kMaxFrameSize
-  int num_of_frame = to_send.length() / kMaxFrameSize + 1;
+  int num_of_frame =
+      static_cast<int>((to_send.length() + kMaxFrameSize - 1) / kMaxFrameSize);
   if (num_of_frame > 1) {
-    logger_->LogDebug("%s Split data into %d frames (size: %d)",
+    logger_->LogDebug("%s Split data into %d frames (size: %zu)",
                       log_id_.c_str(), num_of_frame, to_send.length());
 
     // Send number of frames
@@ -166,7 +167,7 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
     client_->Send(frame_size_str.str().c_str());
 
     // Send individual frame
-    for (int i = 0; i < to_send.length(); i += kMaxFrameSize) {
+    for (size_t i = 0; i < to_send.length(); i += kMaxFrameSize) {
       client_->Send(to_send.substr(i, kMaxFrameSize).c_str());
     }
   } else {
@@ -259,7 +260,7 @@ void Connection::HandleIncomingFrame(const char* msg) {
     incoming_buffer_ << msg;
     --expected_incoming_frames_;
 
-    logger_->LogDebug("%s Received a frame (length: %d), %d more to come",
+    logger_->LogDebug("%s Received a frame (length: %zu), %d more to come",
                       log_id_.c_str(), strlen(msg), expected_incoming_frames_);
 
     // If buffer is complete, process it
@@ -294,10 +295,15 @@ void Connection::HandleIncomingFrame(const char* msg) {
 
 void Connection::ProcessMessage(const char* message) {
   Variant message_data = util::JsonToVariant(message);
-  logger_->LogDebug("%s ProcessMessage (length: %d)", log_id_.c_str(),
+  logger_->LogDebug("%s ProcessMessage (length: %zu)", log_id_.c_str(),
                     strlen(message));
 
-  FIREBASE_DEV_ASSERT(!message_data.is_null());
+  if (!message_data.is_map()) {
+    logger_->LogDebug("%s Fail to parse server message: %s", log_id_.c_str(),
+                      util::VariantToJson(message_data).c_str());
+    Close(kDisconnectReasonProtocolError);
+    return;
+  }
 
   const auto& messageMap = message_data.map();
   auto itType = messageMap.find(kServerEnvelopeType);
@@ -343,7 +349,12 @@ void Connection::OnControlMessage(const Variant& data) {
   logger_->LogDebug("%s received control message: %s", log_id_.c_str(),
                     util::VariantToJson(data).c_str());
 
-  FIREBASE_DEV_ASSERT(!data.is_null());
+  if (!data.is_map()) {
+    logger_->LogDebug("%s Got invalid control message: %s", log_id_.c_str(),
+                      util::VariantToJson(data).c_str());
+    Close(kDisconnectReasonProtocolError);
+    return;
+  }
 
   const auto& data_map = data.map();
   auto itType = data_map.find(kServerControlMessageType);
@@ -376,7 +387,7 @@ void Connection::OnControlMessage(const Variant& data) {
         } else {
           logger_->LogDebug("%s Handshake received with no data: %s",
                             log_id_.c_str(), util::VariantToJson(data).c_str());
-          OnHandshake(Variant());
+          OnHandshake(Variant::EmptyMap());
         }
       } else if (messageType == kServerControlMessageError) {
         auto itError = data_map.find(kServerControlMessageData);
@@ -407,20 +418,29 @@ void Connection::OnConnectionShutdown(const std::string& reason) {
   logger_->LogDebug("%s Connection shutdown command received. Shutting down...",
                     log_id_.c_str());
 
+  ConnectionRef self = safe_this_;
   event_handler_->OnKill(reason);
 
   // OnKill can result in the client being torn down, so check for that.
-  if (client_) {
+  ConnectionRefLock lock(&self);
+  if (lock.GetReference() != nullptr && client_) {
     Close(kDisconnectReasonShutdownMessage);
   }
 }
 
 void Connection::OnHandshake(const Variant& handshake) {
+  if (!handshake.is_map()) {
+    logger_->LogDebug("%s Handshake data is not a map: %s", log_id_.c_str(),
+                      util::VariantToJson(handshake).c_str());
+    Close(kDisconnectReasonProtocolError);
+    return;
+  }
+
   const auto& data_map = handshake.map();
 
   int64_t timestamp = 0;
   auto itTimestamp = data_map.find(kServerHelloTimestamp);
-  if (itTimestamp != data_map.end()) {
+  if (itTimestamp != data_map.end() && itTimestamp->second.is_int64()) {
     timestamp = itTimestamp->second.int64_value();
   } else {
     logger_->LogDebug("%s No timestamp from handshake message",
@@ -429,7 +449,7 @@ void Connection::OnHandshake(const Variant& handshake) {
 
   std::string host;
   auto itHost = data_map.find(kServerHelloHost);
-  if (itHost != data_map.end()) {
+  if (itHost != data_map.end() && itHost->second.is_string()) {
     host = itHost->second.string_value();
   } else {
     logger_->LogDebug("%s No host uri from handshake message", log_id_.c_str());
@@ -439,7 +459,7 @@ void Connection::OnHandshake(const Variant& handshake) {
 
   std::string sessionId;
   auto itSession = data_map.find(kServerHelloSessionId);
-  if (itSession != data_map.end()) {
+  if (itSession != data_map.end() && itSession->second.is_string()) {
     sessionId = itSession->second.string_value();
   } else {
     logger_->LogDebug("%s No session id from handshake message",

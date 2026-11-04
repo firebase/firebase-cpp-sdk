@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
@@ -121,12 +122,55 @@ JNI_METHOD_LOOKUP_DECLARATION(storage_reference, STORAGE_REFERENCE_METHODS, FIEL
 JNI_METHOD_LOOKUP_DECLARATION(list_result, LIST_RESULT_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/storage/ListResult")
 
 static jobject ParseUriString(JNIEnv* env, const char* uri_string) {
-  jstring uri_jstring = env->NewStringUTF(uri_string);
+  if (uri_string == nullptr) return nullptr;
+  const char kFilePrefix[] = "file://";
+  const size_t kFilePrefixLen = sizeof(kFilePrefix) - 1;
+  if (strncmp(uri_string, kFilePrefix, kFilePrefixLen) == 0) {
+    uri_string += kFilePrefixLen;
+  }
+  jstring path_str = env->NewStringUTF(uri_string);
+  if (jni::CheckAndClearException(env) || path_str == nullptr) {
+    return nullptr;
+  }
+  jclass file_class = env->FindClass("java/io/File");
+  if (jni::CheckAndClearException(env) || file_class == nullptr) {
+    env->DeleteLocalRef(path_str);
+    return nullptr;
+  }
+  jmethodID file_ctor =
+      env->GetMethodID(file_class, "<init>", "(Ljava/lang/String;)V");
+  if (jni::CheckAndClearException(env) || file_ctor == nullptr) {
+    env->DeleteLocalRef(file_class);
+    env->DeleteLocalRef(path_str);
+    return nullptr;
+  }
+  jobject file = env->NewObject(file_class, file_ctor, path_str);
+  env->DeleteLocalRef(file_class);
+  env->DeleteLocalRef(path_str);
+  if (jni::CheckAndClearException(env) || file == nullptr) {
+    if (file) env->DeleteLocalRef(file);
+    return nullptr;
+  }
   jclass uri_class = env->FindClass("android/net/Uri");
-  jmethodID parse_method = env->GetStaticMethodID(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;");
-  jobject uri = env->CallStaticObjectMethod(uri_class, parse_method, uri_jstring);
-  env->DeleteLocalRef(uri_jstring);
+  if (jni::CheckAndClearException(env) || uri_class == nullptr) {
+    env->DeleteLocalRef(file);
+    return nullptr;
+  }
+  jmethodID from_file_method = env->GetStaticMethodID(
+      uri_class, "fromFile", "(Ljava/io/File;)Landroid/net/Uri;");
+  if (jni::CheckAndClearException(env) || from_file_method == nullptr) {
+    env->DeleteLocalRef(uri_class);
+    env->DeleteLocalRef(file);
+    return nullptr;
+  }
+  jobject uri =
+      env->CallStaticObjectMethod(uri_class, from_file_method, file);
   env->DeleteLocalRef(uri_class);
+  env->DeleteLocalRef(file);
+  if (jni::CheckAndClearException(env) || uri == nullptr) {
+    if (uri) env->DeleteLocalRef(uri);
+    return nullptr;
+  }
   return uri;
 }
 
@@ -417,6 +461,7 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
 StorageReferenceInternal::StorageReferenceInternal(
     StorageReferenceInternal&& src) noexcept
     : storage_(src.storage_), obj_(src.obj_) {
+  src.storage_ = nullptr;
   src.obj_ = nullptr;
   if (storage_ != nullptr) {
     storage_->future_manager().MoveFutureApi(&src, this);
@@ -437,6 +482,7 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   }
   storage_ = src.storage_;
   obj_ = src.obj_;
+  src.storage_ = nullptr;
   src.obj_ = nullptr;
   if (storage_ != nullptr) {
     storage_->future_manager().MoveFutureApi(&src, this);
@@ -655,12 +701,14 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     auto process_list = [&](jobject list_obj,
                             std::vector<StorageReference>& out_vec) {
       if (list_obj) {
-        int size = env->CallIntMethod(
-            list_obj, env->GetMethodID(env->GetObjectClass(list_obj), "size", "()I"));
+        jclass list_class = env->GetObjectClass(list_obj);
+        jmethodID size_method = env->GetMethodID(list_class, "size", "()I");
+        jmethodID get_method =
+            env->GetMethodID(list_class, "get", "(I)Ljava/lang/Object;");
+        int size = env->CallIntMethod(list_obj, size_method);
         if (!jni::CheckAndClearException(env)) {
           for (int i = 0; i < size; ++i) {
-            jobject ref_obj = env->CallObjectMethod(
-                list_obj, env->GetMethodID(env->GetObjectClass(list_obj), "get", "(I)Ljava/lang/Object;"), i);
+            jobject ref_obj = env->CallObjectMethod(list_obj, get_method, i);
             if (!jni::CheckAndClearException(env) && ref_obj) {
               out_vec.push_back(StorageReference(
                   new StorageReferenceInternal(data->storage, ref_obj)));
@@ -668,6 +716,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
             }
           }
         }
+        env->DeleteLocalRef(list_class);
         env->DeleteLocalRef(list_obj);
       }
     };
@@ -735,7 +784,10 @@ std::string StorageReferenceInternal::bucket() const {
     if (bucket_jstring) env->DeleteLocalRef(bucket_jstring);
     return "";
   }
-  return ::firebase::jni::JStringToString(env, bucket_jstring);
+  std::string bucket_str =
+      ::firebase::jni::JStringToString(env, bucket_jstring);
+  env->DeleteLocalRef(bucket_jstring);
+  return bucket_str;
 }
 
 std::string StorageReferenceInternal::full_path() const {
@@ -746,7 +798,9 @@ std::string StorageReferenceInternal::full_path() const {
     if (path_jstring) env->DeleteLocalRef(path_jstring);
     return "";
   }
-  return ::firebase::jni::JStringToString(env, path_jstring);
+  std::string path_str = ::firebase::jni::JStringToString(env, path_jstring);
+  env->DeleteLocalRef(path_jstring);
+  return path_str;
 }
 
 Future<size_t> StorageReferenceInternal::GetFile(const char* path,

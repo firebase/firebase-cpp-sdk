@@ -127,33 +127,41 @@ Query Query::Where(const Filter& filter) const {
 
 namespace {
 
-void ValidateFieldAndValue(const FieldPath& field, const FieldValue& value) {
+bool ValidateFieldAndValue(const FieldPath& field, const FieldValue& value) {
   if (!field.is_valid()) {
     SimpleThrowInvalidArgument("Field path cannot be invalid.");
+    return false;
   }
   if (!value.is_valid()) {
     SimpleThrowInvalidArgument("Field value cannot be invalid.");
+    return false;
   }
+  return true;
 }
 
-void ValidateFieldAndValues(const FieldPath& field,
+bool ValidateFieldAndValues(const FieldPath& field,
                             const std::vector<FieldValue>& values) {
   if (!field.is_valid()) {
     SimpleThrowInvalidArgument("Field path cannot be invalid.");
+    return false;
   }
   for (const auto& value : values) {
     if (!value.is_valid()) {
       SimpleThrowInvalidArgument("Field value cannot be invalid.");
+      return false;
     }
   }
+  return true;
 }
 
-void ValidateValues(const std::vector<FieldValue>& values) {
+bool ValidateValues(const std::vector<FieldValue>& values) {
   for (const auto& value : values) {
     if (!value.is_valid()) {
       SimpleThrowInvalidArgument("Field value cannot be invalid.");
+      return false;
     }
   }
+  return true;
 }
 
 }  // namespace
@@ -167,7 +175,7 @@ Query Query::WhereEqualTo(const std::string& field,
 Query Query::WhereEqualTo(const FieldPath& field,
                           const FieldValue& value) const {
   if (!internal_) return {};
-  ValidateFieldAndValue(field, value);
+  if (!ValidateFieldAndValue(field, value)) return {};
   return internal_->WhereEqualTo(field, value);
 }
 
@@ -180,7 +188,7 @@ Query Query::WhereNotEqualTo(const std::string& field,
 Query Query::WhereNotEqualTo(const FieldPath& field,
                              const FieldValue& value) const {
   if (!internal_) return {};
-  ValidateFieldAndValue(field, value);
+  if (!ValidateFieldAndValue(field, value)) return {};
   return internal_->WhereNotEqualTo(field, value);
 }
 
@@ -193,7 +201,7 @@ Query Query::WhereLessThan(const std::string& field,
 Query Query::WhereLessThan(const FieldPath& field,
                            const FieldValue& value) const {
   if (!internal_) return {};
-  ValidateFieldAndValue(field, value);
+  if (!ValidateFieldAndValue(field, value)) return {};
   return internal_->WhereLessThan(field, value);
 }
 
@@ -207,7 +215,7 @@ Query Query::WhereLessThanOrEqualTo(const std::string& field,
 Query Query::WhereLessThanOrEqualTo(const FieldPath& field,
                                     const FieldValue& value) const {
   if (!internal_) return {};
-  ValidateFieldAndValue(field, value);
+  if (!ValidateFieldAndValue(field, value)) return {};
   return internal_->WhereLessThanOrEqualTo(field, value);
 }
 
@@ -220,7 +228,7 @@ Query Query::WhereGreaterThan(const std::string& field,
 Query Query::WhereGreaterThan(const FieldPath& field,
                               const FieldValue& value) const {
   if (!internal_) return {};
-  ValidateFieldAndValue(field, value);
+  if (!ValidateFieldAndValue(field, value)) return {};
   return internal_->WhereGreaterThan(field, value);
 }
 
@@ -234,7 +242,7 @@ Query Query::WhereGreaterThanOrEqualTo(const std::string& field,
 Query Query::WhereGreaterThanOrEqualTo(const FieldPath& field,
                                        const FieldValue& value) const {
   if (!internal_) return {};
-  ValidateFieldAndValue(field, value);
+  if (!ValidateFieldAndValue(field, value)) return {};
   return internal_->WhereGreaterThanOrEqualTo(field, value);
 }
 
@@ -247,7 +255,7 @@ Query Query::WhereArrayContains(const std::string& field,
 Query Query::WhereArrayContains(const FieldPath& field,
                                 const FieldValue& value) const {
   if (!internal_) return {};
-  ValidateFieldAndValue(field, value);
+  if (!ValidateFieldAndValue(field, value)) return {};
   return internal_->WhereArrayContains(field, value);
 }
 
@@ -261,7 +269,7 @@ Query Query::WhereArrayContainsAny(
 Query Query::WhereArrayContainsAny(
     const FieldPath& field, const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
-  ValidateFieldAndValues(field, values);
+  if (!ValidateFieldAndValues(field, values)) return {};
   return internal_->WhereArrayContainsAny(field, values);
 }
 
@@ -274,7 +282,7 @@ Query Query::WhereIn(const std::string& field,
 Query Query::WhereIn(const FieldPath& field,
                      const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
-  ValidateFieldAndValues(field, values);
+  if (!ValidateFieldAndValues(field, values)) return {};
   return internal_->WhereIn(field, values);
 }
 
@@ -287,7 +295,7 @@ Query Query::WhereNotIn(const std::string& field,
 Query Query::WhereNotIn(const FieldPath& field,
                         const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
-  ValidateFieldAndValues(field, values);
+  if (!ValidateFieldAndValues(field, values)) return {};
   return internal_->WhereNotIn(field, values);
 }
 
@@ -326,7 +334,7 @@ Query Query::StartAt(const DocumentSnapshot& snapshot) const {
 
 Query Query::StartAt(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
-  ValidateValues(values);
+  if (!ValidateValues(values)) return {};
   return internal_->StartAt(values);
 }
 
@@ -341,7 +349,7 @@ Query Query::StartAfter(const DocumentSnapshot& snapshot) const {
 
 Query Query::StartAfter(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
-  ValidateValues(values);
+  if (!ValidateValues(values)) return {};
   return internal_->StartAfter(values);
 }
 
@@ -356,7 +364,7 @@ Query Query::EndBefore(const DocumentSnapshot& snapshot) const {
 
 Query Query::EndBefore(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
-  ValidateValues(values);
+  if (!ValidateValues(values)) return {};
   return internal_->EndBefore(values);
 }
 
@@ -371,7 +379,7 @@ Query Query::EndAt(const DocumentSnapshot& snapshot) const {
 
 Query Query::EndAt(const std::vector<FieldValue>& values) const {
   if (!internal_) return {};
-  ValidateValues(values);
+  if (!ValidateValues(values)) return {};
   return internal_->EndAt(values);
 }
 

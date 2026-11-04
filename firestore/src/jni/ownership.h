@@ -236,7 +236,11 @@ class Global : public T {
       env = EnsureEnv(other.env());
     }
     if (T::object_ != nullptr) {
-      if (env != nullptr) env->DeleteGlobalRef(T::object_);
+      if (env != nullptr) {
+        env->DeleteGlobalRef(T::object_);
+      } else {
+        GlobalRefReaper::GetInstance().DeferDelete(T::object_);
+      }
       T::object_ = nullptr;
     }
     if (other.get() != nullptr && env != nullptr) {
@@ -264,8 +268,12 @@ class Global : public T {
       if (other.get() != nullptr && env != nullptr) {
         new_ref = env->NewGlobalRef(other.get());
       }
-      if (T::object_ != nullptr && env != nullptr) {
-        env->DeleteGlobalRef(T::object_);
+      if (T::object_ != nullptr) {
+        if (env != nullptr) {
+          env->DeleteGlobalRef(T::object_);
+        } else {
+          GlobalRefReaper::GetInstance().DeferDelete(T::object_);
+        }
       }
       T::object_ = new_ref;
     }
@@ -311,7 +319,11 @@ class Global : public T {
       env = EnsureEnv(other.env());
     }
     if (T::object_ != nullptr) {
-      if (env != nullptr) env->DeleteGlobalRef(T::object_);
+      if (env != nullptr) {
+        env->DeleteGlobalRef(T::object_);
+      } else {
+        GlobalRefReaper::GetInstance().DeferDelete(T::object_);
+      }
       T::object_ = nullptr;
     }
     if (other.get() != nullptr && env != nullptr) {

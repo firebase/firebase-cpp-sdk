@@ -58,6 +58,7 @@ QuerySnapshot::QuerySnapshot(QuerySnapshotInternal* internal)
 QuerySnapshot::~QuerySnapshot() {
   CleanupFnQuerySnapshot::Unregister(this, internal_);
   delete internal_;
+  internal_ = nullptr;
 }
 
 QuerySnapshot& QuerySnapshot::operator=(const QuerySnapshot& snapshot) {

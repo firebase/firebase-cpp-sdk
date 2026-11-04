@@ -530,25 +530,28 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
 
 
 std::string Auth::language_code() const {
+  if (!auth_data_) return "";
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
   return auth_impl->language_code;
 }
 
 void Auth::set_language_code(const char* language_code) {
-
+  if (!auth_data_) return;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
   auth_impl->language_code = language_code != nullptr ? language_code : "";
 }
 
 void Auth::UseAppLanguage() {
+  if (!auth_data_) return;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
   auth_impl->language_code.clear();
 }
 
 void Auth::UseEmulator(std::string host, uint32_t port) {
+  if (!auth_data_) return;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
   auth_impl->assigned_emulator_url = host + ":" + std::to_string(port);
@@ -659,17 +662,18 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
 
         while (!refresh_thread->is_shutting_down()) {
           // Note:  Make sure to always make future_impl.mutex the innermost
-          // lock, to prevent deadlocks!
+          // lock, to prevent deadlocks! Query token_refresh_listener_ before
+          // acquiring future_impl.mutex() so IdTokenRefreshListener::mutex_ is
+          // never acquired while holding future_impl.mutex().
           refresh_thread->ref_count_mutex_.Acquire();
+          uint64_t ms_since_last_refresh =
+              ::firebase::internal::GetTimestampEpoch() -
+              refresh_thread->token_refresh_listener_.GetTokenTimestamp();
           auth->auth_data_->future_impl.mutex().Acquire();
           if (auth->auth_data_->user_impl && refresh_thread->ref_count_ > 0) {
             // The internal identifier kInternalFn_GetTokenForRefresher,
             // ensures that we won't mess with the LastResult for the
             // user-facing one.
-
-            uint64_t ms_since_last_refresh =
-                ::firebase::internal::GetTimestampEpoch() -
-                refresh_thread->token_refresh_listener_.GetTokenTimestamp();
 
             if (ms_since_last_refresh >= kMsPerTokenRefresh) {
               Future<std::string> future =

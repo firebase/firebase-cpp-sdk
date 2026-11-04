@@ -147,12 +147,12 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithRegularPath) {
 
   // Only the local cache should change.
   CacheNode expected_local_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "apples"),
                          }),
-      }),
+      })),
       true, false);
   ViewCache expected_view_cache(expected_local_cache, initial_server_cache);
 
@@ -240,12 +240,12 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_RegularPath) {
 
   // Both caches are expected to be the same.
   CacheNode expected_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "apples"),
                          }),
-      }),
+      })),
       true, false);
   ViewCache expected_view_cache(expected_cache, expected_cache);
 
@@ -272,14 +272,15 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_DistantDescendantChange) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
-  CacheNode initial_cache(Variant(std::map<Variant, Variant>{std::make_pair(
-                              "aaa",
-                              std::map<Variant, Variant>{std::make_pair(
-                                  "bbb",
-                                  std::map<Variant, Variant>{
-                                      std::make_pair("ccc", 1000),
-                                  })})}),
-                          true, false);
+  CacheNode initial_cache(
+      IndexedVariant(Variant(std::map<Variant, Variant>{std::make_pair(
+          "aaa",
+          std::map<Variant, Variant>{std::make_pair(
+              "bbb",
+              std::map<Variant, Variant>{
+                  std::make_pair("ccc", 1000),
+              })})})),
+      true, false);
   ViewCache old_view_cache(initial_cache, initial_cache);
 
   // Make sure the data being updated is deeply nested in the variant.
@@ -298,14 +299,15 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_DistantDescendantChange) {
                                 &resultant_changes);
 
   // Both caches are expected to be the same.
-  CacheNode expected_cache(Variant(std::map<Variant, Variant>{std::make_pair(
-                               "aaa",
-                               std::map<Variant, Variant>{std::make_pair(
-                                   "bbb",
-                                   std::map<Variant, Variant>{
-                                       std::make_pair("ccc", -9999),
-                                   })})}),
-                           true, false);
+  CacheNode expected_cache(
+      IndexedVariant(Variant(std::map<Variant, Variant>{std::make_pair(
+          "aaa",
+          std::map<Variant, Variant>{std::make_pair(
+              "bbb",
+              std::map<Variant, Variant>{
+                  std::make_pair("ccc", -9999),
+              })})})),
+      true, false);
   ViewCache expected_view_cache(expected_cache, expected_cache);
 
   // Expect one ChildChanged event and one Value event.
@@ -338,12 +340,12 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
   ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
   // Set up some dummy data.
   CacheNode initial_local_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "zzz"),
                          }),
-      }),
+      })),
       true, false);
   CacheNode initial_server_cache(IndexedVariant(Variant("aaa")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
@@ -368,7 +370,7 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
 
   // Only the local cache should change.
   CacheNode expected_local_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair(
               "aaa",
               std::map<Variant, Variant>{
@@ -382,7 +384,7 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
                                      std::make_pair("fff", "vegetables"),
                                  }),
               }),
-      }),
+      })),
       true, false);
   CacheNode expected_server_cache(IndexedVariant(Variant("aaa")), true, false);
   ViewCache expected_view_cache(expected_local_cache, expected_server_cache);
@@ -431,12 +433,12 @@ TEST(ViewProcessor, ApplyOperationServerMerge) {
 
   // Set up some dummy data.
   CacheNode initial_local_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "zzz"),
                          }),
-      }),
+      })),
       true, false);
   CacheNode initial_server_cache(IndexedVariant(Variant("aaa")), true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
@@ -464,7 +466,7 @@ TEST(ViewProcessor, ApplyOperationServerMerge) {
 
   // Both caches are expected to be the same.
   CacheNode expected_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair(
               "aaa",
               std::map<Variant, Variant>{
@@ -480,7 +482,7 @@ TEST(ViewProcessor, ApplyOperationServerMerge) {
                               }),
                       }),
               }),
-      }),
+      })),
       true, false);
   ViewCache expected_view_cache(expected_cache, expected_cache);
 
@@ -570,20 +572,20 @@ TEST(ViewProcessor, ApplyOperationAck_IsOverwrite) {
 
   // Set up some dummy data.
   CacheNode initial_local_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "new_value"),
                          }),
-      }),
+      })),
       true, false);
   CacheNode initial_server_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "new_value"),
                          }),
-      }),
+      })),
       true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
@@ -621,20 +623,20 @@ TEST(ViewProcessor, ApplyOperationAckRevert) {
 
   // Set up some dummy data.
   CacheNode initial_local_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "new_value"),
                          }),
-      }),
+      })),
       true, false);
   CacheNode initial_server_cache(
-      Variant(std::map<Variant, Variant>{
+      IndexedVariant(Variant(std::map<Variant, Variant>{
           std::make_pair("aaa",
                          std::map<Variant, Variant>{
                              std::make_pair("bbb", "old_value"),
                          }),
-      }),
+      })),
       true, false);
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 

@@ -17,12 +17,13 @@
 #include <jni.h>
 
 #include "app/src/app_android.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/jni/env.h"
 #include "app/src/jni/ownership.h"
+#include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
 #include "database/src/android/database_reference_android.h"
-#include "app/src/app_android.h"
-#include "app/src/jni/env.h"
+#include "database/src/android/util_android.h"
 #include "database/src/include/firebase/database/data_snapshot.h"
 
 namespace firebase {
@@ -42,71 +43,13 @@ namespace internal {
     "()Lcom/google/firebase/database/DatabaseReference;"),                 \
   X(GetKey, "getKey", "()Ljava/lang/String;"),                             \
   X(GetChildren, "getChildren", "()Ljava/lang/Iterable;"),                 \
-  X(GetPriority, "getPriority", "()Ljava/lang/Object;")
+  X(GetPriority, "getPriority", "()Ljava/lang/Object;"),                   \
+  X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 
-namespace data_snapshot {
-
-enum Method {
-  kChild,
-  kHasChild,
-  kHasChildren,
-  kExists,
-  kGetValue,
-  kGetChildrenCount,
-  kGetRef,
-  kGetKey,
-  kGetChildren,
-  kGetPriority,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/DataSnapshot"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kChild] = env->GetMethodID(g_class.get(), "child", "(Ljava/lang/String;)Lcom/google/firebase/database/DataSnapshot;");
-  if (!g_method_ids[kChild]) return false;
-  g_method_ids[kHasChild] = env->GetMethodID(g_class.get(), "hasChild", "(Ljava/lang/String;)Z");
-  if (!g_method_ids[kHasChild]) return false;
-  g_method_ids[kHasChildren] = env->GetMethodID(g_class.get(), "hasChildren", "()Z");
-  if (!g_method_ids[kHasChildren]) return false;
-  g_method_ids[kExists] = env->GetMethodID(g_class.get(), "exists", "()Z");
-  if (!g_method_ids[kExists]) return false;
-  g_method_ids[kGetValue] = env->GetMethodID(g_class.get(), "getValue", "()Ljava/lang/Object;");
-  if (!g_method_ids[kGetValue]) return false;
-  g_method_ids[kGetChildrenCount] = env->GetMethodID(g_class.get(), "getChildrenCount", "()J");
-  if (!g_method_ids[kGetChildrenCount]) return false;
-  g_method_ids[kGetRef] = env->GetMethodID(g_class.get(), "getRef", "()Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kGetRef]) return false;
-  g_method_ids[kGetKey] = env->GetMethodID(g_class.get(), "getKey", "()Ljava/lang/String;");
-  if (!g_method_ids[kGetKey]) return false;
-  g_method_ids[kGetChildren] = env->GetMethodID(g_class.get(), "getChildren", "()Ljava/lang/Iterable;");
-  if (!g_method_ids[kGetChildren]) return false;
-  g_method_ids[kGetPriority] = env->GetMethodID(g_class.get(), "getPriority", "()Ljava/lang/Object;");
-  if (!g_method_ids[kGetPriority]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace data_snapshot
+JNI_METHOD_LOOKUP_DECLARATION(
+    data_snapshot, DATA_SNAPSHOT_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/database/DataSnapshot")
 
 
 
@@ -133,9 +76,8 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
     MutexLock src_lock(src.key_mutex_);
     src_key = src.cached_key_;
   }
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
   if (obj_ != nullptr) {
-    env->DeleteGlobalRef(obj_);
+    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
   }
   db_ = src.db_;
   {
@@ -240,25 +182,60 @@ std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
     if (iterable != nullptr) env->DeleteLocalRef(iterable);
     return result;
   }
+  jclass iterable_class = env->GetObjectClass(iterable);
+  if (::firebase::jni::CheckAndClearException(env) ||
+      iterable_class == nullptr) {
+    if (iterable_class != nullptr) env->DeleteLocalRef(iterable_class);
+    env->DeleteLocalRef(iterable);
+    return result;
+  }
+  jmethodID iterator_method =
+      env->GetMethodID(iterable_class, "iterator", "()Ljava/util/Iterator;");
+  env->DeleteLocalRef(iterable_class);
+  if (::firebase::jni::CheckAndClearException(env) ||
+      iterator_method == nullptr) {
+    env->DeleteLocalRef(iterable);
+    return result;
+  }
   // iterator = iterable.iterator()
-  jobject iterator = env->CallObjectMethod(
-      iterable, env->GetMethodID(env->GetObjectClass(iterable), "iterator", "()Ljava/util/Iterator;"));
+  jobject iterator = env->CallObjectMethod(iterable, iterator_method);
+  env->DeleteLocalRef(iterable);
   if (::firebase::jni::CheckAndClearException(env) || iterator == nullptr) {
     if (iterator != nullptr) env->DeleteLocalRef(iterator);
-    env->DeleteLocalRef(iterable);
+    return result;
+  }
+  jclass iterator_class = env->GetObjectClass(iterator);
+  if (::firebase::jni::CheckAndClearException(env) ||
+      iterator_class == nullptr) {
+    if (iterator_class != nullptr) env->DeleteLocalRef(iterator_class);
+    env->DeleteLocalRef(iterator);
+    return result;
+  }
+  jmethodID has_next_method =
+      env->GetMethodID(iterator_class, "hasNext", "()Z");
+  if (::firebase::jni::CheckAndClearException(env) ||
+      has_next_method == nullptr) {
+    env->DeleteLocalRef(iterator_class);
+    env->DeleteLocalRef(iterator);
+    return result;
+  }
+  jmethodID next_method =
+      env->GetMethodID(iterator_class, "next", "()Ljava/lang/Object;");
+  env->DeleteLocalRef(iterator_class);
+  if (::firebase::jni::CheckAndClearException(env) || next_method == nullptr) {
+    env->DeleteLocalRef(iterator);
     return result;
   }
   // while (iterator.hasNext())
   while (true) {
-    jboolean has_next = env->CallBooleanMethod(
-        iterator, env->GetMethodID(env->GetObjectClass(iterator), "hasNext", "()Z"));
+    jboolean has_next = env->CallBooleanMethod(iterator, has_next_method);
     if (::firebase::jni::CheckAndClearException(env) || !has_next) {
       break;
     }
     // DataSnapshot java_snapshot = iterator.next();
-    jobject java_snapshot = env->CallObjectMethod(
-        iterator, env->GetMethodID(env->GetObjectClass(iterator), "next", "()Ljava/lang/Object;"));
-    if (::firebase::jni::CheckAndClearException(env) || java_snapshot == nullptr) {
+    jobject java_snapshot = env->CallObjectMethod(iterator, next_method);
+    if (::firebase::jni::CheckAndClearException(env) ||
+        java_snapshot == nullptr) {
       if (java_snapshot != nullptr) env->DeleteLocalRef(java_snapshot);
       break;
     }
@@ -266,7 +243,6 @@ std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
         DataSnapshot(new DataSnapshotInternal(db_, java_snapshot)));
     env->DeleteLocalRef(java_snapshot);
   }
-  env->DeleteLocalRef(iterable);
   env->DeleteLocalRef(iterator);
   return result;
 }
@@ -323,7 +299,6 @@ const char* DataSnapshotInternal::GetKey() {
 }
 
 std::string DataSnapshotInternal::GetKeyString() {
-  MutexLock lock(key_mutex_);
   const char* key = GetKey();
   return key != nullptr ? std::string(key) : std::string();
 }

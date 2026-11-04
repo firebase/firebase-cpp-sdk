@@ -234,6 +234,10 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
     return Future<DataSnapshot>();
   }
   ReferenceCountedFutureImpl* future_api = ref_future();
+  if (!future_api) {
+    if (delete_context) delete_context(context);
+    return Future<DataSnapshot>();
+  }
   SafeFutureHandle<DataSnapshot> handle = future_api->SafeAlloc<DataSnapshot>(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
   Future<DataSnapshot> result_future = MakeFuture(future_api, handle);
@@ -244,10 +248,11 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
     return result_future;
   }
 
-  DatabaseInternal::ThisRef db_ref = database_->this_ref();
+  TransactionCallbackState* state = new TransactionCallbackState(
+      handle, future_api, result_future, database_->this_ref());
   FIRTransactionResult* _Nonnull (^transaction_block)(
       FIRMutableData* _Nonnull) = ^(FIRMutableData* mutable_data_impl) {
-    DatabaseInternal::ThisRefLock lock(&db_ref);
+    DatabaseInternal::ThisRefLock lock(&state->db_ref);
     DatabaseInternal* db = lock.GetReference();
     if (!db) {
       return [FIRTransactionResult abort];
@@ -261,9 +266,6 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
       return [FIRTransactionResult abort];
     }
   };
-
-  TransactionCallbackState* state =
-      new TransactionCallbackState(handle, future_api, result_future, db_ref);
   void (^completion_block)(NSError* _Nullable, BOOL,
                            FIRDataSnapshot* _Nullable) =
       ^(NSError* error, BOOL was_committed, FIRDataSnapshot* snapshot) {
@@ -333,31 +335,16 @@ void DatabaseReferenceInternal::SetValueImpl(const Variant& value, SafeFutureHan
 
 void DatabaseReferenceInternal::SetValueAndPriorityImpl(
     const Variant& value, const Variant& priority, SafeFutureHandle<void> handle) {
-  if (!database_) return Future<void>();
-  ReferenceCountedFutureImpl* future_api = ref_future();
-  SafeFutureHandle<void> handle =
-      future_api->SafeAlloc<void>(kDatabaseReferenceFnSetValueAndPriority);
-  Future<void> result_future = MakeFuture(future_api, handle);
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return;
   if (!impl()) {
-    future_api->Complete(handle, kErrorOperationFailed,
-                         GetErrorMessage(kErrorOperationFailed));
-    return result_future;
+    api->Complete(handle, kErrorOperationFailed,
+                  GetErrorMessage(kErrorOperationFailed));
+    return;
   }
-  if (SetValueLastResult().status() == kFutureStatusPending) {
-    future_api->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetValue);
-  } else if (SetPriorityLastResult().status() == kFutureStatusPending) {
-    future_api->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetPriority);
-  } else if (!IsValidPriority(priority)) {
-    future_api->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForPriority);
-  } else {
-    [impl() setValue:VariantToId(value)
-                andPriority:VariantToId(priority)
-        withCompletionBlock:CreateCompletionBlock(handle, future_api)];
-  }
-  return result_future;
+  [impl() setValue:VariantToId(value)
+              andPriority:VariantToId(priority)
+      withCompletionBlock:CreateCompletionBlock(handle, api)];
 }
 
 
@@ -397,7 +384,8 @@ void DatabaseReferenceInternal::GoOffline() {
 void DatabaseReferenceInternal::GoOnline() { [FIRDatabaseReference goOnline]; }
 
 ReferenceCountedFutureImpl* DatabaseReferenceInternal::ref_future() {
-  return database_->future_manager().GetFutureApi(&future_api_id_);
+  return database_ ? database_->future_manager().GetFutureApi(&future_api_id_)
+                   : nullptr;
 }
 
 }  // namespace internal

@@ -26,6 +26,7 @@
 
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "app/src/util_android.h"
 #include "installations/src/common.h"
 
 namespace firebase {
@@ -68,32 +69,58 @@ using firebase::internal::ReferenceCountLock;
 ReferenceCount internal::InstallationsInternal::initializer_;  // NOLINT
 
 struct FISCallbackData {
+  explicit FISCallbackData(std::weak_ptr<PendingCallbacks> _tracker)
+      : tracker(std::move(_tracker)) {}
   virtual ~FISCallbackData() = default;
+  std::weak_ptr<PendingCallbacks> tracker;
 };
 
 struct PendingCallbacks {
-  std::mutex mutex;
-  std::unordered_set<FISCallbackData*> active;
-
-  void Register(FISCallbackData* data) {
-    std::lock_guard<std::mutex> lock(mutex);
-    active.insert(data);
+  static std::mutex& Mutex() {
+    static auto* mutex = new std::mutex();
+    return *mutex;
   }
 
-  bool Claim(FISCallbackData* data) {
-    std::lock_guard<std::mutex> lock(mutex);
-    auto it = active.find(data);
-    if (it == active.end()) {
+  static std::unordered_set<FISCallbackData*>& GlobalActive() {
+    static auto* active = new std::unordered_set<FISCallbackData*>();
+    return *active;
+  }
+
+  std::unordered_set<FISCallbackData*> active;
+
+  ~PendingCallbacks() { CancelAll(); }
+
+  void Register(FISCallbackData* data) {
+    std::lock_guard<std::mutex> lock(Mutex());
+    active.insert(data);
+    GlobalActive().insert(data);
+  }
+
+  static bool Claim(FISCallbackData* data) {
+    if (data == nullptr) {
       return false;
     }
-    active.erase(it);
+    std::lock_guard<std::mutex> lock(Mutex());
+    auto& global_active = GlobalActive();
+    auto it = global_active.find(data);
+    if (it == global_active.end()) {
+      return false;
+    }
+    global_active.erase(it);
+    if (auto tracker = data->tracker.lock()) {
+      tracker->active.erase(data);
+    }
     return true;
   }
 
   void CancelAll() {
     std::unordered_set<FISCallbackData*> to_delete;
     {
-      std::lock_guard<std::mutex> lock(mutex);
+      std::lock_guard<std::mutex> lock(Mutex());
+      auto& global_active = GlobalActive();
+      for (FISCallbackData* data : active) {
+        global_active.erase(data);
+      }
       to_delete.swap(active);
     }
     for (FISCallbackData* data : to_delete) {
@@ -106,13 +133,12 @@ template <typename T>
 struct FISDataHandle : public FISCallbackData {
   FISDataHandle(std::weak_ptr<ReferenceCountedFutureImpl> _future_api,
                 const SafeFutureHandle<T>& _future_handle,
-                std::shared_ptr<PendingCallbacks> _tracker)
-      : future_api(std::move(_future_api)),
-        future_handle(_future_handle),
-        tracker(std::move(_tracker)) {}
+                std::weak_ptr<PendingCallbacks> _tracker)
+      : FISCallbackData(std::move(_tracker)),
+        future_api(std::move(_future_api)),
+        future_handle(_future_handle) {}
   std::weak_ptr<ReferenceCountedFutureImpl> future_api;
   SafeFutureHandle<T> future_handle;
-  std::shared_ptr<PendingCallbacks> tracker;
 };
 
 static bool CacheJNIMethodIds(JNIEnv* env, jobject activity) {
@@ -156,11 +182,7 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
     env->DeleteLocalRef(result);
   }
   auto* data_handle = reinterpret_cast<FISDataHandle<void>*>(callback_data);
-  if (data_handle == nullptr) {
-    return;
-  }
-  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
-  if (tracker && !tracker->Claim(data_handle)) {
+  if (!PendingCallbacks::Claim(data_handle)) {
     return;
   }
   if (auto api = data_handle->future_api.lock()) {
@@ -175,6 +197,14 @@ static void StringResultCallback(JNIEnv* env, jobject result,
                                  firebase::util::FutureResult result_code,
                                  const char* status_message,
                                  void* callback_data) {
+  auto* data_handle =
+      reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
+  if (!PendingCallbacks::Claim(data_handle)) {
+    if (result != nullptr) {
+      env->DeleteLocalRef(result);
+    }
+    return;
+  }
   bool success = (result_code == util::kFutureResultSuccess);
   std::string result_value;
   if (success && result != nullptr) {
@@ -182,15 +212,6 @@ static void StringResultCallback(JNIEnv* env, jobject result,
   }
   if (result != nullptr) {
     env->DeleteLocalRef(result);
-  }
-  auto* data_handle =
-      reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
-  if (data_handle == nullptr) {
-    return;
-  }
-  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
-  if (tracker && !tracker->Claim(data_handle)) {
-    return;
   }
   if (auto api = data_handle->future_api.lock()) {
     api->CompleteWithResult(
@@ -206,10 +227,11 @@ static InstallationTokenResult JTokenResultToStruct(JNIEnv* env,
                                                     bool* out_valid) {
   InstallationTokenResult token_result;
   *out_valid = false;
-  if (jtoken == nullptr) {
+  jclass token_result_class = token_result::GetClass();
+  if (jtoken == nullptr || token_result_class == nullptr) {
     return token_result;
   }
-  FIREBASE_DEV_ASSERT(env->IsInstanceOf(jtoken, token_result::GetClass()));
+  FIREBASE_DEV_ASSERT(env->IsInstanceOf(jtoken, token_result_class));
 
   jobject jstring_obj = env->CallObjectMethod(
       jtoken, token_result::GetMethodId(token_result::kGetToken));
@@ -240,6 +262,14 @@ static void TokenResultCallback(JNIEnv* env, jobject result,
                                 firebase::util::FutureResult result_code,
                                 const char* status_message,
                                 void* callback_data) {
+  auto* data_handle =
+      reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
+  if (!PendingCallbacks::Claim(data_handle)) {
+    if (result != nullptr) {
+      env->DeleteLocalRef(result);
+    }
+    return;
+  }
   bool success = (result_code == util::kFutureResultSuccess);
   InstallationTokenResult parsed;
   bool valid_token = false;
@@ -249,19 +279,10 @@ static void TokenResultCallback(JNIEnv* env, jobject result,
   if (result != nullptr) {
     env->DeleteLocalRef(result);
   }
-  auto* data_handle =
-      reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
-  if (data_handle == nullptr) {
-    return;
-  }
-  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
-  if (tracker && !tracker->Claim(data_handle)) {
-    return;
-  }
   if (auto api = data_handle->future_api.lock()) {
-    Error error = (success && valid_token)
-                      ? kInstallationsErrorNone
-                      : MapAndroidError(result_code, status_message);
+    Error error = !success      ? MapAndroidError(result_code, status_message)
+                  : valid_token ? kInstallationsErrorNone
+                                : kInstallationsErrorFailure;
     api->CompleteWithResult(
         data_handle->future_handle, error,
         status_message != nullptr ? status_message : "", parsed.token);
@@ -273,6 +294,14 @@ static void TokenResultStructCallback(JNIEnv* env, jobject result,
                                       firebase::util::FutureResult result_code,
                                       const char* status_message,
                                       void* callback_data) {
+  auto* data_handle =
+      reinterpret_cast<FISDataHandle<InstallationTokenResult>*>(callback_data);
+  if (!PendingCallbacks::Claim(data_handle)) {
+    if (result != nullptr) {
+      env->DeleteLocalRef(result);
+    }
+    return;
+  }
   bool success = (result_code == util::kFutureResultSuccess);
   InstallationTokenResult parsed;
   bool valid_token = false;
@@ -282,19 +311,10 @@ static void TokenResultStructCallback(JNIEnv* env, jobject result,
   if (result != nullptr) {
     env->DeleteLocalRef(result);
   }
-  auto* data_handle =
-      reinterpret_cast<FISDataHandle<InstallationTokenResult>*>(callback_data);
-  if (data_handle == nullptr) {
-    return;
-  }
-  std::shared_ptr<PendingCallbacks> tracker = data_handle->tracker;
-  if (tracker && !tracker->Claim(data_handle)) {
-    return;
-  }
   if (auto api = data_handle->future_api.lock()) {
-    Error error = (success && valid_token)
-                      ? kInstallationsErrorNone
-                      : MapAndroidError(result_code, status_message);
+    Error error = !success      ? MapAndroidError(result_code, status_message)
+                  : valid_token ? kInstallationsErrorNone
+                                : kInstallationsErrorFailure;
     api->CompleteWithResult(
         data_handle->future_handle, error,
         status_message != nullptr ? status_message : "", parsed);
@@ -312,13 +332,14 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
 
   if (lock.AddReference() == 0) {
     jobject activity = app_.activity();
-    if (!true) {
+    if (!util::Initialize(env, activity)) {
       lock.RemoveReference();
       return;
     }
 
     if (!CacheJNIMethodIds(env, activity)) {
-      
+      ReleaseClasses(env);
+      util::Terminate(env);
       lock.RemoveReference();
       return;
     }
@@ -376,7 +397,7 @@ void InstallationsInternal::Cleanup() {
     has_initializer_ref_ = false;
     if (lock.RemoveReference() == 1 && env != nullptr) {
       ReleaseClasses(env);
-      
+      util::Terminate(env);
     }
   }
 }

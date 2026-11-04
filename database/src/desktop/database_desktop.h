@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
@@ -115,6 +116,12 @@ class DatabaseInternal {
 
   const char* database_url() const { return database_url_.c_str(); }
 
+  CleanupNotifier& cleanup() { return cleanup_; }
+
+  void RetainUntilRepoDestroyed(std::shared_ptr<void> obj) {
+    MutexLock lock(repo_mutex_);
+    repo_lifetime_objects_.push_back(std::move(obj));
+  }
 
   bool RegisterValueListener(const QuerySpec& spec, ValueListener* listener,
                              ValueListenerCleanupData cleanup_data);
@@ -187,7 +194,7 @@ class DatabaseInternal {
 
   Mutex listener_mutex_;
 
-
+  CleanupNotifier cleanup_;
 
   // Needed to generate names that are guarenteed to be unique.
   PushChildNameGenerator name_generator_;
@@ -208,6 +215,7 @@ class DatabaseInternal {
   Mutex repo_mutex_;
   // The local copy of the repository, for offline support and local caching.
   std::unique_ptr<Repo> repo_;
+  std::vector<std::shared_ptr<void>> repo_lifetime_objects_;
 };
 
 }  // namespace internal

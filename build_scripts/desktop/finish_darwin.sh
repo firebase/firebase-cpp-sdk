@@ -72,20 +72,36 @@ if [[ ! -d "${packagepath}/libs/${os}/universal" ]]; then
             mkdir -p "${libname}.dir"
             cd "${libname}.dir"
             member_index=0
+            seen_members=()
+            is_gnu_ar=0
+            if "${binutils}/ar" --version 2>/dev/null | grep -Eqi "GNU|LLVM"; then
+                is_gnu_ar=1
+            else
+                cp -f "../${libname}" "tmp_${libname}"
+            fi
             while IFS= read -r member; do
-                [[ -n "${member}" ]] || continue
+                [[ -n "${member}" && "${member}" != __.SYMDEF* ]] || continue
                 member_index=$((member_index + 1))
                 member_base="$(basename "${member}")"
+                seen_members+=("${member}")
                 # Count which occurrence of this member name we are extracting.
                 occurrence=0
-                while IFS= read -r m; do
+                for m in "${seen_members[@]}"; do
                     if [[ "${m}" == "${member}" ]]; then
                         occurrence=$((occurrence + 1))
                     fi
-                done < <("${binutils}/ar" t "../${libname}" | head -n "${member_index}")
-                "${binutils}/ar" xN "${occurrence}" "../${libname}" "${member}"
+                done
+                if [[ "${is_gnu_ar}" -eq 1 ]]; then
+                    "${binutils}/ar" xN "${occurrence}" "../${libname}" "${member}"
+                else
+                    if [[ "${occurrence}" -gt 1 ]]; then
+                        "${binutils}/ar" d "tmp_${libname}" "${member}"
+                    fi
+                    "${binutils}/ar" x "tmp_${libname}" "${member}"
+                fi
                 mv -f "${member_base}" "${member_index}_${member_base}"
             done < <("${binutils}/ar" t "../${libname}")
+            rm -f "tmp_${libname}"
             mv -f "../${libname}" "../${libname}.bak"
             xcrun libtool -static -o "../${libname}" -no_warning_for_no_symbols -s ./*.o
             cd ..

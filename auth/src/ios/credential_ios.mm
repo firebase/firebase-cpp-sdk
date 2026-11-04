@@ -526,7 +526,13 @@ void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
 
   // Auto-retrieval is not supported on iOS; notify the listener immediately so
   // the application can display its manual verification code entry UI.
-  listener->OnCodeAutoRetrievalTimeOut(std::string());
+  // Only call the callback when protected by the mutex.
+  {
+    MutexLock lock(objc_listener_data->listener_mutex);
+    if (objc_listener_data->active_listener != nullptr) {
+      objc_listener_data->active_listener->OnCodeAutoRetrievalTimeOut(std::string());
+    }
+  }
 }
 #else   // non-iOS Apple platforms (eg: tvOS)
 

@@ -121,6 +121,11 @@ class ActiveCallbackScope {
   });
 }
 
+- (BOOL)hasActiveCallbacks {
+  std::lock_guard<std::mutex> cb_lock(_callbackMutex);
+  return !_activeCallbackThreads.empty();
+}
+
 - (void)notifyPaused {
   // Keep this handle (and therefore the C++ ivars used by ActiveCallbackScope)
   // alive until the callback scope has unwound, even if the observer block
@@ -203,6 +208,7 @@ namespace internal {
 struct ListenerInternal::SafeReferenceHolder {
   struct CleanupContext {
     firebase::util::SafeReference<ListenerInternal> weak_self;
+    std::shared_ptr<FIRCPPStorageListenerHandlePointer> handle;
     uint64_t generation;
   };
 
@@ -210,6 +216,11 @@ struct ListenerInternal::SafeReferenceHolder {
       : ref(owner) {}
   firebase::util::SafeReference<ListenerInternal> ref;
   CleanupContext* _Nullable cleanup_ctx = nullptr;
+  // Retains detached handles whose callbacks may still be in flight so any
+  // concurrent DetachTask(), AttachTask(), ~ListenerInternal(), or
+  // ~StorageInternal() cleanup callback also waits for them to finish.
+  std::vector<std::shared_ptr<FIRCPPStorageListenerHandlePointer>>
+      detaching_handles;
 };
 
 ListenerInternal::ListenerInternal(Listener* _Nonnull listener)
@@ -288,7 +299,9 @@ void ListenerInternal::AttachTask(
     storage_token_ = storage_token;
     const uint64_t generation = ++cleanup_generation_;
     auto* ctx = new SafeReferenceHolder::CleanupContext{
-        safe_reference_holder_->ref, generation};
+        safe_reference_holder_->ref,
+        std::make_shared<FIRCPPStorageListenerHandlePointer>(handle),
+        generation};
     safe_reference_holder_->cleanup_ctx = ctx;
     // Cleanup callbacks only run from ~StorageInternal(), after its lifetime
     // token was marked dead; UnregisterObject() is only called under a live
@@ -297,23 +310,46 @@ void ListenerInternal::AttachTask(
     storage.cleanup().RegisterObject(ctx, [](void* obj) {
       std::unique_ptr<SafeReferenceHolder::CleanupContext> ctx_holder(
           static_cast<SafeReferenceHolder::CleanupContext*>(obj));
-      std::unique_ptr<FIRCPPStorageListenerHandlePointer> old_handle;
+      if (ctx_holder->handle && ctx_holder->handle->get()) {
+        [ctx_holder->handle->get() markDetached];
+      }
+      std::vector<std::shared_ptr<FIRCPPStorageListenerHandlePointer>>
+          handles_to_wait;
       const uint64_t gen = ctx_holder->generation;
-      ctx_holder->weak_self.Run([&old_handle, gen](ListenerInternal* self) {
+      ctx_holder->weak_self.Run([&handles_to_wait, gen](ListenerInternal* self) {
         std::lock_guard<std::recursive_mutex> self_lock(self->mutex_);
-        if (self->cleanup_generation_ != gen || !self->storage_token_) {
-          return;  // Superseded by a later attach, or already detached.
+        if (self->cleanup_generation_ == gen && self->storage_token_) {
+          // The notifier has already dropped this registration, so there
+          // is nothing to unregister.
+          self->storage_token_.reset();
+          self->safe_reference_holder_->cleanup_ctx = nullptr;
+          (void)self->DetachTaskLocked();
         }
-        // The notifier has already dropped this registration, so there
-        // is nothing to unregister.
-        self->storage_token_.reset();
-        self->safe_reference_holder_->cleanup_ctx = nullptr;
-        old_handle = std::move(self->DetachTaskLocked().handle);
+        handles_to_wait = self->safe_reference_holder_->detaching_handles;
       });
       // Wait outside the SafeReference scope so a Listener destroyed from
       // inside its own in-flight callback cannot deadlock against us.
-      if (old_handle && old_handle->get()) {
-        [old_handle->get() waitForCallbacks];
+      if (ctx_holder->handle && ctx_holder->handle->get()) {
+        [ctx_holder->handle->get() waitForCallbacks];
+      }
+      for (const auto& h : handles_to_wait) {
+        if (h && h->get()) {
+          [h->get() waitForCallbacks];
+        }
+      }
+      if (!handles_to_wait.empty()) {
+        ctx_holder->weak_self.Run([](ListenerInternal* self) {
+          std::lock_guard<std::recursive_mutex> self_lock(self->mutex_);
+          auto& pending = self->safe_reference_holder_->detaching_handles;
+          pending.erase(
+              std::remove_if(
+                  pending.begin(), pending.end(),
+                  [](const std::shared_ptr<FIRCPPStorageListenerHandlePointer>&
+                         h) {
+                    return !h || !h->get() || ![h->get() hasActiveCallbacks];
+                  }),
+              pending.end());
+        });
       }
     });
   });
@@ -324,8 +360,10 @@ ListenerInternal::DetachedTask ListenerInternal::DetachTaskLocked() {
   DetachedTask detached;
   if (listener_handle_ && listener_handle_->get()) {
     [listener_handle_->get() markDetached];
+    safe_reference_holder_->detaching_handles.push_back(
+        std::move(listener_handle_));
   }
-  detached.handle = std::move(listener_handle_);
+  listener_handle_.reset();
 
   FIRStorageObservableTask<FIRStorageTaskManagement>* cur_task = task();
   FIRStorageHandle pause_handle = pause_observer_handle();
@@ -363,6 +401,29 @@ void ListenerInternal::FinishDetach(DetachedTask& detached) {
     [detached.handle->get() waitForCallbacks];
   }
   detached.handle.reset();
+
+  std::vector<std::shared_ptr<FIRCPPStorageListenerHandlePointer>>
+      handles_to_wait;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    handles_to_wait = safe_reference_holder_->detaching_handles;
+  }
+  if (!handles_to_wait.empty()) {
+    for (const auto& h : handles_to_wait) {
+      if (h && h->get()) {
+        [h->get() waitForCallbacks];
+      }
+    }
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto& pending = safe_reference_holder_->detaching_handles;
+    pending.erase(
+        std::remove_if(
+            pending.begin(), pending.end(),
+            [](const std::shared_ptr<FIRCPPStorageListenerHandlePointer>& h) {
+              return !h || !h->get() || ![h->get() hasActiveCallbacks];
+            }),
+        pending.end());
+  }
 }
 
 void ListenerInternal::DetachTask() {

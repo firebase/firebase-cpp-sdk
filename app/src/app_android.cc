@@ -31,8 +31,10 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "app/src/util_android.h"
 
 namespace firebase {
 
@@ -50,13 +52,8 @@ class AppInternal : public jni::Global<jobject> {
   }
   JavaVM* java_vm() const { return vm_; }
   jobject GetLocalRef() const {
-    JNIEnv* env = nullptr;
-    if (vm_) {
-      if (vm_->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
-        vm_->AttachCurrentThread(&env, nullptr);
-      }
-    }
-    return env ? env->NewLocalRef(get()) : nullptr;
+    JNIEnv* env = util::GetThreadsafeJNIEnv(vm_);
+    return (env && get()) ? env->NewLocalRef(get()) : nullptr;
   }
   
   JavaVM* vm_ = nullptr;
@@ -76,336 +73,99 @@ class AppInternal : public jni::Global<jobject> {
   X(InitializeApp, "initializeApp",                                            \
     "(Landroid/content/Context;Lcom/google/firebase/FirebaseOptions;"          \
     "Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;",                    \
-    firebase::jni::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(InitializeDefaultApp, "initializeApp",                                     \
     "(Landroid/content/Context;Lcom/google/firebase/FirebaseOptions;)"         \
     "Lcom/google/firebase/FirebaseApp;",                                       \
-    firebase::jni::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(GetInstance, "getInstance", "()Lcom/google/firebase/FirebaseApp;",         \
-    firebase::jni::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(GetInstanceByName, "getInstance",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;",                   \
-    firebase::jni::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(GetOptions, "getOptions", "()Lcom/google/firebase/FirebaseOptions;",       \
-    jni::kMethodTypeInstance),                                                \
-  X(Delete, "delete", "()V", jni::kMethodTypeInstance),                       \
+    jni::kMethodTypeInstance)                                                  \
+  X(Delete, "delete", "()V", jni::kMethodTypeInstance)                         \
   X(IsDataCollectionDefaultEnabled, "isDataCollectionDefaultEnabled",          \
-    "()Z", jni::kMethodTypeInstance, jni::kMethodOptional),                  \
+    "()Z", jni::kMethodTypeInstance, jni::kMethodOptional)                     \
   X(SetDataCollectionDefaultEnabled, "setDataCollectionDefaultEnabled",        \
     "(Z)V", jni::kMethodTypeInstance, jni::kMethodOptional)
 // clang-format on
 
-namespace app {
-  enum Method {
-    kInitializeApp,
-    kInitializeDefaultApp,
-    kGetInstance,
-    kGetInstanceByName,
-    kGetOptions,
-    kDelete,
-    kIsDataCollectionDefaultEnabled,
-    kSetDataCollectionDefaultEnabled,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace app {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/FirebaseApp"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kInitializeApp] = env->GetStaticMethodID(g_class.get(), "initializeApp", "(Landroid/content/Context;Lcom/google/firebase/FirebaseOptions;Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;");
-    if (!g_method_ids[kInitializeApp]) return false;
-    g_method_ids[kInitializeDefaultApp] = env->GetStaticMethodID(g_class.get(), "initializeApp", "(Landroid/content/Context;Lcom/google/firebase/FirebaseOptions;)Lcom/google/firebase/FirebaseApp;");
-    if (!g_method_ids[kInitializeDefaultApp]) return false;
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "()Lcom/google/firebase/FirebaseApp;");
-    if (!g_method_ids[kGetInstance]) return false;
-    g_method_ids[kGetInstanceByName] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;");
-    if (!g_method_ids[kGetInstanceByName]) return false;
-    g_method_ids[kGetOptions] = env->GetMethodID(g_class.get(), "getOptions", "()Lcom/google/firebase/FirebaseOptions;");
-    if (!g_method_ids[kGetOptions]) return false;
-    g_method_ids[kDelete] = env->GetMethodID(g_class.get(), "delete", "()V");
-    if (!g_method_ids[kDelete]) return false;
-    g_method_ids[kIsDataCollectionDefaultEnabled] = env->GetMethodID(g_class.get(), "isDataCollectionDefaultEnabled", "()Z");
-    ::firebase::jni::CheckAndClearException(env);
-    g_method_ids[kSetDataCollectionDefaultEnabled] = env->GetMethodID(g_class.get(), "setDataCollectionDefaultEnabled", "(Z)V");
-    ::firebase::jni::CheckAndClearException(env);
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
+JNI_METHOD_LOOKUP_DECLARATION(app, FIREBASE_APP_METHODS, FIELD_LOOKUP_NONE,
+                              "com/google/firebase/FirebaseApp")
 
 // clang-format off
 #define FIREBASE_OPTIONS_BUILDER_METHODS(X)                                    \
-  X(Constructor, "<init>", "()V", jni::kMethodTypeInstance),                  \
+  X(Constructor, "<init>", "()V", jni::kMethodTypeInstance)                    \
   X(SetApiKey, "setApiKey",                                                    \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(SetDatabaseUrl, "setDatabaseUrl",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(SetApplicationId, "setApplicationId",                                      \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(SetGcmSenderId, "setGcmSenderId",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(SetStorageBucket, "setStorageBucket",                                      \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(SetProjectId, "setProjectId",                                              \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    jni::kMethodTypeInstance, jni::kMethodOptional),                         \
+    jni::kMethodTypeInstance, jni::kMethodOptional)                            \
   X(SetGaTrackingId, "setGaTrackingId",                                        \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    jni::kMethodTypeInstance, jni::kMethodOptional),                         \
+    jni::kMethodTypeInstance, jni::kMethodOptional)                            \
   X(Build, "build",                                                            \
     "()Lcom/google/firebase/FirebaseOptions;")
 // clang-format on
 
-namespace options_builder {
-  enum Method {
-    kConstructor,
-    kSetApiKey,
-    kSetDatabaseUrl,
-    kSetApplicationId,
-    kSetGcmSenderId,
-    kSetStorageBucket,
-    kSetProjectId,
-    kSetGaTrackingId,
-    kBuild,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace options_builder {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/FirebaseOptions$Builder"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "()V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kSetApiKey] = env->GetMethodID(g_class.get(), "setApiKey", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;");
-    if (!g_method_ids[kSetApiKey]) return false;
-    g_method_ids[kSetDatabaseUrl] = env->GetMethodID(g_class.get(), "setDatabaseUrl", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;");
-    if (!g_method_ids[kSetDatabaseUrl]) return false;
-    g_method_ids[kSetApplicationId] = env->GetMethodID(g_class.get(), "setApplicationId", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;");
-    if (!g_method_ids[kSetApplicationId]) return false;
-    g_method_ids[kSetGcmSenderId] = env->GetMethodID(g_class.get(), "setGcmSenderId", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;");
-    if (!g_method_ids[kSetGcmSenderId]) return false;
-    g_method_ids[kSetStorageBucket] = env->GetMethodID(g_class.get(), "setStorageBucket", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;");
-    if (!g_method_ids[kSetStorageBucket]) return false;
-    g_method_ids[kSetProjectId] = env->GetMethodID(g_class.get(), "setProjectId", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;");
-    ::firebase::jni::CheckAndClearException(env);
-    g_method_ids[kSetGaTrackingId] = env->GetMethodID(g_class.get(), "setGaTrackingId", "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;");
-    ::firebase::jni::CheckAndClearException(env);
-    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/FirebaseOptions;");
-    if (!g_method_ids[kBuild]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
+JNI_METHOD_LOOKUP_DECLARATION(options_builder, FIREBASE_OPTIONS_BUILDER_METHODS,
+                              FIELD_LOOKUP_NONE,
+                              "com/google/firebase/FirebaseOptions$Builder")
 
 // clang-format off
 #define FIREBASE_OPTIONS_METHODS(X)                                            \
   X(FromResource, "fromResource",                                              \
     "(Landroid/content/Context;)Lcom/google/firebase/FirebaseOptions;",        \
-    firebase::jni::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(GetApiKey, "getApiKey", "()Ljava/lang/String;",                            \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(GetApplicationId, "getApplicationId", "()Ljava/lang/String;",              \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(GetDatabaseUrl, "getDatabaseUrl", "()Ljava/lang/String;",                  \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(GetGcmSenderId, "getGcmSenderId", "()Ljava/lang/String;",                  \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(GetStorageBucket, "getStorageBucket", "()Ljava/lang/String;",              \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(GetProjectId, "getProjectId", "()Ljava/lang/String;",                      \
-    jni::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance)                                                  \
   X(GetGaTrackingId, "getGaTrackingId", "()Ljava/lang/String;",                \
     jni::kMethodTypeInstance, jni::kMethodOptional)
 // clang-format on
 
-namespace options {
-  enum Method {
-    kFromResource,
-    kGetApiKey,
-    kGetApplicationId,
-    kGetDatabaseUrl,
-    kGetGcmSenderId,
-    kGetStorageBucket,
-    kGetProjectId,
-    kGetGaTrackingId,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace options {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/FirebaseOptions"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kFromResource] = env->GetStaticMethodID(g_class.get(), "fromResource", "(Landroid/content/Context;)Lcom/google/firebase/FirebaseOptions;");
-    if (!g_method_ids[kFromResource]) return false;
-    g_method_ids[kGetApiKey] = env->GetMethodID(g_class.get(), "getApiKey", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetApiKey]) return false;
-    g_method_ids[kGetApplicationId] = env->GetMethodID(g_class.get(), "getApplicationId", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetApplicationId]) return false;
-    g_method_ids[kGetDatabaseUrl] = env->GetMethodID(g_class.get(), "getDatabaseUrl", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetDatabaseUrl]) return false;
-    g_method_ids[kGetGcmSenderId] = env->GetMethodID(g_class.get(), "getGcmSenderId", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetGcmSenderId]) return false;
-    g_method_ids[kGetStorageBucket] = env->GetMethodID(g_class.get(), "getStorageBucket", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetStorageBucket]) return false;
-    g_method_ids[kGetProjectId] = env->GetMethodID(g_class.get(), "getProjectId", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetProjectId]) return false;
-    g_method_ids[kGetGaTrackingId] = env->GetMethodID(g_class.get(), "getGaTrackingId", "()Ljava/lang/String;");
-    ::firebase::jni::CheckAndClearException(env);
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
+JNI_METHOD_LOOKUP_DECLARATION(options, FIREBASE_OPTIONS_METHODS,
+                              FIELD_LOOKUP_NONE,
+                              "com/google/firebase/FirebaseOptions")
 
 // clang-format off
 #define GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS(X)                             \
   X(GetInstance, "getInstance",                                                \
     "()Lcom/google/firebase/platforminfo/GlobalLibraryVersionRegistrar;",      \
-    firebase::jni::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic)                                          \
   X(RegisterVersion, "registerVersion",                                        \
     "(Ljava/lang/String;Ljava/lang/String;)V",                                 \
     jni::kMethodTypeInstance)
 // clang-format on
 
-namespace version_registrar {
-  enum Method {
-    kGetInstance,
-    kRegisterVersion,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace version_registrar {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/platforminfo/GlobalLibraryVersionRegistrar"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "()Lcom/google/firebase/platforminfo/GlobalLibraryVersionRegistrar;");
-    if (!g_method_ids[kGetInstance]) return false;
-    g_method_ids[kRegisterVersion] = env->GetMethodID(g_class.get(), "registerVersion", "(Ljava/lang/String;Ljava/lang/String;)V");
-    if (!g_method_ids[kRegisterVersion]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    version_registrar, GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS,
+    FIELD_LOOKUP_NONE,
+    "com/google/firebase/platforminfo/GlobalLibraryVersionRegistrar")
 
 namespace {
 
@@ -434,7 +194,7 @@ void ReleaseClassesLocked(JNIEnv* env) {
       google_play_services::Terminate(env);
       g_initialized_google_play_services = false;
     }
-    
+    util::Terminate(env);
   }
 }
 
@@ -450,7 +210,7 @@ bool CacheMethods(JNIEnv* env, jobject activity) {
   bool initialize = g_methods_cached_count == 0;
   g_methods_cached_count++;
   if (initialize) {
-    if (!true) {
+    if (!util::Initialize(env, activity)) {
       g_methods_cached_count = 0;
       return false;
     }
@@ -756,9 +516,13 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options, JNIEnv* jni_env,
 
     if (platform_options) {
       // Get the package name.
-      jobject package_name = jni_env->CallObjectMethod(
-          activity, jni_env->GetMethodID(jni_env->GetObjectClass(activity), "getPackageName", "()Ljava/lang/String;"));
-      if (!jni::CheckAndClearException(jni_env)) {
+      jmethodID get_package_name_id =
+          util::activity::GetMethodId(util::activity::kGetPackageName);
+      jobject package_name =
+          get_package_name_id
+              ? jni_env->CallObjectMethod(activity, get_package_name_id)
+              : nullptr;
+      if (!jni::CheckAndClearException(jni_env) && get_package_name_id) {
         // Populate the C++ structure.
         result_options = app_options ? app_options : new AppOptions();
         PlatformOptionsToAppOptions(jni_env, platform_options, result_options);
@@ -857,10 +621,10 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
       app->options_ = options;
       GetAppOptionsFromPlatformApp(jni_env, platform_app, &app->options_);
       if (app->options_.package_name()[0] == '\0' &&
-          jni_env->GetMethodID(jni_env->GetObjectClass(activity), "getPackageName", "()Ljava/lang/String;")) {
+          util::activity::GetMethodId(util::activity::kGetPackageName)) {
         jobject package_name = jni_env->CallObjectMethod(
             activity,
-            jni_env->GetMethodID(jni_env->GetObjectClass(activity), "getPackageName", "()Ljava/lang/String;"));
+            util::activity::GetMethodId(util::activity::kGetPackageName));
         if (!jni::CheckAndClearException(jni_env)) {
           app->options_.set_package_name(
               jni::JStringToString(jni_env, package_name).c_str());

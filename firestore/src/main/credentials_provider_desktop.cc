@@ -42,14 +42,21 @@ std::mutex& ListenerMutex() {
   return *mutex;
 }
 
-std::unordered_map<uint64_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>& ValidContexts() {
-  static auto* contexts = new std::unordered_map<uint64_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>();
+std::unordered_map<uintptr_t,
+                   std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>&
+ValidContexts() {
+  static auto* contexts = new std::unordered_map<
+      uintptr_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>();
   return *contexts;
 }
 
-uint64_t GetNextListenerId() {
-  static std::atomic<uint64_t> next_id{1};
-  return next_id.fetch_add(1);
+uintptr_t GetNextListenerId() {
+  static std::atomic<uintptr_t> next_id{1};
+  uintptr_t id = next_id.fetch_add(1);
+  if (id == 0) {
+    id = next_id.fetch_add(1);
+  }
+  return id;
 }
 
 
@@ -176,47 +183,44 @@ FirebaseCppCredentialsProvider::FirebaseCppCredentialsProvider(App& app)
     : contents_(std::make_shared<Contents>(app)) {}
 
 FirebaseCppCredentialsProvider::~FirebaseCppCredentialsProvider() {
+  {
+    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
+    contents_->auth_listener = {};
+  }
   RemoveAuthStateListener();
 }
 
 void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<User> listener) {
-  bool should_remove = false;
-  bool should_add = false;
-  CredentialChangeListener<User> old_listener;
-  User current_user;
-
   if (!listener) {
     {
       std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
       SIMPLE_HARD_ASSERT(contents_->auth_listener,
                          "Change listener removed without being set!");
-      old_listener = std::move(contents_->auth_listener);
       contents_->auth_listener = {};
-      should_remove = true;
     }
-  } else {
-    current_user = GetCurrentUser(contents_->app);
-    {
-      std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-      SIMPLE_HARD_ASSERT(!contents_->auth_listener, "Set change listener twice!");
-      contents_->auth_listener = listener;
-      should_add = true;
-    }
-  }
-
-  if (should_remove) {
     RemoveAuthStateListener();
+    return;
   }
 
-  if (should_add) {
-    listener(current_user);
-    AddAuthStateListener();
+  {
+    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
+    SIMPLE_HARD_ASSERT(!contents_->auth_listener, "Set change listener twice!");
+    contents_->auth_listener = listener;
+    listener(GetCurrentUser(contents_->app));
   }
+
+  // Note: make sure to only register the Auth listener _after_ calling
+  // `Auth::current_user` for the first time. The reason is that upon the first
+  // call only, `Auth::current_user` might block as it would asynchronously
+  // notify Auth listeners; getting the Firestore listener notified while
+  // `Auth::current_user` is pending can lead to a deadlock.
+  AddAuthStateListener();
 }
 
 void FirebaseCppCredentialsProvider::GetToken(
     TokenListener<AuthToken> listener) {
+  std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
   RequestToken(std::move(listener));
 }
 
@@ -226,35 +230,49 @@ void FirebaseCppCredentialsProvider::InvalidateToken() {
 }
 
 void FirebaseCppCredentialsProvider::AddAuthStateListener() {
-  App& app = contents_->app;
-  auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
-  uint64_t listener_id = GetNextListenerId();
-  auth_listener_context_ = reinterpret_cast<std::weak_ptr<Contents>*>(static_cast<uintptr_t>(listener_id));
+  App* app = nullptr;
+  void* context = nullptr;
   {
-    std::lock_guard<std::mutex> lock(ListenerMutex());
-    ValidContexts()[listener_id] = std::weak_ptr<Contents>(contents_);
+    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
+    if (!contents_->auth_listener || auth_listener_context_) return;
+    app = &contents_->app;
+    uintptr_t listener_id = GetNextListenerId();
+    context = reinterpret_cast<void*>(listener_id);
+    auth_listener_context_ = context;
+    {
+      std::lock_guard<std::mutex> listener_lock(ListenerMutex());
+      ValidContexts()[listener_id] = std::weak_ptr<Contents>(contents_);
+    }
   }
-  app.function_registry()->CallFunction(
-      ::firebase::internal::FnAuthAddAuthStateListener, &app, callback, auth_listener_context_);
+  auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
+  app->function_registry()->CallFunction(
+      ::firebase::internal::FnAuthAddAuthStateListener, app, callback,
+      context);
 }
 
 void FirebaseCppCredentialsProvider::RemoveAuthStateListener() {
-  if (!auth_listener_context_) return;
-  App& app = contents_->app;
-  auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
-  uint64_t listener_id = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(auth_listener_context_));
+  App* app = nullptr;
+  void* context = nullptr;
   {
-    std::lock_guard<std::mutex> lock(ListenerMutex());
-    ValidContexts().erase(listener_id);
+    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
+    if (!auth_listener_context_) return;
+    app = &contents_->app;
+    context = auth_listener_context_;
+    auth_listener_context_ = nullptr;
+    uintptr_t listener_id = reinterpret_cast<uintptr_t>(context);
+    {
+      std::lock_guard<std::mutex> listener_lock(ListenerMutex());
+      ValidContexts().erase(listener_id);
+    }
   }
-  app.function_registry()->CallFunction(
-      ::firebase::internal::FnAuthRemoveAuthStateListener, &app, callback,
-      auth_listener_context_);
-  auth_listener_context_ = nullptr;
+  auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
+  app->function_registry()->CallFunction(
+      ::firebase::internal::FnAuthRemoveAuthStateListener, app, callback,
+      context);
 }
 
 void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
-  uint64_t listener_id = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(context));
+  uintptr_t listener_id = reinterpret_cast<uintptr_t>(context);
   std::shared_ptr<Contents> contents;
   {
     std::lock_guard<std::mutex> lock(ListenerMutex());
@@ -262,20 +280,22 @@ void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
     if (it == ValidContexts().end()) return;
     contents = it->second.lock();
   }
-  
+
   if (!contents) return;
 
-  User current_user = GetCurrentUser(contents->app);
-  CredentialChangeListener<User> listener;
-
+  std::lock_guard<std::recursive_mutex> lock(contents->mutex);
   {
-    std::lock_guard<std::recursive_mutex> lock(contents->mutex);
-    ++(contents->token_generation);
-    listener = contents->auth_listener;
+    std::lock_guard<std::mutex> listener_lock(ListenerMutex());
+    if (ValidContexts().find(listener_id) == ValidContexts().end()) return;
   }
 
+  // The currently signed-in user may have changed, increase the token
+  // generation to reflect that.
+  ++(contents->token_generation);
+
+  CredentialChangeListener<User> listener = contents->auth_listener;
   if (listener) {
-    listener(std::move(current_user));
+    listener(GetCurrentUser(contents->app));
   }
 }
 
@@ -283,20 +303,19 @@ void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
 
 void FirebaseCppCredentialsProvider::RequestToken(
     TokenListener<AuthToken> listener) {
-  bool force_refresh;
-  int expected_generation;
-  {
-    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-    force_refresh = force_refresh_;
-    force_refresh_ = false;
-    expected_generation = contents_->token_generation;
-  }
+  std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
 
   if (!IsSignedIn()) {
     listener(AuthToken::Unauthenticated());
     return;
   }
 
+  // Take note of the current value of `token_generation` so that this request
+  // can fail if there is a token change while the request is outstanding.
+  int expected_generation = contents_->token_generation;
+
+  bool force_refresh = force_refresh_;
+  force_refresh_ = false;
   auto future = GetAuthTokenAsync(contents_->app, force_refresh);
   if (future.status() == FutureStatus::kFutureStatusInvalid) {
     listener(AuthToken::Unauthenticated());
@@ -305,6 +324,11 @@ void FirebaseCppCredentialsProvider::RequestToken(
 
   std::weak_ptr<Contents> weak_contents(contents_);
 
+  // Note: if the future happens to be already completed (either because the
+  // token was readily available, or theoretically because the Auth token
+  // request finished so quickly), this completion will be invoked
+  // synchronously. Because the mutex is recursive, it's okay to lock it again
+  // in that case.
   future.OnCompletion(
       [listener = std::move(listener), expected_generation,
        weak_contents](const Future<std::string>& future_token) mutable {
@@ -317,12 +341,8 @@ void FirebaseCppCredentialsProvider::RequestToken(
           return;
         }
 
-        int current_generation;
-        {
-          std::lock_guard<std::recursive_mutex> lock(contents->mutex);
-          current_generation = contents->token_generation;
-        }
-        OnToken(future_token, contents->app, current_generation,
+        std::lock_guard<std::recursive_mutex> lock(contents->mutex);
+        OnToken(future_token, contents->app, contents->token_generation,
                 listener, expected_generation);
       });
 }

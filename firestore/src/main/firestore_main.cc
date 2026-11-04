@@ -128,10 +128,10 @@ FirestoreInternal::FirestoreInternal(
 }
 
 FirestoreInternal::~FirestoreInternal() {
-  *is_alive_ = false;
+  is_alive_->store(false);
   ClearListeners();
-  firestore_core_->Dispose();
   transaction_executor_->Dispose();
+  firestore_core_->Dispose();
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
@@ -170,6 +170,7 @@ Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
     auto message = std::string("Invalid collection ID (") + collection_id +
                    "). Collection IDs must not contain / in them.";
     SimpleThrowInvalidArgument(message);
+    return Query{};
   }
 
   core::Query core_query = firestore_core_->GetCollectionGroup(collection_id);
@@ -220,6 +221,7 @@ Future<void> FirestoreInternal::RunTransaction(
     int32_t max_attempts) {
   if (max_attempts <= 0) {
     SimpleThrowInvalidArgument("Max attempts must be at least 1.");
+    return Future<void>{};
   }
 
   auto executor = transaction_executor_;
@@ -230,10 +232,14 @@ Future<void> FirestoreInternal::RunTransaction(
       [is_alive = is_alive_, weak_core = std::weak_ptr<api::Firestore>(firestore_core_), firestore_public = firestore_public_, update = std::move(update), executor = std::move(executor)](
           std::shared_ptr<core::Transaction> core_transaction,
           core::TransactionResultCallback eventual_result_callback) {
+        if (!is_alive->load()) {
+          eventual_result_callback(Status{Error::kErrorAborted, "Firestore instance has been destroyed"});
+          return;
+        }
         executor->Execute(
             [is_alive, weak_core, firestore_public, update, core_transaction = std::move(core_transaction),
              eventual_result_callback = std::move(eventual_result_callback)] {
-              if (!*is_alive) {
+              if (!is_alive->load()) {
                 eventual_result_callback(Status{Error::kErrorAborted, "Firestore instance has been destroyed"});
                 return;
               }
@@ -432,7 +438,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe(
-      [weak_task = std::weak_ptr<api::LoadBundleTask>(task), promise, progress_callback = std::move(progress_callback)](
+      [task, promise, progress_callback = std::move(progress_callback)](
           const api::LoadBundleTaskProgress& progress) mutable {
         LoadBundleTaskProgress api_progress = ToApiProgress(progress);
         if (progress_callback) {
@@ -440,13 +446,15 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
         }
         if (progress.state() == api::LoadBundleTaskState::kSuccess) {
           promise.SetValue(api_progress);
-          if (auto t = weak_task.lock()) {
-            t->RemoveAllObservers();
+          if (task) {
+            auto keep_alive = std::move(task);
+            keep_alive->RemoveAllObservers();
           }
         } else if (progress.state() == api::LoadBundleTaskState::kError) {
           promise.SetError(progress.error_status());
-          if (auto t = weak_task.lock()) {
-            t->RemoveAllObservers();
+          if (task) {
+            auto keep_alive = std::move(task);
+            keep_alive->RemoveAllObservers();
           }
         }
       });

@@ -28,17 +28,17 @@ namespace firestore {
 namespace jni {
 namespace {
 
-Global<Class> g_clazz;
 Method<Object> kGet("get", "(I)Ljava/lang/Object;");
 Method<Object> kSet("set", "(ILjava/lang/Object;)Ljava/lang/Object;");
+jclass g_clazz = nullptr;
 
 }  // namespace
 
 void List::Initialize(Loader& loader) {
-  g_clazz = Class(loader.LoadClass("java/util/List", kGet, kSet));
+  g_clazz = loader.LoadClass("java/util/List", kGet, kSet);
 }
 
-Class List::GetClass() { return g_clazz; }
+Class List::GetClass() { return Class(g_clazz); }
 
 Local<Object> List::Get(Env& env, size_t i) const {
   FIREBASE_ASSERT(i <= static_cast<size_t>(std::numeric_limits<jint>::max()));

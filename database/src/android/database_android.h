@@ -29,6 +29,7 @@
 #include "app/src/include/firebase/log.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
+#include "app/src/util_android.h"
 #include "app/src/app_android.h"
 #include "app/src/jni/env.h"
 #include "app/src/jni/ownership.h"
@@ -276,9 +277,11 @@ class DatabaseInternal {
 
  private:
   jobject UnregisterValueEventListenerLocked(const internal::QuerySpec& spec,
-                                             ValueListener* listener);
+                                             ValueListener* listener,
+                                             jobject* out_global_to_discard);
   jobject UnregisterChildEventListenerLocked(const internal::QuerySpec& spec,
-                                             ChildListener* listener);
+                                             ChildListener* listener,
+                                             jobject* out_global_to_discard);
 
   static bool Initialize(App* app);
   static void ReleaseClasses(App* app);

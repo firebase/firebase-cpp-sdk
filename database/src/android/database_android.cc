@@ -18,22 +18,24 @@
 #include <jni.h>
 
 #include "app/src/app_common.h"
+#include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
+#include "app/src/util_android.h"
 #include "app/src/app_android.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/jni/env.h"
 #include "app/src/jni/ownership.h"
+#include "database/database_resources.h"
 #include "database/src/android/data_snapshot_android.h"
 #include "database/src/android/database_reference_android.h"
 #include "database/src/android/disconnection_android.h"
 #include "database/src/android/mutable_data_android.h"
 #include "database/src/android/query_android.h"
-#include "app/src/app_android.h"
-#include "app/src/jni/env.h"
 #include "database/src/include/firebase/database/transaction.h"
 
 namespace firebase {
@@ -50,44 +52,9 @@ const char kApiIdentifier[] = "Database";
     "(Ljava/lang/String;)Lcom/google/firebase/database/Logger$Level;",  \
     jni::kMethodTypeStatic)
 // clang-format on
-namespace logger_level {
-
-enum Method {
-  kValueOf,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/Logger$Level"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kValueOf] = env->GetStaticMethodID(g_class.get(), "valueOf", "(Ljava/lang/String;)Lcom/google/firebase/database/Logger$Level;");
-  if (!g_method_ids[kValueOf]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace logger_level
-
-
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    logger_level, LOGGER_LEVEL_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/database/Logger$Level")
 
 // clang-format off
 #define FIREBASE_DATABASE_METHODS(X)                                    \
@@ -118,76 +85,9 @@ void ReleaseClass(JNIEnv* env) {
     jni::kMethodTypeStatic)
 // clang-format on
 
-namespace firebase_database {
-
-enum Method {
-  kGetInstance,
-  kGetInstanceFromUrl,
-  kGetApp,
-  kGetRootReference,
-  kGetReferenceFromPath,
-  kGetReferenceFromUrl,
-  kPurgeOutstandingWrites,
-  kGoOnline,
-  kGoOffline,
-  kSetLogLevel,
-  kSetPersistenceEnabled,
-  kGetSdkVersion,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/FirebaseDatabase"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/database/FirebaseDatabase;");
-  if (!g_method_ids[kGetInstance]) return false;
-  g_method_ids[kGetInstanceFromUrl] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)Lcom/google/firebase/database/FirebaseDatabase;");
-  if (!g_method_ids[kGetInstanceFromUrl]) return false;
-  g_method_ids[kGetApp] = env->GetMethodID(g_class.get(), "getApp", "()Lcom/google/firebase/FirebaseApp;");
-  if (!g_method_ids[kGetApp]) return false;
-  g_method_ids[kGetRootReference] = env->GetMethodID(g_class.get(), "getReference", "()Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kGetRootReference]) return false;
-  g_method_ids[kGetReferenceFromPath] = env->GetMethodID(g_class.get(), "getReference", "(Ljava/lang/String;)Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kGetReferenceFromPath]) return false;
-  g_method_ids[kGetReferenceFromUrl] = env->GetMethodID(g_class.get(), "getReferenceFromUrl", "(Ljava/lang/String;)Lcom/google/firebase/database/DatabaseReference;");
-  if (!g_method_ids[kGetReferenceFromUrl]) return false;
-  g_method_ids[kPurgeOutstandingWrites] = env->GetMethodID(g_class.get(), "purgeOutstandingWrites", "()V");
-  if (!g_method_ids[kPurgeOutstandingWrites]) return false;
-  g_method_ids[kGoOnline] = env->GetMethodID(g_class.get(), "goOnline", "()V");
-  if (!g_method_ids[kGoOnline]) return false;
-  g_method_ids[kGoOffline] = env->GetMethodID(g_class.get(), "goOffline", "()V");
-  if (!g_method_ids[kGoOffline]) return false;
-  g_method_ids[kSetLogLevel] = env->GetMethodID(g_class.get(), "setLogLevel", "(Lcom/google/firebase/database/Logger$Level;)V");
-  if (!g_method_ids[kSetLogLevel]) return false;
-  g_method_ids[kSetPersistenceEnabled] = env->GetMethodID(g_class.get(), "setPersistenceEnabled", "(Z)V");
-  if (!g_method_ids[kSetPersistenceEnabled]) return false;
-  g_method_ids[kGetSdkVersion] = env->GetStaticMethodID(g_class.get(), "getSdkVersion", "()Ljava/lang/String;");
-  if (!g_method_ids[kGetSdkVersion]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace firebase_database
-
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    firebase_database, FIREBASE_DATABASE_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/database/FirebaseDatabase")
 
 // clang-format off
 #define DATABASE_ERROR_METHODS(X)                                              \
@@ -199,277 +99,59 @@ void ReleaseClass(JNIEnv* env) {
 // clang-format on
 
 // clang-format off
-#define DATABASE_ERROR_FIELDS(X)                                               \
-    X(Disconnected, "DISCONNECTED", "I", jni::kFieldTypeStatic)              \
-    X(ExpiredToken, "EXPIRED_TOKEN", "I", jni::kFieldTypeStatic)             \
-    X(InvalidToken, "INVALID_TOKEN", "I", jni::kFieldTypeStatic)             \
-    X(MaxRetries, "MAX_RETRIES", "I", jni::kFieldTypeStatic)                 \
-    X(NetworkError, "NETWORK_ERROR", "I", jni::kFieldTypeStatic)             \
-    X(OperationFailed, "OPERATION_FAILED", "I", jni::kFieldTypeStatic)       \
-    X(OverriddenBySet, "OVERRIDDEN_BY_SET", "I", jni::kFieldTypeStatic)      \
-    X(PermissionDenied, "PERMISSION_DENIED", "I", jni::kFieldTypeStatic)     \
-    X(Unavailable, "UNAVAILABLE", "I", jni::kFieldTypeStatic)                \
-    X(UnknownError, "UNKNOWN_ERROR", "I", jni::kFieldTypeStatic)             \
-    X(UserCodeException, "USER_CODE_EXCEPTION", "I", jni::kFieldTypeStatic)  \
+#define DATABASE_ERROR_FIELDS(X)                                              \
+    X(Disconnected, "DISCONNECTED", "I", jni::kFieldTypeStatic),              \
+    X(ExpiredToken, "EXPIRED_TOKEN", "I", jni::kFieldTypeStatic),             \
+    X(InvalidToken, "INVALID_TOKEN", "I", jni::kFieldTypeStatic),             \
+    X(MaxRetries, "MAX_RETRIES", "I", jni::kFieldTypeStatic),                 \
+    X(NetworkError, "NETWORK_ERROR", "I", jni::kFieldTypeStatic),             \
+    X(OperationFailed, "OPERATION_FAILED", "I", jni::kFieldTypeStatic),       \
+    X(OverriddenBySet, "OVERRIDDEN_BY_SET", "I", jni::kFieldTypeStatic),      \
+    X(PermissionDenied, "PERMISSION_DENIED", "I", jni::kFieldTypeStatic),     \
+    X(Unavailable, "UNAVAILABLE", "I", jni::kFieldTypeStatic),                \
+    X(UnknownError, "UNKNOWN_ERROR", "I", jni::kFieldTypeStatic),             \
+    X(UserCodeException, "USER_CODE_EXCEPTION", "I", jni::kFieldTypeStatic),  \
     X(WriteCanceled, "WRITE_CANCELED", "I", jni::kFieldTypeStatic)
 // clang-format on
 
-namespace database_error {
-
-enum Method {
-  kGetCode,
-  kGetMessage,
-  kFromException,
-  kMethodCount
-};
-
-enum Field {
-  kDisconnected,
-  kExpiredToken,
-  kInvalidToken,
-  kMaxRetries,
-  kNetworkError,
-  kOperationFailed,
-  kOverriddenBySet,
-  kPermissionDenied,
-  kUnavailable,
-  kUnknownError,
-  kUserCodeException,
-  kWriteCanceled,
-  kFieldCount
-};
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-jfieldID g_field_ids[kFieldCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-jfieldID GetFieldId(Field field) {
-  return g_field_ids[field];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/DatabaseError"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kGetCode] = env->GetMethodID(g_class.get(), "getCode", "()I");
-  if (!g_method_ids[kGetCode]) return false;
-  g_method_ids[kGetMessage] = env->GetMethodID(g_class.get(), "getMessage", "()Ljava/lang/String;");
-  if (!g_method_ids[kGetMessage]) return false;
-  g_method_ids[kFromException] = env->GetStaticMethodID(g_class.get(), "fromException", "(Ljava/lang/Throwable;)Lcom/google/firebase/database/DatabaseError;");
-  if (!g_method_ids[kFromException]) return false;
-  g_field_ids[kDisconnected] = env->GetStaticFieldID(g_class.get(), "DISCONNECTED", "I");
-  if (!g_field_ids[kDisconnected]) return false;
-  g_field_ids[kExpiredToken] = env->GetStaticFieldID(g_class.get(), "EXPIRED_TOKEN", "I");
-  if (!g_field_ids[kExpiredToken]) return false;
-  g_field_ids[kInvalidToken] = env->GetStaticFieldID(g_class.get(), "INVALID_TOKEN", "I");
-  if (!g_field_ids[kInvalidToken]) return false;
-  g_field_ids[kMaxRetries] = env->GetStaticFieldID(g_class.get(), "MAX_RETRIES", "I");
-  if (!g_field_ids[kMaxRetries]) return false;
-  g_field_ids[kNetworkError] = env->GetStaticFieldID(g_class.get(), "NETWORK_ERROR", "I");
-  if (!g_field_ids[kNetworkError]) return false;
-  g_field_ids[kOperationFailed] = env->GetStaticFieldID(g_class.get(), "OPERATION_FAILED", "I");
-  if (!g_field_ids[kOperationFailed]) return false;
-  g_field_ids[kOverriddenBySet] = env->GetStaticFieldID(g_class.get(), "OVERRIDDEN_BY_SET", "I");
-  if (!g_field_ids[kOverriddenBySet]) return false;
-  g_field_ids[kPermissionDenied] = env->GetStaticFieldID(g_class.get(), "PERMISSION_DENIED", "I");
-  if (!g_field_ids[kPermissionDenied]) return false;
-  g_field_ids[kUnavailable] = env->GetStaticFieldID(g_class.get(), "UNAVAILABLE", "I");
-  if (!g_field_ids[kUnavailable]) return false;
-  g_field_ids[kUnknownError] = env->GetStaticFieldID(g_class.get(), "UNKNOWN_ERROR", "I");
-  if (!g_field_ids[kUnknownError]) return false;
-  g_field_ids[kUserCodeException] = env->GetStaticFieldID(g_class.get(), "USER_CODE_EXCEPTION", "I");
-  if (!g_field_ids[kUserCodeException]) return false;
-  g_field_ids[kWriteCanceled] = env->GetStaticFieldID(g_class.get(), "WRITE_CANCELED", "I");
-  if (!g_field_ids[kWriteCanceled]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace database_error
-
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    database_error, DATABASE_ERROR_METHODS, DATABASE_ERROR_FIELDS,
+    PROGUARD_KEEP_CLASS "com/google/firebase/database/DatabaseError")
 
 // clang-format off
 #define CPP_TRANSACTION_HANDLER_METHODS(X)                                    \
     X(Constructor, "<init>", "(JJ)V"),                                        \
     X(DiscardPointers, "discardPointers", "()J")
 // clang-format on
-namespace cpp_transaction_handler {
-
-enum Method {
-  kConstructor,
-  kDiscardPointers,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/internal/cpp/CppTransactionHandler"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
-  if (!g_method_ids[kConstructor]) return false;
-  g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
-  if (!g_method_ids[kDiscardPointers]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace cpp_transaction_handler
-
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    cpp_transaction_handler, CPP_TRANSACTION_HANDLER_METHODS, FIELD_LOOKUP_NONE,
+    "com/google/firebase/database/internal/cpp/CppTransactionHandler")
 
 // clang-format off
 #define CPP_EVENT_LISTENER_METHODS(X)                                    \
     X(DiscardPointers, "discardPointers", "()V")
 // clang-format on
-namespace cpp_event_listener {
-
-enum Method {
-  kDiscardPointers,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/internal/cpp/CppEventListener"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
-  if (!g_method_ids[kDiscardPointers]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace cpp_event_listener
-
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    cpp_event_listener, CPP_EVENT_LISTENER_METHODS, FIELD_LOOKUP_NONE,
+    "com/google/firebase/database/internal/cpp/CppEventListener")
 
 // clang-format off
 #define CPP_VALUE_EVENT_LISTENER_METHODS(X)                                    \
     X(Constructor, "<init>", "(JJ)V")
 // clang-format on
-namespace cpp_value_event_listener {
-
-enum Method {
-  kConstructor,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/internal/cpp/CppValueEventListener"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
-  if (!g_method_ids[kConstructor]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace cpp_value_event_listener
-
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    cpp_value_event_listener, CPP_VALUE_EVENT_LISTENER_METHODS,
+    FIELD_LOOKUP_NONE,
+    "com/google/firebase/database/internal/cpp/CppValueEventListener")
 
 // clang-format off
 #define CPP_CHILD_EVENT_LISTENER_METHODS(X)                                    \
     X(Constructor, "<init>", "(JJ)V")
 // clang-format on
-namespace cpp_child_event_listener {
-
-enum Method {
-  kConstructor,
-  kMethodCount
-};
-
-enum Field { kFieldCount = 0 };
-
-::firebase::jni::Global<jclass> g_class;
-jmethodID g_method_ids[kMethodCount];
-
-jclass GetClass() { return g_class.get(); }
-jmethodID GetMethodId(Method method) {
-  return g_method_ids[method];
-}
-
-bool CacheMethodIds(JNIEnv* env, jobject activity) {
-  if (g_class) return true;
-  ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/database/internal/cpp/CppChildEventListener"));
-  if (!local_clazz) {
-    ::firebase::jni::CheckAndClearException(env);
-    return false;
-  }
-  g_class = local_clazz;
-  g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
-  if (!g_method_ids[kConstructor]) return false;
-  return true;
-}
-
-void ReleaseClass(JNIEnv* env) {
-  g_class.reset();
-}
-
-}  // namespace cpp_child_event_listener
+JNI_METHOD_LOOKUP_DECLARATION(
+    cpp_child_event_listener, CPP_CHILD_EVENT_LISTENER_METHODS,
+    FIELD_LOOKUP_NONE,
+    "com/google/firebase/database/internal/cpp/CppChildEventListener")
 
 
 
@@ -575,6 +257,7 @@ bool DatabaseInternal::Initialize(App* app) {
     if (!(firebase_database::CacheMethodIds(env, activity) &&
           logger_level::CacheMethodIds(env, activity) &&
           database_error::CacheMethodIds(env, activity) &&
+          database_error::CacheFieldIds(env, activity) &&
           // Call Initialize on all other RTDB internal classes.
           DatabaseReferenceInternal::Initialize(app) &&
           QueryInternal::Initialize(app) &&
@@ -646,19 +329,36 @@ bool DatabaseInternal::InitializeEmbeddedClasses(App* app) {
 
   JNIEnv* env = app->GetJNIEnv();
   // Terminate() handles tearing this down.
-  if (!(cpp_transaction_handler::CacheMethodIds(env, app->activity()) &&
-        env->RegisterNatives(
-            cpp_transaction_handler::GetClass(), kCppTransactionHandler,
-            FIREBASE_ARRAYSIZE(kCppTransactionHandler)) == 0 &&
+  // Load embedded classes.
+  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+      util::CacheEmbeddedFiles(
+          env, app->activity(),
+          firebase::internal::EmbeddedFile::ToVector(
+              firebase_database_resources::database_resources_filename,
+              firebase_database_resources::database_resources_data,
+              firebase_database_resources::database_resources_size));
+  if (!(cpp_transaction_handler::CacheClassFromFiles(env, app->activity(),
+                                                     &embedded_files) &&
+        cpp_transaction_handler::CacheMethodIds(env, app->activity()) &&
+        cpp_transaction_handler::RegisterNatives(
+            env, kCppTransactionHandler,
+            FIREBASE_ARRAYSIZE(kCppTransactionHandler)) &&
+        cpp_event_listener::CacheClassFromFiles(env, app->activity(),
+                                                &embedded_files) &&
         cpp_event_listener::CacheMethodIds(env, app->activity()) &&
+        cpp_value_event_listener::CacheClassFromFiles(env, app->activity(),
+                                                      &embedded_files) &&
         cpp_value_event_listener::CacheMethodIds(env, app->activity()) &&
-        env->RegisterNatives(
-            cpp_value_event_listener::GetClass(), kCppValueEventListenerNatives,
-            FIREBASE_ARRAYSIZE(kCppValueEventListenerNatives)) == 0 &&
+        cpp_value_event_listener::RegisterNatives(
+            env, kCppValueEventListenerNatives,
+            FIREBASE_ARRAYSIZE(kCppValueEventListenerNatives)) &&
+        cpp_child_event_listener::CacheClassFromFiles(env, app->activity(),
+                                                      &embedded_files) &&
         cpp_child_event_listener::CacheMethodIds(env, app->activity()) &&
-        env->RegisterNatives(
-            cpp_child_event_listener::GetClass(), kCppChildEventListenerNatives,
-            FIREBASE_ARRAYSIZE(kCppChildEventListenerNatives)) == 0)) {
+        cpp_child_event_listener::RegisterNatives(
+            env, kCppChildEventListenerNatives,
+            FIREBASE_ARRAYSIZE(kCppChildEventListenerNatives)))) {
+    ::firebase::jni::CheckAndClearException(env);
     return false;
   }
   return true;
@@ -702,43 +402,46 @@ DatabaseInternal::~DatabaseInternal() {
 
   JNIEnv* env = app_->GetJNIEnv();
   util::CancelCallbacks(env, jni_task_id_.c_str());
+  std::map<ValueListener*, jobject> value_listeners;
+  std::map<ChildListener*, jobject> child_listeners;
+  std::set<jobject> single_value_listeners;
   {
-    // If there are any pending listeners, delete their pointers.
+    // Move pending listeners out under lock before invoking JNI discardPointers
+    // to avoid lock-order inversion with Java CppEventListener.lockObject.
     MutexLock lock(listener_mutex_);
-    for (auto i = java_value_listener_lookup_.begin();
-         i != java_value_listener_lookup_.end(); ++i) {
-      ClearJavaEventListener(i->second);
-      env->DeleteGlobalRef(i->second);
-    }
-    java_value_listener_lookup_.clear();
-    for (auto i = java_child_listener_lookup_.begin();
-         i != java_child_listener_lookup_.end(); ++i) {
-      ClearJavaEventListener(i->second);
-      env->DeleteGlobalRef(i->second);
-    }
-    java_child_listener_lookup_.clear();
-    for (auto i = java_single_value_listeners_.begin();
-         i != java_single_value_listeners_.end(); ++i) {
-      ClearJavaEventListener(*i);
-      env->DeleteGlobalRef(*i);
-    }
-    java_single_value_listeners_.clear();
+    value_listeners.swap(java_value_listener_lookup_);
+    child_listeners.swap(java_child_listener_lookup_);
+    single_value_listeners.swap(java_single_value_listeners_);
     single_value_listeners_.clear();
   }
+  for (auto i = value_listeners.begin(); i != value_listeners.end(); ++i) {
+    ClearJavaEventListener(i->second);
+    env->DeleteGlobalRef(i->second);
+  }
+  for (auto i = child_listeners.begin(); i != child_listeners.end(); ++i) {
+    ClearJavaEventListener(i->second);
+    env->DeleteGlobalRef(i->second);
+  }
+  for (auto i = single_value_listeners.begin();
+       i != single_value_listeners.end(); ++i) {
+    ClearJavaEventListener(*i);
+    env->DeleteGlobalRef(*i);
+  }
+  std::set<jobject> transaction_handlers;
   {
     MutexLock lock(transaction_mutex_);
-    for (auto i = java_transaction_handlers_.begin();
-         i != java_transaction_handlers_.end(); ++i) {
-      jlong transaction_ptr = env->CallLongMethod(
-          *i, cpp_transaction_handler::GetMethodId(
-                  cpp_transaction_handler::kDiscardPointers));
-      ::firebase::jni::CheckAndClearException(env);
-      TransactionData* data =
-          reinterpret_cast<TransactionData*>(transaction_ptr);
-      delete data;
-      env->DeleteGlobalRef(*i);
-    }
-    java_transaction_handlers_.clear();
+    transaction_handlers.swap(java_transaction_handlers_);
+  }
+  for (auto i = transaction_handlers.begin(); i != transaction_handlers.end();
+       ++i) {
+    jlong transaction_ptr = env->CallLongMethod(
+        *i, cpp_transaction_handler::GetMethodId(
+                cpp_transaction_handler::kDiscardPointers));
+    ::firebase::jni::CheckAndClearException(env);
+    TransactionData* data =
+        reinterpret_cast<TransactionData*>(transaction_ptr);
+    delete data;
+    env->DeleteGlobalRef(*i);
   }
 
   env->DeleteGlobalRef(obj_);
@@ -920,10 +623,11 @@ Error DatabaseInternal::ErrorFromJavaDatabaseError(
   if (error_message != nullptr) {
     jobject message = env->CallObjectMethod(
         error, database_error::GetMethodId(database_error::kGetMessage));
-    if (::firebase::jni::CheckAndClearException(env)) {
-      if (message != nullptr) env->DeleteLocalRef(message);
-    } else if (message != nullptr) {
+    if (!::firebase::jni::CheckAndClearException(env) && message != nullptr) {
       *error_message = ::firebase::jni::JStringToString(env, message);
+    }
+    if (message != nullptr) {
+      env->DeleteLocalRef(message);
     }
   }
   jint java_error_code = env->CallIntMethod(
@@ -1006,7 +710,9 @@ jobject DatabaseInternal::RegisterValueEventListener(
 }
 
 jobject DatabaseInternal::UnregisterValueEventListenerLocked(
-    const internal::QuerySpec& spec, ValueListener* listener) {
+    const internal::QuerySpec& spec, ValueListener* listener,
+    jobject* out_global_to_discard) {
+  if (out_global_to_discard != nullptr) *out_global_to_discard = nullptr;
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = java_value_listener_lookup_.find(listener);
     if (found != java_value_listener_lookup_.end()) {
@@ -1017,9 +723,10 @@ jobject DatabaseInternal::UnregisterValueEventListenerLocked(
       if (!value_listeners_by_query_.Exists(listener)) {
         // No longer registered to any queries, let's remove this
         // EventListener object.
-        ClearJavaEventListener(java_listener);
         java_value_listener_lookup_.erase(found);
-        env->DeleteGlobalRef(java_listener_global);
+        if (out_global_to_discard != nullptr) {
+          *out_global_to_discard = java_listener_global;
+        }
       }
       return java_listener;
     }
@@ -1029,20 +736,45 @@ jobject DatabaseInternal::UnregisterValueEventListenerLocked(
 
 jobject DatabaseInternal::UnregisterValueEventListener(
     const internal::QuerySpec& spec, ValueListener* listener) {
-  MutexLock lock(listener_mutex_);
-  return UnregisterValueEventListenerLocked(spec, listener);
+  jobject global_to_discard = nullptr;
+  jobject java_listener = nullptr;
+  {
+    MutexLock lock(listener_mutex_);
+    java_listener =
+        UnregisterValueEventListenerLocked(spec, listener, &global_to_discard);
+  }
+  if (global_to_discard != nullptr) {
+    JNIEnv* env = app_->GetJNIEnv();
+    ClearJavaEventListener(global_to_discard);
+    env->DeleteGlobalRef(global_to_discard);
+  }
+  return java_listener;
 }
 
 std::vector<jobject> DatabaseInternal::UnregisterAllValueEventListeners(
     const internal::QuerySpec& spec) {
-  MutexLock lock(listener_mutex_);
   std::vector<jobject> java_listeners;
-  std::vector<ValueListener*> listeners;
-  if (value_listeners_by_query_.Get(spec, &listeners)) {
-    for (size_t i = 0; i < listeners.size(); i++) {
-      jobject java_listener =
-          UnregisterValueEventListenerLocked(spec, listeners[i]);
-      if (java_listener != nullptr) java_listeners.push_back(java_listener);
+  std::vector<jobject> globals_to_discard;
+  {
+    MutexLock lock(listener_mutex_);
+    std::vector<ValueListener*> listeners;
+    if (value_listeners_by_query_.Get(spec, &listeners)) {
+      for (size_t i = 0; i < listeners.size(); i++) {
+        jobject global_to_discard = nullptr;
+        jobject java_listener = UnregisterValueEventListenerLocked(
+            spec, listeners[i], &global_to_discard);
+        if (java_listener != nullptr) java_listeners.push_back(java_listener);
+        if (global_to_discard != nullptr) {
+          globals_to_discard.push_back(global_to_discard);
+        }
+      }
+    }
+  }
+  if (!globals_to_discard.empty()) {
+    JNIEnv* env = app_->GetJNIEnv();
+    for (size_t i = 0; i < globals_to_discard.size(); i++) {
+      ClearJavaEventListener(globals_to_discard[i]);
+      env->DeleteGlobalRef(globals_to_discard[i]);
     }
   }
   return java_listeners;
@@ -1090,7 +822,9 @@ jobject DatabaseInternal::RegisterChildEventListener(
 }
 
 jobject DatabaseInternal::UnregisterChildEventListenerLocked(
-    const internal::QuerySpec& spec, ChildListener* listener) {
+    const internal::QuerySpec& spec, ChildListener* listener,
+    jobject* out_global_to_discard) {
+  if (out_global_to_discard != nullptr) *out_global_to_discard = nullptr;
   if (child_listeners_by_query_.Unregister(spec, listener)) {
     auto found = java_child_listener_lookup_.find(listener);
     if (found != java_child_listener_lookup_.end()) {
@@ -1101,9 +835,10 @@ jobject DatabaseInternal::UnregisterChildEventListenerLocked(
       if (!child_listeners_by_query_.Exists(listener)) {
         // No longer registered to any queries, let's remove this
         // EventListener object.
-        ClearJavaEventListener(java_listener);
         java_child_listener_lookup_.erase(found);
-        env->DeleteGlobalRef(java_listener_global);
+        if (out_global_to_discard != nullptr) {
+          *out_global_to_discard = java_listener_global;
+        }
       }
       return java_listener;
     }
@@ -1113,20 +848,45 @@ jobject DatabaseInternal::UnregisterChildEventListenerLocked(
 
 jobject DatabaseInternal::UnregisterChildEventListener(
     const internal::QuerySpec& spec, ChildListener* listener) {
-  MutexLock lock(listener_mutex_);
-  return UnregisterChildEventListenerLocked(spec, listener);
+  jobject global_to_discard = nullptr;
+  jobject java_listener = nullptr;
+  {
+    MutexLock lock(listener_mutex_);
+    java_listener =
+        UnregisterChildEventListenerLocked(spec, listener, &global_to_discard);
+  }
+  if (global_to_discard != nullptr) {
+    JNIEnv* env = app_->GetJNIEnv();
+    ClearJavaEventListener(global_to_discard);
+    env->DeleteGlobalRef(global_to_discard);
+  }
+  return java_listener;
 }
 
 std::vector<jobject> DatabaseInternal::UnregisterAllChildEventListeners(
     const internal::QuerySpec& spec) {
-  MutexLock lock(listener_mutex_);
   std::vector<jobject> java_listeners;
-  std::vector<ChildListener*> listeners;
-  if (child_listeners_by_query_.Get(spec, &listeners)) {
-    for (size_t i = 0; i < listeners.size(); i++) {
-      jobject java_listener =
-          UnregisterChildEventListenerLocked(spec, listeners[i]);
-      if (java_listener != nullptr) java_listeners.push_back(java_listener);
+  std::vector<jobject> globals_to_discard;
+  {
+    MutexLock lock(listener_mutex_);
+    std::vector<ChildListener*> listeners;
+    if (child_listeners_by_query_.Get(spec, &listeners)) {
+      for (size_t i = 0; i < listeners.size(); i++) {
+        jobject global_to_discard = nullptr;
+        jobject java_listener = UnregisterChildEventListenerLocked(
+            spec, listeners[i], &global_to_discard);
+        if (java_listener != nullptr) java_listeners.push_back(java_listener);
+        if (global_to_discard != nullptr) {
+          globals_to_discard.push_back(global_to_discard);
+        }
+      }
+    }
+  }
+  if (!globals_to_discard.empty()) {
+    JNIEnv* env = app_->GetJNIEnv();
+    for (size_t i = 0; i < globals_to_discard.size(); i++) {
+      ClearJavaEventListener(globals_to_discard[i]);
+      env->DeleteGlobalRef(globals_to_discard[i]);
     }
   }
   return java_listeners;
@@ -1134,7 +894,6 @@ std::vector<jobject> DatabaseInternal::UnregisterAllChildEventListeners(
 
 jobject DatabaseInternal::CreateJavaTransactionHandler(
     TransactionData* transaction_fn) {
-  MutexLock lock(transaction_mutex_);
   JNIEnv* env = app_->GetJNIEnv();
   jobject java_handler = env->NewObject(
       cpp_transaction_handler::GetClass(),
@@ -1147,25 +906,32 @@ jobject DatabaseInternal::CreateJavaTransactionHandler(
   }
   jobject java_handler_global = env->NewGlobalRef(java_handler);
   env->DeleteLocalRef(java_handler);
-  if (::firebase::jni::CheckAndClearException(env) || java_handler_global == nullptr) {
+  if (::firebase::jni::CheckAndClearException(env) ||
+      java_handler_global == nullptr) {
     return nullptr;
   }
-  auto found = java_transaction_handlers_.find(java_handler_global);
-  if (found == java_transaction_handlers_.end()) {
+  {
+    MutexLock lock(transaction_mutex_);
     java_transaction_handlers_.insert(java_handler_global);
+    transaction_fn->java_handler = java_handler_global;
   }
-  transaction_fn->java_handler = java_handler_global;
   return java_handler_global;
 }
 
 void DatabaseInternal::DeleteJavaTransactionHandler(
     jobject java_handler_global) {
   if (java_handler_global == nullptr) return;
-  MutexLock lock(transaction_mutex_);
-  JNIEnv* env = app_->GetJNIEnv();
-  auto found = java_transaction_handlers_.find(java_handler_global);
-  if (found != java_transaction_handlers_.end()) {
-    java_transaction_handlers_.erase(found);
+  bool should_delete = false;
+  {
+    MutexLock lock(transaction_mutex_);
+    auto found = java_transaction_handlers_.find(java_handler_global);
+    if (found != java_transaction_handlers_.end()) {
+      java_transaction_handlers_.erase(found);
+      should_delete = true;
+    }
+  }
+  if (should_delete) {
+    JNIEnv* env = app_->GetJNIEnv();
     jlong transaction_ptr = env->CallLongMethod(
         java_handler_global, cpp_transaction_handler::GetMethodId(
                                  cpp_transaction_handler::kDiscardPointers));
@@ -1310,50 +1076,49 @@ jobject Callbacks::TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
 void Callbacks::TransactionHandlerOnComplete(
     JNIEnv* env, jclass clazz, jlong db_ptr, jlong transaction_data_ptr,
     jobject database_error, jboolean was_committed, jobject data_snapshot) {
+  (void)env;
+  (void)clazz;
   if (db_ptr != 0 && transaction_data_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     TransactionData* data =
         reinterpret_cast<TransactionData*>(transaction_data_ptr);
-    if (was_committed) {
-      // Transaction success!
-      jobject data_snapshot_global =
-          data_snapshot ? env->NewGlobalRef(data_snapshot) : nullptr;
-      data->future->Complete<DataSnapshot>(
-          data->handle, kErrorNone, "",
-          [db, data_snapshot_global](DataSnapshot* result) {
-            if (data_snapshot_global != nullptr) {
-              *result = DataSnapshot(
-                  new DataSnapshotInternal(db, data_snapshot_global));
-              db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
-            } else {
-              *result = DataSnapshot(nullptr);
-            }
-          });
-    } else if (database_error == nullptr) {
-      jobject data_snapshot_global =
-          data_snapshot ? env->NewGlobalRef(data_snapshot) : nullptr;
-      data->future->Complete<DataSnapshot>(
-          data->handle, kErrorTransactionAbortedByUser,
-          "The transaction was aborted, because the transaction function "
-          "returned kTransactionResultAbort.",
-          [db, data_snapshot_global](DataSnapshot* result) {
-            if (data_snapshot_global != nullptr) {
-              *result = DataSnapshot(
-                  new DataSnapshotInternal(db, data_snapshot_global));
-              db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
-            } else {
-              *result = DataSnapshot(nullptr);
-            }
-          });
-    } else {
-      // Future error.
-      std::string error_message;
-      Error error =
-          db->ErrorFromJavaDatabaseError(database_error, &error_message);
-      data->future->Complete(data->handle, error, error_message.c_str());
-    }
+    ReferenceCountedFutureImpl* future = data->future;
+    SafeFutureHandle<DataSnapshot> handle = data->handle;
+    Future<DataSnapshot> backing_future = data->backing_future;
     jobject java_handler_global = data->java_handler;
-    db->DeleteJavaTransactionHandler(java_handler_global);  // deletes `data`.
+
+    Error error = kErrorNone;
+    std::string error_message;
+    bool has_snapshot_result = false;
+    if (was_committed) {
+      has_snapshot_result = true;
+    } else if (database_error == nullptr) {
+      has_snapshot_result = true;
+      error = kErrorTransactionAbortedByUser;
+      error_message =
+          "The transaction was aborted, because the transaction function "
+          "returned kTransactionResultAbort.";
+    } else {
+      error = db->ErrorFromJavaDatabaseError(database_error, &error_message);
+    }
+
+    DataSnapshot snapshot_result(
+        (has_snapshot_result && data_snapshot != nullptr)
+            ? new DataSnapshotInternal(db, data_snapshot)
+            : nullptr);
+
+    // Delete `data` and release `java_handler_global` before completing the
+    // future so that if a user OnCompletion callback destroys `Database`,
+    // neither `data` nor `db` is accessed after `Complete` returns.
+    // `backing_future` keeps `future` and `handle` alive on the stack.
+    db->DeleteJavaTransactionHandler(java_handler_global);
+
+    if (has_snapshot_result) {
+      future->CompleteWithResult(handle, error, error_message.c_str(),
+                                 snapshot_result);
+    } else {
+      future->Complete(handle, error, error_message.c_str());
+    }
   }
 }
 

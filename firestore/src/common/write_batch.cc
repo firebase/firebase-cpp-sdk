@@ -56,7 +56,7 @@ WriteBatch::WriteBatch(const WriteBatch& value) {
 
 WriteBatch::WriteBatch(WriteBatch&& value) noexcept
     : internal_(std::exchange(value.internal_, nullptr)) {
-  CleanupFnWriteBatch::Unregister(&value, static_cast<WriteBatchInternal*>(nullptr));
+  CleanupFnWriteBatch::Unregister(&value, internal_);
   CleanupFnWriteBatch::Register(this, internal_);
 }
 
@@ -96,35 +96,35 @@ WriteBatch& WriteBatch::operator=(WriteBatch&& value) noexcept {
 WriteBatch& WriteBatch::Set(const DocumentReference& document,
                             const MapFieldValue& data,
                             const SetOptions& options) {
-  ValidateReference(document);
   if (!internal_) return *this;
 
+  ValidateReference(document);
   internal_->Set(document, data, options);
   return *this;
 }
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldValue& data) {
-  ValidateReference(document);
   if (!internal_) return *this;
 
+  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldPathValue& data) {
-  ValidateReference(document);
   if (!internal_) return *this;
 
+  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Delete(const DocumentReference& document) {
-  ValidateReference(document);
   if (!internal_) return *this;
 
+  ValidateReference(document);
   internal_->Delete(document);
   return *this;
 }

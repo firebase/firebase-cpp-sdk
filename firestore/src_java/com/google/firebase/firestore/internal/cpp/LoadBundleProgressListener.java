@@ -44,16 +44,10 @@ public class LoadBundleProgressListener extends CppEventListener
   }
 
   @Override
-  public void onProgress(
+  public synchronized void onProgress(
       @NonNull LoadBundleTaskProgress progress) {
-    long firestorePtr;
-    long listenerPtr;
-    synchronized (this) {
-      firestorePtr = cppFirestoreObject;
-      listenerPtr = cppListenerObject;
-    }
-    if (firestorePtr != 0 && listenerPtr != 0 && progress != null) {
-      nativeOnProgress(firestorePtr, listenerPtr, progress);
+    if (cppFirestoreObject != 0 && cppListenerObject != 0 && progress != null) {
+      nativeOnProgress(cppFirestoreObject, cppListenerObject, progress);
     }
   }
 
