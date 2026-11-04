@@ -48,6 +48,8 @@ namespace internal {
 extern Mutex g_database_reference_constructor_mutex;
 
 // This is the Android implementation of Database.
+#ifndef FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
+#define FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
 class Callbacks {
  public:
   static jobject TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
@@ -92,6 +94,7 @@ class Callbacks {
                                               jlong db_ptr, jlong listener_ptr,
                                               jobject data_snapshot);
 };
+#endif  // FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
 
 class DatabaseInternal {
  public:

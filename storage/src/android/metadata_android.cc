@@ -196,10 +196,9 @@ MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj,
     if (ref_obj) env->DeleteLocalRef(ref_obj);
     ref_obj = nullptr;
   }
-  StorageReference ref(
+  MetadataInternal* meta = new MetadataInternal(
       ref_obj ? new StorageReferenceInternal(storage, ref_obj) : nullptr);
   if (ref_obj) env->DeleteLocalRef(ref_obj);
-  MetadataInternal* meta = new MetadataInternal(ref);
 
   auto get_str = [&](storage_metadata::Method m,
                      void (MetadataInternal::*setter)(const std::string&)) {
@@ -293,7 +292,7 @@ MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject obj,
   } else if (keys) {
     jobjectArray keys_array = static_cast<jobjectArray>(env->CallObjectMethod(
         keys,
-        firebase::util::java_set::GetMethodId(firebase::util::java_set::kToArray)));
+        firebase::util::set::GetMethodId(firebase::util::set::kToArray)));
     if (jni::CheckAndClearException(env)) {
       if (keys_array) env->DeleteLocalRef(keys_array);
     } else if (keys_array) {

@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "app/src/cleanup_notifier.h"
 #include "app/src/util_ios.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -105,6 +106,8 @@ class RemoteConfigInternal {
 
   void Cleanup();
 
+  CleanupNotifier& cleanup_notifier() { return cleanup_; }
+
   // When this is deleted, it will clean up all ListenerRegistrations.
  private:
 #ifdef __OBJC__
@@ -117,6 +120,7 @@ class RemoteConfigInternal {
 
   std::unique_ptr<FIRRemoteConfigPointer> impl_;
   std::shared_ptr<RemoteConfigIosState> state_;
+  CleanupNotifier cleanup_;
 };
 }  // namespace internal
 }  // namespace remote_config

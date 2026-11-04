@@ -191,7 +191,8 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
   // We depend on firebase::util, so initialize it.
   if (true) {
     // Check if the GoogleApiAvailability class exists at all.
-    jclass availability_class = env->FindClass("com/google/android/gms/common/GoogleApiAvailability");
+    jclass availability_class = firebase::util::FindClass(
+        env, activity, "com/google/android/gms/common/GoogleApiAvailability");
     if (availability_class != nullptr) {
       env->DeleteLocalRef(availability_class);
       // Initialize JNI methods.

@@ -51,6 +51,9 @@ class MetadataInternal {
 
   explicit MetadataInternal(const StorageReference& storage_reference);
 
+  explicit MetadataInternal(StorageReferenceInternal* storage_reference)
+      : MetadataInternal(StorageReference(storage_reference)) {}
+
   explicit MetadataInternal(std::nullptr_t);
 
   MetadataInternal(const MetadataInternal& metadata);

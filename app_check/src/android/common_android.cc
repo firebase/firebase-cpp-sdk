@@ -37,7 +37,10 @@ namespace app_check_provider {
   jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
   bool CacheMethodIds(JNIEnv* env, jobject activity) {
     if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/AppCheckProvider"));
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(
+        env, ::firebase::util::FindClass(
+                 env, activity,
+                 "com/google/firebase/appcheck/AppCheckProvider"));
     if (!local_clazz) {
       ::firebase::jni::CheckAndClearException(env);
       return false;

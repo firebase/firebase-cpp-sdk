@@ -705,7 +705,7 @@ void ConsentInfoInternalAndroid::Reset() {
 }
 
 JNIEnv* ConsentInfoInternalAndroid::GetJNIEnv() {
-  return ::firebase::jni::GetThreadsafeJNIEnv(java_vm_);
+  return ::firebase::util::GetThreadsafeJNIEnv(java_vm_);
 }
 
 void ConsentInfoInternalAndroid::CompleteFutureFromJniCallback(

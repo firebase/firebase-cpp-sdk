@@ -63,7 +63,9 @@ namespace storage_task {
   jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
   bool CacheMethodIds(JNIEnv* env, jobject activity) {
     if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StorageTask"));
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(
+        env, ::firebase::util::FindClass(
+                 env, activity, "com/google/firebase/storage/StorageTask"));
     if (!local_clazz) {
       ::firebase::jni::CheckAndClearException(env);
       return false;
@@ -104,7 +106,10 @@ namespace upload_task_task_snapshot {
   jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
   bool CacheMethodIds(JNIEnv* env, jobject activity) {
     if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/UploadTask$TaskSnapshot"));
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(
+        env, ::firebase::util::FindClass(
+                 env, activity,
+                 "com/google/firebase/storage/UploadTask$TaskSnapshot"));
     if (!local_clazz) {
       ::firebase::jni::CheckAndClearException(env);
       return false;
@@ -141,7 +146,10 @@ namespace file_download_task_task_snapshot {
   jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
   bool CacheMethodIds(JNIEnv* env, jobject activity) {
     if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/FileDownloadTask$TaskSnapshot"));
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(
+        env, ::firebase::util::FindClass(
+                 env, activity,
+                 "com/google/firebase/storage/FileDownloadTask$TaskSnapshot"));
     if (!local_clazz) {
       ::firebase::jni::CheckAndClearException(env);
       return false;
@@ -176,7 +184,11 @@ namespace stream_download_task_task_snapshot {
   jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
   bool CacheMethodIds(JNIEnv* env, jobject activity) {
     if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StreamDownloadTask$TaskSnapshot"));
+    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(
+        env,
+        ::firebase::util::FindClass(
+            env, activity,
+            "com/google/firebase/storage/StreamDownloadTask$TaskSnapshot"));
     if (!local_clazz) {
       ::firebase::jni::CheckAndClearException(env);
       return false;

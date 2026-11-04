@@ -24,6 +24,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/jni/declaration.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "functions/src/android/functions_android.h"
@@ -36,6 +37,35 @@ namespace functions {
 class HttpsCallableResult;
 
 namespace internal {
+
+// clang-format off
+#define CALLABLE_REFERENCE_METHODS(X)                                          \
+  X(Call, "call",                                                              \
+    "()"                                                                       \
+    "Lcom/google/android/gms/tasks/Task;")                                     \
+  X(CallWithParam, "call",                                                     \
+    "(Ljava/lang/Object;)"                                                     \
+    "Lcom/google/android/gms/tasks/Task;")                                     \
+  X(SetTimeout, "setTimeout",                                                  \
+    "(JLjava/util/concurrent/TimeUnit;)V",                                     \
+    ::firebase::jni::kMethodTypeInstance, ::firebase::jni::kMethodOptional)
+// clang-format on
+
+JNI_METHOD_LOOKUP_DECLARATION(
+    callable_reference, CALLABLE_REFERENCE_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/functions/HttpsCallableReference")
+
+// clang-format off
+#define CALLABLE_RESULT_METHODS(X)                                             \
+  X(GetData, "getData",                                                        \
+    "()"                                                                       \
+    "Ljava/lang/Object;")
+// clang-format on
+
+JNI_METHOD_LOOKUP_DECLARATION(
+    callable_result, CALLABLE_RESULT_METHODS, FIELD_LOOKUP_NONE,
+    PROGUARD_KEEP_CLASS "com/google/firebase/functions/HttpsCallableResult")
 
 class HttpsCallableReferenceInternal {
  public:

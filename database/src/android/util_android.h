@@ -29,6 +29,8 @@ jobject VariantToJavaObject(JNIEnv* env, const Variant& variant);
 // Converts a java.lang.Object into a Variant.
 Variant JavaObjectToVariant(JNIEnv* env, jobject obj);
 
+#ifndef FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
+#define FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
 class Callbacks {
  public:
   static jobject TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
@@ -73,6 +75,7 @@ class Callbacks {
                                               jlong db_ptr, jlong listener_ptr,
                                               jobject data_snapshot);
 };
+#endif  // FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
 
 }  // namespace internal
 }  // namespace database

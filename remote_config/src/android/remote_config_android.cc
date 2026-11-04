@@ -752,6 +752,7 @@ bool RemoteConfigInternal::Initialized() const {
 }
 
 void RemoteConfigInternal::Cleanup() {
+  cleanup_.CleanupAll();
   if (!jni_task_id_.empty()) {
     JNIEnv* env = app_.GetJNIEnv();
     firebase::util::CancelCallbacks(env, jni_task_id_.c_str());

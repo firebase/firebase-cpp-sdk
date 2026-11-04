@@ -37,33 +37,6 @@
 
 namespace firebase::functions::internal {
 
-// clang-format off
-#define CALLABLE_REFERENCE_METHODS(X)                                          \
-  X(Call, "call",                                                              \
-    "()"                                                                       \
-    "Lcom/google/android/gms/tasks/Task;")                                     \
-  X(CallWithParam, "call",                                                     \
-    "(Ljava/lang/Object;)"                                                     \
-    "Lcom/google/android/gms/tasks/Task;")
-// clang-format on
-
-JNI_METHOD_LOOKUP_DECLARATION(
-    callable_reference, CALLABLE_REFERENCE_METHODS, FIELD_LOOKUP_NONE,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/functions/HttpsCallableReference")
-
-// clang-format off
-#define CALLABLE_RESULT_METHODS(X)                                             \
-  X(GetData, "getData",                                                        \
-    "()"                                                                       \
-    "Ljava/lang/Object;")
-// clang-format on
-
-JNI_METHOD_LOOKUP_DECLARATION(
-    callable_result, CALLABLE_RESULT_METHODS, FIELD_LOOKUP_NONE,
-    PROGUARD_KEEP_CLASS "com/google/firebase/functions/HttpsCallableResult")
-
-
 enum HttpsCallableReferenceFn {
   kHttpsCallableReferenceFnCall = 0,
   kHttpsCallableReferenceFnCount,
