@@ -41,7 +41,7 @@ namespace firebase::functions::internal {
 #define CALLABLE_REFERENCE_METHODS(X)                                          \
   X(Call, "call",                                                              \
     "()"                                                                       \
-    "Lcom/google/android/gms/tasks/Task;"),                                    \
+    "Lcom/google/android/gms/tasks/Task;")                                     \
   X(CallWithParam, "call",                                                     \
     "(Ljava/lang/Object;)"                                                     \
     "Lcom/google/android/gms/tasks/Task;")

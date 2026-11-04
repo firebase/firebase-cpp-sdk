@@ -163,22 +163,22 @@ static bool g_intent_message_fired = false;
 // spent looking up methods by string.
 // clang-format off
 #define FIREBASE_MESSAGING_METHODS(X)                                          \
-    X(IsAutoInitEnabled, "isAutoInitEnabled", "()Z"),                          \
-    X(SetAutoInitEnabled, "setAutoInitEnabled", "(Z)V"),                       \
+    X(IsAutoInitEnabled, "isAutoInitEnabled", "()Z")                           \
+    X(SetAutoInitEnabled, "setAutoInitEnabled", "(Z)V")                        \
     X(SubscribeToTopic, "subscribeToTopic",                                    \
-      "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;"),              \
+      "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;")               \
     X(UnsubscribeFromTopic, "unsubscribeFromTopic",                            \
-      "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;"),              \
+      "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;")               \
     X(GetInstance, "getInstance",                                              \
       "()Lcom/google/firebase/messaging/FirebaseMessaging;",                   \
-      firebase::jni::kMethodTypeStatic),                                      \
+      firebase::jni::kMethodTypeStatic)                                        \
     X(DeliveryMetricsExportToBigQueryEnabled,                                  \
-      "deliveryMetricsExportToBigQueryEnabled", "()Z"),                        \
+      "deliveryMetricsExportToBigQueryEnabled", "()Z")                         \
     X(SetDeliveryMetricsExportToBigQuery,                                      \
-      "setDeliveryMetricsExportToBigQuery", "(Z)V"),                           \
-    X(GetToken, "getToken", "()Lcom/google/android/gms/tasks/Task;"),          \
-    X(DeleteToken, "deleteToken", "()Lcom/google/android/gms/tasks/Task;"),    \
-    X(Register, "register", "()Lcom/google/android/gms/tasks/Task;"),          \
+      "setDeliveryMetricsExportToBigQuery", "(Z)V")                            \
+    X(GetToken, "getToken", "()Lcom/google/android/gms/tasks/Task;")           \
+    X(DeleteToken, "deleteToken", "()Lcom/google/android/gms/tasks/Task;")     \
+    X(Register, "register", "()Lcom/google/android/gms/tasks/Task;")           \
     X(Unregister, "unregister", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 JNI_METHOD_LOOKUP_DECLARATION(

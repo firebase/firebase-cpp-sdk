@@ -33,15 +33,15 @@ namespace internal {
 // clang-format off
 #define ON_DISCONNECT_METHODS(X)                                               \
   X(SetValue, "setValue",                                                      \
-    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;"),                \
+    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;")                 \
   X(SetValueAndStringPriority, "setValue",                                     \
     "(Ljava/lang/Object;Ljava/lang/String;)"                                   \
-    "Lcom/google/android/gms/tasks/Task;"),                                    \
+    "Lcom/google/android/gms/tasks/Task;")                                     \
   X(SetValueAndDoublePriority, "setValue",                                     \
-    "(Ljava/lang/Object;D)Lcom/google/android/gms/tasks/Task;"),               \
+    "(Ljava/lang/Object;D)Lcom/google/android/gms/tasks/Task;")                \
   X(UpdateChildren, "updateChildren",                                          \
-    "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;"),                   \
-  X(RemoveValue, "removeValue", "()Lcom/google/android/gms/tasks/Task;"),      \
+    "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;")                    \
+  X(RemoveValue, "removeValue", "()Lcom/google/android/gms/tasks/Task;")       \
   X(Cancel, "cancel", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 

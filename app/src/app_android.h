@@ -25,6 +25,7 @@
 #include "app/src/jni/exception.h"
 #include "app/src/jni/string.h"
 #include "app/src/log.h"
+#include "app/src/util_android.h"
 #include "firebase/variant.h"
 
 namespace firebase {
@@ -36,35 +37,7 @@ void CallAfterEnsureMethodsCached(JNIEnv* env, jobject activity,
 
 namespace util {
 
-class JavaThreadContext;
-
-JNIEnv* GetJNIEnvFromApp();
-void RunOnMainThread(JNIEnv* env, jobject activity_object,
-                     void (*function_ptr)(void*), void* function_data,
-                     void (*cancel_function_ptr)(void*) = nullptr,
-                     JavaThreadContext* context = nullptr);
 void CancelRunOnMainThread(void* data);
-
-firebase::Variant JavaObjectToVariant(JNIEnv* env, jobject obj);
-jobject VariantToJavaObject(JNIEnv* env, const firebase::Variant& variant);
-
-enum FutureResult {
-  kFutureResultSuccess,
-  kFutureResultFailure,
-  kFutureResultCancelled,
-};
-
-typedef void TaskCallbackFn(JNIEnv* env, jobject result, FutureResult result_code, const char* status_message, void* callback_data);
-void RegisterCallbackOnTask(JNIEnv* env, jobject task, TaskCallbackFn* callback_fn, void* callback_data, const char* api_identifier);
-
-void CancelCallbacks(JNIEnv* env, const char* class_method_identifier);
-
-bool LogException(JNIEnv* env, LogLevel log_level = kLogLevelError,
-                  const char* log_fmt = nullptr, ...);
-
-int64_t JLongToInt64(JNIEnv* env, jobject obj);
-jobject CharsToURL(JNIEnv* env, const char* url_string);
-jobject ContinueBuilder(JNIEnv* env, jobject old_builder, jobject new_builder);
 
 }  // namespace util
 }  // namespace firebase

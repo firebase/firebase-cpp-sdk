@@ -34,31 +34,31 @@ namespace internal {
 // clang-format off
 #define DATABASE_REFERENCE_METHODS(X)                                          \
   X(Child, "child",                                                            \
-    "(Ljava/lang/String;)Lcom/google/firebase/database/DatabaseReference;"),   \
-  X(Push, "push", "()Lcom/google/firebase/database/DatabaseReference;"),       \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/DatabaseReference;")    \
+  X(Push, "push", "()Lcom/google/firebase/database/DatabaseReference;")        \
   X(SetValue, "setValue",                                                      \
-    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;"),                \
+    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;")                 \
   X(SetValueAndPriority, "setValue",                                           \
     "(Ljava/lang/Object;Ljava/lang/Object;)"                                   \
-    "Lcom/google/android/gms/tasks/Task;"),                                    \
+    "Lcom/google/android/gms/tasks/Task;")                                     \
   X(SetPriority, "setPriority",                                                \
-    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;"),                \
+    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;")                 \
   X(UpdateChildren, "updateChildren",                                          \
-    "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;"),                   \
-  X(RemoveValue, "removeValue", "()Lcom/google/android/gms/tasks/Task;"),      \
+    "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;")                    \
+  X(RemoveValue, "removeValue", "()Lcom/google/android/gms/tasks/Task;")       \
   X(OnDisconnect, "onDisconnect",                                              \
-    "()Lcom/google/firebase/database/OnDisconnect;"),                          \
+    "()Lcom/google/firebase/database/OnDisconnect;")                           \
   X(RunTransaction, "runTransaction",                                          \
-    "(Lcom/google/firebase/database/Transaction$Handler;Z)V"),                 \
-  X(GoOffline, "goOffline", "()V", jni::kMethodTypeStatic),                   \
-  X(GoOnline, "goOnline", "()V", jni::kMethodTypeStatic),                     \
+    "(Lcom/google/firebase/database/Transaction$Handler;Z)V")                  \
+  X(GoOffline, "goOffline", "()V", jni::kMethodTypeStatic)                     \
+  X(GoOnline, "goOnline", "()V", jni::kMethodTypeStatic)                       \
   X(GetDatabase, "getDatabase",                                                \
-    "()Lcom/google/firebase/database/FirebaseDatabase;"),                      \
-  X(ToString, "toString", "()Ljava/lang/String;"),                             \
+    "()Lcom/google/firebase/database/FirebaseDatabase;")                       \
+  X(ToString, "toString", "()Ljava/lang/String;")                              \
   X(GetParent, "getParent",                                                    \
-    "()Lcom/google/firebase/database/DatabaseReference;"),                     \
+    "()Lcom/google/firebase/database/DatabaseReference;")                      \
   X(GetRoot, "getRoot",                                                        \
-    "()Lcom/google/firebase/database/DatabaseReference;"),                     \
+    "()Lcom/google/firebase/database/DatabaseReference;")                      \
   X(GetKey, "getKey", "()Ljava/lang/String;")
 // clang-format on
 

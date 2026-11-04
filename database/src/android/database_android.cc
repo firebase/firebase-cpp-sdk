@@ -61,26 +61,26 @@ JNI_METHOD_LOOKUP_DECLARATION(
   X(GetInstance, "getInstance",                                         \
     "(Lcom/google/firebase/FirebaseApp;)"                               \
     "Lcom/google/firebase/database/FirebaseDatabase;",                  \
-    jni::kMethodTypeStatic),                                           \
+    jni::kMethodTypeStatic)                                             \
   X(GetInstanceFromUrl, "getInstance",                                  \
     "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"             \
     "Lcom/google/firebase/database/FirebaseDatabase;",                  \
-    jni::kMethodTypeStatic),                                           \
-  X(GetApp, "getApp", "()Lcom/google/firebase/FirebaseApp;"),           \
+    jni::kMethodTypeStatic)                                             \
+  X(GetApp, "getApp", "()Lcom/google/firebase/FirebaseApp;")            \
   X(GetRootReference, "getReference",                                   \
-    "()Lcom/google/firebase/database/DatabaseReference;"),              \
+    "()Lcom/google/firebase/database/DatabaseReference;")               \
   X(GetReferenceFromPath, "getReference",                               \
     "(Ljava/lang/String;)Lcom/google/firebase/database/"                \
-    "DatabaseReference;"),                                              \
+    "DatabaseReference;")                                               \
   X(GetReferenceFromUrl, "getReferenceFromUrl",                         \
     "(Ljava/lang/String;)"                                              \
-    "Lcom/google/firebase/database/DatabaseReference;"),                \
-  X(PurgeOutstandingWrites, "purgeOutstandingWrites", "()V"),           \
-  X(GoOnline, "goOnline", "()V"),                                       \
-  X(GoOffline, "goOffline", "()V"),                                     \
+    "Lcom/google/firebase/database/DatabaseReference;")                 \
+  X(PurgeOutstandingWrites, "purgeOutstandingWrites", "()V")            \
+  X(GoOnline, "goOnline", "()V")                                        \
+  X(GoOffline, "goOffline", "()V")                                      \
   X(SetLogLevel, "setLogLevel",                                         \
-    "(Lcom/google/firebase/database/Logger$Level;)V"),                  \
-  X(SetPersistenceEnabled, "setPersistenceEnabled", "(Z)V"),            \
+    "(Lcom/google/firebase/database/Logger$Level;)V")                   \
+  X(SetPersistenceEnabled, "setPersistenceEnabled", "(Z)V")             \
   X(GetSdkVersion, "getSdkVersion", "()Ljava/lang/String;",             \
     jni::kMethodTypeStatic)
 // clang-format on
@@ -91,8 +91,8 @@ JNI_METHOD_LOOKUP_DECLARATION(
 
 // clang-format off
 #define DATABASE_ERROR_METHODS(X)                                              \
-    X(GetCode, "getCode", "()I"),                                              \
-    X(GetMessage, "getMessage", "()Ljava/lang/String;"),                       \
+    X(GetCode, "getCode", "()I")                                               \
+    X(GetMessage, "getMessage", "()Ljava/lang/String;")                        \
     X(FromException, "fromException",                                          \
       "(Ljava/lang/Throwable;)Lcom/google/firebase/database/DatabaseError;",   \
       jni::kMethodTypeStatic, jni::kMethodOptional)
@@ -100,17 +100,17 @@ JNI_METHOD_LOOKUP_DECLARATION(
 
 // clang-format off
 #define DATABASE_ERROR_FIELDS(X)                                              \
-    X(Disconnected, "DISCONNECTED", "I", jni::kFieldTypeStatic),              \
-    X(ExpiredToken, "EXPIRED_TOKEN", "I", jni::kFieldTypeStatic),             \
-    X(InvalidToken, "INVALID_TOKEN", "I", jni::kFieldTypeStatic),             \
-    X(MaxRetries, "MAX_RETRIES", "I", jni::kFieldTypeStatic),                 \
-    X(NetworkError, "NETWORK_ERROR", "I", jni::kFieldTypeStatic),             \
-    X(OperationFailed, "OPERATION_FAILED", "I", jni::kFieldTypeStatic),       \
-    X(OverriddenBySet, "OVERRIDDEN_BY_SET", "I", jni::kFieldTypeStatic),      \
-    X(PermissionDenied, "PERMISSION_DENIED", "I", jni::kFieldTypeStatic),     \
-    X(Unavailable, "UNAVAILABLE", "I", jni::kFieldTypeStatic),                \
-    X(UnknownError, "UNKNOWN_ERROR", "I", jni::kFieldTypeStatic),             \
-    X(UserCodeException, "USER_CODE_EXCEPTION", "I", jni::kFieldTypeStatic),  \
+    X(Disconnected, "DISCONNECTED", "I", jni::kFieldTypeStatic)               \
+    X(ExpiredToken, "EXPIRED_TOKEN", "I", jni::kFieldTypeStatic)              \
+    X(InvalidToken, "INVALID_TOKEN", "I", jni::kFieldTypeStatic)              \
+    X(MaxRetries, "MAX_RETRIES", "I", jni::kFieldTypeStatic)                  \
+    X(NetworkError, "NETWORK_ERROR", "I", jni::kFieldTypeStatic)              \
+    X(OperationFailed, "OPERATION_FAILED", "I", jni::kFieldTypeStatic)        \
+    X(OverriddenBySet, "OVERRIDDEN_BY_SET", "I", jni::kFieldTypeStatic)       \
+    X(PermissionDenied, "PERMISSION_DENIED", "I", jni::kFieldTypeStatic)      \
+    X(Unavailable, "UNAVAILABLE", "I", jni::kFieldTypeStatic)                 \
+    X(UnknownError, "UNKNOWN_ERROR", "I", jni::kFieldTypeStatic)              \
+    X(UserCodeException, "USER_CODE_EXCEPTION", "I", jni::kFieldTypeStatic)   \
     X(WriteCanceled, "WRITE_CANCELED", "I", jni::kFieldTypeStatic)
 // clang-format on
 
@@ -120,7 +120,7 @@ JNI_METHOD_LOOKUP_DECLARATION(
 
 // clang-format off
 #define CPP_TRANSACTION_HANDLER_METHODS(X)                                    \
-    X(Constructor, "<init>", "(JJ)V"),                                        \
+    X(Constructor, "<init>", "(JJ)V")                                         \
     X(DiscardPointers, "discardPointers", "()J")
 // clang-format on
 JNI_METHOD_LOOKUP_DECLARATION(

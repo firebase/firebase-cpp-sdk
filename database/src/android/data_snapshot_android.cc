@@ -33,17 +33,17 @@ namespace internal {
 // clang-format off
 #define DATA_SNAPSHOT_METHODS(X)                                           \
   X(Child, "child",                                                        \
-    "(Ljava/lang/String;)Lcom/google/firebase/database/DataSnapshot;"),    \
-  X(HasChild, "hasChild", "(Ljava/lang/String;)Z"),                        \
-  X(HasChildren, "hasChildren", "()Z"),                                    \
-  X(Exists, "exists", "()Z"),                                              \
-  X(GetValue, "getValue", "()Ljava/lang/Object;"),                        \
-  X(GetChildrenCount, "getChildrenCount", "()J"),                          \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/DataSnapshot;")     \
+  X(HasChild, "hasChild", "(Ljava/lang/String;)Z")                         \
+  X(HasChildren, "hasChildren", "()Z")                                     \
+  X(Exists, "exists", "()Z")                                               \
+  X(GetValue, "getValue", "()Ljava/lang/Object;")                          \
+  X(GetChildrenCount, "getChildrenCount", "()J")                           \
   X(GetRef, "getRef",                                                      \
-    "()Lcom/google/firebase/database/DatabaseReference;"),                 \
-  X(GetKey, "getKey", "()Ljava/lang/String;"),                             \
-  X(GetChildren, "getChildren", "()Ljava/lang/Iterable;"),                 \
-  X(GetPriority, "getPriority", "()Ljava/lang/Object;"),                   \
+    "()Lcom/google/firebase/database/DatabaseReference;")                  \
+  X(GetKey, "getKey", "()Ljava/lang/String;")                              \
+  X(GetChildren, "getChildren", "()Ljava/lang/Iterable;")                  \
+  X(GetPriority, "getPriority", "()Ljava/lang/Object;")                    \
   X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 

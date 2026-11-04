@@ -34,61 +34,61 @@ namespace internal {
 #define QUERY_METHODS(X)                                                       \
   X(AddValueEventListener, "addValueEventListener",                            \
     "(Lcom/google/firebase/database/ValueEventListener;)"                      \
-    "Lcom/google/firebase/database/ValueEventListener;"),                      \
+    "Lcom/google/firebase/database/ValueEventListener;")                       \
   X(AddChildEventListener, "addChildEventListener",                            \
     "(Lcom/google/firebase/database/ChildEventListener;)"                      \
-    "Lcom/google/firebase/database/ChildEventListener;"),                      \
+    "Lcom/google/firebase/database/ChildEventListener;")                       \
   X(AddListenerForSingleValueEvent, "addListenerForSingleValueEvent",          \
-    "(Lcom/google/firebase/database/ValueEventListener;)V"),                   \
+    "(Lcom/google/firebase/database/ValueEventListener;)V")                    \
   X(RemoveValueEventListener, "removeEventListener",                           \
-    "(Lcom/google/firebase/database/ValueEventListener;)V"),                   \
+    "(Lcom/google/firebase/database/ValueEventListener;)V")                    \
   X(RemoveChildEventListener, "removeEventListener",                           \
-    "(Lcom/google/firebase/database/ChildEventListener;)V"),                   \
-  X(KeepSynced, "keepSynced", "(Z)V"),                                         \
+    "(Lcom/google/firebase/database/ChildEventListener;)V")                    \
+  X(KeepSynced, "keepSynced", "(Z)V")                                          \
   X(StartAtString, "startAt",                                                  \
-    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;"),               \
-  X(StartAtDouble, "startAt", "(D)Lcom/google/firebase/database/Query;"),      \
-  X(StartAtBool, "startAt", "(Z)Lcom/google/firebase/database/Query;"),        \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;")                \
+  X(StartAtDouble, "startAt", "(D)Lcom/google/firebase/database/Query;")       \
+  X(StartAtBool, "startAt", "(Z)Lcom/google/firebase/database/Query;")         \
   X(StartAtStringString, "startAt",                                            \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
-    "Lcom/google/firebase/database/Query;"),                                   \
+    "Lcom/google/firebase/database/Query;")                                    \
   X(StartAtDoubleString, "startAt",                                            \
-    "(DLjava/lang/String;)Lcom/google/firebase/database/Query;"),              \
+    "(DLjava/lang/String;)Lcom/google/firebase/database/Query;")               \
   X(StartAtBoolString, "startAt",                                              \
-    "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;"),              \
+    "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;")               \
   X(EndAtString, "endAt",                                                      \
-    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;"),               \
-  X(EndAtDouble, "endAt", "(D)Lcom/google/firebase/database/Query;"),          \
-  X(EndAtBool, "endAt", "(Z)Lcom/google/firebase/database/Query;"),            \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;")                \
+  X(EndAtDouble, "endAt", "(D)Lcom/google/firebase/database/Query;")           \
+  X(EndAtBool, "endAt", "(Z)Lcom/google/firebase/database/Query;")             \
   X(EndAtStringString, "endAt",                                                \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
-    "Lcom/google/firebase/database/Query;"),                                   \
+    "Lcom/google/firebase/database/Query;")                                    \
   X(EndAtDoubleString, "endAt",                                                \
-    "(DLjava/lang/String;)Lcom/google/firebase/database/Query;"),              \
+    "(DLjava/lang/String;)Lcom/google/firebase/database/Query;")               \
   X(EndAtBoolString, "endAt",                                                  \
-    "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;"),              \
+    "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;")               \
   X(EqualToString, "equalTo",                                                  \
-    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;"),               \
-  X(EqualToDouble, "equalTo", "(D)Lcom/google/firebase/database/Query;"),      \
-  X(EqualToBool, "equalTo", "(Z)Lcom/google/firebase/database/Query;"),        \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;")                \
+  X(EqualToDouble, "equalTo", "(D)Lcom/google/firebase/database/Query;")       \
+  X(EqualToBool, "equalTo", "(Z)Lcom/google/firebase/database/Query;")         \
   X(EqualToStringString, "equalTo",                                            \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
-    "Lcom/google/firebase/database/Query;"),                                   \
+    "Lcom/google/firebase/database/Query;")                                    \
   X(EqualToDoubleString, "equalTo",                                            \
-    "(DLjava/lang/String;)Lcom/google/firebase/database/Query;"),              \
+    "(DLjava/lang/String;)Lcom/google/firebase/database/Query;")               \
   X(EqualToBoolString, "equalTo",                                              \
-    "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;"),              \
+    "(ZLjava/lang/String;)Lcom/google/firebase/database/Query;")               \
   X(LimitToFirst, "limitToFirst",                                              \
-    "(I)Lcom/google/firebase/database/Query;"),                                \
+    "(I)Lcom/google/firebase/database/Query;")                                 \
   X(LimitToLast, "limitToLast",                                                \
-    "(I)Lcom/google/firebase/database/Query;"),                                \
+    "(I)Lcom/google/firebase/database/Query;")                                 \
   X(OrderByChild, "orderByChild",                                              \
-    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;"),               \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/Query;")                \
   X(OrderByPriority, "orderByPriority",                                        \
-    "()Lcom/google/firebase/database/Query;"),                                 \
-  X(OrderByKey, "orderByKey", "()Lcom/google/firebase/database/Query;"),       \
+    "()Lcom/google/firebase/database/Query;")                                  \
+  X(OrderByKey, "orderByKey", "()Lcom/google/firebase/database/Query;")        \
   X(OrderByValue, "orderByValue",                                              \
-    "()Lcom/google/firebase/database/Query;"),                                 \
+    "()Lcom/google/firebase/database/Query;")                                  \
   X(GetRef, "getRef",                                                          \
     "()Lcom/google/firebase/database/DatabaseReference;")
 // clang-format on

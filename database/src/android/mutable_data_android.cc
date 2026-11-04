@@ -32,18 +32,18 @@ namespace internal {
 
 // clang-format off
 #define MUTABLE_DATA_METHODS(X)                                                \
-  X(HasChildren, "hasChildren", "()Z"),                                        \
-  X(HasChild, "hasChild", "(Ljava/lang/String;)Z"),                            \
+  X(HasChildren, "hasChildren", "()Z")                                         \
+  X(HasChild, "hasChild", "(Ljava/lang/String;)Z")                             \
   X(Child, "child",                                                            \
-    "(Ljava/lang/String;)Lcom/google/firebase/database/MutableData;"),         \
-  X(GetChildrenCount, "getChildrenCount", "()J"),                              \
-  X(GetChildren, "getChildren", "()Ljava/lang/Iterable;"),                     \
-  X(GetKey, "getKey", "()Ljava/lang/String;"),                                 \
-  X(GetValue, "getValue", "()Ljava/lang/Object;"),                             \
-  X(SetValue, "setValue", "(Ljava/lang/Object;)V"),                            \
-  X(SetPriority, "setPriority", "(Ljava/lang/Object;)V"),                      \
-  X(GetPriority, "getPriority", "()Ljava/lang/Object;"),                       \
-  X(Equals, "equals", "(Ljava/lang/Object;)Z"),                                \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/MutableData;")          \
+  X(GetChildrenCount, "getChildrenCount", "()J")                               \
+  X(GetChildren, "getChildren", "()Ljava/lang/Iterable;")                      \
+  X(GetKey, "getKey", "()Ljava/lang/String;")                                  \
+  X(GetValue, "getValue", "()Ljava/lang/Object;")                              \
+  X(SetValue, "setValue", "(Ljava/lang/Object;)V")                             \
+  X(SetPriority, "setPriority", "(Ljava/lang/Object;)V")                       \
+  X(GetPriority, "getPriority", "()Ljava/lang/Object;")                        \
+  X(Equals, "equals", "(Ljava/lang/Object;)Z")                                 \
   X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 
