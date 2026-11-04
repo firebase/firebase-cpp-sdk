@@ -310,7 +310,7 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
               }];
 }
 
-void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider *provider) {
+Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider *provider) {
   if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
@@ -458,7 +458,7 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
                         }];
 }
 
-void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider *provider) {
+Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider *provider) {
   if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }

@@ -155,9 +155,7 @@ Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
 
 Future<AuthResult> User::LinkWithProvider(FederatedAuthProvider* provider) const {
   if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_LinkWithProvider);
-  ::firebase::auth::LinkWithProvider(auth_data_, promise, provider);
-  return promise.future();
+  return ::firebase::auth::LinkWithProvider(auth_data_, provider);
 }
 
 Future<void> User::Reauthenticate(const Credential& credential) {
@@ -176,9 +174,7 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential& credent
 
 Future<AuthResult> User::ReauthenticateWithProvider(FederatedAuthProvider* provider) const {
   if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_ReauthenticateWithProvider);
-  ::firebase::auth::ReauthenticateWithProvider(auth_data_, promise, provider);
-  return promise.future();
+  return ::firebase::auth::ReauthenticateWithProvider(auth_data_, provider);
 }
 
 Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential& credential) {

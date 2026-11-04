@@ -73,12 +73,13 @@ void DoSignInWithCredential(Promise<ResultT> promise,
   FIREBASE_ASSERT_RETURN_VOID(auth_data);
 
   if (!ValidateCredential(&promise, provider, raw_credential)) {
+    return;
   }
 
   auto request =
       CreateRequestFromCredential(auth_data, provider, raw_credential);
   if (!request) {
-    FailPromise(&promise, kAuthErrorInvalidCredential);
+    FailPromise(&promise, kAuthErrorInvalidCredential); return;
   }
 
   if (provider == kEmailPasswordAuthProviderId) {
@@ -378,7 +379,7 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 // RPCs
 void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* custom_token) {
   if (!custom_token || strlen(custom_token) == 0) {
-    FailPromise(&promise, kAuthErrorInvalidCustomToken);
+    FailPromise(&promise, kAuthErrorInvalidCustomToken); return;
   }
 
   typedef VerifyCustomTokenRequest RequestT;
@@ -395,9 +396,9 @@ void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Cred
                                 internal::CredentialAccess::GetImpl(credential));
 }
 
-void SignInWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
-  FIREBASE_ASSERT_RETURN_VOID(provider);
-  provider->SignIn(auth_data);
+Future<AuthResult> SignInWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->SignIn(auth_data);
 }
 
 void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
@@ -413,6 +414,7 @@ void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
     AuthResult auth_result;
     auth_result.user = *api_user_to_return;
     promise.CompleteWithResult(auth_result);
+    return;
   }
 
   typedef SignUpNewUserRequest RequestT;
@@ -425,6 +427,7 @@ void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
 
 void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
   if (!ValidateEmailAndPassword(&promise, email, password)) {
+    return;
   }
 
   typedef VerifyPasswordRequest RequestT;
@@ -437,6 +440,7 @@ void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise
 
 void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
   if (!ValidateEmailAndPassword(&promise, email, password)) {
+    return;
   }
 
   typedef SignUpNewUserRequest RequestT;
@@ -454,6 +458,7 @@ void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult
 
 void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char* email) {
   if (!ValidateEmail(&promise, email)) {
+    return;
   }
 
   typedef CreateAuthUriRequest RequestT;
@@ -469,7 +474,7 @@ void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersRes
           result.providers = response.providers();
           promise->promise.CompleteWithResult(result);
         } else {
-          FailPromise(&promise->promise, response.error_code());
+          FailPromise(&promise->promise, response.error_code()); return;
         }
       };
 
@@ -478,6 +483,7 @@ void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersRes
 
 void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
   if (!ValidateEmail(&promise, email)) {
+    return;
   }
 
   std::string language_code_str;
@@ -499,7 +505,7 @@ void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const ch
     if (response.IsSuccessful()) {
       promise->promise.Complete();
     } else {
-      FailPromise(&promise->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code()); return;
     }
   };
 

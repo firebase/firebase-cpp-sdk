@@ -40,6 +40,10 @@
 #include "auth/src/data.h"
 #include "auth/src/common/promise.h"
 #include "auth/src/include/firebase/auth/credential.h"
+#include "auth/src/desktop/authentication_result.h"
+#include "auth/src/common/promise.h"
+#include "auth/src/include/firebase/auth/credential.h"
+#include "auth/src/desktop/authentication_result.h"
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
@@ -451,9 +455,7 @@ Future<User> Auth::SignInWithCredential(const Credential& credential) {
 }
 
 Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
-  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithProvider);
-  ::firebase::auth::SignInWithProvider(auth_data_, promise, provider);
-  return promise.future();
+  return ::firebase::auth::SignInWithProvider(auth_data_, provider);
 }
 
 Future<AuthResult> Auth::SignInAnonymously() {
@@ -498,7 +500,7 @@ User Auth::current_user() {
 }
 
 void Auth::SignOut() {
-  ::firebase::auth::SignOut(auth_data_);
+  AuthenticationResult::SignOut(auth_data_);
 }
 
 }  // namespace auth

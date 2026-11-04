@@ -81,7 +81,7 @@ void CleanupCredentialFutureImpl();
 
   void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* custom_token);
   void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential);
-  void SignInWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider);
+  Future<AuthResult> SignInWithProvider(AuthData* auth_data, FederatedAuthProvider* provider);
   void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise);
   void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password);
   void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password);
@@ -99,13 +99,11 @@ void CleanupCredentialFutureImpl();
   void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::UserProfile& profile);
   void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provider);
   void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential);
-  void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider);
+  Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider* provider);
   void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential& credential);
   void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential);
-  void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider);
+  Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider* provider);
   void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential& credential);
-
-void SignOut(AuthData* auth_data);
 
 }  // namespace auth
 }  // namespace firebase

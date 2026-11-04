@@ -496,7 +496,7 @@ void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult
                 }];
 }
 
-void SignInWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider *provider) {
+Future<AuthResult> SignInWithProvider(AuthData* auth_data, FederatedAuthProvider *provider) {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   return provider->SignIn(auth_data);
 }

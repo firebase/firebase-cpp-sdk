@@ -272,7 +272,7 @@ void PerformSignUpFlow(AuthDataHandle<ResultT, SignUpRequest>* const promise) {
     CompletePromise(&promise->promise, auth_result);
   } else {
     SignOutIfUserNoLongerValid(promise->auth_data->auth, auth_response.error());
-    FailPromise(&promise->promise, auth_response.error());
+    FailPromise(&promise->promise, auth_response.error()); return;
   }
 }
 
@@ -291,7 +291,7 @@ void PerformSetAccountInfoFlow(
     CompleteSetAccountInfoPromise(&promise->promise, api_user_to_return);
   } else {
     SignOutIfUserNoLongerValid(promise->auth_data->auth, account_info.error());
-    FailPromise(&promise->promise, account_info.error());
+    FailPromise(&promise->promise, account_info.error()); return;
   }
 }
 
@@ -346,6 +346,7 @@ void DoLinkCredential(Promise<ResultT> promise,
   FIREBASE_ASSERT_RETURN_VOID(auth_data);
 
   if (!ValidateCredential(&promise, provider, raw_credential)) {
+    return;
   }
 
   bool is_provider_already_linked = false;
@@ -358,11 +359,12 @@ void DoLinkCredential(Promise<ResultT> promise,
     promise.InvalidateLastResult(); return;
   }
   if (is_provider_already_linked) {
-    FailPromise(&promise, kAuthErrorProviderAlreadyLinked);
+    FailPromise(&promise, kAuthErrorProviderAlreadyLinked); return;
   }
 
   if (provider == kEmailPasswordAuthProviderId) {
     DoLinkWithEmailAndPassword(auth_data, promise, raw_credential);
+    return;
   }
 
   // The difference with sign in is that verifyAssertion is called with an ID
@@ -371,7 +373,7 @@ void DoLinkCredential(Promise<ResultT> promise,
   // apply to PerformSignIn, which is why it's not used here).
   auto request = CreateVerifyAssertionRequest(*auth_data, raw_credential);
   if (!request) {
-    FailPromise(&promise, kAuthErrorInvalidCredential);
+    FailPromise(&promise, kAuthErrorInvalidCredential); return;
   }
   CallAsyncWithFreshToken(
       auth_data, promise, std::move(request),
@@ -390,7 +392,7 @@ void DoLinkCredential(Promise<ResultT> promise,
         } else {
           SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                      authentication_result.error());
-          FailPromise(&promise->promise, authentication_result.error());
+          FailPromise(&promise->promise, authentication_result.error()); return;
         }
       });
 }
@@ -425,7 +427,7 @@ void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const promise) {
 
     CompletePromise(&promise->promise, auth_result);
   } else {
-    FailPromise(&promise->promise, kAuthErrorUserMismatch);
+    FailPromise(&promise->promise, kAuthErrorUserMismatch); return;
   }
 }
 
@@ -437,14 +439,16 @@ void DoReauthenticate(Promise<ResultT> promise,
   FIREBASE_ASSERT_RETURN_VOID(auth_data);
 
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
   if (!ValidateCredential(&promise, provider, raw_credential)) {
+    return;
   }
 
   auto request =
       CreateRequestFromCredential(auth_data, provider, raw_credential);
   if (!request) {
-    FailPromise(&promise, kAuthErrorInvalidCredential);
+    FailPromise(&promise, kAuthErrorInvalidCredential); return;
   }
 
   // Note: no need to get fresh tokens for reauthentication
@@ -719,6 +723,7 @@ void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise, const b
     return;  // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
 
   GetTokenResult current_token(kAuthErrorFailure);
@@ -728,7 +733,7 @@ void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise, const b
       });
 
   if (!is_user_logged_in) {
-    FailPromise(&promise, kAuthErrorNoSignedInUser);
+    FailPromise(&promise, kAuthErrorNoSignedInUser); return;
   }
   if (current_token.IsValid()) {
     promise.CompleteWithResult(current_token.token());
@@ -766,6 +771,7 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const
     return;
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
 
   GetTokenResult current_token(kAuthErrorFailure);
@@ -775,7 +781,7 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const
       });
 
   if (!is_user_logged_in) {
-    FailPromise(&promise, kAuthErrorNoSignedInUser);
+    FailPromise(&promise, kAuthErrorNoSignedInUser); return;
   }
   if (current_token.IsValid()) {
     IdTokenResult id_token_result;
@@ -837,6 +843,7 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
     return;
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
 
   typedef DeleteAccountRequest RequestT;
@@ -851,7 +858,7 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
     } else {
       SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                  response.error_code());
-      FailPromise(&promise->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code()); return;
     }
   };
 
@@ -862,6 +869,7 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
 void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
   
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
 
   std::string language_code_str;
@@ -885,7 +893,7 @@ void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
     } else {
       SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                  response.error_code());
-      FailPromise(&promise->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code()); return;
     }
   };
 
@@ -896,8 +904,10 @@ void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
 void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
   
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
   if (!ValidateEmail(&promise, email)) {
+    return;
   }
 
   std::string language_code_str;
@@ -922,7 +932,7 @@ void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void>
     } else {
       SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                  response.error_code());
-      FailPromise(&promise->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code()); return;
     }
   };
 
@@ -935,6 +945,7 @@ void Reload(AuthData* auth_data, Promise<void> promise) {
     return;
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
 
   std::string id_token;
@@ -961,7 +972,7 @@ void Reload(AuthData* auth_data, Promise<void> promise) {
       promise->promise.Complete();
     } else {
       SignOutIfUserNoLongerValid(promise->auth_data->auth, account_info.error());
-      FailPromise(&promise->promise, account_info.error());
+      FailPromise(&promise->promise, account_info.error()); return;
     }
   };
 
@@ -974,8 +985,10 @@ void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* cons
     return;      // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
   if (!ValidatePassword(&promise, password)) {
+    return;
   }
 
   std::string language_code_str;
@@ -1000,6 +1013,7 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::U
     return;      // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
 
   typedef SetAccountInfoRequest RequestT;
@@ -1016,9 +1030,10 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* const 
     return;  // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
   if (!provider || strlen(provider) == 0) {
-    FailPromise(&promise, kAuthErrorNoSuchProvider);
+    FailPromise(&promise, kAuthErrorNoSuchProvider); return;
   }
 
   bool is_provider_linked = false;
@@ -1031,7 +1046,7 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* const 
     promise.InvalidateLastResult(); return;
   }
   if (!is_provider_linked) {
-    FailPromise(&promise, kAuthErrorNoSuchProvider);
+    FailPromise(&promise, kAuthErrorNoSuchProvider); return;
   }
 
   typedef SetAccountInfoRequest RequestT;
@@ -1047,17 +1062,18 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
     return;  // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
   DoLinkCredential(promise, auth_data, credential.provider(),
                           internal::CredentialAccess::GetImpl(credential));
 }
 
-void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
+Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
   if (auth_data == nullptr) {    // user is not valid
-    return;  // invalid future
+    return Future<AuthResult>();  // invalid future
   }
-  FIREBASE_ASSERT_RETURN_VOID(provider);
-  provider->Link(auth_data);
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->Link(auth_data);
 }
 
 void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential& credential) {
@@ -1065,6 +1081,7 @@ void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential
     return;      // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
   DoReauthenticate(promise, auth_data, credential.provider(),
                           internal::CredentialAccess::GetImpl(credential));
@@ -1075,17 +1092,18 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
     return;  // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
   DoReauthenticate(promise, auth_data, credential.provider(),
                           internal::CredentialAccess::GetImpl(credential));
 }
 
-void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
+Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
   if (auth_data == nullptr) {    // user is not valid
-    return;  // invalid future
+    return Future<AuthResult>();  // invalid future
   }
-  FIREBASE_ASSERT_RETURN_VOID(provider);
-  provider->Reauthenticate(auth_data); return;
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->Reauthenticate(auth_data);
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
@@ -1195,6 +1213,7 @@ void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, con
     return;      // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
+    return;
   }
 
   promise.Fail(kAuthErrorApiNotAvailable,
