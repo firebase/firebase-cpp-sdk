@@ -31,14 +31,18 @@ struct CleanupFn {
 
   static void Register(T* obj, U* internal) {
     if (internal && internal->database_internal()) {
+      #if !defined(FIREBASE_TARGET_DESKTOP)
       internal->database_internal()->cleanup().RegisterObject(
           obj, CleanupFn<T, U>::Cleanup);
+#endif
     }
   }
 
   static void Unregister(T* obj, U* internal) {
     if (internal && internal->database_internal()) {
+      #if !defined(FIREBASE_TARGET_DESKTOP)
       internal->database_internal()->cleanup().UnregisterObject(obj);
+#endif
     }
   }
 };

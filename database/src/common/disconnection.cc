@@ -1,3 +1,4 @@
+#include "database/src/common/database_reference.h"
 // Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,47 +63,50 @@ DisconnectionHandler::~DisconnectionHandler() {
 }
 
 Future<void> DisconnectionHandler::Cancel() {
-  return internal_ ? internal_->Cancel() : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->future();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDisconnectionHandlerFnCancel);
+  internal_->CancelImpl(handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DisconnectionHandler::CancelLastResult() {
-  return internal_ ? internal_->CancelLastResult() : Future<void>();
-}
 
 Future<void> DisconnectionHandler::RemoveValue() {
-  return internal_ ? internal_->RemoveValue() : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->future();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDisconnectionHandlerFnRemoveValue);
+  internal_->RemoveValueImpl(handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DisconnectionHandler::RemoveValueLastResult() {
-  return internal_ ? internal_->RemoveValueLastResult() : Future<void>();
-}
 
 Future<void> DisconnectionHandler::SetValue(Variant value) {
-  return internal_ ? internal_->SetValue(value) : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->future();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDisconnectionHandlerFnSetValue);
+  internal_->SetValueImpl(std::move(value), handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DisconnectionHandler::SetValueLastResult() {
-  return internal_ ? internal_->SetValueLastResult() : Future<void>();
-}
 
 Future<void> DisconnectionHandler::SetValueAndPriority(Variant value,
                                                        Variant priority) {
-  return internal_ ? internal_->SetValueAndPriority(value, priority)
-                   : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->future();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDisconnectionHandlerFnSetValueAndPriority);
+  internal_->SetValueAndPriorityImpl(std::move(value), std::move(priority), handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DisconnectionHandler::SetValueAndPriorityLastResult() {
-  return internal_ ? internal_->SetValueAndPriorityLastResult()
-                   : Future<void>();
-}
 
 Future<void> DisconnectionHandler::UpdateChildren(Variant values) {
-  return internal_ ? internal_->UpdateChildren(values) : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->future();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDisconnectionHandlerFnUpdateChildren);
+  internal_->UpdateChildrenImpl(std::move(values), handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DisconnectionHandler::UpdateChildrenLastResult() {
-  return internal_ ? internal_->UpdateChildrenLastResult() : Future<void>();
-}
 
 }  // namespace database
 }  // namespace firebase

@@ -98,8 +98,6 @@ DatabaseInternal::DatabaseInternal(App* app)
 
 DatabaseInternal::DatabaseInternal(App* app, const char* url)
     : app_(app),
-      future_manager_(),
-      cleanup_(),
       database_url_(url ? url : ""),
       constructor_url_(url ? url : ""),
       persistence_enabled_(false),
@@ -117,7 +115,6 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
 
 DatabaseInternal::~DatabaseInternal() {
   safe_this_.ClearReference();
-  cleanup_.CleanupAll();
   if (app_ != nullptr) {
     app_->function_registry()->CallFunction(
         ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);

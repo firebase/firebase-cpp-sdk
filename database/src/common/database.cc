@@ -155,7 +155,9 @@ void Database::DeleteInternal() {
   {
     MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
     // Force cleanup to happen first.
+    #if !defined(FIREBASE_TARGET_DESKTOP)
     internal_to_delete->cleanup().CleanupAll();
+#endif
   }
   delete internal_to_delete;
 

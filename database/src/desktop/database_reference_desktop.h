@@ -63,33 +63,27 @@ class DatabaseReferenceInternal : public QueryInternal {
 
   DatabaseReferenceInternal* PushChild();
 
-  Future<void> RemoveValue();
+  void RemoveValueImpl(SafeFutureHandle<void> handle);
 
-  Future<void> RemoveValueLastResult();
-
+  
   Future<DataSnapshot> RunTransaction(
       DoTransactionWithContext transaction_function, void* context,
       void (*delete_context)(void*), bool trigger_local_events = true);
 
-  Future<DataSnapshot> RunTransactionLastResult();
+  
+  void SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle);
 
-  Future<void> SetPriority(const Variant& priority);
+  
+  void SetValueImpl(const Variant& value, SafeFutureHandle<void> handle);
 
-  Future<void> SetPriorityLastResult();
+  
+  void SetValueAndPriorityImpl(const Variant& value,
+                                   const Variant& priority, SafeFutureHandle<void> handle);
 
-  Future<void> SetValue(const Variant& value);
+  
+  void UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle);
 
-  Future<void> SetValueLastResult();
-
-  Future<void> SetValueAndPriority(const Variant& value,
-                                   const Variant& priority);
-
-  Future<void> SetValueAndPriorityLastResult();
-
-  Future<void> UpdateChildren(const Variant& values);
-
-  Future<void> UpdateChildrenLastResult();
-
+  
   DisconnectionHandler* OnDisconnect();
 
   void GoOffline();
@@ -98,6 +92,7 @@ class DatabaseReferenceInternal : public QueryInternal {
 
  private:
   // Get the Future for the DatabaseReferenceInternal.
+  public:
   ReferenceCountedFutureImpl* ref_future();
 
   // The memory location of this member variable is used to look up our
@@ -105,7 +100,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
   // instances, but have the same "this" pointer as one is a subclass of the
   // other.
-  int future_api_id_ = 0;
+  ReferenceCountedFutureImpl ref_future_impl_;
 };
 
 }  // namespace internal

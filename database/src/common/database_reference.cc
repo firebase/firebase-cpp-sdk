@@ -193,12 +193,13 @@ DatabaseReference DatabaseReference::PushChild() const {
 }
 
 Future<void> DatabaseReference::RemoveValue() {
-  return internal_ ? internal_->RemoveValue() : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->ref_future();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnRemoveValue);
+  internal_->RemoveValueImpl(handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DatabaseReference::RemoveValueLastResult() {
-  return internal_ ? internal_->RemoveValueLastResult() : Future<void>();
-}
 
 Future<DataSnapshot> DatabaseReference::RunTransaction(
     DoTransactionWithContext transaction_function, void* context,
@@ -237,48 +238,77 @@ Future<DataSnapshot> DatabaseReference::RunTransaction(
                                    DeleteStdFunction, trigger_local_events);
 }
 
-Future<DataSnapshot> DatabaseReference::RunTransactionLastResult() {
-  return internal_ ? internal_->RunTransactionLastResult()
-                   : Future<DataSnapshot>();
-}
 
 Future<void> DatabaseReference::SetPriority(Variant priority) {
-  return internal_ ? internal_->SetPriority(std::move(priority))
-                   : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->ref_future();
+  if (api->LastResult(internal::kDatabaseReferenceFnSetValueAndPriority).status() == kFutureStatusPending) {
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetPriority);
+    api->Complete(handle, kErrorConflictingOperationInProgress, internal::kErrorMsgConflictSetPriority);
+    return MakeFuture(api, handle);
+  }
+  if (!internal::IsValidPriority(priority)) {
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetPriority);
+    api->Complete(handle, kErrorInvalidVariantType, internal::kErrorMsgInvalidVariantForPriority);
+    return MakeFuture(api, handle);
+  }
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetPriority);
+  internal_->SetPriorityImpl(std::move(priority), handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DatabaseReference::SetPriorityLastResult() {
-  return internal_ ? internal_->SetPriorityLastResult() : Future<void>();
-}
 
 Future<void> DatabaseReference::SetValue(Variant value) {
-  return internal_ ? internal_->SetValue(std::move(value)) : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->ref_future();
+  if (api->LastResult(internal::kDatabaseReferenceFnSetValueAndPriority).status() == kFutureStatusPending) {
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetValue);
+    api->Complete(handle, kErrorConflictingOperationInProgress, internal::kErrorMsgConflictSetValue);
+    return MakeFuture(api, handle);
+  }
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetValue);
+  internal_->SetValueImpl(std::move(value), handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DatabaseReference::SetValueLastResult() {
-  return internal_ ? internal_->SetValueLastResult() : Future<void>();
+
+Future<void> DatabaseReference::SetValueAndPriority(Variant value, Variant priority) {
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->ref_future();
+  if (api->LastResult(internal::kDatabaseReferenceFnSetValue).status() == kFutureStatusPending) {
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetValueAndPriority);
+    api->Complete(handle, kErrorConflictingOperationInProgress, internal::kErrorMsgConflictSetValue);
+    return MakeFuture(api, handle);
+  }
+  if (api->LastResult(internal::kDatabaseReferenceFnSetPriority).status() == kFutureStatusPending) {
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetValueAndPriority);
+    api->Complete(handle, kErrorConflictingOperationInProgress, internal::kErrorMsgConflictSetPriority);
+    return MakeFuture(api, handle);
+  }
+  if (!internal::IsValidPriority(priority)) {
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetValueAndPriority);
+    api->Complete(handle, kErrorInvalidVariantType, internal::kErrorMsgInvalidVariantForPriority);
+    return MakeFuture(api, handle);
+  }
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnSetValueAndPriority);
+  internal_->SetValueAndPriorityImpl(std::move(value), std::move(priority), handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DatabaseReference::SetValueAndPriority(Variant value,
-                                                    Variant priority) {
-  return internal_ ? internal_->SetValueAndPriority(std::move(value),
-                                                    std::move(priority))
-                   : Future<void>();
-}
-
-Future<void> DatabaseReference::SetValueAndPriorityLastResult() {
-  return internal_ ? internal_->SetValueAndPriorityLastResult()
-                   : Future<void>();
-}
 
 Future<void> DatabaseReference::UpdateChildren(Variant values) {
-  return internal_ ? internal_->UpdateChildren(std::move(values))
-                   : Future<void>();
+  if (!internal_) return Future<void>();
+  ReferenceCountedFutureImpl* api = internal_->ref_future();
+  if (!values.is_map()) {
+    SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnUpdateChildren);
+    api->Complete(handle, kErrorInvalidVariantType, internal::kErrorMsgInvalidVariantForUpdateChildren);
+    return MakeFuture(api, handle);
+  }
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(internal::kDatabaseReferenceFnUpdateChildren);
+  internal_->UpdateChildrenImpl(std::move(values), handle);
+  return MakeFuture(api, handle);
 }
 
-Future<void> DatabaseReference::UpdateChildrenLastResult() {
-  return internal_ ? internal_->UpdateChildrenLastResult() : Future<void>();
-}
 
 std::string DatabaseReference::url() const {
   return internal_ ? internal_->GetUrl() : std::string();

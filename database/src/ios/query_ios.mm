@@ -247,7 +247,7 @@ static void CancelValueListener(
   [callback_state.lock unlock];
 }
 
-Future<DataSnapshot> QueryInternal::GetValue() {
+void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   if (!database_) return Future<DataSnapshot>();
   ReferenceCountedFutureImpl* future_api = query_future();
   SafeFutureHandle<DataSnapshot> future_handle =
@@ -313,10 +313,6 @@ Future<DataSnapshot> QueryInternal::GetValue() {
   return result_future;
 }
 
-Future<DataSnapshot> QueryInternal::GetValueLastResult() {
-  return static_cast<const Future<DataSnapshot>&>(
-      query_future()->LastResult(kQueryFnGetValue));
-}
 
 void QueryInternal::AddValueListener(ValueListener* value_listener) {
   if (!database_ || !impl() || !value_listener) return;

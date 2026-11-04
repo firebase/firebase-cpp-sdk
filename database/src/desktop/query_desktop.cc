@@ -85,64 +85,40 @@ static bool ValidateQueryEndpoints(const QueryParams& params, Logger* logger) {
 
 QueryInternal::QueryInternal(DatabaseInternal* database,
                              const QuerySpec& query_spec)
-    : database_(database), query_spec_(query_spec) {
-  if (database_) {
-    database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  }
+    : database_(database), query_spec_(query_spec), future_impl_(kQueryFnCount) {
+  
 }
 
 QueryInternal::QueryInternal(const QueryInternal& internal)
-    : database_(internal.database_), query_spec_(internal.query_spec_) {
-  if (database_) {
-    database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  }
+    : database_(internal.database_), query_spec_(internal.query_spec_), future_impl_(kQueryFnCount) {
 }
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& internal) {
   if (&internal == this) return *this;
-  if (database_ != internal.database_) {
-    if (database_) {
-      database_->future_manager().ReleaseFutureApi(&future_api_id_);
-    }
-    database_ = internal.database_;
-    if (database_) {
-      database_->future_manager().AllocFutureApi(&future_api_id_,
-                                                 kQueryFnCount);
-    }
-  }
+  database_ = internal.database_;
   query_spec_ = internal.query_spec_;
   return *this;
 }
 
 QueryInternal::QueryInternal(QueryInternal&& internal) noexcept
     : database_(internal.database_),
-      query_spec_(std::move(internal.query_spec_)) {
+      query_spec_(std::move(internal.query_spec_)), future_impl_(kQueryFnCount) {
   internal.database_ = nullptr;
-  if (database_) {
-    database_->future_manager().MoveFutureApi(&internal.future_api_id_,
-                                              &future_api_id_);
-  }
+  
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& internal) noexcept {
   if (&internal == this) return *this;
-  if (database_) {
-    database_->future_manager().ReleaseFutureApi(&future_api_id_);
-  }
+  
   database_ = internal.database_;
   internal.database_ = nullptr;
   query_spec_ = std::move(internal.query_spec_);
-  if (database_) {
-    database_->future_manager().MoveFutureApi(&internal.future_api_id_,
-                                              &future_api_id_);
-  }
+  
   return *this;
 }
 
 QueryInternal::~QueryInternal() {
-  if (database_) {
-    database_->future_manager().ReleaseFutureApi(&future_api_id_);
-  }
+  
 }
 
 class SingleValueEventRegistration : public ValueEventRegistration {
@@ -200,26 +176,18 @@ class SingleValueEventRegistration : public ValueEventRegistration {
   std::unique_ptr<SingleValueListener> listener_;
 };
 
-Future<DataSnapshot> QueryInternal::GetValue() {
+void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   ReferenceCountedFutureImpl* api = query_future();
-  if (!database_ || !api) return Future<DataSnapshot>();
-  SafeFutureHandle<DataSnapshot> handle =
-      api->SafeAlloc<DataSnapshot>(kQueryFnGetValue, DataSnapshot(nullptr));
+  if (!database_ || !api) return;
   auto listener =
       std::make_unique<SingleValueListener>(database_, query_spec_, api, handle);
   void* listener_ptr = listener.get();
   AddEventRegistration(std::make_unique<SingleValueEventRegistration>(
                            database_, std::move(listener), query_spec_),
                        listener_ptr);
-  return MakeFuture(api, handle);
+  
 }
 
-Future<DataSnapshot> QueryInternal::GetValueLastResult() {
-  ReferenceCountedFutureImpl* api = query_future();
-  return api ? static_cast<const Future<DataSnapshot>&>(
-                   api->LastResult(kQueryFnGetValue))
-             : Future<DataSnapshot>();
-}
 
 void QueryInternal::AddValueListener(ValueListener* listener) {
   if (!database_ || !listener) return;
@@ -597,8 +565,7 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
 }
 
 ReferenceCountedFutureImpl* QueryInternal::query_future() {
-  return database_ ? database_->future_manager().GetFutureApi(&future_api_id_)
-                   : nullptr;
+  return database_ ? &future_impl_ : nullptr;
 }
 
 }  // namespace internal

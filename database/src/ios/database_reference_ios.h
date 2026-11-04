@@ -99,11 +99,10 @@ class DatabaseReferenceInternal : public QueryInternal {
   DatabaseReferenceInternal* PushChild();
 
   // Removes the value at this location from the database.
-  Future<void> RemoveValue();
+  void RemoveValueImpl(SafeFutureHandle<void> handle);
 
   // Gets the result of the most recent call to RemoveValue();
-  Future<void> RemoveValueLastResult();
-
+  
   // Run a user-supplied callback function, possibly multiple times, to perform
   // an atomic transaction on the database.
   Future<DataSnapshot> RunTransaction(
@@ -111,36 +110,31 @@ class DatabaseReferenceInternal : public QueryInternal {
       void (*delete_context)(void*), bool trigger_local_events = true);
 
   // Get the result of the most recent call to RunTransaction().
-  Future<DataSnapshot> RunTransactionLastResult();
-
+  
   // Sets the priority of this field, which controls its sort
   // order relative to its siblings.
-  Future<void> SetPriority(const Variant& priority);
+  void SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle);
 
   // Gets the result of the most recent call to SetPriority().
-  Future<void> SetPriorityLastResult();
-
+  
   // Sets the data at this location to the given value.
-  Future<void> SetValue(const Variant& value);
+  void SetValueImpl(const Variant& value, SafeFutureHandle<void> handle);
 
   // Gets the result of the most recent call to SetValue().
-  Future<void> SetValueLastResult();
-
+  
   // Sets both the data and priority of this location. See SetValue() and
   // SetPriority() for context on the parameters.
-  Future<void> SetValueAndPriority(const Variant& value,
-                                   const Variant& priority);
+  void SetValueAndPriorityImpl(const Variant& value,
+                                   const Variant& priority, SafeFutureHandle<void> handle);
 
   // Get the result of the most recent call to SetValueAndPriority().
-  Future<void> SetValueAndPriorityLastResult();
-
+  
   // Updates the specified child keys to the given values.
-  Future<void> UpdateChildren(const Variant& values);
+  void UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle);
 
   // Gets the result of the most recent call to either version of
   // UpdateChildren().
-  Future<void> UpdateChildrenLastResult();
-
+  
   // Get the full URL representation of this reference.
   std::string GetUrl() const;
 
@@ -163,6 +157,7 @@ class DatabaseReferenceInternal : public QueryInternal {
 
  private:
   // Get the Future for the DatabaseReferenceInternal.
+  public:
   ReferenceCountedFutureImpl* ref_future();
 
   // Object lifetime managed by Objective C ARC.

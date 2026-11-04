@@ -78,33 +78,27 @@ class DatabaseReferenceInternal : public QueryInternal {
   // This should be passed to a DatabaseReference for lifetime management.
   DatabaseReferenceInternal* PushChild() const;
 
-  Future<void> RemoveValue();
+  void RemoveValueImpl(SafeFutureHandle<void> handle);
 
-  Future<void> RemoveValueLastResult();
-
+  
   Future<DataSnapshot> RunTransaction(
       DoTransactionWithContext transaction_function, void* context,
       void (*delete_context)(void*), bool trigger_local_events = true);
 
-  Future<DataSnapshot> RunTransactionLastResult();
+  
+  void SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle);
 
-  Future<void> SetPriority(const Variant& priority);
+  
+  void SetValueImpl(const Variant& value, SafeFutureHandle<void> handle);
 
-  Future<void> SetPriorityLastResult();
+  
+  void SetValueAndPriorityImpl(const Variant& value,
+                                   const Variant& priority, SafeFutureHandle<void> handle);
 
-  Future<void> SetValue(const Variant& value);
+  
+  void UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle);
 
-  Future<void> SetValueLastResult();
-
-  Future<void> SetValueAndPriority(const Variant& value,
-                                   const Variant& priority);
-
-  Future<void> SetValueAndPriorityLastResult();
-
-  Future<void> UpdateChildren(const Variant& values);
-
-  Future<void> UpdateChildrenLastResult();
-
+  
   std::string GetUrl() const;
 
   DisconnectionHandler* OnDisconnect();
@@ -120,6 +114,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   static void Terminate(App* app);
 
   // Get the Future for the DatabaseReferenceInternal.
+  public:
   ReferenceCountedFutureImpl* ref_future();
   // The memory location of this member variable is used to look up our
   // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and

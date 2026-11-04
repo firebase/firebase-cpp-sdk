@@ -101,10 +101,9 @@ class QueryInternal {
   virtual ~QueryInternal();
 
   // Gets the value of the query for the given location a single time.
-  Future<DataSnapshot> GetValue();
+  void GetValueImpl(SafeFutureHandle<DataSnapshot> handle);
   // Gets the result of the most recent call to GetValue().
-  Future<DataSnapshot> GetValueLastResult();
-
+  
   // Adds a listener that will be called immediately and then again any time the
   // data changes.
   void AddValueListener(ValueListener* listener);
@@ -211,6 +210,7 @@ class QueryInternal {
 
  private:
   // Get the Future for the QueryInternal.
+  public:
   ReferenceCountedFutureImpl* query_future();
 
   // Object lifetime managed by Objective C ARC.

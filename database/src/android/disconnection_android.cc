@@ -121,7 +121,7 @@ void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
 }
 }  // namespace
 
-Future<void> DisconnectionHandlerInternal::Cancel() {
+void DisconnectionHandlerInternal::CancelImpl(SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnCancel);
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
@@ -145,12 +145,8 @@ Future<void> DisconnectionHandlerInternal::Cancel() {
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::CancelLastResult() {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kDisconnectionHandlerFnCancel));
-}
 
-Future<void> DisconnectionHandlerInternal::RemoveValue() {
+void DisconnectionHandlerInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnRemoveValue);
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
@@ -174,12 +170,8 @@ Future<void> DisconnectionHandlerInternal::RemoveValue() {
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::RemoveValueLastResult() {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kDisconnectionHandlerFnRemoveValue));
-}
 
-Future<void> DisconnectionHandlerInternal::SetValue(const Variant& value) {
+void DisconnectionHandlerInternal::SetValueImpl(const Variant& value, SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValue);
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
@@ -210,13 +202,9 @@ Future<void> DisconnectionHandlerInternal::SetValue(const Variant& value) {
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::SetValueLastResult() {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kDisconnectionHandlerFnSetValue));
-}
 
-Future<void> DisconnectionHandlerInternal::SetValueAndPriority(
-    const Variant& value, const Variant& priority) {
+void DisconnectionHandlerInternal::SetValueAndPriorityImpl(
+    const Variant& value, const Variant& priority, SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValueAndPriority);
   if (SetValueLastResult().status() == kFutureStatusPending) {
@@ -265,12 +253,8 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::SetValueAndPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kDisconnectionHandlerFnSetValueAndPriority));
-}
 
-Future<void> DisconnectionHandlerInternal::UpdateChildren(const Variant& values) {
+void DisconnectionHandlerInternal::UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnUpdateChildren);
   if (!values.is_map()) {
@@ -302,10 +286,6 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(const Variant& values)
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::UpdateChildrenLastResult() {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kDisconnectionHandlerFnUpdateChildren));
-}
 
 ReferenceCountedFutureImpl* DisconnectionHandlerInternal::future() {
   return db_->future_manager().GetFutureApi(this);

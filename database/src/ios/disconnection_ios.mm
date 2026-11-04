@@ -47,27 +47,21 @@ DisconnectionHandlerInternal::~DisconnectionHandlerInternal() {
   database_->future_manager().ReleaseFutureApi(this);
 }
 
-Future<void> DisconnectionHandlerInternal::Cancel() {
+void DisconnectionHandlerInternal::CancelImpl(SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnCancel);
   [impl() cancelDisconnectOperationsWithCompletionBlock:CreateCompletionBlock(handle, future())];
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::CancelLastResult() {
-  return static_cast<const Future<void>&>(future()->LastResult(kDisconnectionHandlerFnCancel));
-}
 
-Future<void> DisconnectionHandlerInternal::RemoveValue() {
+void DisconnectionHandlerInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnRemoveValue);
   [impl() onDisconnectRemoveValueWithCompletionBlock:CreateCompletionBlock(handle, future())];
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::RemoveValueLastResult() {
-  return static_cast<const Future<void>&>(future()->LastResult(kDisconnectionHandlerFnRemoveValue));
-}
 
-Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
+void DisconnectionHandlerInternal::SetValueImpl(Variant value, SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValue);
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
     future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
@@ -78,11 +72,8 @@ Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::SetValueLastResult() {
-  return static_cast<const Future<void>&>(future()->LastResult(kDisconnectionHandlerFnSetValue));
-}
 
-Future<void> DisconnectionHandlerInternal::SetValueAndPriority(Variant value, Variant priority) {
+void DisconnectionHandlerInternal::SetValueAndPriorityImpl(Variant value, Variant priority, SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnSetValueAndPriority);
   if (SetValueLastResult().status() == kFutureStatusPending) {
@@ -97,12 +88,8 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(Variant value, Va
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::SetValueAndPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kDisconnectionHandlerFnSetValueAndPriority));
-}
 
-Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
+void DisconnectionHandlerInternal::UpdateChildrenImpl(Variant values, SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnUpdateChildren);
   if (!values.is_map()) {
     future()->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForUpdateChildren);
@@ -115,10 +102,6 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
   return MakeFuture(future(), handle);
 }
 
-Future<void> DisconnectionHandlerInternal::UpdateChildrenLastResult() {
-  return
-      static_cast<const Future<void>&>(future()->LastResult(kDisconnectionHandlerFnUpdateChildren));
-}
 
 FIRDatabaseReference* _Nonnull DisconnectionHandlerInternal::impl() const { return impl_->get(); }
 

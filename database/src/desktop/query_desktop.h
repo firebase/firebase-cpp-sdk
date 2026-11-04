@@ -49,9 +49,8 @@ class QueryInternal {
 
   virtual ~QueryInternal();
 
-  Future<DataSnapshot> GetValue();
-  Future<DataSnapshot> GetValueLastResult();
-
+  void GetValueImpl(SafeFutureHandle<DataSnapshot> handle);
+  
   void AddValueListener(ValueListener* listener);
 
   void RemoveValueListener(ValueListener* listener);
@@ -95,6 +94,7 @@ class QueryInternal {
 
  private:
   // Get the Future for the QueryInternal.
+  public:
   ReferenceCountedFutureImpl* query_future();
 
   void AddEventRegistration(std::unique_ptr<EventRegistration> registration,
@@ -111,7 +111,7 @@ class QueryInternal {
   // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
   // instances, but have the same "this" pointer as one is a subclass of the
   // other.
-  int future_api_id_ = 0;
+  ReferenceCountedFutureImpl future_impl_;
 };
 
 struct ValueListenerCleanupData {

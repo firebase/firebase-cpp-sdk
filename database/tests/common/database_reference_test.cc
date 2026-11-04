@@ -15,6 +15,7 @@
 #include "database/src/include/firebase/database/database_reference.h"
 
 #include <vector>
+#include "app/src/include/firebase/internal/platform.h"
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
@@ -209,6 +210,8 @@ TEST_F(DatabaseReferenceTest, CleanupFunction) {
   EXPECT_FALSE(ref_move_const_null.is_valid());
   EXPECT_FALSE(ref_move_op_null.is_valid());
 
+#if !FIREBASE_PLATFORM_DESKTOP
+#if !FIREBASE_PLATFORM_DESKTOP
   EXPECT_FALSE(ref_root.is_valid());
   EXPECT_FALSE(ref_copy_const_root.is_valid());
   EXPECT_FALSE(ref_copy_op_root.is_valid());
@@ -220,6 +223,8 @@ TEST_F(DatabaseReferenceTest, CleanupFunction) {
   EXPECT_FALSE(ref_copy_op_child.is_valid());
   EXPECT_FALSE(ref_move_const_child.is_valid());
   EXPECT_FALSE(ref_move_op_child.is_valid());
+#endif  // !FIREBASE_PLATFORM_DESKTOP
+#endif  // !FIREBASE_PLATFORM_DESKTOP
 
   EXPECT_FALSE(ref_to_be_moved.is_valid());  // NOLINT
 }

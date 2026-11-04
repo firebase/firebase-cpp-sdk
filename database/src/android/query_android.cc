@@ -557,7 +557,7 @@ void SingleValueListener::OnCancelled(const Error& error_code,
   delete this;
 }
 
-Future<DataSnapshot> QueryInternal::GetValue() {
+void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   // Register a one-time ValueEventListener with the query.
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   SafeFutureHandle<DataSnapshot> handle =
@@ -591,10 +591,6 @@ Future<DataSnapshot> QueryInternal::GetValue() {
   return MakeFuture(query_future(), handle);
 }
 
-Future<DataSnapshot> QueryInternal::GetValueLastResult() {
-  return static_cast<const Future<DataSnapshot>&>(
-      query_future()->LastResult(kQueryFnGetValue));
-}
 
 void QueryInternal::AddValueListener(ValueListener* value_listener) {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();

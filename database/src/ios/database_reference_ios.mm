@@ -215,26 +215,16 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() {
       std::make_unique<FIRDatabaseReferencePointer>([impl() childByAutoId]));
 }
 
-Future<void> DatabaseReferenceInternal::RemoveValue() {
-  if (!database_) return Future<void>();
-  ReferenceCountedFutureImpl* future_api = ref_future();
-  SafeFutureHandle<void> handle =
-      future_api->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
-  Future<void> result_future = MakeFuture(future_api, handle);
+void DatabaseReferenceInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return;
   if (!impl()) {
-    future_api->Complete(handle, kErrorOperationFailed,
-                         GetErrorMessage(kErrorOperationFailed));
-    return result_future;
+    api->Complete(handle, kErrorOperationFailed, GetErrorMessage(kErrorOperationFailed));
+    return;
   }
-  [impl()
-      removeValueWithCompletionBlock:CreateCompletionBlock(handle, future_api)];
-  return result_future;
+  [impl() removeValueWithCompletionBlock:CreateCompletionBlock(handle, api)];
 }
 
-Future<void> DatabaseReferenceInternal::RemoveValueLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnRemoveValue));
-}
 
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
     DoTransactionWithContext transaction_function, void* context,
@@ -318,68 +308,31 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
   return result_future;
 }
 
-Future<DataSnapshot> DatabaseReferenceInternal::RunTransactionLastResult() {
-  return static_cast<const Future<DataSnapshot>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnRunTransaction));
-}
 
-Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
-  if (!database_) return Future<void>();
-  ReferenceCountedFutureImpl* future_api = ref_future();
-  SafeFutureHandle<void> handle =
-      future_api->SafeAlloc<void>(kDatabaseReferenceFnSetPriority);
-  Future<void> result_future = MakeFuture(future_api, handle);
+void DatabaseReferenceInternal::SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return;
   if (!impl()) {
-    future_api->Complete(handle, kErrorOperationFailed,
-                         GetErrorMessage(kErrorOperationFailed));
-    return result_future;
+    api->Complete(handle, kErrorOperationFailed, GetErrorMessage(kErrorOperationFailed));
+    return;
   }
-  if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
-    future_api->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetPriority);
-  } else if (!IsValidPriority(priority)) {
-    future_api->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForPriority);
-  } else {
-    [impl() setPriority:VariantToId(priority)
-        withCompletionBlock:CreateCompletionBlock(handle, future_api)];
-  }
-  return result_future;
+  [impl() setPriority:VariantToId(priority) withCompletionBlock:CreateCompletionBlock(handle, api)];
 }
 
-Future<void> DatabaseReferenceInternal::SetPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetPriority));
-}
 
-Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
-  if (!database_) return Future<void>();
-  ReferenceCountedFutureImpl* future_api = ref_future();
-  SafeFutureHandle<void> handle =
-      future_api->SafeAlloc<void>(kDatabaseReferenceFnSetValue);
-  Future<void> result_future = MakeFuture(future_api, handle);
+void DatabaseReferenceInternal::SetValueImpl(const Variant& value, SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return;
   if (!impl()) {
-    future_api->Complete(handle, kErrorOperationFailed,
-                         GetErrorMessage(kErrorOperationFailed));
-    return result_future;
+    api->Complete(handle, kErrorOperationFailed, GetErrorMessage(kErrorOperationFailed));
+    return;
   }
-  if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
-    future_api->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetValue);
-  } else {
-    [impl() setValue:VariantToId(value)
-        withCompletionBlock:CreateCompletionBlock(handle, future_api)];
-  }
-  return result_future;
+  [impl() setValue:VariantToId(value) withCompletionBlock:CreateCompletionBlock(handle, api)];
 }
 
-Future<void> DatabaseReferenceInternal::SetValueLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetValue));
-}
 
-Future<void> DatabaseReferenceInternal::SetValueAndPriority(
-    const Variant& value, const Variant& priority) {
+void DatabaseReferenceInternal::SetValueAndPriorityImpl(
+    const Variant& value, const Variant& priority, SafeFutureHandle<void> handle) {
   if (!database_) return Future<void>();
   ReferenceCountedFutureImpl* future_api = ref_future();
   SafeFutureHandle<void> handle =
@@ -407,38 +360,19 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(
   return result_future;
 }
 
-Future<void> DatabaseReferenceInternal::SetValueAndPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetValueAndPriority));
-}
 
-Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
-  if (!database_) return Future<void>();
-  ReferenceCountedFutureImpl* future_api = ref_future();
-  SafeFutureHandle<void> handle =
-      future_api->SafeAlloc<void>(kDatabaseReferenceFnUpdateChildren);
-  Future<void> result_future = MakeFuture(future_api, handle);
+void DatabaseReferenceInternal::UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!database_ || !api) return;
   if (!impl()) {
-    future_api->Complete(handle, kErrorOperationFailed,
-                         GetErrorMessage(kErrorOperationFailed));
-    return result_future;
+    api->Complete(handle, kErrorOperationFailed, GetErrorMessage(kErrorOperationFailed));
+    return;
   }
-  if (!values.is_map()) {
-    future_api->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForUpdateChildren);
-  } else {
-    id values_id = VariantToId(values);
-    NSDictionary* values_dict = (NSDictionary*)values_id;
-    [impl() updateChildValues:values_dict
-          withCompletionBlock:CreateCompletionBlock(handle, future_api)];
-  }
-  return result_future;
+  id values_id = VariantToId(values);
+  NSDictionary* values_dict = (NSDictionary*)values_id;
+  [impl() updateChildValues:values_dict withCompletionBlock:CreateCompletionBlock(handle, api)];
 }
 
-Future<void> DatabaseReferenceInternal::UpdateChildrenLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnUpdateChildren));
-}
 
 std::string DatabaseReferenceInternal::GetUrl() const {
   NSString* desc = impl() ? [impl() description] : nil;

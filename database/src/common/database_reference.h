@@ -27,6 +27,16 @@ extern const char kErrorMsgInvalidVariantForPriority[];
 extern const char kErrorMsgInvalidVariantForUpdateChildren[];
 
 // Future functions.
+
+enum DisconnectionHandlerFn {
+  kDisconnectionHandlerFnCancel = 0,
+  kDisconnectionHandlerFnRemoveValue,
+  kDisconnectionHandlerFnSetValue,
+  kDisconnectionHandlerFnSetValueAndPriority,
+  kDisconnectionHandlerFnUpdateChildren,
+  kDisconnectionHandlerFnCount,
+};
+
 enum DatabaseReferenceFn {
   kDatabaseReferenceFnRemoveValue = 0,
   kDatabaseReferenceFnRunTransaction,

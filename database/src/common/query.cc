@@ -111,18 +111,13 @@ Query::~Query() {
 }
 
 Future<DataSnapshot> Query::GetValue() {
-  if (internal_)
-    return internal_->GetValue();
-  else
-    return Future<DataSnapshot>();
+  if (!internal_) return Future<DataSnapshot>();
+  ReferenceCountedFutureImpl* api = internal_->query_future();
+  SafeFutureHandle<DataSnapshot> handle = api->SafeAlloc<DataSnapshot>(internal::kQueryFnGetValue);
+  internal_->GetValueImpl(handle);
+  return MakeFuture(api, handle);
 }
 
-Future<DataSnapshot> Query::GetValueLastResult() {
-  if (internal_)
-    return internal_->GetValueLastResult();
-  else
-    return Future<DataSnapshot>();
-}
 
 void Query::AddValueListener(ValueListener* listener) {
   if (internal_ && listener) internal_->AddValueListener(listener);

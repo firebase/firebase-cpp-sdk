@@ -394,10 +394,6 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
   return MakeFuture(ref_future(), handle);
 }
 
-Future<DataSnapshot> DatabaseReferenceInternal::RunTransactionLastResult() {
-  return static_cast<const Future<DataSnapshot>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnRunTransaction));
-}
 
 namespace {
 struct FutureCallbackData {
@@ -452,100 +448,62 @@ void RegisterTaskCallback(JNIEnv* env, jobject task,
 }
 }  // namespace
 
-Future<void> DatabaseReferenceInternal::RemoveValue() {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
+void DatabaseReferenceInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!db_ || !api) return;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject task = env->CallObjectMethod(
-      obj_, database_reference::GetMethodId(database_reference::kRemoveValue));
+  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kRemoveValue));
   if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
     if (task != nullptr) env->DeleteLocalRef(task);
-    ref_future()->Complete(handle, kErrorUnknownError, "RemoveValue failed");
-    return MakeFuture(ref_future(), handle);
-  }
-  RegisterTaskCallback(env, task, handle, ref_future(), db_,
-                       "RemoveValue failed");
-  return MakeFuture(ref_future(), handle);
-}
-
-Future<void> DatabaseReferenceInternal::RemoveValueLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnRemoveValue));
-}
-
-Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValue);
-  if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetValue);
+    api->Complete(handle, kErrorUnknownError, "RemoveValue failed");
   } else {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
-    jobject value_obj = internal::VariantToJavaObject(env, value);
-    if (!value.is_null() && value_obj == nullptr) {
-      ref_future()->Complete(handle, kErrorInvalidVariantType,
-                             "SetValue failed: invalid Variant");
-      return MakeFuture(ref_future(), handle);
-    }
-    jobject task = env->CallObjectMethod(
-        obj_, database_reference::GetMethodId(database_reference::kSetValue),
-        value_obj);
-    if (value_obj) env->DeleteLocalRef(value_obj);
-    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
-      if (task != nullptr) env->DeleteLocalRef(task);
-      ref_future()->Complete(handle, kErrorUnknownError, "SetValue failed");
-    } else {
-      RegisterTaskCallback(env, task, handle, ref_future(), db_,
-                           "SetValue failed");
-    }
+    RegisterTaskCallback(env, task, handle, api, db_, "RemoveValue failed");
   }
-  return MakeFuture(ref_future(), handle);
 }
 
-Future<void> DatabaseReferenceInternal::SetValueLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetValue));
-}
 
-Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetPriority);
-  if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
-    ref_future()->Complete(handle, kErrorConflictingOperationInProgress,
-                           kErrorMsgConflictSetPriority);
-  } else if (!IsValidPriority(priority)) {
-    ref_future()->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForPriority);
+void DatabaseReferenceInternal::SetValueImpl(const Variant& value, SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!db_ || !api) return;
+  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  jobject value_obj = internal::VariantToJavaObject(env, value);
+  if (!value.is_null() && value_obj == nullptr) {
+    api->Complete(handle, kErrorInvalidVariantType, "SetValue failed: invalid Variant");
+    return;
+  }
+  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kSetValue), value_obj);
+  if (value_obj) env->DeleteLocalRef(value_obj);
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) env->DeleteLocalRef(task);
+    api->Complete(handle, kErrorUnknownError, "SetValue failed");
   } else {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
-    jobject priority_obj = internal::VariantToJavaObject(env, priority);
-    if (!priority.is_null() && priority_obj == nullptr) {
-      ref_future()->Complete(handle, kErrorInvalidVariantType,
-                             kErrorMsgInvalidVariantForPriority);
-      return MakeFuture(ref_future(), handle);
-    }
-    jobject task = env->CallObjectMethod(
-        obj_, database_reference::GetMethodId(database_reference::kSetPriority),
-        priority_obj);
-    if (priority_obj) env->DeleteLocalRef(priority_obj);
-    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
-      if (task != nullptr) env->DeleteLocalRef(task);
-      ref_future()->Complete(handle, kErrorUnknownError, "SetPriority failed");
-    } else {
-      RegisterTaskCallback(env, task, handle, ref_future(), db_,
-                           "SetPriority failed");
-    }
+    RegisterTaskCallback(env, task, handle, api, db_, "SetValue failed");
   }
-  return MakeFuture(ref_future(), handle);
 }
 
-Future<void> DatabaseReferenceInternal::SetPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetPriority));
+
+void DatabaseReferenceInternal::SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!db_ || !api) return;
+  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  jobject priority_obj = internal::VariantToJavaObject(env, priority);
+  if (!priority.is_null() && priority_obj == nullptr) {
+    api->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForPriority);
+    return;
+  }
+  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kSetPriority), priority_obj);
+  if (priority_obj) env->DeleteLocalRef(priority_obj);
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) env->DeleteLocalRef(task);
+    api->Complete(handle, kErrorUnknownError, "SetPriority failed");
+  } else {
+    RegisterTaskCallback(env, task, handle, api, db_, "SetPriority failed");
+  }
 }
 
-Future<void> DatabaseReferenceInternal::SetValueAndPriority(
-    const Variant& value, const Variant& priority) {
+
+void DatabaseReferenceInternal::SetValueAndPriorityImpl(
+    const Variant& value, const Variant& priority, SafeFutureHandle<void> handle) {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValueAndPriority);
   if (SetValueLastResult().status() == kFutureStatusPending) {
@@ -591,46 +549,22 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(
   return MakeFuture(ref_future(), handle);
 }
 
-Future<void> DatabaseReferenceInternal::SetValueAndPriorityLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnSetValueAndPriority));
-}
 
-Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
-  SafeFutureHandle<void> handle =
-      ref_future()->SafeAlloc<void>(kDatabaseReferenceFnUpdateChildren);
-  if (!values.is_map()) {
-    ref_future()->Complete(handle, kErrorInvalidVariantType,
-                           kErrorMsgInvalidVariantForUpdateChildren);
+void DatabaseReferenceInternal::UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle) {
+  ReferenceCountedFutureImpl* api = ref_future();
+  if (!db_ || !api) return;
+  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  jobject values_obj = internal::VariantToJavaObject(env, values);
+  jobject task = env->CallObjectMethod(obj_, database_reference::GetMethodId(database_reference::kUpdateChildren), values_obj);
+  if (values_obj) env->DeleteLocalRef(values_obj);
+  if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
+    if (task != nullptr) env->DeleteLocalRef(task);
+    api->Complete(handle, kErrorUnknownError, "UpdateChildren failed");
   } else {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
-    jobject values_obj = internal::VariantToJavaObject(env, values);
-    if (values_obj == nullptr) {
-      ref_future()->Complete(handle, kErrorInvalidVariantType,
-                             kErrorMsgInvalidVariantForUpdateChildren);
-      return MakeFuture(ref_future(), handle);
-    }
-    jobject task = env->CallObjectMethod(
-        obj_,
-        database_reference::GetMethodId(database_reference::kUpdateChildren),
-        values_obj);
-    env->DeleteLocalRef(values_obj);
-    if (util::CheckAndClearJniExceptions(env) || task == nullptr) {
-      if (task != nullptr) env->DeleteLocalRef(task);
-      ref_future()->Complete(handle, kErrorUnknownError,
-                             "UpdateChildren failed");
-    } else {
-      RegisterTaskCallback(env, task, handle, ref_future(), db_,
-                           "UpdateChildren failed");
-    }
+    RegisterTaskCallback(env, task, handle, api, db_, "UpdateChildren failed");
   }
-  return MakeFuture(ref_future(), handle);
 }
 
-Future<void> DatabaseReferenceInternal::UpdateChildrenLastResult() {
-  return static_cast<const Future<void>&>(
-      ref_future()->LastResult(kDatabaseReferenceFnUpdateChildren));
-}
 
 ReferenceCountedFutureImpl* DatabaseReferenceInternal::ref_future() {
   return db_->future_manager().GetFutureApi(&future_api_id_);

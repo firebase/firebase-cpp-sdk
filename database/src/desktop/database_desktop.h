@@ -22,8 +22,6 @@
 #include <utility>
 #include <vector>
 
-#include "app/src/cleanup_notifier.h"
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
@@ -111,14 +109,12 @@ class DatabaseInternal {
   // Get the logging verbosity.
   LogLevel log_level() const;
 
-  FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return app_ != nullptr; }
 
   const char* database_url() const { return database_url_.c_str(); }
 
-  CleanupNotifier& cleanup() { return cleanup_; }
 
   bool RegisterValueListener(const QuerySpec& spec, ValueListener* listener,
                              ValueListenerCleanupData cleanup_data);
@@ -191,9 +187,7 @@ class DatabaseInternal {
 
   Mutex listener_mutex_;
 
-  FutureManager future_manager_;
 
-  CleanupNotifier cleanup_;
 
   // Needed to generate names that are guarenteed to be unique.
   PushChildNameGenerator name_generator_;

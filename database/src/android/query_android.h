@@ -51,9 +51,8 @@ class QueryInternal {
 
   virtual ~QueryInternal();
 
-  Future<DataSnapshot> GetValue();
-  Future<DataSnapshot> GetValueLastResult();
-
+  void GetValueImpl(SafeFutureHandle<DataSnapshot> handle);
+  
   void AddValueListener(ValueListener* listener);
 
   void RemoveValueListener(ValueListener* listener);
@@ -102,6 +101,7 @@ class QueryInternal {
   internal::QuerySpec query_spec_;
 
  private:
+  public:
   ReferenceCountedFutureImpl* query_future();
 
   // The memory location of this member variable is used to look up our

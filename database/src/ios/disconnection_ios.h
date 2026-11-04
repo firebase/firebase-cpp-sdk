@@ -44,44 +44,39 @@ class DisconnectionHandlerInternal {
   // Cancel any Disconnection operations that are queued up by this handler.
   // When the Future returns, if its Error is kErrorNone, the queue has been
   // cleared on the server.
-  Future<void> Cancel();
+  void CancelImpl(SafeFutureHandle<void> handle);
 
   // Get the result of the most recent call to Cancel().
-  Future<void> CancelLastResult();
-
+  
   // Remove the value at the current location when the client disconnects. When
   // the Future returns, if its Error is kErrorNone, the RemoveValue operation
   // has been successfully queued up on the server.
-  Future<void> RemoveValue();
+  void RemoveValueImpl(SafeFutureHandle<void> handle);
 
   // Get the result of the most recent call to RemoveValue().
-  Future<void> RemoveValueLastResult();
-
+  
   // Set the value of the data at the current location when the client
   // disconnects. When the Future returns, if its Error is kErrorNone, the
   // SetValue operation has been successfully queued up on the server.
-  Future<void> SetValue(Variant value);
+  void SetValueImpl(Variant value, SafeFutureHandle<void> handle);
 
   // Get the result of the most recent call to SetValue().
-  Future<void> SetValueLastResult();
-
+  
   // Set the value and priority of the data at the current location when the
   // client disconnects. When the Future returns, if its Error is kErrorNone,
   // the SetValue operation has been successfully queued up on the server.
-  Future<void> SetValueAndPriority(Variant value, Variant priority);
+  void SetValueAndPriorityImpl(Variant value, Variant priority, SafeFutureHandle<void> handle);
 
   // Get the result of the most recent call to SetValueAndPriority().
-  Future<void> SetValueAndPriorityLastResult();
-
+  
   // Updates the specified child keys to the given values when the client
   // disconnects. When the Future returns, if its Error is kErrorNone, the
   // UpdateChildren operation has been successfully queued up by the server.
-  Future<void> UpdateChildren(Variant values);
+  void UpdateChildrenImpl(Variant values, SafeFutureHandle<void> handle);
 
   // Gets the result of the most recent call to either version of
   // UpdateChildren().
-  Future<void> UpdateChildrenLastResult();
-
+  
   DatabaseInternal* database_internal() const { return database_; }
 
   // Special method to create an invalid DisconnectionHandlerInternal, because
@@ -102,6 +97,7 @@ class DisconnectionHandlerInternal {
 #endif  // __OBJC__
 
   // Get the Future for the DatabaseReferenceInternal.
+  public:
   ReferenceCountedFutureImpl* future();
 
   DatabaseInternal* database_;
