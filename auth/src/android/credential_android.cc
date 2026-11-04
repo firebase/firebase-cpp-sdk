@@ -346,7 +346,8 @@ bool CacheCredentialMethodIds(
     const std::vector<::firebase::internal::EmbeddedFile>& embedded_files) {
   CacheJavaVm(env);
   std::lock_guard<std::mutex> lock(g_credential_methods_mutex);
-  if (!(jniphone::CacheMethodIds(env, activity) &&
+  if (!(jniphone::CacheClassFromFiles(env, activity, &embedded_files) &&
+        jniphone::CacheMethodIds(env, activity) &&
         jniphone::RegisterNatives(
             env, kNativeJniAuthPhoneListenerMethods,
             FIREBASE_ARRAYSIZE(kNativeJniAuthPhoneListenerMethods)))) {

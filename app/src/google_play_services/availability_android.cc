@@ -189,16 +189,26 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
   GetAvailabilityDataRef() = std::make_shared<AvailabilityData>();
 
   // We depend on firebase::util, so initialize it.
-  if (true) {
+  if (firebase::util::Initialize(env, activity)) {
     // Check if the GoogleApiAvailability class exists at all.
     jclass availability_class = firebase::util::FindClass(
         env, activity, "com/google/android/gms/common/GoogleApiAvailability");
     if (availability_class != nullptr) {
       env->DeleteLocalRef(availability_class);
+      const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+          firebase::util::CacheEmbeddedFiles(
+              env, activity,
+              firebase::internal::EmbeddedFile::ToVector(
+                  google_api::google_api_resources_filename,
+                  google_api::google_api_resources_data,
+                  google_api::google_api_resources_size));
       // Initialize JNI methods.
       if (googleapiavailability::CacheMethodIds(env, activity) &&
-          googleapiavailabilityhelper::CacheMethodIds(env, activity)) {
-        env->RegisterNatives(googleapiavailabilityhelper::GetClass(), kHelperMethods, std::size(kHelperMethods));
+          googleapiavailabilityhelper::CacheClassFromFiles(env, activity,
+                                                           &embedded_files) &&
+          googleapiavailabilityhelper::CacheMethodIds(env, activity) &&
+          googleapiavailabilityhelper::RegisterNatives(
+              env, kHelperMethods, std::size(kHelperMethods))) {
         // Everything initialized properly.
         GetAvailabilityDataRef()->classes_loaded = true;
         return true;
@@ -213,6 +223,7 @@ bool InitializeLocked(JNIEnv* env, jobject activity) {
       env->ExceptionDescribe();
       env->ExceptionClear();
     }
+    firebase::util::Terminate(env);
   }
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
@@ -294,6 +305,7 @@ void Terminate(JNIEnv* env) {
         ReleaseClasses(env);
       }
     }
+    firebase::util::Terminate(env);
   }
   data_to_destroy.reset();
 }

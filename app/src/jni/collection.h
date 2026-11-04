@@ -75,7 +75,9 @@ JNI_METHOD_LOOKUP_DECLARATION(double_class, JNI_DOUBLE_METHODS,
 JNI_METHOD_LOOKUP_DECLARATION(boolean_class, JNI_BOOLEAN_METHODS,
                               FIELD_LOOKUP_NONE, "java/lang/Boolean")
 
-#define JNI_SET_METHODS(X) X(Iterator, "iterator", "()Ljava/util/Iterator;")
+#define JNI_SET_METHODS(X)                          \
+  X(Iterator, "iterator", "()Ljava/util/Iterator;") \
+  X(ToArray, "toArray", "()[Ljava/lang/Object;")
 JNI_METHOD_LOOKUP_DECLARATION(set, JNI_SET_METHODS, FIELD_LOOKUP_NONE,
                               "java/util/Set")
 

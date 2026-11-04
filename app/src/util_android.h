@@ -590,8 +590,9 @@ METHOD_LOOKUP_DECLARATION(iterable, ITERABLE_METHODS)
 // Used to setup the cache of Set class method IDs to reduce time spent
 // looking up methods by string.
 // clang-format off
-#define SET_METHODS(X) \
-    X(Iterator, "iterator", "()Ljava/util/Iterator;")
+#define SET_METHODS(X)                               \
+    X(Iterator, "iterator", "()Ljava/util/Iterator;"), \
+    X(ToArray, "toArray", "()[Ljava/lang/Object;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(set, SET_METHODS)
 

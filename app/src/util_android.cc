@@ -15,6 +15,7 @@
  */
 
 #include "app/src/util_android.h"
+#include "app/src/jni/collection.h"
 
 #include <assert.h>
 #include <jni.h>
@@ -470,6 +471,7 @@ static void ReleaseClasses(JNIEnv* env) {
   uri::ReleaseClass(env);
   object::ReleaseClass(env);
   url::ReleaseClass(env);
+  ::firebase::jni::ReleaseCollectionClasses(env);
   if (g_jniresultcallback_loaded || jniresultcallback::GetClass() != nullptr) {
     jniresultcallback::ReleaseClass(env);
     g_jniresultcallback_loaded = false;
@@ -586,7 +588,8 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         throwable::CacheMethodIds(env, activity_object) &&
         uri::CacheMethodIds(env, activity_object) &&
         object::CacheMethodIds(env, activity_object) &&
-        url::CacheMethodIds(env, activity_object))) {
+        url::CacheMethodIds(env, activity_object) &&
+        ::firebase::jni::CacheCollectionMethodIds(env, activity_object))) {
     ReleaseClasses(env);
     TerminateActivityClasses(env);
     return false;

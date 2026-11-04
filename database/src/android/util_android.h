@@ -18,16 +18,21 @@
 #include <jni.h>
 
 #include "app/src/include/firebase/variant.h"
+#include "app/src/util_android.h"
 
 namespace firebase {
 namespace database {
 namespace internal {
 
 // Converts a Variant to a java.lang.Object.
-jobject VariantToJavaObject(JNIEnv* env, const Variant& variant);
+inline jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
+  return ::firebase::util::VariantToJavaObject(env, variant);
+}
 
 // Converts a java.lang.Object into a Variant.
-Variant JavaObjectToVariant(JNIEnv* env, jobject obj);
+inline Variant JavaObjectToVariant(JNIEnv* env, jobject obj) {
+  return ::firebase::util::JavaObjectToVariant(env, obj);
+}
 
 #ifndef FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
 #define FIREBASE_DATABASE_ANDROID_CALLBACKS_DEFINED_
