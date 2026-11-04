@@ -187,41 +187,33 @@ Credential EmailAuthProvider::GetCredential(const char* email, const char* passw
 }
 
 // static
-Credential FacebookAuthProvider::GetCredential(const char* access_token) {
-  FIREBASE_ASSERT_RETURN(Credential(), access_token);
-  if (strlen(access_token) == 0) {
-    return InternalAuthResultProvider::GetCredential(nil, kAuthErrorInvalidCredential,
-                                                     "An access token must be provided.");
-  }
-  FIRAuthCredential* credential = nil;
-  std::string error_message = "Invalid credential.";
-  @try {
-    credential =
-        [FIRFacebookAuthProvider credentialWithAccessToken:util::CStringToNSString(access_token)];
-  } @catch (NSException* exception) {
-    error_message = util::StringFromNSString(exception.reason);
-  }
-  return InternalAuthResultProvider::GetCredential(credential, kAuthErrorInvalidCredential,
-                                                   error_message);
+
+#define FIREBASE_GET_CREDENTIAL_IOS_1(Provider, FIRProvider, Method, Arg1, ErrMsg) \
+Credential Provider::GetCredential(const char* Arg1) { \
+  FIREBASE_ASSERT_RETURN(Credential(), Arg1); \
+  if (strlen(Arg1) == 0) return InternalAuthResultProvider::GetCredential(nil, kAuthErrorInvalidCredential, ErrMsg); \
+  FIRAuthCredential* credential = nil; \
+  std::string error_message = "Invalid credential."; \
+  @try { credential = [FIRProvider Method:util::CStringToNSString(Arg1)]; } \
+  @catch (NSException* exception) { error_message = util::StringFromNSString(exception.reason); } \
+  return InternalAuthResultProvider::GetCredential(credential, kAuthErrorInvalidCredential, error_message); \
 }
 
-// static
-Credential GitHubAuthProvider::GetCredential(const char* token) {
-  FIREBASE_ASSERT_RETURN(Credential(), token);
-  if (strlen(token) == 0) {
-    return InternalAuthResultProvider::GetCredential(nil, kAuthErrorInvalidCredential,
-                                                     "A token must be provided.");
-  }
-  FIRAuthCredential* credential = nil;
-  std::string error_message = "Invalid credential.";
-  @try {
-    credential = [FIRGitHubAuthProvider credentialWithToken:util::CStringToNSString(token)];
-  } @catch (NSException* exception) {
-    error_message = util::StringFromNSString(exception.reason);
-  }
-  return InternalAuthResultProvider::GetCredential(credential, kAuthErrorInvalidCredential,
-                                                   error_message);
+#define FIREBASE_GET_CREDENTIAL_IOS_2(Provider, FIRProvider, Method, Arg1, Arg2, ErrMsg) \
+Credential Provider::GetCredential(const char* Arg1, const char* Arg2) { \
+  FIREBASE_ASSERT_RETURN(Credential(), Arg1 && Arg2); \
+  if (strlen(Arg1) == 0 || strlen(Arg2) == 0) return InternalAuthResultProvider::GetCredential(nil, kAuthErrorInvalidCredential, ErrMsg); \
+  FIRAuthCredential* credential = nil; \
+  std::string error_message = "Invalid credential."; \
+  @try { credential = [FIRProvider Method:util::CStringToNSString(Arg1) secret:util::CStringToNSString(Arg2)]; } \
+  @catch (NSException* exception) { error_message = util::StringFromNSString(exception.reason); } \
+  return InternalAuthResultProvider::GetCredential(credential, kAuthErrorInvalidCredential, error_message); \
 }
+
+FIREBASE_GET_CREDENTIAL_IOS_1(FacebookAuthProvider, FIRFacebookAuthProvider, credentialWithAccessToken, access_token, "An access token must be provided.")
+
+// static
+FIREBASE_GET_CREDENTIAL_IOS_1(GitHubAuthProvider, FIRGitHubAuthProvider, credentialWithToken, token, "A token must be provided.")
 
 // static
 Credential GoogleAuthProvider::GetCredential(const char* id_token, const char* access_token) {
@@ -256,23 +248,7 @@ Credential PlayGamesAuthProvider::GetCredential(const char* server_auth_code) {
 }
 
 // static
-Credential TwitterAuthProvider::GetCredential(const char* token, const char* secret) {
-  FIREBASE_ASSERT_RETURN(Credential(), token && secret);
-  if (strlen(token) == 0 || strlen(secret) == 0) {
-    return InternalAuthResultProvider::GetCredential(nil, kAuthErrorInvalidCredential,
-                                                     "Both token and secret must be provided.");
-  }
-  FIRAuthCredential* credential = nil;
-  std::string error_message = "Invalid credential.";
-  @try {
-    credential = [FIRTwitterAuthProvider credentialWithToken:util::CStringToNSString(token)
-                                                      secret:util::CStringToNSString(secret)];
-  } @catch (NSException* exception) {
-    error_message = util::StringFromNSString(exception.reason);
-  }
-  return InternalAuthResultProvider::GetCredential(credential, kAuthErrorInvalidCredential,
-                                                   error_message);
-}
+FIREBASE_GET_CREDENTIAL_IOS_2(TwitterAuthProvider, FIRTwitterAuthProvider, credentialWithToken, token, secret, "A token and secret must be provided.")
 
 // static
 Credential OAuthProvider::GetCredential(const char* provider_id, const char* id_token,

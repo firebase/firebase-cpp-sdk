@@ -383,8 +383,8 @@ void RunDesktopSignInTask(AuthData* auth_data, PromiseT promise, std::unique_ptr
 }
 
 void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* custom_token) {
-  RunDesktopSignInTask<rest::VerifyCustomTokenRequest, rest::VerifyCustomTokenResponse, Promise<AuthResult>>(
-      auth_data, promise, std::make_unique<rest::VerifyCustomTokenRequest>(*auth_data->app, GetApiKey(*auth_data), custom_token));
+  RunDesktopSignInTask<VerifyCustomTokenRequest, VerifyCustomTokenResponse, Promise<AuthResult>>(
+      auth_data, promise, std::make_unique<VerifyCustomTokenRequest>(*auth_data->app, GetApiKey(*auth_data), custom_token));
 }
 
 void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential) {
@@ -422,13 +422,13 @@ void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
 }
 
 void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
-  RunDesktopSignInTask<rest::VerifyPasswordRequest, rest::VerifyPasswordResponse, Promise<AuthResult>>(
-      auth_data, promise, std::make_unique<rest::VerifyPasswordRequest>(*auth_data->app, GetApiKey(*auth_data), email, password));
+  RunDesktopSignInTask<VerifyPasswordRequest, VerifyPasswordResponse, Promise<AuthResult>>(
+      auth_data, promise, std::make_unique<VerifyPasswordRequest>(*auth_data->app, GetApiKey(*auth_data), email, password));
 }
 
 void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
-  RunDesktopSignInTask<rest::SignUpNewUserRequest, rest::SignUpNewUserResponse, Promise<AuthResult>>(
-      auth_data, promise, std::make_unique<rest::SignUpNewUserRequest>(*auth_data->app, GetApiKey(*auth_data), email, password, ""));
+  RunDesktopSignInTask<SignUpNewUserRequest, SignUpNewUserResponse, Promise<AuthResult>>(
+      auth_data, promise, std::make_unique<SignUpNewUserRequest>(*auth_data->app, GetApiKey(*auth_data), email, password, ""));
 }
 
 void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
