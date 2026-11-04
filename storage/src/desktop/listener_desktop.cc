@@ -55,7 +55,6 @@ void ListenerInternal::Detach() {
   if (old_op && old_handle) {
     std::lock_guard<std::recursive_mutex> op_lock(old_handle->mutex);
     if (old_handle->op == old_op) {
-      old_op->cleanup().UnregisterObject(this);
       old_op->DetachListener(this);
     }
   }

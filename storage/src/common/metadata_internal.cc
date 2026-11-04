@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "storage/src/desktop/metadata_desktop.h"
+#include "storage/src/common/metadata_internal.h"
 
 #include <cctype>
 #include <cstdint>
@@ -53,22 +53,12 @@ const char* MetadataInternal::kBucketKey = "bucket";
 const char* MetadataInternal::kNameKey = "name";
 const char* MetadataInternal::kGenerationKey = "generation";
 
-MetadataInternal::MetadataInternal(const StorageReference& storage_reference)
-    : storage_reference_(storage_reference) {
-  UpdateStorageInternal();
-  if (storage_reference_.is_valid()) {
-    bucket_ = storage_reference_.bucket();
-    path_ = storage_reference_.full_path();
-    name_ = storage_reference_.name();
-  }
-}
+MetadataInternal::MetadataInternal(const StorageReference& storage_reference) : storage_reference_(storage_reference) {}
 
-MetadataInternal::MetadataInternal(std::nullptr_t)
-    : MetadataInternal(StorageReference(nullptr)) {}
+MetadataInternal::MetadataInternal(std::nullptr_t) : storage_reference_(nullptr) {}
 
 MetadataInternal::MetadataInternal(const MetadataInternal& metadata)
     : storage_reference_(metadata.storage_reference_),
-      storage_internal_(nullptr),
       path_(metadata.path_),
       name_(metadata.name_),
       bucket_(metadata.bucket_),
@@ -88,9 +78,7 @@ MetadataInternal::MetadataInternal(const MetadataInternal& metadata)
       has_content_encoding_(metadata.has_content_encoding_),
       has_content_language_(metadata.has_content_language_),
       has_content_type_(metadata.has_content_type_),
-      custom_metadata_(metadata.custom_metadata_),
-      download_tokens_(metadata.download_tokens_),
-      download_url_(metadata.download_url_) {
+      custom_metadata_(metadata.custom_metadata_) {
   UpdateStorageInternal();
 }
 
@@ -100,7 +88,6 @@ MetadataInternal& MetadataInternal::operator=(
     return *this;
   }
   storage_reference_ = metadata.storage_reference_;
-  UpdateStorageInternal();
   name_ = metadata.name_;
   path_ = metadata.path_;
   bucket_ = metadata.bucket_;
@@ -121,8 +108,6 @@ MetadataInternal& MetadataInternal::operator=(
   has_content_language_ = metadata.has_content_language_;
   has_content_type_ = metadata.has_content_type_;
   custom_metadata_ = metadata.custom_metadata_;
-  download_tokens_ = metadata.download_tokens_;
-  download_url_ = metadata.download_url_;
   return *this;
 }
 
@@ -148,9 +133,7 @@ MetadataInternal::MetadataInternal(MetadataInternal&& other) noexcept
       has_content_encoding_(other.has_content_encoding_),
       has_content_language_(other.has_content_language_),
       has_content_type_(other.has_content_type_),
-      custom_metadata_(std::move(other.custom_metadata_)),
-      download_tokens_(std::move(other.download_tokens_)),
-      download_url_(std::move(other.download_url_)) {
+      custom_metadata_(std::move(other.custom_metadata_)) {
   other.storage_internal_ = nullptr;
   UpdateStorageInternal();
 }
@@ -183,42 +166,16 @@ MetadataInternal& MetadataInternal::operator=(
   has_content_language_ = other.has_content_language_;
   has_content_type_ = other.has_content_type_;
   custom_metadata_ = std::move(other.custom_metadata_);
-  download_tokens_ = std::move(other.download_tokens_);
-  download_url_ = std::move(other.download_url_);
   return *this;
 }
 
-const char* MetadataInternal::download_url() const {
-  return download_url_.c_str();
-}
 
-std::string MetadataInternal::GetPathFromToken(const std::string& token) const {
-  if (!storage_internal_) {
-    return "";
-  }
-  std::string http_url =
-      StoragePath(storage_internal_, "gs://" + bucket_ + "/" + path_)
-          .AsHttpUrl();
-  if (!token.empty()) {
-    http_url += "&token=" + rest::util::EncodeUrl(token);
-  }
-  return http_url;
-}
 
-void MetadataInternal::UpdateStorageInternal() {
-  StorageReferenceInternal* internal = storage_reference_.internal_;
-  storage_internal_ = internal ? internal->storage_internal() : nullptr;
-}
 
-StorageReferenceInternal* MetadataInternal::GetReference() const {
-  if (!storage_reference_.internal_) {
-    return nullptr;
-  }
-  // Ownership is handed to the caller (see the header).
-  return std::make_unique<StorageReferenceInternal>(
-             *storage_reference_.internal_)
-      .release();
-}
+
+
+
+
 
 std::string MetadataInternal::LookUpString(const Variant& root, const char* key,
                                            const char* default_value) {
@@ -423,19 +380,6 @@ bool MetadataInternal::ImportFromJson(const char* json) {
     }
   }
 
-  // Parse download tokens.  (Stored as a comma-separated string list.)
-  download_tokens_.clear();
-  auto tokens_lookup = root_map.find(Variant(kDownloadTokensKey));
-  if (tokens_lookup != root_map.end() && tokens_lookup->second.is_string()) {
-    std::istringstream token_list(tokens_lookup->second.string_value());
-    std::string token;
-    while (std::getline(token_list, token, ',')) {
-      download_tokens_.push_back(token);
-    }
-  }
-  download_url_ = (!download_tokens_.empty())
-                      ? GetPathFromToken(download_tokens_.front())
-                      : "";
   return true;
 }
 
@@ -475,17 +419,6 @@ std::string MetadataInternal::ExportAsJson() const {
     root_map[kCacheControlKey] = cache_control_;
   }
 
-  // Make a nice comma-separated string for download tokens:
-  bool first_in_list = true;
-  std::string download_tokens;
-  for (const auto& token : download_tokens_) {
-    if (!first_in_list) download_tokens += ",";
-    first_in_list = false;
-    download_tokens += token;
-  }
-  if (!download_tokens.empty()) {
-    root_map[kDownloadTokensKey] = download_tokens;
-  }
 
   std::map<Variant, Variant> metadata_map;
   for (const auto& entry : custom_metadata_) {

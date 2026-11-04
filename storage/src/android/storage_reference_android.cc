@@ -595,7 +595,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     data->impl->Complete<Metadata>(
         data->handle, kErrorNone, status_message,
         [data, result](Metadata* metadata) {
-          *metadata = Metadata(new MetadataInternal(data->storage, result));
+          *metadata = Metadata(StorageMetadataToMetadata(env, result, data->storage));
         });
   } else if (result &&
              env->IsInstanceOf(result, upload_task_task_snapshot::GetClass())) {
@@ -612,8 +612,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
         data->handle, kErrorNone, status_message,
         [data, metadata_obj](Metadata* metadata) {
           *metadata = metadata_obj
-                          ? Metadata(new MetadataInternal(data->storage,
-                                                          metadata_obj))
+                          ? Metadata(StorageMetadataToMetadata(env, metadata_obj, data->storage))
                           : Metadata(nullptr);
         });
     if (metadata_obj) env->DeleteLocalRef(metadata_obj);
@@ -991,7 +990,7 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
     return UpdateMetadataLastResult();
   }
   metadata->internal_->CommitCustomMetadata();
-  jobject meta_obj = metadata->internal_->NewLocalObj(env);
+  jobject meta_obj = MetadataToStorageMetadata(env, *metadata->internal_);
   jobject task =
       meta_obj
           ? env->CallObjectMethod(obj_,
@@ -1156,7 +1155,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   jobject meta_obj = nullptr;
   if (metadata && metadata->is_valid()) {
     metadata->internal_->CommitCustomMetadata();
-    meta_obj = metadata->internal_->NewLocalObj(env);
+    meta_obj = MetadataToStorageMetadata(env, *metadata->internal_);
   }
 
   bool started = false;
@@ -1249,7 +1248,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   jobject meta_obj = nullptr;
   if (metadata && metadata->is_valid()) {
     metadata->internal_->CommitCustomMetadata();
-    meta_obj = metadata->internal_->NewLocalObj(env);
+    meta_obj = MetadataToStorageMetadata(env, *metadata->internal_);
   }
   jobject uri = util::ParseUriString(env, path);
   if (util::CheckAndClearJniExceptions(env) || !uri) {

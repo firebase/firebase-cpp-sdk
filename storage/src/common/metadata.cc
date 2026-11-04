@@ -40,72 +40,29 @@ namespace storage {
 
 namespace internal {
 
-class MetadataInternalCommon {
- public:
-  static void DeleteInternal(Metadata* metadata) {
-    MetadataInternal* internal = metadata->internal_;
-    // Since this can trigger a chain of events that deletes the encompassing
-    // object, remove the reference to the internal implementation *before*
-    // deleting it so that it can't be deleted twice.
-    metadata->internal_ = nullptr;
-    UnregisterForCleanup(metadata, internal);
-    delete internal;
-  }
-
-  static void CleanupMetadata(void* metadata_void) {
-    DeleteInternal(reinterpret_cast<Metadata*>(metadata_void));
-  }
-
-  static internal::StorageInternal* GetStorage(
-      internal::MetadataInternal* internal) {
-    internal::StorageInternal* storage_internal = nullptr;
-    if (internal) storage_internal = internal->storage_internal();
-    return storage_internal;
-  }
-
-  static void RegisterForCleanup(Metadata* obj,
-                                 internal::MetadataInternal* internal) {
-    internal::StorageInternal* storage_internal = GetStorage(internal);
-    if (storage_internal) {
-      storage_internal->cleanup().RegisterObject(obj, CleanupMetadata);
-    }
-  }
-
-  static void UnregisterForCleanup(Metadata* obj,
-                                   internal::MetadataInternal* internal) {
-    internal::StorageInternal* storage_internal = GetStorage(internal);
-    if (storage_internal) {
-      storage_internal->cleanup().UnregisterObject(obj);
-    }
-  }
-};
 
 }  // namespace internal
 
 using internal::MetadataInternal;
-using internal::MetadataInternalCommon;
 
 Metadata::Metadata() : internal_(new MetadataInternal(nullptr)) {
-  MetadataInternalCommon::RegisterForCleanup(this, internal_);
 }
 
 Metadata::Metadata(const Metadata& src)
     : internal_(src.internal_ ? new MetadataInternal(*src.internal_)
                               : nullptr) {
-  MetadataInternalCommon::RegisterForCleanup(this, internal_);
 }
 
 Metadata::Metadata(MetadataInternal* internal) : internal_(internal) {
-  MetadataInternalCommon::RegisterForCleanup(this, internal_);
 }
 
 Metadata& Metadata::operator=(const Metadata& src) {
   if (this == &src) {
     return *this;
   }
-  MetadataInternalCommon::DeleteInternal(this);
+  delete internal_;
+  internal_ = nullptr;
   internal_ = src.internal_ ? new MetadataInternal(*src.internal_) : nullptr;
-  MetadataInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
 
@@ -113,24 +70,22 @@ Metadata& Metadata::operator=(const Metadata& src) {
 // Re-registering for cleanup can only fail with std::bad_alloc, which is
 // treated as fatal (as everywhere else in the SDK).
 Metadata::Metadata(Metadata&& other) noexcept : internal_(other.internal_) {
-  MetadataInternalCommon::UnregisterForCleanup(&other, other.internal_);
   other.internal_ = nullptr;
-  MetadataInternalCommon::RegisterForCleanup(this, internal_);
 }
 
 Metadata& Metadata::operator=(Metadata&& other) noexcept {
   if (this == &other) {
     return *this;
   }
-  MetadataInternalCommon::DeleteInternal(this);
-  MetadataInternalCommon::UnregisterForCleanup(&other, other.internal_);
+  delete internal_;
+  internal_ = nullptr;
   internal_ = other.internal_;
   other.internal_ = nullptr;
-  MetadataInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
 
-Metadata::~Metadata() { MetadataInternalCommon::DeleteInternal(this); }
+Metadata::~Metadata() { delete internal_;
+  internal_ = nullptr; }
 
 const char* Metadata::bucket() const {
   return internal_ ? internal_->bucket() : nullptr;

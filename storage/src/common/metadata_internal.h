@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_
-#define FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_
+#ifndef FIREBASE_STORAGE_SRC_COMMON_METADATA_INTERNAL_H_
+#define FIREBASE_STORAGE_SRC_COMMON_METADATA_INTERNAL_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -30,8 +30,6 @@
 
 namespace firebase::storage::internal {
 
-class StorageInternal;
-class StorageReferenceInternal;
 
 class MetadataInternal {
  public:
@@ -129,10 +127,6 @@ class MetadataInternal {
     return &custom_metadata_;
   }
 
-  // Returns a long lived download URL with a revokable token.
-  // This should be for internal use only until we re-implement
-  // StorageReferenceInternal::GetDownloadUrl() (see b/78908154)
-  const char* download_url() const;
 
   // Return a version String indicating what version of the StorageReference.
   int64_t generation() const { return generation_; }
@@ -144,13 +138,6 @@ class MetadataInternal {
   // if there isn't one.)
   const char* name() const { return name_.c_str(); }
 
-  // Returns a new copy of the StorageReferenceInternal this metadata belongs
-  // to, or null if there is none. Ownership is transferred to the caller:
-  // Metadata::GetReference() (storage/src/common/metadata.cc) adopts it into a
-  // StorageReference, which deletes it. A raw pointer is returned because that
-  // platform-independent caller is shared with the Android and iOS
-  // implementations, whose GetReference() has the same signature.
-  StorageReferenceInternal* GetReference() const;
 
   // Return the stored Size in bytes of the StorageReference object.
   int64_t size_bytes() const { return size_bytes_; }
@@ -158,10 +145,19 @@ class MetadataInternal {
   // Return the time the StorageReference was last updated.
   int64_t updated_time() const { return updated_time_; }
 
-  // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_internal_; }
 
   const char* md5_hash() const { return md5_hash_.c_str(); }
+
+  void set_bucket(const std::string& bucket) { bucket_ = bucket; }
+  void set_path(const std::string& path) { path_ = path; }
+  void set_name(const std::string& name) { name_ = name; }
+  void set_generation(int64_t generation) { generation_ = generation; }
+  void set_metadata_generation(int64_t metadata_generation) { metadata_generation_ = metadata_generation; }
+  void set_creation_time(int64_t creation_time) { creation_time_ = creation_time; }
+  void set_updated_time(int64_t updated_time) { updated_time_ = updated_time; }
+  void set_size_bytes(int64_t size_bytes) { size_bytes_ = size_bytes; }
+  void set_md5_hash(const std::string& md5_hash) { md5_hash_ = md5_hash; }
+
 
   // Import and export functions for json text.
   bool ImportFromJson(const char* json);
@@ -172,11 +168,12 @@ class MetadataInternal {
     return Metadata(metadata_internal);
   }
 
- private:
-  // Cache the StorageInternal from the wrapped StorageReference object.
-  void UpdateStorageInternal();
+ public:
+  StorageReference GetReference() const { return storage_reference_; }
+private:
+  StorageReference storage_reference_;
 
-  std::string GetPathFromToken(const std::string& token) const;
+
 
   static int64_t GetTimeFromTimeString(const std::string& time_str);
 
@@ -189,13 +186,6 @@ class MetadataInternal {
                                    std::string* value);
   static int64_t LookUpInt64(const Variant& root, const char* key);
 
-  // The storage reference this metadata belongs to.
-  StorageReference storage_reference_;
-  // Cached storage_internal_ this metadata belongs to.
-  // If storage_reference is invalidated before this object is invalidated this
-  // is required to remove the Metadata object from the Storage object's cleanup
-  // notifier.
-  StorageInternal* storage_internal_ = nullptr;
 
   std::string path_;
   std::string name_;
@@ -217,12 +207,8 @@ class MetadataInternal {
   bool has_content_language_ = false;
   bool has_content_type_ = false;
   std::map<std::string, std::string> custom_metadata_;
-  std::list<std::string> download_tokens_;
-  // Holder for the first entry in the download_tokens_ list,
-  // as a downloadable URL.
-  std::string download_url_;
 };
 
 }  // namespace firebase::storage::internal
 
-#endif  // FIREBASE_STORAGE_SRC_DESKTOP_METADATA_DESKTOP_H_
+#endif  // FIREBASE_STORAGE_SRC_COMMON_METADATA_INTERNAL_H_

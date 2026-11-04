@@ -252,7 +252,7 @@ bool StorageInternal::Initialize(App* app) {
         index_out_of_bounds_exception::CacheClass(env, activity);
     const bool ref_ok =
         own_classes_ok && StorageReferenceInternal::Initialize(app);
-    const bool meta_ok = ref_ok && MetadataInternal::Initialize(app);
+    const bool meta_ok = ref_ok && InitializeMetadataConverter(app);
     const bool controller_ok = meta_ok && ControllerInternal::Initialize(app);
     const bool embedded_ok = controller_ok && InitializeEmbeddedClasses(app);
     if (!embedded_ok) {
@@ -264,7 +264,7 @@ bool StorageInternal::Initialize(App* app) {
       const bool meta_attempted = ref_ok;
       const bool ref_attempted = own_classes_ok;
       if (controller_attempted) ControllerInternal::Terminate(app);
-      if (meta_attempted) MetadataInternal::Terminate(app);
+      if (meta_attempted) TerminateMetadataConverter(app);
       if (ref_attempted) StorageReferenceInternal::Terminate(app);
       index_out_of_bounds_exception::ReleaseClass(env);
       storage_exception::ReleaseClass(env);
@@ -351,7 +351,7 @@ void StorageInternal::Terminate(App* app) {
 
     // Call Terminate on all other Storage internal classes.
     ControllerInternal::Terminate(app);
-    MetadataInternal::Terminate(app);
+    TerminateMetadataConverter(app);
     StorageReferenceInternal::Terminate(app);
 
     // Release embedded classes.

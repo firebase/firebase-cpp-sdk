@@ -167,22 +167,6 @@ RestOperation::RestOperation(
       listener_state->total_byte_count = -1;
     }
   }
-  cleanup_.RegisterObject(this, [](void* op_void) {
-    auto* op = static_cast<RestOperation*>(op_void);
-    std::shared_ptr<ListenerSharedState> state;
-    {
-      MutexLock lock(op->mutex_);
-      op->listener_internal_ = nullptr;
-      state = std::move(op->listener_state_);
-    }
-    if (state) {
-      std::lock_guard<std::mutex> state_lock(state->mutex);
-      if (state->rest_operation == op) {
-        state->rest_operation = nullptr;
-        state->op_handle.reset();
-      }
-    }
-  });
 
   // Start() guarantees a non-null storage_internal_, which owns this object.
   // The cleanup callback identifies this operation by its unique id rather
@@ -191,12 +175,6 @@ RestOperation::RestOperation(
   {
     StorageInternal* owner = storage_internal_;
     operation_id_ = owner->AddOperation(this);
-    owner->cleanup().RegisterObject(this, [](void* operation) {
-      auto* op = static_cast<RestOperation*>(operation);
-      if (op->storage_internal_) {
-        op->storage_internal_->DeleteOperation(op, op->operation_id_);
-      }
-    });
   }
 
   if (response_) {
@@ -297,9 +275,24 @@ RestOperation::~RestOperation() {
   }
 
   set_listener(nullptr);
-  cleanup_.CleanupAll();
+
+  {
+    std::shared_ptr<ListenerSharedState> state;
+    {
+      MutexLock lock(mutex_);
+      listener_internal_ = nullptr;
+      state = std::move(listener_state_);
+    }
+    if (state) {
+      std::lock_guard<std::mutex> state_lock(state->mutex);
+      if (state->rest_operation == this) {
+        state->rest_operation = nullptr;
+        state->op_handle.reset();
+      }
+    }
+  }
+
   if (storage_internal_) {
-    storage_internal_->cleanup().UnregisterObject(this);
     storage_internal_->RemoveOperation(this);
   }
 }
