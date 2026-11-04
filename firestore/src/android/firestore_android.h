@@ -142,6 +142,9 @@ class FirestoreInternal {
   ListenerRegistration AddSnapshotsInSyncListener(
       std::function<void()> callback);
 
+  ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener, bool passing_listener_ownership);
+
   // Manages the ListenerRegistrationInternal objects.
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
   void UnregisterListenerRegistration(

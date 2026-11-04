@@ -721,6 +721,16 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    EventListener<void>* listener) {
+  return AddSnapshotsInSyncListener(listener, /*passing_listener_ownership=*/false);
+}
+
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    std::unique_ptr<EventListener<void>> listener) {
+  return AddSnapshotsInSyncListener(listener.release(), /*passing_listener_ownership=*/true);
+}
+
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     std::function<void()> callback) {
   auto* listener = new LambdaEventListener<void>(std::move(callback));
   return AddSnapshotsInSyncListener(listener,

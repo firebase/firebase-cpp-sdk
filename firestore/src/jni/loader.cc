@@ -107,14 +107,12 @@ void Loader::UsingExistingClass(const char* class_name, jclass existing_ref) {
   if (!class_name || !existing_ref) {
     ok_ = false;
     last_class_ = nullptr;
-    owns_last_class_ = false;
-    last_class_name_.clear();
+      last_class_name_.clear();
     return;
   }
 
   last_class_name_ = class_name;
   last_class_ = existing_ref;
-  owns_last_class_ = false;
 }
 
 jclass Loader::LoadClass(const char* class_name) {
@@ -124,8 +122,7 @@ jclass Loader::LoadClass(const char* class_name) {
   if (!class_name || !app_) {
     ok_ = false;
     last_class_ = nullptr;
-    owns_last_class_ = false;
-    last_class_name_.clear();
+      last_class_name_.clear();
     return nullptr;
   }
 
@@ -134,11 +131,9 @@ jclass Loader::LoadClass(const char* class_name) {
                                       class_name, util::kClassRequired);
   if (!last_class_) {
     ok_ = false;
-    owns_last_class_ = false;
-    return nullptr;
+      return nullptr;
   }
 
-  owns_last_class_ = true;
   loaded_classes_.push_back(last_class_);
   return last_class_;
 }
@@ -153,9 +148,6 @@ void Loader::Load(ConstructorBase& ctor) {
 
   ctor.clazz_ = last_class_;
   ctor.id_ = result;
-  if (owns_last_class_) {
-    cached_class_refs_.push_back(&ctor.clazz_);
-  }
 }
 
 void Loader::Load(MethodBase& method) {
@@ -186,9 +178,6 @@ void Loader::Load(StaticFieldBase& field) {
 
   field.clazz_ = last_class_;
   field.id_ = result;
-  if (owns_last_class_) {
-    cached_class_refs_.push_back(&field.clazz_);
-  }
 }
 
 void Loader::Load(StaticMethodBase& method) {
@@ -201,9 +190,6 @@ void Loader::Load(StaticMethodBase& method) {
 
   method.clazz_ = last_class_;
   method.id_ = result;
-  if (owns_last_class_) {
-    cached_class_refs_.push_back(&method.clazz_);
-  }
 }
 
 bool Loader::RegisterNatives(const JNINativeMethod methods[],
@@ -235,14 +221,7 @@ bool Loader::RegisterNatives(const JNINativeMethod methods[],
 }
 
 void Loader::Unload() {
-  for (jclass* clazz_ref : cached_class_refs_) {
-    if (clazz_ref != nullptr) {
-      *clazz_ref = nullptr;
-    }
-  }
-  cached_class_refs_.clear();
   last_class_ = nullptr;
-  owns_last_class_ = false;
   last_class_name_.clear();
 
   if (loaded_classes_.empty()) return;

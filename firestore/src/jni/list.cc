@@ -35,7 +35,7 @@ Method<Object> kSet("set", "(ILjava/lang/Object;)Ljava/lang/Object;");
 }  // namespace
 
 void List::Initialize(Loader& loader) {
-  g_clazz = loader.LoadClass("java/util/List", kGet, kSet);
+  g_clazz = Class(loader.LoadClass("java/util/List", kGet, kSet));
 }
 
 Class List::GetClass() { return g_clazz; }
