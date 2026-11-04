@@ -18,6 +18,7 @@
 #include <map>
 #include <string>
 
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
@@ -127,21 +128,7 @@ Installations* Installations::GetInstance(App* app,
   if (is_new_instance) {
     // Register CleanupNotifier outside InstallationsMutex() to avoid
     // lock-order inversions with CleanupNotifier::CleanupAll().
-    CleanupNotifier* notifier =nullptr
-;
-    FIREBASE_ASSERT(notifier);
-    if (notifier) {
-      notifier->RegisterObject(installations, [](void* object) {
-        Installations* installations_local =
-            reinterpret_cast<Installations*>(object);
-        LogWarning(
-            "Installations object %p should be deleted before the App %p it "
-            "depends upon.",
-            installations_local, installations_local->app());
-        installations_local->DeleteInternal();
-      });
-    }
-  } else {
+      } else {
     // Log heartbeat data when instance getters are called on an existing
     // instance (new instances log heartbeat during initialization).
     InstallationsInternal::LogHeartbeat(*app);
@@ -176,12 +163,7 @@ Installations::~Installations() {
   }
 
   if (app_to_unregister) {
-    CleanupNotifier* notifier =nullptr
-;
-    if (notifier) {
-      notifier->UnregisterObject(this);
-    }
-  }
+      }
 }
 
 bool Installations::InitInternal() {

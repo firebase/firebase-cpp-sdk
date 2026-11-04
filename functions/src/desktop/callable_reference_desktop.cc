@@ -207,7 +207,6 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, const char* target, bool is_url,
     const HttpsCallableOptions& options)
     : functions_(functions),
-      future_impl_(kHttpsCallableReferenceFnCount),
       target_(target ? target : ""),
       is_url_(is_url),
       options_(options) {
@@ -221,7 +220,6 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
     : functions_(other.functions_),
-      future_impl_(kHttpsCallableReferenceFnCount),
       target_(other.target_),
       is_url_(other.is_url_),
       options_(other.options_) {
@@ -247,7 +245,6 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other) noexcept
     : functions_(std::exchange(other.functions_, nullptr)),
-      future_impl_(kHttpsCallableReferenceFnCount),
       target_(std::move(other.target_)),
       is_url_(other.is_url_),
       options_(other.options_) {
@@ -285,6 +282,7 @@ std::string HttpsCallableReferenceInternal::url() const {
 bool HttpsCallableReferenceInternal::is_valid() const {
   return functions_ != nullptr && !url().empty();
 }
+
 
 
 Error ErrorFromHttpStatus(int status) {

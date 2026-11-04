@@ -55,7 +55,8 @@ std::string StripLeadingSlashes(std::string_view s) {
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
     : app_(app),
       region_(region ? StripTrailingSlashes(region) : "us-central1"),
-      lifetime_state_(std::make_shared<FunctionsLifetimeState>()) {
+      lifetime_state_(std::make_shared<FunctionsLifetimeState>()),
+      future_impl_(1) {
   FIREBASE_ASSERT(app != nullptr);
   rest::InitTransportCurl();
   if (app_) {

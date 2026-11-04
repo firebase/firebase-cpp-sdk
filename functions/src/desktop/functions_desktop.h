@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "app/src/future_manager.h"
+#include "app/src/reference_counted_future_impl.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
@@ -89,6 +90,8 @@ class FunctionsInternal {
     return lifetime_state_;
   }
 
+  ReferenceCountedFutureImpl* future() { return &future_impl_; }
+
  private:
   App* app_;
   std::string region_;
@@ -97,6 +100,7 @@ class FunctionsInternal {
   
   
   std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
+  ReferenceCountedFutureImpl future_impl_;
 };
 
 }  // namespace internal
