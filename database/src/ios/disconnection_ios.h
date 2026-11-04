@@ -20,6 +20,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "database/src/common/database_reference.h"
 #include "database/src/common/query.h"
 #include "database/src/include/firebase/database/disconnection.h"
 

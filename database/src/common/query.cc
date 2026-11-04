@@ -115,8 +115,7 @@ Future<DataSnapshot> Query::GetValue() {
   ReferenceCountedFutureImpl* api = internal_->query_future();
   if (!api) return Future<DataSnapshot>();
   SafeFutureHandle<DataSnapshot> handle =
-      api->SafeAlloc<DataSnapshot>(internal::kQueryFnGetValue,
-                                   DataSnapshot(nullptr));
+      api->SafeAlloc<DataSnapshot>(internal::kQueryFnGetValue, DataSnapshot());
   internal_->GetValueImpl(handle);
   return MakeFuture(api, handle);
 }
