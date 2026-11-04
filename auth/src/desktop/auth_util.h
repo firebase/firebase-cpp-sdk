@@ -63,7 +63,7 @@ void FailPromise(Promise<T>* promise, AuthError error_code);
 // Invokes the given callback on another thread and passes the rest of the
 // arguments to the invocation.
 template <typename ResultT, typename RequestT>
-Future<ResultT> CallAsync(
+void CallAsync(
     AuthData* auth_data, Promise<ResultT> promise,
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback);
@@ -82,14 +82,14 @@ T GetResponse(AuthRequest& request);
 // Implementation
 
 template <typename ResultT, typename RequestT>
-inline Future<ResultT> CallAsync(
+inline void CallAsync(
     AuthData* const auth_data, Promise<ResultT> promise,
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback) {
   // Note: it's okay for the caller to pass a null request - they may want to
   // create the request inside the callback invocation, and this function
   // doesn't need to access the request anyway.
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && callback);
+  FIREBASE_ASSERT_RETURN_VOID(auth_data && callback);
 
   typedef AuthDataHandle<ResultT, RequestT> HandleT;
 

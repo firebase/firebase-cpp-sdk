@@ -66,21 +66,19 @@ void LogHeartbeat(Auth* const auth) {
 namespace {
 
 template <typename ResultT>
-Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
+void DoSignInWithCredential(Promise<ResultT> promise,
                                        AuthData* const auth_data,
                                        const std::string& provider,
                                        const void* const raw_credential) {
   FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data);
 
   if (!ValidateCredential(&promise, provider, raw_credential)) {
-    return promise.LastResult();
   }
 
   auto request =
       CreateRequestFromCredential(auth_data, provider, raw_credential);
   if (!request) {
     FailPromise(&promise, kAuthErrorInvalidCredential);
-    return promise.LastResult();
   }
 
   if (provider == kEmailPasswordAuthProviderId) {
@@ -90,8 +88,6 @@ Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
     CallAsync(auth_data, promise, std::move(request),
               PerformSignInFlow<VerifyAssertionResponse>);
   }
-
-  return promise.LastResult();
 }
 
 }  // namespace
@@ -380,148 +376,145 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 }
 
 // RPCs
-Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl,
+namespace internal {
+void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* custom_token) {
+  Promise<AuthResult> promise(&auth_data->future_impl,
                               kAuthFn_SignInWithCustomToken);
   if (!custom_token || strlen(custom_token) == 0) {
     FailPromise(&promise, kAuthErrorInvalidCustomToken);
-    return promise.LastResult();
   }
 
   typedef VerifyCustomTokenRequest RequestT;
-  auto request = std::make_unique<RequestT>(*auth_data_->app,
-                                            GetApiKey(*auth_data_),
+  auto request = std::make_unique<RequestT>(*auth_data->app,
+                                            GetApiKey(*auth_data),
                                             custom_token);
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<VerifyCustomTokenResponse>);
 }
+}  // namespace internal
 
-Future<User> Auth::SignInWithCredential(const Credential& credential) {
-  if (!auth_data_) return Future<User>();
-  Promise<User> promise(&auth_data_->future_impl, kAuthFn_SignInWithCredential);
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+namespace internal {
+void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential) {
+  DoSignInWithCredential(promise, auth_data, credential.provider(),
+                                internal::CredentialAccess::GetImpl(credential));
 }
+}  // namespace internal
 
-Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
-  if (!auth_data_) return Future<AuthResult>();
-  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->SignIn(auth_data_);
+namespace internal {
+void SignInWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN_VOID(provider);
+  provider->SignIn(auth_data);
 }
+}  // namespace internal
 
-Future<AuthResult> Auth::SignInAnonymously() {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl,
+namespace internal {
+void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
+  Promise<AuthResult> promise(&auth_data->future_impl,
                               kAuthFn_SignInAnonymously);
 
   // If user is already signed in anonymously, return immediately.
   bool is_anonymous = false;
   User* api_user_to_return = nullptr;
-  UserView::TryRead(auth_data_, [&](const UserView::Reader& reader) {
+  UserView::TryRead(auth_data, [&](const UserView::Reader& reader) {
     is_anonymous = reader->is_anonymous;
-    api_user_to_return = &auth_data_->current_user;
+    api_user_to_return = &auth_data->current_user;
   });
 
   if (is_anonymous) {
     AuthResult auth_result;
     auth_result.user = *api_user_to_return;
     promise.CompleteWithResult(auth_result);
-    return promise.LastResult();
   }
 
   typedef SignUpNewUserRequest RequestT;
   auto request =
-      std::make_unique<RequestT>(*auth_data_->app, GetApiKey(*auth_data_));
+      std::make_unique<RequestT>(*auth_data->app, GetApiKey(*auth_data));
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
+}  // namespace internal
 
-Future<AuthResult> Auth::SignInWithEmailAndPassword(
-    const char* const email, const char* const password) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl,
+namespace internal {
+void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
+  Promise<AuthResult> promise(&auth_data->future_impl,
                               kAuthFn_SignInWithEmailAndPassword);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
-    return promise.LastResult();
   }
 
   typedef VerifyPasswordRequest RequestT;
   auto request = std::make_unique<RequestT>(
-      *auth_data_->app, GetApiKey(*auth_data_), email, password);
+      *auth_data->app, GetApiKey(*auth_data), email, password);
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<VerifyPasswordResponse>);
 }
+}  // namespace internal
 
-Future<AuthResult> Auth::CreateUserWithEmailAndPassword(
-    const char* const email, const char* const password) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl,
+namespace internal {
+void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
+  Promise<AuthResult> promise(&auth_data->future_impl,
                               kAuthFn_CreateUserWithEmailAndPassword);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
-    return promise.LastResult();
   }
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::make_unique<RequestT>(
-      *auth_data_->app, GetApiKey(*auth_data_), email, password, "");
+      *auth_data->app, GetApiKey(*auth_data), email, password, "");
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
+}  // namespace internal
 
-Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(
-    const Credential& credential) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl,
+namespace internal {
+void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
+  Promise<AuthResult> promise(&auth_data->future_impl,
                               kAuthFn_SignInAndRetrieveDataWithCredential);
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+  DoSignInWithCredential(promise, auth_data, credential.provider(),
+                                internal::CredentialAccess::GetImpl(credential));
 }
+}  // namespace internal
 
-Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
-    const char* email) {
-  if (!auth_data_) return Future<FetchProvidersResult>();
-  Promise<FetchProvidersResult> promise(&auth_data_->future_impl,
+namespace internal {
+void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char* email) {
+  Promise<FetchProvidersResult> promise(&auth_data->future_impl,
                                         kAuthFn_FetchProvidersForEmail);
   if (!ValidateEmail(&promise, email)) {
-    return promise.LastResult();
   }
 
   typedef CreateAuthUriRequest RequestT;
-  auto request = std::make_unique<RequestT>(*auth_data_->app,
-                                            GetApiKey(*auth_data_), email);
+  auto request = std::make_unique<RequestT>(*auth_data->app,
+                                            GetApiKey(*auth_data), email);
 
   const auto callback =
-      [](AuthDataHandle<FetchProvidersResult, RequestT>* handle) {
+      [](AuthDataHandle<FetchProvidersResult, RequestT>* promise.handle()) {
         const auto response =
-            GetResponse<CreateAuthUriResponse>(*handle->request);
+            GetResponse<CreateAuthUriResponse>(*promise.handle()->request);
         if (response.IsSuccessful()) {
           FetchProvidersResult result;
           result.providers = response.providers();
-          handle->promise.CompleteWithResult(result);
+          promise.handle()->promise.CompleteWithResult(result);
         } else {
-          FailPromise(&handle->promise, response.error_code());
+          FailPromise(&promise.handle()->promise, response.error_code());
         }
       };
 
-  return CallAsync(auth_data_, promise, std::move(request), callback);
+  CallAsync(auth_data, promise, std::move(request), callback);
 }
+}  // namespace internal
 
-Future<void> Auth::SendPasswordResetEmail(const char* email) {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl,
+namespace internal {
+void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
+  Promise<void> promise(&auth_data->future_impl,
                         kAuthFn_SendPasswordResetEmail);
   if (!ValidateEmail(&promise, email)) {
-    return promise.LastResult();
   }
 
   std::string language_code_str;
   {
-    auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+    auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
     MutexLock lock(auth_impl->provider_mutex);
     language_code_str = auth_impl->language_code;
   }
@@ -530,23 +523,23 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
 
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request = RequestT::CreateSendPasswordResetEmailRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), email, language_code);
+      *auth_data->app, GetApiKey(*auth_data), email, language_code);
 
-  const auto callback = [](AuthDataHandle<void, RequestT>* handle) {
+  const auto callback = [](AuthDataHandle<void, RequestT>* promise.handle()) {
     const auto response =
-        GetResponse<GetOobConfirmationCodeResponse>(*handle->request);
+        GetResponse<GetOobConfirmationCodeResponse>(*promise.handle()->request);
     if (response.IsSuccessful()) {
-      handle->promise.Complete();
+      promise.handle()->promise.Complete();
     } else {
-      FailPromise(&handle->promise, response.error_code());
+      FailPromise(&promise.handle()->promise, response.error_code());
     }
   };
 
-  return CallAsync(auth_data_, promise, std::move(request), callback);
+  CallAsync(auth_data, promise, std::move(request), callback);
 }
+}  // namespace internal
 
 void Auth::SignOut() {
-  if (!auth_data_) return;
   // No REST request. So we can do this in the main thread.
   AuthenticationResult::SignOut(auth_data_);
 }
@@ -567,7 +560,6 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
 };
 
 User Auth::current_user() {
-  if (!auth_data_) return User(nullptr);
 
   // Add a listener and wait for the first trigger.
   CurrentUserBlockListener listener;
@@ -589,14 +581,12 @@ User Auth::current_user() {
 }
 
 std::string Auth::language_code() const {
-  if (!auth_data_) return "";
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
   return auth_impl->language_code;
 }
 
 void Auth::set_language_code(const char* language_code) {
-  if (!auth_data_) return;
 
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
@@ -604,48 +594,57 @@ void Auth::set_language_code(const char* language_code) {
 }
 
 void Auth::UseAppLanguage() {
-  if (!auth_data_) return;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
   auth_impl->language_code.clear();
 }
 
 void Auth::UseEmulator(std::string host, uint32_t port) {
-  if (!auth_data_) return;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
   auth_impl->assigned_emulator_url = host + ":" + std::to_string(port);
   LogInfo("Using Auth Emulator: %s", auth_impl->assigned_emulator_url.c_str());
 }
 
+namespace internal {
 void InitializeTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Initialize(auth_data);
 }
+}  // namespace internal
 
+namespace internal {
 void DestroyTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Destroy();
 }
+}  // namespace internal
 
+namespace internal {
 void InitializeFunctionRegistryListener(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->internal_listeners =
       std::make_unique<FunctionRegistryAuthStateListener>();
   auth_data->auth->AddAuthStateListener(auth_impl->internal_listeners.get());
 }
+}  // namespace internal
 
+namespace internal {
 void DestroyFunctionRegistryListener(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_data->auth->RemoveAuthStateListener(auth_impl->internal_listeners.get());
   auth_impl->internal_listeners.reset(nullptr);
 }
+}  // namespace internal
 
+namespace internal {
 void EnableTokenAutoRefresh(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.EnableAuthRefresh();
 }
+}  // namespace internal
 
+namespace internal {
 void DisableTokenAutoRefresh(AuthData* auth_data) {
   // We don't actually directly stop the thread here - we just decrease the ref
   // count and it the thread will remove itself next time it fires, if it is
@@ -653,13 +652,17 @@ void DisableTokenAutoRefresh(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.DisableAuthRefresh();
 }
+}  // namespace internal
 
 // Called automatically whenever anyone refreshes the auth token.
+namespace internal {
 void ResetTokenRefreshCounter(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.WakeThread();
 }
+}  // namespace internal
 
+namespace internal {
 void InitializeUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->user_data_persist = std::make_unique<UserDataPersist>(
@@ -673,12 +676,16 @@ void InitializeUserDataPersist(AuthData* auth_data) {
   auth_data->auth->AddAuthStateListener(auth_impl->user_data_persist.get());
   auth_impl->user_data_persist->LoadUserData(auth_data);
 }
+}  // namespace internal
 
+namespace internal {
 void DestroyUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_data->auth->RemoveAuthStateListener(auth_impl->user_data_persist.get());
 }
+}  // namespace internal
 
+namespace internal {
 void LoadFinishTriggerListeners(AuthData* auth_data) {
   MutexLock destructing_lock(auth_data->destructing_mutex);
   if (auth_data->destructing) {
@@ -695,6 +702,7 @@ void LoadFinishTriggerListeners(AuthData* auth_data) {
   NotifyAuthStateListeners(auth_data);
   NotifyIdTokenListeners(auth_data);
 }
+}  // namespace internal
 
 void IdTokenRefreshThread::WakeThread() { wakeup_sem_.Post(); }
 

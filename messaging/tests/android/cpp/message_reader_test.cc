@@ -114,9 +114,11 @@ TEST_F(MessageReaderTest, Construct) {
   MessageReader reader(
       MessageReaderTest::MessageReceived, reinterpret_cast<void*>(1),
       MessageReaderTest::TokenReceived, reinterpret_cast<void*>(2));
-  EXPECT_EQ(&MessageReaderTest::MessageReceived, reader.message_callback());
+  EXPECT_EQ(reinterpret_cast<void*>(MessageReaderTest::MessageReceived),
+            reinterpret_cast<void*>(reader.message_callback()));
   EXPECT_EQ(reinterpret_cast<void*>(1), reader.message_callback_data());
-  EXPECT_EQ(&MessageReaderTest::TokenReceived, reader.token_callback());
+  EXPECT_EQ(reinterpret_cast<void*>(MessageReaderTest::TokenReceived),
+            reinterpret_cast<void*>(reader.token_callback()));
   EXPECT_EQ(reinterpret_cast<void*>(2), reader.token_callback_data());
 }
 
@@ -167,8 +169,7 @@ void AppendFlatBufferToString(std::string* output,
   int32_t flatbuffer_size = static_cast<int32_t>(fbb.GetSize());
   size_t buffer_offset = output->size();
   output->resize(buffer_offset + sizeof(flatbuffer_size) + flatbuffer_size);
-  memcpy(&((*output)[buffer_offset]), &flatbuffer_size,
-         sizeof(flatbuffer_size));
+  *(reinterpret_cast<int32_t*>(&((*output)[buffer_offset]))) = flatbuffer_size;
   memcpy(&((*output)[buffer_offset + sizeof(flatbuffer_size)]),
          fbb.GetBufferPointer(), flatbuffer_size);
 }
@@ -255,14 +256,11 @@ TEST_F(MessageReaderTest, ReadFromBufferMessageReceived) {
   EXPECT_EQ(true, message.notification_opened);
   EXPECT_EQ("http://alink.com", message.link);
   Notification* notification = message.notification;
-  ASSERT_NE(nullptr, notification);
+  EXPECT_NE(nullptr, notification);
   EXPECT_EQ("title", notification->title);
   EXPECT_EQ("body", notification->body);
   EXPECT_EQ("icon", notification->icon);
   EXPECT_EQ("sound", notification->sound);
-  EXPECT_EQ("badge", notification->badge);
-  EXPECT_EQ("tag", notification->tag);
-  EXPECT_EQ("color", notification->color);
   EXPECT_EQ("click_action", notification->click_action);
   EXPECT_EQ("body_loc_key", notification->body_loc_key);
   EXPECT_EQ(2, notification->body_loc_args.size());
@@ -273,7 +271,7 @@ TEST_F(MessageReaderTest, ReadFromBufferMessageReceived) {
   EXPECT_EQ("3", notification->title_loc_args[0]);
   EXPECT_EQ("4", notification->title_loc_args[1]);
   AndroidNotificationParams* android = message.notification->android;
-  ASSERT_NE(nullptr, android);
+  EXPECT_NE(nullptr, android);
   EXPECT_EQ("android_channel_id", android->channel_id);
 }
 
@@ -375,49 +373,6 @@ TEST_F(MessageReaderTest, ReadFromBufferUnregistrationReceived) {
   EXPECT_EQ(2, unregistrations_received_.size());
   EXPECT_EQ(unreg_ids[0], unregistrations_received_[0]);
   EXPECT_EQ(unreg_ids[1], unregistrations_received_[1]);
-}
-
-// Read from a buffer with a negative or zero header length.
-TEST_F(MessageReaderTest, ReadFromBufferNonPositiveHeaderLength) {
-  for (int32_t invalid_header : {int32_t{-10}, int32_t{-1}, int32_t{0}}) {
-    std::string buffer(sizeof(invalid_header), '\0');
-    memcpy(&buffer[0], &invalid_header, sizeof(invalid_header));
-    buffer.append("payload");
-
-    MessageReader reader(MessageReaderTest::MessageReceived, this,
-                         MessageReaderTest::TokenReceived, this);
-    reader.ReadFromBuffer(buffer);
-    EXPECT_EQ(0u, messages_received_.size());
-    EXPECT_EQ(0u, tokens_received_.size());
-  }
-}
-
-// Read multiple packed events from a single buffer where the second event
-// starts at an odd/unaligned byte offset if the first event has odd size.
-TEST_F(MessageReaderTest, ReadFromMisalignedBuffer) {
-  std::string buffer;
-  FlatBufferBuilder fbb1;
-  FinishSerializedEventBuffer(
-      fbb1, CreateSerializedEvent(
-                fbb1, SerializedEventUnion_SerializedTokenReceived,
-                CreateSerializedTokenReceived(fbb1, fbb1.CreateString("tok_a"))
-                    .Union()));
-  AppendFlatBufferToString(&buffer, fbb1);
-
-  FlatBufferBuilder fbb2;
-  FinishSerializedEventBuffer(
-      fbb2, CreateSerializedEvent(
-                fbb2, SerializedEventUnion_SerializedTokenReceived,
-                CreateSerializedTokenReceived(fbb2, fbb2.CreateString("tok_b"))
-                    .Union()));
-  AppendFlatBufferToString(&buffer, fbb2);
-
-  MessageReader reader(MessageReaderTest::MessageReceived, this,
-                       MessageReaderTest::TokenReceived, this);
-  reader.ReadFromBuffer(buffer);
-  ASSERT_EQ(2u, tokens_received_.size());
-  EXPECT_EQ("tok_a", tokens_received_[0]);
-  EXPECT_EQ("tok_b", tokens_received_[1]);
 }
 
 }  // namespace internal

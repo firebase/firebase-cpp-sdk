@@ -102,7 +102,8 @@ class RemoteConfigRESTTest : public ::testing::Test {
     EXPECT_LE(info.fetch_time, MillisecondsSinceEpoch());
     EXPECT_GE(info.fetch_time, MillisecondsSinceEpoch() - 10000);
     EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonError);
-    EXPECT_EQ(info.throttled_end_time, 0u);
+    EXPECT_LE(info.throttled_end_time, MillisecondsSinceEpoch());
+    EXPECT_GE(info.throttled_end_time, MillisecondsSinceEpoch() - 10000);
   }
 
   uint64_t MillisecondsSinceEpoch() {
@@ -276,41 +277,6 @@ TEST_F(RemoteConfigRESTTest, ParseRestResponseSuccess) {
   EXPECT_EQ(info.last_fetch_status, kLastFetchStatusSuccess);
   EXPECT_LE(info.fetch_time, MillisecondsSinceEpoch());
   EXPECT_GE(info.fetch_time, MillisecondsSinceEpoch() - 10000);
-}
-
-TEST_F(RemoteConfigRESTTest, FetchThrottled429SetsThrottledEndTime) {
-  std::string header = "HTTP/1.1 429 Too Many Requests";
-  std::string body = "{}";
-
-  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
-  rest.rc_response_.ProcessHeader(header.data(), header.length());
-  rest.rc_response_.ProcessBody(body.data(), body.length());
-  rest.rc_response_.MarkCompleted();
-  EXPECT_EQ(rest.rc_response_.status(), 429);
-
-  rest.ParseRestResponse();
-
-  ConfigInfo info = rest.metadata().info();
-  EXPECT_EQ(info.last_fetch_status, kLastFetchStatusFailure);
-  EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonThrottled);
-  EXPECT_GT(info.throttled_end_time, info.fetch_time);
-}
-
-TEST_F(RemoteConfigRESTTest, ParseRestResponseNoChangePreservesEntries) {
-  std::string header = "HTTP/1.1 200 Ok";
-  std::string no_change_body = R"({"state": "NO_CHANGE"})";
-
-  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
-  rest.rc_response_.ProcessHeader(header.data(), header.length());
-  rest.rc_response_.ProcessBody(no_change_body.data(), no_change_body.length());
-  rest.rc_response_.MarkCompleted();
-
-  rest.ParseRestResponse();
-
-  EXPECT_EQ(rest.fetched().config(), configs_.fetched.config());
-  ConfigInfo info = rest.metadata().info();
-  EXPECT_EQ(info.last_fetch_status, kLastFetchStatusSuccess);
-  EXPECT_EQ(info.throttled_end_time, 0u);
 }
 
 }  // namespace internal

@@ -50,8 +50,7 @@ class RemoteConfigTest : public ::testing::Test {
   }
 
   void TearDown() override {
-    delete rc_;
-    rc_ = nullptr;
+    Terminate();
     delete firebase_app_;
     firebase_app_ = nullptr;
 
@@ -63,12 +62,12 @@ class RemoteConfigTest : public ::testing::Test {
     firebase_app_ = testing::CreateApp();
     EXPECT_NE(firebase_app_, nullptr) << "Init app failed";
 
-    rc_ = RemoteConfig::GetInstance(firebase_app_);
-    EXPECT_NE(rc_, nullptr) << "GetInstance failed";
+    InitResult result = Initialize(*firebase_app_);
+    EXPECT_NE(firebase_app_, nullptr) << "Init app failed";
+    EXPECT_EQ(result, kInitResultSuccess);
   }
 
   App* firebase_app_ = nullptr;
-  RemoteConfig* rc_ = nullptr;
   firebase::testing::cppsdk::Reporter reporter_;
 };
 
@@ -82,15 +81,15 @@ class RemoteConfigTest : public ::testing::Test {
 // Check SetUp and TearDown working well.
 TEST_F(RemoteConfigTest, InitializeAndTerminate) {}
 
-TEST_F(RemoteConfigTest, GetInstanceTwice) {
-  RemoteConfig* rc2 = RemoteConfig::GetInstance(firebase_app_);
-  EXPECT_EQ(rc2, rc_);
+TEST_F(RemoteConfigTest, InitializeTwice) {
+  InitResult result = Initialize(*firebase_app_);
+  EXPECT_EQ(result, kInitResultSuccess);
 }
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 TEST_F(RemoteConfigTest, SetDefaultsOnAndroid) {
   REPORT_EXPECT("FirebaseRemoteConfig.setDefaultsAsync", "", {"0"});
-  rc_->SetDefaults(0);
+  SetDefaults(0);
 }
 
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
@@ -98,7 +97,7 @@ TEST_F(RemoteConfigTest, SetDefaultsOnAndroid) {
 TEST_F(RemoteConfigTest, SetDefaultsWithNullConfigKeyValueVariant) {
   REPORT_EXPECT("FirebaseRemoteConfig.setDefaultsAsync", "", {"{}"});
   ConfigKeyValueVariant* keyvalues = nullptr;
-  rc_->SetDefaults(keyvalues, 0);
+  SetDefaults(keyvalues, 0);
 }
 
 TEST_F(RemoteConfigTest, SetCustomSignals) {
@@ -107,7 +106,7 @@ TEST_F(RemoteConfigTest, SetCustomSignals) {
                 {"{color=black, height=120}"});
   std::map<std::string, Variant> custom_signals = {{"color", Variant("black")},
                                                    {"height", Variant(120)}};
-  rc_->SetCustomSignals(custom_signals);
+  SetCustomSignals(custom_signals);
 }
 
 TEST_F(RemoteConfigTest, SetCustomSignalsWithNull) {
@@ -116,14 +115,14 @@ TEST_F(RemoteConfigTest, SetCustomSignalsWithNull) {
                 {"{color=black, to_clear=null}"});
   std::map<std::string, Variant> custom_signals = {
       {"color", Variant("black")}, {"to_clear", Variant::Null()}};
-  rc_->SetCustomSignals(custom_signals);
+  SetCustomSignals(custom_signals);
 }
 
 TEST_F(RemoteConfigTest, SetCustomSignalsWithInvalidType) {
   std::vector<Variant> vec = {Variant(1)};
   std::map<std::string, Variant> invalid_signals = {
       {"invalid_key", Variant(vec)}};
-  Future<void> future = rc_->SetCustomSignals(invalid_signals);
+  Future<void> future = SetCustomSignals(invalid_signals);
   EXPECT_EQ(future.status(), kFutureStatusComplete);
   EXPECT_EQ(future.error(), kFutureStatusFailure);
 }
@@ -136,13 +135,13 @@ TEST_F(RemoteConfigTest, SetDefaultsWithConfigKeyValueVariant) {
       ConfigKeyValueVariant{"color", Variant("black")},
       ConfigKeyValueVariant{"height", Variant(120)}};
 
-  rc_->SetDefaults(defaults, 2);
+  SetDefaults(defaults, 2);
 }
 
 TEST_F(RemoteConfigTest, SetDefaultsWithNullConfigKeyValue) {
   REPORT_EXPECT("FirebaseRemoteConfig.setDefaultsAsync", "", {"{}"});
   ConfigKeyValue* keyvalues = nullptr;
-  rc_->SetDefaults(keyvalues, 0);
+  SetDefaults(keyvalues, 0);
 }
 
 TEST_F(RemoteConfigTest, SetDefaultsWithConfigKeyValue) {
@@ -153,13 +152,75 @@ TEST_F(RemoteConfigTest, SetDefaultsWithConfigKeyValue) {
                                ConfigKeyValue{"height", "120"},
                                ConfigKeyValue{"width", "600.5"}};
 
-  rc_->SetDefaults(defaults, 3);
+  SetDefaults(defaults, 3);
+}
+
+TEST_F(RemoteConfigTest, GetConfigSettingTrue) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
+  REPORT_EXPECT("FirebaseRemoteConfig.getInfo", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfigInfo.getConfigSettings", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfigSettings.isDeveloperModeEnabled", "true",
+                {});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfigSettings.isDeveloperModeEnabled',"
+      "     returnvalue: {'tbool': true}}"
+      "  ]"
+      "}");
+  EXPECT_EQ(GetConfigSetting(kConfigSettingDeveloperMode), "1");
+}
+
+TEST_F(RemoteConfigTest, GetConfigSettingFalse) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
+  REPORT_EXPECT("FirebaseRemoteConfig.getInfo", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfigInfo.getConfigSettings", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfigSettings.isDeveloperModeEnabled", "false",
+                {});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfigSettings.isDeveloperModeEnabled',"
+      "     returnvalue: {'tbool': false}}"
+      "  ]"
+      "}");
+  EXPECT_EQ(GetConfigSetting(kConfigSettingDeveloperMode), "0");
+}
+
+TEST_F(RemoteConfigTest, SetConfigSettingTrue) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
+  REPORT_EXPECT("FirebaseRemoteConfig.setConfigSettings", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfigSettings.Builder.setDeveloperModeEnabled",
+                "", {"true"});
+  REPORT_EXPECT("FirebaseRemoteConfigSettings.Builder.build", "", {});
+  SetConfigSetting(kConfigSettingDeveloperMode, "1");
+}
+
+TEST_F(RemoteConfigTest, SetConfigSettingFalse) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
+  REPORT_EXPECT("FirebaseRemoteConfig.setConfigSettings", "", {});
+  REPORT_EXPECT("FirebaseRemoteConfigSettings.Builder.setDeveloperModeEnabled",
+                "", {"false"});
+  REPORT_EXPECT("FirebaseRemoteConfigSettings.Builder.build", "", {});
+  SetConfigSetting(kConfigSettingDeveloperMode, "0");
 }
 
 // Start check GetBoolean functions
 TEST_F(RemoteConfigTest, GetBooleanNullKey) {
+  REPORT_EXPECT("FirebaseRemoteConfig.getBoolean", "false", {""});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.getBoolean',"
+      "     returnvalue: {'tbool': false}}"
+      "  ]"
+      "}");
   const char* key = nullptr;
-  EXPECT_FALSE(rc_->GetBoolean(key));
+  EXPECT_FALSE(GetBoolean(key));
 }
 
 TEST_F(RemoteConfigTest, GetBooleanKey) {
@@ -171,7 +232,7 @@ TEST_F(RemoteConfigTest, GetBooleanKey) {
       "     returnvalue: {'tbool': true}}"
       "  ]"
       "}");
-  EXPECT_TRUE(rc_->GetBoolean("give_prize"));
+  EXPECT_TRUE(GetBoolean("give_prize"));
 }
 
 TEST_F(RemoteConfigTest, GetBooleanKeyAndNullInfo) {
@@ -185,7 +246,7 @@ TEST_F(RemoteConfigTest, GetBooleanKeyAndNullInfo) {
       "  ]"
       "}");
   ValueInfo* info = nullptr;
-  EXPECT_TRUE(rc_->GetBoolean("give_prize", info));
+  EXPECT_TRUE(GetBoolean("give_prize", info));
 }
 
 TEST_F(RemoteConfigTest, GetBooleanKeyAndInfo) {
@@ -202,7 +263,7 @@ TEST_F(RemoteConfigTest, GetBooleanKeyAndInfo) {
       "  ]"
       "}");
   ValueInfo info;
-  EXPECT_TRUE(rc_->GetBoolean("give_prize", &info));
+  EXPECT_TRUE(GetBoolean("give_prize", &info));
   EXPECT_EQ(info.source, kValueSourceDefaultValue);
   EXPECT_TRUE(info.conversion_successful);
 }
@@ -210,8 +271,16 @@ TEST_F(RemoteConfigTest, GetBooleanKeyAndInfo) {
 
 // Start check GetLong functions
 TEST_F(RemoteConfigTest, GetLongNullKey) {
+  REPORT_EXPECT("FirebaseRemoteConfig.getLong", "1000", {""});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.getLong',"
+      "     returnvalue: {'tlong': 1000}}"
+      "  ]"
+      "}");
   const char* key = nullptr;
-  EXPECT_EQ(rc_->GetLong(key), 0);
+  EXPECT_EQ(GetLong(key), 1000);
 }
 
 TEST_F(RemoteConfigTest, GetLongKey) {
@@ -223,7 +292,7 @@ TEST_F(RemoteConfigTest, GetLongKey) {
       "     returnvalue: {'tlong': 1000000000}}"
       "  ]"
       "}");
-  EXPECT_EQ(rc_->GetLong("price"), 1000000000);
+  EXPECT_EQ(GetLong("price"), 1000000000);
 }
 
 TEST_F(RemoteConfigTest, GetLongKeyAndNullInfo) {
@@ -237,7 +306,7 @@ TEST_F(RemoteConfigTest, GetLongKeyAndNullInfo) {
       "  ]"
       "}");
   ValueInfo* info = nullptr;
-  EXPECT_EQ(rc_->GetLong("wallet_cash", info), 100);
+  EXPECT_EQ(GetLong("wallet_cash", info), 100);
 }
 
 TEST_F(RemoteConfigTest, GetLongKeyAndInfo) {
@@ -254,7 +323,7 @@ TEST_F(RemoteConfigTest, GetLongKeyAndInfo) {
       "  ]"
       "}");
   ValueInfo info;
-  EXPECT_EQ(rc_->GetLong("wallet_cash", &info), 7000000);
+  EXPECT_EQ(GetLong("wallet_cash", &info), 7000000);
   EXPECT_EQ(info.source, kValueSourceDefaultValue);
   EXPECT_TRUE(info.conversion_successful);
 }
@@ -262,8 +331,16 @@ TEST_F(RemoteConfigTest, GetLongKeyAndInfo) {
 
 // Start check GetDouble functions
 TEST_F(RemoteConfigTest, GetDoubleNullKey) {
+  REPORT_EXPECT("FirebaseRemoteConfig.getDouble", "1000.500", {""});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.getDouble',"
+      "     returnvalue: {'tdouble': 1000.500}}"
+      "  ]"
+      "}");
   const char* key = nullptr;
-  EXPECT_EQ(rc_->GetDouble(key), 0.0);
+  EXPECT_EQ(GetDouble(key), 1000.500);
 }
 
 TEST_F(RemoteConfigTest, GetDoubleKey) {
@@ -275,7 +352,7 @@ TEST_F(RemoteConfigTest, GetDoubleKey) {
       "     returnvalue: {'tdouble': 1000000000.000}}"
       "  ]"
       "}");
-  EXPECT_EQ(rc_->GetDouble("price"), 1000000000.000);
+  EXPECT_EQ(GetDouble("price"), 1000000000.000);
 }
 
 TEST_F(RemoteConfigTest, GetDoubleKeyAndNullInfo) {
@@ -289,7 +366,7 @@ TEST_F(RemoteConfigTest, GetDoubleKeyAndNullInfo) {
       "  ]"
       "}");
   ValueInfo* info = nullptr;
-  EXPECT_EQ(rc_->GetDouble("wallet_cash", info), 100.999);
+  EXPECT_EQ(GetDouble("wallet_cash", info), 100.999);
 }
 
 TEST_F(RemoteConfigTest, GetDoubleKeyAndInfo) {
@@ -306,7 +383,7 @@ TEST_F(RemoteConfigTest, GetDoubleKeyAndInfo) {
       "  ]"
       "}");
   ValueInfo info;
-  EXPECT_EQ(rc_->GetDouble("wallet_cash", &info), 7000000.000);
+  EXPECT_EQ(GetDouble("wallet_cash", &info), 7000000.000);
   EXPECT_EQ(info.source, kValueSourceDefaultValue);
   EXPECT_TRUE(info.conversion_successful);
 }
@@ -314,8 +391,16 @@ TEST_F(RemoteConfigTest, GetDoubleKeyAndInfo) {
 
 // Start check GetString functions
 TEST_F(RemoteConfigTest, GetStringNullKey) {
+  REPORT_EXPECT("FirebaseRemoteConfig.getString", "I am fake", {""});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.getString',"
+      "     returnvalue: {'tstring': 'I am fake'}}"
+      "  ]"
+      "}");
   const char* key = nullptr;
-  EXPECT_EQ(rc_->GetString(key), "");
+  EXPECT_EQ(GetString(key), "I am fake");
 }
 
 TEST_F(RemoteConfigTest, GetStringKey) {
@@ -327,7 +412,7 @@ TEST_F(RemoteConfigTest, GetStringKey) {
       "     returnvalue: {'tstring': 'I am fake'}}"
       "  ]"
       "}");
-  EXPECT_EQ(rc_->GetString("price"), "I am fake");
+  EXPECT_EQ(GetString("price"), "I am fake");
 }
 
 TEST_F(RemoteConfigTest, GetStringKeyAndNullInfo) {
@@ -341,7 +426,7 @@ TEST_F(RemoteConfigTest, GetStringKeyAndNullInfo) {
       "  ]"
       "}");
   ValueInfo* info = nullptr;
-  EXPECT_EQ(rc_->GetString("wallet_cash", info), "I am fake");
+  EXPECT_EQ(GetString("wallet_cash", info), "I am fake");
 }
 
 TEST_F(RemoteConfigTest, GetStringKeyAndInfo) {
@@ -358,7 +443,7 @@ TEST_F(RemoteConfigTest, GetStringKeyAndInfo) {
       "  ]"
       "}");
   ValueInfo info;
-  EXPECT_EQ(rc_->GetString("wallet_cash", &info), "I am fake");
+  EXPECT_EQ(GetString("wallet_cash", &info), "I am fake");
   EXPECT_EQ(info.source, kValueSourceDefaultValue);
   EXPECT_TRUE(info.conversion_successful);
 }
@@ -366,9 +451,32 @@ TEST_F(RemoteConfigTest, GetStringKeyAndInfo) {
 
 // Start check GetData functions
 TEST_F(RemoteConfigTest, GetDataNullKey) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test using GetData
+  REPORT_EXPECT("FirebaseRemoteConfig.getByteArray", "abcd", {""});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.getByteArray',"
+      "     returnvalue: {'tstring': 'abcd'}}"
+      "  ]"
+      "}");
   const char* key = nullptr;
-  EXPECT_THAT(rc_->GetData(key),
-              ::testing::Eq(std::vector<unsigned char>()));
+  EXPECT_THAT(GetData(key),
+              ::testing::Eq(std::vector<unsigned char>({'a', 'b', 'c', 'd'})));
+}
+
+TEST_F(RemoteConfigTest, GetDataKey) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test using GetData
+  REPORT_EXPECT("FirebaseRemoteConfig.getByteArray", "abc", {"name"});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.getByteArray',"
+      "     returnvalue: {'tstring': 'abc'}}"
+      "  ]"
+      "}");
+  EXPECT_THAT(GetData("name"),
+              ::testing::Eq(std::vector<unsigned char>({'a', 'b', 'c'})));
 }
 
 TEST_F(RemoteConfigTest, GetDataKeyAndNullInfo) {
@@ -382,7 +490,7 @@ TEST_F(RemoteConfigTest, GetDataKeyAndNullInfo) {
       "  ]"
       "}");
   ValueInfo* info = nullptr;
-  EXPECT_THAT(rc_->GetData("wallet_cash", info),
+  EXPECT_THAT(GetData("wallet_cash", info),
               ::testing::Eq(std::vector<unsigned char>({'x', 'y', 'z'})));
 }
 
@@ -400,7 +508,7 @@ TEST_F(RemoteConfigTest, GetDataKeyAndInfo) {
       "  ]"
       "}");
   ValueInfo info;
-  EXPECT_THAT(rc_->GetData("wallet_cash", &info),
+  EXPECT_THAT(GetData("wallet_cash", &info),
               ::testing::Eq(std::vector<unsigned char>({'x', 'y', 'z'})));
   EXPECT_EQ(info.source, kValueSourceDefaultValue);
   EXPECT_TRUE(info.conversion_successful);
@@ -418,7 +526,7 @@ TEST_F(RemoteConfigTest, GetKeysByPrefix) {
       "     returnvalue: {'tstring': '[1, 2, 3, 4]'}}"
       "  ]"
       "}");
-  EXPECT_THAT(rc_->GetKeysByPrefix("some_prefix"),
+  EXPECT_THAT(GetKeysByPrefix("some_prefix"),
               ::testing::Eq(std::vector<std::string>({"1", "2", "3", "4"})));
 }
 
@@ -431,7 +539,7 @@ TEST_F(RemoteConfigTest, GetKeysByPrefixEmptyResult) {
       "     returnvalue: {'tstring': '[]'}}"
       "  ]"
       "}");
-  EXPECT_THAT(rc_->GetKeysByPrefix("some_prefix"),
+  EXPECT_THAT(GetKeysByPrefix("some_prefix"),
               ::testing::Eq(std::vector<std::string>({})));
 }
 
@@ -445,7 +553,7 @@ TEST_F(RemoteConfigTest, GetKeysByPrefixNullPrefix) {
       "  ]"
       "}");
   const char* key = nullptr;
-  EXPECT_THAT(rc_->GetKeysByPrefix(key),
+  EXPECT_THAT(GetKeysByPrefix(key),
               ::testing::Eq(std::vector<std::string>({"1", "2", "3", "4"})));
 }
 // Finish check GetKeysByPrefix functions
@@ -460,7 +568,7 @@ TEST_F(RemoteConfigTest, GetKeys) {
       "     returnvalue: {'tstring': '[1, 2, 3, 4]'}}"
       "  ]"
       "}");
-  EXPECT_THAT(rc_->GetKeys(),
+  EXPECT_THAT(GetKeys(),
               ::testing::Eq(std::vector<std::string>({"1", "2", "3", "4"})));
 }
 // Finish check GetKeys functions
@@ -483,7 +591,7 @@ TEST_F(RemoteConfigTest, Fetch) {
       "     futuregeneric:{ticker:1}}"
       "  ]"
       "}");
-  Verify(rc_->Fetch());
+  Verify(Fetch());
 }
 
 TEST_F(RemoteConfigTest, FetchWithException) {
@@ -498,7 +606,7 @@ TEST_F(RemoteConfigTest, FetchWithException) {
       "                    ticker:1}}"
       "  ]"
       "}");
-  Verify(rc_->Fetch());
+  Verify(Fetch());
 }
 
 TEST_F(RemoteConfigTest, FetchWithExpiration) {
@@ -510,7 +618,7 @@ TEST_F(RemoteConfigTest, FetchWithExpiration) {
       "     futuregeneric:{ticker:1}}"
       "  ]"
       "}");
-  Verify(rc_->Fetch(3600));
+  Verify(Fetch(3600));
 }
 
 TEST_F(RemoteConfigTest, FetchWithExpirationAndException) {
@@ -524,7 +632,7 @@ TEST_F(RemoteConfigTest, FetchWithExpirationAndException) {
       "                    ticker:1}}"
       "  ]"
       "}");
-  Verify(rc_->Fetch(3600));
+  Verify(Fetch(3600));
 }
 
 TEST_F(RemoteConfigTest, FetchLastResult) {
@@ -536,14 +644,14 @@ TEST_F(RemoteConfigTest, FetchLastResult) {
       "     futuregeneric:{ticker:1}}"
       "  ]"
       "}");
-  Future<void> result = rc_->Fetch(3600);
+  Future<void> result = Fetch(3600);
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   EXPECT_EQ(firebase::kFutureStatusPending, result.status());
-  EXPECT_EQ(firebase::kFutureStatusPending, rc_->FetchLastResult().status());
+  EXPECT_EQ(firebase::kFutureStatusPending, FetchLastResult().status());
   firebase::testing::cppsdk::TickerElapse();
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
-  EXPECT_EQ(firebase::kFutureStatusComplete, rc_->FetchLastResult().status());
+  EXPECT_EQ(firebase::kFutureStatusComplete, FetchLastResult().status());
 }
 
 TEST_F(RemoteConfigTest, FetchLastResultWithCallFetchTwice) {
@@ -555,25 +663,53 @@ TEST_F(RemoteConfigTest, FetchLastResultWithCallFetchTwice) {
       "     futuregeneric:{ticker:1}}"
       "  ]"
       "}");
-  Future<void> result1 = rc_->Fetch(3600);
+  Future<void> result1 = Fetch(3600);
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   EXPECT_EQ(firebase::kFutureStatusPending, result1.status());
-  EXPECT_EQ(firebase::kFutureStatusPending, rc_->FetchLastResult().status());
+  EXPECT_EQ(firebase::kFutureStatusPending, FetchLastResult().status());
   firebase::testing::cppsdk::TickerElapse();
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   EXPECT_EQ(firebase::kFutureStatusComplete, result1.status());
-  EXPECT_EQ(firebase::kFutureStatusComplete, rc_->FetchLastResult().status());
+  EXPECT_EQ(firebase::kFutureStatusComplete, FetchLastResult().status());
 
   firebase::testing::cppsdk::TickerReset();
 
-  Future<void> result2 = rc_->Fetch(3600);
+  Future<void> result2 = Fetch(3600);
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   EXPECT_EQ(firebase::kFutureStatusPending, result2.status());
-  EXPECT_EQ(firebase::kFutureStatusPending, rc_->FetchLastResult().status());
+  EXPECT_EQ(firebase::kFutureStatusPending, FetchLastResult().status());
   firebase::testing::cppsdk::TickerElapse();
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   EXPECT_EQ(firebase::kFutureStatusComplete, result2.status());
-  EXPECT_EQ(firebase::kFutureStatusComplete, rc_->FetchLastResult().status());
+  EXPECT_EQ(firebase::kFutureStatusComplete, FetchLastResult().status());
+}
+
+TEST_F(RemoteConfigTest, ActivateFetchedTrue) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test with actual
+                 // activate
+  REPORT_EXPECT("FirebaseRemoteConfig.activate", "true", {});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.activate',"
+      "     futurebool:{value:True, ticker:1}}"
+      "  ]"
+      "}");
+  EXPECT_TRUE(ActivateFetched());
+}
+
+TEST_F(RemoteConfigTest, ActivateFetchedFalse) {
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test with actual
+                 // activate
+  REPORT_EXPECT("FirebaseRemoteConfig.activate", "false", {});
+  firebase::testing::cppsdk::ConfigSet(
+      "{"
+      "  config:["
+      "    {fake:'FirebaseRemoteConfig.activate',"
+      "     futurebool:{value:False, ticker:1}}"
+      "  ]"
+      "}");
+  EXPECT_FALSE(ActivateFetched());
 }
 
 TEST_F(RemoteConfigTest, GetInfo) {
@@ -589,8 +725,8 @@ TEST_F(RemoteConfigTest, GetInfo) {
       "     returnvalue: {'tint': 2}},"
       "  ]"
       "}");
-  const ConfigInfo info = rc_->GetInfo();
-  EXPECT_EQ(info.fetch_time, 1000u);
+  const ConfigInfo info = GetInfo();
+  EXPECT_EQ(info.fetch_time, 1000);
   EXPECT_EQ(info.last_fetch_status, kLastFetchStatusFailure);
   EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonThrottled);
 }

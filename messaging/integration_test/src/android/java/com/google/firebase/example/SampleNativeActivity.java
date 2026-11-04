@@ -38,7 +38,7 @@ public class SampleNativeActivity extends NativeActivity {
   private static final String EXTRA_MESSAGE_ID_KEY = "google.message_id";
 
   // The key in the intent's extras that maps to the incoming message's sender value.
-  private static final String EXTRA_FROM = "from";
+  private static final String EXTRA_FROM = "google.message_id";
 
   /**
    * Workaround for when a message is sent containing both a Data and Notification payload.
@@ -55,23 +55,21 @@ public class SampleNativeActivity extends NativeActivity {
   protected void onNewIntent(Intent intent) {
     // If we do not have a 'from' field this intent was not a message and should not be handled. It
     // probably means this intent was fired by tapping on the app icon.
-    Bundle extras = intent != null ? intent.getExtras() : null;
-    if (extras != null) {
-      String from = extras.getString(EXTRA_FROM);
-      String messageId = extras.getString(EXTRA_MESSAGE_ID_KEY);
-      if (messageId == null) {
-        messageId = extras.getString(EXTRA_MESSAGE_ID_KEY_SERVER);
-      }
-      if (from != null && messageId != null) {
-        Intent message = new Intent(this, MessageForwardingService.class);
-        message.setAction(MessageForwardingService.ACTION_REMOTE_INTENT);
-        message.putExtras(intent);
-        message.setData(intent.getData());
-        // When running on Android O or later, the work will be dispatched as a job via
-        // JobScheduler.enqueue. When running on older versions of the platform,
-        // it will use Context.startService.
-        MessageForwardingService.enqueueWork(this, message);
-      }
+    Bundle extras = intent.getExtras();
+    String from = extras.getString(EXTRA_FROM);
+    String messageId = extras.getString(EXTRA_MESSAGE_ID_KEY);
+    if (messageId == null) {
+      messageId = extras.getString(EXTRA_MESSAGE_ID_KEY_SERVER);
+    }
+    if (from != null && messageId != null) {
+      Intent message = new Intent(this, MessageForwardingService.class);
+      message.setAction(MessageForwardingService.ACTION_REMOTE_INTENT);
+      message.putExtras(intent);
+      message.setData(intent.getData());
+      // When running on Android O or later, the work will be dispatched as a job via
+      // JobScheduler.enqueue. When running on older versions of the platform,
+      // it will use Context.startService.
+      MessageForwardingService.enqueueWork(this, message);
     }
     setIntent(intent);
   }

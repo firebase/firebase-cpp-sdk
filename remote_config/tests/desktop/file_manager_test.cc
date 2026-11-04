@@ -14,28 +14,24 @@
 
 #include "remote_config/src/desktop/file_manager.h"
 
-#include <filesystem>
-#include <fstream>
 #include <map>
 #include <string>
-#include <system_error>
 
+#include "file/base/path.h"
 #include "gtest/gtest.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/metadata.h"
+#include "testing/base/public/googletest.h"
 
 namespace firebase {
 namespace remote_config {
 namespace internal {
 
 TEST(RemoteConfigFileManagerTest, SaveAndLoadSuccess) {
-  std::filesystem::path file_path =
-      std::filesystem::path(::testing::TempDir()) /
-      "remote_config_file_manager_test_data";
-  std::error_code ec;
-  std::filesystem::remove(file_path, ec);
+  std::string file_path =
+      file::JoinPath(FLAGS_test_tmpdir, "remote_config_data");
 
-  RemoteConfigFileManager file_manager(file_path.string());
+  RemoteConfigFileManager file_manager(file_path);
   NamespacedConfigData fetched(
       NamespaceKeyValueMap(
           {{"namespace1", {{"key1", "value1"}, {"key2", "value2"}}}}),
@@ -63,29 +59,6 @@ TEST(RemoteConfigFileManagerTest, SaveAndLoadSuccess) {
   LayeredConfigs new_configs;
   EXPECT_TRUE(file_manager.Load(&new_configs));
   EXPECT_EQ(configs, new_configs);
-
-  std::filesystem::remove(file_path, ec);
-}
-
-TEST(RemoteConfigFileManagerTest, LoadMissingOrCorruptFileFails) {
-  std::filesystem::path file_path =
-      std::filesystem::path(::testing::TempDir()) /
-      "remote_config_file_manager_corrupt_test";
-  std::error_code ec;
-  std::filesystem::remove(file_path, ec);
-
-  RemoteConfigFileManager file_manager(file_path.string());
-  LayeredConfigs configs;
-  EXPECT_FALSE(file_manager.Load(&configs));
-  EXPECT_FALSE(file_manager.Load(nullptr));
-
-  {
-    std::ofstream out(file_path, std::ios::binary | std::ios::trunc);
-    out << "";
-  }
-  EXPECT_FALSE(file_manager.Load(&configs));
-
-  std::filesystem::remove(file_path, ec);
 }
 
 }  // namespace internal

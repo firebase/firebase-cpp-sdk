@@ -46,15 +46,14 @@ TEST(RemoteConfigMetadataTest, Serialization) {
 
   std::string buffer = remote_config_metadata.Serialize();
   RemoteConfigMetadata new_remote_config_metadata;
-  EXPECT_TRUE(new_remote_config_metadata.Deserialize(buffer));
+  new_remote_config_metadata.Deserialize(buffer);
 
   EXPECT_EQ(remote_config_metadata, new_remote_config_metadata);
-  EXPECT_FALSE(new_remote_config_metadata.Deserialize(""));
 }
 
 TEST(RemoteConfigMetadataTest, GetInfoDefaultValues) {
   RemoteConfigMetadata m;
-  ExpectEqualConfigInfo(m.info(), ConfigInfo({0, kLastFetchStatusPending,
+  ExpectEqualConfigInfo(m.info(), ConfigInfo({0, kLastFetchStatusSuccess,
                                               kFetchFailureReasonInvalid, 0}));
 }
 

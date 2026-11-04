@@ -17,7 +17,7 @@
                    android:value="MyGame" />
 
         <activity
-            android:name="com.google.firebase.messaging.cpp.samples.MyActivity"
+            android:name="com.google.firebase.messaging.cpp.samples.Activity"
             android:screenOrientation="landscape"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/app_name"
@@ -57,7 +57,7 @@
 
         <!-- [START messaging_add_custom_listener_service] -->
         <service android:name="com.google.firebase.messaging.cpp.samples.MyListenerService"
-                 android:exported="false">
+                 android:exported="true">
           <intent-filter>
             <action android:name="com.google.firebase.MESSAGING_EVENT"/>
           </intent-filter>
@@ -67,7 +67,7 @@
         <!-- [START messaging_forwarding_service] -->
         <service android:name="com.google.firebase.messaging.MessageForwardingService"
              android:permission="android.permission.BIND_JOB_SERVICE"
-             android:exported="false" >
+             android:exported="true" >
         </service>
         <!-- [END messaging_forwarding_service] -->
     </application>
