@@ -342,19 +342,30 @@ firebase_cpp_cc_test(
   SOURCES
     desktop/connection/web_socket_client_impl_test.cc
   INCLUDES
+    ${CURL_SOURCE_DIR}/include
     ${OPENSSL_INCLUDE_DIR}
-    ${UWEBSOCKETS_SOURCE_DIR}/..
   DEPENDS
     firebase_database
     firebase_testing
+    libcurl
     ${OPENSSL_CRYPTO_LIBRARY}
-    libuWS
 )
 
 if(MSVC)
+  # - WIN32_LEAN_AND_MEAN prevents <windows.h> from pulling in legacy
+  #   <winsock.h>, which conflicts with <winsock2.h>.
+  # - CURL_STATICLIB=1 tells <curl/curl.h> (included via
+  #   web_socket_client_impl.h) that libcurl is linked statically rather than
+  #   imported from a DLL (__declspec(dllimport)).
   target_compile_definitions(firebase_rtdb_desktop_connection_web_socket_client_impl_test
     PRIVATE
       -DWIN32_LEAN_AND_MEAN
+      -DCURL_STATICLIB=1
+  )
+  # TestWebSocketEchoServer calls Winsock2 socket APIs directly.
+  target_link_libraries(firebase_rtdb_desktop_connection_web_socket_client_impl_test
+    PRIVATE
+      ws2_32
   )
 endif()
 
@@ -364,10 +375,8 @@ firebase_cpp_cc_test(
     desktop/connection/connection_test.cc
   INCLUDES
     ${OPENSSL_INCLUDE_DIR}
-    ${UWEBSOCKETS_SOURCE_DIR}/..
   DEPENDS
     ${OPENSSL_CRYPTO_DIR}
-    libuWS
     firebase_app_for_testing
     firebase_database
     firebase_testing
