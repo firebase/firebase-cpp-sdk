@@ -49,6 +49,79 @@ TEST(ResponseTest, ProcessStatusLine) {
   EXPECT_EQ(302, response.status());
 }
 
+TEST(ResponseTest, ProcessHttp2AndReasonlessStatusLines) {
+  Response response;
+  EXPECT_EQ(0, response.status());
+
+  // HTTP/2 status lines synthesized by libcurl have no minor version and often
+  // omit the reason-phrase.
+  ProcessHeader("HTTP/2 200 \r\n", &response);
+  EXPECT_EQ(200, response.status());
+
+  ProcessHeader("HTTP/2 204\r\n", &response);
+  EXPECT_EQ(204, response.status());
+
+  ProcessHeader("HTTP/2.0 404\r\n", &response);
+  EXPECT_EQ(404, response.status());
+
+  ProcessHeader("HTTP/3 201\r\n", &response);
+  EXPECT_EQ(201, response.status());
+
+  // HTTP/1.1 with no reason-phrase (valid per RFC 9112 section 4).
+  ProcessHeader("HTTP/1.1 503\r\n", &response);
+  EXPECT_EQ(503, response.status());
+
+  // Malformed status lines must not overwrite the previously parsed status.
+  ProcessHeader("HTTP/ 200 OK\r\n", &response);
+  EXPECT_EQ(503, response.status());
+  ProcessHeader("HTTP/1. 200 OK\r\n", &response);
+  EXPECT_EQ(503, response.status());
+  ProcessHeader("HTTP/2 99\r\n", &response);
+  EXPECT_EQ(503, response.status());
+  ProcessHeader("NOTHTTP/2 200\r\n", &response);
+  EXPECT_EQ(503, response.status());
+}
+
+TEST(ResponseTest, InterimContinueFollowedByFinalHttp2Response) {
+  Response response;
+  ProcessHeader("HTTP/1.1 100 Continue\r\n", &response);
+  EXPECT_EQ(100, response.status());
+  ProcessHeader("\r\n", &response);
+  EXPECT_TRUE(response.header_completed());
+
+  // Final status line resets header_completed until the final CRLF arrives.
+  ProcessHeader("HTTP/2 200\r\n", &response);
+  EXPECT_EQ(200, response.status());
+  EXPECT_FALSE(response.header_completed());
+  ProcessHeader("content-type: application/json\r\n", &response);
+  ProcessHeader("\r\n", &response);
+  EXPECT_TRUE(response.header_completed());
+}
+
+TEST(ResponseTest, CaseInsensitiveHeadersAndHttp2LowercaseDate) {
+  Response response;
+  EXPECT_EQ(nullptr, response.GetHeader(nullptr));
+
+  // HTTP/2 headers are always lowercase (RFC 9113 section 8.2).
+  ProcessHeader("content-type: application/json\r\n", &response);
+  ProcessHeader("etag: \"v1\"\r\n", &response);
+  ProcessHeader("date: Wed, 05 Jul 2017 15:55:19 GMT\r\n", &response);
+
+  EXPECT_STREQ("application/json", response.GetHeader("Content-Type"));
+  EXPECT_STREQ("application/json", response.GetHeader("content-type"));
+  EXPECT_STREQ("application/json", response.GetHeader("CONTENT-TYPE"));
+  EXPECT_STREQ("\"v1\"", response.GetHeader("ETag"));
+  EXPECT_STREQ("\"v1\"", response.GetHeader("etag"));
+
+  // Redirect or final response overwriting an earlier header of different case.
+  ProcessHeader("ETag: \"v2\"\r\n", &response);
+  EXPECT_STREQ("\"v2\"", response.GetHeader("etag"));
+  EXPECT_STREQ("\"v2\"", response.GetHeader("ETag"));
+
+  response.MarkCompleted();
+  EXPECT_EQ(1499270119, response.fetch_time());
+}
+
 TEST(ResponseTest, ProcessHeaderEnding) {
   Response response;
   EXPECT_FALSE(response.header_completed());

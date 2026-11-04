@@ -63,6 +63,10 @@ TEST(LoggerTest, GetSetLogLevel) {
   EXPECT_EQ(logger2.GetLogLevel(), kLogLevelDebug);
   logger2.SetLogLevel(kLogLevelInfo);
   EXPECT_EQ(logger2.GetLogLevel(), kLogLevelInfo);
+
+  // Logging at any level with a null parent logger must be a safe no-op.
+  logger.LogWarning("ignored warning");
+  logger.LogError("ignored error");
 }
 
 TEST(LoggerTest, LogWithEachFunction) {

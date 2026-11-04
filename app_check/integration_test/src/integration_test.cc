@@ -170,8 +170,11 @@ void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
   LogDebug("Initialize Firebase App Check with Debug Provider");
 
   // Set the App Check Debug Token before providing the Factory.
+  const char* env_debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
   firebase::app_check::DebugAppCheckProviderFactory::GetInstance()
-      ->SetDebugToken(kAppCheckDebugToken);
+      ->SetDebugToken((env_debug_token && *env_debug_token)
+                          ? env_debug_token
+                          : kAppCheckDebugToken);
 
   firebase::app_check::AppCheck::SetAppCheckProviderFactory(
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
@@ -874,6 +877,40 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   EXPECT_TRUE(result.is_map());
   if (result.is_map()) {
     EXPECT_EQ(result.map()["operationResult"], 12);
+  }
+}
+
+// Verifies concurrent multi-App App Check debug token exchanges over the shared
+// process-wide CurlIoLoop without cross-handle contention or failure.
+TEST_F(FirebaseAppCheckTest, TestConcurrentMultiAppTokenExchange) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+
+  const int kNumApps = 6;
+  std::vector<firebase::App*> apps(kNumApps, nullptr);
+  std::vector<firebase::app_check::AppCheck*> checks(kNumApps, nullptr);
+  std::vector<firebase::Future<firebase::app_check::AppCheckToken>> futures(
+      kNumApps);
+
+  for (int i = 0; i < kNumApps; ++i) {
+    std::string name = "concurrent_app_check_" + std::to_string(i);
+    apps[i] = firebase::App::Create(app_->options(), name.c_str());
+    ASSERT_NE(apps[i], nullptr);
+    checks[i] = firebase::app_check::AppCheck::GetInstance(apps[i]);
+    ASSERT_NE(checks[i], nullptr);
+    futures[i] = checks[i]->GetAppCheckToken(/*force_refresh=*/true);
+  }
+
+  for (int i = 0; i < kNumApps; ++i) {
+    EXPECT_TRUE(WaitForCompletion(futures[i], "MultiApp GetAppCheckToken"));
+    ASSERT_NE(futures[i].result(), nullptr);
+    EXPECT_FALSE(futures[i].result()->token.empty());
+    EXPECT_GT(futures[i].result()->expire_time_millis, 0);
+  }
+
+  for (int i = 0; i < kNumApps; ++i) {
+    delete checks[i];
+    delete apps[i];
   }
 }
 

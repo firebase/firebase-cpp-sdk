@@ -117,6 +117,13 @@ std::string ToUpper(const std::string& str) {
   return res;
 }
 
+std::string ToLower(const std::string& str) {
+  std::string res = str;
+  std::transform(res.begin(), res.end(), res.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return res;
+}
+
 bool JsonData::Parse(const char* json_txt) {
   root_ = firebase::util::JsonToVariant(json_txt);
   return !root_.is_null();

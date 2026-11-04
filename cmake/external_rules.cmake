@@ -49,8 +49,6 @@ function(download_external_sources)
   check_use_local_directory(BORINGSSL)
   check_use_local_directory(CURL)
   check_use_local_directory(FLATBUFFERS)
-  check_use_local_directory(LIBUV)
-  check_use_local_directory(UWEBSOCKETS)
   check_use_local_directory(ZLIB)
   check_use_local_directory(FIREBASE_IOS_SDK)
 
@@ -83,8 +81,6 @@ function(download_external_sources)
       -DDOWNLOAD_CURL=${DOWNLOAD_CURL}
       -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
       -DDOWNLOAD_GOOGLETEST=${FIREBASE_DOWNLOAD_GTEST}
-      -DDOWNLOAD_LIBUV=${DOWNLOAD_LIBUV}
-      -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
       -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
       -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}
       -DEXTERNAL_PROJECT_HTTP_HEADER=${EXTERNAL_PROJECT_HTTP_HEADER}

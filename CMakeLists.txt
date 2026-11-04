@@ -447,23 +447,40 @@ if(DESKTOP)
   set(CURL_DISABLE_INSTALL ON)
 
   if(WIN32)
-    # Use Windows native Schannel/SSPI for TLS instead of OpenSSL/BoringSSL.
+    # Use Windows native Schannel/SSPI (Crypt32) for TLS instead of
+    # OpenSSL/BoringSSL. Schannel verifies server certificates against the
+    # Windows Certificate Store and enforces native OCSP/CRL revocation
+    # checking (SCH_CRED_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) as well as
+    # Microsoft Certificate Trust List (CTL) / disallowed-CA updates.
     set(CURL_USE_SCHANNEL ON)
   elseif(APPLE)
     # Enable Apple Security.framework (SecTrust) native OS certificate
     # verification alongside OpenSSL/BoringSSL, so macOS builds verify peers
-    # against the system Keychain rather than requiring a CA bundle file path.
+    # against the macOS System Keychain (SecTrustEvaluateWithError) and enforce
+    # Apple's native OCSP/CRL policies and Valid/trustd revocation updates
+    # rather than relying on a static CA bundle file path.
     set(USE_APPLE_SECTRUST ON)
     # When curl detects static BoringSSL with a Clang toolchain, it appends
     # ${_curl_stdlib_cxx} to its link interface. Override curl's default of
     # "stdc++" (removed from modern Xcode SDKs) to Apple's "c++" (libc++).
     set(_curl_stdlib_cxx "c++")
+  else()
+    # On Linux, libcurl uses OpenSSL/BoringSSL and verifies server certificates
+    # against the OS trust store managed by the distribution's ca-certificates
+    # package (which removes or distrusts compromised root and intermediate CAs).
+    # Note: TransportCurl and WebSocketClientImpl resolve CURLOPT_CAINFO and
+    # CURLOPT_CAPATH at runtime across standard Linux distribution paths so
+    # prebuilt binaries do not depend solely on the build machine's detected
+    # CURL_CA_BUNDLE path.
   endif()
 
   # Disable optional external libraries that curl 8.23.0 enables by default:
   # - libssh2: SSH/SCP/SFTP protocol library (unused by Firebase REST).
   # - libpsl: Public Suffix List cookie-domain library (unused).
-  # - nghttp2: HTTP/2 framing library (Firebase REST pins to HTTP/1.1).
+  # - nghttp2: optional external HTTP/2 library. Not bundled, so the shipped
+  #   desktop libraries speak HTTP/1.1 only; the REST transport opts into
+  #   HTTP/2 (CURL_HTTP_VERSION_2TLS) automatically if a user-supplied libcurl
+  #   is built with nghttp2.
   # - libidn2: Internationalized Domain Names library (unused).
   set(CURL_USE_LIBSSH2 OFF)
   set(CURL_USE_LIBPSL OFF)
@@ -481,7 +498,8 @@ if(DESKTOP)
   set(CURL_ZSTD OFF CACHE STRING "Build curl with zstd support" FORCE)
 
   # curl 8.23.0 removed the legacy umbrella HTTP_ONLY option. Explicitly disable
-  # every non-HTTP(S) protocol so only HTTP and HTTPS are compiled into libcurl.
+  # every unused protocol so only HTTP, HTTPS, WS, and WSS (used by the REST
+  # layer and Realtime Database WebSockets) are compiled into libcurl.
   set(CURL_DISABLE_DICT ON)
   set(CURL_DISABLE_FILE ON)
   set(CURL_DISABLE_FTP ON)
@@ -496,7 +514,7 @@ if(DESKTOP)
   set(CURL_DISABLE_SMTP ON)
   set(CURL_DISABLE_TELNET ON)
   set(CURL_DISABLE_TFTP ON)
-  set(CURL_DISABLE_WEBSOCKETS ON)
+  set(CURL_DISABLE_WEBSOCKETS OFF)
 
   # Skip building curl's test suite and example binaries.
   set(BUILD_TESTING OFF)
@@ -505,77 +523,11 @@ if(DESKTOP)
   add_external_library(curl)
 
   # Clean up generic normal variables set specifically for curl so they do not
-  # leak into subsequent add_subdirectory() calls (libuv, zlib, firestore, etc.).
+  # leak into subsequent add_subdirectory() calls (zlib, firestore, etc.).
   unset(BUILD_STATIC_LIBS)
   unset(BUILD_EXAMPLES)
 
-  add_external_library(libuv)
-
   add_external_library(zlib)
-
-  add_external_library(uWebSockets)
-
-  # Binutils on Mac doesn't support thread-local storage (required by
-  # websockets), but because we only use websockets via the scheduler, we don't
-  # need it. Deactivate this by blanking out the __thread keyword.
-  set(websockets_additional_defines "-D__thread=")
-
-  # uWebSockets does not come with a CMakeLists file, so define the target.
-  # Note that since it depends on OpenSSL, only do so if that was found.
-  if (OPENSSL_FOUND)
-    if (MSVC OR APPLE)
-      set(uWebSockets_extra_src)
-    else()
-      # Epoll is only used on Linux, otherwise LibUV is used.
-      set(uWebSockets_extra_src
-          ${UWEBSOCKETS_SOURCE_DIR}/src/Epoll.cpp)
-    endif()
-    add_library(libuWS STATIC
-        ${uWebSockets_extra_src}
-        ${UWEBSOCKETS_SOURCE_DIR}/src/Extensions.cpp
-        ${UWEBSOCKETS_SOURCE_DIR}/src/Group.cpp
-        ${UWEBSOCKETS_SOURCE_DIR}/src/HTTPSocket.cpp
-        ${UWEBSOCKETS_SOURCE_DIR}/src/Hub.cpp
-        ${UWEBSOCKETS_SOURCE_DIR}/src/Networking.cpp
-        ${UWEBSOCKETS_SOURCE_DIR}/src/Node.cpp
-        ${UWEBSOCKETS_SOURCE_DIR}/src/Socket.cpp
-        ${UWEBSOCKETS_SOURCE_DIR}/src/WebSocket.cpp)
-    if(MSVC)
-      set(websockets_additional_defines
-        ${websockets_additional_defines}
-        -DWIN32_LEAN_AND_MEAN # Ensure that windows doesn't include winsock.h by
-                              # default, as it can cause issues when libraries try
-                              # to include winsock2.h later on in the process.
-        -DUSE_LIBUV=1
-      )
-    elseif(APPLE)
-      set(websockets_additional_defines
-        ${websockets_additional_defines}
-        -DUSE_LIBUV=1
-      )
-    endif()
-
-    target_compile_definitions(libuWS
-      PRIVATE
-        ${websockets_additional_defines}
-    )
-    target_include_directories(libuWS
-      PUBLIC
-        ${LIBUV_SOURCE_DIR}/include
-        ${UWEBSOCKETS_SOURCE_DIR}
-        ${ZLIB_SOURCE_DIR}
-        ${ZLIB_BINARY_DIR}
-      PRIVATE
-        ${OPENSSL_INCLUDE_DIR}
-    )
-    target_link_libraries(libuWS
-      PRIVATE
-        OpenSSL::SSL
-        OpenSSL::Crypto
-        uv_a
-        zlibstatic
-    )
-  endif()
 endif()
 
 if(DESKTOP AND NOT CMAKE_CROSSCOMPILING)
