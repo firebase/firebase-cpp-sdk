@@ -1,4 +1,3 @@
-#include <optional>
 /*
  * Copyright 2020 Google LLC
  *
@@ -21,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 

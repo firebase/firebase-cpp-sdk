@@ -24,14 +24,14 @@
 #include <string>
 #include <utility>
 
-#include "app/rest/util.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/path.h"
 #include "app/src/time.h"
+#if defined(FIREBASE_TARGET_DESKTOP)
+#include "app/rest/util.h"
 #include "app/src/variant_util.h"
-#include "storage/src/desktop/storage_path.h"
-#include "storage/src/desktop/storage_reference_desktop.h"
+#endif  // defined(FIREBASE_TARGET_DESKTOP)
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
@@ -171,13 +171,7 @@ MetadataInternal& MetadataInternal::operator=(
   return *this;
 }
 
-
-
-
-
-
-
-
+#if defined(FIREBASE_TARGET_DESKTOP)
 
 std::string MetadataInternal::LookUpString(const Variant& root, const char* key,
                                            const char* default_value) {
@@ -443,5 +437,7 @@ std::string MetadataInternal::ExportAsJson() const {
 
   return util::VariantToJson(root);
 }
+
+#endif  // defined(FIREBASE_TARGET_DESKTOP)
 
 }  // namespace firebase::storage::internal

@@ -1,4 +1,3 @@
-#include "app/src/reference_counted_future_impl.h"
 // Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +21,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/reference_counted_future_impl.h"
 #include "app_check/src/include/firebase/app_check.h"
 
 namespace firebase {

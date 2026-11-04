@@ -38,9 +38,9 @@ bool User::is_valid() const { return ValidUser(auth_data_); }
 
 void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refresh) {
   if (!ValidUser(auth_data)) {
-    return Future<std::string>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (force_refresh) {
     MutexLock lock(auth_data->future_impl.mutex());
     auth_data->SetExpectIdTokenListenerCallback(true);
@@ -78,11 +78,16 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refr
                     }];
 }
 
+void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise,
+                      bool force_refresh, int /*future_identifier*/) {
+  GetToken(auth_data, promise, force_refresh);
+}
+
 void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool force_refresh) {
   if (!ValidUser(auth_data)) {
-    return Future<IdTokenResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (force_refresh) {
     MutexLock lock(auth_data->future_impl.mutex());
     auth_data->SetExpectIdTokenListenerCallback(true);
@@ -181,11 +186,13 @@ std::vector<UserInfoInterface> User::provider_data() const {
 
 void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char *password) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!password) {
     futures.Complete(promise.handle(), kAuthErrorMissingPassword, "Password must be provided.");
+    return;
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
@@ -206,9 +213,9 @@ void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char *pass
 
 void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserProfile &profile) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   // Create and populate the change request.
   FIRUserProfileChangeRequest *request = [UserImpl(auth_data) profileChangeRequest];
   if (profile.display_name != nullptr) {
@@ -248,9 +255,9 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserPro
 
 void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
   [UserImpl(auth_data) sendEmailVerificationWithCompletion:^(NSError *_Nullable error) {
@@ -265,11 +272,13 @@ void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
 
 void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char *email) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!email || strlen(email) == 0) {
     futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Email must be provided.");
+    return;
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
@@ -288,14 +297,17 @@ void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void>
 
 void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential &credential) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (credential.error_code_ != kAuthErrorNone) {
     futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
+    return;
   }
   if (!credential.is_valid()) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return;
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
@@ -312,7 +324,9 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
 
 Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider *provider) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_LinkWithProvider);
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return promise.future();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   return provider->Link(auth_data);
@@ -320,11 +334,13 @@ Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider *
 
 void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char *provider) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!provider || strlen(provider) == 0) {
     futures.Complete(promise.handle(), kAuthErrorInvalidProviderId, "Provider ID must be provided.");
+    return;
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
@@ -341,20 +357,24 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char *provid
 
 void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential &credential) {
   if (!ValidUser(auth_data)) {
-    return Future<User>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
 
 #if FIREBASE_PLATFORM_IOS
   if (credential.error_code_ != kAuthErrorNone) {
     futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
+    return;
   }
   if (!credential.is_valid()) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return;
   }
   FIRPhoneAuthCredential *objc_credential = PhoneAuthCredentialFromImpl(credential.impl_);
   if (!objc_credential) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Credential is not a phone credential.");
+    return;
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
@@ -378,9 +398,9 @@ void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, con
 
 void Reload(AuthData* auth_data, Promise<void> promise) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
@@ -399,14 +419,17 @@ void Reload(AuthData* auth_data, Promise<void> promise) {
 
 void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential &credential) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (credential.error_code_ != kAuthErrorNone) {
     futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
+    return;
   }
   if (!credential.is_valid()) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return;
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
@@ -433,16 +456,17 @@ void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential
 
 void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential &credential) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
-  const auto promise.handle() = auth_data->future_impl.SafeAlloc<AuthResult>(
-      kUserFn_ReauthenticateAndRetrieveData, AuthResult());
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (credential.error_code_ != kAuthErrorNone) {
     futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
+    return;
   }
   if (!credential.is_valid()) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return;
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
@@ -460,7 +484,9 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
 
 Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider *provider) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_ReauthenticateWithProvider);
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return promise.future();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   return provider->Reauthenticate(auth_data);
@@ -468,9 +494,9 @@ Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuth
 
 void Delete(AuthData* auth_data, Promise<void> promise) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
   }
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
   [UserImpl(auth_data) deleteWithCompletion:^(NSError *_Nullable error) {

@@ -1008,24 +1008,3 @@ void CallAfterEnsureMethodsCached(JNIEnv* env, jobject activity,
 }
 
 }  // namespace firebase
-
-jobject ContinueBuilder(JNIEnv* env, jobject old_builder, jobject new_builder) {
-  if (old_builder) env->DeleteLocalRef(old_builder);
-  return new_builder;
-}
-
-jobject CharsToURL(JNIEnv* env, const char* url_string) {
-  if (!env || !url_string || url_string[0] == '\0') return nullptr;
-  jstring url_jstring = env->NewStringUTF(url_string);
-  if (!url_jstring || ::firebase::jni::CheckAndClearException(env)) return nullptr;
-  jclass url_class = env->FindClass("java/net/URL");
-  jmethodID ctor = env->GetMethodID(url_class, "<init>", "(Ljava/lang/String;)V");
-  jobject url_obj = env->NewObject(url_class, ctor, url_jstring);
-  env->DeleteLocalRef(url_class);
-  env->DeleteLocalRef(url_jstring);
-  if (::firebase::jni::CheckAndClearException(env)) {
-    if (url_obj) env->DeleteLocalRef(url_obj);
-    return nullptr;
-  }
-  return url_obj;
-}

@@ -23,8 +23,8 @@
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/version.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "firebase/firestore/firestore_version.h"
 #include "firestore/firestore_resources.h"
 #include "firestore/src/android/aggregate_query_android.h"
 #include "firestore/src/android/aggregate_query_snapshot_android.h"
@@ -420,7 +420,7 @@ FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
   });
 
   promises_ = std::make_unique<PromiseFactory<AsyncFn>>(this);
-  App::RegisterLibrary("fire-fst", kFirestoreVersionString, env.get());
+  App::RegisterLibrary("fire-fst", FIREBASE_VERSION_NUMBER_STRING, env.get());
 }
 
 /* static */

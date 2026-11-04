@@ -442,8 +442,12 @@ static void ReadProviderResult(
 
   // `list` is of type List<String>. Loop through it.
   if (list != nullptr) {
-    const int num_providers =
-        env->CallIntMethod(list, env->GetMethodID(env->GetObjectClass(list), "size", "()I"));
+    jclass list_class = env->GetObjectClass(list);
+    jmethodID size_method = env->GetMethodID(list_class, "size", "()I");
+    jmethodID get_method =
+        env->GetMethodID(list_class, "get", "(I)Ljava/lang/Object;");
+    env->DeleteLocalRef(list_class);
+    const int num_providers = env->CallIntMethod(list, size_method);
     if (::firebase::jni::CheckAndClearException(env) || num_providers <= 0) {
       env->DeleteLocalRef(list);
       return;
@@ -452,8 +456,8 @@ static void ReadProviderResult(
 
     for (int i = 0; i < num_providers; ++i) {
       // provider local reference is released in jni::JniStringToStringAndReleaseLocalRef().
-      jstring provider = static_cast<jstring>(env->CallObjectMethod(
-          list, env->GetMethodID(env->GetObjectClass(list), "get", "(I)Ljava/lang/Object;"), i));
+      jstring provider =
+          static_cast<jstring>(env->CallObjectMethod(list, get_method, i));
       if (::firebase::jni::CheckAndClearException(env)) {
         provider = nullptr;
       }
@@ -466,12 +470,14 @@ static void ReadProviderResult(
 void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char* email) {
   if (!email || strlen(email) == 0) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email address.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jstring j_email = env->NewStringUTF(email);
   if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data),
@@ -488,12 +494,14 @@ void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, con
   if (!token || strlen(token) == 0) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCustomToken,
                      "Empty custom token.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jstring j_token = env->NewStringUTF(token);
   if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_token != nullptr) env->DeleteLocalRef(j_token);
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCustomToken),
@@ -551,9 +559,9 @@ void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult
   }
 }
 
-void SignInWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
-  FIREBASE_ASSERT_RETURN_VOID(provider);
-  provider->SignIn(auth_data);
+Future<AuthResult> SignInWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->SignIn(auth_data);
 }
 
 void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
@@ -575,17 +583,20 @@ void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise
                      (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
                                                     : kAuthErrorMissingPassword,
                      kErrorEmptyEmailPassword);
+    return;
   }
 
   JNIEnv* env = Env(auth_data);
   jstring j_email = env->NewStringUTF(email);
   if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
+    return;
   }
   jstring j_password = env->NewStringUTF(password);
   if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     env->DeleteLocalRef(j_email);
     if (j_password != nullptr) env->DeleteLocalRef(j_password);
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data),
@@ -607,17 +618,20 @@ void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> pro
                      (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
                                                     : kAuthErrorMissingPassword,
                      kErrorEmptyEmailPassword);
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jstring j_email = env->NewStringUTF(email);
   if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
+    return;
   }
   jstring j_password = env->NewStringUTF(password);
   if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     env->DeleteLocalRef(j_email);
     if (j_password != nullptr) env->DeleteLocalRef(j_password);
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data),
@@ -675,11 +689,13 @@ void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const ch
 
   if (!email || strlen(email) == 0) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email address.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
   jstring j_email = env->NewStringUTF(email);
   if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kSendPasswordResetEmail),

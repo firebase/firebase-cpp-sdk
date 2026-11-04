@@ -129,8 +129,8 @@ class ServiceUpdatedCredentialProvider {
 
 template <typename T>
 struct ListenerHandleHolder {
-  explicit ListenerHandleHolder(T promise.handle()) : promise.handle()(promise.handle()) {}
-  T promise.handle();
+  explicit ListenerHandleHolder(T h) : handle(h) {}
+  T handle;
 };
 
 // Platform-specific method to create the wrapped Auth class.
@@ -241,13 +241,13 @@ void Auth::DestroyPlatformAuth(AuthData *auth_data) {
   ListenerHandleHolder<FIRAuthStateDidChangeListenerHandle> *handle_holder =
       reinterpret_cast<ListenerHandleHolder<FIRAuthStateDidChangeListenerHandle> *>(
           auth_data->listener_impl);
-  [AuthImpl(auth_data) removeAuthStateDidChangeListener:handle_holder->promise.handle()];
+  [AuthImpl(auth_data) removeAuthStateDidChangeListener:handle_holder->handle];
   delete handle_holder;
   auth_data->listener_impl = nullptr;
   ListenerHandleHolder<FIRIDTokenDidChangeListenerHandle> *id_token_listener_handle_holder =
       reinterpret_cast<ListenerHandleHolder<FIRIDTokenDidChangeListenerHandle> *>(
           auth_data->id_token_listener_impl);
-  [AuthImpl(auth_data) removeIDTokenDidChangeListener:id_token_listener_handle_holder->promise.handle()];
+  [AuthImpl(auth_data) removeIDTokenDidChangeListener:id_token_listener_handle_holder->handle];
   delete id_token_listener_handle_holder;
   auth_data->id_token_listener_impl = nullptr;
 
@@ -261,12 +261,10 @@ void Auth::DestroyPlatformAuth(AuthData *auth_data) {
 void LogHeartbeat(Auth *auth) { (void)auth; }
 
 void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char *email) {
-  // Create data structure to hold asynchronous results.
-  FetchProvidersResult initial_data;
-
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!email || strlen(email) == 0) {
     futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email is not allowed.");
+    return;
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
@@ -352,7 +350,7 @@ std::string ErrorMessageFromNSError(NSError *_Nullable error) {
 }
 
 void AuthResultCallback(FIRAuthDataResult *_Nullable fir_auth_result, NSError *_Nullable error,
-                        SafeFutureHandle<AuthResult> promise.handle(), AuthData *_Nonnull auth_data) {
+                        SafeFutureHandle<AuthResult> handle, AuthData *_Nonnull auth_data) {
   User *current_user =
       (error == nil && fir_auth_result != nil) ? AssignUser(fir_auth_result.user, auth_data)
                                                : nullptr;
@@ -386,12 +384,12 @@ void AuthResultCallback(FIRAuthDataResult *_Nullable fir_auth_result, NSError *_
   }
 
   std::string error_string = ErrorMessageFromNSError(error);
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
-  futures.CompleteWithResult(promise.handle(), AuthErrorFromNSError(error), error_string.c_str(), result);
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error), error_string.c_str(), result);
 }
 
 void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
-                        SafeFutureHandle<AuthResult> promise.handle(), AuthData *_Nonnull auth_data) {
+                        SafeFutureHandle<AuthResult> handle, AuthData *_Nonnull auth_data) {
   User *current_user = (error == nil && user != nil) ? AssignUser(user, auth_data) : nullptr;
   AuthResult auth_result;
   if (current_user != nullptr) auth_result.user = *current_user;
@@ -406,37 +404,38 @@ void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
   }
 
   std::string error_string = ErrorMessageFromNSError(error);
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
-  futures.CompleteWithResult(promise.handle(), AuthErrorFromNSError(error), error_string.c_str(),
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error), error_string.c_str(),
                              auth_result);
 }
 
 void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
-                        SafeFutureHandle<User> promise.handle(), AuthData *_Nonnull auth_data) {
+                        SafeFutureHandle<User> handle, AuthData *_Nonnull auth_data) {
   User *current_user = (error == nil && user != nil) ? AssignUser(user, auth_data) : nullptr;
   User user_result;
   if (current_user != nullptr) user_result = *current_user;
 
   std::string error_string = ErrorMessageFromNSError(error);
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
-  futures.CompleteWithResult(promise.handle(), AuthErrorFromNSError(error), error_string.c_str(),
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error), error_string.c_str(),
                              user_result);
 }
 
 void AuthResultWithProviderCallback(
     FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
-    SafeFutureHandle<AuthResult> promise.handle(), AuthData *_Nonnull auth_data,
+    SafeFutureHandle<AuthResult> handle, AuthData *_Nonnull auth_data,
     const FIROAuthProvider *_Nonnull ios_auth_provider /*unused */) {
   // ios_auth_provider exists as a parameter to hold a reference to the FIROAuthProvider preventing
   // its release by the Objective-C runtime during the asynchronous operations.
   error = RemapBadProviderIDErrors(error);
-  AuthResultCallback(auth_result, error, promise.handle(), auth_data);
+  AuthResultCallback(auth_result, error, handle, auth_data);
 }
 
 void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char *token) {
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!token || strlen(token) == 0) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCustomToken, "Empty custom token is not allowed.");
+    return;
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
@@ -453,12 +452,14 @@ void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, con
 }
 
 void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential &credential) {
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (credential.error_code_ != kAuthErrorNone) {
     futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
+    return;
   }
   if (!credential.is_valid()) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return;
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
@@ -475,12 +476,14 @@ void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Cred
 }
 
 void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential &credential) {
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (credential.error_code_ != kAuthErrorNone) {
     futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
+    return;
   }
   if (!credential.is_valid()) {
     futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return;
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
@@ -502,8 +505,6 @@ Future<AuthResult> SignInWithProvider(AuthData* auth_data, FederatedAuthProvider
 }
 
 void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
-
   FIRCPPAuthListenerHandle *listener_cpp_handle =
       reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
   [AuthImpl(auth_data) signInAnonymouslyWithCompletion:^(FIRAuthDataResult *_Nullable auth_result,
@@ -517,7 +518,7 @@ void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
 }
 
 void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char *email, const char *password) {
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!email || strlen(email) == 0) {
     futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email is not allowed.");
   } else if (!password || strlen(password) == 0) {
@@ -539,7 +540,7 @@ void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise
 }
 
 void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char *email, const char *password) {
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!email || strlen(email) == 0) {
     futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email is not allowed.");
   } else if (!password || strlen(password) == 0) {
@@ -562,9 +563,10 @@ void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> pro
 
 
 void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const char *email) {
-  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   if (!email || strlen(email) == 0) {
     futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email is not allowed.");
+    return;
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =

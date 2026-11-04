@@ -313,6 +313,7 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refr
       auth_data->SetExpectIdTokenListenerCallback(false);
     }
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kToken), force_refresh);
@@ -326,6 +327,11 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refr
     // If the method failed for some reason, clear the expected callback.
     auth_data->SetExpectIdTokenListenerCallback(false);
   }
+}
+
+void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise,
+                      bool force_refresh, int /*future_identifier*/) {
+  GetToken(auth_data, promise, force_refresh);
 }
 
 static void ReadIdTokenResultImpl(jobject result,
@@ -415,6 +421,7 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool 
       auth_data->SetExpectIdTokenListenerCallback(false);
     }
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kToken), force_refresh);
@@ -447,13 +454,16 @@ std::vector<UserInfoInterface> User::provider_data() const {
 
     // Copy the Java UserInfo list into the returned vector.
     if (list != nullptr) {
-      const int num_providers =
-          env->CallIntMethod(list, env->GetMethodID(env->GetObjectClass(list), "size", "()I"));
+      jclass list_class = env->GetObjectClass(list);
+      jmethodID size_method = env->GetMethodID(list_class, "size", "()I");
+      jmethodID get_method =
+          env->GetMethodID(list_class, "get", "(I)Ljava/lang/Object;");
+      env->DeleteLocalRef(list_class);
+      const int num_providers = env->CallIntMethod(list, size_method);
       if (!jni::CheckAndClearException(env) && num_providers > 0) {
         provider_data.reserve(num_providers);
         for (int i = 0; i < num_providers; ++i) {
-          jobject j_user_info = env->CallObjectMethod(
-              list, env->GetMethodID(env->GetObjectClass(list), "get", "(I)Ljava/lang/Object;"), i);
+          jobject j_user_info = env->CallObjectMethod(list, get_method, i);
           if (jni::CheckAndClearException(env) || j_user_info == nullptr) {
             if (j_user_info) env->DeleteLocalRef(j_user_info);
             continue;
@@ -482,12 +492,14 @@ void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* pass
   if (!password) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingPassword,
                      "Password must be provided.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jstring j_password = env->NewStringUTF(password);
   jobject pending_result = env->CallObjectMethod(
@@ -609,15 +621,18 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
   if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
     auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
                      internal::CredentialAccess::GetErrorMessage(credential).c_str());
+    return;
   } else if (!credential.is_valid()) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kLinkWithCredential),
@@ -630,12 +645,14 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
   }
 }
 
-void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
+Future<AuthResult> LinkWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
   if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
+    Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_LinkWithProvider);
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return promise.future();
   }
-  FIREBASE_ASSERT_RETURN_VOID(provider);
-  provider->Link(auth_data);
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->Link(auth_data);
 }
 
 void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provider) {
@@ -645,12 +662,14 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provid
   if (!provider || strlen(provider) == 0) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidProviderId,
                      "Provider ID must be provided.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jstring j_provider = env->NewStringUTF(provider);
   jobject pending_result = env->CallObjectMethod(
@@ -666,14 +685,16 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provid
 
 void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential& credential) {
   if (!ValidUser(auth_data)) {
-    return;
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
     auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
                      internal::CredentialAccess::GetErrorMessage(credential).c_str());
+    return;
   } else if (!credential.is_valid()) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
@@ -683,6 +704,7 @@ void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, con
     jobject user_local = AcquireUserLocalRef(env, auth_data);
     if (user_local == nullptr) {
       auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+      return;
     }
     jobject pending_result = env->CallObjectMethod(
         user_local, user::GetMethodId(user::kUpdatePhoneNumberCredential),
@@ -719,6 +741,7 @@ void Reload(AuthData* auth_data, Promise<void> promise) {
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kReload));
@@ -737,15 +760,18 @@ void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential
   if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
     auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
                      internal::CredentialAccess::GetErrorMessage(credential).c_str());
+    return;
   } else if (!credential.is_valid()) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kReauthenticate),
@@ -765,15 +791,18 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
   if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
     auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
                      internal::CredentialAccess::GetErrorMessage(credential).c_str());
+    return;
   } else if (!credential.is_valid()) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kReauthenticateAndRetrieveData),
@@ -786,12 +815,14 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
   }
 }
 
-void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
+Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider* provider) {
   if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
+    Promise<AuthResult> promise(&auth_data->future_impl, kUserFn_ReauthenticateWithProvider);
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return promise.future();
   }
-  FIREBASE_ASSERT_RETURN_VOID(provider);
-  provider->Reauthenticate(auth_data);
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->Reauthenticate(auth_data);
 }
 
 void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
@@ -803,6 +834,7 @@ void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kSendEmailVerification));
@@ -821,12 +853,14 @@ void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void>
   if (!email || strlen(email) == 0) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingEmail,
                      "Email must be provided.");
+    return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jstring j_email = env->NewStringUTF(email);
   jobject pending_result = env->CallObjectMethod(
@@ -849,6 +883,7 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    return;
   }
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kDelete));
