@@ -141,6 +141,7 @@ set(app_android_SRCS
     src/google_play_services/availability_android.cc
     ${app_resources_source}
     ${google_api_resources_source}
+    src/util_android.cc
     src/uuid.cc)
 set(app_ios_SRCS
     src/app_ios.mm
